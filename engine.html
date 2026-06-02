@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anesthesiology Live Tools — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;}
+html,body{max-width:100%;overflow-x:hidden;}
+#app,.eng-wrap,.panels,.panel,.input-bar{max-width:100%;}
+#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;}
+.eng-wrap{max-width:1100px;margin:0 auto;padding:30px 24px 80px;position:relative;z-index:1;}
+.pt-banner{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  background:#06120D;border:1px solid rgba(126,207,192,.28);border-radius:10px;padding:9px 14px;margin-bottom:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.4);}
+.pt-banner .pb-dot{width:8px;height:8px;border-radius:50%;background:#46d39a;box-shadow:0 0 7px #46d39a;flex-shrink:0;}
+.pt-banner .pb-i{font-size:13.5px;font-weight:700;color:#fff;letter-spacing:.01em;}
+.pt-banner .pb-id{color:#7ECFC0;}
+.pt-banner .pb-sep{color:rgba(126,207,192,.45);font-weight:400;}
+.eng-head{margin-bottom:22px;}
+.eng-head h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;}
+.eng-head p{font-size:14px;color:var(--muted);}
+/* ── Monitor header (anesthesia workstation) ── */
+.mon-header{display:flex;align-items:stretch;gap:0;background:#06120D;border:1px solid rgba(126,207,192,.2);
+  border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:inset 0 0 40px rgba(0,0,0,.4);}
+.mh-traces{flex:1;min-width:140px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.06);}
+.mh-tr{flex:1;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.05);min-height:30px;}
+.mh-tr:last-child{border-bottom:none;}
+.mh-lbl{position:absolute;top:3px;left:9px;font-size:8.5px;font-weight:700;letter-spacing:.05em;z-index:2;opacity:.8;}
+.mh-tr svg{width:100%;height:100%;display:block;overflow:visible;}
+.mh-tr path{fill:none;stroke-width:1.5;vector-effect:non-scaling-stroke;}
+.mh-tr.ecg path{stroke:#46d39a;filter:drop-shadow(0 0 3px rgba(70,211,154,.5));}
+.mh-tr.ecg .mh-lbl{color:#46d39a;}
+.mh-tr.pleth path{stroke:#5ad0e6;filter:drop-shadow(0 0 3px rgba(90,208,230,.5));}
+.mh-tr.pleth .mh-lbl{color:#5ad0e6;}
+.mh-tr.capno path{stroke:#e8c454;filter:drop-shadow(0 0 3px rgba(232,196,84,.45));}
+.mh-tr.capno .mh-lbl{color:#e8c454;}
+.wave-anim{will-change:transform;}
+.mh-vitals{display:grid;grid-template-columns:repeat(6,minmax(64px,auto));}
+.mh-v{padding:10px 16px;display:flex;flex-direction:column;justify-content:center;gap:1px;border-left:1px solid rgba(255,255,255,.05);min-width:64px;}
+.mh-v i{font-style:normal;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.5);}
+.mh-v b{font-size:21px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums;}
+.mh-v u{text-decoration:none;font-size:9px;color:var(--hint);}
+.mh-hr b{color:#46d39a;} .mh-hr i{color:#46d39a;}
+.mh-spo2 b{color:#5ad0e6;} .mh-spo2 i{color:#5ad0e6;}
+.mh-co2 b{color:#e8c454;} .mh-co2 i{color:#e8c454;}
+.mh-bp b,.mh-temp b,.mh-mac b{color:#fff;}
+@media(max-width:760px){
+  .mon-header{flex-direction:column;}
+  .mh-traces{border-right:none;border-bottom:1px solid rgba(255,255,255,.06);}
+  .mh-tr{min-height:26px;}
+  .mh-vitals{grid-template-columns:repeat(3,1fr);}
+  .mh-v{border-left:none;border-top:1px solid rgba(255,255,255,.05);align-items:center;text-align:center;}
+}
+/* In embedded mode (inside the Doctor Workspace) hide the duplicate site nav */
+body.embed .nb,body.embed #nb-nav{display:none!important;}
+body.embed .eng-wrap{padding-top:14px;}
+/* Crisis button in header */
+.mh-crisis{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  background:rgba(192,57,43,.16);border:none;border-left:1px solid rgba(255,255,255,.06);
+  color:#ff7a63;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;padding:0 16px;min-width:64px;transition:background .15s;}
+.mh-crisis span{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;}
+.mh-crisis:hover{background:rgba(192,57,43,.3);color:#fff;}
+/* Crisis overlay */
+.crisis-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.82);z-index:5000;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;}
+.crisis-bg.open{display:flex;}
+.crisis-modal{background:#0A1614;border:1px solid rgba(192,57,43,.35);border-radius:16px;max-width:680px;width:100%;overflow:hidden;}
+.crisis-head{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:rgba(192,57,43,.14);border-bottom:1px solid rgba(192,57,43,.25);}
+.crisis-title{font-size:18px;font-weight:700;color:#ff8a72;font-family:'Playfair Display',serif;}
+.crisis-x{background:none;border:none;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;}
+.crisis-wt{padding:9px 20px;font-size:12.5px;color:var(--hint);border-bottom:1px solid var(--border);}
+.crisis-wt b{color:#7ECFC0;}
+.crisis-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:13px 18px 4px;}
+.crisis-tab{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:18px;padding:7px 13px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
+.crisis-tab.on{background:rgba(192,57,43,.22);border-color:rgba(192,57,43,.5);color:#fff;font-weight:600;}
+.crisis-body{padding:8px 20px 22px;}
+.crisis-sec-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#ff8a72;margin:16px 0 7px;}
+.crisis-step{display:flex;gap:10px;font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.5;padding:5px 0;}
+.crisis-step b{color:#fff;}
+.crisis-num{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:rgba(192,57,43,.25);color:#ff9b86;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.crisis-dose{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.crisis-dose span{color:#cfe;} .crisis-dose b{color:#fff;font-weight:700;text-align:right;}
+.crisis-emg-t{font-size:17px;font-weight:700;color:#fff;margin-top:4px;}
+.crisis-emg-t span{display:block;font-size:12px;font-weight:500;color:#ff9b86;margin-top:1px;}
+/* Auto panels — summary & risk */
+.summary-panel{background:linear-gradient(135deg,rgba(27,107,90,.16),rgba(27,107,90,.05));border:1px solid rgba(42,138,116,.3);}
+/* Dominant patient summary */
+.sum-primary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.sp-cell{background:rgba(0,0,0,.22);border-radius:10px;padding:11px 12px;text-align:center;}
+.sp-cell i{font-style:normal;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:4px;}
+.sp-cell b{font-size:24px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;line-height:1;}
+.sp-cell b u{font-size:11px;text-decoration:none;color:var(--hint);margin-left:2px;font-family:'DM Sans',sans-serif;}
+.sum-proc{background:rgba(0,0,0,.16);border-radius:9px;padding:9px 12px;margin-top:8px;}
+.sum-proc i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-right:8px;}
+.sum-proc b{font-size:14px;color:#fff;font-weight:600;}
+.sum-more{display:none;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px;}
+.sum-more.open{display:grid;}
+.sm-cell{background:rgba(255,255,255,.04);border-radius:8px;padding:7px 9px;text-align:center;}
+.sm-cell i{font-style:normal;display:block;font-size:9px;text-transform:uppercase;color:var(--hint);margin-bottom:2px;}
+.sm-cell b{font-size:14px;color:#cfe;font-weight:600;}
+.sum-more-btn{margin-top:9px;background:none;border:1px solid var(--border);color:#7ECFC0;border-radius:7px;padding:6px 12px;font-size:11.5px;font-family:inherit;cursor:pointer;}
+.sum-more-btn:hover{background:rgba(255,255,255,.04);}
+/* Drug dosing cards */
+.drug-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.drug-card{background:rgba(0,0,0,.2);border:1px solid rgba(42,138,116,.22);border-radius:9px;padding:10px 11px;}
+.dc-name{font-size:13px;font-weight:700;letter-spacing:.02em;color:#fff;margin-bottom:2px;}
+.dc-sub{font-size:10.5px;color:#7ECFC0;font-weight:500;line-height:1.3;margin-bottom:6px;min-height:26px;}
+.dc-dose{font-size:18px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;line-height:1.05;}
+.dc-dose span{font-size:10px;color:#9fe6d4;margin-left:3px;font-weight:600;}
+/* Airway & ventilation at-a-glance grid */
+.av-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:6px;}
+.av-cell{background:rgba(0,0,0,.18);border-radius:8px;padding:8px 9px;text-align:center;}
+.av-cell i{font-style:normal;display:block;font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin-bottom:2px;}
+.av-cell b{font-size:16px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}
+.sum-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:9px;margin-bottom:4px;}
+.sum-cell{background:rgba(0,0,0,.18);border-radius:8px;padding:8px 11px;}
+.sum-cell i{font-style:normal;display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin-bottom:2px;}
+.sum-cell b{font-size:15px;color:#fff;font-weight:600;}
+.warn-chip{display:inline-block;font-size:12px;font-weight:600;background:rgba(232,168,56,.14);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:7px;padding:5px 10px;margin:3px 5px 3px 0;}
+.warn-chip.hi{background:rgba(192,57,43,.16);border-color:rgba(192,57,43,.4);color:#ff9b86;}
+.lab-imp{font-size:13px;color:rgba(255,255,255,.85);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);line-height:1.5;}
+.lab-imp b{color:#7ECFC0;}
+.av-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:14px 0 6px;padding-top:8px;border-top:1px solid rgba(27,107,90,.12);}
+.av-sub:first-child{margin-top:0;padding-top:0;border-top:none;}
+.input-bar{background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:14px;
+  padding:18px 20px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;align-items:end;}
+.inp{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.inp label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:#8FD9C6;}
+.inp input,.inp select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;
+  padding:10px 11px;color:#fff;font-size:16px;font-family:inherit;outline:none;transition:border-color .2s;min-height:44px;appearance:none;-webkit-appearance:none;width:100%;max-width:100%;box-sizing:border-box;min-width:0;}
+.inp input:focus,.inp select:focus{border-color:#2A8A74;}
+.inp select option{background:#132218;}
+.disclaimer{font-size:11px;color:var(--hint);margin-bottom:24px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer strong{color:#E8A838;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--hint);}
+.empty-state .ico{font-size:40px;margin-bottom:14px;opacity:.6;}
+.empty-state p{font-size:14px;}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+.panel.full{grid-column:1 / -1;}
+.panel{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.panel-head{width:100%;text-align:left;padding:14px 18px;border:none;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:none;font-family:inherit;cursor:pointer;color:#fff;}
+.panel-head:hover{background:rgba(255,255,255,.02);}
+.panel-ico{font-size:17px;}
+.panel-title{font-size:14px;font-weight:600;}
+.panel-tag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);margin-left:auto;background:rgba(255,255,255,.05);padding:2px 7px;border-radius:4px;}
+.panel-chev{margin-left:8px;color:#7ECFC0;font-size:11px;transition:transform .22s;}
+.panel.collapsed .panel-chev{transform:rotate(-90deg);}
+.panel.collapsed .panel-head{border-bottom:none;}
+.panel.collapsed .panel-body{display:none;}
+.crisis-panel{border-color:rgba(192,57,43,.35);}
+.crisis-card-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
+.crisis-card-chip{font-size:11px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.32);color:#ffd0c4;border-radius:7px;padding:6px 9px;display:flex;flex-direction:column;gap:1px;}
+.crisis-card-chip b{color:#fff;font-size:12px;font-weight:700;}
+.crisis-open-btn{width:100%;background:rgba(192,57,43,.2);border:1px solid rgba(192,57,43,.45);color:#ff8a72;border-radius:9px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;}
+.crisis-open-btn:hover{background:rgba(192,57,43,.32);color:#fff;}
+.metric{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.14);}
+.metric:last-child{border-bottom:none;}
+.metric-label{font-size:13.5px;color:#e6f2ee;font-weight:500;}
+.metric-value{font-size:16px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.metric-value small{font-size:11px;color:#7ECFC0;font-weight:600;margin-left:3px;}
+.metric-range{color:#fff;}
+.peds-note{font-size:11.5px;color:#F0C674;margin-top:8px;padding-top:8px;border-top:1px solid rgba(232,168,56,.2);}
+.helper{font-size:12.5px;color:#c4d4ce;line-height:1.6;padding:6px 0;}
+.helper b{color:#fff;font-weight:600;}
+/* context row: label + subtitle (formula/indication/weight) + value */
+.m2{align-items:flex-start;}
+.m2-l{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.m2-sub{font-size:11.5px;color:#7ECFC0;font-weight:500;line-height:1.35;}
+@media(max-width:900px){
+  .panels{grid-template-columns:1fr;}
+  .input-bar{grid-template-columns:repeat(3,1fr);}
+}
+@media(max-width:640px){
+  .input-bar{grid-template-columns:1fr;gap:9px;padding:14px;margin-bottom:10px;}
+  .eng-wrap{padding:12px 11px 60px;}
+  .mon-header{margin-bottom:10px;}
+  .mh-tr{min-height:22px;}
+  .disclaimer{font-size:10.5px;margin-bottom:10px;padding:7px 10px;}
+  .pt-banner{padding:8px 12px;margin-bottom:10px;}
+  .pt-banner .pb-i{font-size:13px;}
+  .panel-head{padding:12px 14px;}
+  .panel-body{padding:8px 14px 14px;}
+  .panel-title{font-size:13.5px;}
+  .sum-row{gap:7px;}
+  .sum-primary{grid-template-columns:repeat(2,1fr);}
+  .sum-more{grid-template-columns:repeat(2,1fr);}
+  .metric{padding:7px 0;}
+  .drug-grid{grid-template-columns:1fr 1fr;}
+  .av-grid{grid-template-columns:repeat(4,1fr);}
+}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div id="nb-placeholder"></div>
+<div id="app">
+  <div class="eng-wrap">
+    <div class="mon-header" id="mon-header">
+      <div class="mh-traces">
+        <div class="mh-tr ecg"><span class="mh-lbl">ECG II</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-ecg"/></g></svg></div>
+        <div class="mh-tr pleth"><span class="mh-lbl">SpO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-pleth"/></g></svg></div>
+        <div class="mh-tr capno"><span class="mh-lbl">CO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-capno"/></g></svg></div>
+      </div>
+      <div class="mh-vitals">
+        <div class="mh-v mh-hr"><i>HR</i><b id="mh-hr">78</b><u>bpm</u></div>
+        <div class="mh-v mh-spo2"><i>SpO&#8322;</i><b id="mh-spo2">99</b><u>%</u></div>
+        <div class="mh-v mh-co2"><i>ETCO&#8322;</i><b id="mh-co2">36</b><u>mmHg</u></div>
+        <div class="mh-v mh-bp"><i>NIBP</i><b id="mh-bp">128/72</b><u>mmHg</u></div>
+        <div class="mh-v mh-temp"><i>Temp</i><b id="mh-temp">36.7</b><u>&deg;C</u></div>
+        <div class="mh-v mh-mac"><i>MAC</i><b id="mh-mac">1.0</b><u></u></div>
+      </div>
+      <button class="mh-crisis" onclick="openCrisis()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
+    </div>
+    <div class="input-bar">
+      <div class="inp"><label>Age</label><input id="i-age" type="number" inputmode="numeric" placeholder="years" oninput="compute()"></div>
+      <div class="inp"><label>Sex</label><select id="i-sex" onchange="compute()"><option value="">—</option><option value="M">Male</option><option value="F">Female</option></select></div>
+      <div class="inp"><label>Height (cm)</label><input id="i-height" type="number" inputmode="numeric" placeholder="cm" oninput="compute()"></div>
+      <div class="inp"><label>Weight (kg)</label><input id="i-weight" type="number" inputmode="numeric" placeholder="kg" oninput="compute()"></div>
+      <div class="inp"><label>ASA</label><select id="i-asa" onchange="compute()"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></div>
+      <div class="inp"><label>Procedure</label><input id="i-proc" type="text" placeholder="e.g. Laparoscopy" oninput="compute()"></div>
+    </div>
+    <div class="input-bar" style="margin-top:-4px;">
+      <div class="inp"><label>Hb (g/dL)</label><input id="i-hb" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
+      <div class="inp"><label>Platelets (×10³)</label><input id="i-plt" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
+      <div class="inp"><label>INR</label><input id="i-inr" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
+      <div class="inp"><label>Creatinine (mg/dL)</label><input id="i-cr" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
+      <div class="inp"><label>Sodium (mmol/L)</label><input id="i-na" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
+    </div>
+    <div class="pt-banner" id="pt-banner" style="display:none"></div>
+    <div class="disclaimer"><strong>Reference only.</strong> All values are standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment and verify against current guidelines and product labeling.</div>
+    <div id="output">
+      <div class="empty-state"><div class="ico">&#129658;</div><p>Enter age, sex, height and weight to generate the dashboard.</p></div>
+    </div>
+  </div>
+</div>
+<div class="crisis-bg" id="crisis-bg" onclick="if(event.target===this)closeCrisis()">
+  <div class="crisis-modal">
+    <div class="crisis-head">
+      <div class="crisis-title">&#128680; Crisis Center</div>
+      <button class="crisis-x" onclick="closeCrisis()">&times;</button>
+    </div>
+    <div class="crisis-wt" id="crisis-wt"></div>
+    <div class="crisis-tabs" id="crisis-tabs"></div>
+    <div class="crisis-body" id="crisis-body"></div>
+  </div>
+</div>
+<script>
+function ge(id){ return document.getElementById(id); }
+// ── Persist patient inputs across views (iframe ↔ full screen) ──
+var ENG_KEY = 'anestheo-engine-inputs';
+function saveInputs(){
+  try {
+    var d = { age:ge('i-age').value, sex:ge('i-sex').value, height:ge('i-height').value,
+              weight:ge('i-weight').value, asa:ge('i-asa').value, proc:ge('i-proc').value };
+    localStorage.setItem(ENG_KEY, JSON.stringify(d));
+  } catch(e){}
+}
+function restoreInputs(){
+  try {
+    var raw = localStorage.getItem(ENG_KEY); if(!raw) return false;
+    var d = JSON.parse(raw);
+    if(ge('i-age')) ge('i-age').value = d.age || '';
+    if(ge('i-sex')) ge('i-sex').value = d.sex || '';
+    if(ge('i-height')) ge('i-height').value = d.height || '';
+    if(ge('i-weight')) ge('i-weight').value = d.weight || '';
+    if(ge('i-asa')) ge('i-asa').value = d.asa || '';
+    if(ge('i-proc')) ge('i-proc').value = d.proc || '';
+    return !!(d.age || d.sex || d.height || d.weight || d.asa || d.proc);
+  } catch(e){ return false; }
+}
+function num(id){ var v=parseFloat(ge(id).value); return isNaN(v)?null:v; }
+function r0(x){ return Math.round(x); }
+function r1(x){ return Math.round(x*10)/10; }
+function r2(x){ return Math.round(x*100)/100; }
+
+function compute(){
+  saveInputs();
+  var age=num('i-age'), sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
+  var out=ge('output');
+  if(age==null||!sex||ht==null||wt==null){
+    out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p>Enter age, sex, height and weight to generate the dashboard.</p></div>';
+    var pb0=ge('pt-banner'); if(pb0) pb0.style.display='none';
+    return;
+  }
+  var isPeds=age<16;
+  var htM=ht/100;
+  var bmi=wt/(htM*htM);
+  var inchesOver5ft=(ht-152.4)/2.54;
+  var ibw=(sex==='M'?50:45.5)+2.3*Math.max(0,inchesOver5ft); if(ibw<0)ibw=0;
+  var abw=ibw+0.4*(wt-ibw);
+  var lbw=sex==='M'?(0.407*wt)+(0.267*ht)-19.2:(0.252*wt)+(0.473*ht)-48.3;
+  var bsa=Math.sqrt((ht*wt)/3600);
+  var pbw=(sex==='M'?50:45.5)+0.91*(ht-152.4); if(pbw<1)pbw=wt;
+
+  // ── AIRWAY (combined recommendations) ──
+  var airwayRows='', pedsNote='', emAirway='';
+  if(isPeds){
+    var ettU=(age/4)+4, ettC=(age/4)+3.5, depth=(age/2)+12;
+    var pBlade = age<0.5?'Miller 0':(age<2?'Miller 1':(age<6?'Miller / Mac 1–2':'Mac 2'));
+    airwayRows=
+      metric('ETT uncuffed',r1(ettU),'mm ID',true)+
+      metric('ETT cuffed',r1(ettC),'mm ID',true)+
+      metric('ETT depth (lips)',r1(depth),'cm',true)+
+      metric('LMA size',lmaForWeight(wt),'')+
+      metric('i-gel size',igelForWeight(wt),'')+
+      metric('Blade',pBlade,'')+
+      metric('Oral airway (Guedel)',opaPeds(age),'')+
+      metric('Nasopharyngeal',npaPeds(age),'');
+    pedsNote='<div class="peds-note">Pediatric formulas: uncuffed ETT age/4 + 4, cuffed age/4 + 3.5, depth age/2 + 12.</div>';
+    emAirway='<div class="helper"><b>Emergency airway:</b> call for help early; optimize oxygenation. CICO &lt; ~8 y → needle cricothyroidotomy + oxygenation; older children → scalpel technique by expert.</div>';
+  } else {
+    var mac = (ht && ht>=175) ? '4 (3 standard)' : '3 (4 if large / tall)';
+    airwayRows=
+      metric('ETT cuffed',sex==='M'?'8.0 (7.5–8.5)':'7.0 (7.0–7.5)','mm ID',true)+
+      metric('ETT uncuffed','≈0.5 mm larger (not routine in adults)','mm ID')+
+      metric('ETT depth (lips)',sex==='M'?'22 – 24':'20 – 22','cm',true)+
+      metric('LMA size',lmaForWeight(wt),'')+
+      metric('i-gel size',igelForWeight(wt),'')+
+      metric('Macintosh blade',mac,'')+
+      metric('Miller blade','3 (2 alternative)','')+
+      metric('Oral airway (Guedel)',sex==='M'?'Size 4 (90 mm)':'Size 3 (80 mm)','')+
+      metric('Nasopharyngeal',sex==='M'?'7.0 – 7.5 mm':'6.0 – 6.5 mm','');
+    emAirway='<div class="helper"><b>Emergency airway (CICO):</b> scalpel–bougie–tube cricothyroidotomy (6.0 mm); confirm with capnography. See <a href="/v2/difficult-airway.html" style="color:#7ECFC0;">algorithm</a>.</div>';
+  }
+  // airway assessment helpers (educational scoring guides)
+  var airwayHelpers=
+    '<div class="helper"><b>Mallampati:</b> I–IV by visible structures (soft palate, fauces, uvula, pillars). III–IV suggests harder laryngoscopy.</div>' +
+    '<div class="helper"><b>LEMON:</b> Look externally · Evaluate 3-3-2 · Mallampati · Obstruction · Neck mobility.</div>' +
+    '<div class="helper"><b>MACOCHA:</b> Mallampati III/IV, Apnea/OSA, Cervical limit, Opening &lt;3cm, Coma, Hypoxemia, Non-anesthetist. Higher = harder ICU intubation.</div>';
+
+  // ── VENTILATION ──
+  var rr=isPeds?20:12;
+  var tv6=pbw*6, tv7=pbw*7, tv8=pbw*8, tv9=pbw*9, tv10=pbw*10;
+  var mvLo=(tv6*rr)/1000, mvHi=(tv8*rr)/1000;
+  var ventRows=
+    m2('Predicted body weight','Sex + height based (ARDSNet)',r1(pbw),'kg')+
+    m2('Tidal volume','Target 6–8 mL/kg PBW',r0(tv6)+'–'+r0(tv8),'mL')+
+    metric('TV 6 ml/kg PBW',r0(tv6),'mL')+metric('TV 7 ml/kg PBW',r0(tv7),'mL')+
+    metric('TV 8 ml/kg PBW',r0(tv8),'mL')+metric('TV 9 ml/kg PBW',r0(tv9),'mL')+
+    metric('TV 10 ml/kg PBW',r0(tv10),'mL')+
+    m2('Minute ventilation','TV × RR ('+rr+'/min) estimate',r1(mvLo)+'–'+r1(mvHi),'L/min');
+  var pedsVent = isPeds ?
+    (metric('TV 6 ml/kg (actual wt)',r0(wt*6),'mL',true)+
+     metric('TV 7 ml/kg (actual wt)',r0(wt*7),'mL')+
+     metric('TV 8 ml/kg (actual wt)',r0(wt*8),'mL',true)+
+     '<div class="helper"><b>Pediatric ventilation:</b> TV 6–8 mL/kg, RR by age (neonate 30–40, infant 25–30, child 20–25/min), PEEP ~5, low peak pressures; expect a leak with uncuffed tubes.</div>') : '';
+  var pressureGuide =
+    '<div class="helper"><b>Peak pressure:</b> reference target &lt; 35–40 cmH₂O.</div>'+
+    '<div class="helper"><b>Plateau pressure:</b> reference target ≤ 30 cmH₂O.</div>'+
+    '<div class="helper"><b>Driving pressure:</b> Pplat − PEEP, reference target ≤ 15 cmH₂O.</div>'+
+    '<div class="helper"><b>Protective ventilation:</b> TV 6–8 mL/kg PBW, PEEP ≥ 5, recruit as needed, lowest tolerated FiO₂. ARDS: TV 6 mL/kg ('+r0(tv6)+' mL), higher PEEP, permissive hypercapnia, prone if P/F &lt; 150.</div>'+
+    '<div class="helper" style="opacity:.75">Reference values only — not mandatory recommendations; titrate to the patient.</div>';
+  // Combined Airway & Ventilation card body
+  // Compact at-a-glance key values (airway + ventilation together)
+  function av(l,v){ return '<div class="av-cell"><i>'+l+'</i><b>'+v+'</b></div>'; }
+  var ettKey = isPeds ? r1((age/4)+3.5) : (sex==='M'?'8.0':'7.0');
+  var depthKey = isPeds ? r1((age/2)+12) : (sex==='M'?'22–24':'20–22');
+  var macKey = isPeds ? (age<0.5?'Mil 0':age<2?'Mil 1':age<6?'1–2':'Mac 2') : ((ht&&ht>=175)?'Mac 4':'Mac 3');
+  var avKey='<div class="av-grid">'+
+    av('ETT',ettKey)+av('Depth',depthKey+' cm')+av('LMA',lmaForWeight(wt))+
+    av('i-gel',(igelForWeight(wt)+'').split(' ')[0])+av('Blade',macKey)+
+    av('PBW',r0(pbw)+' kg')+av('TV 6–8',r0(tv6)+'–'+r0(tv8))+av('MV',r1(mvLo)+'–'+r1(mvHi)+' L')+
+  '</div>';
+  var avBody =
+    avKey+
+    '<div class="av-sub">Airway detail</div>'+airwayRows+pedsNote+
+    '<div class="av-sub">Ventilation (TV by ml/kg)</div>'+ventRows+pedsVent+
+    '<div class="av-sub">Pressure guidance</div>'+pressureGuide+
+    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+emAirway+airwayHelpers+'</div>';
+
+  // DRUGS — reference ranges
+  function dcard(name, sub, dose, unit){ return '<div class="drug-card"><div class="dc-name">'+name+'</div><div class="dc-sub">'+sub+'</div><div class="dc-dose">'+dose+'<span>'+(unit||'')+'</span></div></div>'; }
+  var drugRows='<div class="drug-grid">'+
+    dcard('Propofol','Induction · 1.5–2.5 mg/kg TBW',r0(wt*1.5)+'–'+r0(wt*2.5),'mg')+
+    dcard('Fentanyl','Analgesia · 1–3 mcg/kg TBW',r0(wt*1)+'–'+r0(wt*3),'mcg')+
+    dcard('Rocuronium','Intubation · 0.6–1.2 mg/kg TBW',r0(wt*0.6)+'–'+r0(wt*1.2),'mg')+
+    dcard('Suxamethonium','RSI · 1–1.5 mg/kg TBW',r0(wt*1)+'–'+r0(wt*1.5),'mg')+
+    dcard('Sugammadex','Routine reversal · 2–4 mg/kg TBW',r0(wt*2)+'–'+r0(wt*4),'mg')+
+    dcard('Sugammadex','Immediate reversal · 16 mg/kg TBW',r0(wt*16),'mg')+
+    dcard('Ketamine','Induction · 1–2 mg/kg TBW',r0(wt*1)+'–'+r0(wt*2),'mg')+
+    dcard('Midazolam','Premed · 0.02–0.04 mg/kg TBW',r1(wt*0.02)+'–'+r1(wt*0.04),'mg')+
+    dcard('Morphine','Analgesia · 0.05–0.1 mg/kg TBW',r1(wt*0.05)+'–'+r1(wt*0.1),'mg')+
+    dcard('Neostigmine','Reversal · 0.04–0.05 mg/kg (max 5)',r1(wt*0.04)+'–'+r1(Math.min(wt*0.05,5)),'mg')+
+    dcard('Remifentanil','Infusion · 0.05–0.2 mcg/kg/min','0.05–0.2','mcg/kg/min')+
+    dcard('Dexmedetomidine','Sedation · 0.2–0.7 mcg/kg/h','0.2–0.7','mcg/kg/h')+
+  '</div>';
+
+  // TIVA / TCI
+  var tivaRows=
+    metric('Propofol Ce (induction)','4 – 6','mcg/mL',true)+
+    metric('Propofol Ce (maintenance)','2.5 – 4','mcg/mL',true)+
+    metric('Remifentanil Ce','2 – 6','ng/mL',true)+
+    metric('Manual infusion (10-8-6)','10\u21928\u21926','mg/kg/h');
+  var tivaHelpers=
+    '<div class="helper"><b>Marsh model:</b> weight-based pharmacokinetics; uses total body weight. Plasma-targeted.</div>'+
+    '<div class="helper"><b>Schnider model:</b> uses age, height, LBM; effect-site targeting. Lower induction doses in elderly.</div>'+
+    '<div class="helper"><b>Effect-site targets:</b> induction propofol Ce 4–6 mcg/mL; maintenance 2.5–4; reduce with opioid synergy and age.</div>';
+
+  // VASOPRESSORS / INOTROPES
+  var pressorRows=
+    m2('Noradrenaline','1st-line vasopressor · titrate to MAP','0.01–0.5','mcg/kg/min')+
+    m2('Adrenaline','Inotrope + vasopressor · anaphylaxis/arrest','0.01–0.5','mcg/kg/min')+
+    m2('Phenylephrine','Bolus · pure α, reflex bradycardia','50–100','mcg')+
+    m2('Phenylephrine','Infusion · maintain SVR (e.g. spinal)','0.1–0.5','mcg/kg/min')+
+    m2('Ephedrine','Bolus · mixed α/β, use if bradycardic','5–10','mg')+
+    m2('Dobutamine','Inotrope · low cardiac output','2–20','mcg/kg/min')+
+    m2('Vasopressin','Adjunct · catecholamine-resistant shock','0.01–0.04','units/min');
+  var pressorHelpers=
+    '<div class="helper"><b>Prep — noradrenaline:</b> commonly 4 mg/50 mL (80 mcg/mL) or 8 mg/50 mL.</div>'+
+    '<div class="helper"><b>Prep — phenylephrine:</b> 10 mg/100 mL (100 mcg/mL) for bolus; 100 mcg/mL infusion.</div>'+
+    '<div class="helper"><b>Prep — adrenaline:</b> 1 mg/50 mL (20 mcg/mL); ephedrine 30 mg/10 mL (3 mg/mL).</div>';
+
+  // BLOOD VOLUME / MABL  (EBV by weight, Hct-based MABL)
+  var ebvPerKg = isPeds ? (age < 1 ? 80 : 75) : (sex==='M' ? 70 : 65);
+  var ebv = wt * ebvPerKg;
+  var mablH30 = ebv * (40 - 30) / 40;  // assuming starting Hct ~40, trigger 30
+  var mablH25 = ebv * (40 - 25) / 40;
+  var bloodRows=
+    metric('Est. blood volume', r0(ebv), 'mL', true)+
+    metric('EBV per kg', ebvPerKg, 'mL/kg')+
+    metric('MABL (Hct 40\u219230)', r0(mablH30), 'mL', true)+
+    metric('MABL (Hct 40\u219225)', r0(mablH25), 'mL', true);
+  var bloodHelpers=
+    '<div class="helper"><b>Transfusion trigger:</b> commonly Hb 7 g/dL; 8 g/dL with cardiac disease; clinical context governs.</div>'+
+    '<div class="helper">MABL assumes starting Hct ~40%; recalculate with the patient\u2019s actual Hct.</div>';
+
+  // NEURAXIAL
+  var neuraxialRows=
+    m2('CS spinal','Hyperbaric bupivacaine 0.5% (9–11 mg)','1.8–2.2','mL')+
+    m2('Spinal additives','Intrathecal · fentanyl + preservative-free morphine','15 + 100','mcg')+
+    m2('Labor epidural','Low-dose LA + lipophilic opioid','0.0625–0.125','% bupiv')+
+    m2('Epidural infusion','Maintenance rate','6–12','mL/h')+
+    m2('Epidural top-up (CS)','Surgical block · lidocaine 2% + epi/bicarb','15–20','mL');
+  var neuraxialHelpers=
+    '<div class="helper"><b>Spinal:</b> hyperbaric bupivacaine 0.5%; dose by height/procedure. Onset 5\u201310 min.</div>'+
+    '<div class="helper"><b>Labor:</b> low-dose LA + lipophilic opioid; PCEA or programmed intermittent bolus.</div>';
+
+  // LOCAL ANESTHETIC LIMITS (max single dose) — weight source: TBW (lean in obese)
+  var laRows=
+    m2('Lidocaine','Max · 4.5 mg/kg (7 mg/kg w/ epi) TBW',r0(wt*4.5)+' / '+r0(wt*7),'mg')+
+    m2('Bupivacaine','Max · 2 mg/kg (3 mg/kg w/ epi) TBW',r0(wt*2)+' / '+r0(wt*3),'mg')+
+    m2('Ropivacaine','Max · 3 mg/kg TBW',r0(wt*3),'mg')+
+    m2('Lidocaine 1%','Volume at 4.5 mg/kg max',r1((wt*4.5)/10),'mL');
+
+  // FLUIDS
+  var fluidRows;
+  if(isPeds){
+    var h421; if(wt<=10)h421=wt*4; else if(wt<=20)h421=40+(wt-10)*2; else h421=60+(wt-20)*1;
+    fluidRows=metric('Maintenance (4-2-1)',r0(h421),'mL/hr',true)+metric('Daily maintenance',r0(h421*24),'mL/day')+metric('NPO deficit / hr fasted',r0(h421),'mL');
+  } else {
+    var maint=40+(wt-20)*1;
+    fluidRows=metric('Maintenance (4-2-1)',r0(maint),'mL/hr',true)+metric('Daily maintenance',r0(maint*24),'mL/day')+metric('NPO deficit / hr fasted',r0(maint),'mL');
+  }
+
+  // ── AUTO-GENERATED WORKSTATION PANELS ──
+  var proc=(ge('i-proc').value||'').trim(), asa=ge('i-asa').value;
+  // Sticky patient status bar: "77M | ASA II | BMI 22.7 | IBW 72 | LBW 57 | ABW 72 | BSA 1.87 | EBV 4970 mL | Procedure"
+  var pb=ge('pt-banner');
+  if(pb){
+    var parts = [
+      age+(sex==='M'?'M':'F'),
+      asa?('ASA '+asa):'ASA —',
+      'BMI '+r1(bmi),
+      'IBW '+r0(ibw),
+      'LBW '+r0(lbw),
+      'ABW '+r0(abw),
+      'BSA '+r2(bsa),
+      'EBV '+r0(ebv)+' mL'
+    ];
+    if(proc) parts.push(proc.replace(/</g,'&lt;'));
+    pb.innerHTML = '<span class="pb-dot"></span>' + parts.map(function(p,ix){return '<span class="pb-i'+(ix===0?' pb-id':'')+'">'+p+'</span>';}).join('<span class="pb-sep">|</span>');
+    pb.style.display='flex';
+  }
+  var procL=proc.toLowerCase();
+  var isCS = /cesar|caesar|c-?section|c\/s/.test(procL);
+  var isOb = sex==='F' && (isCS || /obstet|labou?r|delivery|hysterect|gyn/.test(procL));
+
+  // Risk warnings (derivable snapshot)
+  var warns=[];
+  if(bmi>=40) warns.push(['Morbid obesity (BMI '+r1(bmi)+') — airway, positioning, dosing by IBW/ABW','hi']);
+  else if(bmi>=35) warns.push(['Obesity (BMI '+r1(bmi)+') — OSA screen, ramped position','']);
+  if(bmi>=35||age>50||sex==='M') { var sbn=(bmi>35?1:0)+(age>50?1:0)+(sex==='M'?1:0); warns.push(['STOP-BANG ≥'+sbn+' from age/BMI/sex — screen for OSA','']); }
+  if(age>=65) warns.push(['Age '+age+' — frailty & delirium risk; consider CFS / Mini-Cog / 4AT','']);
+  if(age>=80) warns.push(['Advanced age '+age+' — reduce induction doses, delirium precautions','hi']);
+  if(asa==='IV'||asa==='V') warns.push(['ASA '+asa+' — high perioperative risk; senior input, invasive monitoring','hi']);
+  if(isPeds) warns.push(['Pediatric ('+age+'y) — weight-based dosing, airway formulas applied','']);
+  if(isOb) warns.push(['Obstetric patient — see obstetric quick reference','']);
+  if(age>50&&!asa) warns.push(['Consider RCRI / functional capacity (METs) for cardiac risk','']);
+  var riskHtml = warns.length
+    ? warns.map(function(wn){ return '<span class="warn-chip'+(wn[1]==='hi'?' hi':'')+'">'+(wn[1]==='hi'?'&#9888; ':'')+wn[0]+'</span>'; }).join('')
+    : '<div class="helper">No automated risk flags from entered data. Enter ASA and procedure for more.</div>';
+  riskHtml += '<div class="helper" style="margin-top:8px">Risk screens to consider: <b>STOP-BANG, RCRI, ARISCAT, Apfel, Frailty (CFS), Mini-Cog, 4AT</b> — full calculators in <a href="/v2/scores.html" style="color:#7ECFC0;">Clinical Scores</a>.</div>';
+
+  // Massive hemorrhage
+  var hemHtml =
+    metric('Activate MTP','1:1:1 RBC : FFP : platelets','',true)+
+    metric('Tranexamic acid','1 g over 10 min, then 1 g/8 h','',true)+
+    metric('Calcium (ionized <1.1)','CaCl₂ '+r0(wt*10)+' mg or 1 g','',true)+
+    metric('Fibrinogen target','>1.5–2 g/L (cryo / concentrate)','',true)+
+    metric('Platelet target','>50 (>100 if CNS/diffuse)','×10³',true)+
+    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+
+    '<div class="helper"><b>ROTEM/TEG:</b> CT/R prolonged → FFP; low A5/A10 (FIBTEM) → fibrinogen/cryo; low EXTEM amplitude → platelets; LI30 low / ML high → fibrinolysis → TXA.</div>'+
+    '<div class="helper"><b>Goals:</b> keep ionized Ca²⁺ &gt;1.1, temp &gt;36°C, pH &gt;7.2, avoid dilution. Recheck gas/coags frequently.</div>'+
+    '</div>';
+
+  // Obstetric quick reference (conditional)
+  var obHtml = isOb ?
+    (metric('CS spinal — heavy bupiv 0.5%','1.8 – 2.2 mL (9–11 mg)','',true)+
+     metric('Spinal additives','fentanyl 15 mcg + morphine 100 mcg','')+
+     metric('Phenylephrine (1st-line)','25–50 mcg bolus / 25–50 mcg/min','',true)+
+     metric('Ephedrine (if bradycardic)','5–10 mg','',true)+
+     metric('Oxytocin (slow)','3–5 units slow IV, then infusion','',true)+
+     metric('Carbetocin','100 mcg IV','',true)+
+     '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+
+     '<div class="helper"><b>Preeclampsia:</b> BP control (labetalol/hydralazine), MgSO₄ 4 g load + 1 g/h; check platelets/coags before neuraxial.</div>'+
+     '<div class="helper"><b>Mg toxicity:</b> loss of reflexes (~4 mmol/L) → resp depression → arrest. Treat: stop Mg, calcium gluconate 1 g IV.</div>'+
+     '<div class="helper"><b>PPH:</b> uterotonics (oxytocin→ergometrine→carboprost→misoprostol), TXA 1 g, bimanual, escalate; <a href="/v2/obstetric.html" style="color:#7ECFC0;">full reference</a>.</div>'+
+     '</div>') : '';
+
+  // Pediatric quick reference (conditional)
+  var pedHtml = isPeds ?
+    (metric('ETT uncuffed',r1((age/4)+4),'mm ID')+
+     metric('ETT cuffed',r1((age/4)+3.5),'mm ID')+
+     metric('ETT depth (lips)',r1((age/2)+12),'cm')+
+     metric('Suggested LMA',lmaForWeight(wt),'')+
+     metric('Laryngoscope',age<1?'Miller 0–1':(age<4?'Mac/Miller 1':(age<8?'Mac 2':'Mac 2–3')),'')+
+     '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+
+     '<div class="helper"><b>Emergency drugs:</b> Adrenaline 10 mcg/kg ('+r0(wt*10)+' mcg) · Atropine 20 mcg/kg ('+r0(wt*20)+' mcg, min 100) · Succinylcholine 2 mg/kg ('+r0(wt*2)+' mg) · Defib 4 J/kg ('+r0(wt*4)+' J).</div>'+
+     '<div class="helper"><b>Fluids:</b> bolus 10–20 mL/kg ('+r0(wt*10)+'–'+r0(wt*20)+' mL). Glucose-containing maintenance in neonates/infants.</div>'+
+     '</div>') : '';
+
+  // Lab interpreter (conditional on any lab entered)
+  var hb=num('i-hb'), plt=num('i-plt'), inr=num('i-inr'), cr=num('i-cr'), na=num('i-na');
+  var labRows='', anyLab=(hb!=null||plt!=null||inr!=null||cr!=null||na!=null);
+  function li(t){ return '<div class="lab-imp">'+t+'</div>'; }
+  if(hb!=null){ labRows+=li('<b>Hb '+hb+':</b> '+(hb<7?'Below transfusion trigger — strongly consider RBC (clinical context).':hb<8?'Low — transfuse if cardiac disease/ongoing loss.':hb<10?'Mild anemia — optimize, minimize blood loss.':'Adequate.')); }
+  if(plt!=null){ labRows+=li('<b>Platelets '+plt+':</b> '+(plt<50?'Neuraxial contraindicated; transfuse for surgery/bleeding.':plt<80?'Caution for neuraxial; case-by-case.':plt<100?'Generally acceptable; avoid if other coagulopathy.':'Neuraxial block generally acceptable.')); }
+  if(inr!=null){ labRows+=li('<b>INR '+inr+':</b> '+(inr>1.5?'Coagulopathy — neuraxial contraindicated; correct (vit K/FFP/PCC); review anticoagulation.':inr>1.4?'Borderline — caution; correct before neuraxial.':'Within acceptable range for neuraxial.')); }
+  if(cr!=null){ labRows+=li('<b>Creatinine '+cr+':</b> '+(cr>2?'Significant renal impairment — AKI precautions, avoid nephrotoxins, dose-adjust (e.g. avoid/reduce morphine, gabapentinoids), careful contrast/NSAIDs.':cr>1.3?'Mild impairment — review renally-cleared drugs, maintain perfusion.':'Normal renal function.')); }
+  if(na!=null){ labRows+=li('<b>Sodium '+na+':</b> '+(na<125?'Severe hyponatremia — correct cautiously (osmotic demyelination risk); delay elective surgery.':na<135?'Hyponatremia — identify cause, caution with hypotonic fluids.':na>145?'Hypernatremia — assess volume/free-water deficit.':'Normal.')); }
+  if(anyLab) labRows+='<div class="helper" style="margin-top:6px">Implications are general guidance — integrate with the full clinical picture and current guidelines.</div>';
+
+  // Merged Fluids & Blood (fluids + blood volume/MABL + massive hemorrhage)
+  var fluidsBloodBody =
+    '<div class="av-sub">Fluids</div>'+fluidRows+
+    '<div class="av-sub">Blood volume / MABL</div>'+bloodRows+
+    '<div style="margin-top:6px">'+bloodHelpers+'</div>'+
+    '<div class="av-sub">Massive hemorrhage</div>'+hemHtml;
+
+  // Risk Scores module (warnings snapshot + conditional labs/peds/ob + score references)
+  var riskScoresBody =
+    '<div class="av-sub">Risk snapshot</div>'+riskHtml+
+    (anyLab? '<div class="av-sub">Lab interpreter</div>'+labRows : '')+
+    (isPeds? '<div class="av-sub">Pediatric quick reference</div>'+pedHtml : '')+
+    (isOb? '<div class="av-sub">Obstetric quick reference</div>'+obHtml : '')+
+    '<div class="av-sub">Score references</div>'+
+    '<div class="helper"><b>ASA:</b> '+(asa?('Class '+asa):'Not set')+' — physical status I (healthy) to V (moribund).</div>'+
+    '<div class="helper"><b>STOP-BANG:</b> Snore, Tired, Observed apnea, Pressure, BMI&gt;35, Age&gt;50, Neck&gt;40cm, Male. ≥3 = OSA risk.</div>'+
+    '<div class="helper"><b>Apfel PONV:</b> Female, non-smoker, PONV/motion history, postop opioids (0–4).</div>'+
+    '<div class="helper"><b>RCRI:</b> High-risk surgery, IHD, CHF, CVD, insulin, creatinine&gt;177.</div>'+
+    '<div class="helper">Full interactive calculators in <a href="/v2/scores.html" style="color:#7ECFC0;">Clinical Scores</a>.</div>';
+
+  // Crisis Center card (opens the full overlay)
+  var crisisCardBody =
+    '<div class="helper">One-tap emergency reference with weight-based doses — always available.</div>'+
+    '<div class="crisis-card-grid">'+
+      CRISIS.map(function(cz){ return '<span class="crisis-card-chip"><b>'+cz[1]+'</b>'+cz[2]+'</span>'; }).join('')+
+    '</div>'+
+    '<button class="crisis-open-btn" onclick="openCrisis()">&#128680; Open Crisis Center</button>';
+
+  out.innerHTML='<div class="panels">'+
+    panel('&#129728;','Airway &amp; Ventilation',isPeds?'Pediatric':'Adult',avBody)+
+    panel('&#128138;','Drug references','Ranges',drugRows)+
+    panel('&#128138;','TIVA / TCI','Propofol',tivaRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+tivaHelpers+'</div>')+
+    panel('&#128137;','Local anesthetic limits','Max dose',laRows)+
+    panel('&#129504;','Neuraxial','Reference',neuraxialRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+neuraxialHelpers+'</div>')+
+    panel('&#128137;','Vasopressors / Inotropes','Infusions',pressorRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+pressorHelpers+'</div>')+
+    panel('&#129656;','Fluids &amp; Blood',isPeds?'Pediatric':'Adult',fluidsBloodBody)+
+    panel('&#128202;','Risk scores','Auto',riskScoresBody)+
+    panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
+  '</div>';
+  if(window.innerWidth<=900) collapseForMobile();
+}
+
+function metric(label,value,unit,range){
+  var cls=range?'metric-value metric-range':'metric-value';
+  return '<div class="metric"><span class="metric-label">'+label+'</span><span class="'+cls+'">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
+}
+function m2(label,sub,value,unit){
+  return '<div class="metric m2"><div class="m2-l"><span class="metric-label">'+label+'</span>'+(sub?'<span class="m2-sub">'+sub+'</span>':'')+'</div><span class="metric-value metric-range">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
+}
+function panel(ico,title,tag,body,cls){
+  return '<div class="panel '+(cls||'')+'"><button class="panel-head" onclick="togglePanel(this)"><span class="panel-ico">'+ico+'</span><span class="panel-title">'+title+'</span>'+(tag?'<span class="panel-tag">'+tag+'</span>':'')+'<span class="panel-chev">&#9660;</span></button><div class="panel-body">'+body+'</div></div>';
+}
+function togglePanel(btn){
+  var p=btn.parentNode, willOpen=p.classList.contains('collapsed');
+  if(window.innerWidth<=900 && willOpen){
+    document.querySelectorAll('.panels .panel').forEach(function(o){ if(o!==p) o.classList.add('collapsed'); });
+  }
+  p.classList.toggle('collapsed');
+}
+function collapseForMobile(){
+  var ps=document.querySelectorAll('.panels .panel');
+  ps.forEach(function(p,i){ if(i>0) p.classList.add('collapsed'); }); // keep Patient summary open
+}
+window.togglePanel=togglePanel;
+function lmaForWeight(wt){
+  if(wt<5)return '1'; if(wt<10)return '1.5'; if(wt<20)return '2'; if(wt<30)return '2.5';
+  if(wt<50)return '3'; if(wt<70)return '4'; if(wt<100)return '5'; return '5 – 6';
+}
+function igelForWeight(wt){
+  if(wt<5)return '1 (neonate)'; if(wt<12)return '1.5 (infant)'; if(wt<25)return '2 (small ped)'; if(wt<35)return '2.5 (large ped)';
+  if(wt<60)return '3 (small adult)'; if(wt<90)return '4 (medium adult)'; return '5 (large adult)';
+}
+function opaPeds(age){ if(age<0.5)return '000 – 00'; if(age<1)return '0'; if(age<3)return '1'; if(age<8)return '2'; return '2 – 3'; }
+function npaPeds(age){ if(age<1)return '3.0 – 3.5 mm'; if(age<6)return '4.0 – 5.0 mm'; return '5.0 – 6.0 mm'; }
+
+// ── CRISIS CENTER (always available, weight-aware) ──
+function crisisWeight(){ var w=parseFloat((ge('i-weight')||{}).value); return (w&&w>0)?w:null; }
+function dz(perKg, unit, cap){ var w=crisisWeight(); if(!w) return '— ('+perKg+' '+unit+'/kg)'; var v=perKg*w; if(cap&&v>cap)v=cap; return Math.round(v*10)/10+' '+unit; }
+var CRISIS = [
+  ['last','LAST','Lipid rescue protocol', function(w){ return {
+    steps:['Stop injection. Call for help + LAST cart.','Manage airway, 100% O₂; avoid hyperventilation.','Seizures: benzodiazepines (avoid large propofol if unstable).',
+      'Lipid emulsion 20% — bolus then infusion (priority).','If cardiac arrest: ACLS, reduce adrenaline boluses to ≤1 mcg/kg.','Prolonged resuscitation; consider cardiopulmonary bypass. Avoid LA, vasopressin, Ca-channel/β-blockers.'],
+    doses:[['Lipid 20% bolus','1.5 mL/kg ≈ '+dz(1.5,'mL')+' over 1 min'],['Lipid 20% infusion','0.25 mL/kg/min ≈ '+dz(0.25,'mL/min')],['Repeat bolus (refractory)','×1–2; max ~12 mL/kg'],['Adrenaline (if arrest)','≤1 mcg/kg ≈ '+dz(1,'mcg')]]};}],
+  ['mh','Malignant Hyperthermia','Dantrolene protocol', function(w){ return {
+    steps:['Stop volatile + succinylcholine. Call for help + MH kit.','100% O₂ high flow; hyperventilate. Insert charcoal filters / change circuit.','Dantrolene 2.5 mg/kg IV, repeat to effect (up to 10 mg/kg).','Active cooling; treat hyperkalemia, arrhythmias, acidosis.','Monitor ETCO₂, core temp, K⁺, CK, myoglobin; promote diuresis.'],
+    doses:[['Dantrolene initial','2.5 mg/kg ≈ '+dz(2.5,'mg')],['Dantrolene repeat','up to 10 mg/kg total ≈ '+dz(10,'mg')],['Bicarbonate','1–2 mmol/kg ≈ '+dz(1,'mmol')+'–'+dz(2,'mmol')],['Insulin+glucose (K⁺)','10 U + 25 g dextrose']]};}],
+  ['brady','Bradycardia','Atropine / pacing algorithm', function(w){ return {
+    steps:['Assess: is patient unstable (hypotension, shock, ↓GCS, ischemia)?','100% O₂; identify cause (hypoxia, vagal, drugs, high spinal).','Atropine 0.5 mg IV, repeat to max 3 mg.','If refractory: adrenaline infusion or transcutaneous pacing.','Treat reversible causes.'],
+    doses:[['Atropine','0.5 mg IV (max 3 mg)'],['Adrenaline','2–10 mcg/min infusion'],['Isoprenaline','alternative chronotrope'],['Glycopyrrolate','0.2–0.4 mg IV']]};}],
+  ['tachy','Tachycardia','SVT / cardioversion algorithm', function(w){ return {
+    steps:['Assess stability + rhythm (narrow vs broad, regular vs irregular).','Unstable → synchronized DC cardioversion.','Narrow regular SVT: vagal manoeuvres → adenosine 6 mg, then 12 mg.','Rate control AF: β-blocker or diltiazem if appropriate.','Broad-complex: treat as VT; amiodarone; seek help.'],
+    doses:[['Adenosine','6 mg → 12 mg → 12 mg rapid IV'],['Amiodarone','300 mg IV over 20–60 min'],['Metoprolol','1–5 mg IV titrated'],['Cardioversion','synchronized, escalating energy']]};}],
+  ['arrest','Cardiac Arrest','ALS / ACLS algorithm', function(w){ return {
+    steps:['Confirm arrest; call for help + defibrillator. Start CPR 30:2 / continuous with airway.','Rhythm check: shockable (VF/pVT) → defibrillate; non-shockable (PEA/asystole) → CPR.','Adrenaline 1 mg IV every 3–5 min (give immediately in PEA/asystole).','Shockable: amiodarone 300 mg after 3rd shock.','Treat 4 Hs & 4 Ts. Consider anaphylaxis, LAST, MH, embolism intraop.'],
+    doses:[['Adrenaline','1 mg IV q3–5 min'],['Amiodarone','300 mg (then 150 mg)'],['Defibrillation','150–200 J biphasic'],['Pediatric adrenaline','10 mcg/kg ≈ '+dz(10,'mcg')]]};}],
+  ['da','Difficult Airway','DAS plan A→D algorithm', function(w){ return {
+    steps:['Plan A: optimal laryngoscopy (position, video, bougie) — max 3+1 attempts.','Plan B: supraglottic airway (2nd-gen LMA), max 3 attempts.','Plan C: face-mask ventilation; wake if possible.','Plan D: CICO → front-of-neck access.','Call for help early; maintain oxygenation throughout.'],
+    doses:[['Suggested LMA',lmaForWeight(w||70)],['Sugammadex (rescue)','16 mg/kg ≈ '+dz(16,'mg')],['Maintain SpO₂','nasal O₂ / apnoeic oxygenation'],['Limit attempts','prevent trauma & CICO']]};}],
+  ['cico','CICO (Can\u2019t Intubate Can\u2019t Oxygenate)','Emergency front-of-neck airway', function(w){ return {
+    steps:['Declare CICO. Call for help. 100% O₂.','Final attempt at SGA / face-mask if not done.','Scalpel–bougie–tube cricothyroidotomy (adult).','Scalpel: transverse stab through cricothyroid membrane, rotate; bougie; railroad size 6.0 tube.','Confirm with capnography; secure; ventilate.'],
+    doses:[['Tube','6.0 mm cuffed (adult FONA)'],['Scalpel','size 10 blade'],['Pediatric','needle technique <8 y; seek expert'],['Confirm','ETCO₂ mandatory']]};}],
+  ['anaph','Anaphylaxis','Adrenaline + fluids protocol', function(w){ return {
+    steps:['Stop the likely trigger. Call for help. 100% O₂.','Adrenaline IM 0.5 mg (or titrated IV boluses if monitored/anesthetized).','Large IV fluid bolus; lay flat, legs up.','Adjuncts after resuscitation: steroids, antihistamine; bronchodilators for bronchospasm.','If arrest → ALS, prolonged CPR; take tryptase samples (immediate, 1–2 h, 24 h).'],
+    doses:[['IM adrenaline','0.5 mg (0.5 mL 1:1000)'],['IV bolus (hypotension)','20–50 mcg'],['IV bolus (collapse)','100–200 mcg'],['Arrest','1 mg IV q3–5 min'],['Fluid bolus',(w?r0(w*20)+' mL':'20 mL/kg')],['Infusion prep','adrenaline 1 mg/50 mL (20 mcg/mL)']]};}]
+];
+var _crisisIdx = 0;
+function openCrisis(){
+  var w = crisisWeight();
+  ge('crisis-wt').innerHTML = w ? ('Doses calculated for current weight: <b>'+w+' kg</b>') : 'Enter patient weight for weight-based doses. Showing per-kg guidance.';
+  ge('crisis-tabs').innerHTML = CRISIS.map(function(c,i){
+    return '<button class="crisis-tab'+(i===_crisisIdx?' on':'')+'" onclick="crisisShow('+i+')">'+c[1]+'</button>';
+  }).join('');
+  crisisShow(_crisisIdx);
+  ge('crisis-bg').classList.add('open');
+}
+function closeCrisis(){ ge('crisis-bg').classList.remove('open'); }
+function crisisShow(i){
+  _crisisIdx = i;
+  document.querySelectorAll('.crisis-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
+  var w = crisisWeight();
+  var data = CRISIS[i][3](w);
+  var title = '<div class="crisis-emg-t">'+CRISIS[i][1]+' <span>'+CRISIS[i][2]+'</span></div>';
+  var steps = '<div class="crisis-sec-t">Immediate actions</div>' + data.steps.map(function(s,si){
+    return '<div class="crisis-step"><span class="crisis-num">'+(si+1)+'</span><span>'+s+'</span></div>';
+  }).join('');
+  var doses = '<div class="crisis-sec-t">Drug doses'+(w?' (for '+w+' kg)':'')+'</div>' + data.doses.map(function(d){
+    return '<div class="crisis-dose"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>';
+  }).join('');
+  ge('crisis-body').innerHTML = title + steps + doses;
+}
+window.openCrisis=openCrisis; window.closeCrisis=closeCrisis; window.crisisShow=crisisShow;
+
+document.addEventListener('DOMContentLoaded',async function(){
+  try{
+    var embed = location.search.indexOf('embed=1') >= 0;
+    startMonitorHeader();   // animate vitals in the monitor header
+    if(embed){
+      // Embedded inside the Doctor Workspace — CSS (body.embed .nb) hides the
+      // duplicate site navbar. We keep the monitor header as the workstation top.
+      document.body.classList.add('embed');
+      var s = await getSession();
+      ge('loader').style.display='none';
+      ge('app').style.display='block';
+      if(restoreInputs()) compute();   // carry state in from a previous session
+      console.log('ENGINE READY (embedded)');
+      return;
+    }
+    var auth=await window.requireAuth(); if(!auth)return;
+    var role=auth.profile?auth.profile.role:'';
+    if(role==='patient'){ window.location.href='/v2/dashboard.html'; return; }
+    ge('loader').style.display='none';
+    ge('app').style.display='block';
+    if(restoreInputs()) compute();     // preserve patient data from the embedded view
+    console.log('ENGINE READY');
+  }catch(e){
+    console.error('ENGINE ERROR:',e.message);
+    ge('loader').innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: '+e.message+'</p>';
+  }
+});
+
+// ── Realistic, seamless OR-monitor waveforms ──
+function buildWavePath(fn, W, H, beatW, step){
+  // sample two identical strips (0..2W) of a periodic waveform → seamless loop
+  var d='', x=0;
+  for(x=0; x<=2*W; x+=step){
+    var y = fn((x % beatW) / beatW, H);
+    d += (x===0?'M':'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+  }
+  return d;
+}
+function gauss(p,mu,sig){ var s=0; for(var k=-1;k<=1;k++){ var z=(p-mu+k); s+=Math.exp(-(z*z)/(2*sig*sig)); } return s; }
+function ecgFn(p,H){
+  var mid=H*0.55, amp=H*0.42;
+  var v = 0.10*gauss(p,0.18,0.020)   // P
+        - 0.06*gauss(p,0.305,0.008)  // Q
+        + 1.00*gauss(p,0.345,0.008)  // R
+        - 0.22*gauss(p,0.392,0.010)  // S
+        + 0.26*gauss(p,0.62,0.045);  // T
+  return mid - v*amp;
+}
+function plethFn(p,H){
+  var base=H*0.80, amp=H*0.62;
+  var v = 0.95*gauss(p,0.16,0.055) + 0.34*gauss(p,0.40,0.075); // systolic + dicrotic
+  return base - v*amp;
+}
+function capnoFn(p,H){
+  var lo=H*0.86, hi=H*0.16, v;
+  if(p<0.06) v=0;
+  else if(p<0.14) v=(p-0.06)/0.08;        // upstroke
+  else if(p<0.46) v=0.92+0.08*((p-0.14)/0.32); // alveolar plateau (slight rise)
+  else if(p<0.52) v=1-(p-0.46)/0.06;       // downstroke
+  else v=0;
+  if(v<0)v=0; if(v>1)v=1;
+  return lo-(lo-hi)*v;
+}
+var _waveStart=null, _waveCfg=[];
+function setupMonitor(){
+  var W=500;
+  _waveCfg=[
+    {id:'wave-ecg',  fn:ecgFn,  beatW:125, H:40, period:5.2},
+    {id:'wave-pleth',fn:plethFn,beatW:125, H:40, period:5.2},
+    {id:'wave-capno',fn:capnoFn,beatW:250, H:40, period:6.4}
+  ];
+  _waveCfg.forEach(function(c){
+    var el=document.getElementById(c.id); if(!el) return;
+    el.setAttribute('d', buildWavePath(c.fn, W, c.H, c.beatW, 1.2));
+    el.parentNode.classList.add('wave-anim');
+    c.el=el.parentNode; c.W=W;
+  });
+  _waveStart=null;
+  requestAnimationFrame(animMonitor);
+}
+function animMonitor(ts){
+  if(_waveStart===null) _waveStart=ts;
+  var t=(ts-_waveStart)/1000;
+  _waveCfg.forEach(function(c){
+    if(!c.el) return;
+    var frac=(t % c.period)/c.period;     // 0→1
+    var dx = -frac * c.W;                  // shift left by up to one strip (=half the path)
+    c.el.setAttribute('transform','translate('+dx.toFixed(2)+',0)');
+  });
+  requestAnimationFrame(animMonitor);
+}
+
+// Subtle "live" monitor header vitals
+function startMonitorHeader(){
+  setupMonitor();
+  function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function tick(){
+    var hr=ge('mh-hr'), spo2=ge('mh-spo2'), co2=ge('mh-co2'), bp=ge('mh-bp'), temp=ge('mh-temp');
+    if(hr) hr.textContent=r(70,80);
+    if(spo2) spo2.textContent=r(97,100);
+    if(co2) co2.textContent=r(34,40);
+    if(bp) bp.textContent=r(118,132)+'/'+r(68,80);
+    if(temp) temp.textContent=(36.4+Math.random()*0.6).toFixed(1);
+  }
+  tick(); setInterval(tick,3500);
+}
+</script>
+</body>
+</html>

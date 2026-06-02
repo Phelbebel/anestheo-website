@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-operative Anesthesia Questionnaire — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<style>
+body{background:#0A1A15;}
+.q-wrap{max-width:660px;margin:0 auto;padding:30px 20px 90px;}
+.q-brand{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:20px;}
+.q-brand span{color:#7ECFC0;}
+.q-hero{background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.3);border-radius:14px;padding:20px 22px;margin-bottom:18px;}
+.q-hero h1{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:6px;}
+.q-hero p{font-size:14px;color:var(--muted);line-height:1.6;}
+.q-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.q-meta span{font-size:12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:rgba(255,255,255,.82);}
+.q-prog{position:sticky;top:0;background:#0A1A15;padding:10px 0 12px;z-index:5;}
+.q-prog-bar{height:6px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.q-prog-fill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);width:0;transition:width .3s;}
+.q-prog-txt{font-size:11px;color:var(--hint);margin-top:5px;}
+.q-sec{margin-bottom:8px;}
+.q-sec-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin:22px 0 4px;}
+.q-field{margin-bottom:15px;animation:qf .25s ease;}
+@keyframes qf{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.q-field label{display:block;font-size:14px;font-weight:600;color:#fff;margin-bottom:7px;}
+.q-field .hint{font-size:12px;color:var(--hint);font-weight:400;margin-top:1px;}
+.q-field input,.q-field textarea,.q-field select{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:12px 13px;color:#fff;font-size:15px;font-family:inherit;outline:none;min-height:46px;}
+.q-field textarea{min-height:70px;resize:vertical;}
+.q-field input:focus,.q-field textarea:focus,.q-field select:focus{border-color:#2A8A74;}
+.q-field select option{background:#132218;}
+.q-row{display:flex;gap:10px;}
+.q-row .q-field{flex:1;}
+.yn{display:flex;gap:8px;flex-wrap:wrap;}
+.yn button{flex:1;min-width:70px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;padding:11px;color:var(--muted);font-size:14px;cursor:pointer;font-family:inherit;}
+.yn button.on{background:rgba(27,107,90,.25);border-color:#2A8A74;color:#fff;font-weight:600;}
+.q-submit{width:100%;background:#1B6B5A;color:#fff;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:18px;}
+.q-submit:hover{background:#2A8A74;}
+.q-submit:disabled{opacity:.6;cursor:default;}
+.q-state{text-align:center;padding:60px 20px;}
+.q-state .ico{font-size:46px;margin-bottom:16px;}
+.q-state h2{font-family:'Playfair Display',serif;font-size:24px;margin-bottom:8px;}
+.q-state p{font-size:14px;color:var(--muted);line-height:1.6;}
+.disclaimer{font-size:11px;color:var(--hint);margin:14px 0;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer strong{color:#E8A838;}
+.bmi-live{font-size:13px;color:#7ECFC0;margin-top:6px;}
+#loader{position:fixed;inset:0;background:#0A1A15;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* completion screen */
+.cs-journey-title,.cs-card-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin:22px 0 10px;}
+.jn-track{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:4px;}
+.jn-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;min-width:64px;}
+.jn-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:rgba(255,255,255,.07);color:var(--hint);border:1px solid var(--border);}
+.jn-step.done .jn-dot{background:#2A8A74;color:#fff;border-color:#2A8A74;}
+.jn-step.next .jn-dot{border-color:#7ECFC0;color:#7ECFC0;}
+.jn-lbl{font-size:10.5px;color:var(--muted);text-align:center;white-space:nowrap;}
+.jn-step.done .jn-lbl,.jn-step.next .jn-lbl{color:#fff;}
+.jn-line{flex:1;height:2px;min-width:14px;background:rgba(255,255,255,.1);margin-top:13px;}
+.cs-next{font-size:13px;color:var(--muted);background:rgba(27,107,90,.08);border:1px solid rgba(42,138,116,.2);border-radius:10px;padding:11px 14px;margin:14px 0;}
+.cs-next strong{color:#fff;}
+.cs-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-top:8px;}
+.cs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;}
+.cs-stat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+.cs-l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:3px;}
+.cs-v{font-size:15px;font-weight:600;color:#fff;}
+.cs-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:16px 0 6px;}
+.cs-list{font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.6;}
+.cs-flags{display:flex;gap:7px;flex-wrap:wrap;}
+.cs-flag{font-size:11.5px;font-weight:600;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:7px;padding:5px 10px;}
+.cs-actions{display:flex;gap:10px;margin-top:18px;}
+.ws-btn-print{flex:1;background:rgba(27,107,90,.14);border:1px solid rgba(42,138,116,.35);color:#7ECFC0;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+.ws-btn-print:hover{background:rgba(27,107,90,.24);}
+.cs-hint{font-size:11px;color:var(--hint);text-align:center;margin-top:10px;}
+.print-only{display:none;}
+.cs-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+.cs-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;}
+.cs-table td:first-child{color:var(--muted);width:42%;}
+@media print{
+  body{background:#fff!important;color:#111!important;}
+  .no-print,#loader,.q-brand{display:none!important;}
+  .print-only{display:block!important;}
+  .cs-card,.cs-stat,.cs-next{background:#fff!important;border-color:#ccc!important;}
+  .cs-v,.cs-journey-title,.cs-card-title,.cs-sub,.cs-l,.cs-list,.jn-lbl,.q-state h2,.q-state p,.cs-table td{color:#111!important;}
+  .cs-table td{border-color:#eee!important;}
+  .jn-step.done .jn-dot{background:#1B6B5A!important;}
+  .cs-flag{color:#8a5a00!important;background:#fff7e6!important;}
+}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div class="q-wrap" id="app" style="display:none;">
+  <div class="q-brand">Anes<span>theo</span></div>
+  <div id="content"></div>
+</div>
+
+<script>
+function ge(id){ return document.getElementById(id); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+var _token = new URLSearchParams(location.search).get('t');
+var _preview = new URLSearchParams(location.search).get('preview') === '1';
+var _ctx = { procedure:'' };       // from patient record (procedure drives pathways)
+var A = {};                        // answers keyed by question id
+
+// ── QUESTION ENGINE ───────────────────────────────────────────
+// type: text | number | textarea | yesno | select
+// show: optional fn(A, ctx) → bool (branching)
+function isCesarean(){ return /cesarean|c-section|csection|childbirth/i.test(_ctx.procedure||''); }
+function bmi(){ var h=parseFloat(A.height), w=parseFloat(A.weight); if(h>0&&w>0){ return w/Math.pow(h/100,2); } return null; }
+function ageNum(){ return parseFloat(A.age); }
+
+var QUESTIONS = [
+  // ── Basics ──
+  {sec:'About you', id:'age', label:'Age', type:'number', hint:'Years'},
+  {sec:'About you', id:'sex', label:'Sex', type:'select', options:['','Female','Male']},
+  {sec:'About you', id:'height', label:'Height (cm)', type:'number'},
+  {sec:'About you', id:'weight', label:'Weight (kg)', type:'number', bmi:true},
+
+  // ── Pregnancy (female) ──
+  {sec:'Pregnancy', id:'pregnant', label:'Could you be pregnant?', type:'yesno3', yn:['Yes','No','Not sure'],
+    show:function(){ return (A.sex||'').toLowerCase()==='female'; }},
+  {sec:'Pregnancy', id:'gestation', label:'How many weeks pregnant (if known)?', type:'number',
+    show:function(){ return (A.sex||'').toLowerCase()==='female' && A.pregnant==='Yes'; }},
+  {sec:'Pregnancy', id:'preg_complications', label:'Any pregnancy complications?', type:'textarea', hint:'High blood pressure, diabetes, bleeding, etc.',
+    show:function(){ return (A.sex||'').toLowerCase()==='female' && A.pregnant==='Yes'; }},
+
+  // ── Cesarean pathway (procedure-driven) ──
+  {sec:'Delivery', id:'prev_cesarean', label:'Have you had a previous cesarean section?', type:'yesno',
+    show:function(){ return isCesarean(); }},
+  {sec:'Delivery', id:'back_problems', label:'Any back problems or previous spinal/epidural issues?', type:'textarea',
+    show:function(){ return isCesarean(); }},
+
+  // ── Pediatric pathway (age < 18) ──
+  {sec:'Pediatric', id:'guardian', label:'Parent / guardian name', type:'text',
+    show:function(){ var a=ageNum(); return a>0 && a<18; }},
+  {sec:'Pediatric', id:'birth_issues', label:'Any problems at birth or with growth/development?', type:'textarea',
+    show:function(){ var a=ageNum(); return a>0 && a<18; }},
+  {sec:'Pediatric', id:'recent_cold', label:'Any cough, cold, or fever in the last 2 weeks?', type:'yesno',
+    show:function(){ var a=ageNum(); return a>0 && a<18; }},
+
+  // ── Sleep / OSA (STOP-BANG) ──
+  {sec:'Sleep', id:'snore', label:'Do you snore loudly?', type:'yesno', hint:'Louder than talking, heard through a closed door'},
+  {sec:'Sleep', id:'tired', label:'Do you often feel tired or sleepy during the daytime?', type:'yesno'},
+  {sec:'Sleep', id:'apnea', label:'Has anyone observed you stop breathing during sleep?', type:'yesno'},
+  {sec:'Sleep', id:'neck', label:'Is your shirt collar 16 inches / 40 cm or larger?', type:'yesno'},
+
+  // ── Cardiovascular ──
+  {sec:'Heart & circulation', id:'hypertension', label:'Do you have high blood pressure?', type:'yesno'},
+  {sec:'Heart & circulation', id:'cardiac', label:'Do you have any heart disease?', type:'yesno', hint:'Angina, heart attack, stents, heart failure, valve problems'},
+  {sec:'Heart & circulation', id:'cardiac_detail', label:'Please describe your heart condition', type:'textarea',
+    show:function(){ return A.cardiac==='Yes'; }},
+  {sec:'Heart & circulation', id:'exercise', label:'Can you climb two flights of stairs without stopping?', type:'yesno',
+    show:function(){ return A.cardiac==='Yes' || A.hypertension==='Yes'; }},
+
+  // ── Pulmonary ──
+  {sec:'Lungs & breathing', id:'lung', label:'Do you have any lung or breathing condition?', type:'yesno', hint:'Asthma, COPD, sleep apnea on CPAP'},
+  {sec:'Lungs & breathing', id:'lung_detail', label:'Please describe your lung condition', type:'textarea',
+    show:function(){ return A.lung==='Yes'; }},
+  {sec:'Lungs & breathing', id:'cpap', label:'Do you use a CPAP machine at night?', type:'yesno',
+    show:function(){ return A.lung==='Yes' || A.apnea==='Yes'; }},
+
+  // ── Endocrine ──
+  {sec:'Other conditions', id:'diabetes', label:'Do you have diabetes?', type:'yesno'},
+  {sec:'Other conditions', id:'diabetes_control', label:'How is your diabetes managed?', type:'select', options:['','Diet only','Tablets','Insulin'],
+    show:function(){ return A.diabetes==='Yes'; }},
+
+  // ── Anticoagulation ──
+  {sec:'Medications', id:'anticoag', label:'Do you take any blood thinners?', type:'yesno', hint:'Aspirin, warfarin, apixaban, rivaroxaban, clopidogrel, heparin'},
+  {sec:'Medications', id:'anticoag_which', label:'Which blood thinner, and when was your last dose?', type:'textarea',
+    show:function(){ return A.anticoag==='Yes'; }},
+  {sec:'Medications', id:'medications', label:'List all your current medications', type:'textarea', hint:'Include doses if known, or write "none"'},
+  {sec:'Medications', id:'allergies', label:'Allergies', type:'textarea', hint:'Medications, latex, foods. Write "none" if none'},
+
+  // ── Airway ──
+  {sec:'Airway', id:'loose_teeth', label:'Do you have loose, capped, or chipped teeth, crowns, or dentures?', type:'yesno'},
+  {sec:'Airway', id:'mouth_open', label:'Any difficulty opening your mouth widely or moving your neck?', type:'yesno'},
+
+  // ── Previous anesthesia ──
+  {sec:'Previous anesthesia', id:'prev_anes', label:'Have you had anesthesia before?', type:'yesno'},
+  {sec:'Previous anesthesia', id:'prev_problems', label:'Were there any problems with anesthesia (you or your family)?', type:'yesno',
+    show:function(){ return A.prev_anes==='Yes'; }},
+  {sec:'Previous anesthesia', id:'prev_problems_detail', label:'Please describe the problem', type:'textarea',
+    show:function(){ return A.prev_anes==='Yes' && A.prev_problems==='Yes'; }},
+  {sec:'Previous anesthesia', id:'ponv_history', label:'Have you had severe nausea or vomiting after anesthesia, or motion sickness?', type:'yesno'},
+
+  // ── Lifestyle ──
+  {sec:'Lifestyle', id:'smoking', label:'Do you smoke?', type:'yesno3', yn:['Yes','No','Former']},
+
+  // ── Comments ──
+  {sec:'Anything else', id:'comments', label:'Anything else you want your anesthesiologist to know?', type:'textarea'}
+];
+
+function visibleQuestions(){ return QUESTIONS.filter(function(q){ return !q.show || q.show(); }); }
+
+function renderForm(p){
+  _ctx.procedure = (p && p.procedure) || '';
+  var dateFmt = p && p.surgery_date ? new Date(p.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
+  var meta = [];
+  if(p && p.procedure) meta.push('&#129658; ' + esc(p.procedure));
+  if(p && p.hospital) meta.push('&#127973; ' + esc(p.hospital));
+  if(dateFmt) meta.push('&#128197; ' + dateFmt);
+
+  ge('content').innerHTML =
+    '<div class="q-hero"><h1>Hello' + (p && p.patient_name ? ', ' + esc(p.patient_name.split(' ')[0]) : '') + '</h1>' +
+      '<p>Please complete this pre-operative anesthesia questionnaire. Questions adapt to your answers — it should only take a few minutes.</p>' +
+      (meta.length ? '<div class="q-meta">' + meta.map(function(m){ return '<span>'+m+'</span>'; }).join('') + '</div>' : '') +
+    '</div>' +
+    '<div class="disclaimer"><strong>Your privacy matters.</strong> This information is shared only with your anesthesia team.</div>' +
+    '<div class="q-prog"><div class="q-prog-bar"><div class="q-prog-fill" id="q-prog-fill"></div></div><div class="q-prog-txt" id="q-prog-txt">0% complete</div></div>' +
+    '<div id="q-form"></div>' +
+    '<button class="q-submit" id="submit-btn" onclick="submitForm()">Submit questionnaire</button>';
+  renderFields();
+}
+
+function renderFields(){
+  var vis = visibleQuestions();
+  var html = '', lastSec = '';
+  vis.forEach(function(q){
+    if(q.sec !== lastSec){ html += '<div class="q-sec-title">'+q.sec+'</div>'; lastSec = q.sec; }
+    html += '<div class="q-field" data-qid="'+q.id+'">';
+    html += '<label>'+q.label+(q.hint?'<span class="hint"> — '+q.hint+'</span>':'')+'</label>';
+    var v = A[q.id] || '';
+    if(q.type==='yesno' || q.type==='yesno3'){
+      var opts = q.yn || ['Yes','No'];
+      html += '<div class="yn">' + opts.map(function(o){
+        return '<button type="button" class="'+(v===o?'on':'')+'" onclick="pick(\''+q.id+'\',\''+o+'\')">'+o+'</button>';
+      }).join('') + '</div>';
+    } else if(q.type==='select'){
+      html += '<select onchange="pickSelect(\''+q.id+'\',this.value)">' + q.options.map(function(o){
+        return '<option value="'+esc(o)+'"'+(v===o?' selected':'')+'>'+(o||'Select…')+'</option>';
+      }).join('') + '</select>';
+    } else if(q.type==='textarea'){
+      // live update only — never re-render while typing
+      html += '<textarea oninput="setVal(\''+q.id+'\',this.value)">'+esc(v)+'</textarea>';
+    } else {
+      // text/number: live update on input (keeps focus); branch only on blur
+      html += '<input type="'+(q.type==='number'?'number':'text')+'" inputmode="'+(q.type==='number'?'numeric':'text')+'" value="'+esc(v)+'" oninput="setVal(\''+q.id+'\',this.value)" onblur="branchOnBlur(\''+q.id+'\')">';
+      if(q.bmi){ html += '<div class="bmi-live" id="bmi-live"></div>'; }
+    }
+    html += '</div>';
+  });
+  ge('q-form').innerHTML = html;
+  updateBmiLive();
+  updateProgress();
+}
+
+// Fields whose VALUE changes which questions are visible (branching).
+var BRANCH_FIELDS = ['age','sex'];
+
+// Live, in-memory update — NO re-render, so the input keeps focus.
+function setVal(id, val){
+  A[id] = val;
+  updateBmiLive();
+  updateProgress();   // updates the bar only; never touches inputs
+}
+// Re-evaluate branching only when the patient leaves a branching field.
+function branchOnBlur(id){
+  if(BRANCH_FIELDS.indexOf(id) >= 0){ renderFields(); }
+}
+// Discrete choices (buttons / selects) can re-render immediately — no text focus to lose.
+function pick(id, val){ A[id] = val; renderFields(); }
+function pickSelect(id, val){ A[id] = val; renderFields(); }
+window.setVal = setVal; window.branchOnBlur = branchOnBlur; window.pick = pick; window.pickSelect = pickSelect;
+
+function updateBmiLive(){
+  var el = ge('bmi-live'); if(!el) return;
+  var b = bmi();
+  el.textContent = b ? ('BMI: ' + b.toFixed(1) + ' kg/m²') : '';
+}
+function updateProgress(){
+  var vis = visibleQuestions();
+  var answered = vis.filter(function(q){ return A[q.id] != null && String(A[q.id]).trim() !== ''; }).length;
+  var pct = vis.length ? Math.round((answered/vis.length)*100) : 0;
+  var f = ge('q-prog-fill'), t = ge('q-prog-txt');
+  if(f) f.style.width = pct + '%';
+  if(t) t.textContent = pct + '% complete';
+  return pct;
+}
+
+// ── SCORING ───────────────────────────────────────────────────
+function computeScores(){
+  var b = bmi();
+  var age = ageNum();
+  var male = (A.sex||'').toLowerCase()==='male';
+
+  // STOP-BANG (0–8)
+  var sb = 0;
+  if(A.snore==='Yes') sb++;
+  if(A.tired==='Yes') sb++;
+  if(A.apnea==='Yes') sb++;
+  if(A.hypertension==='Yes') sb++;          // Pressure
+  if(b && b>35) sb++;                        // BMI
+  if(age>50) sb++;                           // Age
+  if(A.neck==='Yes') sb++;                   // Neck
+  if(male) sb++;                             // Gender
+  var sbRisk = sb>=5 ? 'High' : (sb>=3 ? 'Intermediate' : 'Low');
+
+  // Apfel PONV (0–4)
+  var ponv = 0;
+  if(!male) ponv++;                          // female
+  if(A.smoking==='No') ponv++;               // non-smoker
+  if(A.ponv_history==='Yes') ponv++;         // history PONV/motion sickness
+  ponv++;                                    // assume postoperative opioids likely
+  var ponvRisk = ponv>=3 ? 'High' : (ponv===2 ? 'Moderate' : 'Low');
+
+  // ASA suggestion (non-final heuristic)
+  var severe = (A.cardiac==='Yes' && A.exercise==='No') || A.cpap==='Yes' || (b && b>=40) || A.diabetes_control==='Insulin';
+  var mild = A.hypertension==='Yes' || A.diabetes==='Yes' || A.lung==='Yes' || A.cardiac==='Yes' || (b && b>=30) || A.smoking==='Yes';
+  var asa = severe ? 'III' : (mild ? 'II' : 'I');
+
+  return {
+    bmi: b ? +b.toFixed(1) : null,
+    stopbang: sb, stopbang_risk: sbRisk,
+    ponv: ponv, ponv_risk: ponvRisk,
+    asa_suggestion: asa,
+    completion: updateProgress()
+  };
+}
+function computeFlags(){
+  var f = [], b = bmi();
+  if((A.sex||'').toLowerCase()==='female' && A.pregnant==='Yes') f.push('Pregnancy');
+  var sb = (function(){ var s={}; return computeScores(); })();
+  if(sb.stopbang>=3) f.push('OSA risk (STOP-BANG '+sb.stopbang+')');
+  if(A.anticoag==='Yes') f.push('Anticoagulant use');
+  if(A.loose_teeth==='Yes' || A.mouth_open==='Yes') f.push('Airway concern');
+  if(A.prev_anes==='Yes' && A.prev_problems==='Yes') f.push('Previous anesthesia complication');
+  if(A.cardiac==='Yes') f.push('Cardiac disease');
+  if(A.lung==='Yes') f.push('Pulmonary disease');
+  if(b && b>=40) f.push('Morbid obesity (BMI '+b.toFixed(1)+')');
+  return f;
+}
+
+async function submitForm(){
+  var btn = ge('submit-btn'); btn.disabled = true; btn.textContent = 'Submitting…';
+  var scores = computeScores();
+  var flags = computeFlags();
+  var payload = {};
+  visibleQuestions().forEach(function(q){ if(A[q.id]!=null && String(A[q.id]).trim()!=='') payload[q.id] = A[q.id]; });
+  payload._scores = scores;
+  payload._flags = flags;
+  payload._submitted_at = new Date().toISOString();
+  try {
+    var r = await window.sb.rpc('submit_clinic_questionnaire', { p_token: _token, p_answers: payload });
+    if(r.error) throw new Error(r.error.message);
+    renderDone(payload);
+  } catch(e){
+    btn.disabled = false; btn.textContent = 'Submit questionnaire';
+    alert('Unable to save questionnaire. Please try again.');
+  }
+}
+window.submitForm = submitForm;
+
+function renderDone(answers){
+  var a = answers || {};
+  var s = a._scores || {};
+  var flags = a._flags || [];
+
+  // Major medical conditions
+  var conds = [];
+  if(a.cardiac==='Yes') conds.push('Heart disease');
+  if(a.hypertension==='Yes') conds.push('High blood pressure');
+  if(a.lung==='Yes') conds.push('Lung disease');
+  if(a.diabetes==='Yes') conds.push('Diabetes' + (a.diabetes_control?' ('+a.diabetes_control+')':''));
+  if(a.conditions) conds.push(a.conditions);
+  // Medication flags
+  var meds = [];
+  if(a.anticoag==='Yes') meds.push('Blood thinners' + (a.anticoag_which?': '+a.anticoag_which:''));
+  if(a.allergies && !/^none$/i.test(a.allergies.trim())) meds.push('Allergies: '+a.allergies);
+  // Pregnancy status
+  var preg = (a.pregnant==='Yes') ? ('Pregnant'+(a.gestation?' ('+a.gestation+' weeks)':'')) : (a.pregnant==='Not sure' ? 'Possibly pregnant' : (a.sex==='Female'?'Not pregnant':'N/A'));
+
+  function stat(label, val){ return '<div class="cs-stat"><div class="cs-l">'+label+'</div><div class="cs-v">'+val+'</div></div>'; }
+
+  var completedDate = a._submitted_at ? new Date(a._submitted_at).toLocaleString() : new Date().toLocaleString();
+
+  // Print-only full answers (included in the PDF, hidden on screen)
+  var LBL = {age:'Age',sex:'Sex',height:'Height (cm)',weight:'Weight (kg)',pregnant:'Could be pregnant',gestation:'Weeks pregnant',preg_complications:'Pregnancy complications',prev_cesarean:'Previous cesarean',back_problems:'Back/spinal problems',guardian:'Guardian',birth_issues:'Birth/development',recent_cold:'Recent cold/fever',snore:'Snores loudly',tired:'Daytime tiredness',apnea:'Observed apnea',neck:'Neck \u226540cm',hypertension:'High blood pressure',cardiac:'Heart disease',cardiac_detail:'Heart detail',exercise:'Climbs 2 flights',lung:'Lung disease',lung_detail:'Lung detail',cpap:'Uses CPAP',diabetes:'Diabetes',diabetes_control:'Diabetes managed by',anticoag:'Blood thinners',anticoag_which:'Which/last dose',medications:'Medications',allergies:'Allergies',loose_teeth:'Loose/capped teeth',mouth_open:'Mouth/neck limitation',prev_anes:'Prior anesthesia',prev_problems:'Prior anesthesia problem',prev_problems_detail:'Problem detail',ponv_history:'PONV/motion sickness',smoking:'Smoking',comments:'Comments'};
+  var ansRows = Object.keys(a).filter(function(k){ return k.charAt(0)!=='_'; }).map(function(k){
+    return '<tr><td>'+(LBL[k]||k)+'</td><td>'+esc(a[k])+'</td></tr>';
+  }).join('');
+  var printAnswers = '<div class="print-only"><div class="cs-card-title">Full questionnaire answers</div>' +
+    '<table class="cs-table">'+ (ansRows || '<tr><td>No answers</td><td></td></tr>') +'</table></div>';
+
+  var journey = ['Select procedure','Complete questionnaire','Preparation checklist','Education','Ready for surgery'];
+  var curStep = 2; // questionnaire just completed
+  var stepHtml = '<div class="jn-track">' + journey.map(function(j,i){
+    var st = (i+1 < curStep) ? 'done' : (i+1===curStep ? 'done' : (i+1===curStep+1 ? 'next' : ''));
+    return '<div class="jn-step '+st+'"><span class="jn-dot">'+(i+1<=curStep?'&#10003;':(i+1))+'</span><span class="jn-lbl">'+j+'</span></div>';
+  }).join('<span class="jn-line"></span>') + '</div>';
+
+  ge('content').innerHTML =
+    '<div class="cs-wrap" id="print-area">' +
+      '<div class="q-state" style="padding:24px 0 8px;"><div class="ico">&#9989;</div><h2>Questionnaire complete</h2>' +
+        '<p>Thank you. Your anesthesia team will review your answers before surgery. Here is your preparation summary.</p></div>' +
+
+      '<div class="cs-journey-title no-print">Your surgery journey</div>' + '<div class="no-print">'+stepHtml+'</div>' +
+      '<div class="cs-next no-print">Next step: <strong>Preparation checklist</strong> — your clinic will guide you on fasting and medications.</div>' +
+
+      '<div class="cs-card">' +
+        '<div class="cs-card-title">Preparation summary</div>' +
+        '<div class="cs-grid">' +
+          stat('Height', a.height? esc(a.height)+' cm' : '—') +
+          stat('Weight', a.weight? esc(a.weight)+' kg' : '—') +
+          stat('BMI', s.bmi!=null? s.bmi+' kg/m²' : '—') +
+          stat('Pregnancy', preg) +
+          stat('STOP-BANG', s.stopbang!=null? (s.stopbang+'/8 · '+(s.stopbang_risk||'')) : '—') +
+          stat('Completion', (s.completion!=null?s.completion:100)+'%') +
+        '</div>' +
+        (conds.length? '<div class="cs-sub">Major conditions</div><div class="cs-list">'+conds.map(esc).join(' · ')+'</div>' : '') +
+        (a.allergies? '<div class="cs-sub">Allergies</div><div class="cs-list">'+esc(a.allergies)+'</div>' : '') +
+        (a.medications? '<div class="cs-sub">Medications</div><div class="cs-list">'+esc(a.medications)+'</div>' : '') +
+        (meds.length? '<div class="cs-sub">Medication flags</div><div class="cs-list">'+meds.map(esc).join(' · ')+'</div>' : '') +
+        (flags.length? '<div class="cs-sub">Risk flags</div><div class="cs-flags">'+flags.map(function(f){return '<span class="cs-flag">&#9888; '+esc(f)+'</span>';}).join('')+'</div>' : '') +
+        '<div class="cs-sub">Completed</div><div class="cs-list">'+completedDate+'</div>' +
+      '</div>' +
+      printAnswers +
+    '</div>' +
+    '<div class="cs-actions no-print">' +
+      '<button class="ws-btn-print" onclick="window.print()">&#128424; Print questionnaire</button>' +
+      '<button class="ws-btn-print" onclick="window.print()">&#11015; Download PDF</button>' +
+    '</div>' +
+    '<p class="cs-hint no-print">Tip: choose “Save as PDF” in the print dialog to download a copy.</p>';
+}
+function renderError(msg){
+  ge('content').innerHTML =
+    '<div class="q-state"><div class="ico">&#128274;</div><h2>Link not found</h2>' +
+    '<p>'+ (msg || 'This questionnaire link is invalid or has expired. Please contact your clinic for a new link.') +'</p></div>';
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  ge('loader').style.display = 'none';
+  ge('app').style.display = 'block';
+
+  // Questions are defined IN THIS PAGE (the QUESTIONS array), not loaded
+  // from a database template. Log the engine state for the audit.
+  console.log('QUESTIONNAIRE ENGINE — source: in-page QUESTIONS array (no DB template yet)');
+  console.log('Template selected:', '(none — code-defined engine)');
+  console.log('Question count (defined):', QUESTIONS.length);
+
+  if(_preview){
+    renderForm({ patient_name:'', procedure:'Your procedure', hospital:'', surgery_date:null });
+    console.log('Questions loaded (preview):', visibleQuestions().length);
+    var b = ge('submit-btn'); if(b){ b.textContent='Preview only'; b.disabled=true; b.style.opacity='.6'; }
+    return;
+  }
+  if(!_token){ renderError('No questionnaire link was provided.'); return; }
+  try {
+    var r = await window.sb.rpc('get_clinic_patient_by_token', { p_token: _token });
+    console.log('TOKEN LOOKUP — data:', r.data, '| error:', r.error);
+    if(r.error) throw new Error(r.error.message);
+    var p = (r.data && r.data[0]) ? r.data[0] : null;
+    if(!p){ renderError('We could not find your questionnaire. Please contact your clinic for a new link.'); return; }
+    if(p.questionnaire_status === 'completed'){ renderDone(p.questionnaire_answers || {}); return; }
+    renderForm(p);
+    var loaded = visibleQuestions().length;
+    console.log('Patient token:', _token);
+    console.log('Patient ID:', p.id || '(not returned)');
+    console.log('Template ID:', '(none — code-defined engine)');
+    console.log('Template Name:', '(none)');
+    console.log('Question Count:', loaded);
+    // Safety net: the page must NEVER be blank.
+    if(loaded === 0 || !ge('q-form') || !ge('q-form').innerHTML.trim()){
+      renderError('Questionnaire configuration missing. Please contact your clinic.');
+    }
+  } catch(e){
+    console.error('QUESTIONNAIRE LOAD ERROR:', e);
+    renderError('Questionnaire configuration missing — ' + (e && e.message ? e.message : 'unknown error') + '. Please contact your clinic.');
+  }
+});
+</script>
+</body>
+</html>

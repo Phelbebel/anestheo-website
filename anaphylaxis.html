@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anaphylaxis — Anestheo References</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+<style>
+#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;}
+.crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
+.crumb a{color:var(--accent);text-decoration:none;}
+.ref-h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:4px;}
+.ref-sub{font-size:14px;color:var(--muted);margin-bottom:8px;}
+.disclaimer{font-size:11px;color:var(--hint);margin-bottom:28px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer strong{color:#E8A838;}
+.block{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;padding:20px 22px;margin-bottom:16px;}
+.block-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.rtbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;}
+.rtbl th{text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
+.rtbl td{padding:9px 10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);vertical-align:top;}
+.rtbl tr:last-child td{border-bottom:none;}
+.rtbl td b{color:#fff;}
+.algo{counter-reset:step;}
+.algo-step{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.1);font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.55;}
+.algo-step:last-child{border-bottom:none;}
+.algo-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(27,107,90,.25);color:#7ECFC0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.algo-step b{color:#fff;}
+.note{font-size:13.5px;color:rgba(255,255,255,.78);line-height:1.7;padding:5px 0;}
+.note b{color:#fff;}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:5px;background:rgba(27,107,90,.2);color:#7ECFC0;border:1px solid rgba(42,138,116,.3);margin:2px 3px 2px 0;}
+.pill-warn{background:rgba(232,168,56,.12);color:#E8A838;border-color:rgba(232,168,56,.3);}
+.pill-danger{background:rgba(192,57,43,.13);color:rgba(255,140,120,.92);border-color:rgba(192,57,43,.3);}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div id="nb-placeholder"></div>
+<div id="app">
+  <div class="page-wrap" style="max-width:760px;">
+    <div class="crumb"><a href="/v2/dashboard.html">Dashboard</a> &rsaquo; <a href="/v2/references.html">Clinical References</a> &rsaquo; Anaphylaxis</div>
+    <h1 class="ref-h1">Anaphylaxis</h1>
+    <p class="ref-sub">Perioperative anaphylaxis recognition and treatment.</p>
+    <div class="disclaimer"><strong>Reference only.</strong> Summary for education and quick reference. Not a substitute for clinical judgment, current guidelines, or local protocols. Verify all doses and intervals before use.</div>
+    <div class="block"><div class="block-title">Recognition</div><div class="note">&bull; <b>Cardiovascular:</b> sudden hypotension, tachycardia, cardiovascular collapse (often first sign under anesthesia).</div><div class="note">&bull; <b>Respiratory:</b> bronchospasm, &uarr; airway pressures, desaturation.</div><div class="note">&bull; <b>Cutaneous:</b> flushing, urticaria, angioedema (may be absent or hidden under drapes).</div><div class="note">&bull; Common triggers: <span class="pill">neuromuscular blockers</span> <span class="pill">antibiotics</span> <span class="pill">chlorhexidine</span> <span class="pill">latex</span>.</div></div><div class="block"><div class="block-title">Immediate management</div><div class="algo"><div class="algo-step"><span class="algo-num">1</span><span>Stop the likely trigger. Call for help. 100% oxygen.</span></div><div class="algo-step"><span class="algo-num">2</span><span><b>Adrenaline</b> — titrate IV: 10–20 mcg boluses (mild), 50–100 mcg (hypotension), 0.5–1 mg + CPR (arrest). IM 0.5 mg if no IV.</span></div><div class="algo-step"><span class="algo-num">3</span><span>IV fluid bolus — crystalloid 20 mL/kg, repeat as needed (large volumes often required).</span></div><div class="algo-step"><span class="algo-num">4</span><span>Treat bronchospasm — salbutamol, escalate adrenaline.</span></div><div class="algo-step"><span class="algo-num">5</span><span>Start adrenaline infusion if repeated boluses needed.</span></div></div></div><div class="block"><div class="block-title">Adrenaline — quick dose by severity</div><table class="rtbl"><thead><tr><th>Severity</th><th>IV adrenaline</th></tr></thead><tbody><tr><td>Moderate (hypotension)</td><td>20–50 mcg bolus</td></tr><tr><td>Severe (collapse)</td><td>100–200 mcg, repeat</td></tr><tr><td>Cardiac arrest</td><td>1 mg every 3–5 min + CPR</td></tr></tbody></table></div><div class="block"><div class="block-title">Important notes</div><div class="note">&bull; Take <b>mast cell tryptase</b> samples: immediately, at 1–2 h, and at 24 h.</div><div class="note">&bull; Refer for allergy investigation before future anesthesia; document the suspected trigger clearly.</div><div class="note">&bull; Second-line (steroids, antihistamines) do NOT replace adrenaline and fluids.</div></div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async function(){
+  try{
+    var auth = await window.requireAuth(); if(!auth) return;
+    var role = auth.profile ? auth.profile.role : '';
+    if(role === 'patient'){ window.location.href = '/v2/dashboard.html'; return; }
+    document.getElementById('loader').style.display='none';
+    document.getElementById('app').style.display='block';
+  }catch(e){
+    document.getElementById('loader').innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: '+e.message+'</p>';
+  }
+});
+</script>
+</body>
+</html>

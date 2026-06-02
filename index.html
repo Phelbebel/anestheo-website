@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#0A1A15;color:#fff;min-height:100vh;
+  -webkit-font-smoothing:antialiased;}
+.hero{min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:40px 20px;
+  background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(27,107,90,.18) 0%,transparent 65%);}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,58px);
+  font-weight:700;line-height:1.1;margin-bottom:16px;}
+.hero h1 span{color:#2A8A74;}
+.hero p{font-size:16px;color:rgba(255,255,255,.55);max-width:440px;
+  margin:0 auto 32px;line-height:1.75;font-weight:300;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-primary{background:#1B6B5A;color:#fff;border:none;padding:13px 26px;
+  border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;
+  font-family:inherit;transition:background .2s;text-decoration:none;display:inline-block;}
+.btn-primary:hover{background:#2A8A74;}
+.btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.18);
+  padding:13px 26px;border-radius:8px;font-size:15px;font-weight:500;
+  cursor:pointer;font-family:inherit;transition:all .2s;text-decoration:none;display:inline-block;}
+.btn-ghost:hover{border-color:rgba(255,255,255,.38);background:rgba(255,255,255,.04);}
+/* session-aware hero swaps handled by JS */
+#hero-auth{display:none;}
+/* For Anesthesiologists section */
+.docs-section{padding:70px 20px;background:linear-gradient(180deg,transparent,rgba(27,107,90,.04));}
+.docs-wrap{max-width:1060px;margin:0 auto;}
+.docs-eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7ECFC0;text-align:center;margin-bottom:14px;}
+.docs-h2{font-family:'Playfair Display',serif;font-size:clamp(26px,3.5vw,38px);font-weight:700;text-align:center;margin-bottom:12px;}
+.docs-sub{font-size:16px;color:rgba(255,255,255,.55);max-width:600px;margin:0 auto 44px;text-align:center;line-height:1.7;font-weight:300;}
+.docs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
+.docs-card{background:rgba(255,255,255,.04);border:1px solid rgba(27,107,90,.2);border-radius:15px;padding:24px;transition:all .2s;}
+.docs-card:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.09);transform:translateY(-2px);}
+.docs-ico{font-size:28px;margin-bottom:12px;}
+.docs-title{font-size:16px;font-weight:600;color:#fff;margin-bottom:12px;}
+.docs-list{list-style:none;}
+.docs-list li{font-size:13.5px;color:rgba(255,255,255,.7);line-height:1.5;padding:5px 0 5px 20px;position:relative;}
+.docs-list li:before{content:'';position:absolute;left:3px;top:12px;width:6px;height:6px;border-radius:50%;background:#2A8A74;}
+.docs-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:40px;}
+@media(max-width:560px){.docs-section{padding:48px 16px;}}
+/* ── Professional Anesthesia Tools showcase ── */
+.tools-section{padding:64px 20px 30px;}
+.tools-wrap{max-width:var(--max);margin:0 auto;text-align:center;}
+.tv-p{font-size:13px;color:var(--muted);line-height:1.55;margin-top:6px;}
+.monitor{margin:30px auto 0;max-width:860px;background:#06120D;border:1px solid rgba(126,207,192,.18);border-radius:18px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45);text-align:left;}
+.mon-bar{display:flex;align-items:center;gap:9px;padding:11px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06);font-size:12.5px;font-weight:600;color:#cfe;letter-spacing:.02em;}
+.mon-dot{width:8px;height:8px;border-radius:50%;background:#46d39a;box-shadow:0 0 8px #46d39a;animation:monpulse 1.6s infinite;}
+@keyframes monpulse{0%,100%{opacity:1}50%{opacity:.3}}
+.mon-time{margin-left:auto;color:var(--hint);font-variant-numeric:tabular-nums;}
+.mon-body{display:grid;grid-template-columns:1fr 150px;gap:0;}
+.mon-traces{padding:6px 0;border-right:1px solid rgba(255,255,255,.06);}
+.trace{position:relative;height:60px;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.04);}
+.trace:last-child{border-bottom:none;}
+.trace-lbl{position:absolute;top:5px;left:12px;font-size:10px;font-weight:700;letter-spacing:.05em;z-index:2;opacity:.85;}
+.trace svg{width:200%;height:100%;display:block;}
+.trace svg path{fill:none;stroke-width:1.8;vector-effect:non-scaling-stroke;}
+.trace .scroll{animation:sweep 7s linear infinite;}
+@keyframes sweep{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ecg path{stroke:#46d39a;filter:drop-shadow(0 0 3px rgba(70,211,154,.5));}
+.ecg .trace-lbl{color:#46d39a;}
+.pleth path{stroke:#5ad0e6;filter:drop-shadow(0 0 3px rgba(90,208,230,.5));}
+.pleth .trace-lbl{color:#5ad0e6;}
+.capno path{stroke:#e8c454;filter:drop-shadow(0 0 3px rgba(232,196,84,.45));}
+.capno .trace-lbl{color:#e8c454;}
+.mon-vitals{display:flex;flex-direction:column;}
+.vital{flex:1;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;}
+.vital:last-child{border-bottom:none;}
+.v-l{font-size:10px;font-weight:700;letter-spacing:.04em;width:100%;opacity:.7;}
+.v-n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+.v-u{font-size:10px;color:var(--hint);}
+.v-hr .v-n,.v-hr .v-l{color:#46d39a;}
+.v-spo2 .v-n,.v-spo2 .v-l{color:#5ad0e6;}
+.v-co2 .v-n,.v-co2 .v-l{color:#e8c454;}
+.v-bp .v-n,.v-rr .v-n,.v-temp .v-n{color:#fff;}
+.mon-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.06);}
+.mon-card{background:#06120D;padding:12px 14px;}
+.mc-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin-bottom:7px;}
+.mc-r{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:var(--muted);}
+.mc-r b{color:#fff;font-weight:600;}
+@media(max-width:620px){.mon-body{grid-template-columns:1fr;}.mon-vitals{flex-direction:row;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.06);}.vital{width:33.33%;border-bottom:none;}.mon-cards{grid-template-columns:1fr;}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+
+<section class="hero">
+  <div>
+    <div id="hero-guest">
+      <h1>Understand your<br><span>anesthesia</span><br>before surgery</h1>
+      <p>Educational resources and clinical tools for patients and healthcare professionals.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="console.log('BUTTON CLICKED - get started');nbOpenModal()">Get started</button>
+        <a href="/v2/patients.html" class="btn-ghost">For patients</a>
+      </div>
+    </div>
+    <div id="hero-auth">
+      <h1 id="hero-auth-h1">Welcome back</h1>
+      <p id="hero-auth-sub">You are signed in.</p>
+      <div class="hero-btns" id="hero-auth-btns"></div>
+    </div>
+  </div>
+</section>
+
+<section class="tools-section">
+  <div class="tools-wrap">
+    <div class="docs-eyebrow">Anesthesia Live Tools</div>
+    <h2 class="docs-h2">Professional anesthesia tools</h2>
+    <p class="docs-sub">Built for anesthesiologists, residents, ICU physicians, and perioperative teams.</p>
+
+    <!-- Animated anesthesia workstation preview -->
+    <div class="monitor" aria-label="Anesthesia monitor preview">
+      <div class="mon-bar">
+        <span class="mon-dot"></span> Anestheo Monitor
+        <span class="mon-time" id="mon-time">08:24</span>
+      </div>
+      <div class="mon-body">
+        <div class="mon-traces">
+          <div class="trace ecg">
+            <span class="trace-lbl">ECG II</span>
+            <svg viewBox="0 0 600 60" preserveAspectRatio="none"><g class="scroll">
+              <path d="M0,30 L40,30 50,30 55,12 60,48 66,30 100,30 140,30 150,30 155,12 160,48 166,30 200,30 240,30 250,30 255,12 260,48 266,30 300,30 340,30 350,30 355,12 360,48 366,30 400,30 440,30 450,30 455,12 460,48 466,30 500,30 540,30 550,30 555,12 560,48 566,30 600,30"/>
+              <path d="M600,30 L640,30 650,30 655,12 660,48 666,30 700,30 740,30 750,30 755,12 760,48 766,30 800,30 840,30 850,30 855,12 860,48 866,30 900,30 940,30 950,30 955,12 960,48 966,30 1000,30 1040,30 1050,30 1055,12 1060,48 1066,30 1100,30 1140,30 1150,30 1155,12 1160,48 1166,30 1200,30"/>
+            </g></svg>
+          </div>
+          <div class="trace pleth">
+            <span class="trace-lbl">SpO&#8322; Pleth</span>
+            <svg viewBox="0 0 600 60" preserveAspectRatio="none"><g class="scroll">
+              <path d="M0,45 Q20,10 40,18 T80,45 Q100,12 120,20 T160,45 Q180,12 200,20 T240,45 Q260,12 280,20 T320,45 Q340,12 360,20 T400,45 Q420,12 440,20 T480,45 Q500,12 520,20 T560,45 Q580,12 600,20"/>
+              <path d="M600,45 Q620,10 640,18 T680,45 Q700,12 720,20 T760,45 Q780,12 800,20 T840,45 Q860,12 880,20 T920,45 Q940,12 960,20 T1000,45 Q1020,12 1040,20 T1080,45 Q1100,12 1120,20 T1160,45 Q1180,12 1200,20"/>
+            </g></svg>
+          </div>
+          <div class="trace capno">
+            <span class="trace-lbl">ETCO&#8322;</span>
+            <svg viewBox="0 0 600 60" preserveAspectRatio="none"><g class="scroll">
+              <path d="M0,50 L20,50 24,16 70,14 74,50 110,50 114,16 160,14 164,50 200,50 204,16 250,14 254,50 290,50 294,16 340,14 344,50 380,50 384,16 430,14 434,50 470,50 474,16 520,14 524,50 560,50 564,16 600,14"/>
+              <path d="M600,50 L620,50 624,16 670,14 674,50 710,50 714,16 760,14 764,50 800,50 804,16 850,14 854,50 890,50 894,16 940,14 944,50 980,50 984,16 1030,14 1034,50 1070,50 1074,16 1120,14 1124,50 1160,50 1164,16 1200,14"/>
+            </g></svg>
+          </div>
+        </div>
+        <div class="mon-vitals">
+          <div class="vital v-hr"><span class="v-l">HR</span><span class="v-n" id="v-hr">72</span><span class="v-u">bpm</span></div>
+          <div class="vital v-spo2"><span class="v-l">SpO&#8322;</span><span class="v-n" id="v-spo2">98</span><span class="v-u">%</span></div>
+          <div class="vital v-bp"><span class="v-l">NIBP</span><span class="v-n">118/76</span><span class="v-u">mmHg</span></div>
+          <div class="vital v-co2"><span class="v-l">ETCO&#8322;</span><span class="v-n" id="v-co2">38</span><span class="v-u">mmHg</span></div>
+          <div class="vital v-rr"><span class="v-l">RR</span><span class="v-n">14</span><span class="v-u">/min</span></div>
+          <div class="vital v-temp"><span class="v-l">Temp</span><span class="v-n">36.6</span><span class="v-u">&deg;C</span></div>
+        </div>
+      </div>
+      <div class="mon-cards">
+        <div class="mon-card"><div class="mc-t">Drug dosing</div><div class="mc-r"><span>Propofol</span><b>140 mg</b></div><div class="mc-r"><span>Rocuronium</span><b>50 mg</b></div><div class="mc-r"><span>Fentanyl</span><b>100 mcg</b></div></div>
+        <div class="mon-card"><div class="mc-t">Airway</div><div class="mc-r"><span>ETT</span><b>7.5</b></div><div class="mc-r"><span>Depth</span><b>22 cm</b></div><div class="mc-r"><span>Mallampati</span><b>II</b></div></div>
+        <div class="mon-card"><div class="mc-t">Regional</div><div class="mc-r"><span>Max ropiv.</span><b>225 mg</b></div><div class="mc-r"><span>Block</span><b>Interscalene</b></div><div class="mc-r"><span>Volume</span><b>20 mL</b></div></div>
+      </div>
+    </div>
+
+    <!-- Value cards -->
+    <div class="docs-grid" style="margin-top:34px;">
+      <div class="docs-card"><div class="docs-ico">&#128168;</div><div class="docs-title">Airway management</div><p class="tv-p">Difficult airway assessment and planning.</p></div>
+      <div class="docs-card"><div class="docs-ico">&#128137;</div><div class="docs-title">Drug dosing</div><p class="tv-p">Weight-based anesthesia calculations.</p></div>
+      <div class="docs-card"><div class="docs-ico">&#129504;</div><div class="docs-title">Regional anesthesia</div><p class="tv-p">Block references and local anesthetic dosing.</p></div>
+      <div class="docs-card"><div class="docs-ico">&#127973;</div><div class="docs-title">ICU &amp; hemodynamics</div><p class="tv-p">Vasoactive medications and critical care tools.</p></div>
+      <div class="docs-card"><div class="docs-ico">&#128138;</div><div class="docs-title">TIVA / TCI</div><p class="tv-p">Anesthetic infusion guidance.</p></div>
+      <div class="docs-card"><div class="docs-ico">&#9888;</div><div class="docs-title">Emergency references</div><p class="tv-p">LAST, anaphylaxis, malignant hyperthermia and more.</p></div>
+    </div>
+
+    <div class="docs-cta">
+      <a href="/v2/engine.html" class="btn-primary">Explore Anesthesia Live Tools</a>
+      <button class="btn-ghost" onclick="window.nbOpenModal()">Create free doctor account</button>
+    </div>
+  </div>
+</section>
+
+    <h2 class="docs-h2">Built for practicing anesthesiologists.</h2>
+    <p class="docs-sub">Manage patients, collect pre-operative information, send questionnaires, and access anesthesia tools from one workspace.</p>
+
+    <div class="docs-grid">
+      <div class="docs-card">
+        <div class="docs-ico">&#128101;</div>
+        <div class="docs-title">Patient management</div>
+        <ul class="docs-list"><li>Create patient</li><li>Send secure patient links</li><li>Track completion</li><li>Review responses</li></ul>
+      </div>
+      <div class="docs-card">
+        <div class="docs-ico">&#128241;</div>
+        <div class="docs-title">WhatsApp workflow</div>
+        <ul class="docs-list"><li>Generate patient link</li><li>Send through WhatsApp</li><li>Monitor completion status</li></ul>
+      </div>
+      <div class="docs-card">
+        <div class="docs-ico">&#129658;</div>
+        <div class="docs-title">Anesthesiology Live Tools</div>
+        <ul class="docs-list"><li>Drug calculations</li><li>Airway tools &amp; ventilation</li><li>TIVA / TCI</li><li>Regional anesthesia &amp; scores</li></ul>
+      </div>
+      <div class="docs-card">
+        <div class="docs-ico">&#128214;</div>
+        <div class="docs-title">Clinical references</div>
+        <ul class="docs-list"><li>Airway &amp; difficult airway</li><li>Anticoagulation &amp; regional</li><li>ICU, obstetric, pediatric</li><li>LAST &amp; anaphylaxis</li></ul>
+      </div>
+      <div class="docs-card">
+        <div class="docs-ico">&#128172;</div>
+        <div class="docs-title">Ask Anesthesiologist</div>
+        <ul class="docs-list"><li>Patient questions</li><li>Doctor responses</li><li>Communication center</li></ul>
+      </div>
+      <div class="docs-card">
+        <div class="docs-ico">&#128218;</div>
+        <div class="docs-title">Resources library</div>
+        <ul class="docs-list"><li>Books &amp; PDFs</li><li>Guides &amp; checklists</li><li>Templates</li></ul>
+      </div>
+    </div>
+
+    <div class="docs-cta">
+      <button class="btn-primary" onclick="window.nbOpenModal()">Create doctor account</button>
+      <a href="/v2/dashboard.html" class="btn-ghost">View doctor workspace</a>
+    </div>
+  </div>
+</section>
+
+<script>
+// ── Role-aware hero ───────────────────────────────────────────
+function renderAuthHero(user, profile){
+  var role = profile ? (profile.role || 'patient') : 'patient';
+  var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
+  if(isAdmin) role = 'admin';
+
+  // Name
+  var name = (profile && profile.full_name)
+    ? profile.full_name.split(' ').slice(-1)[0]   // last name
+    : user.email.split('@')[0];
+  var first = (profile && profile.full_name)
+    ? profile.full_name.split(' ')[0]
+    : user.email.split('@')[0];
+  first = first.charAt(0).toUpperCase() + first.slice(1);
+  name  = name.charAt(0).toUpperCase() + name.slice(1);
+
+  var heading, sub, btns;
+
+  if(role === 'doctor'){
+    heading = 'Welcome back, Dr. ' + name;
+    sub     = 'Your clinical workspace is ready.';
+    btns    = '<a href="/v2/dashboard.html" class="btn-primary">Go to dashboard</a>' +
+              '<a href="/v2/engine.html" class="btn-ghost">Doctor Tools</a>';
+  } else if(role === 'admin'){
+    heading = 'Welcome back, Dr. ' + name;
+    sub     = 'Anestheo.';
+    btns    = '<a href="/v2/dashboard.html" class="btn-primary">Go to dashboard</a>' +
+              '<a href="/v2/engine.html" class="btn-ghost">Doctor Tools</a>';
+  } else { // patient
+    heading = 'Welcome back, ' + first;
+    sub     = 'Continue preparing for your procedure.';
+    btns    = '<a href="/v2/questionnaire.html" class="btn-primary">Continue preparation</a>' +
+              '<a href="/v2/dashboard.html" class="btn-ghost">Open dashboard</a>';
+  }
+
+  document.getElementById('hero-auth-h1').textContent  = heading;
+  document.getElementById('hero-auth-sub').textContent = sub;
+  document.getElementById('hero-auth-btns').innerHTML  = btns;
+  document.getElementById('hero-guest').style.display  = 'none';
+  document.getElementById('hero-auth').style.display   = 'block';
+}
+
+function showGuestHero(){
+  document.getElementById('hero-guest').style.display = 'block';
+  document.getElementById('hero-auth').style.display  = 'none';
+}
+
+(async function(){
+  var session = await getSession();
+  if(session){
+    var profile = await getProfile(session.user.id);
+    renderAuthHero(session.user, profile);
+  }
+  window.sb.auth.onAuthStateChange(async function(event, sess){
+    if(event === 'SIGNED_IN' && sess){
+      var p = await getProfile(sess.user.id);
+      renderAuthHero(sess.user, p);
+    }
+    if(event === 'SIGNED_OUT'){
+      showGuestHero();
+    }
+  });
+})();
+
+// Subtle "live" monitor preview (vitals jitter + clock)
+(function(){
+  function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function tick(){
+    var hr=document.getElementById('v-hr'), spo2=document.getElementById('v-spo2'), co2=document.getElementById('v-co2'), t=document.getElementById('mon-time');
+    if(hr) hr.textContent = r(68,78);
+    if(spo2) spo2.textContent = r(97,100);
+    if(co2) co2.textContent = r(35,40);
+    if(t){ var d=new Date(); t.textContent = ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+  }
+  tick(); setInterval(tick, 3000);
+})();
+</script>
+</body>
+</html>

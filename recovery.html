@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recovery — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+<style>
+.crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
+.crumb a{color:var(--accent);text-decoration:none;}
+.p-h1{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;margin-bottom:4px;}
+.p-sub{font-size:14px;color:var(--muted);margin-bottom:8px;}
+.disclaimer{font-size:11px;color:var(--hint);margin-bottom:26px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer strong{color:#E8A838;}
+.pblock{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+.pblock-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:13px;display:flex;align-items:center;gap:9px;}
+.pblock p{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:10px;}
+.pli{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.pli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:#2A8A74;}
+.pli b{color:#fff;}
+.timeline-item{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.1);}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-when{flex-shrink:0;width:110px;font-size:12px;font-weight:600;color:#7ECFC0;}
+.timeline-what{font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.6;}
+.danger-block{background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+.danger-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,140,120,.95);margin-bottom:13px;display:flex;align-items:center;gap:9px;}
+.dli{font-size:14px;color:rgba(255,210,200,.92);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.dli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:rgba(220,80,60,.9);}
+.dli b{color:#fff;}
+.next-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;background:linear-gradient(135deg,rgba(27,107,90,.2),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.4);border-radius:14px;padding:22px 24px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+<div class="page-wrap" style="max-width:780px;">
+  <div class="crumb"><a href="/v2/patients.html">For Patients</a> &rsaquo; Recovery</div>
+  <h1 class="p-h1">Recovery</h1>
+  <p class="p-sub">What to expect after your anesthesia and how to recover safely.</p>
+  <div class="disclaimer"><strong>Educational information only.</strong> Follow the discharge advice from your own team. If you are worried about any symptom, seek medical advice.</div>
+
+  <div class="pblock"><div class="pblock-title">&#128202; Recovery timeline</div>
+    <div class="timeline-item"><div class="timeline-when">First hours</div><div class="timeline-what">You wake in the recovery area. Drowsiness, mild confusion, and a dry mouth are normal. Nurses monitor you closely.</div></div>
+    <div class="timeline-item"><div class="timeline-when">First 24 hours</div><div class="timeline-what">Effects of anesthesia wear off. Do not drive, operate machinery, sign documents, or drink alcohol. Have someone stay with you.</div></div>
+    <div class="timeline-item"><div class="timeline-when">First few days</div><div class="timeline-what">Energy gradually returns. Mild sore throat, tiredness, or muscle aches may linger. Follow pain-relief and wound-care advice.</div></div>
+    <div class="timeline-item"><div class="timeline-when">1–2 weeks</div><div class="timeline-what">Most short-term effects resolve. Return to activity gradually as advised by your team.</div></div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#128137; Pain after surgery</div>
+    <p>Some pain is expected. Take pain relief regularly as advised rather than waiting for pain to become severe.</p>
+    <div class="pli">Use the medications and doses your team recommends.</div>
+    <div class="pli">Combining simple pain relief (e.g. paracetamol) with prescribed medication often works best.</div>
+    <div class="pli">Contact your team if pain is severe, worsening, or not controlled.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#129326; Nausea and vomiting</div>
+    <p>Nausea is common after anesthesia and usually settles within a day.</p>
+    <div class="pli">Start with small sips of water and bland food.</div>
+    <div class="pli">Anti-sickness medication is available — ask your nurse if you feel unwell.</div>
+    <div class="pli">Move slowly when getting up, as sudden movement can worsen nausea.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#127869; Eating and drinking</div>
+    <div class="pli">Begin with clear fluids, then progress to light, easily digestible food.</div>
+    <div class="pli">Stay hydrated — it helps recovery and reduces headaches and nausea.</div>
+    <div class="pli">Resume your normal diet gradually as your appetite returns.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#128694; Walking and mobility</div>
+    <div class="pli">Early gentle movement reduces the risk of blood clots and chest problems.</div>
+    <div class="pli">Get up slowly and have someone nearby the first few times.</div>
+    <div class="pli">Follow any specific activity limits from your surgeon.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#128564; Sleep and rest</div>
+    <div class="pli">Rest is important — your body heals as you recover.</div>
+    <div class="pli">Sleep can be disturbed for a few nights; this usually settles.</div>
+    <div class="pli">Balance rest with gentle activity during the day.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#9888; Warning signs — contact your doctor</div>
+    <div class="pli">Fever, chills, or a wound that is hot, red, swollen, or leaking.</div>
+    <div class="pli">Pain that is severe or getting worse despite pain relief.</div>
+    <div class="pli">Persistent vomiting or inability to keep fluids down.</div>
+    <div class="pli">Difficulty passing urine, or no urine for many hours.</div>
+    <div class="pli">Increasing redness, swelling, or pain in a leg (possible clot).</div>
+  </div>
+
+  <div class="danger-block"><div class="danger-title">&#128680; Emergency symptoms — seek help immediately</div>
+    <div class="dli"><b>Difficulty breathing</b> or shortness of breath.</div>
+    <div class="dli"><b>Chest pain</b> or palpitations.</div>
+    <div class="dli"><b>Heavy or uncontrolled bleeding.</b></div>
+    <div class="dli"><b>Sudden severe pain</b>, fainting, or collapse.</div>
+    <div class="dli"><b>Signs of a severe allergic reaction</b> — swelling of lips/face, widespread rash, difficulty breathing.</div>
+    <p style="font-size:13px;color:rgba(255,210,200,.92);margin-top:10px;">Call your local emergency number for any of the above.</p>
+  </div>
+
+  <div class="next-cta"><div style="font-size:15px;color:#fff;font-weight:500;">Have a question about your recovery?</div>
+    <a href="/v2/ask.html" class="btn-primary">Ask the Anesthesiologist</a></div>
+</div>
+<footer class="site-footer"><div class="page-wrap"><p>&copy; 2026 Anestheo. Educational information only — not a substitute for medical advice.</p></div></footer>
+<script>document.addEventListener('DOMContentLoaded',function(){console.log('RECOVERY READY');});</script>
+</body>
+</html>

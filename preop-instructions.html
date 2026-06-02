@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-op Instructions — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+<style>
+.crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
+.crumb a{color:var(--accent);text-decoration:none;}
+.p-h1{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;margin-bottom:4px;}
+.p-sub{font-size:14px;color:var(--muted);margin-bottom:8px;}
+.disclaimer{font-size:11px;color:var(--hint);margin-bottom:26px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer strong{color:#E8A838;}
+.pblock{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+.pblock-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:13px;display:flex;align-items:center;gap:9px;}
+.pblock p{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:10px;}
+.pli{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.pli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:#2A8A74;}
+.pli b{color:#fff;}
+.fast-tbl{width:100%;border-collapse:collapse;font-size:13.5px;}
+.fast-tbl th{text-align:left;padding:9px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
+.fast-tbl td{padding:10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);}
+.fast-tbl tr:last-child td{border-bottom:none;}
+.fast-tbl td b{color:#fff;}
+.chk{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.1);cursor:pointer;}
+.chk:last-child{border-bottom:none;}
+.chk input{margin-top:2px;width:18px;height:18px;accent-color:#2A8A74;flex-shrink:0;}
+.chk span{font-size:14px;color:rgba(255,255,255,.82);line-height:1.6;}
+.chk input:checked + span{color:var(--hint);text-decoration:line-through;}
+.timeline-item{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.1);}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-when{flex-shrink:0;width:96px;font-size:12px;font-weight:600;color:#7ECFC0;}
+.timeline-what{font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.6;}
+.next-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;background:linear-gradient(135deg,rgba(27,107,90,.2),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.4);border-radius:14px;padding:22px 24px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+<div class="page-wrap" style="max-width:780px;">
+  <div class="crumb"><a href="/v2/patients.html">For Patients</a> &rsaquo; Pre-op Instructions</div>
+  <h1 class="p-h1">Pre-op instructions</h1>
+  <p class="p-sub">How to prepare safely in the days and hours before your surgery.</p>
+  <div class="disclaimer"><strong>Educational information only.</strong> Always follow the specific instructions given by your own surgical and anesthesia team — they may differ from this general guide.</div>
+
+  <div class="pblock"><div class="pblock-title">&#9201; Fasting rules</div>
+    <p>An empty stomach lowers the risk of complications during anesthesia. Typical guidance:</p>
+    <table class="fast-tbl"><thead><tr><th>Before surgery</th><th>Guidance</th></tr></thead><tbody>
+      <tr><td><b>Solid food</b></td><td>Stop eating at least 6 hours before</td></tr>
+      <tr><td><b>Light meal / milk</b></td><td>At least 6 hours before</td></tr>
+      <tr><td><b>Clear fluids (water, clear juice, black coffee/tea)</b></td><td>Usually allowed up to 2 hours before</td></tr>
+      <tr><td><b>Chewing gum / sweets</b></td><td>Avoid on the day of surgery</td></tr>
+      <tr><td><b>Alcohol</b></td><td>Avoid for 24 hours before</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#128138; Medication guidance</div>
+    <div class="pli"><b>Bring a full list</b> of all your medications, doses, and supplements.</div>
+    <div class="pli"><b>Blood thinners</b> (e.g. warfarin, apixaban, clopidogrel, aspirin) — ask your team well in advance; these often need adjusting.</div>
+    <div class="pli"><b>Diabetes medication and insulin</b> — you\u2019ll get specific instructions for the morning of surgery.</div>
+    <div class="pli"><b>Blood pressure medication</b> — usually continued, often with a small sip of water.</div>
+    <div class="pli"><b>Supplements that increase bleeding</b> (fish oil, vitamin E, ginkgo) — usually stopped beforehand.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#129509; What to bring</div>
+    <div class="pli">Photo ID and any hospital paperwork or appointment letters.</div>
+    <div class="pli">A complete list of medications and allergies.</div>
+    <div class="pli">Glasses, hearing aids, inhalers, or CPAP machine if you use one.</div>
+    <div class="pli">Comfortable, loose clothing and flat shoes.</div>
+    <div class="pli">Leave jewelry, valuables, and contact lenses at home.</div>
+    <div class="pli">Arrange a responsible adult to take you home and stay with you.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#128172; What to tell your anesthesiologist</div>
+    <div class="pli">Previous reactions or problems with anesthesia (yours or in your family).</div>
+    <div class="pli">Allergies — especially to medications, latex, or chlorhexidine.</div>
+    <div class="pli">Loose or capped teeth, or difficulty opening your mouth.</div>
+    <div class="pli">Snoring or sleep apnea, heart or lung conditions, reflux.</div>
+    <div class="pli">All medications, supplements, smoking, alcohol, or recreational drug use.</div>
+    <div class="pli">If you are or might be pregnant.</div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#128197; Preparation timeline</div>
+    <div class="timeline-item"><div class="timeline-when">1–2 weeks</div><div class="timeline-what">Attend pre-assessment. Review medications and blood thinners. Stop smoking if you can.</div></div>
+    <div class="timeline-item"><div class="timeline-when">Day before</div><div class="timeline-what">Confirm arrival time. Prepare what to bring. Avoid alcohol. Get a good night\u2019s sleep.</div></div>
+    <div class="timeline-item"><div class="timeline-when">Morning of</div><div class="timeline-what">Follow fasting rules. Take only the medications you were told to. Shower, remove makeup/nail polish.</div></div>
+    <div class="timeline-item"><div class="timeline-when">At hospital</div><div class="timeline-what">Check in, meet your team, confirm consent, and ask any final questions.</div></div>
+  </div>
+
+  <div class="pblock"><div class="pblock-title">&#9989; Quick pre-op checklist</div>
+    <label class="chk"><input type="checkbox" onchange="saveChk()"><span>I know my arrival time and where to go</span></label>
+    <label class="chk"><input type="checkbox" onchange="saveChk()"><span>I have confirmed my fasting start time</span></label>
+    <label class="chk"><input type="checkbox" onchange="saveChk()"><span>I have reviewed which medications to take or stop</span></label>
+    <label class="chk"><input type="checkbox" onchange="saveChk()"><span>I have packed ID, medication list, and essentials</span></label>
+    <label class="chk"><input type="checkbox" onchange="saveChk()"><span>I have arranged transport and someone to stay with me</span></label>
+    <label class="chk"><input type="checkbox" onchange="saveChk()"><span>I have written down questions for my anesthesiologist</span></label>
+    <p style="font-size:12px;color:var(--hint);margin-top:12px;" id="chk-note">Tip: log in to save your checklist progress.</p>
+  </div>
+
+  <div class="next-cta"><div style="font-size:15px;color:#fff;font-weight:500;">Next step: questions to ask &amp; education</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;"><a href="/v2/ask.html" class="btn-primary">Ask a question</a><a href="/v2/videos.html" class="btn-ghost">Watch videos</a></div></div>
+</div>
+<footer class="site-footer"><div class="page-wrap"><p>&copy; 2026 Anestheo. Educational information only — not a substitute for medical advice.</p></div></footer>
+<script>
+// Save checklist progress for logged-in users (uses existing preop_checklist table)
+var _uid = null;
+function saveChk(){
+  if(!_uid){ return; }
+  var items = [].map.call(document.querySelectorAll('.chk input'), function(i){ return i.checked; });
+  try { window.saveChecklist(_uid, { preop_quick: items }); } catch(e){}
+}
+document.addEventListener('DOMContentLoaded', async function(){
+  try {
+    var s = await getSession();
+    if(s){
+      _uid = s.user.id;
+      document.getElementById('chk-note').textContent = 'Your checklist progress is saved automatically.';
+      try {
+        var c = await window.getChecklist(_uid);
+        if(c && c.items && c.items.preop_quick){
+          var inputs = document.querySelectorAll('.chk input');
+          c.items.preop_quick.forEach(function(v,i){ if(inputs[i]) inputs[i].checked = v; });
+        }
+      } catch(e){}
+    }
+  } catch(e){}
+  console.log('PREOP INSTRUCTIONS READY');
+});
+</script>
+</body>
+</html>

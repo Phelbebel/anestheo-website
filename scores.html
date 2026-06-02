@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinical Scores &amp; Calculators — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<style>
+#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;}
+.sc-wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
+.sc-head h1{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;margin-bottom:5px;}
+.sc-head p{font-size:14px;color:var(--muted);max-width:680px;line-height:1.6;}
+.sc-nav{position:sticky;top:0;background:rgba(10,26,21,.94);backdrop-filter:blur(8px);z-index:10;display:flex;gap:7px;flex-wrap:wrap;padding:14px 0;margin:18px 0 8px;border-bottom:1px solid var(--border);}
+.sc-nav button{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-size:12.5px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
+.sc-nav button.on{background:rgba(27,107,90,.2);border-color:rgba(42,138,116,.45);color:#fff;font-weight:600;}
+.disclaimer{font-size:11px;color:var(--hint);margin:10px 0 18px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer strong{color:#E8A838;}
+.sc-cat{margin-bottom:30px;}
+.sc-cat-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;margin:10px 0 12px;color:#fff;}
+.sc-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;margin-bottom:11px;overflow:hidden;}
+.sc-q{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:15px 18px;font-family:inherit;}
+.sc-q-name{font-size:15px;font-weight:600;color:#fff;}
+.sc-q-purpose{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.sc-chev{color:#7ECFC0;font-size:12px;transition:transform .25s;flex-shrink:0;}
+.sc-card.open .sc-chev{transform:rotate(180deg);}
+.sc-body{display:none;padding:0 18px 18px;}
+.sc-card.open .sc-body{display:block;animation:scfade .2s ease;}
+@keyframes scfade{from{opacity:0}to{opacity:1}}
+.sc-item{padding:11px 0;border-top:1px solid rgba(255,255,255,.06);}
+.sc-item-l{font-size:13.5px;color:#fff;margin-bottom:7px;font-weight:500;}
+.sc-opts{display:flex;flex-wrap:wrap;gap:7px;}
+.sc-opt{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px;color:var(--muted);cursor:pointer;font-family:inherit;}
+.sc-opt.on{background:rgba(27,107,90,.25);border-color:#2A8A74;color:#fff;font-weight:600;}
+.sc-sel{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:11px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;}
+.sc-sel option{background:#132218;}
+.sc-num{width:120px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 12px;color:#fff;font-size:15px;font-family:inherit;outline:none;}
+.sc-result{margin-top:14px;background:#06120D;border:1px solid rgba(42,138,116,.3);border-radius:11px;padding:14px 16px;}
+.sc-score{font-size:13px;color:var(--hint);}
+.sc-score b{font-size:24px;color:#fff;font-weight:700;font-family:'Playfair Display',serif;margin-right:5px;}
+.sc-interp{font-size:15px;font-weight:600;margin:6px 0 3px;}
+.sc-risk{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:6px;margin-bottom:8px;}
+.r-low{background:rgba(27,107,90,.22);color:#7ECFC0;}
+.r-mod{background:rgba(232,168,56,.16);color:#E8C16b;}
+.r-high{background:rgba(192,57,43,.18);color:#ff9b86;}
+.r-ref{background:rgba(120,150,255,.14);color:#9ab0ff;}
+.sc-impl{font-size:13px;color:var(--muted);line-height:1.6;}
+.sc-impl b{color:#cfe;}
+.sc-ref-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px;}
+.sc-ref-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top;}
+.sc-ref-table td:first-child{color:#7ECFC0;font-weight:600;white-space:nowrap;width:30%;}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div id="nb-placeholder"></div>
+<div id="app">
+  <div class="sc-wrap">
+    <div class="sc-head">
+      <h1>Clinical scores &amp; calculators</h1>
+      <p>Interactive perioperative scoring — calculate, interpret, and see perioperative implications. Organized for anesthesiologists, residents, ICU physicians, and perioperative teams.</p>
+    </div>
+    <div class="disclaimer"><strong>Reference only.</strong> Scores support — never replace — clinical judgment. Verify against current guidelines and the original validated instruments.</div>
+    <div class="sc-nav" id="sc-nav"></div>
+    <div id="sc-content"></div>
+  </div>
+</div>
+
+<script>
+function ge(id){ return document.getElementById(id); }
+
+// risk class helper
+var RC = { low:'r-low', mod:'r-mod', high:'r-high', ref:'r-ref' };
+
+// ── SCORE LIBRARY ─────────────────────────────────────────────
+// kind 'sum'  : items[{l, o:[[text,pts]]}], bands[[maxTotal,interp,risk,impl]]
+// kind 'select': o:[[text,interp,risk,impl]]
+// kind 'ref'   : input numeric, bands[[max,interp,risk,impl]], table optional
+// kind 'peds'  : age-based airway formulas
+var CATS = [
+  ['preop','Pre-operative assessment'],
+  ['frailty','Geriatric / frailty'],
+  ['cog','Cognitive assessment'],
+  ['icu','ICU / critical care'],
+  ['airway','Airway'],
+  ['ob','Obstetrics'],
+  ['peds','Pediatrics'],
+  ['func','Functional status']
+];
+
+var YN = function(pts){ return [['No',0],['Yes',pts]]; };
+
+var SCORES = [
+// ───────── PRE-OP ─────────
+{id:'asa',cat:'preop',name:'ASA Physical Status',purpose:'Baseline physical status before anesthesia.',kind:'select',
+ o:[
+  ['I — Healthy patient','ASA I — Normal healthy patient','low','Routine perioperative care.'],
+  ['II — Mild systemic disease','ASA II — Mild systemic disease','low','Well-controlled disease (e.g. controlled HTN, smoker). Standard care.'],
+  ['III — Severe systemic disease','ASA III — Severe systemic disease','mod','Substantive functional limitation. Optimize comorbidities; consider higher monitoring.'],
+  ['IV — Severe disease, constant threat to life','ASA IV — Severe, life-threatening','high','High risk. Senior involvement, invasive monitoring, ICU planning.'],
+  ['V — Moribund, not expected to survive without operation','ASA V — Moribund','high','Salvage surgery only; full critical-care support.'],
+  ['VI — Brain-dead, organ donor','ASA VI — Declared brain-dead (organ donor)','ref','Organ-procurement protocols.']
+ ]},
+{id:'stopbang',cat:'preop',name:'STOP-BANG (OSA risk)',purpose:'Screen for obstructive sleep apnea before surgery.',kind:'sum',
+ items:[
+  {l:'Snoring loudly',o:YN(1)},{l:'Tiredness / daytime sleepiness',o:YN(1)},
+  {l:'Observed apnea',o:YN(1)},{l:'High blood pressure',o:YN(1)},
+  {l:'BMI > 35 kg/m²',o:YN(1)},{l:'Age > 50',o:YN(1)},
+  {l:'Neck circumference > 40 cm',o:YN(1)},{l:'Male',o:YN(1)}
+ ],
+ bands:[[2,'Low OSA risk','low','Routine care; standard postoperative monitoring.'],
+        [4,'Intermediate OSA risk','mod','Consider OSA precautions; cautious opioids; postoperative monitoring.'],
+        [8,'High OSA risk','high','Treat as likely OSA: minimize sedatives/opioids, regional where possible, extended monitored recovery, CPAP availability.']]},
+{id:'rcri',cat:'preop',name:'Revised Cardiac Risk Index (RCRI)',purpose:'Estimate major cardiac risk for noncardiac surgery.',kind:'sum',
+ items:[
+  {l:'High-risk surgery (intraperitoneal, intrathoracic, suprainguinal vascular)',o:YN(1)},
+  {l:'Ischemic heart disease',o:YN(1)},{l:'History of congestive heart failure',o:YN(1)},
+  {l:'History of cerebrovascular disease',o:YN(1)},{l:'Insulin therapy for diabetes',o:YN(1)},
+  {l:'Preoperative creatinine > 2.0 mg/dL (177 µmol/L)',o:YN(1)}
+ ],
+ bands:[[0,'Class I — ~0.4% major cardiac event','low','Low cardiac risk; proceed.'],
+        [1,'Class II — ~0.9%','low','Low risk; optimize as needed.'],
+        [2,'Class III — ~6.6%','mod','Elevated risk; consider functional capacity, biomarkers, optimization.'],
+        [6,'Class IV — ~11% or higher','high','High cardiac risk; cardiology input, monitoring, ICU planning.']]},
+{id:'ariscat',cat:'preop',name:'ARISCAT (pulmonary risk)',purpose:'Predict postoperative pulmonary complications.',kind:'sum',
+ items:[
+  {l:'Age',o:[['≤50',0],['51–80',3],['>80',16]]},
+  {l:'Preoperative SpO₂',o:[['≥96%',0],['91–95%',8],['≤90%',24]]},
+  {l:'Respiratory infection in last month',o:YN(17)},
+  {l:'Preoperative anemia (Hb ≤10 g/dL)',o:YN(11)},
+  {l:'Surgical incision',o:[['Peripheral',0],['Upper abdominal',15],['Intrathoracic',24]]},
+  {l:'Duration of surgery',o:[['<2 h',0],['2–3 h',16],['>3 h',23]]},
+  {l:'Emergency procedure',o:YN(8)}
+ ],
+ bands:[[25,'Low risk (<26)','low','Routine pulmonary care.'],
+        [44,'Intermediate risk (26–44)','mod','Lung-protective ventilation, incentive spirometry, analgesia to enable deep breathing.'],
+        [200,'High risk (≥45)','high','Aggressive pulmonary optimization, consider regional, HDU/ICU, physiotherapy.']]},
+{id:'apfel',cat:'preop',name:'Apfel PONV Score',purpose:'Predict postoperative nausea & vomiting risk.',kind:'sum',
+ items:[
+  {l:'Female sex',o:YN(1)},{l:'Non-smoker',o:YN(1)},
+  {l:'History of PONV or motion sickness',o:YN(1)},{l:'Expected postoperative opioids',o:YN(1)}
+ ],
+ bands:[[0,'~10% risk','low','No routine prophylaxis needed.'],
+        [1,'~20% risk','low','Consider single antiemetic.'],
+        [2,'~40% risk','mod','Two-agent prophylaxis; consider TIVA.'],
+        [3,'~60% risk','high','Multimodal prophylaxis; TIVA, dexamethasone + 5-HT3, minimize opioids.'],
+        [4,'~80% risk','high','Aggressive multimodal prophylaxis; TIVA strongly favored.']]},
+{id:'caprini',cat:'preop',name:'Caprini VTE Score (common factors)',purpose:'Stratify venous thromboembolism risk and prophylaxis.',kind:'sum',
+ items:[
+  {l:'Age',o:[['≤40',0],['41–60',1],['61–74',2],['≥75',3]]},
+  {l:'Surgery type',o:[['Minor',1],['Major (>45 min) / laparoscopic >45 min',2],['Arthroplasty / hip-pelvis-leg fracture',5]]},
+  {l:'Obesity (BMI >25)',o:YN(1)},{l:'Swollen legs / varicose veins',o:YN(1)},
+  {l:'Sepsis / serious infection (<1 month)',o:YN(1)},{l:'Confined to bed >72 h',o:YN(2)},
+  {l:'History of VTE',o:YN(3)},{l:'Malignancy',o:YN(2)},{l:'Central venous access',o:YN(2)}
+ ],
+ bands:[[0,'Very low risk (0)','low','Early ambulation.'],
+        [2,'Low risk (1–2)','low','Mechanical prophylaxis (IPC/stockings).'],
+        [4,'Moderate risk (3–4)','mod','Pharmacologic or mechanical prophylaxis.'],
+        [40,'High risk (≥5)','high','Pharmacologic + mechanical prophylaxis; consider extended duration.']]},
+
+// ───────── FRAILTY ─────────
+{id:'cfs',cat:'frailty',name:'Clinical Frailty Scale (CFS)',purpose:'Global frailty assessment in older adults.',kind:'select',
+ o:[
+  ['1 — Very fit','CFS 1 — Very fit','low','Robust; routine care.'],
+  ['2 — Fit','CFS 2 — Fit','low','No active disease limiting activity.'],
+  ['3 — Managing well','CFS 3 — Managing well','low','Well-controlled comorbidities.'],
+  ['4 — Living with very mild frailty','CFS 4 — Vulnerable','mod','Symptoms limit activities; counsel on recovery.'],
+  ['5 — Mildly frail','CFS 5 — Mildly frail','mod','Higher risk of postoperative complications, delirium, prolonged recovery; consider prehabilitation.'],
+  ['6 — Moderately frail','CFS 6 — Moderately frail','high','Substantial risk; goals-of-care discussion, multidisciplinary planning, delirium prevention.'],
+  ['7 — Severely frail','CFS 7 — Severely frail','high','Very high risk; careful risk–benefit, consider conservative options.'],
+  ['8 — Very severely frail','CFS 8 — Very severely frail','high','Approaching end of life; palliative focus.'],
+  ['9 — Terminally ill','CFS 9 — Terminally ill','high','Life expectancy <6 months.']
+ ]},
+{id:'mfi5',cat:'frailty',name:'Modified Frailty Index (mFI-5)',purpose:'Rapid 5-item frailty screen.',kind:'sum',
+ items:[
+  {l:'Functional dependence',o:YN(1)},{l:'Diabetes mellitus',o:YN(1)},
+  {l:'COPD or pneumonia history',o:YN(1)},{l:'Congestive heart failure',o:YN(1)},
+  {l:'Hypertension requiring medication',o:YN(1)}
+ ],
+ bands:[[0,'Not frail (0)','low','Routine care.'],
+        [1,'Pre-frail (1)','mod','Monitor; optimize comorbidities.'],
+        [5,'Frail (≥2)','high','Increased morbidity/mortality; prehabilitation, delirium prevention, shared decision-making.']]},
+{id:'fried',cat:'frailty',name:'Fried Frailty Phenotype',purpose:'Physical frailty phenotype (5 criteria).',kind:'sum',
+ items:[
+  {l:'Unintentional weight loss (>4.5 kg/year)',o:YN(1)},{l:'Self-reported exhaustion',o:YN(1)},
+  {l:'Weakness (low grip strength)',o:YN(1)},{l:'Slow walking speed',o:YN(1)},
+  {l:'Low physical activity',o:YN(1)}
+ ],
+ bands:[[0,'Robust (0)','low','Routine care.'],
+        [2,'Pre-frail (1–2)','mod','At-risk; optimize nutrition and activity.'],
+        [5,'Frail (≥3)','high','Frail; higher complication and mortality risk, prehabilitation.']]},
+{id:'edmonton',cat:'frailty',name:'Edmonton Frail Scale',purpose:'Multidomain frailty (enter total 0–17).',kind:'ref',
+ bands:[[5,'Not frail (0–5)','low','Routine care.'],[6,'Apparently vulnerable (6)','mod','Monitor.'],
+        [7,'Mildly frail (7–8)','mod','Optimize; delirium prevention.'],[9,'Moderately frail (9–10)','high','Multidisciplinary planning.'],
+        [17,'Severely frail (11–17)','high','High risk; shared decision-making.']],
+ max:17},
+
+// ───────── COGNITIVE ─────────
+{id:'minicog',cat:'cog',name:'Mini-Cog',purpose:'Rapid dementia/cognitive screen.',kind:'sum',
+ items:[
+  {l:'Three-word recall',o:[['0 words',0],['1 word',1],['2 words',2],['3 words',3]]},
+  {l:'Clock-draw test',o:[['Abnormal',0],['Normal',2]]}
+ ],
+ bands:[[2,'Positive screen (0–2)','high','Cognitive impairment likely → baseline cognition documentation, delirium-prevention bundle, caution with sedatives/anticholinergics.'],
+        [5,'Negative screen (3–5)','low','Cognitive impairment unlikely.']]},
+{id:'4at',cat:'cog',name:'4AT (delirium)',purpose:'Rapid delirium detection.',kind:'sum',
+ items:[
+  {l:'Alertness',o:[['Normal',0],['Abnormal',4]]},
+  {l:'AMT4 errors (age, DOB, place, year)',o:[['No mistakes',0],['1 mistake',1],['≥2 mistakes',2]]},
+  {l:'Attention (months backward)',o:[['≥7 correct',0],['<7 / refuses',1],['Untestable',2]]},
+  {l:'Acute change / fluctuating course',o:[['No',0],['Yes',4]]}
+ ],
+ bands:[[0,'Delirium/impairment unlikely (0)','low','Routine care.'],
+        [3,'Possible cognitive impairment (1–3)','mod','Further cognitive testing; monitor.'],
+        [12,'Possible delirium ± cognitive impairment (≥4)','high','Investigate cause, delirium bundle, review medications, orientation, treat precipitants.']]},
+{id:'cam',cat:'cog',name:'CAM (Confusion Assessment Method)',purpose:'Diagnose delirium (algorithm).',kind:'select',
+ o:[
+  ['(1) Acute onset & fluctuating + (2) inattention + (3) disorganized thinking','CAM positive — delirium present','high','Requires features 1 AND 2, plus 3 OR 4. Investigate precipitants, delirium bundle.'],
+  ['(1) Acute onset & fluctuating + (2) inattention + (4) altered consciousness','CAM positive — delirium present','high','Requires features 1 AND 2, plus 3 OR 4. Investigate precipitants, delirium bundle.'],
+  ['Features 1 and 2 not both present','CAM negative — delirium not detected','low','Continue monitoring; reassess if status changes.']
+ ]},
+{id:'mmse',cat:'cog',name:'MMSE (reference)',purpose:'Cognitive function (enter total 0–30).',kind:'ref',
+ bands:[[9,'Severe impairment (≤9)','high','Significant impairment; delirium risk, capacity considerations.'],
+        [18,'Moderate impairment (10–18)','high','Impairment present.'],
+        [23,'Mild impairment (19–23)','mod','Mild impairment; document baseline.'],
+        [30,'Normal (24–30)','low','Within normal range (adjust for education).']],
+ max:30},
+{id:'moca',cat:'cog',name:'MoCA (reference)',purpose:'Sensitive cognitive screen (enter total 0–30).',kind:'ref',
+ bands:[[17,'Moderate–severe impairment (<18)','high','Significant impairment.'],
+        [25,'Mild impairment (18–25)','mod','Mild cognitive impairment likely (≥26 normal; +1 if ≤12 y education).'],
+        [30,'Normal (26–30)','low','Within normal range.']],
+ max:30},
+
+// ───────── ICU ─────────
+{id:'qsofa',cat:'icu',name:'qSOFA',purpose:'Rapid bedside sepsis-risk screen.',kind:'sum',
+ items:[
+  {l:'Respiratory rate ≥22/min',o:YN(1)},{l:'Altered mentation (GCS <15)',o:YN(1)},
+  {l:'Systolic BP ≤100 mmHg',o:YN(1)}
+ ],
+ bands:[[1,'Low (0–1)','low','Lower risk; continue assessment if infection suspected.'],
+        [3,'High (≥2)','high','Greater risk of poor outcome from sepsis → escalate, full SOFA, sepsis bundle.']]},
+{id:'sofa',cat:'icu',name:'SOFA',purpose:'Organ-dysfunction severity in ICU.',kind:'sum',
+ items:[
+  {l:'Respiration (PaO₂/FiO₂)',o:[['≥400',0],['<400',1],['<300',2],['<200 + support',3],['<100 + support',4]]},
+  {l:'Coagulation (platelets ×10³)',o:[['≥150',0],['<150',1],['<100',2],['<50',3],['<20',4]]},
+  {l:'Liver (bilirubin mg/dL)',o:[['<1.2',0],['1.2–1.9',1],['2.0–5.9',2],['6.0–11.9',3],['>12',4]]},
+  {l:'Cardiovascular',o:[['MAP ≥70',0],['MAP <70',1],['Low-dose vasopressor',2],['Mod-dose vasopressor',3],['High-dose vasopressor',4]]},
+  {l:'CNS (GCS)',o:[['15',0],['13–14',1],['10–12',2],['6–9',3],['<6',4]]},
+  {l:'Renal (creatinine mg/dL)',o:[['<1.2',0],['1.2–1.9',1],['2.0–3.4',2],['3.5–4.9',3],['>5.0',4]]}
+ ],
+ bands:[[6,'Low organ dysfunction (0–6)','low','Mortality ~<10%.'],
+        [9,'Moderate (7–9)','mod','Mortality ~15–20%; reassess frequently.'],
+        [12,'High (10–12)','high','Mortality ~40–50%.'],
+        [24,'Very high (≥13)','high','Mortality >50%; maximal support.']]},
+{id:'news2',cat:'icu',name:'NEWS2',purpose:'Detect clinical deterioration.',kind:'sum',
+ items:[
+  {l:'Respiratory rate',o:[['12–20',0],['9–11',1],['21–24',2],['≤8 or ≥25',3]]},
+  {l:'SpO₂ (scale 1)',o:[['≥96',0],['94–95',1],['92–93',2],['≤91',3]]},
+  {l:'Supplemental oxygen',o:[['No',0],['Yes',2]]},
+  {l:'Systolic BP',o:[['111–219',0],['101–110',1],['91–100',2],['≤90 or ≥220',3]]},
+  {l:'Pulse',o:[['51–90',0],['41–50 or 91–110',1],['111–130',2],['≤40 or ≥131',3]]},
+  {l:'Consciousness',o:[['Alert',0],['New confusion/V/P/U',3]]},
+  {l:'Temperature °C',o:[['36.1–38.0',0],['35.1–36.0 or 38.1–39.0',1],['≥39.1',2],['≤35.0',3]]}
+ ],
+ bands:[[0,'Low (0)','low','Routine monitoring.'],
+        [4,'Low (1–4)','low','Ward-based response; reassess.'],
+        [6,'Medium (5–6 or any single 3)','mod','Urgent review by clinician with competencies; consider escalation.'],
+        [30,'High (≥7)','high','Emergency assessment by critical-care team; continuous monitoring.']]},
+{id:'mews',cat:'icu',name:'MEWS',purpose:'Modified Early Warning Score.',kind:'sum',
+ items:[
+  {l:'Systolic BP',o:[['101–199',0],['81–100',1],['71–80 or ≥200',2],['≤70',3]]},
+  {l:'Heart rate',o:[['51–100',0],['41–50 or 101–110',1],['111–129',2],['≤40 or ≥130',3]]},
+  {l:'Respiratory rate',o:[['9–14',0],['15–20',1],['21–29 or <9',2],['≥30',3]]},
+  {l:'Temperature °C',o:[['35–38.4',0],['≥38.5 or <35',2]]},
+  {l:'AVPU',o:[['Alert',0],['Voice',1],['Pain',2],['Unresponsive',3]]}
+ ],
+ bands:[[2,'Low (0–2)','low','Routine monitoring.'],
+        [4,'Moderate (3–4)','mod','Increase monitoring; inform team.'],
+        [20,'High (≥5)','high','Urgent medical review; consider critical care.']]},
+{id:'gcs',cat:'icu',name:'Glasgow Coma Scale',purpose:'Level of consciousness.',kind:'sum',
+ items:[
+  {l:'Eye opening',o:[['None',1],['To pain',2],['To voice',3],['Spontaneous',4]]},
+  {l:'Verbal response',o:[['None',1],['Incomprehensible',2],['Inappropriate words',3],['Confused',4],['Oriented',5]]},
+  {l:'Motor response',o:[['None',1],['Extension',2],['Abnormal flexion',3],['Withdrawal',4],['Localizes',5],['Obeys commands',6]]}
+ ],
+ bands:[[8,'Severe (≤8)','high','Airway at risk → consider intubation; neuro assessment.'],
+        [12,'Moderate (9–12)','mod','Close monitoring; serial assessment.'],
+        [15,'Mild (13–15)','low','Monitor; reassess.']],
+ minBand:3},
+{id:'apache2',cat:'icu',name:'APACHE II (reference)',purpose:'ICU severity of illness (enter total 0–71).',kind:'ref',
+ bands:[[4,'~4% mortality (0–4)','low','Lower severity.'],[9,'~8% (5–9)','low','—'],
+        [14,'~15% (10–14)','mod','Moderate severity.'],[19,'~25% (15–19)','mod','—'],
+        [24,'~40% (20–24)','high','High severity.'],[29,'~55% (25–29)','high','—'],
+        [71,'~75%+ (≥30)','high','Very high severity; maximal support.']],
+ max:71},
+
+// ───────── AIRWAY ─────────
+{id:'mallampati',cat:'airway',name:'Mallampati',purpose:'Oropharyngeal view / intubation difficulty.',kind:'select',
+ o:[
+  ['Class I — soft palate, uvula, fauces, pillars','Class I','low','Usually easy laryngoscopic view.'],
+  ['Class II — soft palate, uvula, fauces','Class II','low','Generally favorable.'],
+  ['Class III — soft palate, base of uvula','Class III','mod','Possible difficulty; prepare adjuncts.'],
+  ['Class IV — hard palate only','Class IV','high','Predicts difficult laryngoscopy; difficult-airway plan, video laryngoscopy, skilled assistance.']
+ ]},
+{id:'egri',cat:'airway',name:'El-Ganzouri Risk Index',purpose:'Multivariable difficult-intubation risk.',kind:'sum',
+ items:[
+  {l:'Mouth opening',o:[['≥4 cm',0],['<4 cm',1]]},
+  {l:'Thyromental distance',o:[['>6.5 cm',0],['6.0–6.5 cm',1],['<6.0 cm',2]]},
+  {l:'Mallampati',o:[['I',0],['II',1],['III',2],['IV',2]]},
+  {l:'Neck movement',o:[['>90°',0],['80–90°',1],['<80°',2]]},
+  {l:'Ability to prognath',o:[['Yes',0],['No',1]]},
+  {l:'Weight',o:[['<90 kg',0],['90–110 kg',1],['>110 kg',2]]},
+  {l:'History of difficult intubation',o:[['None',0],['Questionable',1],['Definite',2]]}
+ ],
+ bands:[[3,'Low risk (<4)','low','Standard approach.'],
+        [12,'Higher risk (≥4)','high','Anticipate difficulty: video laryngoscopy, adjuncts, awake technique consideration, skilled help, plan for failure.']]},
+{id:'wilson',cat:'airway',name:'Wilson Score',purpose:'Predict difficult intubation.',kind:'sum',
+ items:[
+  {l:'Weight',o:[['Normal',0],['Moderate',1],['Obese',2]]},
+  {l:'Head & neck movement',o:[['>90°',0],['~90°',1],['<90°',2]]},
+  {l:'Jaw movement',o:[['Good',0],['Moderate',1],['Poor',2]]},
+  {l:'Receding mandible',o:[['Normal',0],['Moderate',1],['Severe',2]]},
+  {l:'Buck teeth',o:[['Normal',0],['Moderate',1],['Severe',2]]}
+ ],
+ bands:[[2,'Low risk (0–2)','low','Standard approach.'],
+        [10,'Increased risk (≥3)','high','Prepare difficult-airway equipment and plan.']]},
+{id:'lemon',cat:'airway',name:'LEMON',purpose:'Rapid difficult-airway screen (emergency).',kind:'sum',
+ items:[
+  {l:'Look externally (abnormal facies/trauma/beard)',o:YN(1)},
+  {l:'Evaluate 3-3-2 fails',o:YN(1)},
+  {l:'Mallampati III–IV',o:YN(1)},
+  {l:'Obstruction / obesity',o:YN(1)},
+  {l:'Neck mobility reduced',o:YN(1)}
+ ],
+ bands:[[0,'Low predicted difficulty (0)','low','Standard approach.'],
+        [2,'Some risk factors (1–2)','mod','Optimize positioning, prepare adjuncts.'],
+        [5,'Multiple risk factors (≥3)','high','High difficulty risk: video laryngoscopy, backup plans, senior help.']]},
+
+// ───────── OBSTETRICS ─────────
+{id:'bishop',cat:'ob',name:'Bishop Score',purpose:'Cervical favorability for induction of labor.',kind:'sum',
+ items:[
+  {l:'Dilation',o:[['Closed',0],['1–2 cm',1],['3–4 cm',2],['≥5 cm',3]]},
+  {l:'Effacement',o:[['0–30%',0],['40–50%',1],['60–70%',2],['≥80%',3]]},
+  {l:'Station',o:[['-3',0],['-2',1],['-1/0',2],['+1/+2',3]]},
+  {l:'Consistency',o:[['Firm',0],['Medium',1],['Soft',2]]},
+  {l:'Position',o:[['Posterior',0],['Mid',1],['Anterior',2]]}
+ ],
+ bands:[[5,'Unfavorable (≤5)','mod','Cervical ripening likely needed; higher chance of failed induction / cesarean.'],
+        [7,'Intermediate (6–7)','mod','Variable; clinical judgment.'],
+        [13,'Favorable (≥8)','low','Favorable for successful induction / spontaneous labor.']]},
+{id:'preeclampsia',cat:'ob',name:'Preeclampsia — severe features',purpose:'Identify severe preeclampsia (reference).',kind:'select',
+ o:[
+  ['BP ≥160/110, or any severe feature','Severe features present','high','Severe preeclampsia: Mg sulfate, BP control, careful neuraxial (check platelets/coags), avoid ergometrine, fluid caution, senior/obstetric-anesthesia involvement.'],
+  ['BP 140–159/90–109 without severe features','Preeclampsia without severe features','mod','Monitor closely; neuraxial generally appropriate; recheck platelets.'],
+  ['BP <140/90','No hypertensive criteria met','low','Routine obstetric care.']
+ ]},
+{id:'obhem',cat:'ob',name:'Obstetric Hemorrhage Risk',purpose:'Stratify PPH risk (reference).',kind:'select',
+ o:[
+  ['Placenta previa/accreta, active bleeding, ≥2 medium factors, known coagulopathy','High risk','high','Type & crossmatch, large-bore IV ×2, cell salvage, uterotonics ready, massive-transfusion protocol on standby, senior team.'],
+  ['Prior cesarean/uterine surgery, multiple gestation, chorioamnionitis, large fibroids','Medium risk','mod','Type & screen, IV access, uterotonics available, anticipate.'],
+  ['No risk factors','Low risk','low','Routine active management of third stage.']
+ ]},
+
+// ───────── PEDIATRICS ─────────
+{id:'pedsasa',cat:'peds',name:'Pediatric ASA',purpose:'ASA status adapted to children.',kind:'select',
+ o:[
+  ['I — Healthy child','ASA I','low','Routine care.'],
+  ['II — Mild disease (controlled asthma, well-controlled epilepsy)','ASA II','low','Standard care; optimize.'],
+  ['III — Severe disease (moderate-severe asthma, poorly controlled epilepsy)','ASA III','mod','Optimize; consider higher monitoring/specialist input.'],
+  ['IV — Severe disease, constant threat (sepsis, severe cardiac)','ASA IV','high','High risk; PICU planning, senior pediatric anesthesia.'],
+  ['V — Moribund','ASA V','high','Salvage only.']
+ ]},
+{id:'pedsairway',cat:'peds',name:'Pediatric Airway Formulas',purpose:'Age-based ETT, depth, and equipment sizing.',kind:'peds'},
+{id:'broselow',cat:'peds',name:'Broselow (reference)',purpose:'Length-based weight & dosing estimation.',kind:'ref',
+ isText:true,
+ bands:[[200,'Length-based color zones','ref','The Broselow tape estimates weight from length and maps to color zones (grey→green) giving pre-calculated drug doses and equipment sizes for pediatric resuscitation. Use the physical tape/printed reference for exact zone values.']],
+ max:1},
+
+// ───────── FUNCTIONAL ─────────
+{id:'mets',cat:'func',name:'METs (functional capacity)',purpose:'Estimate functional capacity for perioperative risk.',kind:'select',
+ o:[
+  ['<4 METs — cannot climb 2 flights / walk 4 blocks','Poor functional capacity (<4 METs)','high','Poor capacity predicts higher perioperative cardiac risk → consider further evaluation/optimization.'],
+  ['4–10 METs — climb stairs, brisk walking, heavy housework','Moderate–good (4–10 METs)','low','Generally adequate; proceed with standard care.'],
+  ['>10 METs — strenuous sports','Excellent (>10 METs)','low','Excellent capacity; low functional-risk.']
+ ]},
+{id:'dasi',cat:'func',name:'Duke Activity Status Index (DASI)',purpose:'Questionnaire estimate of functional capacity.',kind:'sum',
+ items:[
+  {l:'Take care of yourself (eat, dress, bathe)',o:YN(2.75)},
+  {l:'Walk indoors',o:YN(1.75)},
+  {l:'Walk a block or two on level ground',o:YN(2.75)},
+  {l:'Climb a flight of stairs',o:YN(5.50)},
+  {l:'Run a short distance',o:YN(8.00)},
+  {l:'Light housework (dusting, dishes)',o:YN(2.70)},
+  {l:'Moderate housework (vacuuming, groceries)',o:YN(3.50)},
+  {l:'Heavy housework (scrubbing, moving furniture)',o:YN(8.00)},
+  {l:'Yard work (raking, mowing)',o:YN(4.50)},
+  {l:'Sexual relations',o:YN(5.25)},
+  {l:'Moderate recreation (golf, dancing)',o:YN(6.00)},
+  {l:'Strenuous sport (swimming, tennis, skiing)',o:YN(7.50)}
+ ],
+ bands:[[19.99,'Low functional capacity','high','DASI <20 (~<4 METs equivalent) → poorer functional status, higher perioperative risk; consider optimization.'],
+        [34,'Moderate functional capacity','mod','Intermediate functional status.'],
+        [58.2,'Good functional capacity','low','Higher DASI → better functional capacity and lower risk.']],
+ isFloat:true}
+];
+
+// ── RENDER ────────────────────────────────────────────────────
+function buildNav(){
+  ge('sc-nav').innerHTML = CATS.map(function(c,i){
+    return '<button class="'+(i===0?'on':'')+'" onclick="scJump(\''+c[0]+'\',this)">'+c[1]+'</button>';
+  }).join('');
+}
+function scJump(cat, btn){
+  document.querySelectorAll('#sc-nav button').forEach(function(b){ b.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
+  var el = ge('cat-'+cat); if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function buildContent(){
+  var html = '';
+  CATS.forEach(function(c){
+    var list = SCORES.filter(function(s){ return s.cat===c[0]; });
+    html += '<div class="sc-cat" id="cat-'+c[0]+'"><div class="sc-cat-title">'+c[1]+'</div>';
+    list.forEach(function(s){
+      html += '<div class="sc-card" id="card-'+s.id+'">' +
+        '<button class="sc-q" onclick="scToggle(\''+s.id+'\')"><span><span class="sc-q-name">'+s.name+'</span>' +
+        '<span class="sc-q-purpose">'+s.purpose+'</span></span><span class="sc-chev">&#9660;</span></button>' +
+        '<div class="sc-body" id="body-'+s.id+'"></div></div>';
+    });
+    html += '</div>';
+  });
+  ge('sc-content').innerHTML = html;
+}
+function scToggle(id){
+  var card = ge('card-'+id);
+  var open = card.classList.contains('open');
+  card.classList.toggle('open');
+  if(!open && !ge('body-'+id).dataset.built){ buildBody(id); ge('body-'+id).dataset.built='1'; }
+}
+function findScore(id){ for(var i=0;i<SCORES.length;i++){ if(SCORES[i].id===id) return SCORES[i]; } return null; }
+
+function buildBody(id){
+  var s = findScore(id); var box = ge('body-'+id); if(!s) return;
+  var html = '';
+  if(s.kind==='sum'){
+    s.items.forEach(function(it, qi){
+      html += '<div class="sc-item"><div class="sc-item-l">'+it.l+'</div><div class="sc-opts">' +
+        it.o.map(function(op, oi){
+          return '<button type="button" class="sc-opt" data-q="'+qi+'" data-v="'+op[1]+'" onclick="scPick(\''+id+'\','+qi+','+oi+',this)">'+op[0]+'</button>';
+        }).join('') + '</div></div>';
+    });
+    html += '<div class="sc-result" id="res-'+id+'"><div class="sc-score">Select all items to calculate.</div></div>';
+  } else if(s.kind==='select'){
+    html += '<div class="sc-item"><select class="sc-sel" onchange="scSelect(\''+id+'\',this.value)"><option value="">Select…</option>' +
+      s.o.map(function(op,oi){ return '<option value="'+oi+'">'+op[0]+'</option>'; }).join('') + '</select></div>' +
+      '<div class="sc-result" id="res-'+id+'" style="display:none;"></div>';
+  } else if(s.kind==='ref'){
+    html += '<div class="sc-item"><div class="sc-item-l">Enter score'+(s.max?(' (0–'+s.max+')'):'')+'</div>' +
+      (s.isText ? '' : '<input class="sc-num" type="number" inputmode="numeric" oninput="scRef(\''+id+'\',this.value)" placeholder="0">') + '</div>' +
+      '<table class="sc-ref-table">' + s.bands.map(function(b){ return '<tr><td>'+b[1]+'</td><td>'+b[3]+'</td></tr>'; }).join('') + '</table>' +
+      '<div class="sc-result" id="res-'+id+'" style="display:none;"></div>';
+  } else if(s.kind==='peds'){
+    html += '<div class="sc-item"><div class="sc-item-l">Child age (years)</div>' +
+      '<input class="sc-num" type="number" inputmode="numeric" step="0.5" oninput="scPeds(\''+id+'\',this.value)" placeholder="years"></div>' +
+      '<div class="sc-result" id="res-'+id+'" style="display:none;"></div>';
+  }
+  box.innerHTML = html;
+  if(!box._state) box._state = {};
+}
+
+// state per score
+var SC_STATE = {};
+function scPick(id, qi, oi, btn){
+  var s = findScore(id);
+  SC_STATE[id] = SC_STATE[id] || {};
+  SC_STATE[id][qi] = parseFloat(btn.getAttribute('data-v'));
+  // toggle selected style within this question
+  var card = ge('body-'+id);
+  card.querySelectorAll('.sc-opt[data-q="'+qi+'"]').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  // need all answered
+  if(Object.keys(SC_STATE[id]).length < s.items.length){
+    ge('res-'+id).innerHTML = '<div class="sc-score">Answered '+Object.keys(SC_STATE[id]).length+' of '+s.items.length+'…</div>';
+    return;
+  }
+  var total = 0; for(var k in SC_STATE[id]) total += SC_STATE[id][k];
+  var band = bandFor(s, total);
+  showResult(id, (s.isFloat? total.toFixed(2): total), band, s);
+}
+function bandFor(s, total){
+  for(var i=0;i<s.bands.length;i++){ if(total <= s.bands[i][0]) return s.bands[i]; }
+  return s.bands[s.bands.length-1];
+}
+function showResult(id, scoreText, band, s){
+  var res = ge('res-'+id); res.style.display='block';
+  res.innerHTML =
+    '<div class="sc-score"><b>'+scoreText+'</b>'+(s.kind==='sum'&&!s.isFloat?' points':'')+'</div>' +
+    '<div class="sc-interp">'+band[1]+'</div>' +
+    '<span class="sc-risk '+(RC[band[2]]||'r-ref')+'">'+({low:'Low risk',mod:'Intermediate',high:'High risk',ref:'Reference'}[band[2]]||'')+'</span>' +
+    '<div class="sc-impl"><b>Perioperative:</b> '+band[3]+'</div>';
+}
+function scSelect(id, oi){
+  if(oi==='') { ge('res-'+id).style.display='none'; return; }
+  var s = findScore(id); var op = s.o[parseInt(oi,10)];
+  var res = ge('res-'+id); res.style.display='block';
+  res.innerHTML = '<div class="sc-interp">'+op[1]+'</div>' +
+    '<span class="sc-risk '+(RC[op[2]]||'r-ref')+'">'+({low:'Low risk',mod:'Intermediate',high:'High risk',ref:'Reference'}[op[2]]||'')+'</span>' +
+    '<div class="sc-impl"><b>Perioperative:</b> '+op[3]+'</div>';
+}
+function scRef(id, val){
+  var res = ge('res-'+id);
+  if(val===''){ res.style.display='none'; return; }
+  var s = findScore(id); var n = parseFloat(val);
+  if(isNaN(n)){ res.style.display='none'; return; }
+  var band = bandFor(s, n);
+  showResult(id, n, band, s);
+}
+function scPeds(id, val){
+  var res = ge('res-'+id);
+  var age = parseFloat(val);
+  if(isNaN(age) || age<0){ res.style.display='none'; return; }
+  var ettU = (age/4 + 4).toFixed(1);
+  var ettC = (age/4 + 3.5).toFixed(1);
+  var depth = (age/2 + 12).toFixed(0);
+  var wt = age<=0?3.5:((age*2)+8);
+  var blade = age<1?'Miller 0–1':(age<4?'Miller/Mac 1':(age<8?'Mac 2':'Mac 2–3'));
+  var lma = wt<5?'1':wt<10?'1.5':wt<20?'2':wt<30?'2.5':wt<50?'3':'4';
+  res.style.display='block';
+  res.innerHTML =
+    '<div class="sc-interp">Estimated airway sizing (age '+age+' y)</div>' +
+    '<table class="sc-ref-table">' +
+      '<tr><td>ETT (uncuffed)</td><td>'+ettU+' mm ID</td></tr>' +
+      '<tr><td>ETT (cuffed)</td><td>'+ettC+' mm ID</td></tr>' +
+      '<tr><td>ETT depth (lip)</td><td>'+depth+' cm</td></tr>' +
+      '<tr><td>Laryngoscope</td><td>'+blade+'</td></tr>' +
+      '<tr><td>LMA size</td><td>'+lma+'</td></tr>' +
+      '<tr><td>Est. weight</td><td>~'+wt.toFixed(1)+' kg</td></tr>' +
+    '</table>' +
+    '<div class="sc-impl">Formulas: uncuffed ETT = age/4 + 4; cuffed = age/4 + 3.5; depth = age/2 + 12. Estimates only — confirm clinically.</div>';
+}
+window.scToggle=scToggle; window.scPick=scPick; window.scSelect=scSelect; window.scRef=scRef; window.scPeds=scPeds; window.scJump=scJump;
+
+document.addEventListener('DOMContentLoaded', async function(){
+  try {
+    var auth = await window.requireAuth(); if(!auth) return;
+    var role = auth.profile ? auth.profile.role : '';
+    if(role==='patient'){ window.location.href='/v2/patients.html'; return; }
+    buildNav(); buildContent();
+    ge('loader').style.display='none'; ge('app').style.display='block';
+    console.log('SCORES READY');
+  } catch(e){
+    console.error('SCORES ERROR:', e.message);
+    ge('loader').innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: '+e.message+'</p>';
+  }
+});
+</script>
+</body>
+</html>

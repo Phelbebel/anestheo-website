@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+#loader { position: fixed; inset: 0; background: #0A1A15; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+.spin { width: 30px; height: 30px; border: 3px solid rgba(27,107,90,.25); border-top-color: #2A8A74; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#app { display: none; }
+.shell { display: flex; min-height: 100vh; }
+
+.sidebar { width: 210px; flex-shrink: 0; position: fixed; top: 56px; left: 0; bottom: 0; background: rgba(6,16,11,.98); border-right: 1px solid rgba(27,107,90,.2); padding: 16px 0; overflow-y: auto; z-index: 100; display: flex; flex-direction: column; }
+.sb-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.25); padding: 10px 16px 4px; }
+.sb-link { display: flex; align-items: center; gap: 9px; padding: 9px 16px; font-size: 14px; color: rgba(255,255,255,.5); text-decoration: none; transition: all .18s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: inherit; border-left: 2px solid transparent; }
+.sb-link:hover { color: #fff; background: rgba(27,107,90,.1); }
+.sb-link.active { color: #fff; background: rgba(27,107,90,.18); border-left-color: #2A8A74; }
+.sb-sep { height: 1px; background: rgba(27,107,90,.15); margin: 8px 12px; }
+.sb-bottom { margin-top: auto; }
+
+.main { margin-left: 210px; padding: 36px 36px 60px; flex: 1; }
+.content { max-width: 540px; }
+
+.page-head { margin-bottom: 26px; }
+.page-head h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+.page-head p { font-size: 14px; color: rgba(255,255,255,.45); }
+
+.section { background: rgba(255,255,255,.04); border: 1px solid rgba(27,107,90,.2); border-radius: 11px; overflow: hidden; margin-bottom: 13px; }
+.section-head { padding: 13px 18px; border-bottom: 1px solid rgba(27,107,90,.15); }
+.section-title { font-size: 13px; font-weight: 600; color: #7ECFC0; }
+.section-body { padding: 18px; }
+.rc-opt { display:flex; align-items:center; gap:10px; padding:9px 0; cursor:pointer; }
+.rc-opt input { width:17px; height:17px; accent-color:#2A8A74; }
+.rc-opt span { font-size:14px; color:rgba(255,255,255,.85); }
+
+.field { margin-bottom: 13px; }
+.field:last-child { margin-bottom: 0; }
+.field label { display: block; font-size: 11px; color: rgba(255,255,255,.3); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; margin-bottom: 5px; }
+.field input, .field select { width: 100%; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.11); border-radius: 8px; padding: 11px 12px; color: #fff; font-size: 14px; font-family: inherit; outline: none; transition: border-color .2s; min-height: 44px; appearance: none; -webkit-appearance: none; }
+.field input:focus, .field select:focus { border-color: #2A8A74; }
+.field input:disabled { opacity: .35; cursor: default; }
+.field select option { background: #122018; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn-save { background: #1B6B5A; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .2s; min-height: 40px; }
+.btn-save:hover { background: #2A8A74; }
+.btn-save:disabled { opacity: .4; cursor: default; }
+.btn-danger { background: transparent; color: rgba(255,110,90,.75); border: 1px solid rgba(192,57,43,.28); padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all .2s; }
+.btn-danger:hover { background: rgba(192,57,43,.1); color: rgba(255,130,110,.9); }
+
+.msg { display: none; border-radius: 7px; padding: 9px 12px; font-size: 13px; margin-top: 10px; line-height: 1.5; }
+.msg-ok  { background: rgba(27,107,90,.15); border: 1px solid rgba(42,138,116,.3); color: #7ECFC0; }
+.msg-err { background: rgba(192,57,43,.12); border: 1px solid rgba(192,57,43,.3); color: rgba(255,160,140,.93); }
+
+@media (max-width: 760px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 20px 16px 48px; }
+  .row2 { grid-template-columns: 1fr; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+<div id="nb-placeholder"></div>
+
+<div id="app">
+  <div class="shell">
+
+    <aside class="sidebar">
+      <div>
+        <div class="sb-label">Workspace</div>
+        <a href="/v2/dashboard.html" class="sb-link">&#128202; Dashboard</a>
+      </div>
+      <div class="sb-sep"></div>
+      <div class="sb-bottom">
+        <div class="sb-label">Account</div>
+        <a href="/v2/settings.html" class="sb-link active">&#9881; Settings</a>
+        <button class="sb-link" onclick="window.nbSignOut()">&#8594; Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="content">
+
+        <div class="page-head">
+          <h1>Settings</h1>
+          <p>Manage your account and profile</p>
+        </div>
+
+        <!-- ACCOUNT (read-only) -->
+        <div class="section">
+          <div class="section-head"><div class="section-title">Account</div></div>
+          <div class="section-body">
+            <div class="row2">
+              <div class="field"><label>Email</label><input type="email" id="f-email" disabled></div>
+              <div class="field"><label>User ID</label><input type="text" id="f-uid" disabled></div>
+            </div>
+            <div class="field" style="margin-top:14px;">
+              <label>Current role</label>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.25);border-radius:9px;padding:11px 14px;">
+                <span id="role-label" style="font-size:14px;color:#fff;font-weight:500;">—</span>
+                <button class="btn-save" style="padding:8px 14px;font-size:13px;" onclick="toggleRoleChange()">Request role change</button>
+              </div>
+            </div>
+            <div id="role-change-box" style="display:none;margin-top:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:16px;">
+              <div style="font-size:13px;color:var(--muted);margin-bottom:11px;">I want to change my account role to:</div>
+              <label class="rc-opt"><input type="radio" name="rc-role" value="patient"><span>Patient</span></label>
+              <label class="rc-opt"><input type="radio" name="rc-role" value="other"><span>Nurse / Student / Other</span></label>
+              <label class="rc-opt"><input type="radio" name="rc-role" value="doctor"><span>Doctor <small style="color:var(--hint);">(requires verification)</small></span></label>
+              <div id="rc-msg" style="font-size:12px;margin-top:8px;display:none;"></div>
+              <button class="btn-save" id="rc-submit" style="margin-top:12px;" onclick="submitRoleChange()">Submit</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROFILE -->
+        <div class="section">
+          <div class="section-head"><div class="section-title">Profile</div></div>
+          <div class="section-body">
+            <div class="row2">
+              <div class="field"><label>Full name</label><input type="text" id="f-name" placeholder="Your full name"></div>
+              <div class="field"><label>Country</label>
+                <select id="f-country">
+                  <option value="">Select&hellip;</option>
+                  <option value="Israel">Israel</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="USA">USA</option>
+                  <option value="UK">UK</option>
+                  <option value="Germany">Germany</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field"><label>Hospital / Clinic</label><input type="text" id="f-hospital" placeholder="Your institution"></div>
+              <div class="field"><label>Specialty</label>
+                <select id="f-specialty">
+                  <option value="">Select&hellip;</option>
+                  <option>Anesthesiology</option>
+                  <option>Anesthesiology &amp; ICU</option>
+                  <option>Intensive Care / ICU</option>
+                  <option>Resident &mdash; Anesthesiology</option>
+                  <option>Pain Medicine</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="+972 50 000 0000"></div>
+            <button class="btn-save" id="save-btn" onclick="saveProfileData()">Save profile</button>
+            <div class="msg msg-ok"  id="save-ok"></div>
+            <div class="msg msg-err" id="save-err"></div>
+          </div>
+        </div>
+
+        <!-- PASSWORD -->
+        <div class="section">
+          <div class="section-head"><div class="section-title">Change password</div></div>
+          <div class="section-body">
+            <div class="field"><label>New password</label>
+              <input type="password" id="f-pw1" placeholder="Minimum 6 characters" autocomplete="new-password"
+                onkeydown="if(event.key==='Enter')document.getElementById('f-pw2').focus()">
+            </div>
+            <div class="field"><label>Confirm password</label>
+              <input type="password" id="f-pw2" placeholder="Repeat password" autocomplete="new-password"
+                onkeydown="if(event.key==='Enter')changePassword()">
+            </div>
+            <button class="btn-save" id="pw-btn" onclick="changePassword()">Update password</button>
+            <div class="msg msg-ok"  id="pw-ok"></div>
+            <div class="msg msg-err" id="pw-err"></div>
+          </div>
+        </div>
+
+        <!-- SIGN OUT -->
+        <div class="section">
+          <div class="section-head"><div class="section-title">Session</div></div>
+          <div class="section-body">
+            <p style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:14px;line-height:1.6;">
+              Sign out ends your session on this device.
+            </p>
+            <button class="btn-danger" onclick="window.nbSignOut()">Sign out</button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+var _userId = null;
+var _curRole = null, _curVerif = '';
+
+function toggleRoleChange(){
+  var box = document.getElementById('role-change-box');
+  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+function rcMsg(text, ok){
+  var m = document.getElementById('rc-msg');
+  m.style.display = 'block';
+  m.style.color = ok ? '#7ECFC0' : 'rgba(255,150,130,.95)';
+  m.innerHTML = text;
+}
+async function submitRoleChange(){
+  var sel = document.querySelector('input[name="rc-role"]:checked');
+  if(!sel){ rcMsg('Please choose a role.', false); return; }
+  var target = sel.value;
+  if(target === _curRole){ rcMsg('That is already your current role.', false); return; }
+
+  var btn = document.getElementById('rc-submit');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    if(target === 'doctor'){
+      // Doctor requires verification → set role doctor + pending; appears in Admin Center → Doctor Approvals.
+      await window.saveProfile(_userId, { role: 'doctor', verification_status: 'pending' });
+      _curRole = 'doctor'; _curVerif = 'pending';
+      document.getElementById('role-label').textContent = 'Anesthesiologist (verification pending)';
+      rcMsg('&#10003; Request submitted. A doctor account requires verification — an administrator will review it.', true);
+    } else {
+      // Patient ↔ Nurse/Student/Other change immediately.
+      await window.saveProfile(_userId, { role: target, verification_status: 'not_required' });
+      _curRole = target; _curVerif = 'not_required';
+      var rl = { patient:'Patient', other:'Nurse / Student / Other' };
+      document.getElementById('role-label').textContent = rl[target] || target;
+      rcMsg('&#10003; Your role has been updated to ' + (rl[target]||target) + '.', true);
+    }
+  } catch(e){
+    rcMsg('Could not update role: ' + e.message, false);
+  }
+  btn.disabled = false; btn.textContent = 'Submit';
+}
+
+document.addEventListener('DOMContentLoaded', async function(){
+  try {
+    console.log('AUTH INITIALIZED');
+
+    var auth = await window.requireAuth();
+    if (!auth) return; // redirected to index
+
+    var user    = auth.user;
+    var profile = auth.profile;
+    console.log('SESSION FOUND:', user.email);
+    console.log('PROFILE LOADED:', profile ? profile.role : 'null');
+
+    _userId = user.id;
+    document.getElementById('f-email').value = user.email;
+    document.getElementById('f-uid').value   = user.id;
+
+    if (profile) {
+      if (profile.full_name) document.getElementById('f-name').value      = profile.full_name;
+      if (profile.hospital)  document.getElementById('f-hospital').value  = profile.hospital;
+      if (profile.specialty) document.getElementById('f-specialty').value = profile.specialty;
+      if (profile.country)   document.getElementById('f-country').value   = profile.country;
+      if (profile.phone)     document.getElementById('f-phone').value     = profile.phone;
+    }
+
+    // Current role display
+    _curRole = (profile && (profile.is_admin ? 'admin' : profile.role)) || 'pending';
+    _curVerif = profile ? (profile.verification_status || '') : '';
+    var rl = { patient:'Patient', doctor:'Anesthesiologist', admin:'Administrator', other:'Nurse / Student / Other', pending:'Not set' };
+    var roleText = rl[_curRole] || _curRole;
+    if(_curRole === 'doctor' && _curVerif === 'pending') roleText += ' (verification pending)';
+    document.getElementById('role-label').textContent = roleText;
+
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display    = 'block';
+    console.log('DASHBOARD READY');
+
+  } catch(e) {
+    console.error('SETTINGS ERROR:', e.message);
+    document.getElementById('loader').innerHTML =
+      '<p style="color:rgba(255,160,140,.9);font-size:14px;font-family:sans-serif;padding:24px;">' +
+      'Error: ' + e.message + '</p>';
+  }
+});
+
+async function saveProfileData(){
+  var btn = document.getElementById('save-btn');
+  var ok  = document.getElementById('save-ok');
+  var err = document.getElementById('save-err');
+  ok.style.display = err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Saving\u2026';
+
+  var data = {
+    full_name: document.getElementById('f-name').value.trim()     || null,
+    hospital:  document.getElementById('f-hospital').value.trim() || null,
+    specialty: document.getElementById('f-specialty').value       || null,
+    country:   document.getElementById('f-country').value         || null,
+    phone:     document.getElementById('f-phone').value.trim()    || null
+  };
+
+  var result = await window.saveProfile(_userId, data);
+  btn.disabled = false; btn.textContent = 'Save profile';
+
+  if(result.error){
+    err.textContent = result.error.message;
+    err.style.display = 'block';
+  } else {
+    ok.textContent = '\u2713 Profile saved.';
+    ok.style.display = 'block';
+  }
+}
+
+async function changePassword(){
+  var p1  = document.getElementById('f-pw1').value.trim();
+  var p2  = document.getElementById('f-pw2').value.trim();
+  var ok  = document.getElementById('pw-ok');
+  var err = document.getElementById('pw-err');
+  var btn = document.getElementById('pw-btn');
+  ok.style.display = err.style.display = 'none';
+
+  if(!p1 || p1.length < 6){ err.textContent = 'Password must be at least 6 characters.'; err.style.display = 'block'; return; }
+  if(p1 !== p2){ err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Updating\u2026';
+  var r = await window.sb.auth.updateUser({ password: p1 });
+  btn.disabled = false; btn.textContent = 'Update password';
+  document.getElementById('f-pw1').value = '';
+  document.getElementById('f-pw2').value = '';
+
+  if(r.error){ err.textContent = r.error.message; err.style.display = 'block'; }
+  else        { ok.textContent = '\u2713 Password updated.'; ok.style.display = 'block'; }
+}
+</script>
+</body>
+</html>

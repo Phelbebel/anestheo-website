@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-Op Questionnaire — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+<style>
+#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;}
+.q-wrap{max-width:600px;margin:0 auto;padding:32px 22px 90px;position:relative;z-index:1;}
+.q-head{margin-bottom:22px;}
+.q-head h1{font-family:'Playfair Display',serif;font-size:25px;font-weight:700;margin-bottom:4px;}
+.q-head p{font-size:14px;color:var(--muted);}
+/* stepper dots */
+.q-dots{display:flex;gap:6px;margin-bottom:10px;}
+.q-dot{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;transition:background .3s;}
+.q-dot.done{background:#2A8A74;}
+.q-dot.now{background:#7ECFC0;}
+.q-progress-text{font-size:12px;color:var(--hint);margin-bottom:26px;display:flex;justify-content:space-between;}
+/* step */
+.q-step{display:none;}
+.q-step.active{display:block;animation:fade .3s;}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.q-step-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;margin-bottom:4px;}
+.q-step-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+/* fields */
+.q-field{margin-bottom:20px;}
+.q-field>label{display:block;font-size:14px;font-weight:500;margin-bottom:9px;color:#fff;}
+.q-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.q-text{width:100%;background:rgba(255,255,255,.055);border:1px solid var(--border);
+  border-radius:9px;padding:12px 14px;color:#fff;font-size:15px;font-family:inherit;
+  outline:none;min-height:46px;transition:border-color .2s;appearance:none;-webkit-appearance:none;}
+.q-text:focus{border-color:#2A8A74;}
+.q-text::placeholder{color:var(--hint);}
+textarea.q-text{min-height:84px;resize:vertical;}
+select.q-text option{background:#132218;}
+.q-opts{display:flex;flex-direction:column;gap:8px;}
+.q-opt{display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);border-radius:9px;padding:13px 15px;cursor:pointer;
+  transition:all .18s;-webkit-tap-highlight-color:transparent;}
+.q-opt:hover{border-color:rgba(42,138,116,.4);}
+.q-opt.sel{border-color:#2A8A74;background:rgba(27,107,90,.14);}
+.q-opt.flagged.sel{border-color:rgba(232,168,56,.5);background:rgba(232,168,56,.08);}
+.q-opt input{accent-color:#2A8A74;width:17px;height:17px;flex-shrink:0;}
+.q-opt span{font-size:14px;color:rgba(255,255,255,.85);}
+.q-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:440px){.q-grid2,.q-row{grid-template-columns:1fr;}}
+/* nav */
+.q-nav{display:flex;justify-content:space-between;gap:12px;margin-top:30px;}
+.q-back{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.15);
+  padding:12px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.q-back:hover{color:#fff;border-color:rgba(255,255,255,.3);}
+.q-next{background:#1B6B5A;color:#fff;border:none;padding:12px 26px;border-radius:8px;
+  font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .2s;margin-left:auto;}
+.q-next:hover{background:#2A8A74;}
+.q-next:disabled{opacity:.5;cursor:default;}
+.q-saved{font-size:12px;color:#7ECFC0;text-align:center;margin-top:12px;height:16px;opacity:0;transition:opacity .3s;}
+.q-err{font-size:13px;color:rgba(255,150,130,.9);margin-top:10px;display:none;}
+/* review */
+.rev-group{margin-bottom:16px;background:rgba(255,255,255,.03);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;}
+.rev-group-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin-bottom:8px;}
+.rev-line{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;gap:12px;}
+.rev-line span:first-child{color:var(--muted);}
+.rev-line span:last-child{color:#fff;text-align:right;}
+.flag-box{background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.25);border-radius:10px;padding:16px;margin-bottom:16px;}
+.flag-title{font-size:13px;font-weight:600;color:#E8A838;margin-bottom:8px;}
+.flag-item{font-size:13px;color:rgba(255,220,150,.85);padding:3px 0;}
+.done-box{text-align:center;padding:34px 20px;}
+.done-ico{font-size:44px;margin-bottom:14px;}
+.done-box h2{font-family:'Playfair Display',serif;font-size:24px;margin-bottom:8px;}
+.done-box p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:22px;}
+.sm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:18px 0 4px;}
+.sm-stat{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:11px 13px;}
+.sm-l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:3px;}
+.sm-v{font-size:15px;font-weight:600;color:#fff;}
+.sm-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:16px 0 6px;}
+.sm-list{font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.6;}
+.sm-flags{display:flex;gap:7px;flex-wrap:wrap;}
+.sm-flag{font-size:11.5px;font-weight:600;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:7px;padding:5px 10px;}
+.sm-btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px;}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div id="nb-placeholder"></div>
+
+<div id="app">
+  <div class="q-wrap">
+    <div class="q-head">
+      <h1>Pre-operative questionnaire</h1>
+      <p>Your answers help your anesthesiologist plan safe care.</p>
+    </div>
+    <div class="q-dots" id="dots"></div>
+    <div class="q-progress-text"><span id="ptext">Step 1 of 6</span><span id="ppct">0%</span></div>
+    <div id="steps"></div>
+    <div class="q-err" id="qerr"></div>
+    <div class="q-nav" id="qnav">
+      <button class="q-back" id="backBtn" onclick="prevStep()" style="visibility:hidden">Back</button>
+      <button class="q-next" id="nextBtn" onclick="nextStep()">Continue</button>
+    </div>
+    <div class="q-saved" id="qsaved">Progress saved</div>
+  </div>
+</div>
+
+<script>
+var _pid = null, _ans = {}, _step = 1;
+var TOTAL = 6;
+function ge(id){ return document.getElementById(id); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+// ── STEP 1: BASIC INFO (custom render) ────────────────────────
+function renderStep1(){
+  return '<div class="q-step" id="step-1">' +
+    '<div class="q-step-title">Basic information</div>' +
+    '<div class="q-step-sub">Tell us about yourself.</div>' +
+    '<div class="q-row">' +
+      '<div class="q-field"><label>Age</label><input class="q-text" type="number" id="f-age" placeholder="Years" inputmode="numeric" oninput="syncText()"></div>' +
+      '<div class="q-field"><label>Sex</label><select class="q-text" id="f-sex" onchange="syncText()"><option value="">Select…</option><option>Female</option><option>Male</option><option>Other</option></select></div>' +
+    '</div>' +
+    '<div class="q-row">' +
+      '<div class="q-field"><label>Height (cm)</label><input class="q-text" type="number" id="f-height" placeholder="cm" inputmode="numeric" oninput="syncText()"></div>' +
+      '<div class="q-field"><label>Weight (kg)</label><input class="q-text" type="number" id="f-weight" placeholder="kg" inputmode="numeric" oninput="syncText()"></div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── CHECKBOX-GROUP STEPS (2 & 3) ──────────────────────────────
+function checkGroup(stepN, title, sub, fid, opts){
+  var html = '<div class="q-step" id="step-' + stepN + '">' +
+    '<div class="q-step-title">' + title + '</div>' +
+    '<div class="q-step-sub">' + sub + '</div>' +
+    '<div class="q-field"><div class="q-opts">';
+  opts.forEach(function(o){
+    var fl = o.flag ? ' flagged' : '';
+    html += '<label class="q-opt' + fl + '" data-val="' + o.v + '">' +
+      '<input type="checkbox" value="' + o.v + '" onchange="onCheck(this,\'' + fid + '\')">' +
+      '<span>' + o.t + '</span></label>';
+  });
+  html += '</div></div></div>';
+  return html;
+}
+
+// ── SINGLE-CHOICE + extras (4 & 5) ────────────────────────────
+function singleField(fid, label, opts){
+  var html = '<div class="q-field"><label>' + label + '</label><div class="q-opts">';
+  opts.forEach(function(o){
+    var fl = o.flag ? ' flagged' : '';
+    html += '<label class="q-opt' + fl + '" data-val="' + o.v + '">' +
+      '<input type="radio" name="' + fid + '" value="' + o.v + '" onchange="onRadio(this,\'' + fid + '\')">' +
+      '<span>' + o.t + '</span></label>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function textField(fid, label, ph, area){
+  if(area) return '<div class="q-field"><label>' + label + '</label><textarea class="q-text" id="f-' + fid + '" placeholder="' + ph + '" oninput="syncText()"></textarea></div>';
+  return '<div class="q-field"><label>' + label + '</label><input class="q-text" id="f-' + fid + '" placeholder="' + ph + '" oninput="syncText()"></div>';
+}
+
+function renderSteps(){
+  var h = '';
+  h += renderStep1();
+
+  h += checkGroup(2, 'Medical history', 'Select any conditions you have.', 'history', [
+    {v:'hypertension', t:'High blood pressure'},
+    {v:'diabetes',     t:'Diabetes'},
+    {v:'heart',        t:'Heart disease', flag:true},
+    {v:'asthma',       t:'Asthma'},
+    {v:'kidney',       t:'Kidney disease'},
+    {v:'sleep_apnea',  t:'Sleep apnea', flag:true}
+  ]);
+
+  h += checkGroup(3, 'Medications', 'Select any medications you take.', 'medications', [
+    {v:'anticoagulants', t:'Blood thinners / anticoagulants', flag:true},
+    {v:'insulin',        t:'Insulin'},
+    {v:'bp_meds',        t:'Blood pressure medication'},
+    {v:'steroids',       t:'Steroids'},
+    {v:'other',          t:'Other medications'}
+  ]);
+  // free-text for "other"
+  h = h.replace('</div></div></div>\n', '');
+
+  h += '<div class="q-step" id="step-4">' +
+    '<div class="q-step-title">Anesthesia history</div>' +
+    '<div class="q-step-sub">Your past experience guides our plan.</div>' +
+    singleField('prev_surgery', 'Have you had surgery before?', [
+      {v:'yes', t:'Yes'}, {v:'no', t:'No'}
+    ]) +
+    singleField('anes_complication', 'Any anesthesia complications in the past?', [
+      {v:'yes', t:'Yes', flag:true}, {v:'no', t:'No'}, {v:'unknown', t:'Not sure'}
+    ]) +
+    singleField('difficult_airway', 'Were you ever told you had a difficult airway / intubation?', [
+      {v:'yes', t:'Yes', flag:true}, {v:'no', t:'No'}, {v:'unknown', t:'Not sure'}
+    ]) +
+    singleField('ponv', 'Severe nausea/vomiting after past anesthesia?', [
+      {v:'yes', t:'Yes'}, {v:'no', t:'No'}
+    ]) +
+    singleField('allergy_present', 'Do you have any allergies?', [
+      {v:'severe', t:'Yes — severe / anaphylaxis', flag:true}, {v:'mild', t:'Yes — mild'}, {v:'no', t:'No'}
+    ]) +
+    textField('allergy_detail', 'Describe your allergies (if any)', 'e.g. Penicillin, latex, certain foods') +
+  '</div>';
+
+  h += '<div class="q-step" id="step-5">' +
+    '<div class="q-step-title">Lifestyle</div>' +
+    '<div class="q-step-sub">These affect anesthesia and recovery.</div>' +
+    singleField('smoking', 'Do you smoke?', [
+      {v:'no', t:'No'}, {v:'former', t:'Former smoker'}, {v:'yes', t:'Yes, currently', flag:true}
+    ]) +
+    singleField('alcohol', 'How often do you drink alcohol?', [
+      {v:'never', t:'Never'}, {v:'occasional', t:'Occasionally'}, {v:'frequent', t:'Frequently', flag:true}
+    ]) +
+    singleField('drugs', 'Do you use recreational drugs?', [
+      {v:'no', t:'No'}, {v:'yes', t:'Yes', flag:true}
+    ]) +
+  '</div>';
+
+  h += '<div class="q-step" id="step-6"><div id="reviewArea"></div></div>';
+
+  ge('steps').innerHTML = h;
+}
+
+// ── ANSWER HANDLERS ───────────────────────────────────────────
+function onCheck(input, fid){
+  if(!_ans[fid]) _ans[fid] = [];
+  input.closest('.q-opt').classList.toggle('sel', input.checked);
+  if(input.checked){ if(_ans[fid].indexOf(input.value)<0) _ans[fid].push(input.value); }
+  else { _ans[fid] = _ans[fid].filter(function(v){ return v !== input.value; }); }
+  flashSave();
+}
+function onRadio(input, fid){
+  input.closest('.q-field').querySelectorAll('.q-opt').forEach(function(o){ o.classList.remove('sel'); });
+  input.closest('.q-opt').classList.add('sel');
+  _ans[fid] = input.value;
+  flashSave();
+}
+function syncText(){
+  ['age','sex','height','weight','allergy_detail'].forEach(function(id){
+    var e = ge('f-' + id); if(e) _ans[id] = e.value;
+  });
+}
+
+// ── PROGRESS ──────────────────────────────────────────────────
+function renderDots(){
+  var h = '';
+  for(var i=1;i<=TOTAL;i++) h += '<div class="q-dot" id="dot-'+i+'"></div>';
+  ge('dots').innerHTML = h;
+}
+function updateDots(){
+  for(var i=1;i<=TOTAL;i++){
+    var d = ge('dot-'+i);
+    d.className = 'q-dot' + (i < _step ? ' done' : i === _step ? ' now' : '');
+  }
+}
+
+function showStep(n){
+  document.querySelectorAll('.q-step').forEach(function(el){ el.classList.remove('active'); });
+  var el = ge('step-'+n); if(el) el.classList.add('active');
+  _step = n;
+  var pct = Math.round(((n-1)/TOTAL)*100);
+  ge('ppct').textContent = pct + '%';
+  ge('ptext').textContent = 'Step ' + n + ' of ' + TOTAL;
+  ge('backBtn').style.visibility = n>1 ? 'visible' : 'hidden';
+  ge('nextBtn').textContent = n === TOTAL ? 'Submit questionnaire' : 'Continue';
+  updateDots();
+  if(n === TOTAL) buildReview();
+  window.scrollTo(0,0);
+}
+
+async function nextStep(){
+  ge('qerr').style.display = 'none';
+  syncText();
+  if(_step === 1){
+    if(!_ans.age || !_ans.sex){ showErr('Please enter your age and sex.'); return; }
+  }
+  await save();
+  if(_step < TOTAL) showStep(_step + 1);
+  else submitFinal();
+}
+function prevStep(){ if(_step>1) showStep(_step-1); }
+function showErr(m){ ge('qerr').textContent = m; ge('qerr').style.display = 'block'; }
+
+// ── COMPLETION % ──────────────────────────────────────────────
+function completionPct(){
+  // 6 key groups answered → 100
+  var keys = ['age','history','medications','prev_surgery','smoking'];
+  var filled = 0;
+  if(_ans.age && _ans.sex) filled++;
+  if(_ans.history && _ans.history.length) filled++;
+  if(_ans.medications && _ans.medications.length) filled++;
+  if(_ans.prev_surgery) filled++;
+  if(_ans.smoking) filled++;
+  return Math.round((filled/5)*100);
+}
+
+// ── SAVE ──────────────────────────────────────────────────────
+async function save(){
+  var r = await window.saveQuestionnaire(_pid, {
+    status:'in_progress', current_step:_step, answers:_ans,
+    completion: completionPct()
+  });
+  if(!r.error) flashSave();
+}
+function flashSave(){
+  var s = ge('qsaved'); s.style.opacity = '1';
+  setTimeout(function(){ s.style.opacity = '0'; }, 1400);
+}
+
+// ── RISK FLAGS ────────────────────────────────────────────────
+function computeFlags(){
+  var f = [];
+  if(_ans.history && _ans.history.indexOf('sleep_apnea')>=0) f.push('Sleep apnea');
+  if(_ans.history && _ans.history.indexOf('heart')>=0) f.push('Heart disease');
+  if(_ans.medications && _ans.medications.indexOf('anticoagulants')>=0) f.push('On anticoagulants');
+  if(_ans.anes_complication === 'yes') f.push('Previous anesthesia complication');
+  if(_ans.difficult_airway === 'yes') f.push('Difficult airway history');
+  if(_ans.allergy_present === 'severe') f.push('Severe allergy');
+  if(_ans.smoking === 'yes') f.push('Current smoker');
+  if(_ans.drugs === 'yes') f.push('Recreational drug use');
+  return f;
+}
+
+// ── REVIEW ────────────────────────────────────────────────────
+function lbl(map, v){ return map[v] || v || '\u2014'; }
+function buildReview(){
+  syncText();
+  var flags = computeFlags();
+  var h = '<div class="q-step-title">Review &amp; submit</div>' +
+    '<div class="q-step-sub">Confirm your answers are accurate.</div>';
+
+  if(flags.length){
+    h += '<div class="flag-box"><div class="flag-title">&#9888; Items your anesthesiologist will review</div>';
+    flags.forEach(function(x){ h += '<div class="flag-item">&bull; ' + x + '</div>'; });
+    h += '</div>';
+  } else {
+    h += '<div style="background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.3);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:#7ECFC0;">&#10003; No risk flags detected.</div>';
+  }
+
+  h += '<div class="rev-group"><div class="rev-group-title">Basic</div>' +
+    line('Age', _ans.age) + line('Sex', _ans.sex) +
+    line('Height', _ans.height ? _ans.height+' cm' : '') + line('Weight', _ans.weight ? _ans.weight+' kg' : '') + '</div>';
+
+  h += '<div class="rev-group"><div class="rev-group-title">Medical history</div>' +
+    line('Conditions', (_ans.history||[]).join(', ')) + '</div>';
+
+  h += '<div class="rev-group"><div class="rev-group-title">Medications</div>' +
+    line('Medications', (_ans.medications||[]).join(', ')) + '</div>';
+
+  h += '<div class="rev-group"><div class="rev-group-title">Anesthesia history</div>' +
+    line('Previous surgery', _ans.prev_surgery) +
+    line('Complications', _ans.anes_complication) +
+    line('Allergies', _ans.allergy_present) + '</div>';
+
+  h += '<div class="rev-group"><div class="rev-group-title">Lifestyle</div>' +
+    line('Smoking', _ans.smoking) + line('Alcohol', _ans.alcohol) + '</div>';
+
+  h += '<p style="font-size:13px;color:var(--muted);line-height:1.6;margin-top:6px;">By submitting, you confirm this information is accurate to the best of your knowledge.</p>';
+
+  ge('reviewArea').innerHTML = h;
+}
+function line(label, val){
+  if(val == null || val === '' || (Array.isArray(val) && !val.length)) val = '\u2014';
+  return '<div class="rev-line"><span>' + label + '</span><span>' + val + '</span></div>';
+}
+
+async function submitFinal(){
+  ge('nextBtn').disabled = true; ge('nextBtn').textContent = 'Submitting…';
+  var flags = computeFlags();
+  var r = await window.saveQuestionnaire(_pid, {
+    status:'submitted', current_step:TOTAL, answers:_ans,
+    completion:100, risk_flags:flags, submitted_at: new Date().toISOString()
+  });
+  if(r.error){ console.error('saveQuestionnaire error:', r.error.message); ge('nextBtn').disabled=false; ge('nextBtn').textContent='Submit questionnaire'; showErr('Unable to save questionnaire. Please try again.'); return; }
+  ge('qnav').style.display = 'none';
+  showSummary({ answers:_ans, risk_flags:flags, completion:100, status:'submitted', submitted_at:new Date().toISOString() });
+}
+
+// ── RESTORE ───────────────────────────────────────────────────
+function restore(){
+  // text fields
+  ['age','sex','height','weight','allergy_detail'].forEach(function(id){
+    var e = ge('f-'+id); if(e && _ans[id] != null) e.value = _ans[id];
+  });
+  // checkboxes
+  ['history','medications'].forEach(function(fid){
+    (_ans[fid]||[]).forEach(function(v){
+      var inp = document.querySelector('#step-'+( fid==='history'?2:3 )+' input[value="'+v+'"]');
+      if(inp){ inp.checked = true; inp.closest('.q-opt').classList.add('sel'); }
+    });
+  });
+  // radios
+  ['prev_surgery','anes_complication','difficult_airway','ponv','allergy_present','smoking','alcohol','drugs'].forEach(function(fid){
+    if(_ans[fid]){
+      var inp = document.querySelector('input[name="'+fid+'"][value="'+_ans[fid]+'"]');
+      if(inp){ inp.checked = true; inp.closest('.q-opt').classList.add('sel'); }
+    }
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async function(){
+  try {
+    var auth = await window.requireAuth({ noRedirect: true });
+    if(!auth){
+      // Guest — do NOT redirect home; invite sign-in.
+      ge('loader').style.display='none'; ge('app').style.display='block';
+      ge('steps').innerHTML =
+        '<div class="done-box"><div class="done-ico" style="background:rgba(27,107,90,.18);color:#7ECFC0;">&#128274;</div>' +
+        '<h2>Sign in to continue</h2>' +
+        '<p>Please sign in to complete and save your pre-operative questionnaire.</p>' +
+        '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px;">' +
+          '<button class="btn-primary" onclick="window.nbOpenModal && window.nbOpenModal()">Login</button>' +
+          '<button class="btn-ghost" onclick="window.nbOpenModal && window.nbOpenModal()">Create account</button>' +
+        '</div></div>';
+      ge('qnav').style.display='none';
+      return;
+    }
+    _pid = auth.user.id;
+
+    renderDots();
+    renderSteps();
+
+    var existing = await window.getQuestionnaire(_pid);
+    if(existing){
+      _ans = existing.answers || {};
+      if(existing.status === 'submitted'){
+        ge('loader').style.display='none'; ge('app').style.display='block';
+        showSummary(existing);          // real summary + Print/PDF/Edit (not a dead end)
+        ge('qnav').style.display='none';
+        return;
+      }
+      restore();
+      _step = existing.current_step || 1;
+    }
+
+    showStep(_step);
+    ge('loader').style.display='none';
+    ge('app').style.display='block';
+    console.log('QUESTIONNAIRE READY');
+  } catch(e){
+    console.error('QUESTIONNAIRE ERROR:', e.message);
+    ge('loader').innerHTML = '<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: ' + e.message + '</p>';
+  }
+});
+
+// ── SUMMARY (shown after submit or when revisiting a submitted questionnaire) ──
+function qSummaryData(q){
+  var a = q.answers || {};
+  function bmiCalc(){ var h=parseFloat(a.height), w=parseFloat(a.weight); return (h>0&&w>0)? (w/Math.pow(h/100,2)) : null; }
+  var b = bmiCalc();
+  // STOP-BANG (best-effort from available answers)
+  var sb = 0;
+  if(a.snore==='yes'||a.snore===true) sb++;
+  if(a.tired==='yes') sb++;
+  if(a.apnea==='yes'||(a.history&&String(a.history).indexOf('sleep_apnea')>=0)) sb++;
+  if(a.hypertension==='yes'||(a.history&&String(a.history).indexOf('hypertension')>=0)) sb++;
+  if(b&&b>35) sb++;
+  if(parseFloat(a.age)>50) sb++;
+  var conds = [];
+  if(a.history){ var h = Array.isArray(a.history)?a.history:String(a.history).split(','); h.forEach(function(x){ if(x&&String(x).trim()) conds.push(String(x).replace(/_/g,' ')); }); }
+  if(a.conditions) conds.push(a.conditions);
+  var preg = a.pregnant==='yes' ? 'Pregnant' : (a.pregnant==='unsure'?'Possibly pregnant':(a.sex==='female'?'Not pregnant':'N/A'));
+  return {
+    height: a.height||'', weight: a.weight||'', bmi: b!=null? b.toFixed(1):'',
+    pregnancy: preg, allergies: a.allergies||'', medications: a.medications||'',
+    conditions: conds, stopbang: sb, flags: q.risk_flags||[], completion: q.completion!=null?q.completion:100,
+    when: q.submitted_at || q.updated_at, answers: a
+  };
+}
+function showSummary(q){
+  var d = qSummaryData(q);
+  window._qData = q;
+  function st(l,v){ return '<div class="sm-stat"><div class="sm-l">'+l+'</div><div class="sm-v">'+(v||'—')+'</div></div>'; }
+  var dateFmt = d.when ? new Date(d.when).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
+  ge('steps').innerHTML =
+    '<div class="done-box" style="text-align:left;">' +
+      '<div style="text-align:center;"><div class="done-ico">&#10003;</div><h2>Questionnaire complete</h2>' +
+        (dateFmt?'<p>Submitted '+dateFmt+' · '+d.completion+'% complete</p>':'<p>'+d.completion+'% complete</p>')+'</div>' +
+      '<div class="sm-grid">' +
+        st('Height', d.height? d.height+' cm':'') + st('Weight', d.weight? d.weight+' kg':'') +
+        st('BMI', d.bmi? d.bmi+' kg/m²':'') + st('Pregnancy', d.pregnancy) +
+        st('STOP-BANG', d.stopbang+'/8') + st('Allergies', d.allergies) +
+      '</div>' +
+      (d.conditions.length?'<div class="sm-sub">Medical conditions</div><div class="sm-list">'+d.conditions.map(esc).join(' · ')+'</div>':'') +
+      (d.medications?'<div class="sm-sub">Medications</div><div class="sm-list">'+esc(d.medications)+'</div>':'') +
+      (d.flags.length?'<div class="sm-sub">Risk flags</div><div class="sm-flags">'+d.flags.map(function(f){return '<span class="sm-flag">&#9888; '+esc(f)+'</span>';}).join('')+'</div>':'') +
+      '<div class="sm-btns">' +
+        '<button class="btn-primary" onclick="qPrint()">Print</button>' +
+        '<button class="btn-ghost" onclick="qPrint()">Download PDF</button>' +
+        '<a href="/v2/patient-dashboard.html" class="btn-ghost">View dashboard</a>' +
+        '<button class="btn-ghost" onclick="qEdit()">Edit questionnaire</button>' +
+      '</div>' +
+    '</div>';
+}
+function qEdit(){
+  // Reopen the questionnaire for editing (status back to in_progress on next save).
+  ge('steps').innerHTML='';
+  renderSteps();
+  _step = 1; showStep(_step);
+  ge('qnav').style.display='';
+}
+function qPrint(){
+  var q = window._qData; if(!q) return;
+  var d = qSummaryData(q); var a = d.answers;
+  var rows = Object.keys(a).map(function(k){
+    var v=a[k]; if(v&&typeof v==='object') v=Array.isArray(v)?v.join(', '):JSON.stringify(v);
+    return '<tr><td>'+k+'</td><td>'+(v==null?'':esc(String(v)))+'</td></tr>';
+  }).join('');
+  var win=window.open('','_blank'); if(!win) return;
+  win.document.write('<html><head><title>Pre-op questionnaire</title>' +
+    '<style>body{font-family:Arial,sans-serif;color:#111;max-width:700px;margin:24px auto;padding:0 16px;}h1{font-size:20px;}h2{font-size:13px;text-transform:uppercase;color:#1B6B5A;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:20px;}table{width:100%;border-collapse:collapse;font-size:13px;}td{padding:6px 8px;border-bottom:1px solid #eee;}td:first-child{color:#555;width:42%;}.flag{display:inline-block;background:#fff7e6;border:1px solid #f0c674;color:#8a5a00;border-radius:5px;padding:3px 8px;font-size:12px;margin:2px 4px 2px 0;}.noprint{margin-top:18px;}</style></head><body>' +
+    '<h1>Pre-operative questionnaire</h1>' +
+    '<div>'+(d.when?'Completed '+new Date(d.when).toLocaleDateString()+' · ':'')+d.completion+'% complete</div>' +
+    '<h2>Summary</h2><table>' +
+      '<tr><td>Height</td><td>'+esc(d.height)+' cm</td></tr><tr><td>Weight</td><td>'+esc(d.weight)+' kg</td></tr>' +
+      '<tr><td>BMI</td><td>'+esc(d.bmi)+'</td></tr><tr><td>Pregnancy</td><td>'+esc(d.pregnancy)+'</td></tr>' +
+      '<tr><td>STOP-BANG</td><td>'+d.stopbang+'/8</td></tr></table>' +
+    '<h2>Risk flags</h2>'+(d.flags.length?d.flags.map(function(f){return '<span class="flag">⚠ '+esc(f)+'</span>';}).join(''):'<div>None identified.</div>') +
+    '<h2>All answers</h2><table>'+(rows||'<tr><td>No answers</td><td></td></tr>')+'</table>' +
+    '<p class="noprint"><button onclick="window.print()" style="padding:10px 18px;cursor:pointer;">Print / Save as PDF</button></p></body></html>');
+  win.document.close();
+}
+window.qEdit=qEdit; window.qPrint=qPrint;
+</script>
+</body>
+</html>

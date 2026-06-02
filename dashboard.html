@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+#loader { position: fixed; inset: 0; background: #0A1A15; z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+.spin { width: 30px; height: 30px; border: 3px solid rgba(27,107,90,.25); border-top-color: #2A8A74; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-txt { font-size: 13px; color: rgba(255,255,255,.3); }
+
+#app { display: none; }
+
+.shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 210px; flex-shrink: 0; position: fixed; top: 56px; left: 0; bottom: 0;
+  background: rgba(6,16,11,.98); border-right: 1px solid rgba(27,107,90,.2);
+  padding: 16px 0; overflow-y: auto; z-index: 100;
+  display: flex; flex-direction: column;
+}
+.sb-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.25); padding: 10px 16px 4px; }
+.sb-link { display: flex; align-items: center; gap: 9px; padding: 9px 16px; font-size: 14px; color: rgba(255,255,255,.5); text-decoration: none; transition: all .18s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: inherit; border-left: 2px solid transparent; }
+.sb-link:hover { color: #fff; background: rgba(27,107,90,.1); }
+.sb-link.active { color: #fff; background: rgba(27,107,90,.18); border-left-color: #2A8A74; }
+.sb-link.dim { opacity: .35; cursor: default; }
+.sb-link.dim:hover { background: none; color: rgba(255,255,255,.5); }
+.sb-sep { height: 1px; background: rgba(27,107,90,.15); margin: 8px 12px; }
+.sb-bottom { margin-top: auto; }
+
+.main { margin-left: 210px; padding: 36px 36px 60px; flex: 1; max-width: 900px; }
+
+.welcome { margin-bottom: 24px; }
+.welcome-label { font-size: 11px; color: rgba(255,255,255,.3); letter-spacing: .07em; text-transform: uppercase; font-weight: 600; margin-bottom: 7px; }
+.welcome h1 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; margin-bottom: 5px; }
+.welcome-sub { font-size: 14px; color: rgba(255,255,255,.45); }
+
+.session-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(27,107,90,.12); border: 1px solid rgba(27,107,90,.25); border-radius: 20px; padding: 5px 13px; font-size: 12px; color: #7ECFC0; margin-bottom: 28px; }
+.sdot { width: 7px; height: 7px; border-radius: 50%; background: #2A8A74; box-shadow: 0 0 0 3px rgba(42,138,116,.2); animation: pulse 2.4s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.sec-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.28); margin-bottom: 12px; }
+
+.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 11px; margin-bottom: 28px; }
+.info-card { background: rgba(255,255,255,.04); border: 1px solid rgba(27,107,90,.2); border-radius: 10px; padding: 16px; }
+.info-card-label { font-size: 10px; color: rgba(255,255,255,.3); letter-spacing: .07em; text-transform: uppercase; font-weight: 600; margin-bottom: 5px; }
+.info-card-value { font-size: 14px; color: #fff; font-weight: 500; word-break: break-all; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 11px; }
+.card { background: rgba(255,255,255,.04); border: 1px solid rgba(27,107,90,.2); border-radius: 10px; padding: 18px 16px; text-decoration: none; color: #fff; display: flex; flex-direction: column; gap: 8px; transition: border-color .2s, background .2s; }
+.card:hover { border-color: rgba(42,138,116,.4); background: rgba(27,107,90,.1); }
+.card.disabled { cursor: default; opacity: .5; }
+.card.disabled:hover { border-color: rgba(27,107,90,.2); background: rgba(255,255,255,.04); }
+.card-ico { font-size: 22px; }
+.card-title { font-size: 14px; font-weight: 600; }
+.card-desc { font-size: 12px; color: rgba(255,255,255,.45); line-height: 1.5; }
+.coming-soon { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; background: rgba(232,168,56,.1); color: #E8A838; border: 1px solid rgba(232,168,56,.2); padding: 2px 7px; border-radius: 4px; display: inline-block; margin-top: 2px; }
+.card-flagship { grid-column: 1 / -1; background: linear-gradient(135deg, rgba(27,107,90,.18), rgba(27,107,90,.06)); border-color: rgba(42,138,116,.45); position: relative; }
+.card-flagship .card-ico { font-size: 30px; }
+.card-flagship .card-title { font-size: 17px; font-family: 'Playfair Display', serif; }
+.card-flagship:hover { border-color: rgba(42,138,116,.7); }
+.flagship-tag { position: absolute; top: 16px; right: 16px; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: rgba(42,138,116,.25); color: #7ECFC0; border: 1px solid rgba(42,138,116,.45); padding: 3px 9px; border-radius: 5px; }
+
+.verify-banner { background: rgba(232,168,56,.07); border: 1px solid rgba(232,168,56,.2); border-radius: 9px; padding: 13px 16px; margin-bottom: 24px; font-size: 13px; color: rgba(255,220,150,.9); line-height: 1.65; }
+
+@media (max-width: 760px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 20px 16px 48px; }
+  .info-grid, .cards { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 460px) {
+  .info-grid, .cards { grid-template-columns: 1fr; }
+}
+/* ── SINGLE-PAGE WORKSPACE ── */
+.ws-top{max-width:1180px;margin:0 auto;padding:24px 20px 8px;}
+.ws-greet{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;}
+.ws-role{font-size:13px;color:var(--muted);margin-top:2px;}
+.ws-online{color:#7ECFC0;}
+.verify-banner{max-width:1180px;margin:8px auto 0;padding:11px 16px;background:rgba(232,168,56,.08);border:1px solid rgba(232,168,56,.25);border-radius:10px;font-size:13px;color:#E8C16b;}
+.ws-shell{max-width:1180px;margin:14px auto 0;padding:0 20px 70px;display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start;}
+.ws-rail{display:flex;flex-direction:column;gap:4px;position:sticky;top:16px;}
+.ws-tab{display:flex;align-items:center;gap:9px;text-align:left;background:none;border:1px solid transparent;border-radius:9px;padding:11px 13px;font-size:13.5px;color:var(--muted);cursor:pointer;font-family:inherit;text-decoration:none;transition:all .15s;}
+.ws-tab:hover{background:rgba(255,255,255,.04);color:#fff;}
+.ws-tab.active{background:rgba(27,107,90,.18);border-color:rgba(42,138,116,.4);color:#fff;font-weight:600;}
+.ws-rail-sp{height:14px;}
+.ws-body{min-width:0;}
+.ws-sec{display:none;animation:wsfade .25s ease;}
+.ws-sec.active{display:block;}
+@keyframes wsfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.ws-sec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+.ws-sec-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;}
+.ws-sec-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.ws-open{font-size:13px;color:#7ECFC0;text-decoration:none;background:rgba(27,107,90,.12);border:1px solid rgba(42,138,116,.3);border-radius:8px;padding:9px 14px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.ws-open:hover{background:rgba(27,107,90,.2);}
+.ws-frame{width:100%;height:78vh;min-height:560px;border:1px solid var(--border);border-radius:14px;background:#0A1A15;}
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.ws-tile{display:flex;flex-direction:column;align-items:center;gap:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;padding:22px 14px;text-decoration:none;color:inherit;cursor:pointer;font-family:inherit;transition:all .18s;}
+.ws-tile:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.1);transform:translateY(-2px);}
+.ws-tile-ico{font-size:26px;}
+.ws-tile-t{font-size:13.5px;font-weight:500;color:#fff;}
+.ws-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px;}
+.ws-stat{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:15px 16px;}
+.ws-stat-n{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;}
+.ws-stat-l{font-size:12px;color:var(--muted);margin-top:2px;}
+.ws-subtabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.ws-subtab{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit;}
+.ws-subtab.active{background:rgba(27,107,90,.18);border-color:rgba(42,138,116,.4);color:#fff;}
+.ws-list{display:flex;flex-direction:column;gap:10px;}
+.ws-row{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.ws-row-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.ws-row-name{font-size:14px;font-weight:600;color:#fff;}
+.ws-row-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.ws-row-actions{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+.ws-btn{font-size:12px;padding:7px 12px;border-radius:7px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:rgba(255,255,255,.85);cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;}
+.ws-btn:hover{border-color:rgba(42,138,116,.45);color:#fff;}
+.ws-btn-wa{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.3);color:#5ee393;}
+.ws-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:5px;white-space:nowrap;}
+.b-new{background:rgba(120,150,255,.14);color:#9ab0ff;}
+.b-review{background:rgba(232,168,56,.14);color:#E8A838;}
+.b-answered{background:rgba(27,107,90,.22);color:#7ECFC0;}
+.b-closed{background:rgba(255,255,255,.06);color:var(--hint);}
+.b-pending{background:rgba(232,168,56,.14);color:#E8A838;}
+.b-approved{background:rgba(27,107,90,.22);color:#7ECFC0;}
+.ws-empty{font-size:13px;color:var(--hint);padding:18px;text-align:center;background:rgba(255,255,255,.02);border:1px dashed var(--border);border-radius:12px;}
+.ws-linkbox{background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.3);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+.ws-linkbox input{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:13px;font-family:monospace;margin:8px 0;}
+.ws-role-sel{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;color:#fff;padding:6px 9px;font-size:12px;font-family:inherit;}
+.ws-toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#0C1F18;border:1px solid rgba(42,138,116,.45);color:#7ECFC0;padding:11px 20px;border-radius:10px;font-size:14px;z-index:3000;box-shadow:0 12px 36px rgba(0,0,0,.5);}
+/* patient modals */
+/* ── professional patient cards ── */
+.pc-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:14px;cursor:pointer;transition:border-color .18s,transform .18s;}
+.pc-card:hover{border-color:rgba(42,138,116,.4);transform:translateY(-1px);}
+.pc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px;}
+.pc-name{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;}
+.pc-facts{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.6;}
+.pc-sep{margin:0 7px;opacity:.5;}
+.pc-status{font-size:12px;font-weight:700;color:#7ECFC0;background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.35);border-radius:20px;padding:6px 13px;white-space:nowrap;}
+/* stepper */
+.pc-track{display:flex;align-items:center;margin:6px 0 16px;overflow-x:auto;padding-bottom:4px;}
+.pc-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;}
+.pc-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);color:var(--hint);border:1px solid var(--border);}
+.pc-step.on .pc-dot{background:#2A8A74;color:#fff;border-color:#2A8A74;}
+.pc-lbl{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+.pc-step.on .pc-lbl{color:#fff;}
+.pc-line{flex:1;height:2px;min-width:18px;background:rgba(255,255,255,.1);margin:0 4px;align-self:flex-start;margin-top:12px;}
+/* progress bar */
+.pc-bar{height:7px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;margin-bottom:14px;}
+.pc-bar-fill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);border-radius:5px;transition:width .5s ease;}
+/* chips */
+.pc-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px;}
+.pc-chip{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:10px 13px;}
+.pc-chip-l{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:3px;}
+.pc-chip-v{font-size:13.5px;font-weight:600;color:#fff;}
+.pc-activity{font-size:12px;color:var(--hint);margin-bottom:14px;}
+.pc-flags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+.pc-clin{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px;margin-bottom:12px;}
+.pc-clin-i{background:rgba(27,107,90,.08);border:1px solid rgba(42,138,116,.2);border-radius:9px;padding:9px 11px;}
+.pc-clin-i span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin-bottom:2px;}
+.pc-clin-i b{font-size:13.5px;color:#fff;font-weight:600;}
+.pc-flag{font-size:11.5px;font-weight:600;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:7px;padding:5px 10px;}
+.pc-actions{display:flex;gap:9px;flex-wrap:wrap;}
+.pc-green{background:rgba(37,211,102,.14)!important;border-color:rgba(37,211,102,.4)!important;color:#5ee393!important;}
+.pc-green:hover{background:rgba(37,211,102,.22)!important;}
+
+
+
+
+
+.ws-pt-cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
+.ws-pt-form{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px;position:sticky;top:16px;}
+.ws-form-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:12px;}
+.ws-pt-form label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:11px 0 5px;}
+.ws-pt-form input,.ws-pt-form textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:42px;}
+.ws-pt-form textarea{min-height:58px;resize:vertical;}
+.ws-pt-form input:focus,.ws-pt-form textarea:focus{border-color:#2A8A74;}
+.ws-form-btns{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.ws-form-btns .ws-btn{text-align:center;padding:12px;}
+.ws-pt-right{min-width:0;}
+@media(max-width:760px){.ws-pt-cols{grid-template-columns:1fr;}.ws-pt-form{position:static;}}
+.ws-modal-bg{display:none;position:fixed;inset:0;background:rgba(5,12,9,.72);z-index:1200;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;}
+.ws-modal-bg.open{display:flex;}
+.ws-modal{background:#0C1F18;border:1px solid rgba(27,107,90,.3);border-radius:16px;padding:24px;max-width:440px;width:100%;}
+.ws-modal-lg{max-width:560px;}
+.ws-modal h3{font-family:'Playfair Display',serif;font-size:21px;margin-bottom:14px;}
+.ws-modal label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:12px 0 5px;}
+.ws-modal input,.ws-modal textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:44px;}
+.ws-modal textarea{min-height:64px;resize:vertical;}
+.ws-modal input:focus,.ws-modal textarea:focus{border-color:#2A8A74;}
+.ws-modal-btns{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;}
+.ws-modal-btns .ws-btn{flex:1;text-align:center;padding:12px;min-width:90px;}
+.ws-d-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.ws-d-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;}
+.ws-d-sub{font-size:13px;color:#7ECFC0;margin-top:2px;}
+.ws-d-grid{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
+.ws-d-row{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.1);font-size:13.5px;}
+.ws-d-row span{color:var(--muted);}
+.ws-d-row b{color:#fff;text-align:right;font-weight:500;}
+.ws-d-section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:18px 0 8px;}
+.ws-d-notes{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:9px;padding:12px;color:#fff;font-size:14px;font-family:inherit;min-height:90px;resize:vertical;outline:none;}
+.ws-d-notes:focus{border-color:#2A8A74;}
+@media(max-width:760px){.ws-shell{grid-template-columns:1fr;}.ws-rail{position:static;flex-direction:row;flex-wrap:wrap;overflow-x:auto;}.ws-rail-sp{display:none;}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spin"></div>
+  <div class="loader-txt">Loading dashboard&hellip;</div>
+</div>
+
+<div id="nb-placeholder"></div>
+
+<div id="app"></div>
+
+<script>
+// ── 10-SECOND SAFETY TIMEOUT ──────────────────────────────────
+// If anything stalls, never leave the user on an endless spinner.
+var _dashDone = false;
+var _dashWatchdog = setTimeout(function(){
+  if(_dashDone) return;
+  console.error('LOGIN WATCHDOG: exceeded 10s');
+  var loader = document.getElementById('loader');
+  if(loader){
+    loader.innerHTML =
+      '<div style="text-align:center;padding:40px;font-family:sans-serif;max-width:340px;">' +
+      '<p style="color:#fff;font-size:15px;margin-bottom:10px;">Login is taking longer than expected.</p>' +
+      '<p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px;">Please refresh or try again.</p>' +
+      '<button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Refresh</button> ' +
+      '<a href="/v2/index.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Return home</a>' +
+      '</div>';
+  }
+}, 10000);
+
+function dashFail(msg){
+  _dashDone = true; clearTimeout(_dashWatchdog);
+  var loader = document.getElementById('loader');
+  if(loader){
+    loader.innerHTML =
+      '<div style="text-align:center;padding:40px;font-family:sans-serif;max-width:340px;">' +
+      '<p style="color:rgba(255,160,140,.95);font-size:15px;margin-bottom:10px;">Could not load your dashboard</p>' +
+      '<p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px;">' + (msg || 'Unknown error') + '</p>' +
+      '<button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Try again</button> ' +
+      '<a href="/v2/index.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Return home</a>' +
+      '</div>';
+  }
+}
+
+// ── WORKSPACE MODULES ─────────────────────────────────────────
+function wsShow(sec){
+  document.querySelectorAll('.ws-sec').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.ws-tab[data-sec]').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-sec')===sec); });
+  var el = document.getElementById('sec-'+sec); if(el) el.classList.add('active');
+}
+function wsToast(msg){
+  var t = document.createElement('div'); t.className='ws-toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(function(){t.remove();},400); }, 1600);
+}
+function wsEsc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// SECTION 2 — Patient management (clinic_patients table)
+var _wsPatients = [], _wsPtFilter = 'all', _wsDoctorId = null;
+
+function wsToken(){
+  var a = new Uint8Array(18);
+  (window.crypto || window.msCrypto).getRandomValues(a);
+  return Array.prototype.map.call(a, function(b){ return ('0'+b.toString(16)).slice(-2); }).join('');
+}
+function wsQStatusLabel(s){
+  return {not_sent:'Not sent',sent:'Sent',opened:'Opened',in_progress:'In progress',completed:'Completed'}[s] || 'Not sent';
+}
+function wsQStatusClass(s){
+  return {not_sent:'b-closed',sent:'b-new',opened:'b-new',in_progress:'b-review',completed:'b-answered'}[s] || 'b-closed';
+}
+function wsVisitLabel(s){
+  return {not_arrived:'Not arrived',arrived:'Arrived',reviewed:'Reviewed'}[s] || 'Not arrived';
+}
+function wsVisitClass(s){
+  return {not_arrived:'b-closed',arrived:'b-review',reviewed:'b-approved'}[s] || 'b-closed';
+}
+function wsStatusLabel(s){ return {awaiting_questionnaire:'Awaiting questionnaire',awaiting_consultation:'Awaiting consultation',ready_for_surgery:'Ready for surgery',completed:'Completed'}[s] || 'Awaiting questionnaire'; }
+function wsDeriveStatus(p){
+  if(p.patient_status) return wsStatusLabel(p.patient_status);
+  if(p.questionnaire_status !== 'completed') return 'Awaiting questionnaire';
+  if(p.consultation_status === 'reviewed') return 'Awaiting consultation';
+  return 'Awaiting consultation';
+}
+
+async function wsLoadPatients(){
+  _wsDoctorId = window.__wsUserId || null;
+  try {
+    var r = await window.sb.from('clinic_patients').select('*').order('created_at',{ascending:false});
+    if(r.error) throw new Error(r.error.message);
+    _wsPatients = r.data || [];
+    var awaitingQ = _wsPatients.filter(function(p){ return p.questionnaire_status !== 'completed'; }).length;
+    var completedQ = _wsPatients.filter(function(p){ return p.questionnaire_status === 'completed'; }).length;
+    var ready = _wsPatients.filter(function(p){ return p.patient_status === 'ready_for_surgery'; }).length;
+    document.getElementById('ws-pt-stats').innerHTML =
+      '<div class="ws-stat"><div class="ws-stat-n">'+_wsPatients.length+'</div><div class="ws-stat-l">Patients</div></div>' +
+      '<div class="ws-stat"><div class="ws-stat-n">'+awaitingQ+'</div><div class="ws-stat-l">Awaiting questionnaire</div></div>' +
+      '<div class="ws-stat"><div class="ws-stat-n">'+completedQ+'</div><div class="ws-stat-l">Questionnaire done</div></div>' +
+      '<div class="ws-stat"><div class="ws-stat-n">'+ready+'</div><div class="ws-stat-l">Ready for surgery</div></div>';
+    wsRenderPatients();
+  } catch(e){
+    _wsPatients = [];
+    document.getElementById('ws-pt-stats').innerHTML =
+      '<div class="ws-stat"><div class="ws-stat-n">0</div><div class="ws-stat-l">Patients</div></div>';
+    document.getElementById('ws-pt-list').innerHTML = '<div class="ws-empty">No patients added yet.</div>';
+  }
+}
+function wsPtFilter(f, el){
+  _wsPtFilter = f;
+  document.querySelectorAll('#sec-patients .ws-subtab').forEach(function(b){ b.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  wsRenderPatients();
+}
+function wsProgressPct(p){
+  if(p.questionnaire_status === 'completed'){
+    var a = p.questionnaire_answers || {};
+    var fields = ['conditions','medications','allergies','previous_anesthesia','osa','smoking','pregnancy','comments'];
+    var filled = fields.filter(function(f){ return a[f] && String(a[f]).trim(); }).length;
+    return Math.max(1, Math.round((filled/fields.length)*100));
+  }
+  return {not_sent:0, sent:20, opened:45, in_progress:70}[p.questionnaire_status] || 0;
+}
+function wsStages(p){
+  // [label, reached?]
+  var qs = p.questionnaire_status, cs = p.consultation_status, ps = p.patient_status;
+  return [
+    ['Not sent', true],
+    ['Sent', ['sent','opened','in_progress','completed'].indexOf(qs) >= 0],
+    ['Opened', ['opened','in_progress','completed'].indexOf(qs) >= 0],
+    ['Completed', qs === 'completed'],
+    ['Reviewed', cs === 'reviewed'],
+    ['Ready', ps === 'ready_for_surgery'],
+    ['Arrived', cs === 'arrived' || cs === 'reviewed' || !!p.arrived_at]
+  ];
+}
+function wsRenderPatients(){
+  var list = _wsPatients.filter(function(p){
+    if(_wsPtFilter==='questionnaire') return p.questionnaire_status !== 'completed';
+    if(_wsPtFilter==='consult') return p.questionnaire_status === 'completed' && p.patient_status !== 'ready_for_surgery';
+    if(_wsPtFilter==='ready') return p.patient_status === 'ready_for_surgery';
+    return true;
+  });
+  var box = document.getElementById('ws-pt-list');
+  if(!list.length){ box.innerHTML = '<div class="ws-empty">No patients added yet.</div>'; return; }
+
+  box.innerHTML = list.map(function(p){
+    var dateFmt = p.surgery_date ? new Date(p.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : 'Date not set';
+    var pct = wsProgressPct(p);
+
+    // Detail line (name + facts)
+    var facts = [];
+    if(p.phone_number) facts.push('&#128222; ' + wsEsc(p.phone_number));
+    if(p.procedure) facts.push('&#129658; ' + wsEsc(p.procedure));
+    if(p.hospital) facts.push('&#127973; ' + wsEsc(p.hospital));
+    facts.push('&#128197; ' + dateFmt);
+
+    // Progress stepper
+    var stages = wsStages(p);
+    var stepper = '<div class="pc-track">' + stages.map(function(s, i){
+      return '<div class="pc-step'+(s[1]?' on':'')+'">' +
+        '<span class="pc-dot">'+(s[1]?'&#10003;':(i+1))+'</span>' +
+        '<span class="pc-lbl">'+s[0]+'</span></div>';
+    }).join('<span class="pc-line"></span>') + '</div>';
+
+    // Status chips
+    var chips =
+      '<div class="pc-chips">' +
+        '<div class="pc-chip"><span class="pc-chip-l">Questionnaire</span><span class="pc-chip-v">'+wsQStatusLabel(p.questionnaire_status)+' &middot; '+pct+'%</span></div>' +
+        '<div class="pc-chip"><span class="pc-chip-l">Consultation</span><span class="pc-chip-v">'+(p.consultation_status==='reviewed'?'Reviewed':(p.patient_status==='ready_for_surgery'?'Ready for surgery':'Pending'))+'</span></div>' +
+        '<div class="pc-chip"><span class="pc-chip-l">Arrival</span><span class="pc-chip-v">'+(p.consultation_status==='arrived'||p.consultation_status==='reviewed'||p.arrived_at?'Arrived':'Not arrived')+'</span></div>' +
+      '</div>';
+
+    // Progress bar
+    var bar = '<div class="pc-bar"><div class="pc-bar-fill" style="width:'+pct+'%"></div></div>';
+
+    // Activity line (incl. submission date)
+    var activity = [];
+    if(p.completed_at) activity.push('Submitted ' + new Date(p.completed_at).toLocaleDateString());
+    if(p.updated_at) activity.push('Last activity ' + new Date(p.updated_at).toLocaleDateString());
+    var activityLine = activity.length ? '<div class="pc-activity">'+activity.join(' &middot; ')+'</div>' : '';
+
+    // Clinical summary row (when completed): BMI · STOP-BANG · Pregnancy
+    var ans = p.questionnaire_answers || {};
+    var sc = ans._scores || {};
+    var pregTxt = (ans.pregnant==='Yes') ? 'Pregnant'+(ans.gestation?' '+ans.gestation+'w':'') : (ans.pregnant==='Not sure'?'Possibly pregnant':(ans.sex==='Female'?'Not pregnant':'—'));
+    var clinRow = (p.questionnaire_status === 'completed')
+      ? '<div class="pc-clin">' +
+          '<div class="pc-clin-i"><span>BMI</span><b>'+(sc.bmi!=null?sc.bmi:'—')+'</b></div>' +
+          '<div class="pc-clin-i"><span>STOP-BANG</span><b>'+(sc.stopbang!=null?(sc.stopbang+'/8 '+(sc.stopbang_risk||'')):'—')+'</b></div>' +
+          '<div class="pc-clin-i"><span>Pregnancy</span><b>'+wsEsc(pregTxt)+'</b></div>' +
+          '<div class="pc-clin-i"><span>ASA</span><b>'+(sc.asa_suggestion?('~'+sc.asa_suggestion):'—')+'</b></div>' +
+        '</div>'
+      : '';
+
+    // Workflow buttons (professional, no URLs)
+    var send = '<button class="ws-btn ws-btn-wa" onclick="event.stopPropagation();wsSendWhatsApp(\''+p.id+'\')">'+(p.questionnaire_status==='not_sent'?'Send questionnaire':'Resend questionnaire')+'</button>';
+    var preview = '<button class="ws-btn" onclick="event.stopPropagation();wsPreview()">Preview questionnaire</button>';
+    var actionsCompleted = (p.questionnaire_status==='completed')
+      ? '<button class="ws-btn" onclick="event.stopPropagation();wsDetail(\''+p.id+'\')">View summary</button>' +
+        '<button class="ws-btn" onclick="event.stopPropagation();wsDetail(\''+p.id+'\')">View full questionnaire</button>' +
+        '<button class="ws-btn" onclick="event.stopPropagation();wsPrint(\''+p.id+'\')">Print PDF</button>'
+      : '';
+
+    var workflow = '';
+    if(p.consultation_status === 'not_arrived'){
+      workflow += '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsAdvance(\''+p.id+'\',\'arrived\')">Patient arrived</button>';
+    } else if(p.consultation_status === 'arrived'){
+      workflow += '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsAdvance(\''+p.id+'\',\'reviewed\')">Mark reviewed</button>';
+    } else if(p.consultation_status === 'reviewed' && p.patient_status !== 'ready_for_surgery'){
+      workflow += '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsReady(\''+p.id+'\')">Ready for surgery</button>';
+    }
+
+    // Risk flags (from questionnaire scoring) — shown at a glance when completed
+    var flags = (p.questionnaire_answers && p.questionnaire_answers._flags) || [];
+    var flagRow = (p.questionnaire_status === 'completed' && flags.length)
+      ? '<div class="pc-flags">' + flags.map(function(f){ return '<span class="pc-flag">&#9888; '+wsEsc(f)+'</span>'; }).join('') + '</div>'
+      : '';
+
+    var actionsRow = (p.questionnaire_status==='completed')
+      ? actionsCompleted + workflow + preview
+      : send + preview + workflow;
+
+    return '<div class="pc-card" onclick="wsDetail(\''+p.id+'\')">' +
+      '<div class="pc-head">' +
+        '<div><div class="pc-name">'+wsEsc(p.patient_name)+'</div>' +
+          '<div class="pc-facts">'+facts.join('<span class="pc-sep">&middot;</span>')+'</div></div>' +
+        '<div class="pc-status">'+wsDeriveStatus(p)+'</div>' +
+      '</div>' +
+      stepper + bar + chips + clinRow + flagRow + activityLine +
+      '<div class="pc-actions">'+actionsRow+'</div>' +
+    '</div>';
+  }).join('');
+}
+function wsPreview(){ window.open('/v2/q.html?preview=1', '_blank'); }
+function wsPrint(id){
+  var p = _wsPatients.find(function(x){ return x.id === id; });
+  if(!p){ wsToast('Patient not found'); return; }
+  var a = p.questionnaire_answers || {};
+  var s = a._scores || {};
+  var flags = a._flags || [];
+  var LBL = {age:'Age',sex:'Sex',height:'Height (cm)',weight:'Weight (kg)',pregnant:'Could be pregnant',gestation:'Weeks pregnant',preg_complications:'Pregnancy complications',prev_cesarean:'Previous cesarean',back_problems:'Back/spinal problems',guardian:'Guardian',birth_issues:'Birth/development',recent_cold:'Recent cold/fever',snore:'Snores loudly',tired:'Daytime tiredness',apnea:'Observed apnea',neck:'Neck \u226540cm',hypertension:'High blood pressure',cardiac:'Heart disease',cardiac_detail:'Heart detail',exercise:'Climbs 2 flights',lung:'Lung disease',lung_detail:'Lung detail',cpap:'Uses CPAP',diabetes:'Diabetes',diabetes_control:'Diabetes managed by',anticoag:'Blood thinners',anticoag_which:'Which/last dose',medications:'Medications',allergies:'Allergies',loose_teeth:'Loose/capped teeth',mouth_open:'Mouth/neck limitation',prev_anes:'Prior anesthesia',prev_problems:'Prior anesthesia problem',prev_problems_detail:'Problem detail',ponv_history:'PONV/motion sickness',smoking:'Smoking',comments:'Comments'};
+  var rows = Object.keys(a).filter(function(k){ return k.charAt(0)!=='_'; }).map(function(k){
+    return '<tr><td>'+(LBL[k]||k)+'</td><td>'+wsEsc(a[k])+'</td></tr>';
+  }).join('');
+  var scoreRows =
+    '<tr><td>BMI</td><td>'+(s.bmi!=null?s.bmi+' kg/m²':'—')+'</td></tr>' +
+    '<tr><td>STOP-BANG</td><td>'+(s.stopbang!=null?(s.stopbang+'/8 — '+(s.stopbang_risk||'')+' OSA risk'):'—')+'</td></tr>' +
+    '<tr><td>PONV (Apfel)</td><td>'+(s.ponv!=null?(s.ponv+'/4 — '+(s.ponv_risk||'')):'—')+'</td></tr>' +
+    '<tr><td>ASA suggestion</td><td>'+(s.asa_suggestion?('Class '+s.asa_suggestion+' (suggested, not final)'):'—')+'</td></tr>';
+  var win = window.open('', '_blank');
+  if(!win){ wsToast('Pop-up blocked — allow pop-ups to print'); return; }
+  var dateFmt = p.surgery_date ? new Date(p.surgery_date).toLocaleDateString() : '—';
+  var subFmt = p.completed_at ? new Date(p.completed_at).toLocaleString() : '—';
+  win.document.write(
+    '<html><head><title>Pre-op questionnaire — '+wsEsc(p.patient_name)+'</title>' +
+    '<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;max-width:720px;margin:24px auto;padding:0 16px;}' +
+    'h1{font-size:20px;margin:0 0 2px;}h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#1B6B5A;margin:22px 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px;}' +
+    '.meta{font-size:13px;color:#444;margin-bottom:6px;}table{width:100%;border-collapse:collapse;font-size:13px;}' +
+    'td{padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top;}td:first-child{color:#555;width:42%;}' +
+    '.flag{display:inline-block;background:#fff7e6;border:1px solid #f0c674;color:#8a5a00;border-radius:5px;padding:3px 8px;font-size:12px;margin:2px 4px 2px 0;}' +
+    '@media print{.noprint{display:none;}}</style></head><body>' +
+    '<h1>Pre-operative anesthesia questionnaire</h1>' +
+    '<div class="meta"><b>'+wsEsc(p.patient_name)+'</b> &middot; '+wsEsc(p.procedure||'—')+' &middot; '+wsEsc(p.hospital||'—')+'</div>' +
+    '<div class="meta">Surgery date: '+dateFmt+' &middot; Submitted: '+subFmt+'</div>' +
+    '<h2>Risk flags</h2>'+(flags.length? flags.map(function(f){return '<span class="flag">⚠ '+wsEsc(f)+'</span>';}).join('') : '<div class="meta">None identified.</div>') +
+    '<h2>Scores</h2><table>'+scoreRows+'</table>' +
+    '<h2>Answers</h2><table>'+(rows||'<tr><td colspan=2>No answers.</td></tr>')+'</table>' +
+    '<p class="noprint" style="margin-top:20px;"><button onclick="window.print()" style="padding:10px 18px;font-size:14px;cursor:pointer;">Print / Save as PDF</button></p>' +
+    '</body></html>'
+  );
+  win.document.close();
+}
+window.wsPrint = wsPrint;
+window.wsPreview = wsPreview;
+
+// ── ADD PATIENT (inline form, no modal) ──
+function wsCollectAdd(){
+  var name = document.getElementById('wa-name').value.trim();
+  if(!name){ wsToast('Patient name is required'); return null; }
+  return {
+    doctor_id: window.__wsUserId,
+    patient_name: name,
+    phone_number: document.getElementById('wa-phone').value.trim() || null,
+    procedure: document.getElementById('wa-proc').value.trim() || null,
+    hospital: document.getElementById('wa-hospital').value.trim() || null,
+    surgery_date: document.getElementById('wa-date').value || null,
+    notes: document.getElementById('wa-notes').value.trim() || null
+  };
+}
+function wsClearForm(){
+  ['name','phone','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
+}
+async function wsSavePatient(thenSend){
+  var rec = wsCollectAdd(); if(!rec) return;
+  var btn = document.getElementById(thenSend ? 'wa-send' : 'wa-save');
+  btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Saving…';
+  rec.token = wsToken();
+  rec.questionnaire_status = 'not_sent';
+  rec.consultation_status = 'not_arrived';
+  rec.patient_status = 'awaiting_questionnaire';
+
+  // ── TEMP DEBUG: show the exact payload + Supabase error ──
+  console.log('CLINIC INSERT PAYLOAD', rec);
+  console.log('CLINIC INSERT doctor_id =', rec.doctor_id, '| auth uid =', (window.__wsUserId || '(none)'));
+
+  try {
+    var r = await window.sb.from('clinic_patients').insert(rec).select().maybeSingle();
+    console.log('CLINIC INSERT RESULT — data:', r.data, '| error:', r.error);
+    if(r.error){
+      console.error('CLINIC INSERT ERROR OBJECT:', r.error);
+      console.error('  message:', r.error.message);
+      console.error('  details:', r.error.details);
+      console.error('  hint:', r.error.hint);
+      console.error('  code:', r.error.code);
+      // TEMP: surface the real error to the screen (revert to generic before launch)
+      wsToast('Insert error: ' + r.error.message + (r.error.details ? ' — ' + r.error.details : ''));
+      btn.disabled = false; btn.textContent = orig;
+      return;
+    }
+    wsClearForm();
+    await wsLoadPatients();
+    if(thenSend && r.data){ wsSend(r.data.id); }
+    else { wsToast('Patient saved'); }
+  } catch(e){
+    console.error('CLINIC INSERT EXCEPTION:', e);
+    wsToast('Insert exception: ' + (e && e.message ? e.message : e));
+  }
+  btn.disabled = false; btn.textContent = orig;
+}
+
+// ── DELIVERY ─────────────────────────────────────────────────
+// "sent" is recorded ONLY after a real delivery action launches
+// (WhatsApp or the device SMS app). Creating a patient never sets "sent".
+function wsLink(p){ return p && p.token ? (location.origin + '/v2/q.html?t=' + p.token) : ''; }
+function wsMessage(p){
+  var first = p.patient_name ? p.patient_name.split(' ')[0] : '';
+  return 'Hello ' + first + ',\n\n' +
+         'Please complete your pre-operative anesthesia questionnaire before your surgery.\n\n' +
+         wsLink(p) + '\n\nThank you.';
+}
+async function wsMarkSent(id){
+  try {
+    await window.sb.from('clinic_patients').update({ questionnaire_status: 'sent', sent_at: new Date().toISOString() }).eq('id', id);
+  } catch(e){ console.warn('mark sent failed:', e.message); }
+}
+function wsFindP(id){ return _wsPatients.find(function(x){ return x.id === id; }); }
+
+// Send via WhatsApp — only mark 'sent' if the WhatsApp window actually opened.
+async function wsSendWhatsApp(id){
+  var p = wsFindP(id);
+  if(!p){ try { var r=await window.sb.from('clinic_patients').select('*').eq('id',id).maybeSingle(); p=r.data; }catch(e){} }
+  if(!p) return;
+  if(!p.token){ wsToast('This patient has no questionnaire link yet.'); return; }
+  var digits = (p.phone_number || '').replace(/[^0-9]/g, '');
+  var wa = 'https://wa.me/' + digits + '?text=' + encodeURIComponent(wsMessage(p));
+  var win = window.open(wa, '_blank');
+  if(win){
+    await wsMarkSent(id);
+    wsToast('WhatsApp opened — status set to Sent');
+  } else {
+    // popup blocked → did NOT launch → do NOT mark sent
+    wsToast('Pop-up blocked. Use Copy Link or allow pop-ups, then try again.');
+  }
+  wsLoadPatients();
+}
+
+// Fallback — open the device SMS app. Mark 'sent' after launch.
+async function wsSendSms(id){
+  var p = wsFindP(id);
+  if(!p){ try { var r=await window.sb.from('clinic_patients').select('*').eq('id',id).maybeSingle(); p=r.data; }catch(e){} }
+  if(!p) return;
+  if(!p.token){ wsToast('This patient has no questionnaire link yet.'); return; }
+  var digits = (p.phone_number || '').replace(/[^0-9+]/g, '');
+  var sms = 'sms:' + digits + (/(iPhone|iPad|Macintosh)/i.test(navigator.userAgent) ? '&' : '?') + 'body=' + encodeURIComponent(wsMessage(p));
+  window.location.href = sms;   // opens the SMS app on a device
+  await wsMarkSent(id);
+  wsToast('SMS app opened — status set to Sent');
+  setTimeout(wsLoadPatients, 800);
+}
+
+// Copy / open the exact link so the doctor can verify it.
+function wsCopyLink(id){
+  var p = wsFindP(id); if(!p) return;
+  var url = wsLink(p); if(!url){ wsToast('No link yet'); return; }
+  if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ wsToast('Link copied'); }, function(){ wsFallbackCopy(url); }); }
+  else { wsFallbackCopy(url); }
+}
+function wsFallbackCopy(url){
+  var t=document.createElement('textarea'); t.value=url; document.body.appendChild(t); t.select();
+  try{ document.execCommand('copy'); wsToast('Link copied'); }catch(e){ wsToast('Copy failed'); }
+  document.body.removeChild(t);
+}
+function wsOpenLink(id){
+  var p = wsFindP(id); if(!p) return;
+  var url = wsLink(p); if(!url){ wsToast('No link yet'); return; }
+  window.open(url, '_blank');
+}
+
+// Compatibility: the form "Send questionnaire" button → create then WhatsApp
+async function wsSend(id){ return wsSendWhatsApp(id); }
+
+// Hook for future automatic SMS via Supabase Edge Function + Twilio.
+async function wsSendSmsViaBackend(phone, message){
+  // TODO: call your Edge Function, e.g.:
+  // return window.sb.functions.invoke('send-sms', { body: { to: phone, message: message } });
+  console.log('SMS hook (not yet wired):', phone);
+}
+
+// ── WORKFLOW ADVANCE ──
+async function wsAdvance(id, to){
+  var patch = { consultation_status: to };
+  var now = new Date().toISOString();
+  if(to === 'arrived') patch.arrived_at = now;
+  if(to === 'reviewed'){ patch.reviewed_at = now; patch.patient_status = 'awaiting_consultation'; }
+  try {
+    await window.sb.from('clinic_patients').update(patch).eq('id', id);
+    wsToast(to === 'arrived' ? 'Patient marked arrived' : 'Consultation complete');
+    wsLoadPatients();
+  } catch(e){ wsToast('Update failed'); }
+}
+async function wsReady(id){
+  try {
+    await window.sb.from('clinic_patients').update({ patient_status: 'ready_for_surgery', ready_at: new Date().toISOString() }).eq('id', id);
+    wsToast('Ready for surgery');
+    wsLoadPatients();
+  } catch(e){ wsToast('Update failed'); }
+}
+
+// ── PATIENT DETAIL ──
+function wsDetail(id){
+  var p = _wsPatients.find(function(x){ return x.id === id; });
+  if(!p) return;
+  var a = p.questionnaire_answers || {};
+  var scores = a._scores || {};
+  var flags = a._flags || [];
+  var dateFmt = p.surgery_date ? new Date(p.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '—';
+  function srow(l,v){ return '<div class="ws-d-row"><span>'+l+'</span><b>'+(v?wsEsc(v):'—')+'</b></div>'; }
+
+  // Human labels for the dynamic answer keys
+  var LABELS = {
+    age:'Age', sex:'Sex', height:'Height (cm)', weight:'Weight (kg)',
+    pregnant:'Could be pregnant', gestation:'Weeks pregnant', preg_complications:'Pregnancy complications',
+    prev_cesarean:'Previous cesarean', back_problems:'Back / spinal problems',
+    guardian:'Guardian', birth_issues:'Birth / development issues', recent_cold:'Recent cold/fever',
+    snore:'Snores loudly', tired:'Daytime tiredness', apnea:'Observed apnea', neck:'Neck ≥40cm',
+    hypertension:'High blood pressure', cardiac:'Heart disease', cardiac_detail:'Heart detail', exercise:'Climbs 2 flights',
+    lung:'Lung disease', lung_detail:'Lung detail', cpap:'Uses CPAP',
+    diabetes:'Diabetes', diabetes_control:'Diabetes managed by',
+    anticoag:'Blood thinners', anticoag_which:'Which / last dose',
+    medications:'Medications', allergies:'Allergies',
+    loose_teeth:'Loose/capped teeth', mouth_open:'Mouth/neck limitation',
+    prev_anes:'Prior anesthesia', prev_problems:'Prior anesthesia problem', prev_problems_detail:'Problem detail',
+    ponv_history:'PONV / motion sickness', smoking:'Smoking', comments:'Comments'
+  };
+
+  var riskBlock, scoreBlock, answersBlock;
+  if(p.questionnaire_status === 'completed'){
+    // Risk flags
+    riskBlock = flags.length
+      ? '<div class="pc-actions" style="margin-bottom:4px;">' + flags.map(function(f){ return '<span class="ws-badge b-review">&#9888; '+wsEsc(f)+'</span>'; }).join('') + '</div>'
+      : '<div class="ws-empty">No high-risk flags identified.</div>';
+    // Scores
+    scoreBlock = '<div class="ws-d-grid">' +
+      srow('BMI', scores.bmi != null ? scores.bmi + ' kg/m²' : null) +
+      srow('STOP-BANG', scores.stopbang != null ? (scores.stopbang + ' / 8 — ' + (scores.stopbang_risk||'') + ' OSA risk') : null) +
+      srow('PONV (Apfel)', scores.ponv != null ? (scores.ponv + ' / 4 — ' + (scores.ponv_risk||'') + ' risk') : null) +
+      srow('ASA suggestion', scores.asa_suggestion ? ('Class ' + scores.asa_suggestion + ' (suggested, not final)') : null) +
+      srow('Completion', (scores.completion != null ? scores.completion : 100) + '%') +
+    '</div>';
+    // Full answers
+    var rows = Object.keys(a).filter(function(k){ return k.charAt(0) !== '_'; }).map(function(k){
+      return srow(LABELS[k] || k, a[k]);
+    }).join('');
+    answersBlock = '<div class="ws-d-grid">' + (rows || '<div class="ws-empty">No answers recorded.</div>') + '</div>';
+  } else {
+    riskBlock = '<div class="ws-empty">Questionnaire not completed yet (status: '+wsQStatusLabel(p.questionnaire_status)+').</div>';
+    scoreBlock = ''; answersBlock = '';
+  }
+
+  var body =
+    '<div class="ws-d-head"><div><div class="ws-d-name">'+wsEsc(p.patient_name)+'</div>' +
+      '<div class="ws-d-sub">'+wsDeriveStatus(p)+'</div></div>' +
+      '<button class="ws-btn" onclick="wsCloseDetail()">Close &times;</button></div>' +
+    '<div class="ws-d-grid">' +
+      srow('Phone', p.phone_number) + srow('Procedure', p.procedure) + srow('Hospital', p.hospital) + srow('Surgery date', dateFmt) +
+      srow('Questionnaire', wsQStatusLabel(p.questionnaire_status)) + srow('Consultation', wsVisitLabel(p.consultation_status)) +
+    '</div>' +
+    '<div class="ws-d-section">Risk summary</div>' + riskBlock +
+    (scoreBlock ? '<div class="ws-d-section">Scores</div>' + scoreBlock : '') +
+    (answersBlock ? '<div class="ws-d-section">Questionnaire answers</div>' + answersBlock : '') +
+    '<div class="ws-d-section">Doctor notes <span style="font-weight:400;color:var(--hint);font-size:11px;">(private)</span></div>' +
+    '<textarea id="ws-d-notes" class="ws-d-notes" placeholder="Private notes — visible only to you">'+wsEsc(p.doctor_notes||'')+'</textarea>' +
+    '<div class="ws-row-actions" style="margin-top:10px;">' +
+      '<button class="ws-btn ws-btn-wa" onclick="wsSaveNotes(\''+p.id+'\')">Save notes</button>' +
+    '</div>';
+  document.getElementById('ws-detail-body').innerHTML = body;
+  document.getElementById('ws-detail-modal').classList.add('open');
+}
+function wsCloseDetail(){ document.getElementById('ws-detail-modal').classList.remove('open'); }
+async function wsSaveNotes(id){
+  var v = document.getElementById('ws-d-notes').value;
+  try { await window.sb.from('clinic_patients').update({ doctor_notes: v }).eq('id', id); wsToast('Notes saved');
+    var p = _wsPatients.find(function(x){ return x.id===id; }); if(p) p.doctor_notes = v;
+  } catch(e){ wsToast('Could not save notes'); }
+}
+
+window.wsSavePatient=wsSavePatient; window.wsSend=wsSend; window.wsSendWhatsApp=wsSendWhatsApp; window.wsSendSms=wsSendSms;
+window.wsCopyLink=wsCopyLink; window.wsOpenLink=wsOpenLink; window.wsAdvance=wsAdvance; window.wsReady=wsReady;
+window.wsDetail=wsDetail; window.wsCloseDetail=wsCloseDetail; window.wsSaveNotes=wsSaveNotes;
+
+function wsInjectModals(){
+  if(document.getElementById('ws-detail-modal')) return;
+  var det = document.createElement('div');
+  det.id = 'ws-detail-modal'; det.className = 'ws-modal-bg';
+  det.onclick = function(e){ if(e.target===det) wsCloseDetail(); };
+  det.innerHTML = '<div class="ws-modal ws-modal-lg" id="ws-detail-body"></div>';
+  document.body.appendChild(det);
+}
+
+// SECTION 5 — Ask queue (doctor inbox)
+var _wsAsk = [], _wsAskFilter = 'pending';
+async function wsLoadAsk(){
+  try {
+    var r = await window.sb.from('questions').select('*').order('created_at',{ascending:false});
+    _wsAsk = (r && r.data) || [];
+    wsRenderAsk();
+  } catch(e){
+    document.getElementById('ws-ask-list').innerHTML = '<div class="ws-empty">Questions module needs the Ask migration. Once run, patient questions appear here.</div>';
+  }
+}
+function wsAskFilter(f, el){
+  _wsAskFilter = f;
+  document.querySelectorAll('#sec-ask .ws-subtab').forEach(function(b){ b.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  wsRenderAsk();
+}
+function wsRenderAsk(){
+  var list = _wsAsk.filter(function(q){
+    var st = q.status || 'new';
+    if(_wsAskFilter==='pending') return st==='new' || st==='under_review';
+    if(_wsAskFilter==='answered') return st==='answered' || st==='closed';
+    return true;
+  });
+  var box = document.getElementById('ws-ask-list');
+  if(!list.length){ box.innerHTML = '<div class="ws-empty">No questions in this view.</div>'; return; }
+  var bmap = {new:'b-new',under_review:'b-review',answered:'b-answered',closed:'b-closed'};
+  var blab = {new:'New',under_review:'Under review',answered:'Answered',closed:'Closed'};
+  box.innerHTML = list.map(function(q){
+    var st = q.status || 'new';
+    var subj = q.subject || q.topic || 'Question';
+    var msg = q.message || q.question || '';
+    return '<div class="ws-row"><div class="ws-row-top"><div><div class="ws-row-name">'+wsEsc(subj)+'</div>' +
+      '<div class="ws-row-meta">'+wsEsc(msg).slice(0,160)+'</div></div><span class="ws-badge '+(bmap[st]||'b-new')+'">'+(blab[st]||'New')+'</span></div>' +
+      '<div class="ws-row-actions"><a class="ws-btn" href="/v2/ask.html">Open &amp; reply</a></div></div>';
+  }).join('');
+}
+
+// SECTION 6 — Admin (admin only)
+async function wsLoadAdmin(){
+  try {
+    var r = await window.sb.from('profiles').select('*');
+    var profs = (r && r.data) || [];
+    var docs = profs.filter(function(p){ return p.role==='doctor'; });
+    var pending = docs.filter(function(p){ return p.verification_status==='pending'; });
+    var st = document.getElementById('ws-admin-stats');
+    if(st) st.innerHTML =
+      '<div class="ws-stat"><div class="ws-stat-n">'+profs.length+'</div><div class="ws-stat-l">Users</div></div>' +
+      '<div class="ws-stat"><div class="ws-stat-n">'+docs.length+'</div><div class="ws-stat-l">Doctors</div></div>' +
+      '<div class="ws-stat"><div class="ws-stat-n">'+pending.length+'</div><div class="ws-stat-l">Pending approval</div></div>';
+    var ap = document.getElementById('ws-approvals');
+    ap.innerHTML = pending.length ? pending.map(function(p){
+      return '<div class="ws-row"><div class="ws-row-top"><div><div class="ws-row-name">'+wsEsc(p.full_name||p.email)+'</div>' +
+        '<div class="ws-row-meta">'+wsEsc(p.email)+(p.hospital?' &middot; '+wsEsc(p.hospital):'')+'</div></div><span class="ws-badge b-pending">Pending</span></div>' +
+        '<div class="ws-row-actions"><button class="ws-btn ws-btn-wa" onclick="wsApprove(\''+p.id+'\',\'approved\')">Approve</button>' +
+        '<button class="ws-btn" onclick="wsApprove(\''+p.id+'\',\'rejected\')">Reject</button></div></div>';
+    }).join('') : '<div class="ws-empty">No pending doctor approvals.</div>';
+    var us = document.getElementById('ws-users');
+    us.innerHTML = profs.slice(0,20).map(function(p){
+      var cur = p.is_admin ? 'admin' : (p.role||'');
+      var opts = ['patient','doctor','nurse','student','other','admin'].map(function(rr){ return '<option value="'+rr+'"'+(cur===rr?' selected':'')+'>'+rr+'</option>'; }).join('');
+      return '<div class="ws-row"><div class="ws-row-top"><div><div class="ws-row-name">'+wsEsc(p.full_name||'—')+'</div>' +
+        '<div class="ws-row-meta">'+wsEsc(p.email)+'</div></div>' +
+        '<select class="ws-role-sel" onchange="wsSetRole(\''+p.id+'\',this.value,this)">'+opts+'</select></div></div>';
+    }).join('');
+  } catch(e){
+    var ap = document.getElementById('ws-approvals'); if(ap) ap.innerHTML = '<div class="ws-empty">Admin data unavailable.</div>';
+  }
+}
+async function wsApprove(id, status){
+  try { await window.sb.from('profiles').update({ verification_status: status }).eq('id', id); wsToast('Doctor '+status); wsLoadAdmin(); }
+  catch(e){ wsToast('Update failed'); }
+}
+async function wsSetRole(id, role, el){
+  el.disabled = true;
+  var patch = { role: role, verification_status: (role==='doctor'?'pending':'not_required') };
+  try { await window.sb.from('profiles').update(patch).eq('id', id); wsToast('Role updated'); }
+  catch(e){ wsToast('Update failed'); }
+  el.disabled = false;
+}
+window.wsShow=wsShow; window.wsToast=wsToast; window.wsPtFilter=wsPtFilter;
+window.wsAskFilter=wsAskFilter; window.wsApprove=wsApprove; window.wsSetRole=wsSetRole;
+
+document.addEventListener('DOMContentLoaded', async function(){
+  try {
+    console.log('LOGIN START — dashboard init');
+
+    var auth = await window.requireAuth();   // logs AUTH SUCCESS + PROFILE internally
+    if (!auth) { _dashDone = true; clearTimeout(_dashWatchdog); return; } // redirected to index
+
+    var user    = auth.user;
+    var profile = auth.profile;
+    console.log('USER ID:', user.id);
+    console.log('PROFILE LOOKUP COMPLETE:', profile);
+
+    // ── TEMPORARY AUTH DEBUG PANEL (remove before launch) ──
+    try {
+      var sessChk = await window.sb.auth.getSession();
+      var hasSession = !!(sessChk.data && sessChk.data.session);
+      var dbg = document.createElement('div');
+      dbg.id = 'auth-debug';
+      dbg.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:99999;background:#0C1F18;border:1px solid #2A8A74;border-radius:8px;padding:10px 13px;font:12px/1.6 monospace;color:#7ECFC0;max-width:320px;box-shadow:0 8px 24px rgba(0,0,0,.5);';
+      dbg.innerHTML =
+        '<div style="color:#fff;font-weight:700;margin-bottom:4px;">AUTH DEBUG</div>' +
+        'user id: ' + (user.id || '—') + '<br>' +
+        'session exists: ' + hasSession + '<br>' +
+        'role: ' + (profile ? (profile.is_admin ? 'admin' : profile.role) : 'NULL') + '<br>' +
+        'profile found: ' + (!!profile) +
+        '<div style="margin-top:6px;"><button onclick="this.parentNode.parentNode.remove()" style="background:none;border:1px solid #2A8A74;color:#7ECFC0;border-radius:5px;padding:3px 8px;cursor:pointer;font:11px monospace;">close</button></div>';
+      document.body.appendChild(dbg);
+    } catch(e){ console.warn('debug panel:', e.message); }
+
+    // Onboarding ONLY for users with no role at all.
+    // Admins, and anyone with an existing role, skip onboarding entirely.
+    var hasRole = profile && profile.role && profile.role !== '' && profile.role !== 'pending';
+    var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
+
+    if(!isAdmin && !hasRole){
+      // First, try to apply the role chosen at signup (stored in user metadata).
+      var metaRole = user.user_metadata && user.user_metadata.role;
+      if(metaRole){
+        console.log('Applying signup role from metadata:', metaRole);
+        var metaVerif = (metaRole === 'doctor') ? 'pending' : 'not_required';
+        try { await window.saveProfile(user.id, { role: metaRole, verification_status: metaVerif }); } catch(e){}
+        profile = await window.getProfile(user.id);
+        hasRole = profile && profile.role && profile.role !== '' && profile.role !== 'pending';
+      }
+      if(!hasRole){
+        console.log('ROLE: none — REDIRECT: role-select.html');
+        _dashDone = true; clearTimeout(_dashWatchdog);
+        window.location.href = '/v2/role-select.html';
+        return;
+      }
+    }
+
+    // Step 5: build and render
+    var role  = isAdmin ? 'admin' : profile.role;
+    console.log('ROLE detected:', role);
+
+    // Patients land on the For Patients portal (dashboard is one tool inside it)
+    if(role === 'patient'){
+      console.log('REDIRECT: /v2/patients.html (patient portal)');
+      _dashDone = true; clearTimeout(_dashWatchdog);
+      window.location.replace('/v2/patients.html');
+      return;
+    }
+
+    var verif = profile.verification_status || '';
+    var name  = profile.full_name ? profile.full_name.split(' ')[0] : user.email.split('@')[0];
+    name      = name.charAt(0).toUpperCase() + name.slice(1);
+
+    var roleLabels = { doctor:'Anesthesiologist', patient:'Patient', admin:'Administrator', nurse:'Nurse', student:'Medical Student', other:'Healthcare Professional' };
+    var roleLabel  = roleLabels[role] || role;
+    var greeting   = (role === 'doctor' || role === 'admin') ? 'Dr. ' + name : name;
+
+    // ── SINGLE-PAGE WORKSPACE (Bloomberg-terminal style) ──────
+    var isAdminRole = (role === 'admin');
+
+    // Verification banner for pending doctors
+    var banner = '';
+    if(role === 'doctor' && verif === 'pending'){
+      banner = '<div class="verify-banner">&#9203; <strong>Verification in progress.</strong> Your license is under review. Usually within 24 hours. Questions? <a href="mailto:support@anestheo.com" style="color:#7ECFC0;">support@anestheo.com</a></div>';
+    }
+
+    // Section rail (switches panels in-place — no navigation away)
+    var rail =
+      '<button class="ws-tab active" data-sec="patients" onclick="wsShow(\'patients\')">&#128101; Patient Management</button>' +
+      '<button class="ws-tab" data-sec="tools" onclick="wsShow(\'tools\')">&#129658; Live Tools</button>' +
+      '<button class="ws-tab" data-sec="refs" onclick="wsShow(\'refs\')">&#128214; References</button>' +
+      '<button class="ws-tab" data-sec="resources" onclick="wsShow(\'resources\')">&#128218; Resources</button>' +
+      '<button class="ws-tab" data-sec="ask" onclick="wsShow(\'ask\')">&#128172; Questions Management</button>' +
+      (isAdminRole ? '<button class="ws-tab" data-sec="admin" onclick="wsShow(\'admin\')">&#128274; Admin</button>' : '') +
+      '<div class="ws-rail-sp"></div>' +
+      '<a class="ws-tab" href="/v2/settings.html">&#9881; Settings</a>' +
+      '<button class="ws-tab" onclick="window.nbSignOut()">&#8594; Sign out</button>';
+
+    // SECTION 1 — Live Tools (flagship, embedded full calculators)
+    var secTools =
+      '<div class="ws-sec" id="sec-tools">' +
+        '<div class="ws-sec-head"><div><div class="ws-sec-title">Anesthesiology Live Tools</div>' +
+          '<div class="ws-sec-sub">Airway &middot; drug dosing &middot; ventilation &middot; TIVA/TCI &middot; regional &middot; obstetric &middot; pediatric &middot; ICU</div></div>' +
+          '<a href="/v2/engine.html" target="_blank" class="ws-open">Open full screen &#8599;</a></div>' +
+        '<iframe class="ws-frame" src="/v2/engine.html?embed=1" title="Anesthesiology Live Tools"></iframe>' +
+      '</div>';
+
+    // SECTION 2 — Patient Management
+    var secPatients =
+      '<div class="ws-sec active" id="sec-patients">' +
+        '<div class="ws-sec-head"><div><div class="ws-sec-title">Patient management</div>' +
+          '<div class="ws-sec-sub">Your pre-operative clinic</div></div></div>' +
+        '<div class="ws-stats" id="ws-pt-stats"></div>' +
+        '<div class="ws-pt-cols">' +
+          // LEFT — Add patient form (always visible, no modal)
+          '<div class="ws-pt-form">' +
+            '<div class="ws-form-title">Add patient</div>' +
+            '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
+            '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
+            '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
+            '<label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">' +
+            '<label>Surgery date</label><input id="wa-date" type="date">' +
+            '<label>Anesthesiologist notes</label><textarea id="wa-notes" placeholder="Optional"></textarea>' +
+            '<div class="ws-form-btns">' +
+              '<button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">Send questionnaire</button>' +
+              '<button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save patient</button>' +
+            '</div>' +
+          '</div>' +
+          // RIGHT — My patients
+          '<div class="ws-pt-right">' +
+            '<div class="ws-form-title">My patients</div>' +
+            '<div class="ws-subtabs">' +
+              '<button class="ws-subtab active" onclick="wsPtFilter(\'all\',this)">All</button>' +
+              '<button class="ws-subtab" onclick="wsPtFilter(\'questionnaire\',this)">Awaiting questionnaire</button>' +
+              '<button class="ws-subtab" onclick="wsPtFilter(\'consult\',this)">Awaiting consultation</button>' +
+              '<button class="ws-subtab" onclick="wsPtFilter(\'ready\',this)">Ready for surgery</button>' +
+            '</div>' +
+            '<div id="ws-pt-list" class="ws-list"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+
+    // SECTION 3 — Clinical References (inline directory)
+    var refItems = [
+      ['Airway','/v2/airway.html','&#128168;'],['Anticoagulation','/v2/anticoagulation.html','&#129656;'],
+      ['Regional','/v2/regional.html','&#129504;'],['Obstetric','/v2/obstetric.html','&#129328;'],
+      ['Pediatric','/v2/pediatric.html','&#129730;'],['ICU','/v2/icu.html','&#127973;'],
+      ['LAST','/v2/last.html','&#9888;'],['Anaphylaxis','/v2/anaphylaxis.html','&#128137;']
+    ];
+    var secRefs =
+      '<div class="ws-sec" id="sec-refs">' +
+        '<div class="ws-sec-head"><div><div class="ws-sec-title">Clinical references</div>' +
+          '<div class="ws-sec-sub">Evidence-based bedside references</div></div></div>' +
+        '<div class="ws-grid">' +
+          refItems.map(function(r){ return '<a class="ws-tile" href="'+r[1]+'"><span class="ws-tile-ico">'+r[2]+'</span><span class="ws-tile-t">'+r[0]+'</span></a>'; }).join('') +
+        '</div>' +
+      '</div>';
+
+    // SECTION 4 — Resources
+    var resItems = [['Books','&#128218;'],['PDFs','&#128196;'],['Guides','&#128214;'],['Checklists','&#9989;'],['Downloads','&#11015;']];
+    var secResources =
+      '<div class="ws-sec" id="sec-resources">' +
+        '<div class="ws-sec-head"><div><div class="ws-sec-title">Resources</div>' +
+          '<div class="ws-sec-sub">Reference library and downloads</div></div></div>' +
+        '<div class="ws-grid">' +
+          resItems.map(function(r){ return '<button class="ws-tile" onclick="wsToast(\''+r[0]+' — coming soon\')"><span class="ws-tile-ico">'+r[1]+'</span><span class="ws-tile-t">'+r[0]+'</span></button>'; }).join('') +
+          '<a class="ws-tile" href="/v2/videos.html"><span class="ws-tile-ico">&#127909;</span><span class="ws-tile-t">Videos</span></a>' +
+        '</div>' +
+      '</div>';
+
+    // SECTION 5 — Ask Anesthesiologist management (doctor inbox)
+    var secAsk =
+      '<div class="ws-sec" id="sec-ask">' +
+        '<div class="ws-sec-head"><div><div class="ws-sec-title">Questions management</div>' +
+          '<div class="ws-sec-sub">Patient questions awaiting your response</div></div></div>' +
+        '<div class="ws-subtabs">' +
+          '<button class="ws-subtab active" onclick="wsAskFilter(\'pending\',this)">Pending</button>' +
+          '<button class="ws-subtab" onclick="wsAskFilter(\'answered\',this)">Answered</button>' +
+          '<button class="ws-subtab" onclick="wsAskFilter(\'all\',this)">All</button>' +
+        '</div>' +
+        '<div id="ws-ask-list" class="ws-list"><div class="ws-empty">Loading questions…</div></div>' +
+      '</div>';
+
+    // SECTION 6 — Admin (admin only)
+    var secAdmin = '';
+    if(isAdminRole){
+      secAdmin =
+      '<div class="ws-sec" id="sec-admin">' +
+        '<div class="ws-sec-head"><div><div class="ws-sec-title">Admin center</div>' +
+          '<div class="ws-sec-sub">Approvals, users, and platform</div></div>' +
+          '<a class="ws-open" href="/v2/admin.html">Full admin page &#8599;</a></div>' +
+        '<div class="ws-stats" id="ws-admin-stats"></div>' +
+        '<div class="ws-sec-title" style="font-size:14px;margin:18px 0 10px;">Doctor approvals</div>' +
+        '<div id="ws-approvals" class="ws-list"><div class="ws-empty">Loading…</div></div>' +
+        '<div class="ws-sec-title" style="font-size:14px;margin:22px 0 10px;">Users</div>' +
+        '<div id="ws-users" class="ws-list"><div class="ws-empty">Loading…</div></div>' +
+      '</div>';
+    }
+
+    var mainHTML =
+      '<div class="ws-top">' +
+        '<div><div class="ws-greet">' + greeting + '</div>' +
+          '<div class="ws-role">' + roleLabel + ' &middot; <span class="ws-online">&#9679; session active</span></div></div>' +
+      '</div>' +
+      banner +
+      '<div class="ws-shell">' +
+        '<nav class="ws-rail">' + rail + '</nav>' +
+        '<div class="ws-body">' + secPatients + secTools + secRefs + secResources + secAsk + secAdmin + '</div>' +
+      '</div>';
+
+    document.getElementById('app').innerHTML = mainHTML;
+
+    // Wire up modules
+    window.__wsRole = role;
+    window.__wsUserId = user.id;
+    wsInjectModals();
+    wsLoadPatients();
+    wsLoadAsk();
+    if(isAdminRole){ wsLoadAdmin(); }
+
+    _dashDone = true; clearTimeout(_dashWatchdog);
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('app').style.display    = 'block';
+
+    var dest = (role === 'admin') ? 'Admin Workspace' : (role === 'doctor' ? 'Doctor Workspace' : 'Workspace');
+    console.log('REDIRECT target:', dest, '| REDIRECT executed: rendered in place');
+    console.log('DASHBOARD READY - role:', role);
+
+  } catch(err){
+    console.error('DASHBOARD ERROR:', err.message, err.stack);
+    dashFail(err.message);
+  }
+});
+</script>
+</body>
+</html>

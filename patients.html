@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For Patients — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<style>
+.hero-split{display:grid;grid-template-columns:1.1fr .9fr;gap:46px;align-items:center;}
+.hero-left{min-width:0;}
+.preview-card{background:rgba(255,255,255,.05);border:1px solid rgba(126,207,192,.22);border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.34);backdrop-filter:blur(8px);max-width:380px;margin-left:auto;}
+.pv-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+.pv-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
+.pv-pct{font-size:22px;font-weight:700;color:#7ECFC0;}
+.pv-bar{height:8px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;margin-bottom:18px;}
+.pv-bar-fill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);border-radius:5px;}
+.pv-steps{list-style:none;margin:0 0 16px;padding:0;}
+.pv-steps li{display:flex;align-items:center;gap:11px;padding:8px 0;font-size:14px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.05);}
+.pv-steps li:last-child{border-bottom:none;}
+.pv-check{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.08);color:var(--hint);border:1px solid rgba(255,255,255,.14);flex-shrink:0;}
+.pv-steps li.done{color:#fff;}
+.pv-steps li.done .pv-check{background:#2A8A74;color:#fff;border-color:#2A8A74;}
+.pv-steps li.current{color:#fff;font-weight:600;}
+.pv-steps li.current .pv-check{border-color:#7ECFC0;color:#7ECFC0;}
+.pv-next{display:flex;flex-direction:column;gap:2px;background:rgba(27,107,90,.12);border:1px solid rgba(42,138,116,.28);border-radius:11px;padding:11px 14px;margin-bottom:14px;}
+.pv-next span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--hint);}
+.pv-next strong{font-size:15px;color:#fff;}
+.pv-btn{width:100%;background:#1B6B5A;color:#fff;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+.pv-btn:hover{background:#2A8A74;}
+.pv-foot{text-align:center;font-size:11px;color:var(--hint);margin-top:12px;}
+@media(max-width:860px){.hero-split{grid-template-columns:1fr;gap:30px;}.preview-card{margin:0 auto;max-width:420px;}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+
+<section class="hero-section">
+  <div class="hero-inner hero-split">
+    <div class="hero-left">
+      <div class="hero-eyebrow"><span></span>For Patients</div>
+      <h1 class="hero-h1">Prepare for your<br><em>surgery</em> with confidence</h1>
+      <p class="hero-sub">Clear, evidence-based information about anesthesia — what to expect, how to prepare, and what questions to ask.</p>
+      <div class="hero-btns" id="hero-cta">
+        <button class="btn-primary" onclick="window.nbOpenModal()">Create free account</button>
+        <a href="/v2/ask.html" class="btn-ghost">Ask a question</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="preview-card">
+        <div class="pv-head">
+          <div class="pv-title">Your surgery journey</div>
+          <div class="pv-pct">65%</div>
+        </div>
+        <div class="pv-bar"><div class="pv-bar-fill" style="width:65%"></div></div>
+        <ul class="pv-steps">
+          <li class="done"><span class="pv-check">&#10003;</span> Choose procedure</li>
+          <li class="done"><span class="pv-check">&#10003;</span> Complete questionnaire</li>
+          <li class="done"><span class="pv-check">&#10003;</span> Preparation checklist</li>
+          <li class="current"><span class="pv-check">&#9679;</span> Educational videos</li>
+          <li><span class="pv-check"></span> Recovery information</li>
+          <li><span class="pv-check"></span> Ready for surgery</li>
+        </ul>
+        <div class="pv-next"><span>Next step</span><strong>Educational videos</strong></div>
+        <button class="pv-btn" onclick="window.nbOpenModal()">Start preparation</button>
+        <div class="pv-foot">A preview of your personal dashboard</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="page-wrap">
+  <div class="section">
+    <div class="section-tag">Patient portal</div>
+    <h2 class="section-title" id="portal-title">Your patient portal</h2>
+    <p class="section-sub" id="portal-sub">Everything you need before and after surgery, in one place.</p>
+    <div class="card-grid">
+      <a href="/v2/procedures.html" class="card" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(27,107,90,.18),rgba(27,107,90,.06));border-color:rgba(42,138,116,.45);">
+        <div class="card-ico">&#129658;</div>
+        <div class="card-title" style="font-family:'Playfair Display',serif;font-size:18px;">Surgery preparation</div>
+        <div class="card-desc">Choose your procedure and get a complete anesthesia guide — from fasting to recovery.</div>
+      </a>
+      <a href="/v2/patient-dashboard.html" class="card">
+        <div class="card-ico">&#128202;</div>
+        <div class="card-title">My dashboard</div>
+        <div class="card-desc">Your personal surgery journey and preparation progress.</div>
+      </a>
+      <a href="/v2/questionnaire.html" class="card">
+        <div class="card-ico">&#128203;</div>
+        <div class="card-title">Questionnaires</div>
+        <div class="card-desc">Complete your pre-operative health forms online.</div>
+      </a>
+      <a href="/v2/ask.html" class="card">
+        <div class="card-ico">&#128172;</div>
+        <div class="card-title">Ask Anesthesiologist</div>
+        <div class="card-desc">Send questions and get answers from a specialist.</div>
+      </a>
+      <a href="/v2/videos.html" class="card">
+        <div class="card-ico">&#127979;</div>
+        <div class="card-title">Educational library</div>
+        <div class="card-desc">Videos, guides, and downloads about anesthesia.</div>
+      </a>
+      <a href="/v2/recovery.html" class="card">
+        <div class="card-ico">&#128147;</div>
+        <div class="card-title">Recovery information</div>
+        <div class="card-desc">Pain, recovery expectations, warning signs, and when to call.</div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a href="/v2/index.html" class="footer-logo">Anest<span>heo</span></a>
+    <div class="footer-links">
+      <a href="/v2/index.html">Home</a>
+      <a href="/v2/videos.html">Videos</a>
+      <a href="/v2/ask.html">Ask</a>
+    </div>
+  </div>
+  <div class="footer-inner"><p class="footer-copy">&copy; 2025 Anestheo. Educational purposes only.</p></div>
+</footer>
+<script>
+// "For Patients" is the patient portal. Public for guests; personalized when logged in.
+// Never shows admin or platform-management actions.
+(async function(){
+  function render(profile, user){
+    var box = document.getElementById('hero-cta');
+    var role = profile ? (profile.role || 'patient') : 'patient';
+    var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
+    var isStaff = isAdmin || role === 'doctor' || role === 'admin';
+
+    // Personalize the portal heading when logged in
+    var title = document.getElementById('portal-title');
+    var sub   = document.getElementById('portal-sub');
+    if(user && !isStaff){
+      var first = (profile && profile.full_name) ? profile.full_name.split(' ')[0] : user.email.split('@')[0];
+      first = first.charAt(0).toUpperCase() + first.slice(1);
+      if(title) title.textContent = 'Welcome back, ' + first;
+      if(sub) sub.textContent = 'Choose what you need from your patient portal.';
+    }
+
+    if(!box) return;
+    if(isStaff){
+      box.innerHTML = '<a href="/v2/dashboard.html" class="btn-primary">Go to my dashboard</a>';
+    } else if(user){
+      box.innerHTML = '<a href="/v2/patient-dashboard.html" class="btn-primary">Open my dashboard</a>' +
+                      '<a href="/v2/procedures.html" class="btn-ghost">Surgery preparation</a>';
+    } else {
+      box.innerHTML = '<button class="btn-primary" onclick="window.nbOpenModal()">Create free account</button>' +
+                      '<a href="/v2/ask.html" class="btn-ghost">Ask a question</a>';
+    }
+  }
+  try {
+    var session = await getSession();
+    if(session){
+      var profile = await getProfile(session.user.id);
+      render(profile, session.user);
+    }
+    window.sb.auth.onAuthStateChange(async function(ev, sess){
+      if(ev === 'SIGNED_IN' && sess){
+        var p = await getProfile(sess.user.id);
+        render(p, sess.user);
+      }
+    });
+  } catch(e){ console.error('patients portal error:', e.message); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dental & Oral Surgery — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+<style>
+.crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
+.crumb a{color:var(--accent);text-decoration:none;}
+.proc-hero{display:flex;align-items:center;gap:16px;margin-bottom:8px;}
+.proc-hero-ico{font-size:44px;}
+.proc-h1{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;}
+.proc-sub{font-size:14px;color:var(--muted);margin-bottom:8px;}
+.disclaimer{font-size:11px;color:var(--hint);margin-bottom:26px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer strong{color:#E8A838;}
+.pblock{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+.pblock-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:13px;display:flex;align-items:center;gap:9px;}
+.pblock p{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:10px;}
+.pblock p:last-child{margin-bottom:0;}
+.pli{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.pli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:#2A8A74;}
+.pli b{color:#fff;}
+.fast-tbl{width:100%;border-collapse:collapse;font-size:13.5px;}
+.fast-tbl th{text-align:left;padding:9px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
+.fast-tbl td{padding:10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);}
+.fast-tbl tr:last-child td{border-bottom:none;}
+.fast-tbl td b{color:#fff;}
+.faq-q{font-size:14px;font-weight:600;color:#fff;margin-top:14px;margin-bottom:5px;}
+.faq-q:first-child{margin-top:0;}
+.faq-a{font-size:13.5px;color:rgba(255,255,255,.75);line-height:1.7;}
+.vid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.vid-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px;text-decoration:none;color:inherit;transition:all .18s;}
+.vid-card:hover{border-color:rgba(42,138,116,.4);background:rgba(27,107,90,.1);}
+.vid-ico{font-size:22px;margin-bottom:6px;}
+.vid-title{font-size:13px;font-weight:500;color:#fff;}
+.ask-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
+  background:linear-gradient(135deg,rgba(27,107,90,.2),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.4);
+  border-radius:14px;padding:22px 24px;margin-top:8px;}
+.ask-cta-text{font-size:15px;color:#fff;font-weight:500;}
+.ask-cta-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.nav-prev{display:inline-block;margin-top:24px;font-size:13px;color:#7ECFC0;text-decoration:none;}
+</style>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+<div class="page-wrap" style="max-width:780px;">
+  <div class="crumb"><a href="/v2/patients.html">For Patients</a> &rsaquo; <a href="/v2/procedures.html">Procedures</a> &rsaquo; Dental & Oral Surgery</div>
+  <div class="proc-hero"><span class="proc-hero-ico">&#129463;</span><div><h1 class="proc-h1">Dental & Oral Surgery</h1><p class="proc-sub">Sedation and anesthesia for dental and oral procedures.</p></div></div>
+  <div class="disclaimer"><strong>Educational information only.</strong> This guide is general and may not reflect your specific situation. Always follow the instructions from your own surgical and anesthesia team.</div>
+  <div class="pblock"><div class="pblock-title">1 · Anesthesia commonly used</div><p>Many dental procedures use <b>local anesthesia</b> (numbing injections) alone. For anxious patients or complex surgery, <b>sedation</b> or <b>general anesthesia</b> may be offered.</p><p>Wisdom teeth removal and major oral surgery are sometimes done under general anesthesia or deep sedation.</p></div><div class="pblock"><div class="pblock-title">2 · How to prepare</div><div class="pli">Tell your team about dental anxiety — sedation options can help.</div><div class="pli">Arrange an escort home if you have sedation or general anesthesia.</div><div class="pli">Follow specific fasting instructions if sedation is planned.</div><div class="pli">Wear comfortable clothing and remove jewelry.</div></div><div class="pblock"><div class="pblock-title">3 · Fasting instructions</div><table class="fast-tbl"><thead><tr><th>Before surgery</th><th>Guidance</th></tr></thead><tbody><tr><td><b>Solid food</b></td><td>Stop eating at least 6 hours before</td></tr><tr><td><b>Light meal / milk</b></td><td>At least 6 hours before</td></tr><tr><td><b>Clear fluids (water, clear juice)</b></td><td>Usually allowed up to 2 hours before</td></tr><tr><td><b>Alcohol</b></td><td>Avoid for 24 hours before</td></tr><tr><td><b>Smoking</b></td><td>Stop as early as possible before surgery</td></tr></tbody></table></div><div class="pblock"><div class="pblock-title">4 · Medication guidance</div><p>Mention <b>blood thinners</b> — extractions can bleed. Your team will advise whether to adjust them.</p><p>Continue routine medications with a small sip of water unless told otherwise.</p></div><div class="pblock"><div class="pblock-title">5 · On the day of surgery</div><div class="pli">For local anesthesia only, you stay fully awake and can drive afterward.</div><div class="pli">For sedation, you'll feel relaxed and drowsy and may not remember much.</div><div class="pli">For general anesthesia, you'll be fully asleep.</div><div class="pli">Monitoring is used throughout sedation and general anesthesia.</div></div><div class="pblock"><div class="pblock-title">6 · Common risks & side effects</div><div class="pli"><b>Numbness</b> of lips/tongue for a few hours after local anesthetic.</div><div class="pli"><b>Drowsiness</b> after sedation — no driving that day.</div><div class="pli"><b>Sore throat or nausea</b> after general anesthesia.</div><div class="pli">Serious reactions are rare.</div></div><div class="pblock"><div class="pblock-title">7 · Recovery expectations</div><p>After local anesthesia you recover quickly. After sedation or general anesthesia, plan to rest for the remainder of the day.</p><p>Follow post-op instructions for eating, oral hygiene, and pain relief carefully to avoid complications such as dry socket.</p></div><div class="pblock"><div class="pblock-title">8 · Frequently asked questions</div><div class="faq-q">Will I feel pain?</div><div class="faq-a">Local anesthetic numbs the area completely. You may feel pressure but not sharp pain.</div><div class="faq-q">Can I drive home?</div><div class="faq-a">Only after local anesthesia alone. After sedation or general anesthesia you need an escort.</div><div class="faq-q">How long does numbness last?</div><div class="faq-a">Typically 2–4 hours. Avoid hot food and chewing the numb area.</div><div class="faq-q">Is sedation safe?</div><div class="faq-a">Yes, when given by trained professionals with monitoring.</div></div><div class="pblock"><div class="pblock-title">9 · Related educational videos</div><div class="vid-grid"><a href="/v2/videos.html" class="vid-card"><div class="vid-ico">&#127909;</div><div class="vid-title">Sedation</div></a><a href="/v2/videos.html" class="vid-card"><div class="vid-ico">&#127909;</div><div class="vid-title">General anesthesia</div></a><a href="/v2/videos.html" class="vid-card"><div class="vid-ico">&#127909;</div><div class="vid-title">Recovery</div></a><a href="/v2/videos.html" class="vid-card"><div class="vid-ico">&#127909;</div><div class="vid-title">Pediatric anesthesia</div></a></div></div><div class="ask-cta"><div><div class="ask-cta-text">Still have questions?</div><div class="ask-cta-sub">Send them directly to an anesthesiologist.</div></div><a href="/v2/ask.html" class="btn-primary">Ask the Anesthesiologist</a></div>
+  <a href="/v2/procedures.html" class="nav-prev">&larr; Back to all procedures</a>
+</div>
+<footer class="site-footer"><div class="page-wrap"><p>&copy; 2026 Anestheo. Educational information only — not a substitute for medical advice.</p></div></footer>
+<script>document.addEventListener('DOMContentLoaded',function(){console.log('PROCEDURE PAGE READY');});</script>
+</body>
+</html>
