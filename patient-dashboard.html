@@ -51,6 +51,12 @@
 /* next-step banner */
 .sc-next{display:flex;align-items:center;gap:10px;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.28);border-radius:11px;padding:11px 14px;margin-bottom:14px;font-size:13.5px;color:#fff;}
 .sc-next b{color:#7ECFC0;font-weight:600;}
+/* stage guidance + primary CTA */
+.sc-guide{background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.28);border-radius:11px;padding:12px 15px;margin-bottom:13px;font-size:13.5px;line-height:1.65;color:rgba(255,255,255,.85);}
+.sc-guide b{color:#7ECFC0;font-weight:600;}
+.sc-cta-row{margin-bottom:12px;}
+.sc-cta{display:inline-block;background:#1B6B5A;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+.sc-cta:hover{background:#2A8A74;}
 .sc-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .sc-btn{font-size:13px;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:rgba(255,255,255,.88);cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;}
 .sc-btn:hover{border-color:rgba(42,138,116,.45);color:#fff;}
@@ -165,17 +171,69 @@ var STAGES = ['Added','Questionnaire','Prep plan','Ready','Surgery','Recovery'];
 function reachedStage(status){
   return ({ planning:1, questionnaire_pending:1, questionnaire_complete:2, ready:4, completed:5, cancelled:5 })[status] || 1;
 }
-function nextStep(s){
-  switch(s.status){
-    case 'planning': return 'Complete your pre-operative questionnaire when your clinic sends it.';
-    case 'questionnaire_pending': return 'Complete your pre-operative questionnaire.';
-    case 'questionnaire_complete': return 'Your anesthesia team is preparing your surgery plan.';
-    case 'ready': return 'You are ready — review your day-of checklist.';
-    case 'completed': return 'Surgery completed. See your recovery information.';
-    case 'cancelled': return 'This surgery was cancelled.';
-    default: return 'Add your surgery details to begin.';
+// ── Stage guidance: every status answers Where am I / What next / Who waits ──
+function stageGuidance(status){
+  switch(status){
+    case 'planning':
+    case 'questionnaire_pending':
+      return 'Your surgery is added. <b>Next:</b> complete your pre-operative questionnaire so your anesthesia team can review your health.';
+    case 'questionnaire_complete':
+      return 'Your questionnaire has been received. <b>Your anesthesiologist is now reviewing your information</b> and preparing your personalized surgery plan.';
+    case 'ready':
+      return '<b>You are ready for surgery.</b> Your surgery-day instructions will appear here once your anesthesiologist approves them.';
+    case 'completed':
+      return 'Your surgery is complete. <b>Next:</b> read your recovery information and watch for anything that needs attention.';
+    case 'cancelled':
+      return 'This surgery was cancelled. You can plan a new surgery whenever you are ready.';
+    default:
+      return 'Add your surgery details to begin.';
   }
 }
+// ── Primary CTA per stage. Gated stages open an honest interim message
+//    (never a dead end, never routed into legacy pages). ──
+function stageCTA(s){
+  switch(s.status){
+    case 'planning':
+    case 'questionnaire_pending':
+      return { label:'📋 Start Questionnaire',          on:"sjStageInfo('questionnaire')" };
+    case 'questionnaire_complete':
+      return { label:'🩺 View Preparation Plan',         on:"sjStageInfo('plan')" };
+    case 'ready':
+      return { label:'✅ Surgery Day Instructions',      on:"sjStageInfo('dayof')" };
+    case 'completed':
+      return { label:'❤️ Recovery Information',          on:"location.href='/v2/recovery.html'" };
+    case 'cancelled':
+      return { label:'+ Plan a new surgery',             on:"sjOpenAdd()" };
+    default:
+      return null;
+  }
+}
+// Interim guidance dialogs for destinations not built yet (no fake functionality).
+var STAGE_INFO = {
+  questionnaire: { t:'Pre-operative questionnaire',
+    m:'<b>Where you are:</b> your surgery is added.<br><b>What happens next:</b> your clinic will send your questionnaire shortly. Once it arrives you’ll complete it right here.<br><b>Who’s next:</b> waiting on your clinic to send it.' },
+  plan: { t:'Your preparation plan',
+    m:'<b>Where you are:</b> your questionnaire has been received.<br><b>What happens next:</b> your anesthesiologist is preparing your personalized surgery plan.<br><b>Who’s next:</b> your anesthesiologist — we’ll notify you when it’s ready.' },
+  dayof: { t:'Surgery-day instructions',
+    m:'<b>Where you are:</b> you are ready for surgery.<br><b>What happens next:</b> your surgery-day instructions will appear here once your anesthesiologist approves your plan.<br><b>Who’s next:</b> your anesthesiologist.' },
+  lifetime: { t:'Lifetime Anesthesia Record',
+    m:'Coming soon — a secure, permanent record of your anesthesia history that you can carry between hospitals and surgeries.' }
+};
+function sjStageInfo(kind){
+  var d = STAGE_INFO[kind]; if(!d) return;
+  var ov = ge('sj-info');
+  if(!ov){
+    ov = document.createElement('div'); ov.id='sj-info'; ov.className='sj-modal-bg';
+    ov.onclick = function(e){ if(e.target===ov) ov.classList.remove('open'); };
+    ov.innerHTML = '<div class="sj-modal"><h3 id="sj-info-t"></h3><p id="sj-info-m" style="font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;"></p>' +
+      '<div class="sj-modal-btns"><button class="sj-save" onclick="document.getElementById(\'sj-info\').classList.remove(\'open\')">Got it</button></div></div>';
+    document.body.appendChild(ov);
+  }
+  ge('sj-info-t').textContent = d.t;
+  ge('sj-info-m').innerHTML = d.m;
+  ov.classList.add('open');
+}
+window.sjStageInfo = sjStageInfo;
 
 function fmtDate(d){ return d ? new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : ''; }
 function daysUntil(d){ try{ var x=new Date(d);x.setHours(0,0,0,0);var t=new Date();t.setHours(0,0,0,0);return Math.round((x-t)/86400000);}catch(e){return null;} }
@@ -200,15 +258,19 @@ function cardHtml(s){
   if(s.anesthesia_type) facts.push('&#128137; '+esc(s.anesthesia_type));
   if(s.surgery_date){ var cd = countdown(s.surgery_date); facts.push('&#128197; '+fmtDate(s.surgery_date)+(cd && !isPast?' · <b style="color:#7ECFC0;">'+cd+'</b>':'')); }
 
-  var actions = '';
+  // Primary stage CTA (every status has one) + secondary lifecycle actions.
+  var cta = stageCTA(s);
+  var primary = cta ? '<button class="sc-cta" onclick="'+cta.on+'">'+cta.label+'</button>' : '';
+
+  var secondary = '';
   if(isPast){
-    if(s.status==='completed') actions += '<a class="sc-btn" href="/v2/recovery.html">Recovery info</a>';
-    actions += '<button class="sc-btn sc-btn-danger" onclick="sjDelete(\''+s.id+'\')">Delete</button>';
+    if(s.status==='completed') secondary += '<button class="sc-btn" onclick="sjStageInfo(\'lifetime\')">🗂 Lifetime Record</button>';
+    secondary += '<button class="sc-btn sc-btn-danger" onclick="sjDelete(\''+s.id+'\')">Delete</button>';
   } else {
-    actions += '<button class="sc-btn" onclick="sjOpenEdit(\''+s.id+'\')">Edit</button>';
-    actions += '<button class="sc-btn sc-btn-green" onclick="sjComplete(\''+s.id+'\')">Mark completed</button>';
-    actions += '<button class="sc-btn" onclick="sjCancel(\''+s.id+'\')">Cancel surgery</button>';
-    actions += '<button class="sc-btn sc-btn-danger" onclick="sjDelete(\''+s.id+'\')">Delete</button>';
+    secondary += '<button class="sc-btn" onclick="sjOpenEdit(\''+s.id+'\')">Edit</button>';
+    secondary += '<button class="sc-btn sc-btn-green" onclick="sjComplete(\''+s.id+'\')">Mark completed</button>';
+    secondary += '<button class="sc-btn" onclick="sjCancel(\''+s.id+'\')">Cancel surgery</button>';
+    secondary += '<button class="sc-btn sc-btn-danger" onclick="sjDelete(\''+s.id+'\')">Delete</button>';
   }
 
   return '<div class="sc'+(isPast?' past':'')+'">' +
@@ -217,9 +279,9 @@ function cardHtml(s){
       (facts.length?'<div class="sc-facts">'+facts.join('<span class="sc-sep">&middot;</span>')+'</div>':'') +
     '</div><div class="sc-status '+(STATUS_CLASS[s.status]||'st-planning')+'">'+(STATUS_LABEL[s.status]||'Planning')+'</div></div>' +
     stepperHtml(s.status) +
-    '<div class="sc-next">&#10148; <span>Next: <b>'+esc(nextStep(s))+'</b></span></div>' +
-    '<div class="sc-actions">'+actions+'</div>' +
-    (!isPast ? '<div class="sj-pdis">Questionnaire &amp; preparation plan stages activate once your clinic links this surgery.</div>' : '') +
+    '<div class="sc-guide">'+stageGuidance(s.status)+'</div>' +
+    (primary ? '<div class="sc-cta-row">'+primary+'</div>' : '') +
+    '<div class="sc-actions">'+secondary+'</div>' +
   '</div>';
 }
 
