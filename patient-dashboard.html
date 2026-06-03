@@ -3,104 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Dashboard — Anestheo</title>
+<title>My Surgery Journey — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 <style>
 #loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
-.pd-wrap{max-width:880px;margin:0 auto;padding:26px 18px 80px;}
-.pd-hi{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:3px;}
-.pd-hi-sub{font-size:14px;color:var(--muted);margin-bottom:22px;}
-.pd-grid{display:grid;grid-template-columns:1fr;gap:14px;}
-.pd-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:15px;padding:20px 22px;}
-.pd-card-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7ECFC0;margin-bottom:14px;display:flex;align-items:center;gap:8px;justify-content:space-between;}
-.pd-card-title .edit{font-size:11px;color:var(--accent);cursor:pointer;letter-spacing:0;text-transform:none;font-weight:500;background:none;border:none;font-family:inherit;}
-/* surgery rows */
-.srow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.1);font-size:14px;gap:12px;}
-.srow:last-child{border-bottom:none;}
-.srow-l{color:var(--muted);}
-.srow-v{color:#fff;font-weight:500;text-align:right;}
-.srow-v.empty{color:var(--hint);font-weight:400;font-style:italic;}
-/* progress */
-.prog-pct{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;line-height:1;}
-.prog-bar{height:10px;background:rgba(255,255,255,.08);border-radius:6px;overflow:hidden;margin:14px 0 16px;}
-.prog-fill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);border-radius:6px;transition:width .6s ease;}
-.prog-items{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.prog-item{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
-.prog-item .dot{width:18px;height:18px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.08);color:var(--hint);}
-.prog-item.done{color:#fff;}
-.prog-item.done .dot{background:#2A8A74;color:#fff;}
-/* checklist */
-.chk{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.1);cursor:pointer;}
-.chk:last-child{border-bottom:none;}
-.chk input{margin-top:1px;width:18px;height:18px;accent-color:#2A8A74;flex-shrink:0;}
-.chk span{font-size:14px;color:rgba(255,255,255,.82);line-height:1.5;}
-.chk input:checked + span{color:var(--hint);text-decoration:line-through;}
-.chk-meta{font-size:12px;color:var(--hint);margin-top:12px;}
-/* questions */
-.q-item{padding:13px 0;border-bottom:1px solid rgba(27,107,90,.1);}
-.q-item:last-child{border-bottom:none;}
-.q-subj{font-size:14px;font-weight:600;color:#fff;}
-.q-msg{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5;}
-.q-reply{font-size:13px;color:rgba(126,207,192,.9);margin-top:8px;padding:9px 12px;background:rgba(27,107,90,.1);border-radius:8px;border-left:2px solid #2A8A74;}
-.q-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.04em;}
-.st-new{background:rgba(120,150,255,.14);color:#9ab0ff;border:1px solid rgba(120,150,255,.3);}
-.st-review{background:rgba(232,168,56,.13);color:#E8A838;border:1px solid rgba(232,168,56,.3);}
-.st-answered{background:rgba(27,107,90,.22);color:#7ECFC0;border:1px solid rgba(42,138,116,.35);}
-.st-closed{background:rgba(255,255,255,.06);color:var(--hint);border:1px solid var(--border);}
-/* education */
-.edu-item{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(27,107,90,.1);}
-.edu-item:last-child{border-bottom:none;}
-.edu-ico{font-size:18px;}
-.edu-main{flex:1;}
-.edu-title{font-size:14px;color:#fff;}
-.edu-meta{font-size:12px;color:var(--hint);}
-/* timeline */
-.tl-stage{display:flex;gap:14px;padding:13px 0;border-bottom:1px solid rgba(27,107,90,.1);}
-.tl-stage:last-child{border-bottom:none;}
-.tl-when{flex-shrink:0;width:108px;font-size:12px;font-weight:700;color:#7ECFC0;}
-.tl-tasks{flex:1;}
-.tl-task{font-size:13px;color:rgba(255,255,255,.78);line-height:1.6;padding:2px 0 2px 16px;position:relative;}
-.tl-task:before{content:'';position:absolute;left:2px;top:11px;width:5px;height:5px;border-radius:50%;background:#2A8A74;}
-.empty{font-size:13px;color:var(--hint);padding:8px 0;}
-.btn-sm{font-size:13px;padding:9px 16px;border-radius:8px;background:#1B6B5A;color:#fff;border:none;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;}
-.pdq-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
-.pdq-btns .btn-sm{background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.35);color:#cfe;}
-.pdq-btns .btn-sm:hover{background:rgba(27,107,90,.28);color:#fff;}
-.pdq-flags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
-.pdq-flag{font-size:11.5px;font-weight:600;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:7px;padding:5px 10px;}
-.pd-modal-bg{display:none;position:fixed;inset:0;background:rgba(5,12,9,.72);z-index:1200;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;}
-.pd-modal-bg.open{display:flex;}
-.pd-modal{background:#0C1F18;border:1px solid rgba(27,107,90,.3);border-radius:16px;padding:22px;max-width:560px;width:100%;}
-.pd-m-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.pd-m-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;}
-.pd-table{width:100%;border-collapse:collapse;font-size:13px;}
-.pd-table td{padding:7px 8px;border-bottom:1px solid rgba(27,107,90,.12);vertical-align:top;}
-.pd-table td:first-child{color:var(--muted);width:42%;}
-.btn-sm:hover{background:#2A8A74;}
-/* edit modal */
-.pd-modal-bg{display:none;position:fixed;inset:0;background:rgba(5,12,9,.7);z-index:1100;align-items:center;justify-content:center;padding:18px;}
-.pd-modal-bg.open{display:flex;}
-.pd-modal{background:#0C1F18;border:1px solid rgba(27,107,90,.3);border-radius:16px;padding:24px;max-width:420px;width:100%;}
-.pd-modal h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:16px;}
-.pd-modal label{display:block;font-size:12px;color:var(--hint);margin:11px 0 5px;text-transform:uppercase;letter-spacing:.04em;}
-.pd-modal input,.pd-modal select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:44px;-webkit-appearance:none;}
-.pd-modal input:focus,.pd-modal select:focus{border-color:#2A8A74;}
-.pd-modal select option{background:#132218;}
-.pd-modal-btns{display:flex;gap:10px;margin-top:20px;}
-.pd-modal-btns button{flex:1;padding:12px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;border:none;}
-.pd-cancel{background:transparent;border:1px solid rgba(255,255,255,.15)!important;color:var(--muted);}
-.pd-save{background:#1B6B5A;color:#fff;}
-@media(min-width:680px){.pd-grid{grid-template-columns:1fr 1fr;}.pd-card.full{grid-column:1/-1;}}
+.sj-wrap{max-width:880px;margin:0 auto;padding:26px 18px 90px;}
+.sj-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+.sj-hi{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;}
+.sj-sub{font-size:14px;color:var(--muted);margin-bottom:20px;}
+.sj-add{background:#1B6B5A;color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.sj-add:hover{background:#2A8A74;}
+/* reserved alert banner slot (future Critical Anesthesia Alerts) */
+#alert-slot{margin-bottom:18px;}
+.sj-sec-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin:24px 0 10px;}
+.sj-empty{font-size:13.5px;color:var(--hint);padding:22px;text-align:center;background:rgba(255,255,255,.02);border:1px dashed var(--border);border-radius:14px;}
+/* surgery journey card */
+.sc{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:16px;padding:20px 22px;margin-bottom:14px;}
+.sc.past{opacity:.85;}
+.sc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px;}
+.sc-name{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff;}
+.sc-facts{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.6;}
+.sc-sep{margin:0 7px;opacity:.5;}
+.sc-status{font-size:11px;font-weight:700;border-radius:20px;padding:6px 13px;white-space:nowrap;}
+.st-planning{background:rgba(120,150,255,.14);color:#9ab0ff;}
+.st-qp{background:rgba(232,168,56,.14);color:#E8A838;}
+.st-qc{background:rgba(126,207,192,.16);color:#7ECFC0;}
+.st-ready{background:rgba(37,211,102,.16);color:#5ee393;}
+.st-completed{background:rgba(255,255,255,.08);color:var(--muted);}
+.st-cancelled{background:rgba(192,57,43,.14);color:rgba(255,140,120,.92);}
+/* stepper */
+.sc-track{display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;}
+.sc-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;min-width:74px;}
+.sc-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);color:var(--hint);border:1px solid var(--border);}
+.sc-step.done .sc-dot{background:#2A8A74;color:#fff;border-color:#2A8A74;}
+.sc-step.now .sc-dot{border-color:#7ECFC0;color:#7ECFC0;}
+.sc-lbl{font-size:10px;color:var(--muted);white-space:nowrap;text-align:center;}
+.sc-step.done .sc-lbl,.sc-step.now .sc-lbl{color:#fff;}
+.sc-line{flex:1;height:2px;min-width:14px;background:rgba(255,255,255,.1);margin-top:12px;}
+/* next-step banner */
+.sc-next{display:flex;align-items:center;gap:10px;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.28);border-radius:11px;padding:11px 14px;margin-bottom:14px;font-size:13.5px;color:#fff;}
+.sc-next b{color:#7ECFC0;font-weight:600;}
+.sc-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.sc-btn{font-size:13px;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:rgba(255,255,255,.88);cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;}
+.sc-btn:hover{border-color:rgba(42,138,116,.45);color:#fff;}
+.sc-btn-green{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.3);color:#5ee393;}
+.sc-btn-danger{color:rgba(255,130,110,.8);}
+.sc-btn-danger:hover{border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.08);color:rgba(255,150,130,.95);}
+.sj-pdis{font-size:11px;color:var(--hint);margin-top:8px;}
+/* support row */
+.sj-support{display:flex;gap:10px;flex-wrap:wrap;margin-top:30px;padding-top:20px;border-top:1px solid var(--border);}
+.sj-support a{font-size:13px;color:#7ECFC0;text-decoration:none;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.28);border-radius:9px;padding:10px 15px;}
+.sj-support a:hover{background:rgba(27,107,90,.2);}
+.sj-arch-toggle{background:none;border:none;color:#7ECFC0;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;}
+/* modal */
+.sj-modal-bg{display:none;position:fixed;inset:0;background:rgba(5,12,9,.72);z-index:1200;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;}
+.sj-modal-bg.open{display:flex;}
+.sj-modal{background:#0C1F18;border:1px solid rgba(27,107,90,.3);border-radius:16px;padding:24px;max-width:440px;width:100%;}
+.sj-modal h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:14px;}
+.sj-modal label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:12px 0 5px;}
+.sj-modal input,.sj-modal select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:44px;-webkit-appearance:none;appearance:none;}
+.sj-modal input:focus,.sj-modal select:focus{border-color:#2A8A74;}
+.sj-modal select option{background:#132218;}
+.sj-modal-btns{display:flex;gap:10px;margin-top:20px;}
+.sj-modal-btns button{flex:1;padding:12px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;border:none;}
+.sj-cancel{background:transparent;border:1px solid rgba(255,255,255,.15)!important;color:var(--muted);}
+.sj-save{background:#1B6B5A;color:#fff;}
+.sj-toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#0C1F18;border:1px solid rgba(42,138,116,.45);color:#7ECFC0;padding:11px 20px;border-radius:10px;font-size:14px;z-index:3000;box-shadow:0 12px 36px rgba(0,0,0,.5);}
+@media(min-width:680px){.sc-actions .sc-btn{min-width:auto;}}
 </style>
 </head>
 <body>
@@ -108,62 +85,44 @@
 <div id="nb-placeholder"></div>
 
 <div id="app">
-  <div class="pd-wrap">
-    <div class="pd-hi" id="pd-hi">My dashboard</div>
-    <div class="pd-hi-sub" id="pd-hi-sub">Your surgery journey.</div>
-    <div class="pd-grid">
-
-      <!-- UPCOMING SURGERY -->
-      <div class="pd-card full" id="surgery-card">
-        <div class="pd-card-title">&#129656; Upcoming surgery</div>
-        <div id="surgery-body"></div>
+  <div class="sj-wrap">
+    <div class="sj-head">
+      <div>
+        <div class="sj-hi" id="sj-hi">My Surgery Journey</div>
+        <div class="sj-sub">Track every surgery from planning to recovery, in one place.</div>
       </div>
+      <button class="sj-add" onclick="sjOpenAdd()">+ Add surgery</button>
+    </div>
 
-      <!-- PREPARATION PROGRESS -->
-      <div class="pd-card">
-        <div class="pd-card-title">&#128202; Preparation progress</div>
-        <div class="prog-pct"><span id="prog-pct">0</span>%</div>
-        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-        <div class="prog-items" id="prog-items"></div>
-      </div>
+    <!-- Reserved for future Critical Anesthesia Alerts (red safety banner). Empty for now. -->
+    <div id="alert-slot"></div>
 
-      <!-- QUESTIONNAIRE STATUS -->
-      <div class="pd-card">
-        <div class="pd-card-title">&#128203; Questionnaire</div>
-        <div id="quest-body"></div>
-      </div>
+    <div class="sj-sec-label">Upcoming surgeries</div>
+    <div id="upcoming-list"></div>
 
-      <!-- QUESTION STATUS -->
-      <div class="pd-card">
-        <div class="pd-card-title">&#128172; My questions <a href="/v2/ask.html" class="edit" style="text-decoration:none;">Ask</a></div>
-        <div id="q-body"></div>
-      </div>
+    <div class="sj-sec-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>Past surgeries &middot; completed cases</span>
+      <button class="sj-arch-toggle" id="arch-toggle" style="display:none;" onclick="sjToggleArchived()">Show archived</button>
+    </div>
+    <div id="past-list"></div>
 
-      <!-- EDUCATION PROGRESS -->
-      <div class="pd-card">
-        <div class="pd-card-title">&#127979; Education <a href="/v2/videos.html" class="edit" style="text-decoration:none;">Browse</a></div>
-        <div id="edu-body"></div>
-      </div>
-
-      <!-- RECENT ACTIVITY -->
-      <div class="pd-card full">
-        <div class="pd-card-title">&#128340; Recent activity</div>
-        <div id="activity-body"></div>
-      </div>
-
+    <div class="sj-support">
+      <a href="/v2/ask.html">&#128172; Ask the anesthesiologist</a>
+      <a href="/v2/videos.html">&#127909; Educational videos</a>
+      <a href="/v2/recovery.html">&#128147; Recovery information</a>
     </div>
   </div>
 </div>
 
-<!-- Surgery edit modal -->
-<div class="pd-modal-bg" id="surgery-modal" onclick="if(event.target===this)closeSurgery()">
-  <div class="pd-modal">
-    <h3>My surgery details</h3>
+<!-- Add / Edit surgery modal -->
+<div class="sj-modal-bg" id="sj-modal" onclick="if(event.target===this)sjCloseModal()">
+  <div class="sj-modal">
+    <h3 id="sj-modal-title">Add surgery</h3>
     <label>Procedure type</label>
     <select id="m-proc">
       <option value="">Select…</option>
       <option>C-Section / Childbirth</option><option>Orthopedic Surgery</option>
-      <option>Dental & Oral Surgery</option><option>ENT Surgery</option>
+      <option>Dental &amp; Oral Surgery</option><option>ENT Surgery</option>
       <option>Plastic Surgery</option><option>Oncogynecology</option>
       <option>Urology</option><option>General / Other Surgery</option>
     </select>
@@ -172,9 +131,9 @@
     <label>Surgeon</label><input type="text" id="m-surgeon" placeholder="Surgeon name">
     <label>Anesthesia type (if known)</label>
     <select id="m-anes"><option value="">Not sure yet</option><option>General</option><option>Spinal</option><option>Epidural</option><option>Regional block</option><option>Sedation</option><option>Local</option></select>
-    <div class="pd-modal-btns">
-      <button class="pd-cancel" onclick="closeSurgery()">Cancel</button>
-      <button class="pd-save" id="m-save" onclick="saveSurgery()">Save</button>
+    <div class="sj-modal-btns">
+      <button class="sj-cancel" onclick="sjCloseModal()">Cancel</button>
+      <button class="sj-save" id="m-save" onclick="sjSave()">Save</button>
     </div>
   </div>
 </div>
@@ -182,310 +141,206 @@
 <script>
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-var _uid = null, _surgery = null, _activity = [];
+var _uid = null, _surgeries = [], _editId = null, _showArchived = false;
 
-// ── UPCOMING SURGERY (journey style, no empty placeholder rows) ──
-function daysUntil(dateStr){
-  try {
-    var d = new Date(dateStr); d.setHours(0,0,0,0);
-    var t = new Date(); t.setHours(0,0,0,0);
-    return Math.round((d - t) / 86400000);
-  } catch(e){ return null; }
+function sjToast(msg){
+  var t = document.createElement('div'); t.className='sj-toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(function(){t.remove();},400); }, 1600);
 }
-function renderSurgery(){
-  var s = _surgery;
-  var body = ge('surgery-body');
-  if(!s || !s.procedure_type){
-    // Friendly prompt — NOT empty fields
-    body.innerHTML =
-      '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;">' +
-      '<div><div style="font-size:15px;color:#fff;font-weight:500;">No surgery added yet</div>' +
-      '<div style="font-size:13px;color:var(--muted);margin-top:3px;">Add your procedure to personalize your journey and countdown.</div></div>' +
-      '<button class="btn-sm" onclick="openSurgery()">Add my surgery</button></div>';
-    return;
+
+// ── STATUS / STEPPER MODEL ────────────────────────────────────
+// status: planning | questionnaire_pending | questionnaire_complete | ready | completed | cancelled
+var STATUS_LABEL = {
+  planning:'Planning', questionnaire_pending:'Questionnaire pending',
+  questionnaire_complete:'Questionnaire complete', ready:'Ready for surgery',
+  completed:'Completed', cancelled:'Cancelled'
+};
+var STATUS_CLASS = {
+  planning:'st-planning', questionnaire_pending:'st-qp', questionnaire_complete:'st-qc',
+  ready:'st-ready', completed:'st-completed', cancelled:'st-cancelled'
+};
+// 6 journey stages; index reached per status
+var STAGES = ['Added','Questionnaire','Prep plan','Ready','Surgery','Recovery'];
+function reachedStage(status){
+  return ({ planning:1, questionnaire_pending:1, questionnaire_complete:2, ready:4, completed:5, cancelled:5 })[status] || 1;
+}
+function nextStep(s){
+  switch(s.status){
+    case 'planning': return 'Complete your pre-operative questionnaire when your clinic sends it.';
+    case 'questionnaire_pending': return 'Complete your pre-operative questionnaire.';
+    case 'questionnaire_complete': return 'Your anesthesia team is preparing your surgery plan.';
+    case 'ready': return 'You are ready — review your day-of checklist.';
+    case 'completed': return 'Surgery completed. See your recovery information.';
+    case 'cancelled': return 'This surgery was cancelled.';
+    default: return 'Add your surgery details to begin.';
   }
-  // Nice summary with countdown
-  var dd = s.surgery_date ? daysUntil(s.surgery_date) : null;
-  var countdown = '';
-  if(dd !== null){
-    if(dd > 1) countdown = 'in ' + dd + ' days';
-    else if(dd === 1) countdown = 'tomorrow';
-    else if(dd === 0) countdown = 'today';
-    else countdown = Math.abs(dd) + ' days ago';
+}
+
+function fmtDate(d){ return d ? new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : ''; }
+function daysUntil(d){ try{ var x=new Date(d);x.setHours(0,0,0,0);var t=new Date();t.setHours(0,0,0,0);return Math.round((x-t)/86400000);}catch(e){return null;} }
+function countdown(d){
+  var dd = d ? daysUntil(d) : null; if(dd===null) return '';
+  if(dd>1) return 'in '+dd+' days'; if(dd===1) return 'tomorrow'; if(dd===0) return 'today'; return Math.abs(dd)+' days ago';
+}
+
+function stepperHtml(status){
+  var reached = reachedStage(status);
+  return '<div class="sc-track">' + STAGES.map(function(st,i){
+    var cls = (i < reached) ? 'done' : (i === reached ? 'now' : '');
+    return '<div class="sc-step '+cls+'"><span class="sc-dot">'+(i<reached?'&#10003;':(i+1))+'</span><span class="sc-lbl">'+st+'</span></div>';
+  }).join('<span class="sc-line"></span>') + '</div>';
+}
+
+function cardHtml(s){
+  var isPast = (s.status==='completed' || s.status==='cancelled');
+  var facts = [];
+  if(s.hospital) facts.push('&#127973; '+esc(s.hospital));
+  if(s.surgeon) facts.push('&#129658; '+esc(s.surgeon));
+  if(s.anesthesia_type) facts.push('&#128137; '+esc(s.anesthesia_type));
+  if(s.surgery_date){ var cd = countdown(s.surgery_date); facts.push('&#128197; '+fmtDate(s.surgery_date)+(cd && !isPast?' · <b style="color:#7ECFC0;">'+cd+'</b>':'')); }
+
+  var actions = '';
+  if(isPast){
+    if(s.status==='completed') actions += '<a class="sc-btn" href="/v2/recovery.html">Recovery info</a>';
+    actions += '<button class="sc-btn sc-btn-danger" onclick="sjDelete(\''+s.id+'\')">Delete</button>';
+  } else {
+    actions += '<button class="sc-btn" onclick="sjOpenEdit(\''+s.id+'\')">Edit</button>';
+    actions += '<button class="sc-btn sc-btn-green" onclick="sjComplete(\''+s.id+'\')">Mark completed</button>';
+    actions += '<button class="sc-btn" onclick="sjCancel(\''+s.id+'\')">Cancel surgery</button>';
+    actions += '<button class="sc-btn sc-btn-danger" onclick="sjDelete(\''+s.id+'\')">Delete</button>';
   }
-  var dateFmt = s.surgery_date ? new Date(s.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
-  var chips = [];
-  if(s.hospital) chips.push('&#127973; ' + esc(s.hospital));
-  if(s.surgeon) chips.push('&#129658; ' + esc(s.surgeon));
-  if(s.anesthesia_type) chips.push('&#128137; ' + esc(s.anesthesia_type));
-  body.innerHTML =
-    '<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px;">' +
-      '<div><div style="font-family:\'Playfair Display\',serif;font-size:20px;font-weight:700;color:#fff;">'+esc(s.procedure_type)+'</div>' +
-      (dateFmt?'<div style="font-size:13px;color:var(--muted);margin-top:4px;">'+dateFmt+(countdown?' &middot; <span style="color:#7ECFC0;font-weight:600;">'+countdown+'</span>':'')+'</div>':'<div style="font-size:13px;color:var(--hint);margin-top:4px;">Date not set</div>') +
-      '</div><button class="edit" onclick="openSurgery()" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-family:inherit;">Edit</button></div>' +
-      (chips.length?'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">'+chips.map(function(c){return '<span style="font-size:12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;padding:6px 11px;color:rgba(255,255,255,.82);">'+c+'</span>';}).join('')+'</div>':'');
+
+  return '<div class="sc'+(isPast?' past':'')+'">' +
+    '<div class="sc-head"><div>' +
+      '<div class="sc-name">'+esc(s.procedure_type||'Surgery')+'</div>' +
+      (facts.length?'<div class="sc-facts">'+facts.join('<span class="sc-sep">&middot;</span>')+'</div>':'') +
+    '</div><div class="sc-status '+(STATUS_CLASS[s.status]||'st-planning')+'">'+(STATUS_LABEL[s.status]||'Planning')+'</div></div>' +
+    stepperHtml(s.status) +
+    '<div class="sc-next">&#10148; <span>Next: <b>'+esc(nextStep(s))+'</b></span></div>' +
+    '<div class="sc-actions">'+actions+'</div>' +
+    (!isPast ? '<div class="sj-pdis">Questionnaire &amp; preparation plan stages activate once your clinic links this surgery.</div>' : '') +
+  '</div>';
 }
-function openSurgery(){
-  var s = _surgery || {};
-  ge('m-proc').value = s.procedure_type || '';
-  ge('m-date').value = s.surgery_date || '';
-  ge('m-hospital').value = s.hospital || '';
-  ge('m-surgeon').value = s.surgeon || '';
-  ge('m-anes').value = s.anesthesia_type || '';
-  ge('surgery-modal').classList.add('open');
+
+function render(){
+  var active = _surgeries.filter(function(s){ return s.status!=='completed' && s.status!=='cancelled'; });
+  var past   = _surgeries.filter(function(s){ return s.status==='completed' || s.status==='cancelled'; });
+
+  ge('upcoming-list').innerHTML = active.length
+    ? active.map(cardHtml).join('')
+    : '<div class="sj-empty">No upcoming surgeries. Click <b>+ Add surgery</b> to start your journey.</div>';
+
+  ge('past-list').innerHTML = past.length
+    ? past.map(cardHtml).join('')
+    : '<div class="sj-empty">No past surgeries yet.</div>';
 }
-function closeSurgery(){ ge('surgery-modal').classList.remove('open'); }
-async function saveSurgery(){
+
+// ── CRUD ──────────────────────────────────────────────────────
+function sjOpenAdd(){
+  _editId = null;
+  ge('sj-modal-title').textContent = 'Add surgery';
+  ge('m-proc').value=''; ge('m-date').value=''; ge('m-hospital').value=''; ge('m-surgeon').value=''; ge('m-anes').value='';
+  ge('sj-modal').classList.add('open'); document.body.style.overflow='hidden';
+}
+function sjOpenEdit(id){
+  var s = _surgeries.find(function(x){ return x.id===id; }); if(!s) return;
+  _editId = id;
+  ge('sj-modal-title').textContent = 'Edit surgery';
+  ge('m-proc').value = s.procedure_type||''; ge('m-date').value = s.surgery_date||'';
+  ge('m-hospital').value = s.hospital||''; ge('m-surgeon').value = s.surgeon||''; ge('m-anes').value = s.anesthesia_type||'';
+  ge('sj-modal').classList.add('open'); document.body.style.overflow='hidden';
+}
+function sjCloseModal(){ ge('sj-modal').classList.remove('open'); document.body.style.overflow=''; }
+
+async function sjSave(){
+  var proc = ge('m-proc').value;
+  if(!proc){ sjToast('Please choose a procedure type'); return; }
   ge('m-save').disabled = true; ge('m-save').textContent = 'Saving…';
   var rec = {
     patient_id: _uid,
-    procedure_type: ge('m-proc').value || null,
+    procedure_type: proc,
     surgery_date: ge('m-date').value || null,
-    hospital: ge('m-hospital').value || null,
-    surgeon: ge('m-surgeon').value || null,
+    hospital: ge('m-hospital').value.trim() || null,
+    surgeon: ge('m-surgeon').value.trim() || null,
     anesthesia_type: ge('m-anes').value || null
   };
   try {
-    await window.sb.from('patient_surgeries').upsert(rec, { onConflict: 'patient_id' });
-    _surgery = rec;
-  } catch(e){ console.error('save surgery:', e.message); }
+    if(_editId){
+      await window.sb.from('patient_surgeries').update(rec).eq('id', _editId);
+    } else {
+      rec.status = 'planning';
+      await window.sb.from('patient_surgeries').insert(rec);
+    }
+    await sjLoad();
+    sjToast(_editId ? 'Surgery updated' : 'Surgery added');
+    sjCloseModal();
+  } catch(e){
+    console.error('save surgery:', e.message);
+    sjToast('Could not save. Please try again.');
+  }
   ge('m-save').disabled = false; ge('m-save').textContent = 'Save';
-  closeSurgery();
-  renderSurgery();
-  computeProgress();
 }
 
-// ── QUESTIONNAIRE STATUS ──────────────────────────────────
-function renderQuestionnaire(q){
-  var body = ge('quest-body');
-  if(!q){
-    body.innerHTML = '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Not started yet.</div>' +
-      '<a href="/v2/questionnaire.html" class="btn-sm">Start questionnaire</a>';
-    return;
+async function sjComplete(id){
+  try { await window.sb.from('patient_surgeries').update({ status:'completed', completed_at:new Date().toISOString() }).eq('id', id);
+    await sjLoad(); sjToast('Marked completed — moved to history'); }
+  catch(e){ sjToast('Update failed'); }
+}
+async function sjCancel(id){
+  try { await window.sb.from('patient_surgeries').update({ status:'cancelled', cancelled_at:new Date().toISOString() }).eq('id', id);
+    await sjLoad(); sjToast('Surgery cancelled'); }
+  catch(e){ sjToast('Update failed'); }
+}
+async function sjDelete(id){
+  try { await window.sb.from('patient_surgeries').update({ deleted_at:new Date().toISOString() }).eq('id', id);
+    await sjLoad(); sjToast('Surgery deleted'); }
+  catch(e){ sjToast('Delete failed'); }
+}
+function sjToggleArchived(){ _showArchived = !_showArchived; ge('arch-toggle').textContent = _showArchived?'Hide archived':'Show archived'; sjLoad(); }
+
+window.sjOpenAdd=sjOpenAdd; window.sjOpenEdit=sjOpenEdit; window.sjCloseModal=sjCloseModal; window.sjSave=sjSave;
+window.sjComplete=sjComplete; window.sjCancel=sjCancel; window.sjDelete=sjDelete; window.sjToggleArchived=sjToggleArchived;
+
+// ── LOAD ──────────────────────────────────────────────────────
+async function sjLoad(){
+  try {
+    var q = window.sb.from('patient_surgeries').select('*').eq('patient_id', _uid).is('deleted_at', null);
+    var r = await q.order('surgery_date', { ascending: true, nullsFirst: false });
+    _surgeries = (r.data || []).filter(function(s){ return _showArchived || !s.archived_at; });
+    render();
+  } catch(e){
+    console.error('load surgeries:', e.message);
+    ge('upcoming-list').innerHTML = '<div class="sj-empty">Could not load your surgeries. Please refresh.</div>';
   }
-  if(q.status === 'submitted'){
-    window._pdQuest = q;  // keep for summary/print
-    var when = q.submitted_at || q.updated_at;
-    var dateFmt = when ? new Date(when).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
-    var flags = q.risk_flags || [];
-    body.innerHTML =
-      '<div style="font-size:15px;color:#fff;font-weight:600;">&#10003; Questionnaire complete</div>' +
-      (dateFmt ? '<div style="font-size:13px;color:var(--muted);margin-top:3px;">Completed '+dateFmt+'</div>' : '') +
-      '<div style="font-size:13px;color:var(--muted);margin-top:2px;">Preparation status: <span style="color:#7ECFC0;">Awaiting consultation</span></div>' +
-      (flags.length ? '<div class="pdq-flags">'+flags.map(function(f){return '<span class="pdq-flag">&#9888; '+f+'</span>';}).join('')+'</div>' : '') +
-      '<div class="pdq-btns">' +
-        '<button class="btn-sm" onclick="pdSummary()">View summary</button>' +
-        '<button class="btn-sm" onclick="pdPrint()">Print / Download PDF</button>' +
-        '<a href="/v2/procedures.html" class="btn-sm">Continue preparation</a>' +
-      '</div>';
-    return;
-  }
-  var pct = q.completion != null ? q.completion : 0;
-  body.innerHTML =
-    '<div class="prog-pct" style="font-size:26px;">'+pct+'%</div>' +
-    '<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%"></div></div>' +
-    '<div style="font-size:13px;color:var(--muted);margin:6px 0 12px;">In progress.</div>' +
-    '<a href="/v2/questionnaire.html" class="btn-sm">Continue questionnaire</a>';
 }
 
-// View summary + Print/PDF for the registered patient's questionnaire
-function pdSummary(){
-  var q = window._pdQuest; if(!q) return;
-  var a = q.answers || {};
-  var flags = q.risk_flags || [];
-  var rows = Object.keys(a).map(function(k){
-    var v = a[k]; if(v && typeof v === 'object') v = Array.isArray(v) ? v.join(', ') : JSON.stringify(v);
-    return '<tr><td>'+k+'</td><td>'+(v==null?'—':String(v))+'</td></tr>';
-  }).join('');
-  var m = document.getElementById('pd-modal');
-  document.getElementById('pd-modal-body').innerHTML =
-    '<div class="pd-m-head"><div class="pd-m-title">Questionnaire summary</div>' +
-    '<button class="btn-sm" onclick="document.getElementById(\'pd-modal\').classList.remove(\'open\')">Close</button></div>' +
-    '<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Completion '+(q.completion!=null?q.completion:100)+'%' +
-      (q.submitted_at?' · '+new Date(q.submitted_at).toLocaleDateString():'')+'</div>' +
-    (flags.length?'<div class="pdq-flags" style="margin-bottom:12px;">'+flags.map(function(f){return '<span class="pdq-flag">&#9888; '+f+'</span>';}).join('')+'</div>':'') +
-    '<table class="pd-table">'+(rows||'<tr><td>No answers recorded</td><td></td></tr>')+'</table>';
-  m.classList.add('open');
-}
-function pdPrint(){
-  var q = window._pdQuest; if(!q) return;
-  var a = q.answers || {};
-  var flags = q.risk_flags || [];
-  var rows = Object.keys(a).map(function(k){
-    var v = a[k]; if(v && typeof v === 'object') v = Array.isArray(v) ? v.join(', ') : JSON.stringify(v);
-    return '<tr><td>'+k+'</td><td>'+(v==null?'':String(v))+'</td></tr>';
-  }).join('');
-  var win = window.open('','_blank'); if(!win){ return; }
-  win.document.write('<html><head><title>My pre-op questionnaire</title>' +
-    '<style>body{font-family:Arial,sans-serif;color:#111;max-width:700px;margin:24px auto;padding:0 16px;}' +
-    'h1{font-size:20px;}h2{font-size:13px;text-transform:uppercase;color:#1B6B5A;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:20px;}' +
-    'table{width:100%;border-collapse:collapse;font-size:13px;}td{padding:6px 8px;border-bottom:1px solid #eee;}td:first-child{color:#555;width:42%;}' +
-    '.flag{display:inline-block;background:#fff7e6;border:1px solid #f0c674;color:#8a5a00;border-radius:5px;padding:3px 8px;font-size:12px;margin:2px 4px 2px 0;}.noprint{margin-top:18px;}</style></head><body>' +
-    '<h1>Pre-operative questionnaire</h1>' +
-    '<div>Completion '+(q.completion!=null?q.completion:100)+'%'+(q.submitted_at?' · Completed '+new Date(q.submitted_at).toLocaleDateString():'')+'</div>' +
-    '<h2>Risk flags</h2>'+(flags.length?flags.map(function(f){return '<span class="flag">⚠ '+f+'</span>';}).join(''):'<div>None identified.</div>') +
-    '<h2>Answers</h2><table>'+(rows||'<tr><td>No answers</td><td></td></tr>')+'</table>' +
-    '<p class="noprint"><button onclick="window.print()" style="padding:10px 18px;cursor:pointer;">Print / Save as PDF</button></p></body></html>');
-  win.document.close();
-}
-window.pdSummary = pdSummary; window.pdPrint = pdPrint;
-
-// ── QUESTIONS ─────────────────────────────────────────────
-function statusBadge(st){
-  var map = {new:'st-new', under_review:'st-review', answered:'st-answered', closed:'st-closed'};
-  var label = {new:'New', under_review:'Under review', answered:'Answered', closed:'Closed'};
-  st = st || 'new';
-  return '<span class="q-status '+(map[st]||'st-new')+'">'+(label[st]||'New')+'</span>';
-}
-function renderQuestions(qs, replies){
-  if(!qs || !qs.length){
-    ge('q-body').innerHTML = '<div class="empty">No questions yet. <a href="/v2/ask.html" style="color:#7ECFC0;">Ask one →</a></div>';
-    return;
-  }
-  ge('q-body').innerHTML = qs.slice(0,4).map(function(q){
-    var subj = q.subject || q.topic || 'Question';
-    var msg = q.message || q.question || '';
-    var rep = (replies||[]).filter(function(r){ return r.question_id === q.id; });
-    var repHtml = rep.map(function(r){ return '<div class="q-reply"><b>'+esc(r.author_role||'Reply')+':</b> '+esc(r.message)+'</div>'; }).join('');
-    return '<div class="q-item"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">' +
-      '<div class="q-subj">'+esc(subj)+'</div>'+statusBadge(q.status)+'</div>' +
-      (msg?'<div class="q-msg">'+esc(msg)+'</div>':'') + repHtml + '</div>';
-  }).join('');
-}
-
-// ── EDUCATION ─────────────────────────────────────────────
-function renderEducation(vids){
-  if(!vids || !vids.length){
-    ge('edu-body').innerHTML = '<div class="empty">No videos watched yet. <a href="/v2/videos.html" style="color:#7ECFC0;">Browse educational videos →</a></div>';
-    return;
-  }
-  ge('edu-body').innerHTML = vids.map(function(v){
-    var when = v.last_viewed_at ? new Date(v.last_viewed_at).toLocaleDateString() : '';
-    return '<div class="edu-item"><span class="edu-ico">'+(v.completed?'&#9989;':'&#127909;')+'</span>' +
-      '<div class="edu-main"><div class="edu-title">'+esc(v.video_id)+'</div>' +
-      '<div class="edu-meta">'+(v.completed?'Completed':(v.watched_percent||0)+'% watched')+(when?' · '+when:'')+'</div></div></div>';
-  }).join('');
-}
-
-// ── PROGRESS (5 signals, 20% each) ────────────────────────
-var _signals = { procedure:false, questionnaire:false, preop:false, education:false, questions:false };
-function computeProgress(){
-  _signals.procedure = !!(_surgery && _surgery.procedure_type);
-  var pct = 0; var keys = ['procedure','questionnaire','preop','education','questions'];
-  keys.forEach(function(k){ if(_signals[k]) pct += 20; });
-  ge('prog-pct').textContent = pct;
-  ge('prog-fill').style.width = pct + '%';
-  var labels = {procedure:'Surgery added',questionnaire:'Questionnaire done',preop:'Read pre-op guide',education:'Watched a video',questions:'Asked a question'};
-  ge('prog-items').innerHTML = keys.map(function(k){
-    var done = _signals[k];
-    return '<div class="prog-item'+(done?' done':'')+'"><span class="dot">'+(done?'&#10003;':'')+'</span>'+labels[k]+'</div>';
-  }).join('');
-}
-
-// ── RECENT ACTIVITY ───────────────────────────────────────
-function renderActivity(){
-  _activity.sort(function(a,b){ return (b.t||0) - (a.t||0); });
-  var items = _activity.slice(0, 6);
-  if(!items.length){
-    ge('activity-body').innerHTML = '<div class="empty">No activity yet. Start by adding your surgery or completing your questionnaire.</div>';
-    return;
-  }
-  ge('activity-body').innerHTML = items.map(function(a){
-    var when = a.t ? new Date(a.t).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : '';
-    return '<div class="tl-stage"><div class="tl-when">'+esc(when)+'</div><div class="tl-tasks"><div class="tl-task">'+esc(a.text)+'</div></div></div>';
-  }).join('');
-}
-function addActivity(text, t){ _activity.push({ text:text, t: t ? new Date(t).getTime() : Date.now() }); }
-
-// ── INIT ──────────────────────────────────────────────────
-var _pdDone = false;
-var _pdWatchdog = setTimeout(function(){
-  if(_pdDone) return;
-  console.error('PATIENT DASHBOARD WATCHDOG: exceeded 10s');
-  var loader = ge('loader');
-  if(loader){
-    loader.innerHTML = '<div style="text-align:center;padding:40px;font-family:sans-serif;max-width:340px;">' +
-      '<p style="color:#fff;font-size:15px;margin-bottom:10px;">This is taking longer than expected.</p>' +
-      '<p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px;">Please refresh or try again.</p>' +
-      '<button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Refresh</button> ' +
-      '<a href="/v2/patients.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Back to portal</a></div>';
-  }
+// ── INIT ──────────────────────────────────────────────────────
+var _done = false;
+var _watchdog = setTimeout(function(){
+  if(_done) return;
+  ge('loader').innerHTML = '<div style="text-align:center;padding:40px;font-family:sans-serif;max-width:340px;">' +
+    '<p style="color:#fff;font-size:15px;margin-bottom:10px;">This is taking longer than expected.</p>' +
+    '<button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Refresh</button></div>';
 }, 10000);
 
 document.addEventListener('DOMContentLoaded', async function(){
   try {
-    console.log('PATIENT DASHBOARD START');
     var auth = await window.requireAuth();
-    if(!auth){ _pdDone = true; clearTimeout(_pdWatchdog); return; }
+    if(!auth){ _done=true; clearTimeout(_watchdog); return; }   // requireAuth redirects guests
     _uid = auth.user.id;
-    console.log('AUTH SUCCESS', _uid);
     var first = (auth.profile && auth.profile.full_name) ? auth.profile.full_name.split(' ')[0] : auth.user.email.split('@')[0];
     first = first.charAt(0).toUpperCase() + first.slice(1);
-    ge('pd-hi').textContent = 'Welcome back, ' + first;
-
-    // Surgery (graceful if table absent)
-    try {
-      var sr = await window.sb.from('patient_surgeries').select('*').eq('patient_id', _uid).maybeSingle();
-      _surgery = sr.data || null;
-    } catch(e){ _surgery = null; }
-    renderSurgery();
-    if(_surgery && _surgery.procedure_type){ addActivity('Added surgery: ' + _surgery.procedure_type, _surgery.updated_at); }
-
-    // Questionnaire (status card + signal + activity)
-    var quest = null;
-    try {
-      quest = await window.getQuestionnaire(_uid);
-      if(quest && (quest.status === 'submitted' || (quest.completion||0) >= 100)) _signals.questionnaire = true;
-      if(quest){ addActivity(quest.status === 'submitted' ? 'Submitted pre-op questionnaire' : 'Updated questionnaire ('+(quest.completion||0)+'%)', quest.updated_at); }
-    } catch(e){}
-    renderQuestionnaire(quest);
-
-    // Questions (graceful if status/replies absent)
-    try {
-      var qr = await window.sb.from('questions').select('*').eq('patient_id', _uid).order('created_at',{ascending:false});
-      var myqs = qr.data || [];
-      if(myqs.length) _signals.questions = true;
-      var replies = [];
-      try {
-        var ids = myqs.map(function(x){ return x.id; });
-        if(ids.length){
-          var rr = await window.sb.from('question_replies').select('*').in('question_id', ids);
-          replies = rr.data || [];
-        }
-      } catch(e){}
-      renderQuestions(myqs, replies);
-      myqs.slice(0,3).forEach(function(q){ addActivity('Asked: ' + (q.subject || q.topic || 'a question'), q.created_at); });
-    } catch(e){ renderQuestions([], []); }
-
-    // Education / video progress (graceful if table absent)
-    try {
-      var vr = await window.sb.from('video_progress').select('*').eq('patient_id', _uid).order('last_viewed_at',{ascending:false});
-      var vids = vr.data || [];
-      if(vids.length) _signals.education = true;
-      renderEducation(vids);
-      vids.slice(0,3).forEach(function(v){ addActivity((v.completed?'Completed':'Watched')+' video: ' + v.video_id, v.last_viewed_at); });
-    } catch(e){ renderEducation([]); }
-
-    // Pre-op guide read signal (from saved checklist, graceful)
-    try {
-      var c = await window.getChecklist(_uid);
-      if(c && c.items && (c.items.preop_quick || c.items.dashboard)) _signals.preop = true;
-    } catch(e){}
-
-    computeProgress();
-    renderActivity();
-
-    _pdDone = true; clearTimeout(_pdWatchdog);
-    ge('loader').style.display = 'none';
-    ge('app').style.display = 'block';
-    console.log('PATIENT DASHBOARD READY');
+    ge('sj-hi').textContent = first + '’s Surgery Journey';
+    await sjLoad();
+    _done = true; clearTimeout(_watchdog);
+    ge('loader').style.display='none'; ge('app').style.display='block';
+    console.log('SURGERY JOURNEY READY');
   } catch(e){
-    _pdDone = true; clearTimeout(_pdWatchdog);
-    console.error('PATIENT DASHBOARD ERROR:', e.message);
-    ge('loader').innerHTML = '<div style="text-align:center;padding:30px;font-family:sans-serif;max-width:340px;"><p style="color:rgba(255,160,140,.9);font-size:14px;margin-bottom:10px;">Could not load your dashboard.</p><p style="color:rgba(255,255,255,.4);font-size:12px;margin-bottom:16px;">'+e.message+'</p><button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;">Try again</button></div>';
+    console.error('SURGERY JOURNEY ERROR:', e.message);
+    ge('loader').innerHTML = '<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: '+esc(e.message)+'</p>';
   }
 });
 </script>
-<div class="pd-modal-bg" id="pd-modal" onclick="if(event.target===this)this.classList.remove('open')"><div class="pd-modal" id="pd-modal-body"></div></div>
 </body>
 </html>
