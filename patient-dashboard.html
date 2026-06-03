@@ -266,37 +266,40 @@ async function sjSave(){
     anesthesia_type: ge('m-anes').value || null
   };
   try {
+    var r;
     if(_editId){
-      await window.sb.from('patient_surgeries').update(rec).eq('id', _editId);
+      r = await window.sb.from('patient_surgeries').update(rec).eq('id', _editId).select();
     } else {
       rec.status = 'planning';
-      await window.sb.from('patient_surgeries').insert(rec);
+      r = await window.sb.from('patient_surgeries').insert(rec).select();
+    }
+    console.log('SAVE SURGERY result — data:', r && r.data, '| error:', r && r.error);
+    if(r && r.error) throw r.error;            // supabase-js does NOT throw on db/RLS errors
+    if(!_editId && (!r.data || !r.data.length)){
+      // insert returned no row — usually an RLS SELECT/INSERT policy issue
+      throw { message: 'Insert returned no row (check RLS insert/select policy on patient_surgeries)' };
     }
     await sjLoad();
     sjToast(_editId ? 'Surgery updated' : 'Surgery added');
     sjCloseModal();
   } catch(e){
-    console.error('save surgery:', e.message);
-    sjToast('Could not save. Please try again.');
+    console.error('SAVE SURGERY ERROR:', e);
+    sjToast('Save failed: ' + (e.message || e.code || 'unknown') + (e.details ? ' — ' + e.details : ''));
   }
   ge('m-save').disabled = false; ge('m-save').textContent = 'Save';
 }
 
-async function sjComplete(id){
-  try { await window.sb.from('patient_surgeries').update({ status:'completed', completed_at:new Date().toISOString() }).eq('id', id);
-    await sjLoad(); sjToast('Marked completed — moved to history'); }
-  catch(e){ sjToast('Update failed'); }
+async function sjMutate(id, patch, okMsg){
+  try {
+    var r = await window.sb.from('patient_surgeries').update(patch).eq('id', id).select();
+    console.log('MUTATE result — data:', r && r.data, '| error:', r && r.error);
+    if(r && r.error) throw r.error;
+    await sjLoad(); sjToast(okMsg);
+  } catch(e){ console.error('MUTATE ERROR:', e); sjToast('Update failed: ' + (e.message || e.code || 'unknown')); }
 }
-async function sjCancel(id){
-  try { await window.sb.from('patient_surgeries').update({ status:'cancelled', cancelled_at:new Date().toISOString() }).eq('id', id);
-    await sjLoad(); sjToast('Surgery cancelled'); }
-  catch(e){ sjToast('Update failed'); }
-}
-async function sjDelete(id){
-  try { await window.sb.from('patient_surgeries').update({ deleted_at:new Date().toISOString() }).eq('id', id);
-    await sjLoad(); sjToast('Surgery deleted'); }
-  catch(e){ sjToast('Delete failed'); }
-}
+function sjComplete(id){ return sjMutate(id, { status:'completed', completed_at:new Date().toISOString() }, 'Marked completed — moved to history'); }
+function sjCancel(id){   return sjMutate(id, { status:'cancelled', cancelled_at:new Date().toISOString() }, 'Surgery cancelled'); }
+function sjDelete(id){   return sjMutate(id, { deleted_at:new Date().toISOString() }, 'Surgery deleted'); }
 function sjToggleArchived(){ _showArchived = !_showArchived; ge('arch-toggle').textContent = _showArchived?'Hide archived':'Show archived'; sjLoad(); }
 
 window.sjOpenAdd=sjOpenAdd; window.sjOpenEdit=sjOpenEdit; window.sjCloseModal=sjCloseModal; window.sjSave=sjSave;
@@ -307,6 +310,8 @@ async function sjLoad(){
   try {
     var q = window.sb.from('patient_surgeries').select('*').eq('patient_id', _uid).is('deleted_at', null);
     var r = await q.order('surgery_date', { ascending: true, nullsFirst: false });
+    console.log('LOAD SURGERIES — count:', r && r.data ? r.data.length : 0, '| error:', r && r.error);
+    if(r && r.error) throw r.error;
     _surgeries = (r.data || []).filter(function(s){ return _showArchived || !s.archived_at; });
     render();
   } catch(e){
