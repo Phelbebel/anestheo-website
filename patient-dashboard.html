@@ -9,6 +9,7 @@
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
+<script src="/v2/journey.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
@@ -125,6 +126,17 @@
 .prep-chk input:checked + span{color:var(--hint);text-decoration:line-through;}
 .prep-special{font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.55;padding:9px 11px;border-radius:9px;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.28);margin-bottom:8px;}
 .prep-foot{font-size:12px;color:var(--hint);margin-top:18px;line-height:1.55;border-top:1px solid rgba(27,107,90,.12);padding-top:12px;}
+/* always-on status panel (journey spine) */
+.sp-card{background:linear-gradient(135deg,rgba(27,107,90,.18),rgba(27,107,90,.05));border:1px solid rgba(42,138,116,.42);border-radius:15px;padding:18px 22px;margin-bottom:16px;}
+.sp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+.sp-stage{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7ECFC0;}
+.sp-header{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;margin-top:3px;}
+.sp-pill{font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:20px;white-space:nowrap;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;}
+.sp-conn{font-size:13px;color:var(--muted);margin-top:11px;}
+.sp-next{font-size:14px;color:#fff;margin-top:11px;padding:11px 14px;background:rgba(255,255,255,.05);border-left:3px solid #2A8A74;border-radius:8px;line-height:1.5;}
+.sp-track{display:flex;gap:4px;margin-top:14px;}
+.sp-seg{height:5px;flex:1;border-radius:3px;background:rgba(255,255,255,.1);}
+.sp-seg.on{background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);}
 </style>
 </head>
 <body>
@@ -135,6 +147,10 @@
   <div class="pd-wrap">
     <div class="pd-hi" id="pd-hi">My dashboard</div>
     <div class="pd-hi-sub" id="pd-hi-sub">Your surgery journey.</div>
+
+    <!-- ALWAYS-ON STATUS PANEL (journey spine) -->
+    <div class="sp-card" id="status-panel"></div>
+
     <div class="pd-grid">
 
       <!-- UPCOMING SURGERY -->
@@ -213,7 +229,36 @@
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 var _uid = null, _surgery = null, _activity = [];
-var _quest = null, _prepChecklist = {};
+var _quest = null, _prepChecklist = {}, _careRequest = null;
+
+// ── ALWAYS-ON STATUS PANEL (derived from the single source of truth) ──
+function renderStatusPanel(){
+  var panel = ge('status-panel'); if(!panel || !window.deriveJourney) return;
+  var d = window.deriveJourney({
+    hasSurgery: !!(_surgery && _surgery.procedure_type),
+    questionnaireStatus: _quest ? (_quest.status === 'submitted' ? 'submitted' : 'in_progress') : 'none',
+    careRequestStatus: _careRequest ? _careRequest.status : 'none',
+    doctorName: (_careRequest && _careRequest.doctor_name) ? _careRequest.doctor_name : 'your clinician',
+    reviewState: _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted',
+    readyAt: _surgery && _surgery.ready_at,
+    completedAt: _surgery && _surgery.completed_at,
+    recoveryStartedAt: _surgery && _surgery.recovery_started_at,
+    archivedAt: _surgery && _surgery.archived_at,
+    reviewerNotes: _quest ? _quest.reviewer_notes : ''
+  });
+  var total = window.JOURNEY_TOTAL_STAGES || 10;
+  var segs = '';
+  for(var i=1;i<=total;i++){ segs += '<div class="sp-seg'+(i<=d.stage?' on':'')+'"></div>'; }
+  panel.innerHTML =
+    '<div class="sp-top">' +
+      '<div><div class="sp-stage">Stage '+d.stage+' of '+total+'</div>' +
+        '<div class="sp-header">'+esc(d.header)+'</div></div>' +
+      '<div class="sp-pill">'+d.pill+' '+esc(d.pillLabel)+'</div>' +
+    '</div>' +
+    '<div class="sp-conn">'+esc(d.connectionLine)+'</div>' +
+    '<div class="sp-next">'+esc(d.nextStep)+'</div>' +
+    '<div class="sp-track">'+segs+'</div>';
+}
 
 // ── UPCOMING SURGERY (journey style, no empty placeholder rows) ──
 function daysUntil(dateStr){
@@ -287,6 +332,7 @@ async function saveSurgery(){
   closeSurgery();
   renderSurgery();
   prepRender();
+  renderStatusPanel();
   computeProgress();
 }
 
@@ -661,6 +707,15 @@ document.addEventListener('DOMContentLoaded', async function(){
     } catch(e){}
     _quest = quest;
     renderQuestionnaire(quest);
+
+    // Active care request (attachment) — graceful if table absent (Epic A foundation)
+    try {
+      var crq = await window.sb.from('care_requests').select('*')
+        .eq('patient_id', _uid).in('status', ['requested','accepted'])
+        .order('requested_at', { ascending: false }).maybeSingle();
+      _careRequest = crq.data || null;
+    } catch(e){ _careRequest = null; }
+    renderStatusPanel();
 
     // Questions (graceful if status/replies absent)
     try {
