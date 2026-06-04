@@ -101,6 +101,30 @@
 .pd-cancel{background:transparent;border:1px solid rgba(255,255,255,.15)!important;color:var(--muted);}
 .pd-save{background:#1B6B5A;color:#fff;}
 @media(min-width:680px){.pd-grid{grid-template-columns:1fr 1fr;}.pd-card.full{grid-column:1/-1;}}
+/* preparation plan / guide */
+.prep-note{font-size:12px;color:#E8C16b;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.28);border-radius:9px;padding:10px 12px;margin-bottom:16px;line-height:1.5;}
+.prep-clinic{font-size:14px;color:rgba(255,255,255,.85);line-height:1.6;padding:6px 0;}
+.prep-sec{margin-top:18px;}
+.prep-sec:first-child{margin-top:0;}
+.prep-sec-title{font-size:13px;font-weight:700;color:#7ECFC0;margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+.prep-li{font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.55;padding:5px 0 5px 16px;position:relative;}
+.prep-li:before{content:'';position:absolute;left:2px;top:12px;width:5px;height:5px;border-radius:50%;background:#2A8A74;}
+.prep-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.prep-tbl td{padding:8px 9px;border-bottom:1px solid rgba(27,107,90,.12);vertical-align:top;color:rgba(255,255,255,.85);}
+.prep-tbl td:first-child{color:var(--muted);width:42%;}
+.prep-tbl tr:last-child td{border-bottom:none;}
+.prep-med{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);margin-bottom:8px;}
+.prep-med-name{font-size:13.5px;color:#fff;font-weight:500;}
+.prep-med-note{font-size:12px;color:var(--muted);}
+.prep-med.hr{background:rgba(232,168,56,.1);border-color:rgba(232,168,56,.32);}
+.prep-med-tag{font-size:11.5px;font-weight:700;color:#E8C16b;}
+.prep-chk{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.1);cursor:pointer;}
+.prep-chk:last-child{border-bottom:none;}
+.prep-chk input{margin-top:1px;width:18px;height:18px;accent-color:#2A8A74;flex-shrink:0;}
+.prep-chk span{font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.5;}
+.prep-chk input:checked + span{color:var(--hint);text-decoration:line-through;}
+.prep-special{font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.55;padding:9px 11px;border-radius:9px;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.28);margin-bottom:8px;}
+.prep-foot{font-size:12px;color:var(--hint);margin-top:18px;line-height:1.55;border-top:1px solid rgba(27,107,90,.12);padding-top:12px;}
 </style>
 </head>
 <body>
@@ -131,6 +155,12 @@
       <div class="pd-card">
         <div class="pd-card-title">&#128203; Questionnaire</div>
         <div id="quest-body"></div>
+      </div>
+
+      <!-- PREPARATION PLAN -->
+      <div class="pd-card full" id="prep-card">
+        <div class="pd-card-title">&#128203; Preparation plan</div>
+        <div id="prep-body"></div>
       </div>
 
       <!-- QUESTION STATUS -->
@@ -183,6 +213,7 @@
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 var _uid = null, _surgery = null, _activity = [];
+var _quest = null, _prepChecklist = {};
 
 // ── UPCOMING SURGERY (journey style, no empty placeholder rows) ──
 function daysUntil(dateStr){
@@ -243,7 +274,10 @@ async function saveSurgery(){
     surgery_date: ge('m-date').value || null,
     hospital: ge('m-hospital').value || null,
     surgeon: ge('m-surgeon').value || null,
-    anesthesia_type: ge('m-anes').value || null
+    anesthesia_type: ge('m-anes').value || null,
+    // Self-service dashboard = patient-initiated journey. Preserve an existing
+    // clinic origin if one was set elsewhere.
+    origin: (_surgery && _surgery.origin) ? _surgery.origin : 'patient'
   };
   try {
     await window.sb.from('patient_surgeries').upsert(rec, { onConflict: 'patient_id' });
@@ -252,6 +286,7 @@ async function saveSurgery(){
   ge('m-save').disabled = false; ge('m-save').textContent = 'Save';
   closeSurgery();
   renderSurgery();
+  prepRender();
   computeProgress();
 }
 
@@ -329,6 +364,192 @@ function pdPrint(){
   win.document.close();
 }
 window.pdSummary = pdSummary; window.pdPrint = pdPrint;
+
+// ── PREPARATION PLAN ──────────────────────────────────────
+// origin drives the stage: clinic-initiated keeps the "being prepared"
+// message; patient-initiated gets an immediate educational guide.
+function prepOrigin(){ return (_surgery && _surgery.origin) ? _surgery.origin : 'patient'; }
+
+// Medications the patient is NOT told to start/stop — flagged for review instead.
+var PREP_HIGH_RISK = {
+  anticoagulants: 'Blood thinners / anticoagulants',
+  insulin:        'Insulin',
+  glp1:           'GLP-1 medication (e.g. Ozempic, Wegovy, Mounjaro)'
+};
+var PREP_MED_LABELS = {
+  anticoagulants:'Blood thinners / anticoagulants', insulin:'Insulin',
+  bp_meds:'Blood pressure medication', steroids:'Steroids',
+  glp1:'GLP-1 medication', other:'Other medication(s)'
+};
+
+function prepRender(){
+  var body = ge('prep-body'); if(!body) return;
+  // Clinic-initiated journeys keep the original placeholder message.
+  if(prepOrigin() === 'clinic'){
+    body.innerHTML = '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>';
+    return;
+  }
+  // Patient-initiated: needs a submitted questionnaire to generate the guide.
+  if(!_quest || _quest.status !== 'submitted'){
+    body.innerHTML =
+      '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Complete your pre-op questionnaire to unlock your personalized preparation guide.</div>' +
+      '<a href="/v2/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
+    return;
+  }
+  body.innerHTML = prepBuildGuide(_quest);
+}
+
+function prepBuildGuide(q){
+  var a = q.answers || {};
+  var flags = q.risk_flags || [];
+  var s = _surgery || {};
+  var h = '';
+
+  // Clear "not yet reviewed" labeling.
+  h += '<div class="prep-note">&#9888; Educational preparation guide — not yet reviewed by an anesthesiologist. ' +
+       'A doctor-reviewed plan will follow. Always follow the specific instructions your surgical and anesthesia team give you.</div>';
+
+  // 1. Surgery summary
+  var sumRows = '';
+  sumRows += '<tr><td>Procedure</td><td>'+esc(s.procedure_type || 'Not added yet')+'</td></tr>';
+  if(s.surgery_date){
+    var dd = daysUntil(s.surgery_date);
+    var when = dd>1?('in '+dd+' days'):dd===1?'tomorrow':dd===0?'today':(Math.abs(dd)+' days ago');
+    var df = new Date(s.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+    sumRows += '<tr><td>Date</td><td>'+esc(df)+' &middot; '+esc(when)+'</td></tr>';
+  }
+  if(s.hospital) sumRows += '<tr><td>Hospital</td><td>'+esc(s.hospital)+'</td></tr>';
+  if(s.surgeon)  sumRows += '<tr><td>Surgeon</td><td>'+esc(s.surgeon)+'</td></tr>';
+  sumRows += '<tr><td>Anesthesia</td><td>'+esc(s.anesthesia_type || 'To be decided with your anesthesiologist')+'</td></tr>';
+  h += prepSec('&#129656; Surgery summary', '<table class="prep-tbl">'+sumRows+'</table>');
+
+  // 2. Preparation checklist (general, things to do before the day)
+  h += prepSec('&#9989; Preparation checklist', prepChecklistHtml('prepare', [
+    'Confirm your surgery date, arrival time, and where to check in',
+    'Write down a full list of your medications, doses, and supplements',
+    'Note any allergies and past reactions to anesthesia',
+    'Arrange a responsible adult to take you home and stay with you',
+    'Prepare comfortable, loose clothing and flat shoes for the day',
+    'Write down questions you want to ask your anesthesiologist'
+  ]));
+
+  // 3. Fasting information
+  h += prepSec('&#9201; Fasting information', '<table class="prep-tbl">' +
+    '<tr><td>Solid food / milk</td><td>Usually stop at least 6 hours before surgery</td></tr>' +
+    '<tr><td>Clear fluids (water, clear juice, black coffee/tea)</td><td>Usually allowed up to 2 hours before</td></tr>' +
+    '<tr><td>Chewing gum / sweets</td><td>Avoid on the day of surgery</td></tr>' +
+    '<tr><td>Alcohol</td><td>Avoid for 24 hours before</td></tr>' +
+    '</table><div class="prep-li" style="margin-top:6px;">These are general timings — your team may give you exact fasting times to follow instead.</div>');
+
+  // 4. What to bring
+  h += prepSec('&#129509; What to bring', [
+    'Photo ID and any hospital paperwork or appointment letters',
+    'A complete written list of your medications and allergies',
+    'Glasses, hearing aids, inhalers, or your CPAP machine if you use one',
+    'A small bag with essentials; leave jewelry, valuables, and contact lenses at home'
+  ].map(function(x){ return '<div class="prep-li">'+esc(x)+'</div>'; }).join(''));
+
+  // 5. General medication review (NO start/stop instructions)
+  h += prepSec('&#128138; Medication review', prepMedicationHtml(a));
+
+  // 6. Special instructions based on the patient's answers
+  var special = prepSpecial(a, flags);
+  if(special.length){
+    h += prepSec('&#128221; Special instructions for you',
+      special.map(function(x){ return '<div class="prep-special">'+x+'</div>'; }).join(''));
+  }
+
+  // 7. Day-of-surgery checklist
+  h += prepSec('&#127973; Day-of-surgery checklist', prepChecklistHtml('dayof', [
+    'Follow your fasting times exactly',
+    'Shower; remove makeup, nail polish, and jewelry',
+    'Take only the medications you were told to take, with a small sip of water',
+    'Bring your ID, medication list, and essentials',
+    'Bring your CPAP, inhaler, or glasses/hearing aids if you use them',
+    'Arrive on time and have your ride home arranged'
+  ]));
+
+  h += '<div class="prep-foot">This guide is generated from your questionnaire answers for education only. ' +
+       'It does not tell you to start, stop, or change any medication. Your anesthesiologist will review your ' +
+       'answers and give you the final, personalized plan.</div>';
+  return h;
+}
+
+function prepSec(title, inner){
+  return '<div class="prep-sec"><div class="prep-sec-title">'+title+'</div>'+inner+'</div>';
+}
+
+function prepMedicationHtml(a){
+  var meds = a.medications || [];
+  var banner = '<div class="prep-note" style="color:#cfe;background:rgba(27,107,90,.12);border-color:rgba(42,138,116,.3);">' +
+    'Do <b>not</b> start, stop, or change any medication on your own. Bring a full list of everything you take. ' +
+    'Your anesthesiologist will tell you what to do with each one.</div>';
+  if(!meds.length){
+    return banner + '<div class="prep-li">No regular medications reported. Still bring a list of anything you take, including over-the-counter drugs and supplements.</div>';
+  }
+  var rows = meds.map(function(v){
+    var label = PREP_MED_LABELS[v] || v;
+    if(PREP_HIGH_RISK[v]){
+      return '<div class="prep-med hr"><div class="prep-med-name">'+esc(PREP_HIGH_RISK[v])+'</div>' +
+             '<div class="prep-med-tag">&#9888; Requires anesthesiologist review</div></div>';
+    }
+    return '<div class="prep-med"><div class="prep-med-name">'+esc(label)+'</div>' +
+           '<div class="prep-med-note">Bring details — your anesthesiologist will advise</div></div>';
+  }).join('');
+  return banner + rows;
+}
+
+function prepSpecial(a, flags){
+  flags = flags || [];
+  var h = a.history || [], m = a.medications || [];
+  var items = [];
+  function has(arr, v){ return arr.indexOf(v) >= 0; }
+  if(has(h,'sleep_apnea') || flags.indexOf('Sleep apnea')>=0)
+    items.push('You reported <b>sleep apnea</b> — bring your CPAP machine and mask, and tell staff on arrival.');
+  if(a.difficult_airway === 'yes')
+    items.push('You reported a <b>difficult airway / intubation</b> history — make sure your anesthesiologist knows before the procedure.');
+  if(a.anes_complication === 'yes')
+    items.push('You reported a <b>previous anesthesia complication</b> — share the details with your anesthesiology team.');
+  if(a.allergy_present === 'severe')
+    items.push('You reported a <b>severe allergy</b>'+(a.allergy_detail?' ('+esc(a.allergy_detail)+')':'')+' — inform staff on arrival and wear an allergy band if offered.');
+  if(has(h,'diabetes') || has(m,'insulin'))
+    items.push('You reported <b>diabetes / insulin use</b> — blood-sugar and insulin handling on the day requires anesthesiologist review. Do not adjust your insulin yourself.');
+  if(has(h,'heart') || flags.indexOf('Heart disease')>=0)
+    items.push('You reported <b>heart disease</b> — your anesthesiologist will review your heart history and medications.');
+  if(a.smoking === 'yes')
+    items.push('You reported <b>smoking</b> — stopping or cutting down before surgery lowers anesthesia and healing risks.');
+  return items;
+}
+
+// Checklist boxes persist to the existing preop_checklist table (no new silo),
+// merged under items.prep_guide so other checklist keys are preserved.
+function prepChecklistHtml(group, labels){
+  var saved = (_prepChecklist[group] || []);
+  return labels.map(function(x, i){
+    var checked = saved[i] ? ' checked' : '';
+    return '<label class="prep-chk"><input type="checkbox" data-prep-group="'+group+'" data-prep-i="'+i+'" onchange="prepSaveChecklist()"'+checked+'><span>'+esc(x)+'</span></label>';
+  }).join('');
+}
+
+async function prepSaveChecklist(){
+  if(!_uid) return;
+  var state = {};
+  document.querySelectorAll('#prep-body input[data-prep-group]').forEach(function(inp){
+    var g = inp.getAttribute('data-prep-group');
+    var i = parseInt(inp.getAttribute('data-prep-i'), 10);
+    if(!state[g]) state[g] = [];
+    state[g][i] = inp.checked;
+  });
+  _prepChecklist = state;
+  try {
+    // Merge into existing checklist items so preop_quick/dashboard survive.
+    var existing = {};
+    try { var c = await window.getChecklist(_uid); existing = (c && c.items) || {}; } catch(e){}
+    existing.prep_guide = state;
+    await window.saveChecklist(_uid, existing);
+  } catch(e){ console.warn('prep checklist save:', e.message); }
+}
+window.prepSaveChecklist = prepSaveChecklist;
 
 // ── QUESTIONS ─────────────────────────────────────────────
 function statusBadge(st){
@@ -438,6 +659,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       if(quest && (quest.status === 'submitted' || (quest.completion||0) >= 100)) _signals.questionnaire = true;
       if(quest){ addActivity(quest.status === 'submitted' ? 'Submitted pre-op questionnaire' : 'Updated questionnaire ('+(quest.completion||0)+'%)', quest.updated_at); }
     } catch(e){}
+    _quest = quest;
     renderQuestionnaire(quest);
 
     // Questions (graceful if status/replies absent)
@@ -470,7 +692,11 @@ document.addEventListener('DOMContentLoaded', async function(){
     try {
       var c = await window.getChecklist(_uid);
       if(c && c.items && (c.items.preop_quick || c.items.dashboard)) _signals.preop = true;
+      if(c && c.items && c.items.prep_guide) _prepChecklist = c.items.prep_guide;
     } catch(e){}
+
+    // Preparation plan stage (clinic message vs patient guide)
+    prepRender();
 
     computeProgress();
     renderActivity();
