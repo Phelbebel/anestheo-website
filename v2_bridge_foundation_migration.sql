@@ -1,13 +1,15 @@
 -- ============================================================
--- Anestheo /v2 — Patient↔Clinician Bridge: foundation (Epic A / Milestone 1)
--- Implements the authoritative state model in WORKFLOW_REFERENCE.md §1, §7, §8, §9.
+-- Anestheo /v2 - Patient-Clinician Bridge: foundation (Epic A / Milestone 1)
+-- Implements the authoritative state model in WORKFLOW_REFERENCE.md sec 1,7,8,9.
 --   Authoritative (mutable): care_request.status, review_state
 --   Authoritative (set-once): lifecycle milestone timestamps
---   journey_status is DERIVED in app/RPC code — NOT stored here.
+--   journey_status is DERIVED in app/RPC code - NOT stored here.
 -- Run in Supabase SQL Editor. Idempotent and additive (non-destructive).
+-- NOTE: pure ASCII (no smart quotes / placeholders) so copy/paste cannot
+-- corrupt it. Run this FIRST, then v2_bridge_directory_rpcs.sql.
 -- ============================================================
 
--- ── 1. patient_surgeries: attachment + set-once lifecycle milestones ──
+-- == 1. patient_surgeries: attachment + set-once lifecycle milestones ==
 ALTER TABLE public.patient_surgeries
   ADD COLUMN IF NOT EXISTS assigned_doctor_id   uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS assigned_at          timestamptz,
@@ -28,7 +30,7 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_patient_surgeries_doctor ON public.patient_surgeries(assigned_doctor_id);
 
--- ── 2. preop_questionnaires: review_state = single source of truth (§8) ──
+-- == 2. preop_questionnaires: review_state = single source of truth (sec 8) ==
 ALTER TABLE public.preop_questionnaires
   ADD COLUMN IF NOT EXISTS review_state   text NOT NULL DEFAULT 'not_submitted',
   ADD COLUMN IF NOT EXISTS reviewed_by    uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -44,7 +46,7 @@ BEGIN
   END IF;
 END $$;
 
--- ── 3. profiles: clinician directory fields (Epic B groundwork) ──
+-- == 3. profiles: clinician directory fields (Epic B groundwork) ==
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS accepting_patients boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS display_name       text,
@@ -59,7 +61,7 @@ CREATE POLICY profiles_directory_read ON public.profiles
   FOR SELECT TO authenticated
   USING ( accepting_patients = true );
 
--- ── 4. care_requests: the attachment handshake (§7) ──
+-- == 4. care_requests: the attachment handshake (sec 7) ==
 CREATE TABLE IF NOT EXISTS public.care_requests (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   patient_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -115,7 +117,7 @@ CREATE POLICY cr_update ON public.care_requests
   USING ( auth.uid() = patient_id OR auth.uid() = doctor_id )
   WITH CHECK ( auth.uid() = patient_id OR auth.uid() = doctor_id );
 
--- ── 5. preparation_plans: the reviewed artifact, versioned (§9) ──
+-- == 5. preparation_plans: the reviewed artifact, versioned (sec 9) ==
 CREATE TABLE IF NOT EXISTS public.preparation_plans (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   surgery_id          uuid NOT NULL REFERENCES public.patient_surgeries(id) ON DELETE CASCADE,
