@@ -511,6 +511,9 @@ async function wsSavePatient(thenSend){
   rec.questionnaire_status = 'not_sent';
   rec.consultation_status = 'not_arrived';
   rec.patient_status = 'awaiting_questionnaire';
+  // Clinic-created surgery → explicit clinic origin (patient self-service
+  // surgeries default to 'patient' in patient-dashboard.html / the DB).
+  rec.origin = 'clinic';
 
   // ── TEMP DEBUG: show the exact payload + Supabase error ──
   console.log('CLINIC INSERT PAYLOAD', rec);

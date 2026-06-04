@@ -27,7 +27,30 @@ BEGIN
   END IF;
 END $$;
 
+-- ── Clinic side ─────────────────────────────────────────────
+-- The clinic's surgery record lives in clinic_patients (the token-based flow
+-- never creates a patient_surgeries row). Tag it as clinic-created so the same
+-- origin vocabulary describes both flows. Every row here is clinic-created, so
+-- the default is 'clinic' and existing rows backfill to 'clinic'.
+ALTER TABLE public.clinic_patients
+  ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'clinic';
+
+UPDATE public.clinic_patients SET origin = 'clinic' WHERE origin IS NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'clinic_patients_origin_chk'
+  ) THEN
+    ALTER TABLE public.clinic_patients
+      ADD CONSTRAINT clinic_patients_origin_chk CHECK (origin IN ('patient','clinic'));
+  END IF;
+END $$;
+
 NOTIFY pgrst, 'reload schema';
 -- ============================================================
--- Done. patient_surgeries.origin now drives the Preparation Plan stage.
+-- Done. origin now describes both surgery records:
+--   patient_surgeries.origin defaults 'patient' (self-service dashboard)
+--   clinic_patients.origin   defaults 'clinic'  (clinic-created)
+-- patient_surgeries.origin drives the Preparation Plan stage.
 -- ============================================================
