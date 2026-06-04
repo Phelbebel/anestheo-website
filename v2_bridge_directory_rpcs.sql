@@ -1,20 +1,22 @@
 -- ============================================================
--- Anestheo /v2 — Patient↔Clinician Bridge: Directory + attachment RPCs
--- (Epic B / Milestone 2). Implements WORKFLOW_REFERENCE.md §5, §7 and the
--- attachment transitions, with assignment-scoped RLS so Invariant #1 holds
+-- Anestheo /v2 - Patient-Clinician Bridge: Directory + attachment RPCs
+-- (Epic B / Milestone 2). Implements WORKFLOW_REFERENCE.md sec 5, sec 7 and
+-- the attachment transitions, with assignment-scoped RLS so Invariant #1 holds
 -- (Doctor A loses access the instant a patient switches).
 -- Run in Supabase SQL Editor. Idempotent. Builds on v2_bridge_foundation.
+-- NOTE: This file is intentionally pure ASCII (no smart quotes / placeholders)
+-- so copy/paste cannot corrupt it. Run v2_bridge_foundation_migration.sql FIRST.
 -- ============================================================
 
--- ── 1. care_requests: decision snapshot (Inv1-safe; doctor decides without
---     gaining access to the live surgery/questionnaire until accept) ──
+-- == 1. care_requests: decision snapshot (Inv1-safe; doctor decides without
+--       gaining access to the live surgery/questionnaire until accept) ==
 ALTER TABLE public.care_requests
   ADD COLUMN IF NOT EXISTS patient_name text,
   ADD COLUMN IF NOT EXISTS doctor_name  text,
   ADD COLUMN IF NOT EXISTS procedure    text,
   ADD COLUMN IF NOT EXISTS surgery_date date;
 
--- ── 2. Protected-column triggers — two-sided consent + no self-approval ──
+-- == 2. Protected-column triggers - two-sided consent + no self-approval ==
 -- Patients own their surgery/questionnaire rows, but must NOT be able to set
 -- the attachment/review/milestone columns directly. Those change only through
 -- the SECURITY DEFINER RPCs below (which run as the table owner, not the
@@ -58,7 +60,7 @@ CREATE TRIGGER trg_guard_preop_q
   BEFORE UPDATE ON public.preop_questionnaires
   FOR EACH ROW EXECUTE FUNCTION public.guard_preop_q_protected();
 
--- ── 3. Assignment-scoped RLS (Inv1) — replaces broad doctor reads ──
+-- == 3. Assignment-scoped RLS (Inv1) - replaces broad doctor reads ==
 -- patient_surgeries: own OR assigned doctor OR admin.
 DROP POLICY IF EXISTS ps_select ON public.patient_surgeries;
 CREATE POLICY ps_select ON public.patient_surgeries
@@ -87,7 +89,7 @@ CREATE POLICY pq_select ON public.preop_questionnaires
 -- so the broad profile-row read added in the foundation is removed.
 DROP POLICY IF EXISTS profiles_directory_read ON public.profiles;
 
--- ── 4. Directory listing (safe columns only) ──
+-- == 4. Directory listing (safe columns only) ==
 DROP FUNCTION IF EXISTS public.get_clinician_directory();
 CREATE FUNCTION public.get_clinician_directory()
 RETURNS TABLE (id uuid, name text, specialty text, clinic text)
@@ -101,9 +103,9 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
     AND (p.role = 'doctor' OR p.is_admin = true);
 $$;
 
--- ── 5. Attachment transition RPCs (guarded) ──
+-- == 5. Attachment transition RPCs (guarded) ==
 
--- request_clinician: patient → care_request(requested) (§7, Inv2, Inv6-independent)
+-- request_clinician: patient creates care_request(requested) (sec 7, Inv2)
 DROP FUNCTION IF EXISTS public.request_clinician(uuid, uuid, text);
 CREATE FUNCTION public.request_clinician(p_surgery_id uuid, p_doctor_id uuid, p_message text)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -134,7 +136,7 @@ BEGIN
   RETURN v_id;
 END; $$;
 
--- respond_care_request: doctor → accept | decline (sets assignment on accept)
+-- respond_care_request: doctor accept or decline (sets assignment on accept)
 DROP FUNCTION IF EXISTS public.respond_care_request(uuid, text, text);
 CREATE FUNCTION public.respond_care_request(p_request_id uuid, p_decision text, p_reason text)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -164,8 +166,8 @@ BEGIN
   END IF;
 END; $$;
 
--- revoke_care_request: patient cancels / switches → resets review + supersedes
--- plans + clears assignment (Doctor A loses access immediately — §5, Inv1).
+-- revoke_care_request: patient cancels / switches - resets review + supersedes
+-- plans + clears assignment (Doctor A loses access immediately - sec 5, Inv1).
 DROP FUNCTION IF EXISTS public.revoke_care_request(uuid);
 CREATE FUNCTION public.revoke_care_request(p_surgery_id uuid)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -175,7 +177,7 @@ BEGIN
   SELECT ready_at, true INTO v_ready, v_found
     FROM public.patient_surgeries WHERE id = p_surgery_id AND patient_id = v_uid;
   IF NOT v_found THEN RAISE EXCEPTION 'Surgery not found for this patient'; END IF;
-  -- §5 guard: switching is not allowed once cleared for surgery.
+  -- sec 5 guard: switching is not allowed once cleared for surgery.
   IF v_ready IS NOT NULL THEN
     RAISE EXCEPTION 'You cannot change clinician after being marked ready for surgery';
   END IF;
@@ -189,12 +191,12 @@ BEGIN
      SET assigned_doctor_id = NULL, assigned_at = NULL
    WHERE id = p_surgery_id;
 
-  -- §8: any active review resets to not_submitted on revoke/switch.
+  -- sec 8: any active review resets to not_submitted on revoke/switch.
   UPDATE public.preop_questionnaires
      SET review_state = 'not_submitted', reviewed_by = NULL, reviewed_at = NULL, reviewer_notes = NULL
    WHERE patient_id = v_uid AND review_state <> 'not_submitted';
 
-  -- §9: prior plans are superseded (never visible to the next clinician).
+  -- sec 9: prior plans are superseded (never visible to the next clinician).
   UPDATE public.preparation_plans
      SET status = 'superseded', updated_at = now()
    WHERE surgery_id = p_surgery_id AND status IN ('draft','approved');
