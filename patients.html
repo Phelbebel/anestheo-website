@@ -9,110 +9,114 @@
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
+<script src="/v2/journey.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
 <style>
-.hero-split{display:grid;grid-template-columns:1.1fr .9fr;gap:46px;align-items:center;}
-.hero-left{min-width:0;}
-.preview-card{background:rgba(255,255,255,.05);border:1px solid rgba(126,207,192,.22);border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.34);backdrop-filter:blur(8px);max-width:380px;margin-left:auto;}
-.pv-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
-.pv-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
-.pv-pct{font-size:22px;font-weight:700;color:#7ECFC0;}
-.pv-bar{height:8px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;margin-bottom:18px;}
-.pv-bar-fill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);border-radius:5px;}
-.pv-steps{list-style:none;margin:0 0 16px;padding:0;}
-.pv-steps li{display:flex;align-items:center;gap:11px;padding:8px 0;font-size:14px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.05);}
-.pv-steps li:last-child{border-bottom:none;}
-.pv-check{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.08);color:var(--hint);border:1px solid rgba(255,255,255,.14);flex-shrink:0;}
-.pv-steps li.done{color:#fff;}
-.pv-steps li.done .pv-check{background:#2A8A74;color:#fff;border-color:#2A8A74;}
-.pv-steps li.current{color:#fff;font-weight:600;}
-.pv-steps li.current .pv-check{border-color:#7ECFC0;color:#7ECFC0;}
-.pv-next{display:flex;flex-direction:column;gap:2px;background:rgba(27,107,90,.12);border:1px solid rgba(42,138,116,.28);border-radius:11px;padding:11px 14px;margin-bottom:14px;}
-.pv-next span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--hint);}
-.pv-next strong{font-size:15px;color:#fff;}
-.pv-btn{width:100%;background:#1B6B5A;color:#fff;border:none;border-radius:11px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
-.pv-btn:hover{background:#2A8A74;}
-.pv-foot{text-align:center;font-size:11px;color:var(--hint);margin-top:12px;}
-@media(max-width:860px){.hero-split{grid-template-columns:1fr;gap:30px;}.preview-card{margin:0 auto;max-width:420px;}}
+/* -- Patient Home (UX ported from surgery-journey; status from derived spine) -- */
+#ph-loader{min-height:50vh;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ph-hi{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:4px;}
+.ph-sub{font-size:15px;color:var(--muted);margin-bottom:24px;}
+#ph-alert{margin-bottom:18px;}
+/* current surgery snapshot */
+.ph-snap{background:linear-gradient(135deg,rgba(27,107,90,.18),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.45);border-radius:18px;padding:22px 24px;margin-bottom:14px;}
+.ph-snap-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:6px;}
+.ph-snap-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;}
+.ph-snap-facts{font-size:13.5px;color:var(--muted);margin-top:4px;}
+.ph-status{font-size:11.5px;font-weight:700;border-radius:20px;padding:6px 13px;white-space:nowrap;}
+/* derived pill colours (journey.js pillKey) */
+.ph-pill-waiting{background:rgba(232,168,56,.14);color:#E8A838;}
+.ph-pill-under_review{background:rgba(126,207,192,.16);color:#7ECFC0;}
+.ph-pill-reviewed{background:rgba(37,211,102,.16);color:#5ee393;}
+.ph-pill-changes{background:rgba(255,110,90,.16);color:#ff8a72;}
+.ph-track{display:flex;align-items:flex-start;margin:16px 0 12px;overflow-x:auto;padding-bottom:4px;}
+.ph-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;min-width:84px;}
+.ph-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);color:var(--hint);border:1px solid var(--border);}
+.ph-step.done .ph-dot{background:#2A8A74;color:#fff;border-color:#2A8A74;}
+.ph-step.now .ph-dot{border-color:#7ECFC0;color:#7ECFC0;}
+.ph-lbl{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+.ph-step.done .ph-lbl,.ph-step.now .ph-lbl{color:#fff;}
+.ph-line{flex:1;height:2px;min-width:16px;background:rgba(255,255,255,.12);margin-top:12px;}
+.ph-next{display:flex;align-items:center;gap:9px;font-size:14px;color:#fff;margin:6px 0 6px;}
+.ph-next b{color:#7ECFC0;font-weight:600;}
+.ph-conn{font-size:12.5px;color:var(--muted);margin:2px 0 14px;}
+.ph-cta{display:inline-block;background:#1B6B5A;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;}
+.ph-cta:hover{background:#2A8A74;}
+/* empty state */
+.ph-empty{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:26px 24px;margin-bottom:14px;text-align:center;}
+.ph-empty h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px;}
+.ph-empty p{font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6;}
+/* quick actions */
+.ph-qa-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin:26px 0 12px;}
+.ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.ph-tile{display:flex;flex-direction:column;gap:7px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px 18px;text-decoration:none;color:inherit;cursor:pointer;font-family:inherit;text-align:left;transition:border-color .18s,background .18s,transform .18s;}
+.ph-tile:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.1);transform:translateY(-2px);}
+.ph-tile-ico{font-size:24px;}
+.ph-tile-t{font-size:15px;font-weight:600;color:#fff;}
+.ph-tile-d{font-size:12.5px;color:var(--muted);line-height:1.5;}
+.ph-tile.soon{opacity:.55;cursor:default;}
+.ph-tile.soon:hover{transform:none;border-color:var(--border);background:rgba(255,255,255,.04);}
+.ph-soon-tag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#E8A838;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.25);border-radius:4px;padding:2px 7px;display:inline-block;width:fit-content;}
+/* guest hero */
+.gh{min-height:42vh;display:flex;align-items:center;padding:50px 0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(27,107,90,.16) 0%,transparent 65%);}
+.gh h1{font-family:'Playfair Display',serif;font-size:clamp(30px,4.5vw,46px);font-weight:700;line-height:1.12;margin-bottom:14px;}
+.gh h1 em{color:#2A8A74;font-style:normal;}
+.gh p{font-size:16px;color:var(--muted);max-width:480px;line-height:1.8;margin-bottom:26px;}
+.gh-btns{display:flex;gap:12px;flex-wrap:wrap;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </head>
 <body>
 <div id="nb-placeholder"></div>
 
-<section class="hero-section">
-  <div class="hero-inner hero-split">
-    <div class="hero-left">
-      <div class="hero-eyebrow"><span></span>For Patients</div>
-      <h1 class="hero-h1">Prepare for your<br><em>surgery</em> with confidence</h1>
-      <p class="hero-sub">Clear, evidence-based information about anesthesia — what to expect, how to prepare, and what questions to ask.</p>
-      <div class="hero-btns" id="hero-cta">
-        <button class="btn-primary" onclick="window.nbOpenModal()">Create free account</button>
-        <a href="/v2/ask.html" class="btn-ghost">Ask a question</a>
-      </div>
-    </div>
-    <div class="hero-right">
-      <div class="preview-card">
-        <div class="pv-head">
-          <div class="pv-title">Your surgery journey</div>
-          <div class="pv-pct">65%</div>
-        </div>
-        <div class="pv-bar"><div class="pv-bar-fill" style="width:65%"></div></div>
-        <ul class="pv-steps">
-          <li class="done"><span class="pv-check">&#10003;</span> Choose procedure</li>
-          <li class="done"><span class="pv-check">&#10003;</span> Complete questionnaire</li>
-          <li class="done"><span class="pv-check">&#10003;</span> Preparation checklist</li>
-          <li class="current"><span class="pv-check">&#9679;</span> Educational videos</li>
-          <li><span class="pv-check"></span> Recovery information</li>
-          <li><span class="pv-check"></span> Ready for surgery</li>
-        </ul>
-        <div class="pv-next"><span>Next step</span><strong>Educational videos</strong></div>
-        <button class="pv-btn" onclick="window.nbOpenModal()">Start preparation</button>
-        <div class="pv-foot">A preview of your personal dashboard</div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <div class="page-wrap">
-  <div class="section">
-    <div class="section-tag">Patient portal</div>
-    <h2 class="section-title" id="portal-title">Your patient portal</h2>
-    <p class="section-sub" id="portal-sub">Everything you need before and after surgery, in one place.</p>
-    <div class="card-grid">
-      <a href="/v2/procedures.html" class="card" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(27,107,90,.18),rgba(27,107,90,.06));border-color:rgba(42,138,116,.45);">
-        <div class="card-ico">&#129658;</div>
-        <div class="card-title" style="font-family:'Playfair Display',serif;font-size:18px;">Surgery preparation</div>
-        <div class="card-desc">Choose your procedure and get a complete anesthesia guide — from fasting to recovery.</div>
-      </a>
-      <a href="/v2/patient-dashboard.html" class="card">
-        <div class="card-ico">&#128202;</div>
-        <div class="card-title">My dashboard</div>
-        <div class="card-desc">Your personal surgery journey and preparation progress.</div>
-      </a>
-      <a href="/v2/questionnaire.html" class="card">
-        <div class="card-ico">&#128203;</div>
-        <div class="card-title">Questionnaires</div>
-        <div class="card-desc">Complete your pre-operative health forms online.</div>
-      </a>
-      <a href="/v2/ask.html" class="card">
-        <div class="card-ico">&#128172;</div>
-        <div class="card-title">Ask Anesthesiologist</div>
-        <div class="card-desc">Send questions and get answers from a specialist.</div>
-      </a>
-      <a href="/v2/videos.html" class="card">
-        <div class="card-ico">&#127979;</div>
-        <div class="card-title">Educational library</div>
-        <div class="card-desc">Videos, guides, and downloads about anesthesia.</div>
-      </a>
-      <a href="/v2/recovery.html" class="card">
-        <div class="card-ico">&#128147;</div>
-        <div class="card-title">Recovery information</div>
-        <div class="card-desc">Pain, recovery expectations, warning signs, and when to call.</div>
-      </a>
+  <!-- GUEST view -->
+  <section id="ph-guest" style="display:none;">
+    <div class="gh">
+      <div>
+        <div class="hero-eyebrow"><span></span>For Patients</div>
+        <h1>Prepare for your<br><em>surgery</em> with confidence</h1>
+        <p>A personal, step-by-step assistant - from preparation to recovery. Understand your anesthesia, complete your forms, and know exactly what to do next.</p>
+        <div class="gh-btns">
+          <button class="btn-primary" onclick="window.nbOpenModal()">Start my surgery journey</button>
+          <a href="/v2/ask.html" class="btn-ghost">Ask a question</a>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- LOADING -->
+  <div id="ph-loader"><div class="spin"></div></div>
+
+  <!-- PATIENT HOME (logged in) -->
+  <section id="ph-home" style="display:none;">
+    <div class="ph-hi" id="ph-hi">Welcome back</div>
+    <div class="ph-sub">Let's get you ready for your surgery.</div>
+
+    <!-- reserved for future Critical Anesthesia Alerts (red safety banner) -->
+    <div id="ph-alert"></div>
+
+    <!-- snapshot OR empty state injected here -->
+    <div id="ph-current"></div>
+
+    <div class="ph-qa-label">Quick actions</div>
+    <div class="ph-grid">
+      <a class="ph-tile" href="/v2/questionnaire.html"><span class="ph-tile-ico">&#128203;</span><span class="ph-tile-t">Complete Questionnaire</span><span class="ph-tile-d">Your pre-operative health forms.</span></a>
+      <a class="ph-tile" href="/v2/patient-dashboard.html"><span class="ph-tile-ico">&#129658;</span><span class="ph-tile-t">My Surgery Journey</span><span class="ph-tile-d">Track every surgery, step by step.</span></a>
+      <a class="ph-tile" href="/v2/procedures.html"><span class="ph-tile-ico">&#128214;</span><span class="ph-tile-t">Surgery Preparation</span><span class="ph-tile-d">Your complete anesthesia guide.</span></a>
+      <a class="ph-tile" href="/v2/videos.html"><span class="ph-tile-ico">&#127916;</span><span class="ph-tile-t">Educational Videos</span><span class="ph-tile-d">Short videos about anesthesia.</span></a>
+      <a class="ph-tile" href="/v2/ask.html"><span class="ph-tile-ico">&#128172;</span><span class="ph-tile-t">Ask an Anesthesiologist</span><span class="ph-tile-d">Get answers from a specialist.</span></a>
+      <a class="ph-tile" href="/v2/recovery.html"><span class="ph-tile-ico">&#10084;&#65039;</span><span class="ph-tile-t">Recovery Information</span><span class="ph-tile-d">Pain, recovery, warning signs.</span></a>
+      <div class="ph-tile soon"><span class="ph-tile-ico">&#128451;&#65039;</span><span class="ph-tile-t">Lifetime Anesthesia Record</span><span class="ph-soon-tag">Coming soon</span></div>
+    </div>
+  </section>
+
+  <!-- CLINICIAN view (clinicians belong in the workspace) -->
+  <section id="ph-clin" style="display:none;">
+    <div class="ph-hi">For Patients</div>
+    <div class="ph-sub">This is the patient experience. Your clinical tools are in the workspace.</div>
+    <a href="/v2/dashboard.html" class="ph-cta">Open clinician workspace</a>
+  </section>
 </div>
 
 <footer class="site-footer">
@@ -126,50 +130,117 @@
   </div>
   <div class="footer-inner"><p class="footer-copy">&copy; 2025 Anestheo. Educational purposes only.</p></div>
 </footer>
+
 <script>
-// "For Patients" is the patient portal. Public for guests; personalized when logged in.
-// Never shows admin or platform-management actions.
+function ge(id){ return document.getElementById(id); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function fmtDate(d){ return d ? new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : ''; }
+function countdown(d){ try{ var x=new Date(d);x.setHours(0,0,0,0);var t=new Date();t.setHours(0,0,0,0);var dd=Math.round((x-t)/86400000); if(dd>1)return 'in '+dd+' days'; if(dd===1)return 'tomorrow'; if(dd===0)return 'today'; return Math.abs(dd)+' days ago'; }catch(e){return '';} }
+
+// Home shows a compact 4-step pre-op view; REACHED is computed from the
+// derived journey_status (journey.js) - the single source of truth.
+var PILL_CLASS = { waiting:'ph-pill-waiting', under_review:'ph-pill-under_review', reviewed:'ph-pill-reviewed', changes:'ph-pill-changes' };
+var STEPS = ['Surgery added','Questionnaire','Preparation plan','Ready for surgery'];
+function reachedFromJourney(js, qSubmitted){
+  if(js==='ready_for_surgery'||js==='completed'||js==='in_recovery'||js==='archived') return 4;
+  if(js==='plan_approved') return 3;
+  if(js==='submitted_for_review'||js==='in_review'||js==='changes_requested'||qSubmitted) return 2;
+  return 1;
+}
+
+function renderSnapshot(s, ctx){
+  var d = window.deriveJourney(ctx);
+  var facts = [];
+  if(s.surgery_date){ facts.push('&#128197; '+fmtDate(s.surgery_date)+' &middot; '+countdown(s.surgery_date)); }
+  if(s.hospital) facts.push('&#127973; '+esc(s.hospital));
+  var r = reachedFromJourney(d.journeyStatus, ctx.questionnaireStatus==='submitted');
+  var stepper = '<div class="ph-track">' + STEPS.map(function(st,i){
+    var cls = i<r ? 'done' : (i===r ? 'now' : '');
+    return '<div class="ph-step '+cls+'"><span class="ph-dot">'+(i<r?'&#10003;':(i+1))+'</span><span class="ph-lbl">'+st+'</span></div>';
+  }).join('<span class="ph-line"></span>') + '</div>';
+  var conn = (d.connectionLine && d.connectionLine !== 'Not connected')
+    ? '<div class="ph-conn">'+esc(d.connectionLine)+'</div>' : '';
+  ge('ph-current').innerHTML =
+    '<div class="ph-snap">' +
+      '<div class="ph-snap-head"><div>' +
+        '<div class="ph-snap-name">'+esc(s.procedure_type||'Your surgery')+'</div>' +
+        (facts.length?'<div class="ph-snap-facts">'+facts.join(' &middot; ')+'</div>':'') +
+      '</div><div class="ph-status '+(PILL_CLASS[d.pillKey]||'ph-pill-waiting')+'">'+d.pill+' '+esc(d.pillLabel)+'</div></div>' +
+      stepper +
+      '<div class="ph-next">&#10148; <span>Next: <b>'+esc(d.nextStep)+'</b></span></div>' +
+      conn +
+      '<a class="ph-cta" href="/v2/patient-dashboard.html">Continue Journey &rarr;</a>' +
+    '</div>';
+}
+function renderEmpty(){
+  ge('ph-current').innerHTML =
+    '<div class="ph-empty">' +
+      '<h3>Start planning your surgery</h3>' +
+      '<p>Add your surgery to get a personalized, step-by-step preparation plan - from forms to recovery.</p>' +
+      '<a class="ph-cta" href="/v2/patient-dashboard.html">+ Add Surgery</a>' +
+    '</div>';
+}
+
+function showHome(profile, user){
+  var first = (profile && profile.full_name) ? profile.full_name.split(' ')[0] : user.email.split('@')[0];
+  first = first.charAt(0).toUpperCase() + first.slice(1);
+  ge('ph-hi').textContent = 'Welcome back, ' + first;
+  ge('ph-loader').style.display='none';
+  ge('ph-home').style.display='block';
+}
+function showGuest(){ ge('ph-loader').style.display='none'; ge('ph-guest').style.display='block'; }
+function showClin(){ ge('ph-loader').style.display='none'; ge('ph-clin').style.display='block'; }
+function isStaff(p){ return !!(p && (p.is_admin===true || p.role==='admin' || p.role==='doctor')); }
+
 (async function(){
-  function render(profile, user){
-    var box = document.getElementById('hero-cta');
-    var role = profile ? (profile.role || 'patient') : 'patient';
-    var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
-    var isStaff = isAdmin || role === 'doctor' || role === 'admin';
-
-    // Personalize the portal heading when logged in
-    var title = document.getElementById('portal-title');
-    var sub   = document.getElementById('portal-sub');
-    if(user && !isStaff){
-      var first = (profile && profile.full_name) ? profile.full_name.split(' ')[0] : user.email.split('@')[0];
-      first = first.charAt(0).toUpperCase() + first.slice(1);
-      if(title) title.textContent = 'Welcome back, ' + first;
-      if(sub) sub.textContent = 'Choose what you need from your patient portal.';
-    }
-
-    if(!box) return;
-    if(isStaff){
-      box.innerHTML = '<a href="/v2/dashboard.html" class="btn-primary">Go to my dashboard</a>';
-    } else if(user){
-      box.innerHTML = '<a href="/v2/patient-dashboard.html" class="btn-primary">Open my dashboard</a>' +
-                      '<a href="/v2/procedures.html" class="btn-ghost">Surgery preparation</a>';
-    } else {
-      box.innerHTML = '<button class="btn-primary" onclick="window.nbOpenModal()">Create free account</button>' +
-                      '<a href="/v2/ask.html" class="btn-ghost">Ask a question</a>';
-    }
-  }
   try {
     var session = await getSession();
-    if(session){
-      var profile = await getProfile(session.user.id);
-      render(profile, session.user);
-    }
-    window.sb.auth.onAuthStateChange(async function(ev, sess){
-      if(ev === 'SIGNED_IN' && sess){
-        var p = await getProfile(sess.user.id);
-        render(p, sess.user);
-      }
+    if(!session){ showGuest(); return; }
+    var uid = session.user.id;
+    var profile = await getProfile(uid);
+    if(isStaff(profile)){ showClin(); return; }   // clinicians: no patient redirect
+
+    showHome(profile, session.user);
+
+    // Most imminent active surgery for the snapshot (main schema; tolerant of 0..n rows)
+    var s = null;
+    try {
+      var r = await window.sb.from('patient_surgeries').select('*')
+        .eq('patient_id', uid)
+        .order('surgery_date', { ascending: true, nullsFirst: false });
+      if(r && r.error){ console.warn('snapshot load error:', r.error.message); }
+      var list = ((r && r.data) || []).filter(function(x){ return !x.archived_at; });
+      s = list[0] || null;
+    } catch(e){ console.warn('snapshot exception:', e.message); }
+
+    if(!s){ renderEmpty(); return; }
+
+    // Derive status from questionnaire + care_request + milestones.
+    // Phase-1 (Option A): questionnaire/review is per-patient, not per-surgery.
+    var quest = null, cr = null;
+    try { quest = await window.getQuestionnaire(uid); } catch(e){}
+    try {
+      var cq = await window.sb.from('care_requests').select('*')
+        .eq('patient_id', uid).in('status', ['requested','accepted'])
+        .order('requested_at', { ascending: false }).maybeSingle();
+      cr = (cq && cq.data) || null;
+    } catch(e){}
+
+    renderSnapshot(s, {
+      hasSurgery: true,
+      questionnaireStatus: quest ? (quest.status==='submitted'?'submitted':'in_progress') : 'none',
+      careRequestStatus: cr ? cr.status : 'none',
+      doctorName: (cr && cr.doctor_name) ? cr.doctor_name : 'your clinician',
+      reviewState: quest ? (quest.review_state || 'not_submitted') : 'not_submitted',
+      readyAt: s.ready_at, completedAt: s.completed_at,
+      recoveryStartedAt: s.recovery_started_at, archivedAt: s.archived_at,
+      reviewerNotes: quest ? quest.reviewer_notes : ''
     });
-  } catch(e){ console.error('patients portal error:', e.message); }
+
+  } catch(e){
+    console.error('patient home error:', e.message);
+    showGuest();
+  }
 })();
 </script>
 </body>
