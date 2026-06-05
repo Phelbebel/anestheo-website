@@ -137,6 +137,34 @@
 .sp-track{display:flex;gap:4px;margin-top:14px;}
 .sp-seg{height:5px;flex:1;border-radius:3px;background:rgba(255,255,255,.1);}
 .sp-seg.on{background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);}
+/* surgery journey cards (UX shell; stepper driven by deriveJourney) */
+.sj-sec-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--hint);margin:4px 0 10px;}
+.sjc{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:12px;}
+.sjc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.sjc-name{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:#fff;}
+.sjc-facts{font-size:13px;color:var(--muted);margin-top:4px;}
+.sjc-pill{font-size:11px;font-weight:700;border-radius:20px;padding:5px 11px;white-space:nowrap;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;}
+.sjc-track{display:flex;align-items:flex-start;margin:14px 0 8px;overflow-x:auto;padding-bottom:4px;}
+.sjc-step{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;min-width:70px;}
+.sjc-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);color:var(--hint);border:1px solid var(--border);}
+.sjc-step.done .sjc-dot{background:#2A8A74;color:#fff;border-color:#2A8A74;}
+.sjc-step.now .sjc-dot{border-color:#7ECFC0;color:#7ECFC0;}
+.sjc-lbl{font-size:10px;color:var(--muted);white-space:nowrap;}
+.sjc-step.done .sjc-lbl,.sjc-step.now .sjc-lbl{color:#fff;}
+.sjc-line{flex:1;height:2px;min-width:12px;background:rgba(255,255,255,.12);margin-top:11px;}
+.sjc-next{font-size:13.5px;color:#fff;margin:6px 0 12px;}
+.sjc-next b{color:#7ECFC0;}
+.sjc-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+.sjc-cta{background:#1B6B5A;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;}
+.sjc-cta:hover{background:#2A8A74;}
+.sjc-edit{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:10px 14px;font-size:13px;cursor:pointer;font-family:inherit;}
+.sjc.past{opacity:.72;}
+/* full preparation-plan modal */
+.ppm-bg{display:none;position:fixed;inset:0;background:rgba(5,12,9,.74);z-index:1300;align-items:flex-start;justify-content:center;padding:28px 16px;overflow-y:auto;}
+.ppm-bg.open{display:flex;}
+.ppm{background:#0C1F18;border:1px solid rgba(27,107,90,.3);border-radius:16px;padding:22px;max-width:620px;width:100%;}
+.ppm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.ppm-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;}
 </style>
 </head>
 <body>
@@ -153,30 +181,20 @@
 
     <div class="pd-grid">
 
-      <!-- UPCOMING SURGERY -->
-      <div class="pd-card full" id="surgery-card">
-        <div class="pd-card-title">&#129656; Upcoming surgery</div>
-        <div id="surgery-body"></div>
-      </div>
-
-      <!-- PREPARATION PROGRESS -->
-      <div class="pd-card">
-        <div class="pd-card-title">&#128202; Preparation progress</div>
-        <div class="prog-pct"><span id="prog-pct">0</span>%</div>
-        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-        <div class="prog-items" id="prog-items"></div>
+      <!-- MY SURGERY JOURNEY (multi-surgery shell; status derived from journey.js) -->
+      <div class="pd-card full" id="journey-card">
+        <div class="pd-card-title">&#129658; My surgeries
+          <button class="edit" onclick="openSurgery(null)">+ Add surgery</button></div>
+        <div class="sj-sec-label" id="upcoming-label" style="display:none;">Upcoming</div>
+        <div id="journey-upcoming"></div>
+        <div class="sj-sec-label" id="past-label" style="display:none;">Past surgeries</div>
+        <div id="journey-past"></div>
       </div>
 
       <!-- QUESTIONNAIRE STATUS -->
       <div class="pd-card">
         <div class="pd-card-title">&#128203; Questionnaire</div>
         <div id="quest-body"></div>
-      </div>
-
-      <!-- PREPARATION PLAN -->
-      <div class="pd-card full" id="prep-card">
-        <div class="pd-card-title">&#128203; Preparation plan</div>
-        <div id="prep-body"></div>
       </div>
 
       <!-- QUESTION STATUS -->
@@ -225,11 +243,21 @@
   </div>
 </div>
 
+<!-- Preparation Plan modal (origin-aware: educational guide for patient origin) -->
+<div class="ppm-bg" id="prep-modal" onclick="if(event.target===this)closePrep()">
+  <div class="ppm">
+    <div class="ppm-head"><div class="ppm-title">&#128203; Preparation plan</div>
+      <button class="btn-sm" onclick="closePrep()">Close</button></div>
+    <div id="prep-modal-body"></div>
+  </div>
+</div>
+
 <script>
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 var _uid = null, _surgery = null, _activity = [];
 var _quest = null, _prepChecklist = {}, _careRequest = null;
+var _surgeries = [], _editId = null;
 
 // ── ALWAYS-ON STATUS PANEL (derived from the single source of truth) ──
 function renderStatusPanel(){
@@ -268,41 +296,99 @@ function daysUntil(dateStr){
     return Math.round((d - t) / 86400000);
   } catch(e){ return null; }
 }
-function renderSurgery(){
-  var s = _surgery;
-  var body = ge('surgery-body');
-  if(!s || !s.procedure_type){
-    // Friendly prompt — NOT empty fields
-    body.innerHTML =
+function countdownStr(dateStr){
+  var dd = dateStr ? daysUntil(dateStr) : null;
+  if(dd === null) return '';
+  if(dd > 1) return 'in ' + dd + ' days';
+  if(dd === 1) return 'tomorrow';
+  if(dd === 0) return 'today';
+  return Math.abs(dd) + ' days ago';
+}
+// Context for deriveJourney for a given surgery (Option A: questionnaire/review per-patient)
+function journeyCtx(s){
+  return {
+    hasSurgery: !!(s && s.procedure_type),
+    questionnaireStatus: _quest ? (_quest.status === 'submitted' ? 'submitted' : 'in_progress') : 'none',
+    careRequestStatus: _careRequest ? _careRequest.status : 'none',
+    doctorName: (_careRequest && _careRequest.doctor_name) ? _careRequest.doctor_name : 'your clinician',
+    reviewState: _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted',
+    readyAt: s && s.ready_at, completedAt: s && s.completed_at,
+    recoveryStartedAt: s && s.recovery_started_at, archivedAt: s && s.archived_at,
+    reviewerNotes: _quest ? _quest.reviewer_notes : ''
+  };
+}
+// 6-step journey stepper, REACHED computed from derived journey_status only.
+var SJ_STEPS = ['Added','Questionnaire','Prep plan','Ready','Surgery','Recovery'];
+function reached6(js, qSubmitted){
+  switch(js){
+    case 'archived': case 'in_recovery': return 6;
+    case 'completed': return 5;
+    case 'ready_for_surgery': return 4;
+    case 'plan_approved': return 3;
+    case 'submitted_for_review': case 'in_review': case 'changes_requested': return 2;
+    default: return qSubmitted ? 2 : 1;
+  }
+}
+function sjStepper(d, qSubmitted){
+  var r = reached6(d.journeyStatus, qSubmitted);
+  return '<div class="sjc-track">' + SJ_STEPS.map(function(st,i){
+    var n = i+1, cls = n<r ? 'done' : (n===r ? 'now' : '');
+    return '<div class="sjc-step '+cls+'"><span class="sjc-dot">'+(n<r?'&#10003;':n)+'</span><span class="sjc-lbl">'+st+'</span></div>';
+  }).join('<span class="sjc-line"></span>') + '</div>';
+}
+// Primary CTA per derived stage. The prep CTA opens the origin-aware guide.
+function sjCTA(s, d){
+  var js = d.journeyStatus;
+  if(js==='completed' || js==='in_recovery' || js==='archived')
+    return '<a class="sjc-cta" href="/v2/recovery.html">&#10084;&#65039; Recovery information</a>';
+  if(js==='ready_for_surgery')
+    return '<button class="sjc-cta" onclick="openPrep()">&#9989; Surgery-day instructions</button>';
+  if(_quest && _quest.status==='submitted')
+    return '<button class="sjc-cta" onclick="openPrep()">&#128203; View Preparation Plan</button>';
+  return '<a class="sjc-cta" href="/v2/questionnaire.html">&#128203; '+(_quest?'Continue':'Start')+' Questionnaire</a>';
+}
+function surgeryCardHtml(s, isPast){
+  var d = window.deriveJourney(journeyCtx(s));
+  var facts = [];
+  if(s.surgery_date){ var cd = countdownStr(s.surgery_date);
+    facts.push('&#128197; '+new Date(s.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})+(cd?' &middot; '+cd:'')); }
+  if(s.hospital) facts.push('&#127973; '+esc(s.hospital));
+  if(s.surgeon) facts.push('&#129658; '+esc(s.surgeon));
+  var qSub = !!(_quest && _quest.status==='submitted');
+  return '<div class="sjc'+(isPast?' past':'')+'">' +
+    '<div class="sjc-head"><div>' +
+      '<div class="sjc-name">'+esc(s.procedure_type||'Your surgery')+'</div>' +
+      (facts.length?'<div class="sjc-facts">'+facts.join(' &middot; ')+'</div>':'') +
+    '</div><div class="sjc-pill">'+d.pill+' '+esc(d.pillLabel)+'</div></div>' +
+    sjStepper(d, qSub) +
+    '<div class="sjc-next">&#10148; Next: <b>'+esc(d.nextStep)+'</b></div>' +
+    '<div class="sjc-actions">' + sjCTA(s, d) +
+      '<button class="sjc-edit" onclick="openSurgery(\''+(s.id||'')+'\')">Edit</button>' +
+    '</div></div>';
+}
+function renderJourney(){
+  var up = ge('journey-upcoming'), past = ge('journey-past');
+  if(!up || !past) return;
+  if(!_surgeries.length){
+    ge('upcoming-label').style.display='none'; ge('past-label').style.display='none';
+    up.innerHTML =
       '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;">' +
       '<div><div style="font-size:15px;color:#fff;font-weight:500;">No surgery added yet</div>' +
-      '<div style="font-size:13px;color:var(--muted);margin-top:3px;">Add your procedure to personalize your journey and countdown.</div></div>' +
-      '<button class="btn-sm" onclick="openSurgery()">Add my surgery</button></div>';
-    return;
+      '<div style="font-size:13px;color:var(--muted);margin-top:3px;">Add your procedure to start your step-by-step journey.</div></div>' +
+      '<button class="btn-sm" onclick="openSurgery(null)">Add my surgery</button></div>';
+    past.innerHTML=''; return;
   }
-  // Nice summary with countdown
-  var dd = s.surgery_date ? daysUntil(s.surgery_date) : null;
-  var countdown = '';
-  if(dd !== null){
-    if(dd > 1) countdown = 'in ' + dd + ' days';
-    else if(dd === 1) countdown = 'tomorrow';
-    else if(dd === 0) countdown = 'today';
-    else countdown = Math.abs(dd) + ' days ago';
-  }
-  var dateFmt = s.surgery_date ? new Date(s.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
-  var chips = [];
-  if(s.hospital) chips.push('&#127973; ' + esc(s.hospital));
-  if(s.surgeon) chips.push('&#129658; ' + esc(s.surgeon));
-  if(s.anesthesia_type) chips.push('&#128137; ' + esc(s.anesthesia_type));
-  body.innerHTML =
-    '<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px;">' +
-      '<div><div style="font-family:\'Playfair Display\',serif;font-size:20px;font-weight:700;color:#fff;">'+esc(s.procedure_type)+'</div>' +
-      (dateFmt?'<div style="font-size:13px;color:var(--muted);margin-top:4px;">'+dateFmt+(countdown?' &middot; <span style="color:#7ECFC0;font-weight:600;">'+countdown+'</span>':'')+'</div>':'<div style="font-size:13px;color:var(--hint);margin-top:4px;">Date not set</div>') +
-      '</div><button class="edit" onclick="openSurgery()" style="background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-family:inherit;">Edit</button></div>' +
-      (chips.length?'<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">'+chips.map(function(c){return '<span style="font-size:12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;padding:6px 11px;color:rgba(255,255,255,.82);">'+c+'</span>';}).join('')+'</div>':'');
+  var upList = _surgeries.filter(function(s){ return !s.completed_at && !s.archived_at; });
+  var pastList = _surgeries.filter(function(s){ return s.completed_at || s.archived_at; });
+  ge('upcoming-label').style.display = upList.length ? 'block' : 'none';
+  ge('past-label').style.display = pastList.length ? 'block' : 'none';
+  up.innerHTML = upList.map(function(s){ return surgeryCardHtml(s, false); }).join('') ||
+    '<div class="empty">No upcoming surgeries.</div>';
+  past.innerHTML = pastList.map(function(s){ return surgeryCardHtml(s, true); }).join('');
 }
-function openSurgery(){
-  var s = _surgery || {};
+function openSurgery(id){
+  var s = id ? (_surgeries.filter(function(x){ return x.id === id; })[0] || {}) : {};
+  _editId = id || null;
   ge('m-proc').value = s.procedure_type || '';
   ge('m-date').value = s.surgery_date || '';
   ge('m-hospital').value = s.hospital || '';
@@ -311,6 +397,16 @@ function openSurgery(){
   ge('surgery-modal').classList.add('open');
 }
 function closeSurgery(){ ge('surgery-modal').classList.remove('open'); }
+async function loadSurgeries(){
+  try {
+    var r = await window.sb.from('patient_surgeries').select('*')
+      .eq('patient_id', _uid).order('surgery_date', { ascending: true, nullsFirst: false });
+    _surgeries = (r && r.data) || [];
+  } catch(e){ _surgeries = []; }
+  // Active surgery drives the status panel / prep (Option A: one review per patient).
+  var active = _surgeries.filter(function(s){ return !s.archived_at && !s.completed_at; });
+  _surgery = active[0] || _surgeries[0] || null;
+}
 async function saveSurgery(){
   ge('m-save').disabled = true; ge('m-save').textContent = 'Saving…';
   var rec = {
@@ -321,19 +417,18 @@ async function saveSurgery(){
     surgeon: ge('m-surgeon').value || null,
     anesthesia_type: ge('m-anes').value || null,
     // Self-service dashboard = patient-initiated journey. Preserve an existing
-    // clinic origin if one was set elsewhere.
+    // clinic origin if one was set elsewhere. (Phase-1: single row per patient
+    // via UNIQUE(patient_id); true multi-surgery insert arrives with Phase-0 schema.)
     origin: (_surgery && _surgery.origin) ? _surgery.origin : 'patient'
   };
   try {
     await window.sb.from('patient_surgeries').upsert(rec, { onConflict: 'patient_id' });
-    _surgery = rec;
   } catch(e){ console.error('save surgery:', e.message); }
   ge('m-save').disabled = false; ge('m-save').textContent = 'Save';
   closeSurgery();
-  renderSurgery();
-  prepRender();
+  await loadSurgeries();
+  renderJourney();
   renderStatusPanel();
-  computeProgress();
 }
 
 // ── QUESTIONNAIRE STATUS ──────────────────────────────────
@@ -352,12 +447,12 @@ function renderQuestionnaire(q){
     body.innerHTML =
       '<div style="font-size:15px;color:#fff;font-weight:600;">&#10003; Questionnaire complete</div>' +
       (dateFmt ? '<div style="font-size:13px;color:var(--muted);margin-top:3px;">Completed '+dateFmt+'</div>' : '') +
-      '<div style="font-size:13px;color:var(--muted);margin-top:2px;">Preparation status: <span style="color:#7ECFC0;">Awaiting consultation</span></div>' +
+      '<div style="font-size:13px;color:var(--muted);margin-top:2px;">Your educational preparation guide is ready.</div>' +
       (flags.length ? '<div class="pdq-flags">'+flags.map(function(f){return '<span class="pdq-flag">&#9888; '+f+'</span>';}).join('')+'</div>' : '') +
       '<div class="pdq-btns">' +
+        '<button class="btn-sm" onclick="openPrep()">View Preparation Plan</button>' +
         '<button class="btn-sm" onclick="pdSummary()">View summary</button>' +
         '<button class="btn-sm" onclick="pdPrint()">Print / Download PDF</button>' +
-        '<a href="/v2/procedures.html" class="btn-sm">Continue preparation</a>' +
       '</div>';
     return;
   }
@@ -428,21 +523,46 @@ var PREP_MED_LABELS = {
   glp1:'GLP-1 medication', other:'Other medication(s)'
 };
 
-function prepRender(){
-  var body = ge('prep-body'); if(!body) return;
-  // Clinic-initiated journeys keep the original placeholder message.
+// A clinician is "actually involved" only for clinic-origin surgeries or once a
+// patient has connected one (accepted care_request). Req 5: never show the
+// "anesthesiologist is preparing your plan" message otherwise.
+function prepClinicianInvolved(){
+  return prepOrigin() === 'clinic' || (_careRequest && _careRequest.status === 'accepted');
+}
+function prepContentHtml(){
+  // Clinic-initiated journeys keep the placeholder until the reviewed plan lands.
   if(prepOrigin() === 'clinic'){
-    body.innerHTML = '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>';
-    return;
+    return '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>';
   }
-  // Patient-initiated: needs a submitted questionnaire to generate the guide.
+  // Patient-initiated: the educational guide appears immediately once the
+  // questionnaire is submitted - no clinician required.
   if(!_quest || _quest.status !== 'submitted'){
-    body.innerHTML =
-      '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Complete your pre-op questionnaire to unlock your personalized preparation guide.</div>' +
+    return '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Complete your pre-op questionnaire to unlock your personalized preparation guide.</div>' +
       '<a href="/v2/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
-    return;
   }
-  body.innerHTML = prepBuildGuide(_quest);
+  return prepBuildGuide(_quest);
+}
+function openPrep(){
+  var body = ge('prep-modal-body'); if(!body) return;
+  body.innerHTML = prepContentHtml();
+  ge('prep-modal').classList.add('open');
+}
+function closePrep(){ ge('prep-modal').classList.remove('open'); }
+window.openPrep = openPrep; window.closePrep = closePrep;
+
+// Top-of-guide banner reflecting the real review state (single source of truth).
+function prepReviewBanner(){
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  var connected = _careRequest && _careRequest.status === 'accepted';
+  var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your anesthesiologist';
+  if(rs === 'approved')
+    return '<div class="prep-note" style="color:#5ee393;background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);">&#10003; Reviewed and approved by '+dn+'. This guide reflects their guidance.</div>';
+  if(rs === 'changes_requested')
+    return '<div class="prep-note">&#9888; '+dn+' requested more information. Update your questionnaire and resubmit. Meanwhile, here is your educational guide.</div>';
+  if(rs === 'in_review' || rs === 'pending' || connected)
+    return '<div class="prep-note">&#9888; Educational preparation guide. '+dn+' is reviewing your questionnaire and a reviewed plan will follow. Always follow the instructions your surgical and anesthesia team give you.</div>';
+  // No clinician involved yet - do NOT imply one is preparing a plan.
+  return '<div class="prep-note">&#9888; Educational preparation guide - not yet reviewed by a clinician. Connect a clinician to have it reviewed. Always follow the instructions your surgical and anesthesia team give you.</div>';
 }
 
 function prepBuildGuide(q){
@@ -451,9 +571,8 @@ function prepBuildGuide(q){
   var s = _surgery || {};
   var h = '';
 
-  // Clear "not yet reviewed" labeling.
-  h += '<div class="prep-note">&#9888; Educational preparation guide — not yet reviewed by an anesthesiologist. ' +
-       'A doctor-reviewed plan will follow. Always follow the specific instructions your surgical and anesthesia team give you.</div>';
+  // Context-aware banner: only imply a clinician when one is actually involved.
+  h += prepReviewBanner();
 
   // 1. Surgery summary
   var sumRows = '';
@@ -690,12 +809,8 @@ document.addEventListener('DOMContentLoaded', async function(){
     first = first.charAt(0).toUpperCase() + first.slice(1);
     ge('pd-hi').textContent = 'Welcome back, ' + first;
 
-    // Surgery (graceful if table absent)
-    try {
-      var sr = await window.sb.from('patient_surgeries').select('*').eq('patient_id', _uid).maybeSingle();
-      _surgery = sr.data || null;
-    } catch(e){ _surgery = null; }
-    renderSurgery();
+    // Surgeries (multi-surgery shell; graceful if table absent)
+    await loadSurgeries();
     if(_surgery && _surgery.procedure_type){ addActivity('Added surgery: ' + _surgery.procedure_type, _surgery.updated_at); }
 
     // Questionnaire (status card + signal + activity)
@@ -716,6 +831,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       _careRequest = crq.data || null;
     } catch(e){ _careRequest = null; }
     renderStatusPanel();
+    renderJourney();
 
     // Questions (graceful if status/replies absent)
     try {
@@ -750,10 +866,8 @@ document.addEventListener('DOMContentLoaded', async function(){
       if(c && c.items && c.items.prep_guide) _prepChecklist = c.items.prep_guide;
     } catch(e){}
 
-    // Preparation plan stage (clinic message vs patient guide)
-    prepRender();
-
-    computeProgress();
+    // Journey cards already rendered above; refresh now that all signals loaded.
+    renderJourney();
     renderActivity();
 
     _pdDone = true; clearTimeout(_pdWatchdog);
