@@ -20,7 +20,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
-.eng-wrap{max-width:1100px;margin:0 auto;padding:30px 24px 80px;position:relative;z-index:1;}
+.eng-wrap{max-width:1100px;margin:0 auto;padding:16px 22px 60px;position:relative;z-index:1;}
 .pt-banner{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
   background:#06120D;border:1px solid rgba(126,207,192,.28);border-radius:10px;padding:9px 14px;margin-bottom:12px;
   box-shadow:0 6px 18px rgba(0,0,0,.4);}
@@ -28,12 +28,12 @@ html,body{max-width:100%;overflow-x:hidden;}
 .pt-banner .pb-i{font-size:13.5px;font-weight:700;color:#fff;letter-spacing:.01em;}
 .pt-banner .pb-id{color:#7ECFC0;}
 .pt-banner .pb-sep{color:rgba(126,207,192,.45);font-weight:400;}
-.eng-head{margin-bottom:22px;}
+.eng-head{margin-bottom:12px;}
 .eng-head h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;}
 .eng-head p{font-size:14px;color:var(--muted);}
 /* ── Monitor header (anesthesia workstation) ── */
 .mon-header{display:flex;align-items:stretch;gap:0;background:#06120D;border:1px solid rgba(126,207,192,.2);
-  border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:inset 0 0 40px rgba(0,0,0,.4);}
+  border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:inset 0 0 40px rgba(0,0,0,.4);}
 .mh-traces{flex:1;min-width:140px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.06);}
 .mh-tr{flex:1;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.05);min-height:30px;}
 .mh-tr:last-child{border-bottom:none;}
@@ -68,7 +68,7 @@ body.embed .nb,body.embed #nb-nav{display:none!important;}
 body.embed .eng-wrap{padding-top:14px;}
 /* ── Live Timers strip (intraoperative monitor modules) ── */
 .lt-strip{background:#06120D;border:1px solid rgba(126,207,192,.2);border-radius:14px;
-  box-shadow:inset 0 0 40px rgba(0,0,0,.4);margin-bottom:16px;overflow:hidden;}
+  box-shadow:inset 0 0 40px rgba(0,0,0,.4);margin-bottom:10px;overflow:hidden;}
 .lt-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.06);}
 .lt-bar i{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(126,207,192,.75);}
 .lt-bar .lt-dot{width:7px;height:7px;border-radius:50%;background:#46d39a;box-shadow:0 0 6px #46d39a;}
@@ -142,26 +142,39 @@ body.embed .eng-wrap{padding-top:14px;}
 .mh-crisis span{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;}
 .mh-crisis:hover{background:rgba(192,57,43,.3);color:#fff;}
 /* Crisis overlay */
-.crisis-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.82);z-index:5000;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;}
-.crisis-bg.open{display:flex;}
-.crisis-modal{background:#0A1614;border:1px solid rgba(192,57,43,.35);border-radius:16px;max-width:680px;width:100%;overflow:hidden;}
-.crisis-head{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:rgba(192,57,43,.14);border-bottom:1px solid rgba(192,57,43,.25);}
-.crisis-title{font-size:18px;font-weight:700;color:#ff8a72;font-family:'Playfair Display',serif;}
-.crisis-x{background:none;border:none;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;}
-.crisis-wt{padding:9px 20px;font-size:12.5px;color:var(--hint);border-bottom:1px solid var(--border);}
+/* Crisis Mode — true full-viewport takeover */
+.crisis-bg{display:none;position:fixed;inset:0;background:#070F0C;z-index:5000;overflow-y:auto;}
+.crisis-bg.open{display:block;}
+.crisis-modal{background:#0A1614;border:none;border-radius:0;max-width:none;width:100%;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;}
+.crisis-sticky{position:sticky;top:0;z-index:3;background:#0A1614;border-bottom:1px solid rgba(192,57,43,.3);box-shadow:0 6px 20px rgba(0,0,0,.45);}
+.crisis-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 22px 11px;background:rgba(192,57,43,.16);}
+.crisis-title{font-size:23px;font-weight:700;color:#ff8a72;font-family:'Playfair Display',serif;line-height:1.1;}
+.crisis-wt{font-size:13.5px;color:var(--hint);margin-top:3px;}
 .crisis-wt b{color:#7ECFC0;}
-.crisis-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:13px 18px 4px;}
-.crisis-tab{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:18px;padding:7px 13px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
-.crisis-tab.on{background:rgba(192,57,43,.22);border-color:rgba(192,57,43,.5);color:#fff;font-weight:600;}
-.crisis-body{padding:8px 20px 22px;}
-.crisis-sec-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#ff8a72;margin:16px 0 7px;}
-.crisis-step{display:flex;gap:10px;font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.5;padding:5px 0;}
+.crisis-close{background:rgba(192,57,43,.3);border:1px solid rgba(192,57,43,.55);color:#fff;font-size:15px;font-weight:700;line-height:1;cursor:pointer;font-family:inherit;border-radius:10px;padding:13px 20px;white-space:nowrap;}
+.crisis-close:hover{background:rgba(192,57,43,.5);}
+.crisis-tabs{display:flex;flex-wrap:wrap;gap:7px;padding:10px 22px 11px;}
+.crisis-tab{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:18px;padding:9px 15px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
+.crisis-tab.on{background:rgba(192,57,43,.28);border-color:rgba(192,57,43,.55);color:#fff;font-weight:700;}
+.crisis-body{padding:16px 22px 44px;max-width:820px;margin:0 auto;width:100%;box-sizing:border-box;flex:1;}
+.crisis-sec-t{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#ff8a72;margin:18px 0 8px;}
+.crisis-step{display:flex;gap:12px;font-size:15.5px;color:rgba(255,255,255,.92);line-height:1.55;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);}
 .crisis-step b{color:#fff;}
-.crisis-num{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:rgba(192,57,43,.25);color:#ff9b86;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
-.crisis-dose{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.crisis-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:rgba(192,57,43,.3);color:#ff9b86;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.crisis-dose{display:flex;justify-content:space-between;gap:12px;font-size:15px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);}
 .crisis-dose span{color:#cfe;} .crisis-dose b{color:#fff;font-weight:700;text-align:right;}
-.crisis-emg-t{font-size:17px;font-weight:700;color:#fff;margin-top:4px;}
-.crisis-emg-t span{display:block;font-size:12px;font-weight:500;color:#ff9b86;margin-top:1px;}
+.crisis-emg-t{font-size:24px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;margin-top:2px;}
+.crisis-emg-t span{display:block;font-size:13px;font-weight:500;color:#ff9b86;margin-top:2px;}
+/* in-page section dividers + crisis launch grid */
+.sec-div{grid-column:1/-1;display:flex;align-items:center;gap:9px;margin:8px 0 0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7ECFC0;}
+.sec-div::after{content:'';flex:1;height:1px;background:rgba(126,207,192,.18);}
+.sec-div.crisis{color:#ff8a72;}
+.sec-div.crisis::after{background:rgba(192,57,43,.28);}
+.crisis-launch{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.crisis-launch-btn{background:rgba(192,57,43,.16);border:1px solid rgba(192,57,43,.4);color:#fff;border-radius:11px;padding:13px 13px;cursor:pointer;font-family:inherit;text-align:left;display:flex;flex-direction:column;gap:3px;transition:background .15s,transform .12s;min-height:62px;}
+.crisis-launch-btn:hover{background:rgba(192,57,43,.3);transform:translateY(-1px);}
+.crisis-launch-btn b{font-size:14.5px;font-weight:700;}
+.crisis-launch-btn span{font-size:11px;color:#ffd0c4;line-height:1.3;}
 /* Auto panels — summary & risk */
 .summary-panel{background:linear-gradient(135deg,rgba(27,107,90,.16),rgba(27,107,90,.05));border:1px solid rgba(42,138,116,.3);}
 /* Dominant patient summary */
@@ -181,11 +194,11 @@ body.embed .eng-wrap{padding-top:14px;}
 .sum-more-btn{margin-top:9px;background:none;border:1px solid var(--border);color:#7ECFC0;border-radius:7px;padding:6px 12px;font-size:11.5px;font-family:inherit;cursor:pointer;}
 .sum-more-btn:hover{background:rgba(255,255,255,.04);}
 /* Drug dosing cards */
-.drug-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
-.drug-card{background:rgba(0,0,0,.2);border:1px solid rgba(42,138,116,.22);border-radius:9px;padding:10px 11px;}
-.dc-name{font-size:13px;font-weight:700;letter-spacing:.02em;color:#fff;margin-bottom:2px;}
-.dc-sub{font-size:10.5px;color:#7ECFC0;font-weight:500;line-height:1.3;margin-bottom:6px;min-height:26px;}
-.dc-dose{font-size:18px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;line-height:1.05;}
+.drug-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:7px;}
+.drug-card{background:rgba(0,0,0,.2);border:1px solid rgba(42,138,116,.22);border-radius:8px;padding:8px 10px;}
+.dc-name{font-size:12.5px;font-weight:700;letter-spacing:.02em;color:#fff;margin-bottom:2px;}
+.dc-sub{font-size:10px;color:#7ECFC0;font-weight:500;line-height:1.3;margin-bottom:4px;}
+.dc-dose{font-size:16px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;line-height:1.05;}
 .dc-dose span{font-size:10px;color:#9fe6d4;margin-left:3px;font-weight:600;}
 /* Airway & ventilation at-a-glance grid */
 .av-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:6px;}
@@ -203,22 +216,22 @@ body.embed .eng-wrap{padding-top:14px;}
 .av-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:14px 0 6px;padding-top:8px;border-top:1px solid rgba(27,107,90,.12);}
 .av-sub:first-child{margin-top:0;padding-top:0;border-top:none;}
 .input-bar{background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:14px;
-  padding:18px 20px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;align-items:end;}
+  padding:12px 14px;margin-bottom:9px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;align-items:end;}
 .inp{display:flex;flex-direction:column;gap:5px;min-width:0;}
 .inp label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:#8FD9C6;}
 .inp input,.inp select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;
   padding:10px 11px;color:#fff;font-size:16px;font-family:inherit;outline:none;transition:border-color .2s;min-height:44px;appearance:none;-webkit-appearance:none;width:100%;max-width:100%;box-sizing:border-box;min-width:0;}
 .inp input:focus,.inp select:focus{border-color:#2A8A74;}
 .inp select option{background:#132218;}
-.disclaimer{font-size:11px;color:var(--hint);margin-bottom:24px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.disclaimer{font-size:11px;color:var(--hint);margin-bottom:8px;line-height:1.55;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:7px 11px;}
 .disclaimer strong{color:#E8A838;}
-.empty-state{text-align:center;padding:60px 20px;color:var(--hint);}
-.empty-state .ico{font-size:40px;margin-bottom:14px;opacity:.6;}
+.empty-state{text-align:center;padding:26px 16px;color:var(--hint);}
+.empty-state .ico{font-size:34px;margin-bottom:8px;opacity:.6;}
 .empty-state p{font-size:14px;}
-.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+.panels{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-items:start;}
 .panel.full{grid-column:1 / -1;}
 .panel{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-.panel-head{width:100%;text-align:left;padding:14px 18px;border:none;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:none;font-family:inherit;cursor:pointer;color:#fff;}
+.panel-head{width:100%;text-align:left;padding:11px 15px;border:none;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:none;font-family:inherit;cursor:pointer;color:#fff;}
 .panel-head:hover{background:rgba(255,255,255,.02);}
 .panel-ico{font-size:17px;}
 .panel-title{font-size:14px;font-weight:600;}
@@ -226,6 +239,7 @@ body.embed .eng-wrap{padding-top:14px;}
 .panel-chev{margin-left:8px;color:#7ECFC0;font-size:11px;transition:transform .22s;}
 .panel.collapsed .panel-chev{transform:rotate(-90deg);}
 .panel.collapsed .panel-head{border-bottom:none;}
+.panel-body{padding:13px 16px 15px;}
 .panel.collapsed .panel-body{display:none;}
 .crisis-panel{border-color:rgba(192,57,43,.35);}
 .crisis-card-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
@@ -365,12 +379,13 @@ body.embed .eng-wrap{padding-top:14px;}
 </div>
 <div class="crisis-bg" id="crisis-bg" onclick="if(event.target===this)closeCrisis()">
   <div class="crisis-modal">
-    <div class="crisis-head">
-      <div class="crisis-title">&#128680; Crisis Center</div>
-      <button class="crisis-x" onclick="closeCrisis()">&times;</button>
+    <div class="crisis-sticky">
+      <div class="crisis-head">
+        <div><div class="crisis-title">&#128680; Crisis Center</div><div class="crisis-wt" id="crisis-wt"></div></div>
+        <button class="crisis-close" onclick="closeCrisis()">&times; Close</button>
+      </div>
+      <div class="crisis-tabs" id="crisis-tabs"></div>
     </div>
-    <div class="crisis-wt" id="crisis-wt"></div>
-    <div class="crisis-tabs" id="crisis-tabs"></div>
     <div class="crisis-body" id="crisis-body"></div>
   </div>
 </div>
@@ -690,24 +705,25 @@ function compute(){
     '<div class="helper"><b>RCRI:</b> High-risk surgery, IHD, CHF, CVD, insulin, creatinine&gt;177.</div>'+
     '<div class="helper">Full interactive calculators in <a href="/v2/scores.html" style="color:#7ECFC0;">Clinical Scores</a>.</div>';
 
-  // Crisis Center card (opens the full overlay)
-  var crisisCardBody =
-    '<div class="helper">One-tap emergency reference with weight-based doses — always available.</div>'+
-    '<div class="crisis-card-grid">'+
-      CRISIS.map(function(cz){ return '<span class="crisis-card-chip"><b>'+cz[1]+'</b>'+cz[2]+'</span>'; }).join('')+
-    '</div>'+
-    '<button class="crisis-open-btn" onclick="openCrisis()">&#128680; Open Crisis Center</button>';
+  // One-click crisis launch grid (opens the full-screen protocol directly)
+  var crisisLaunch = '<div class="crisis-launch">'+
+    CRISIS.map(function(cz,i){ return '<button class="crisis-launch-btn" onclick="crisisOpen('+i+')"><b>'+cz[1]+'</b><span>'+cz[2]+'</span></button>'; }).join('')+
+  '</div>';
 
+  // Workstation hierarchy: Core clinical tools → Crisis Center → References
   out.innerHTML='<div class="panels">'+
+    '<div class="sec-div">Core clinical tools</div>'+
     panel('&#129728;','Airway &amp; Ventilation',isPeds?'Pediatric':'Adult',avBody)+
     panel('&#128138;','Drug references','Ranges',drugRows)+
+    '<div class="sec-div crisis">&#128680; Crisis Center — tap to open full-screen</div>'+
+    crisisLaunch+
+    '<div class="sec-div">References</div>'+
     panel('&#128138;','TIVA / TCI','Propofol',tivaRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+tivaHelpers+'</div>')+
     panel('&#128137;','Local anesthetic limits','Max dose',laRows)+
     panel('&#129504;','Neuraxial','Reference',neuraxialRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+neuraxialHelpers+'</div>')+
     panel('&#128137;','Vasopressors / Inotropes','Infusions',pressorRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+pressorHelpers+'</div>')+
     panel('&#129656;','Fluids &amp; Blood',isPeds?'Pediatric':'Adult',fluidsBloodBody)+
     panel('&#128202;','Risk scores','Auto',riskScoresBody)+
-    panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
   if(window.innerWidth<=900) collapseForMobile();
 }
@@ -800,7 +816,8 @@ function crisisShow(i){
   }).join('');
   ge('crisis-body').innerHTML = title + steps + doses;
 }
-window.openCrisis=openCrisis; window.closeCrisis=closeCrisis; window.crisisShow=crisisShow;
+function crisisOpen(i){ _crisisIdx = i; openCrisis(); }   // one click → full-screen protocol
+window.openCrisis=openCrisis; window.closeCrisis=closeCrisis; window.crisisShow=crisisShow; window.crisisOpen=crisisOpen;
 
 document.addEventListener('DOMContentLoaded',async function(){
   try{
