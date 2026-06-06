@@ -17,6 +17,33 @@
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
+/* handbook workstation */
+.rh-tools{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px;}
+.rh-scores{display:inline-flex;align-items:center;gap:7px;background:rgba(42,138,116,.16);border:1px solid rgba(42,138,116,.4);color:#cfe;border-radius:9px;padding:9px 13px;font-size:13px;font-weight:600;text-decoration:none;}
+.rh-scores:hover{background:rgba(42,138,116,.28);color:#fff;}
+.rh-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-bottom:14px;}
+.rh-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);cursor:pointer;font-family:inherit;text-align:left;transition:background .14s,border-color .14s,transform .12s;}
+.rh-chip:hover{background:rgba(27,107,90,.12);border-color:rgba(42,138,116,.4);transform:translateY(-1px);}
+.rh-chip.on{background:rgba(27,107,90,.24);border-color:rgba(42,138,116,.6);color:#fff;}
+.rh-chip .ic{font-size:16px;flex-shrink:0;}
+.rh-content{background:rgba(255,255,255,.04);border:1px solid rgba(42,138,116,.3);border-radius:14px;padding:20px 22px;min-height:120px;}
+.rh-h{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;display:flex;align-items:center;gap:10px;}
+.rh-h .ic{font-size:22px;}
+.rh-sub0{font-size:12.5px;color:var(--muted);margin:3px 0 8px;}
+.rh-sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:15px 0 6px;padding-top:10px;border-top:1px solid rgba(27,107,90,.14);}
+.rh-sec:first-of-type{margin-top:6px;padding-top:0;border-top:none;}
+.rh-li{font-size:13.5px;color:rgba(255,255,255,.85);line-height:1.55;padding:3px 0 3px 15px;position:relative;}
+.rh-li:before{content:'';position:absolute;left:2px;top:11px;width:5px;height:5px;border-radius:50%;background:#2A8A74;}
+.rh-li b{color:#fff;}
+.rh-tbl{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0;}
+.rh-tbl td{padding:6px 9px;border-bottom:1px solid rgba(27,107,90,.12);vertical-align:top;color:rgba(255,255,255,.85);line-height:1.45;}
+.rh-tbl td:first-child{color:var(--muted);white-space:nowrap;}
+.rh-tbl tr:last-child td{border-bottom:none;}
+.rh-tbl.dose td:last-child{color:#fff;font-weight:600;font-variant-numeric:tabular-nums;}
+.rh-full{display:inline-block;margin-top:13px;font-size:12.5px;color:#7ECFC0;text-decoration:none;font-weight:600;}
+.rh-full:hover{text-decoration:underline;}
+.rh-note{font-size:11.5px;color:var(--hint);margin-top:16px;padding-top:10px;border-top:1px solid rgba(27,107,90,.12);line-height:1.5;}
+@media(max-width:600px){.rh-chips{grid-template-columns:repeat(auto-fill,minmax(124px,1fr));}.rh-content{padding:16px 15px;}.rh-h{font-size:19px;}}
 </style>
 </head>
 <body>
@@ -27,28 +54,255 @@
     <div class="section">
       <div class="section-tag">Knowledge library</div>
       <h2 class="section-title">Clinical references</h2>
-      <p class="section-sub">Anesthesiology reference guides. Select a topic to open its library.</p>
-      <div class="card-grid">
-        <a href="/v2/scores.html" class="card" style="border-color:rgba(42,138,116,.4);"><div class="card-ico">&#128202;</div><div class="card-title">Clinical Scores &amp; Calculators</div><div class="card-desc">Interactive pre-op, frailty, cognitive, ICU, airway, obstetric &amp; pediatric scores with interpretation.</div></a>
-        <a href="/v2/airway.html" class="card"><div class="card-ico">&#128168;</div><div class="card-title">Airway</div><div class="card-desc">Assessment, equipment sizing, and management.</div></a>
-        <a href="/v2/anticoagulation.html" class="card"><div class="card-ico">&#129656;</div><div class="card-title">Anticoagulation</div><div class="card-desc">Periprocedural management and neuraxial timing.</div></a>
-        <a href="/v2/regional.html" class="card"><div class="card-ico">&#129504;</div><div class="card-title">Regional Anesthesia</div><div class="card-desc">Blocks, landmarks, and local anesthetic dosing.</div></a>
-        <a href="/v2/icu.html" class="card"><div class="card-ico">&#127973;</div><div class="card-title">ICU</div><div class="card-desc">Critical care references and protocols.</div></a>
-        <a href="/v2/obstetric.html" class="card"><div class="card-ico">&#129716;</div><div class="card-title">Obstetric</div><div class="card-desc">Obstetric anesthesia considerations.</div></a>
-        <a href="/v2/pediatric.html" class="card"><div class="card-ico">&#129662;</div><div class="card-title">Pediatric</div><div class="card-desc">Pediatric dosing and airway formulas.</div></a>
-        <a href="/v2/last.html" class="card"><div class="card-ico">&#9888;</div><div class="card-title">LAST</div><div class="card-desc">Local anesthetic systemic toxicity management.</div></a>
-        <a href="/v2/difficult-airway.html" class="card"><div class="card-ico">&#128680;</div><div class="card-title">Difficult Airway</div><div class="card-desc">Difficult airway algorithm and rescue.</div></a>
-        <a href="/v2/anaphylaxis.html" class="card"><div class="card-ico">&#128137;</div><div class="card-title">Anaphylaxis</div><div class="card-desc">Perioperative anaphylaxis recognition and treatment.</div></a>
+      <p class="section-sub">A clinical handbook — tap a topic and it opens instantly below.</p>
+      <div class="rh-tools">
+        <a class="rh-scores" href="/v2/scores.html">&#128202; Clinical Scores &amp; Calculators (interactive) &#8599;</a>
       </div>
+      <div class="rh-chips" id="rh-chips"></div>
+      <div class="rh-content" id="rh-content"></div>
     </div>
   </div>
 </div>
 <script>
+function ge(id){ return document.getElementById(id); }
+function S(t){ return '<div class="rh-sec">'+t+'</div>'; }
+function L(t){ return '<div class="rh-li">'+t+'</div>'; }
+function T(rows,cls){ return '<table class="rh-tbl '+(cls||'')+'">'+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';}).join('')+'</table>'; }
+
+// ── Reference library (educational summaries; full guides linked where they exist) ──
+var REF = [
+{k:'airway',ic:'&#128168;',t:'Airway',full:'/v2/airway.html',b:
+  S('Assessment')+
+  L('<b>Mallampati</b> I–IV (visible: soft palate/uvula/fauces &rarr; only hard palate).')+
+  L('<b>LEMON:</b> Look externally, Evaluate 3-3-2, Mallampati, Obstruction, Neck mobility.')+
+  L('<b>3-3-2 rule:</b> 3 fingers mouth opening, 3 fingers hyoid–chin, 2 fingers thyroid–floor of mouth.')+
+  L('<b>MACOCHA</b> (ICU difficult intubation): Mallampati III/IV, OSA, reduced C-spine mobility, mouth opening &lt;3 cm, Coma, Hypoxaemia, non-Anaesthetist.')+
+  L('Difficult mask ventilation — <b>MOANS:</b> Mask seal, Obesity/Obstruction, Age &gt;55, No teeth, Stiff lungs.')+
+  S('Tube sizing (adult)')+
+  T([['ETT female','7.0–7.5 mm, depth ~21 cm'],['ETT male','8.0–8.5 mm, depth ~23 cm'],['LMA','#4 (50–70 kg), #5 (&gt;70 kg)']],'dose')+
+  S('Plan')+L('Optimise position/pre-ox; limit attempts; call for help early. See Difficult Airway for the DAS algorithm.')
+},
+{k:'da',ic:'&#128680;',t:'Difficult Airway',full:'/v2/difficult-airway.html',b:
+  S('DAS plan A → D')+
+  L('<b>Plan A</b> — optimal laryngoscopy (position, video, bougie); max 3 + 1 attempts.')+
+  L('<b>Plan B</b> — 2nd-generation supraglottic airway; max 3 attempts.')+
+  L('<b>Plan C</b> — revert to face-mask ventilation; wake if feasible.')+
+  L('<b>Plan D</b> — CICO &rarr; front-of-neck access.')+
+  S('CICO — scalpel-bougie-tube')+
+  L('Transverse stab through cricothyroid membrane, rotate blade; railroad bougie; pass size 6.0 cuffed tube; confirm with capnography.')+
+  L('Paediatric &lt;8 y: needle technique by an expert.')+
+  S('Throughout')+L('Declare the emergency, maintain oxygenation, call for help, avoid repeated traumatic attempts.')
+},
+{k:'regional',ic:'&#129504;',t:'Regional',full:'/v2/regional.html',b:
+  S('Local anaesthetic max doses (typical)')+
+  T([['Lidocaine','4.5 mg/kg (7 with adrenaline)'],['Bupivacaine / levobupivacaine','2–3 mg/kg'],['Ropivacaine','3 mg/kg'],['Note','use lean body weight; reduce in frail/hepatic']],'dose')+
+  S('Principles')+
+  L('Aspirate before injection; inject incrementally; monitor for LAST.')+
+  L('Adjuncts: adrenaline (prolongs, marks intravascular), dexamethasone, clonidine/dexmedetomidine.')+
+  L('Use ultrasound guidance where available; document block, side, and consent.')
+},
+{k:'anticoag',ic:'&#129656;',t:'Anticoagulation',full:'/v2/anticoagulation.html',b:
+  S('Neuraxial timing — hold before block (typical)')+
+  T([['LMWH prophylactic','12 h'],['LMWH therapeutic','24 h'],['UFH SC','4–6 h'],['Warfarin','stop ~5 d, INR &lt;1.5'],['Apixaban / rivaroxaban','72 h'],['Dabigatran','72–120 h (renal)'],['Clopidogrel','5–7 d'],['Ticagrelor','5 d'],['Prasugrel','7–10 d'],['Aspirin','continue']],'dose')+
+  S('Restart')+L('Generally &ge;4–6 h after a non-traumatic block and once haemostasis is secure; see Anticoagulation Interruption for full peri-procedural guidance.')
+},
+{k:'ac-interrupt',ic:'&#9201;',t:'Anticoagulation Interruption',b:
+  S('DOAC interruption (by bleeding risk & CrCl)')+
+  T([['Apixaban / rivaroxaban','low-risk surgery 24 h, high-risk 48 h'],['Dabigatran (CrCl &ge;50)','low 24 h, high 48 h'],['Dabigatran (CrCl 30–50)','low 48 h, high 72–96 h'],['Restart','24 h (low bleed risk), 48–72 h (high)']],'dose')+
+  S('Warfarin')+
+  L('Stop 5 days pre-op; check INR; bridge with LMWH only if high thromboembolic risk (mechanical mitral valve, recent VTE/stroke, AF with very high CHA₂DS₂-VASc).')+
+  L('Vitamin K 1–2 mg PO if INR still elevated the day before; reverse urgently with PCC + vitamin K.')+
+  S('Antiplatelets')+
+  L('Continue aspirin for most non-neuraxial surgery; stop P2Y12 inhibitors per agent (clopidogrel 5–7 d). Defer elective surgery after recent coronary stent.')
+},
+{k:'last',ic:'&#9888;',t:'LAST',full:'/v2/last.html',b:
+  S('Recognition')+L('Peri-oral numbness, tinnitus, agitation &rarr; seizures, then cardiovascular collapse / arrhythmia.')+
+  S('Management')+
+  L('Stop injection; call for help + lipid; airway & 100% O₂ (avoid hyperventilation).')+
+  L('Seizures: benzodiazepine (avoid large propofol if unstable).')+
+  L('If arrest: ACLS, reduce adrenaline to &le;1 mcg/kg; <b>avoid</b> vasopressin, Ca-channel/β-blockers, and further local anaesthetic.')+
+  S('Lipid emulsion 20%')+
+  T([['Bolus','1.5 mL/kg over 1 min'],['Infusion','0.25 mL/kg/min'],['Re-bolus (refractory)','×1–2; double infusion'],['Max','~12 mL/kg']],'dose')+
+  L('Prolonged resuscitation; consider cardiopulmonary bypass / ECMO.')
+},
+{k:'anaph',ic:'&#128137;',t:'Anaphylaxis',full:'/v2/anaphylaxis.html',b:
+  S('Immediate')+
+  L('Stop trigger; call for help; 100% O₂; lay flat, legs up.')+
+  S('Adrenaline')+
+  T([['IM','0.5 mg (0.5 mL 1:1000)'],['IV (hypotension, monitored)','20–50 mcg bolus'],['IV (collapse)','100–200 mcg'],['Arrest','1 mg IV q3–5 min'],['Fluid bolus','20 mL/kg crystalloid']],'dose')+
+  S('After resuscitation')+
+  L('Adjuncts: antihistamine, steroid; bronchodilators for bronchospasm; consider adrenaline infusion.')+
+  L('Mast-cell tryptase: immediate, 1–2 h, and 24 h samples. Refer to allergy/immunology.')
+},
+{k:'ponv',ic:'&#129336;',t:'PONV Prevention & Treatment',b:
+  S('Apfel risk (each = 1)')+
+  L('Female · non-smoker · history of PONV/motion sickness · expected postop opioids. 0/1/2/3/4 &rarr; ~10/20/40/60/80% risk.')+
+  S('Prophylaxis (use ≥2 classes if moderate–high risk)')+
+  T([['Ondansetron','4 mg IV end of surgery'],['Dexamethasone','4–8 mg IV at induction'],['Droperidol','0.625–1.25 mg IV'],['Scopolamine','patch pre-op'],['Aprepitant','40–80 mg PO'],['Technique','propofol TIVA, minimise opioids/volatiles']],'dose')+
+  S('Treatment')+L('Use a drug from a <b>different</b> class than prophylaxis; re-dosing ondansetron within 6 h is usually ineffective.')
+},
+{k:'pain',ic:'&#128138;',t:'Acute Pain Management',b:
+  S('Multimodal base')+
+  T([['Paracetamol','1 g IV/PO q6h (max 4 g/day)'],['NSAID','e.g. ibuprofen/ketorolac if no contraindication'],['Dexamethasone','adjuvant analgesia + PONV'],['Regional/LA','blocks, wound infiltration']],'dose')+
+  S('Opioids (titrate)')+
+  T([['Morphine IV','1–2 mg increments'],['Oxycodone PO','5–10 mg'],['Fentanyl IV','25–50 mcg'],['Equi (approx)','morphine 10 mg IV ≈ 30 mg PO ≈ oxycodone 20 mg PO']],'dose')+
+  S('Adjuncts')+L('Ketamine (low-dose), lidocaine infusion, gabapentinoids (caution: sedation, elderly). Reassess scores; watch sedation/respiratory rate.')
+},
+{k:'vasopressors',ic:'&#128137;',t:'Vasopressors / Inotropes',b:
+  S('Common agents')+
+  T([['Noradrenaline','0.01–0.5 mcg/kg/min — α; 1st-line shock'],['Adrenaline','0.01–0.5 mcg/kg/min — α/β; anaphylaxis, arrest'],['Phenylephrine','bolus 50–100 mcg; infusion 0.1–0.7 mcg/kg/min — pure α'],['Vasopressin','0.03 U/min fixed — septic shock adjunct'],['Ephedrine','5–10 mg bolus — indirect α/β'],['Dobutamine','2–20 mcg/kg/min — β1 inotrope'],['Milrinone','0.25–0.75 mcg/kg/min — inodilator'],['Metaraminol','0.5–2 mg bolus — α']],'dose')+
+  S('Use')+L('Match agent to physiology (vasodilation vs pump failure); central access for prolonged/strong vasopressors; treat the cause.')
+},
+{k:'rcri',ic:'&#10084;&#65039;',t:'Cardiac Risk (RCRI)',b:
+  S('Revised Cardiac Risk Index — 1 point each')+
+  L('High-risk surgery (intraperitoneal, intrathoracic, suprainguinal vascular) · ischaemic heart disease · congestive heart failure · cerebrovascular disease · insulin-treated diabetes · creatinine &gt;177 µmol/L (2.0 mg/dL).')+
+  S('Risk of major cardiac event')+
+  T([['0 points','~0.4%'],['1 point','~0.9%'],['2 points','~6.6%'],['≥3 points','~11%']],'dose')+
+  S('Workup')+L('Assess functional capacity (METs); &lt;4 METs + elevated risk &rarr; consider further evaluation. Continue β-blockers/statins; do not start β-blockers acutely pre-op. Consider NSQIP / Gupta MICA calculators.')
+},
+{k:'htn',ic:'&#128137;',t:'Perioperative Hypertension',b:
+  S('Chronic medications')+
+  L('Continue β-blockers and most agents; <b>hold ACE-inhibitors/ARBs</b> on the morning of surgery (intraop hypotension) — individualise. Continue clonidine (rebound risk).')+
+  S('Acute intra-op control')+
+  T([['Labetalol','5–20 mg IV boluses'],['Esmolol','0.5 mg/kg then infusion'],['Hydralazine','5–10 mg IV'],['GTN','infusion (ischaemia)'],['Nicardipine / clevidipine','infusion'],['Phentolamine','phaeochromocytoma']],'dose')+
+  S('Notes')+L('Treat pain/light anaesthesia first. Phaeochromocytoma: α-blockade before β. Defer elective surgery if BP &gt;180/110 with end-organ concern.')
+},
+{k:'dm',ic:'&#129656;',t:'Perioperative Diabetes',b:
+  S('Targets')+L('Aim glucose 6–10 mmol/L (108–180 mg/dL); avoid hypoglycaemia.')+
+  S('Oral agents')+
+  T([['SGLT2 inhibitors','stop 3–4 days pre-op (euglycaemic DKA risk)'],['Metformin','omit on day of surgery (renal/contrast)'],['Sulfonylureas','omit on day of surgery (hypo)'],['GLP-1 agonists','delayed gastric emptying — aspiration caution']],'dose')+
+  S('Insulin')+
+  L('Reduce long-acting basal ~20% the night before/morning; omit short-acting if fasting; start a variable-rate insulin infusion (VRIII) for poor control, long fasts, or major surgery; monitor glucose hourly.')
+},
+{k:'abx',ic:'&#128138;',t:'Antibiotic Prophylaxis',b:
+  S('Timing')+L('Give within <b>60 min</b> before incision (vancomycin / fluoroquinolone within 120 min).')+
+  S('Cefazolin (first-line)')+
+  T([['Adult','2 g IV (3 g if ≥120 kg)'],['Paediatric','30 mg/kg'],['Redose','every ~4 h or after &gt;1.5 L blood loss'],['β-lactam allergy','clindamycin or vancomycin ± gentamicin']],'dose')+
+  S('Notes')+L('Add anaerobic cover (e.g. metronidazole) for colorectal; continue ≤24 h post-op for most procedures. Follow local antimicrobial policy.')
+},
+{k:'eras',ic:'&#127807;',t:'ERAS Protocols',b:
+  S('Pre-op')+L('Counselling; avoid prolonged fasting; <b>carbohydrate loading</b> (clear carb drink up to 2 h pre-op); no routine bowel prep where avoidable.')+
+  S('Intra-op')+L('Short-acting anaesthetics; multimodal opioid-sparing analgesia + regional; goal-directed fluid therapy (euvolaemia); maintain normothermia; PONV prophylaxis; minimise drains/NG tubes.')+
+  S('Post-op')+L('Early oral intake; early mobilisation; remove catheters early; multimodal analgesia; glycaemic control; audit compliance.')
+},
+{k:'abg',ic:'&#128202;',t:'Acid-Base / ABG',b:
+  S('Stepwise')+L('1) pH (acidaemia &lt;7.35 / alkalaemia &gt;7.45). 2) Primary: PaCO₂ (respiratory) vs HCO₃⁻ (metabolic). 3) Compensation. 4) Anion gap.')+
+  S('Formulas')+
+  T([['Anion gap','Na − (Cl + HCO₃); normal 8–12 (correct for albumin)'],['Winter’s (met. acidosis)','expected PaCO₂ = 1.5×HCO₃ + 8 ± 2'],['Delta ratio','ΔAG / ΔHCO₃']],'dose')+
+  S('High anion gap (MUDPILES)')+L('Methanol, Uraemia, DKA, Propylene glycol, Iron/INH, Lactate, Ethylene glycol, Salicylates.')+
+  S('Compensation')+L('Metabolic acidosis &rarr; rapid respiratory compensation; metabolic alkalosis &rarr; hypoventilation; chronic respiratory disorders &rarr; renal HCO₃ change over days.')
+},
+{k:'lytes',ic:'&#129482;',t:'Electrolytes',b:
+  S('Sodium')+L('Correct chronic hypo/hyper-natraemia slowly — <b>&le;8–10 mmol/L per 24 h</b> (osmotic demyelination / cerebral oedema risk). Severe symptomatic hyponatraemia: 3% saline boluses.')+
+  S('Potassium (hyperkalaemia)')+
+  T([['ECG','peaked T, wide QRS'],['Calcium gluconate','membrane stabilisation'],['Insulin + glucose','10 U + 25 g dextrose'],['Salbutamol','nebulised'],['Bicarbonate','if acidotic'],['Definitive','dialysis / removal']],'dose')+
+  S('Others')+L('Magnesium 2 g IV for torsades/severe hypomagnesaemia; replace phosphate and calcium; check Mg when K⁺/Ca²⁺ refractory.')
+},
+{k:'coag',ic:'&#129656;',t:'Coagulation',b:
+  S('Tests')+
+  T([['PT / INR','extrinsic + common (warfarin, liver, factor VII)'],['aPTT','intrinsic + common (heparin, haemophilia)'],['Fibrinogen','&lt;1.5–2 g/L &rarr; replace (cryo/concentrate)'],['Platelets','number + function']],'dose')+
+  S('Reversal')+
+  T([['Warfarin','vitamin K + 4-factor PCC (or FFP)'],['Heparin','protamine 1 mg / 100 U'],['Dabigatran','idarucizumab'],['Factor Xa (apix/riv)','andexanet alfa or PCC'],['Antiplatelet','platelets ± desmopressin']],'dose')+
+  S('Viscoelastic (TEG/ROTEM)')+L('R/CT = clotting factors (FFP/PCC); K/α/MCF = fibrinogen & platelets; LY30/ML = fibrinolysis (TXA). Guides targeted product use.')
+},
+{k:'transfusion',ic:'&#129656;',t:'Transfusion Thresholds',b:
+  S('Red cells (restrictive)')+
+  T([['Most patients','Hb &lt; 70 g/L'],['Cardiac / cardiac surgery','Hb &lt; 75–80 g/L'],['Active major bleeding','clinical, target ~70–90']],'dose')+
+  S('Platelets')+
+  T([['Prophylactic','&lt; 10 ×10⁹/L'],['Surgery / procedure','&lt; 50 ×10⁹/L'],['Neuraxial / neuro / eye','&lt; 100 ×10⁹/L']],'dose')+
+  S('Plasma / fibrinogen')+L('FFP for coagulopathy with bleeding (PT/aPTT &gt;1.5× normal); cryoprecipitate / fibrinogen concentrate if fibrinogen &lt;1.5–2 g/L (&lt;2 in obstetric haemorrhage).')
+},
+{k:'mtp',ic:'&#128680;',t:'Massive Transfusion Protocol',b:
+  S('Activate')+L('Anticipated/ongoing massive haemorrhage (e.g. &gt;1 blood volume, or ≥4 units in 1 h with continued bleeding).')+
+  S('Ratios & targets')+
+  T([['RBC : FFP : Platelets','~1 : 1 : 1'],['TXA','1 g over 10 min, then 1 g over 8 h (within 3 h)'],['Fibrinogen','keep &gt; 1.5–2 g/L'],['Ionised calcium','keep &gt; 1.1 mmol/L (citrate)'],['Platelets','keep &gt; 50 (&gt;100 if CNS)']],'dose')+
+  S('Avoid the lethal triad')+L('Prevent hypothermia, acidosis, and coagulopathy. Warm fluids/patient; use cell salvage; source control; guide with viscoelastic testing.')
+},
+{k:'vent',ic:'&#128168;',t:'Mechanical Ventilation',b:
+  S('Lung-protective targets')+
+  T([['Tidal volume','6–8 mL/kg predicted body weight'],['Plateau pressure','&le; 30 cmH₂O'],['Driving pressure (Pplat−PEEP)','&le; 15 cmH₂O'],['PEEP','&ge; 5 (titrate)'],['FiO₂','lowest for SpO₂ 92–96%']],'dose')+
+  S('ARDS')+L('TV 6 mL/kg PBW, higher PEEP, permissive hypercapnia (pH &ge;7.20), prone &gt;16 h if P/F &lt;150, consider neuromuscular blockade, conservative fluids.')+
+  S('Predicted body weight')+L('Male 50 + 0.91×(height cm − 152.4); Female 45.5 + 0.91×(height cm − 152.4).')
+},
+{k:'sepsis',ic:'&#129707;',t:'Sepsis & Septic Shock',b:
+  S('Recognise')+L('Infection + organ dysfunction. qSOFA: RR &ge;22, altered mentation, SBP &le;100. Septic shock: vasopressors for MAP &ge;65 + lactate &gt;2 despite fluids.')+
+  S('Hour-1 bundle')+
+  L('Measure lactate (repeat if &gt;2) · blood cultures before antibiotics · broad-spectrum antibiotics · 30 mL/kg crystalloid for hypotension/lactate &ge;4 · vasopressors (noradrenaline 1st-line) for MAP &ge;65.')+
+  S('Then')+L('Source control; reassess perfusion; add vasopressin/hydrocortisone in refractory shock; de-escalate antibiotics on culture results.')
+},
+{k:'trauma',ic:'&#128657;',t:'Trauma Resuscitation',b:
+  S('Primary survey — ABCDE')+L('Airway + C-spine · Breathing · Circulation (control haemorrhage) · Disability (GCS, pupils) · Exposure/Environment.')+
+  S('Haemorrhage control')+
+  L('Permissive hypotension (SBP ~80–90 until controlled — not in TBI); damage-control resuscitation; MTP 1:1:1; <b>TXA within 3 h</b> (1 g over 10 min, then 1 g/8 h).')+
+  S('Avoid the lethal triad')+L('Hypothermia, acidosis, coagulopathy. FAST/imaging; early surgical/IR source control; calcium replacement.')
+},
+{k:'obstetric',ic:'&#129716;',t:'Obstetric',full:'/v2/obstetric.html',b:
+  S('Key physiology')+L('Aspiration risk (give antacid prophylaxis), difficult airway, aortocaval compression — <b>left uterine displacement</b>, reduced FRC / rapid desaturation.')+
+  S('Spinal for caesarean (typical)')+
+  T([['Heavy bupivacaine 0.5%','1.8–2.2 mL'],['+ Fentanyl','10–25 mcg'],['+ Morphine','100 mcg (preservative-free)']],'dose')+
+  S('Spinal hypotension')+L('Phenylephrine infusion/boluses 1st-line; fluid co-load; maintain MAP. See Obstetric Emergencies for PPH and eclampsia.')
+},
+{k:'ob-emerg',ic:'&#128680;',t:'Obstetric Emergencies',b:
+  S('Postpartum haemorrhage')+
+  T([['Oxytocin','5 U slow IV then infusion'],['Ergometrine','0.25–0.5 mg IM/IV (avoid HTN)'],['Carboprost','250 mcg IM q15 min (avoid asthma)'],['Misoprostol','800 mcg PR/SL'],['TXA','1 g IV']],'dose')+
+  L('Bimanual compression; escalate to balloon, sutures, IR, hysterectomy; activate MTP.')+
+  S('Eclampsia / severe pre-eclampsia')+
+  T([['Magnesium sulphate','4 g IV load + 1 g/h infusion'],['Recurrent seizure','2 g IV bolus'],['BP control','labetalol / hydralazine / nifedipine']],'dose')+
+  S('Other')+L('Amniotic fluid embolism (supportive, ACLS, treat coagulopathy); cord prolapse (relieve pressure, urgent delivery); uterine rupture (urgent laparotomy).')
+},
+{k:'pediatric',ic:'&#129662;',t:'Pediatric',full:'/v2/pediatric.html',b:
+  S('Quick formulas')+
+  T([['Weight (kg)','(age + 4) × 2'],['ETT uncuffed','age/4 + 4'],['ETT cuffed','age/4 + 3.5'],['ETT depth (cm)','ETT size × 3'],['Maintenance fluid','4-2-1 rule']],'dose')+
+  S('Notes')+L('Cuffed tubes acceptable with cuff-pressure monitoring; expect leak with uncuffed. Glucose-containing maintenance in neonates/infants. See Pediatric Emergency Drugs for resuscitation doses.')
+},
+{k:'peds-drugs',ic:'&#129666;',t:'Pediatric Emergency Drugs',b:
+  S('Resuscitation (weight-based)')+
+  T([['Adrenaline','10 mcg/kg IV/IO (0.1 mL/kg 1:10,000)'],['Atropine','20 mcg/kg (min 100 mcg)'],['Amiodarone','5 mg/kg (VF/pVT)'],['Suxamethonium','1.5–2 mg/kg'],['Defibrillation','4 J/kg'],['Fluid bolus','10–20 mL/kg crystalloid'],['Dextrose','2 mL/kg 10% (hypoglycaemia)'],['Naloxone','10 mcg/kg']],'dose')+
+  S('Use')+L('Calculate by actual weight ((age+4)×2 if unknown); double-check concentrations; length-based tape (Broselow) if available.')
+},
+{k:'icu',ic:'&#127973;',t:'ICU',full:'/v2/icu.html',b:
+  S('Daily checklist — FAST HUG')+L('Feeding · Analgesia · Sedation · Thromboprophylaxis · Head-up · Ulcer prophylaxis · Glucose control.')+
+  S('Sedation & analgesia')+L('Target light sedation (RASS −1 to 0); daily sedation interruption; treat pain first; delirium screening (CAM-ICU).')+
+  S('Common')+L('Lung-protective ventilation; conservative fluids after resuscitation; VTE prophylaxis; early nutrition. See ICU Formulas.')
+},
+{k:'icu-formulas',ic:'&#128202;',t:'ICU Formulas',b:
+  S('Oxygenation & haemodynamics')+
+  T([['A–a gradient','PAO₂ − PaO₂; PAO₂ = FiO₂×(Patm−47) − PaCO₂/0.8'],['P/F ratio','PaO₂ / FiO₂ (ARDS &lt;300/200/100)'],['MAP','DBP + ⅓(SBP−DBP)']],'dose')+
+  S('Renal & metabolic')+
+  T([['Corrected Na','+1.6 per 5.5 mmol/L glucose &gt;5.5'],['Anion gap','Na − (Cl + HCO₃)'],['Osmolality','2×Na + glucose + urea'],['FENa','(UNa×PCr)/(PNa×UCr) ×100'],['Cockcroft–Gault','(140−age)×wt×(0.85♀)/(72×Cr mg/dL)'],['IBW','♂50 / ♀45.5 + 0.91×(ht−152.4)']],'dose')
+}
+];
+
+var _cur=null;
+function refShow(k, userClick){
+  var m=null; for(var i=0;i<REF.length;i++){ if(REF[i].k===k){ m=REF[i]; break; } }
+  if(!m) return;
+  _cur=k;
+  var chips=document.querySelectorAll('.rh-chip');
+  for(var j=0;j<chips.length;j++){ chips[j].classList.toggle('on', chips[j].getAttribute('data-k')===k); }
+  var full = m.full ? '<a class="rh-full" href="'+m.full+'">Open full guide &#8599;</a>' : '';
+  ge('rh-content').innerHTML =
+    '<div class="rh-h"><span class="ic">'+m.ic+'</span>'+m.t+'</div>'+
+    '<div class="rh-sub0">Reference &amp; educational summary — verify against current local guidelines.</div>'+
+    m.b + full +
+    '<div class="rh-note">Educational reference only. Values are typical adult figures unless stated; confirm against current guidelines, product labeling, and your institution’s protocols before clinical use.</div>';
+  if(userClick && window.innerWidth<760){ try{ ge('rh-content').scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
+}
+window.refShow=refShow;
+
+function renderChips(){
+  ge('rh-chips').innerHTML = REF.map(function(m){
+    return '<button class="rh-chip" data-k="'+m.k+'" onclick="refShow(\''+m.k+'\',true)"><span class="ic">'+m.ic+'</span>'+m.t+'</button>';
+  }).join('');
+}
+
 document.addEventListener('DOMContentLoaded', async function(){
   try{
     var auth = await window.requireAuth(); if(!auth) return;
     var role = auth.profile ? auth.profile.role : '';
     if(role === 'patient'){ window.location.href = '/v2/dashboard.html'; return; }
+    renderChips();
+    refShow('airway', false);   // open the first topic instantly
     document.getElementById('loader').style.display='none';
     document.getElementById('app').style.display='block';
   }catch(e){
