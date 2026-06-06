@@ -72,14 +72,14 @@ body.embed .eng-wrap{padding-top:14px;}
 .lt-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.06);}
 .lt-bar i{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(126,207,192,.75);}
 .lt-bar .lt-dot{width:7px;height:7px;border-radius:50%;background:#46d39a;box-shadow:0 0 6px #46d39a;}
-.lt-row{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.lt-card{flex:1 0 188px;min-width:188px;padding:12px 14px 13px;border-left:1px solid rgba(255,255,255,.06);
+.lt-row{display:flex;gap:0;}
+.lt-card{flex:1 1 0;min-width:0;padding:11px 12px 12px;border-left:1px solid rgba(255,255,255,.06);
   display:flex;flex-direction:column;gap:7px;position:relative;transition:background .2s;}
 .lt-card:first-child{border-left:none;}
 .lt-head{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.05em;
   text-transform:uppercase;color:rgba(255,255,255,.55);}
 .lt-head .lt-ico{font-size:13px;}
-.lt-time{font-size:27px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:#fff;letter-spacing:.5px;}
+.lt-time{font-size:23px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:#fff;letter-spacing:0;}
 .lt-state{font-size:10.5px;font-weight:600;min-height:14px;color:var(--hint);line-height:1.3;}
 .lt-btns{display:flex;gap:6px;margin-top:1px;flex-wrap:wrap;}
 .lt-btn{flex:1;min-width:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#cfe;
@@ -117,7 +117,7 @@ body.embed .eng-wrap{padding-top:14px;}
 .lt-card.tq-crit .lt-time,.lt-card.tq-crit .lt-state{color:#ff7a63;}
 @keyframes tq-flash{0%,100%{box-shadow:inset 0 0 0 0 rgba(192,57,43,0);}50%{box-shadow:inset 0 0 24px 2px rgba(192,57,43,.5);}}
 /* PACU widget */
-.lt-card.pacu{flex:1 0 230px;min-width:230px;}
+.lt-card.pacu{flex:1.5 1 0;min-width:0;}
 .lt-pacu-row{display:flex;gap:6px;}
 .lt-pf{flex:1;display:flex;flex-direction:column;gap:3px;}
 .lt-pf label{font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hint);}
@@ -131,9 +131,10 @@ body.embed .eng-wrap{padding-top:14px;}
 .lt-rec.mod{border-color:rgba(232,168,56,.32);background:rgba(232,168,56,.08);}
 .lt-rec.sev{border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.12);}
 .lt-rec .lt-edu{display:block;margin-top:4px;color:var(--hint);font-size:10px;}
-@media(max-width:760px){
-  .lt-card{flex-basis:170px;min-width:170px;}
-  .lt-card.pacu{flex-basis:230px;}
+@media(max-width:680px){
+  .lt-row{flex-wrap:wrap;}
+  .lt-card{flex:1 1 46%;min-width:0;}
+  .lt-card.pacu{flex:1 1 100%;}
 }
 /* Crisis button in header */
 .mh-crisis{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
@@ -175,6 +176,19 @@ body.embed .eng-wrap{padding-top:14px;}
 .crisis-launch-btn:hover{background:rgba(192,57,43,.26);}
 .crisis-launch-btn b{font-size:13px;font-weight:700;}
 .crisis-launch-btn span{font-size:10px;color:#ffd0c4;line-height:1.3;}
+.crisis-launch-btn.on{background:rgba(192,57,43,.32);border-color:rgba(192,57,43,.6);}
+/* inline expandable crisis panel (no modal, no navigation) */
+.crisis-section{margin-top:8px;}
+.crisis-inline{display:none;background:#0E0A09;border:1px solid rgba(192,57,43,.4);border-radius:12px;overflow:hidden;margin-top:8px;}
+.crisis-inline.open{display:block;}
+.ci-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px 15px;background:rgba(192,57,43,.16);border-bottom:1px solid rgba(192,57,43,.28);}
+.ci-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;line-height:1.15;}
+.ci-title span{font-size:12.5px;font-weight:500;color:#ff9b86;margin-left:6px;}
+.ci-wt{font-size:12px;color:var(--hint);margin-top:3px;}
+.ci-wt b{color:#7ECFC0;}
+.ci-collapse{flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:9px 13px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.ci-collapse:hover{background:rgba(255,255,255,.1);color:#fff;}
+.ci-body{padding:12px 16px 16px;}
 /* Auto panels — summary & risk */
 .summary-panel{background:linear-gradient(135deg,rgba(27,107,90,.16),rgba(27,107,90,.05));border:1px solid rgba(42,138,116,.3);}
 /* Dominant patient summary */
@@ -228,7 +242,7 @@ body.embed .eng-wrap{padding-top:14px;}
 .empty-state{text-align:center;padding:26px 16px;color:var(--hint);}
 .empty-state .ico{font-size:34px;margin-bottom:8px;opacity:.6;}
 .empty-state p{font-size:14px;}
-.panels{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-items:start;}
+.panels{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:6px;align-items:start;}
 .panel.full{grid-column:1 / -1;}
 .panel{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .panel-head{width:100%;text-align:left;padding:11px 15px;border:none;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:none;font-family:inherit;cursor:pointer;color:#fff;}
@@ -303,7 +317,7 @@ body.embed .eng-wrap{padding-top:14px;}
         <div class="mh-v mh-temp"><i>Temp</i><b id="mh-temp">36.7</b><u>&deg;C</u></div>
         <div class="mh-v mh-mac"><i>MAC</i><b id="mh-mac">1.0</b><u></u></div>
       </div>
-      <button class="mh-crisis" onclick="openCrisis()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
+      <button class="mh-crisis" onclick="crisisInline(_crisisIdx)" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
     </div>
     <div class="input-bar">
       <div class="inp"><label>Age</label><input id="i-age" type="number" inputmode="numeric" placeholder="years" oninput="compute()"></div>
@@ -375,18 +389,13 @@ body.embed .eng-wrap{padding-top:14px;}
     <div id="output">
       <div class="empty-state"><div class="ico">&#129658;</div><p>Enter age, sex, height and weight to generate the dashboard.</p></div>
     </div>
-  </div>
-</div>
-<div class="crisis-bg" id="crisis-bg" onclick="if(event.target===this)closeCrisis()">
-  <div class="crisis-modal">
-    <div class="crisis-sticky">
-      <div class="crisis-head">
-        <div><div class="crisis-title">&#128680; Crisis Center</div><div class="crisis-wt" id="crisis-wt"></div></div>
-        <button class="crisis-close" onclick="closeCrisis()">&times; Close</button>
-      </div>
-      <div class="crisis-tabs" id="crisis-tabs"></div>
+
+    <!-- Crisis Center — inline expandable, always available (no modal, no navigation) -->
+    <div class="crisis-section" id="crisis-section">
+      <div class="sec-div crisis">&#128680; Crisis Center — tap a protocol</div>
+      <div class="crisis-launch" id="crisis-launch"></div>
+      <div class="crisis-inline" id="crisis-inline"></div>
     </div>
-    <div class="crisis-body" id="crisis-body"></div>
   </div>
 </div>
 <script>
@@ -705,26 +714,21 @@ function compute(){
     '<div class="helper"><b>RCRI:</b> High-risk surgery, IHD, CHF, CVD, insulin, creatinine&gt;177.</div>'+
     '<div class="helper">Full interactive calculators in <a href="/v2/scores.html" style="color:#7ECFC0;">Clinical Scores</a>.</div>';
 
-  // One-click crisis launch grid (opens the full-screen protocol directly)
-  var crisisLaunch = '<div class="crisis-launch">'+
-    CRISIS.map(function(cz,i){ return '<button class="crisis-launch-btn" onclick="crisisOpen('+i+')"><b>'+cz[1]+'</b><span>'+cz[2]+'</span></button>'; }).join('')+
-  '</div>';
-
-  // Workstation hierarchy: Core clinical tools → References → Crisis Center (bottom)
+  // Workstation hierarchy: Core clinical tools → References. Crisis Center is a
+  // static inline section below #output (always available; no modal).
   out.innerHTML='<div class="panels">'+
     '<div class="sec-div">Core clinical tools</div>'+
     panel('&#129728;','Airway &amp; Ventilation',isPeds?'Pediatric':'Adult',avBody)+
     panel('&#128138;','Drug references','Ranges',drugRows)+
+    panel('&#128137;','Local anesthetic limits','Max dose',laRows)+
     '<div class="sec-div">References</div>'+
     panel('&#128138;','TIVA / TCI','Propofol',tivaRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+tivaHelpers+'</div>')+
-    panel('&#128137;','Local anesthetic limits','Max dose',laRows)+
     panel('&#129504;','Neuraxial','Reference',neuraxialRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+neuraxialHelpers+'</div>')+
     panel('&#128137;','Vasopressors / Inotropes','Infusions',pressorRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+pressorHelpers+'</div>')+
     panel('&#129656;','Fluids &amp; Blood',isPeds?'Pediatric':'Adult',fluidsBloodBody)+
     panel('&#128202;','Risk scores','Auto',riskScoresBody)+
-    '<div class="sec-div crisis">&#128680; Crisis Center — tap a protocol to open</div>'+
-    crisisLaunch+
   '</div>';
+  if(_crisisOpen) crisisInline(_crisisIdx, false);   // refresh doses on recompute (no scroll)
   if(window.innerWidth<=900) collapseForMobile();
 }
 
@@ -791,38 +795,53 @@ var CRISIS = [
     steps:['Stop the likely trigger. Call for help. 100% O₂.','Adrenaline IM 0.5 mg (or titrated IV boluses if monitored/anesthetized).','Large IV fluid bolus; lay flat, legs up.','Adjuncts after resuscitation: steroids, antihistamine; bronchodilators for bronchospasm.','If arrest → ALS, prolonged CPR; take tryptase samples (immediate, 1–2 h, 24 h).'],
     doses:[['IM adrenaline','0.5 mg (0.5 mL 1:1000)'],['IV bolus (hypotension)','20–50 mcg'],['IV bolus (collapse)','100–200 mcg'],['Arrest','1 mg IV q3–5 min'],['Fluid bolus',(w?r0(w*20)+' mL':'20 mL/kg')],['Infusion prep','adrenaline 1 mg/50 mL (20 mcg/mL)']]};}]
 ];
-var _crisisIdx = 0;
-function openCrisis(){
-  var w = crisisWeight();
-  ge('crisis-wt').innerHTML = w ? ('Doses calculated for current weight: <b>'+w+' kg</b>') : 'Enter patient weight for weight-based doses. Showing per-kg guidance.';
-  ge('crisis-tabs').innerHTML = CRISIS.map(function(c,i){
-    return '<button class="crisis-tab'+(i===_crisisIdx?' on':'')+'" onclick="crisisShow('+i+')">'+c[1]+'</button>';
-  }).join('');
-  crisisShow(_crisisIdx);
-  ge('crisis-bg').classList.add('open');
-}
-function closeCrisis(){ ge('crisis-bg').classList.remove('open'); }
-function crisisShow(i){
-  _crisisIdx = i;
-  document.querySelectorAll('.crisis-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
+var _crisisIdx = 0, _crisisOpen = false;
+// Inline crisis content (steps + weight-based doses) — reused by the panel.
+function crisisContent(i){
   var w = crisisWeight();
   var data = CRISIS[i][3](w);
-  var title = '<div class="crisis-emg-t">'+CRISIS[i][1]+' <span>'+CRISIS[i][2]+'</span></div>';
   var steps = '<div class="crisis-sec-t">Immediate actions</div>' + data.steps.map(function(s,si){
     return '<div class="crisis-step"><span class="crisis-num">'+(si+1)+'</span><span>'+s+'</span></div>';
   }).join('');
   var doses = '<div class="crisis-sec-t">Drug doses'+(w?' (for '+w+' kg)':'')+'</div>' + data.doses.map(function(d){
     return '<div class="crisis-dose"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>';
   }).join('');
-  ge('crisis-body').innerHTML = title + steps + doses;
+  return steps + doses;
 }
-function crisisOpen(i){ _crisisIdx = i; openCrisis(); }   // one click → opens protocol in the in-page overlay
-window.openCrisis=openCrisis; window.closeCrisis=closeCrisis; window.crisisShow=crisisShow; window.crisisOpen=crisisOpen;
+function renderCrisisLaunch(){
+  var box = ge('crisis-launch'); if(!box) return;
+  box.innerHTML = CRISIS.map(function(cz,i){
+    return '<button class="crisis-launch-btn" onclick="crisisInline('+i+')"><b>'+cz[1]+'</b><span>'+cz[2]+'</span></button>';
+  }).join('');
+}
+// Expand the crisis protocol inline below the buttons. Clicking another switches.
+function crisisInline(i, scroll){
+  _crisisIdx = i; _crisisOpen = true;
+  var box = ge('crisis-inline'); if(!box) return;
+  var w = crisisWeight();
+  var wt = w ? ('Doses for current weight: <b>'+w+' kg</b>') : 'Enter weight for weight-based doses — showing per-kg guidance.';
+  box.innerHTML =
+    '<div class="ci-head"><div>'+
+      '<div class="ci-title">'+CRISIS[i][1]+' <span>'+CRISIS[i][2]+'</span></div>'+
+      '<div class="ci-wt">'+wt+'</div>'+
+    '</div><button class="ci-collapse" onclick="crisisCollapse()">Collapse &times;</button></div>'+
+    '<div class="ci-body">'+crisisContent(i)+'</div>';
+  box.classList.add('open');
+  document.querySelectorAll('.crisis-launch-btn').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
+  if(scroll !== false){ try { box.scrollIntoView({behavior:'smooth', block:'nearest'}); } catch(e){} }
+}
+function crisisCollapse(){
+  _crisisOpen = false;
+  var box = ge('crisis-inline'); if(box){ box.classList.remove('open'); box.innerHTML=''; }
+  document.querySelectorAll('.crisis-launch-btn').forEach(function(b){ b.classList.remove('on'); });
+}
+window.crisisInline=crisisInline; window.crisisCollapse=crisisCollapse;
 
 document.addEventListener('DOMContentLoaded',async function(){
   try{
     var embed = location.search.indexOf('embed=1') >= 0;
     startMonitorHeader();   // animate vitals in the monitor header
+    renderCrisisLaunch();   // render the inline crisis protocol buttons (always available)
     if(embed){
       // Embedded inside the Doctor Workspace — CSS (body.embed .nb) hides the
       // duplicate site navbar. We keep the monitor header as the workstation top.
