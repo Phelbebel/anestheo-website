@@ -24,11 +24,22 @@
 .rh-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-bottom:14px;}
 .rh-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);cursor:pointer;font-family:inherit;text-align:left;transition:background .14s,border-color .14s,transform .12s;}
 .rh-chip:hover{background:rgba(27,107,90,.12);border-color:rgba(42,138,116,.4);transform:translateY(-1px);}
-.rh-chip.on{background:rgba(27,107,90,.24);border-color:rgba(42,138,116,.6);color:#fff;}
+.rh-chip.on{background:rgba(27,107,90,.45);border-color:#2A8A74;color:#fff;font-weight:700;box-shadow:inset 3px 0 0 #7ECFC0;}
+.rh-chip.on::after{content:'\2713';margin-left:auto;color:#7ECFC0;font-weight:700;font-size:13px;}
 .rh-chip .ic{font-size:16px;flex-shrink:0;}
-.rh-content{background:rgba(255,255,255,.04);border:1px solid rgba(42,138,116,.3);border-radius:14px;padding:20px 22px;min-height:120px;}
-.rh-h{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;display:flex;align-items:center;gap:10px;}
-.rh-h .ic{font-size:22px;}
+.rh-content{position:relative;background:#0C1F18;border:1px solid rgba(42,138,116,.45);border-radius:14px;min-height:50vh;box-shadow:0 14px 40px rgba(0,0,0,.45);overflow:hidden;}
+.rh-bar{display:flex;align-items:center;gap:11px;padding:14px 20px;background:linear-gradient(90deg,rgba(42,138,116,.30),rgba(42,138,116,.06));border-bottom:1px solid rgba(42,138,116,.4);border-left:4px solid #7ECFC0;}
+.rh-bar .ic{font-size:21px;flex-shrink:0;}
+.rh-bar .tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7ECFC0;margin-bottom:1px;}
+.rh-h{font-family:'Playfair Display',serif;font-size:25px;font-weight:700;color:#fff;line-height:1.05;}
+.rh-body{padding:20px 24px 26px;}
+.rh-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center;gap:8px;padding:24px;}
+.rh-empty .e-ic{font-size:44px;opacity:.5;}
+.rh-empty .e-t{font-size:17px;color:rgba(255,255,255,.7);font-weight:600;}
+@keyframes rhIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+.rh-anim{animation:rhIn .28s ease;}
+@keyframes rhFlash{0%{box-shadow:0 0 0 0 rgba(126,207,192,0),0 14px 40px rgba(0,0,0,.45);}28%{box-shadow:0 0 0 3px rgba(126,207,192,.55),0 14px 40px rgba(0,0,0,.45);}100%{box-shadow:0 0 0 0 rgba(126,207,192,0),0 14px 40px rgba(0,0,0,.45);}}
+.rh-flash{animation:rhFlash .6s ease;}
 .rh-sub0{font-size:12.5px;color:var(--muted);margin:3px 0 8px;}
 .rh-sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:15px 0 6px;padding-top:10px;border-top:1px solid rgba(27,107,90,.14);}
 .rh-sec:first-of-type{margin-top:6px;padding-top:0;border-top:none;}
@@ -43,7 +54,7 @@
 .rh-full{display:inline-block;margin-top:13px;font-size:12.5px;color:#7ECFC0;text-decoration:none;font-weight:600;}
 .rh-full:hover{text-decoration:underline;}
 .rh-note{font-size:11.5px;color:var(--hint);margin-top:16px;padding-top:10px;border-top:1px solid rgba(27,107,90,.12);line-height:1.5;}
-@media(max-width:600px){.rh-chips{grid-template-columns:repeat(auto-fill,minmax(124px,1fr));}.rh-content{padding:16px 15px;}.rh-h{font-size:19px;}}
+@media(max-width:600px){.rh-chips{grid-template-columns:repeat(auto-fill,minmax(124px,1fr));}.rh-body{padding:16px 15px;}.rh-h{font-size:21px;}.rh-bar{padding:12px 15px;}}
 </style>
 </head>
 <body>
@@ -274,6 +285,12 @@ var REF = [
 ];
 
 var _cur=null;
+function renderEmpty(){
+  ge('rh-content').innerHTML =
+    '<div class="rh-empty"><div class="e-ic">&#128214;</div>'+
+    '<div class="e-t">Select a reference to open it here.</div>'+
+    '<div style="font-size:12.5px;color:var(--hint);">Tap any topic above — it opens in this large panel.</div></div>';
+}
 function refShow(k, userClick){
   var m=null; for(var i=0;i<REF.length;i++){ if(REF[i].k===k){ m=REF[i]; break; } }
   if(!m) return;
@@ -281,12 +298,19 @@ function refShow(k, userClick){
   var chips=document.querySelectorAll('.rh-chip');
   for(var j=0;j<chips.length;j++){ chips[j].classList.toggle('on', chips[j].getAttribute('data-k')===k); }
   var full = m.full ? '<a class="rh-full" href="'+m.full+'">Open full guide &#8599;</a>' : '';
-  ge('rh-content').innerHTML =
-    '<div class="rh-h"><span class="ic">'+m.ic+'</span>'+m.t+'</div>'+
-    '<div class="rh-sub0">Reference &amp; educational summary — verify against current local guidelines.</div>'+
-    m.b + full +
-    '<div class="rh-note">Educational reference only. Values are typical adult figures unless stated; confirm against current guidelines, product labeling, and your institution’s protocols before clinical use.</div>';
-  if(userClick && window.innerWidth<760){ try{ ge('rh-content').scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
+  var box = ge('rh-content');
+  box.innerHTML =
+    '<div class="rh-bar"><span class="ic">'+m.ic+'</span>'+
+      '<div><div class="tag">Active reference</div><div class="rh-h">'+m.t+'</div></div></div>'+
+    '<div class="rh-body rh-anim">'+
+      '<div class="rh-sub0">Reference &amp; educational summary — verify against current local guidelines.</div>'+
+      m.b + full +
+      '<div class="rh-note">Educational reference only. Values are typical adult figures unless stated; confirm against current guidelines, product labeling, and your institution’s protocols before clinical use.</div>'+
+    '</div>';
+  // highlight flash on every switch
+  box.classList.remove('rh-flash'); void box.offsetWidth; box.classList.add('rh-flash');
+  // scroll the viewer into view on all screen sizes
+  if(userClick){ try{ box.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
 }
 window.refShow=refShow;
 
@@ -302,7 +326,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     var role = auth.profile ? auth.profile.role : '';
     if(role === 'patient'){ window.location.href = '/v2/dashboard.html'; return; }
     renderChips();
-    refShow('airway', false);   // open the first topic instantly
+    renderEmpty();   // start with an empty state — first click visibly opens the viewer
     document.getElementById('loader').style.display='none';
     document.getElementById('app').style.display='block';
   }catch(e){
