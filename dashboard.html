@@ -142,6 +142,19 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-chk:before{content:'';position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;}
 .ws-chk.done:before{background:#5ee393;} .ws-chk.miss:before{background:rgba(255,255,255,.2);}
 .ws-chk.miss{color:var(--hint);}
+.ws-reqs{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+.ws-req-item{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:8px 10px;}
+.ws-req-item.on{background:rgba(42,138,116,.14);border-color:rgba(42,138,116,.5);}
+.ws-req-chk{display:flex;align-items:center;gap:9px;font-size:14px;color:rgba(255,255,255,.9);cursor:pointer;}
+.ws-req-chk input{width:16px;height:16px;flex:0 0 auto;accent-color:#2A8A74;cursor:pointer;}
+.ws-req-chk span{flex:1 1 auto;}
+.ws-req-del{background:none;border:none;color:rgba(255,255,255,.4);font-size:18px;line-height:1;cursor:pointer;padding:0 4px;}
+.ws-req-del:hover{color:#ff9b86;}
+.ws-req-note{width:100%;margin-top:7px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:7px 9px;color:#fff;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;}
+.ws-req-note:focus{border-color:#2A8A74;}
+.ws-req-add{display:flex;gap:8px;margin-top:8px;}
+.ws-req-add input{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;}
+.ws-req-add input:focus{border-color:#2A8A74;}
 .ws-notes{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:9px;padding:11px;color:#fff;font-size:14px;font-family:inherit;outline:none;resize:vertical;box-sizing:border-box;}
 .ws-notes:focus{border-color:#2A8A74;}
 .ws-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
@@ -417,6 +430,85 @@ var _wsActiveMap={}, _wsCtx=null;
 function wsReviewLabel(rs){ var m={not_submitted:['Not submitted',''],pending:['Awaiting review','warn'],in_review:['Under review','rev'],changes_requested:['Changes requested','warn'],approved:['Approved','ok']}; var v=m[rs||'not_submitted']||m.not_submitted; return {txt:v[0],cls:v[1]}; }
 function wsPrepCount(items){ var p=(items&&items.prepare)||[]; var n=0; for(var i=0;i<6;i++){ if(p[i]) n++; } return n; }
 
+// Standard pre-anesthesia clinical requirements (doctor selects/annotates).
+var WS_REQ_CATALOG=[
+  {key:'chest_xray',label:'Chest X-ray'},
+  {key:'ecg',label:'ECG'},
+  {key:'echo',label:'Echocardiography'},
+  {key:'bloods',label:'Blood tests'},
+  {key:'coag',label:'Coagulation profile'},
+  {key:'cardiology',label:'Cardiology consultation'},
+  {key:'pulmonology',label:'Pulmonology consultation'},
+  {key:'endocrinology',label:'Endocrinology consultation'},
+  {key:'anticoag',label:'Stop / continue anticoagulants'},
+  {key:'glp1',label:'Stop / continue GLP-1'},
+  {key:'documents',label:'Bring medical documents'},
+  {key:'clarify_meds',label:'Clarify medications'},
+  {key:'upload_reports',label:'Upload reports'},
+  {key:'delay',label:'Delay surgery pending evaluation'},
+  {key:'proceed',label:'Proceed / no additional tests needed'}
+];
+// saved requirements array -> map keyed by key
+function wsNormReqs(arr){
+  var out={}; (Array.isArray(arr)?arr:[]).forEach(function(r){ if(r&&r.key) out[r.key]={checked:!!r.checked,note:r.note||'',label:r.label||'',custom:!!r.custom}; });
+  return out;
+}
+function wsReqRow(key,label,r,custom){
+  r=r||{}; var checked=r.checked?' checked':'';
+  return '<div class="ws-req-item'+(r.checked?' on':'')+'">'+
+    '<label class="ws-req-chk"><input type="checkbox" data-req-key="'+key+'" data-req-label="'+wsEsc(label)+'"'+(custom?' data-req-custom="1"':'')+checked+' onchange="wsReqToggle(this)"><span>'+wsEsc(label)+'</span>'+
+      (custom?'<button type="button" class="ws-req-del" onclick="wsReqRemove(\''+key+'\')" title="Remove">&times;</button>':'')+'</label>'+
+    '<input class="ws-req-note" data-req-note="'+key+'" placeholder="Note / instructions for the patient (optional)" value="'+wsEsc(r.note||'')+'">'+
+  '</div>';
+}
+function wsRequirementsHtml(){
+  var reqs=(_wsCtx&&_wsCtx.requirements)||{};
+  var catKeys={}; WS_REQ_CATALOG.forEach(function(c){catKeys[c.key]=1;});
+  var html=WS_REQ_CATALOG.map(function(c){ return wsReqRow(c.key,c.label,reqs[c.key],false); }).join('');
+  Object.keys(reqs).forEach(function(k){ if(!catKeys[k]) html+=wsReqRow(k,reqs[k].label||k,reqs[k],true); });
+  html+='<div class="ws-req-add"><input id="ws-req-custom" placeholder="Add a custom requirement..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();wsReqAdd();}"><button type="button" class="ws-btn" onclick="wsReqAdd()">+ Add</button></div>';
+  return html;
+}
+function wsReqToggle(cb){ var row=cb.closest('.ws-req-item'); if(row) row.classList.toggle('on',cb.checked); }
+function wsCollectReqs(){
+  var map={};
+  document.querySelectorAll('#ws-ws-body input[data-req-key]').forEach(function(cb){
+    var k=cb.getAttribute('data-req-key');
+    var noteEl=document.querySelector('#ws-ws-body [data-req-note="'+k+'"]');
+    map[k]={checked:cb.checked, note:noteEl?noteEl.value:'', label:cb.getAttribute('data-req-label')||k, custom:cb.getAttribute('data-req-custom')==='1'};
+  });
+  if(_wsCtx) _wsCtx.requirements=map;
+  return map;
+}
+function wsCaptureEdits(){
+  if(!_wsCtx) return;
+  var n=document.getElementById('ws-notes'); if(n) _wsCtx.notes=n.value;
+  wsCollectReqs();
+}
+function wsReqAdd(){
+  if(!_wsCtx) return; var inp=document.getElementById('ws-req-custom'); if(!inp) return;
+  var v=(inp.value||'').trim(); if(!v) return;
+  wsCaptureEdits();
+  _wsCtx.requirements['custom_'+Date.now()]={checked:true,note:'',label:v,custom:true};
+  inp.value=''; wsRenderWorkspace();
+}
+function wsReqRemove(key){ if(!_wsCtx) return; wsCaptureEdits(); delete _wsCtx.requirements[key]; wsRenderWorkspace(); }
+function wsPlanPayload(){
+  wsCaptureEdits();
+  var reqs=[], m=(_wsCtx&&_wsCtx.requirements)||{};
+  Object.keys(m).forEach(function(k){ var r=m[k]; reqs.push({key:k,label:r.label,checked:!!r.checked,note:r.note||'',custom:!!r.custom}); });
+  return { notes:(_wsCtx&&_wsCtx.notes)||'', requirements:reqs };
+}
+async function wsSavePlan(silent){
+  if(!_wsCtx) return false;
+  try {
+    var r=await window.sb.rpc('save_doctor_plan',{ p_surgery_id:_wsCtx.surgeryId, p_plan:wsPlanPayload() });
+    if(r&&r.error) throw new Error(r.error.message);
+    if(!silent) wsToast('Plan saved');
+    return true;
+  } catch(e){ wsToast('Save failed: '+(e.message||'error')); return false; }
+}
+
 async function wsLoadActivePatients(){
   var box=document.getElementById('ws-active'); if(!box) return;
   var uid=window.__wsUserId; if(!uid){ box.innerHTML=''; return; }
@@ -452,12 +544,12 @@ async function wsOpenPatient(patientId){
   var info=_wsActiveMap[patientId]; if(!info) return;
   var surgeryId=info.surgeryId;
   try { await window.sb.rpc('start_review', { p_surgery_id: surgeryId }); } catch(e){}   // pending -> in_review
-  var surgery={},quest={},items={},notes='';
+  var surgery={},quest={},items={},plan={};
   try { var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; }catch(e){}
   try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; }catch(e){}
   try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).maybeSingle(); items=(c.data&&c.data.items&&c.data.items.prep_guide)||{}; }catch(e){}
-  try { var p=await window.sb.from('preparation_plans').select('id,plan_content,status').eq('surgery_id',surgeryId).order('version',{ascending:false}).limit(1).maybeSingle(); notes=(p.data&&p.data.plan_content&&p.data.plan_content.notes)||''; }catch(e){}
-  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items, notes:notes };
+  try { var p=await window.sb.from('preparation_plans').select('id,plan_content,status').eq('surgery_id',surgeryId).in('status',['draft','approved']).order('version',{ascending:false}).limit(1).maybeSingle(); plan=(p.data&&p.data.plan_content)||{}; }catch(e){}
+  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items, notes:plan.notes||'', requirements:wsNormReqs(plan.requirements) };
   wsRenderWorkspace();
   document.getElementById('ws-ws').classList.add('open');
 }
@@ -491,45 +583,49 @@ function wsRenderWorkspace(){
   html+='<div class="ws-sec-t">C &middot; Preparation review</div>'+
     '<div class="ws-ap-facts" style="margin-bottom:6px;">Preparation checklist: <b style="color:#fff;">'+nDone+' / 6 complete</b> &middot; review status: <b style="color:#7ECFC0;">'+wsReviewLabel(c.quest.review_state).txt+'</b></div>'+
     WS_PREPARE.map(function(lbl,i){ var done=!!pc[i]; return '<div class="ws-chk '+(done?'done':'miss')+'">'+(done?'':'Missing: ')+wsEsc(lbl)+'</div>'; }).join('');
-  // D Doctor notes
-  html+='<div class="ws-sec-t">D &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
+  // D Clinical requirements (doctor plan) - shared with the patient
+  html+='<div class="ws-sec-t">D &middot; Clinical requirements <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(shared with patient)</span></div>'+
+    '<div class="ws-reqs">'+wsRequirementsHtml()+'</div>'+
+    '<div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button></div>';
+  // E Doctor notes (internal - never shown to the patient)
+  html+='<div class="ws-sec-t">E &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
     '<textarea class="ws-notes" id="ws-notes" placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
     '<div class="ws-acts"><button class="ws-btn" onclick="wsSaveDocNotes()">Save notes</button></div>';
-  // E Review actions
+  // F Review actions
   var rs=c.quest.review_state||'not_submitted';
-  html+='<div class="ws-sec-t">E &middot; Review actions</div>';
+  html+='<div class="ws-sec-t">F &middot; Review actions</div>';
   if(rs==='not_submitted'){ html+='<div class="ws-ap-facts">Patient has not submitted for review yet.</div>'; }
   else if(rs==='approved'){ html+='<div class="ws-ap-facts" style="color:#5ee393;">&#9989; Plan approved.</div>'; }
   else {
     html+=(c.quest.reviewer_notes&&rs==='changes_requested'?'<div class="ws-ap-facts" style="margin-bottom:8px;">Last note to patient: <i>'+wsEsc(c.quest.reviewer_notes)+'</i></div>':'')+
-      '<div class="ws-acts"><button class="ws-act-changes" onclick="wsRequestChanges()">Request changes</button>'+
+      '<div class="ws-ap-facts" style="margin-bottom:8px;">Saving the plan then choosing an action below sends the requirements to the patient. Approval is required before the patient is ready.</div>'+
+      '<div class="ws-acts"><button class="ws-act-changes" onclick="wsRequestChanges()">Request changes / additional requirements</button>'+
       '<button class="ws-act-approve" onclick="wsApprovePlan()">&#9989; Approve plan</button></div>';
   }
   document.getElementById('ws-ws-body').innerHTML=html;
 }
-async function wsSaveDocNotes(){
-  if(!_wsCtx) return; var val=document.getElementById('ws-notes').value;
-  try {
-    var ex=await window.sb.from('preparation_plans').select('id,plan_content').eq('surgery_id',_wsCtx.surgeryId).eq('status','draft').maybeSingle();
-    if(ex&&ex.data){ var p=ex.data.plan_content||{}; p.notes=val; await window.sb.from('preparation_plans').update({plan_content:p,updated_at:new Date().toISOString()}).eq('id',ex.data.id); }
-    else { await window.sb.from('preparation_plans').insert({surgery_id:_wsCtx.surgeryId, questionnaire_id:_wsCtx.quest&&_wsCtx.quest.id||null, status:'draft', plan_content:{notes:val}, created_by:window.__wsUserId}); }
-    _wsCtx.notes=val; wsToast('Notes saved');
-  } catch(e){ wsToast('Save failed: '+(e.message||'error')); }
-}
+// Notes save now routes through the same guarded RPC as the plan (the old
+// direct-table write silently swallowed RLS errors -> "saved" but not persisted).
+async function wsSaveDocNotes(){ return wsSavePlan(false); }
 async function wsRequestChanges(){
-  if(!_wsCtx) return; var notes=window.prompt('What does the patient need to change? (shown to the patient)'); if(notes===null) return;
-  try { var r=await window.sb.rpc('request_changes',{p_surgery_id:_wsCtx.surgeryId, p_notes:notes}); if(r&&r.error) throw new Error(r.error.message); wsToast('Changes requested'); }
+  if(!_wsCtx) return;
+  var notes=window.prompt('Message to the patient (what they need to do):', _wsCtx.quest.reviewer_notes||'');
+  if(notes===null) return;
+  if(!(await wsSavePlan(true))) return;                       // persist requirements first
+  try { var r=await window.sb.rpc('request_changes',{p_surgery_id:_wsCtx.surgeryId, p_notes:notes}); if(r&&r.error) throw new Error(r.error.message); wsToast('Requirements sent to patient'); }
   catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
   wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
 }
 async function wsApprovePlan(){
   if(!_wsCtx) return; if(!window.confirm('Approve this preparation plan? The patient will see it as reviewed.')) return;
+  if(!(await wsSavePlan(true))) return;                       // persist requirements first
   try { var r=await window.sb.rpc('approve_plan',{p_surgery_id:_wsCtx.surgeryId}); if(r&&r.error) throw new Error(r.error.message); wsToast('Plan approved'); }
   catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
   wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
 }
 window.wsOpenPatient=wsOpenPatient; window.wsCloseWorkspace=wsCloseWorkspace;
-window.wsSaveDocNotes=wsSaveDocNotes; window.wsRequestChanges=wsRequestChanges; window.wsApprovePlan=wsApprovePlan;
+window.wsSaveDocNotes=wsSaveDocNotes; window.wsSavePlan=wsSavePlan; window.wsRequestChanges=wsRequestChanges; window.wsApprovePlan=wsApprovePlan;
+window.wsReqToggle=wsReqToggle; window.wsReqAdd=wsReqAdd; window.wsReqRemove=wsReqRemove;
 
 async function wsRespondRequest(id, decision){
   var reason = null;
