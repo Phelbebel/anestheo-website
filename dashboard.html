@@ -334,6 +334,41 @@ async function wsLoadRequests(){
       }).join('') +
     '</div>';
 }
+// ── Patients who submitted for review (review_state = pending) ──
+async function wsLoadPendingReviews(){
+  var box = document.getElementById('ws-reviews'); if(!box) return;
+  var uid = window.__wsUserId; if(!uid){ box.innerHTML=''; return; }
+  var names = {};
+  try {
+    // accepted connections give us patient_id -> name/procedure (RLS: doctor_id = me)
+    var cr = await window.sb.from('care_requests').select('patient_id,patient_name,procedure')
+      .eq('doctor_id', uid).eq('status','accepted');
+    ((cr && cr.data) || []).forEach(function(c){ names[c.patient_id] = { name:c.patient_name, proc:c.procedure }; });
+  } catch(e){}
+  var rows = [];
+  try {
+    // assignment-scoped RLS returns only questionnaires for surgeries assigned to me
+    var q = await window.sb.from('preop_questionnaires').select('patient_id,review_state,risk_flags,updated_at')
+      .eq('review_state','pending').order('updated_at',{ascending:true});
+    rows = (q && q.data) || [];
+  } catch(e){ box.innerHTML=''; return; }
+  if(!rows.length){ box.innerHTML=''; return; }
+  box.innerHTML =
+    '<div class="ws-reqs-card" style="background:linear-gradient(135deg,rgba(232,168,56,.14),rgba(232,168,56,.04));border-color:rgba(232,168,56,.4);">' +
+      '<div class="ws-reqs-h" style="color:#E8C16b;">&#128203; Awaiting your review <span class="ws-reqs-n" style="background:rgba(232,168,56,.3);">'+rows.length+'</span></div>' +
+      rows.map(function(r){
+        var info = names[r.patient_id] || {};
+        var flags = (r.risk_flags && r.risk_flags.length)
+          ? '<div class="ws-req-meta">&#9888; '+r.risk_flags.map(wsEsc).join(' &middot; ')+'</div>' : '';
+        return '<div class="ws-req"><div class="ws-req-info">' +
+          '<div class="ws-req-name">'+wsEsc(info.name||'Patient')+'</div>' +
+          '<div class="ws-req-meta">'+wsEsc(info.proc||'Pre-operative questionnaire')+' &middot; submitted '+(r.updated_at?new Date(r.updated_at).toLocaleDateString():'')+'</div>' +
+          flags + '</div>' +
+          '<div class="ws-req-btns"><span class="ws-btn" style="cursor:default;opacity:.85;">Pending review</span></div></div>';
+      }).join('') +
+    '</div>';
+}
+
 async function wsRespondRequest(id, decision){
   var reason = null;
   if(decision === 'decline'){ reason = window.prompt('Optional reason for declining (the patient sees this):') || null; }
@@ -343,6 +378,7 @@ async function wsRespondRequest(id, decision){
     wsToast(decision === 'accept' ? 'Patient connected' : 'Request declined');
   } catch(e){ wsToast('Failed: ' + (e.message||'error')); }
   wsLoadRequests();
+  wsLoadPendingReviews();
   wsLoadPatients();
 }
 
@@ -975,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', async function(){
           '<div class="ws-sec-sub">Your pre-operative clinic</div></div></div>' +
         '<div class="ws-stats" id="ws-pt-stats"></div>' +
         '<div id="ws-reqs"></div>' +
+        '<div id="ws-reviews"></div>' +
         '<div class="ws-pt-cols">' +
           // LEFT — Add patient form (always visible, no modal)
           '<div class="ws-pt-form">' +
@@ -1081,6 +1118,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     wsInjectModals();
     wsLoadPatients();
     wsLoadRequests();
+    wsLoadPendingReviews();
     wsLoadAsk();
     if(isAdminRole){ wsLoadAdmin(); }
 
