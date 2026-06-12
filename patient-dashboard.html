@@ -138,6 +138,11 @@
 .sp-btn:hover{background:#2A8A74;}
 .sp-btn.ghost{background:rgba(255,255,255,.06);border:1px solid var(--border);color:#cfe;}
 .sp-btn.ghost:hover{background:rgba(255,255,255,.12);color:#fff;}
+.sp-btn[disabled]{pointer-events:none;}
+.sp-hint{font-size:12px;color:var(--hint);margin-top:7px;}
+.sp-pending{display:inline-block;font-size:13.5px;font-weight:600;color:#E8C16b;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.3);border-radius:9px;padding:9px 14px;}
+.sp-pending.ok{color:#5ee393;background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.3);}
+.sp-pending.warn{color:#ff9b86;background:rgba(192,57,43,.14);border-color:rgba(192,57,43,.35);margin-bottom:8px;}
 .dir-search{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin:6px 0 12px;box-sizing:border-box;min-height:44px;}
 .dir-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.12);}
 .dir-row:last-child{border-bottom:none;}
@@ -313,12 +318,51 @@ function renderStatusPanel(){
 // Contextual attachment action (Epic B): connect / cancel pending / switch.
 function spConnectAction(){
   var crs = _careRequest ? _careRequest.status : 'none';
-  var btn;
-  if(crs === 'accepted')      btn = '<button class="sp-btn ghost" onclick="switchClinician()">Change clinician</button>';
-  else if(crs === 'requested') btn = '<button class="sp-btn ghost" onclick="cancelRequest()">Cancel request</button>';
-  else                         btn = '<button class="sp-btn" onclick="openDirectory()">&#129658; Connect a clinician</button>';
-  return '<div class="sp-action">'+btn+'</div>';
+  var rs  = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  var dn  = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your clinician';
+  // ── Connection layer ──
+  if(crs !== 'accepted'){
+    if(crs === 'requested') return '<div class="sp-action"><button class="sp-btn ghost" onclick="cancelRequest()">Cancel request</button></div>';
+    return '<div class="sp-action"><button class="sp-btn" onclick="openDirectory()">&#129658; Request Review</button></div>';
+  }
+  // ── Connected: review-submission layer (review_state) ──
+  if(rs === 'pending')   return '<div class="sp-action"><div class="sp-pending">&#9203; Awaiting clinician review</div></div>';
+  if(rs === 'in_review') return '<div class="sp-action"><div class="sp-pending">&#128994; Under review by '+dn+'</div></div>';
+  if(rs === 'approved')  return '<div class="sp-action"><div class="sp-pending ok">&#9989; Reviewed by '+dn+'</div></div>';
+  if(rs === 'changes_requested')
+    return '<div class="sp-action"><div class="sp-pending warn">&#9888; '+dn+' requested changes — update &amp; resubmit</div>' +
+           '<button class="sp-btn" onclick="submitForReview()">Resubmit for Review</button></div>';
+  // not_submitted (connected): gated Submit for Review
+  var qDone = !!(_quest && _quest.status === 'submitted');
+  var cDone = prepChecklistComplete();
+  var out;
+  if(qDone && cDone){
+    out = '<button class="sp-btn" onclick="submitForReview()">&#9989; Submit for Review</button>';
+  } else {
+    var miss = !qDone ? 'Complete your questionnaire' : 'Finish the preparation checklist';
+    out = '<button class="sp-btn" disabled style="opacity:.5;cursor:default;">Submit for Review</button>' +
+          '<div class="sp-hint">'+miss+' to enable.</div>';
+  }
+  out += '<button class="sp-btn ghost" style="margin-left:8px;" onclick="switchClinician()">Change clinician</button>';
+  return '<div class="sp-action">'+out+'</div>';
 }
+async function submitForReview(){
+  if(!_surgery || !_surgery.id) return;
+  try {
+    var r = await window.sb.rpc('submit_for_review', { p_surgery_id: _surgery.id });
+    if(r && r.error) throw new Error(r.error.message);
+  } catch(e){
+    var sp = document.querySelector('.sp-action');
+    if(sp) sp.insertAdjacentHTML('beforeend','<div class="sp-hint" style="color:#ff9b86;">'+esc(e.message||'Could not submit.')+'</div>');
+    return;
+  }
+  try { _quest = await window.getQuestionnaire(_uid); } catch(e){}
+  renderStatusPanel(); renderJourney();
+  // lock the open guide if visible
+  if(ge('prep-modal') && ge('prep-modal').classList.contains('open')){ ge('prep-modal-body').innerHTML = prepContentHtml(); }
+  addActivity('Submitted for clinician review', Date.now()); renderActivity();
+}
+window.submitForReview = submitForReview;
 
 // ── CLINICIAN CONNECTION (Epic B — wired to bridge RPCs) ──
 var _directory = [];
@@ -420,15 +464,15 @@ function journeyCtx(s){
   };
 }
 // 6-step journey stepper, REACHED computed from derived journey_status only.
-var SJ_STEPS = ['Added','Questionnaire','Prep plan','Ready','Surgery','Recovery'];
+var SJ_STEPS = ['Added','Questionnaire','Preparation','Review','Ready','Surgery'];
 function reached6(js, qSubmitted){
+  // steps: 1 Added · 2 Questionnaire · 3 Preparation · 4 Review · 5 Ready · 6 Surgery
   switch(js){
-    case 'archived': case 'in_recovery': return 6;
-    case 'completed': return 5;
-    case 'ready_for_surgery': return 4;
-    case 'plan_approved': return 3;
-    case 'submitted_for_review': case 'in_review': case 'changes_requested': return 2;
-    default: return qSubmitted ? 2 : 1;
+    case 'archived': case 'in_recovery': case 'completed': return 6;
+    case 'ready_for_surgery': return 6;                 // Ready done -> at Surgery
+    case 'plan_approved': return 5;                     // Review done -> at Ready
+    case 'submitted_for_review': case 'in_review': case 'changes_requested': return 4; // Q + Preparation done -> at Review
+    default: return qSubmitted ? 3 : 2;                 // surgery added; Questionnaire done -> at Preparation
   }
 }
 function sjStepper(d, qSubmitted){
@@ -790,12 +834,23 @@ function prepSpecial(a, flags){
 
 // Checklist boxes persist to the existing preop_checklist table (no new silo),
 // merged under items.prep_guide so other checklist keys are preserved.
+function prepReviewLocked(){
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  return rs !== 'not_submitted';   // submitted/in_review/approved/changes_requested -> checklist locked
+}
 function prepChecklistHtml(group, labels){
   var saved = (_prepChecklist[group] || []);
+  var locked = prepReviewLocked();
   return labels.map(function(x, i){
     var checked = saved[i] ? ' checked' : '';
-    return '<label class="prep-chk"><input type="checkbox" data-prep-group="'+group+'" data-prep-i="'+i+'" onchange="prepSaveChecklist()"'+checked+'><span>'+esc(x)+'</span></label>';
+    return '<label class="prep-chk"><input type="checkbox" data-prep-group="'+group+'" data-prep-i="'+i+'"'+(locked?' disabled':'')+' onchange="prepSaveChecklist()"'+checked+'><span>'+esc(x)+'</span></label>';
   }).join('');
+}
+// "Preparation checklist complete" = all items of the 'prepare' group checked.
+function prepChecklistComplete(){
+  var p = (_prepChecklist && _prepChecklist.prepare) || [];
+  var done = 0; for(var i=0;i<6;i++){ if(p[i]) done++; }
+  return done >= 6;
 }
 
 async function prepSaveChecklist(){
