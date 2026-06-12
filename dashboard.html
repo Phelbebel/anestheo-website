@@ -108,6 +108,15 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-tile-ico{font-size:26px;}
 .ws-tile-t{font-size:13.5px;font-weight:500;color:#fff;}
 .ws-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px;}
+.ws-reqs-card{background:linear-gradient(135deg,rgba(42,138,116,.16),rgba(42,138,116,.05));border:1px solid rgba(42,138,116,.4);border-radius:14px;padding:16px 18px;margin-bottom:16px;}
+.ws-reqs-h{font-size:13px;font-weight:700;color:#7ECFC0;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.ws-reqs-n{font-size:11px;font-weight:700;background:rgba(42,138,116,.3);color:#fff;border-radius:20px;padding:2px 8px;}
+.ws-req{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(42,138,116,.18);flex-wrap:wrap;}
+.ws-req:last-child{border-bottom:none;}
+.ws-req-name{font-size:14px;font-weight:600;color:#fff;}
+.ws-req-meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.ws-req-msg{font-size:12.5px;color:rgba(255,255,255,.7);margin-top:4px;font-style:italic;}
+.ws-req-btns{display:flex;gap:8px;flex-shrink:0;}
 .ws-stat{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:15px 16px;}
 .ws-stat-n{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;}
 .ws-stat-l{font-size:12px;color:var(--muted);margin-top:2px;}
@@ -294,6 +303,47 @@ function wsDeriveStatus(p){
   if(p.questionnaire_status !== 'completed') return 'Awaiting questionnaire';
   if(p.consultation_status === 'reviewed') return 'Awaiting consultation';
   return 'Awaiting consultation';
+}
+
+// ── Patient-initiated review requests (Epic B inbox) ──
+async function wsLoadRequests(){
+  var box = document.getElementById('ws-reqs'); if(!box) return;
+  var uid = window.__wsUserId; if(!uid){ box.innerHTML=''; return; }
+  var reqs = [];
+  try {
+    var r = await window.sb.from('care_requests').select('*')
+      .eq('doctor_id', uid).eq('status', 'requested')
+      .order('requested_at', { ascending: true });
+    reqs = (r && r.data) || [];
+  } catch(e){ box.innerHTML=''; return; }
+  if(!reqs.length){ box.innerHTML=''; return; }
+  box.innerHTML =
+    '<div class="ws-reqs-card">' +
+      '<div class="ws-reqs-h">&#129658; Review requests <span class="ws-reqs-n">'+reqs.length+'</span></div>' +
+      reqs.map(function(q){
+        var facts = [q.procedure, q.surgery_date ? new Date(q.surgery_date).toLocaleDateString() : ''].filter(Boolean).join(' · ');
+        var via = q.origin_method === 'share_code' ? ' · via code' : '';
+        return '<div class="ws-req">' +
+          '<div class="ws-req-info"><div class="ws-req-name">'+wsEsc(q.patient_name||'Patient')+'</div>' +
+            '<div class="ws-req-meta">'+wsEsc(facts||'Pre-operative review requested')+via+'</div>' +
+            (q.message ? '<div class="ws-req-msg">'+wsEsc(q.message)+'</div>' : '') + '</div>' +
+          '<div class="ws-req-btns">' +
+            '<button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\')">Accept</button>' +
+            '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button>' +
+          '</div></div>';
+      }).join('') +
+    '</div>';
+}
+async function wsRespondRequest(id, decision){
+  var reason = null;
+  if(decision === 'decline'){ reason = window.prompt('Optional reason for declining (the patient sees this):') || null; }
+  try {
+    var r = await window.sb.rpc('respond_care_request', { p_request_id: id, p_decision: decision, p_reason: reason });
+    if(r && r.error) throw new Error(r.error.message);
+    wsToast(decision === 'accept' ? 'Patient connected' : 'Request declined');
+  } catch(e){ wsToast('Failed: ' + (e.message||'error')); }
+  wsLoadRequests();
+  wsLoadPatients();
 }
 
 async function wsLoadPatients(){
@@ -924,6 +974,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div class="ws-sec-head"><div><div class="ws-sec-title">Patient management</div>' +
           '<div class="ws-sec-sub">Your pre-operative clinic</div></div></div>' +
         '<div class="ws-stats" id="ws-pt-stats"></div>' +
+        '<div id="ws-reqs"></div>' +
         '<div class="ws-pt-cols">' +
           // LEFT — Add patient form (always visible, no modal)
           '<div class="ws-pt-form">' +
@@ -1029,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     window.__wsUserId = user.id;
     wsInjectModals();
     wsLoadPatients();
+    wsLoadRequests();
     wsLoadAsk();
     if(isAdminRole){ wsLoadAdmin(); }
 

@@ -133,6 +133,17 @@
 .sp-header{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;margin-top:3px;}
 .sp-pill{font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:20px;white-space:nowrap;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;}
 .sp-conn{font-size:13px;color:var(--muted);margin-top:11px;}
+.sp-action{margin-top:12px;}
+.sp-btn{font-size:13px;font-weight:600;padding:10px 16px;border-radius:9px;background:#1B6B5A;color:#fff;border:none;cursor:pointer;font-family:inherit;}
+.sp-btn:hover{background:#2A8A74;}
+.sp-btn.ghost{background:rgba(255,255,255,.06);border:1px solid var(--border);color:#cfe;}
+.sp-btn.ghost:hover{background:rgba(255,255,255,.12);color:#fff;}
+.dir-search{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin:6px 0 12px;box-sizing:border-box;min-height:44px;}
+.dir-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.12);}
+.dir-row:last-child{border-bottom:none;}
+.dir-name{font-size:14px;font-weight:600;color:#fff;}
+.dir-meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.dir-empty{font-size:13px;color:var(--hint);padding:14px 0;text-align:center;}
 .sp-next{font-size:14px;color:#fff;margin-top:11px;padding:11px 14px;background:rgba(255,255,255,.05);border-left:3px solid #2A8A74;border-radius:8px;line-height:1.5;}
 .sp-track{display:flex;gap:4px;margin-top:14px;}
 .sp-seg{height:5px;flex:1;border-radius:3px;background:rgba(255,255,255,.1);}
@@ -252,6 +263,17 @@
   </div>
 </div>
 
+<!-- Clinician directory modal (connect to a clinician for review) -->
+<div class="pd-modal-bg" id="dir-modal" onclick="if(event.target===this)closeDirectory()">
+  <div class="pd-modal">
+    <div class="pd-m-head"><div class="pd-m-title">Connect a clinician</div>
+      <button class="btn-sm" onclick="closeDirectory()">Close</button></div>
+    <div style="font-size:12.5px;color:var(--muted);margin:2px 0 4px;">Choose an anesthesiologist to review your questionnaire and prepare your plan.</div>
+    <input id="dir-search" class="dir-search" placeholder="Search name, specialty, or clinic…" oninput="renderDirectory()">
+    <div id="dir-list"></div>
+  </div>
+</div>
+
 <script>
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -285,8 +307,88 @@ function renderStatusPanel(){
     '</div>' +
     '<div class="sp-conn">'+esc(d.connectionLine)+'</div>' +
     '<div class="sp-next">'+esc(d.nextStep)+'</div>' +
+    spConnectAction() +
     '<div class="sp-track">'+segs+'</div>';
 }
+// Contextual attachment action (Epic B): connect / cancel pending / switch.
+function spConnectAction(){
+  var crs = _careRequest ? _careRequest.status : 'none';
+  var btn;
+  if(crs === 'accepted')      btn = '<button class="sp-btn ghost" onclick="switchClinician()">Change clinician</button>';
+  else if(crs === 'requested') btn = '<button class="sp-btn ghost" onclick="cancelRequest()">Cancel request</button>';
+  else                         btn = '<button class="sp-btn" onclick="openDirectory()">&#129658; Connect a clinician</button>';
+  return '<div class="sp-action">'+btn+'</div>';
+}
+
+// ── CLINICIAN CONNECTION (Epic B — wired to bridge RPCs) ──
+var _directory = [];
+async function reloadCareRequest(){
+  try {
+    var crq = await window.sb.from('care_requests').select('*')
+      .eq('patient_id', _uid).in('status', ['requested','accepted'])
+      .order('requested_at', { ascending: false }).maybeSingle();
+    _careRequest = crq.data || null;
+  } catch(e){ /* graceful */ }
+}
+async function openDirectory(){
+  ge('dir-modal').classList.add('open');
+  if(!_surgery || !_surgery.id){
+    ge('dir-list').innerHTML = '<div class="dir-empty">Add your surgery first, then connect a clinician.</div>';
+    return;
+  }
+  ge('dir-list').innerHTML = '<div class="dir-empty">Loading clinicians…</div>';
+  try {
+    var r = await window.sb.rpc('get_clinician_directory');
+    _directory = (r && r.data) || [];
+  } catch(e){ _directory = []; }
+  renderDirectory();
+}
+function closeDirectory(){ ge('dir-modal').classList.remove('open'); }
+function renderDirectory(){
+  if(!_surgery || !_surgery.id) return;
+  var q = (ge('dir-search').value || '').toLowerCase();
+  var list = _directory.filter(function(d){
+    if(!q) return true;
+    return ((d.name||'')+' '+(d.specialty||'')+' '+(d.clinic||'')).toLowerCase().indexOf(q) >= 0;
+  });
+  if(!list.length){
+    ge('dir-list').innerHTML = '<div class="dir-empty">No clinicians are listed yet. Ask your clinic to enable the patient directory in their settings.</div>';
+    return;
+  }
+  ge('dir-list').innerHTML = list.map(function(d){
+    var meta = [d.specialty, d.clinic].filter(Boolean).join(' · ') || 'Anesthesiology';
+    return '<div class="dir-row"><div><div class="dir-name">'+esc(d.name||'Clinician')+'</div>' +
+      '<div class="dir-meta">'+esc(meta)+'</div></div>' +
+      '<button class="btn-sm" onclick="requestClinician(\''+d.id+'\')">Request review</button></div>';
+  }).join('');
+}
+async function requestClinician(doctorId){
+  if(!_surgery || !_surgery.id) return;
+  try {
+    var r = await window.sb.rpc('request_clinician', { p_surgery_id: _surgery.id, p_doctor_id: doctorId, p_message: null });
+    if(r && r.error) throw new Error(r.error.message);
+  } catch(e){
+    ge('dir-list').innerHTML = '<div class="dir-empty" style="color:#ff9b86;">'+esc(e.message||'Could not send request.')+'</div>';
+    return;
+  }
+  closeDirectory();
+  await reloadCareRequest(); renderStatusPanel(); renderJourney();
+  addActivity('Requested clinician review', Date.now()); renderActivity();
+}
+async function cancelRequest(){
+  if(!_surgery || !_surgery.id) return;
+  try { await window.sb.rpc('revoke_care_request', { p_surgery_id: _surgery.id }); } catch(e){}
+  await reloadCareRequest(); renderStatusPanel(); renderJourney();
+}
+async function switchClinician(){
+  if(!_surgery || !_surgery.id) return;
+  if(!window.confirm('Disconnect your current clinician and choose another? Any review in progress will be withdrawn.')) return;
+  try { await window.sb.rpc('revoke_care_request', { p_surgery_id: _surgery.id }); } catch(e){}
+  await reloadCareRequest(); renderStatusPanel(); renderJourney();
+  openDirectory();
+}
+window.openDirectory=openDirectory; window.closeDirectory=closeDirectory; window.renderDirectory=renderDirectory;
+window.requestClinician=requestClinician; window.cancelRequest=cancelRequest; window.switchClinician=switchClinician;
 
 // ── UPCOMING SURGERY (journey style, no empty placeholder rows) ──
 function daysUntil(dateStr){

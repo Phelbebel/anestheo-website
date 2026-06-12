@@ -165,6 +165,23 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
           </div>
         </div>
 
+        <!-- CLINICIAN DIRECTORY (doctors/admins only) -->
+        <div class="section" id="directory-section" style="display:none;">
+          <div class="section-head"><div class="section-title">Patient directory</div></div>
+          <div class="section-body">
+            <p style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:12px;line-height:1.6;">
+              Opt in to let patients find you and request a pre-operative review. Your
+              <strong>name, specialty, and hospital/clinic</strong> from the Profile section above are shown — nothing else.
+            </p>
+            <label class="rc-opt" style="margin-bottom:6px;">
+              <input type="checkbox" id="f-accepting"><span>List me in the patient directory (accepting connection requests)</span>
+            </label>
+            <button class="btn-save" id="dir-save" onclick="saveDirectory()">Save directory setting</button>
+            <div class="msg msg-ok"  id="dir-ok"></div>
+            <div class="msg msg-err" id="dir-err"></div>
+          </div>
+        </div>
+
         <!-- PASSWORD -->
         <div class="section">
           <div class="section-head"><div class="section-title">Change password</div></div>
@@ -274,6 +291,12 @@ document.addEventListener('DOMContentLoaded', async function(){
     if(_curRole === 'doctor' && _curVerif === 'pending') roleText += ' (verification pending)';
     document.getElementById('role-label').textContent = roleText;
 
+    // Clinician directory opt-in — doctors and admins only
+    if(_curRole === 'doctor' || _curRole === 'admin' || (profile && profile.is_admin === true)){
+      document.getElementById('directory-section').style.display = 'block';
+      document.getElementById('f-accepting').checked = !!(profile && profile.accepting_patients);
+    }
+
     document.getElementById('loader').style.display = 'none';
     document.getElementById('app').style.display    = 'block';
     console.log('DASHBOARD READY');
@@ -309,6 +332,25 @@ async function saveProfileData(){
     err.style.display = 'block';
   } else {
     ok.textContent = '\u2713 Profile saved.';
+    ok.style.display = 'block';
+  }
+}
+
+async function saveDirectory(){
+  var btn = document.getElementById('dir-save');
+  var ok  = document.getElementById('dir-ok');
+  var err = document.getElementById('dir-err');
+  ok.style.display = err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var result = await window.saveProfile(_userId, {
+    accepting_patients: document.getElementById('f-accepting').checked
+  });
+  btn.disabled = false; btn.textContent = 'Save directory setting';
+  if(result.error){ err.textContent = result.error.message; err.style.display = 'block'; }
+  else {
+    ok.textContent = document.getElementById('f-accepting').checked
+      ? '✓ You are now listed in the patient directory.'
+      : '✓ You have been removed from the patient directory.';
     ok.style.display = 'block';
   }
 }
