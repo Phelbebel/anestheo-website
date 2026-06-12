@@ -801,7 +801,7 @@ function prepChecklistHtml(group, labels){
 async function prepSaveChecklist(){
   if(!_uid) return;
   var state = {};
-  document.querySelectorAll('#prep-body input[data-prep-group]').forEach(function(inp){
+  document.querySelectorAll('#prep-modal-body input[data-prep-group]').forEach(function(inp){
     var g = inp.getAttribute('data-prep-group');
     var i = parseInt(inp.getAttribute('data-prep-i'), 10);
     if(!state[g]) state[g] = [];
