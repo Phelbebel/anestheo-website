@@ -105,6 +105,21 @@
 /* preparation plan / guide */
 .prep-note{font-size:12px;color:#E8C16b;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.28);border-radius:9px;padding:10px 12px;margin-bottom:16px;line-height:1.5;}
 .prep-clinic{font-size:14px;color:rgba(255,255,255,.85);line-height:1.6;padding:6px 0;}
+.applan-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;margin-bottom:14px;padding-bottom:13px;border-bottom:1px solid rgba(37,211,102,.25);}
+.applan-badge{font-size:16px;font-weight:700;color:#5ee393;}
+.applan-meta{font-size:13px;color:rgba(255,255,255,.8);}
+.applan-meta b{color:#fff;}
+.applan-msg{font-size:13.5px;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:16px;line-height:1.5;}
+.applan-h{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin:6px 0 8px;}
+.applan-reqs{display:flex;flex-direction:column;gap:2px;margin-bottom:14px;}
+.applan-req{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid rgba(255,255,255,.08);}
+.applan-req:first-child{border-top:none;}
+.applan-ck{color:#5ee393;flex:0 0 auto;font-size:14px;}
+.applan-lb{font-size:14px;color:#fff;font-weight:600;}
+.applan-note{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.applan-foot{font-size:12.5px;color:#9fe3cf;background:rgba(27,107,90,.16);border:1px solid rgba(27,107,90,.3);border-radius:9px;padding:10px 12px;margin-bottom:18px;line-height:1.5;}
+.applan-divider{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hint);text-align:center;margin:8px 0 14px;padding-top:14px;border-top:1px dashed rgba(255,255,255,.15);}
+.applan-edu{opacity:.92;}
 .prep-sec{margin-top:18px;}
 .prep-sec:first-child{margin-top:0;}
 .prep-sec-title{font-size:13px;font-weight:700;color:#7ECFC0;margin-bottom:9px;display:flex;align-items:center;gap:7px;}
@@ -719,6 +734,9 @@ function sjCTA(s, d){
     return '<a class="sjc-cta" href="/v2/recovery.html">&#10084;&#65039; Recovery information</a>';
   if(js==='ready_for_surgery')
     return '<button class="sjc-cta" onclick="openPrep()">&#9989; Surgery-day instructions</button>';
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  if(rs === 'approved')
+    return '<button class="sjc-cta" onclick="openPrep()">&#9989; View Approved Plan</button>';
   if(_quest && _quest.status==='submitted')
     return '<button class="sjc-cta" onclick="openPrep()">&#128203; View Preparation Plan</button>';
   return '<a class="sjc-cta" href="/v2/questionnaire.html">&#128203; '+(_quest?'Continue':'Start')+' Questionnaire</a>';
@@ -905,6 +923,10 @@ function prepClinicianInvolved(){
   return prepOrigin() === 'clinic' || (_careRequest && _careRequest.status === 'accepted');
 }
 function prepContentHtml(){
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  // After approval, the authoritative content is the clinician-approved plan,
+  // NOT the educational guide.
+  if(rs === 'approved'){ return approvedPlanHtml(); }
   // Clinic-initiated journeys keep the placeholder until the reviewed plan lands.
   if(prepOrigin() === 'clinic'){
     return '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>';
@@ -916,6 +938,34 @@ function prepContentHtml(){
       '<a href="/v2/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
   }
   return prepBuildGuide(_quest);
+}
+// The clinician-approved plan (authoritative). Distinct from the educational
+// guide: clinician name, approval date, approved requirements + recommendations,
+// clinician message, and final instructions.
+function approvedPlanHtml(){
+  var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your anesthesiologist';
+  var when = (_quest && _quest.reviewed_at) ? new Date(_quest.reviewed_at).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
+  var reqs = (_docPlan && Array.isArray(_docPlan.requirements)) ? _docPlan.requirements.filter(function(r){ return r && r.checked; }) : [];
+  var msg = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
+  var h = '<div class="applan-head"><div class="applan-badge">&#10003; Approved preparation plan</div>' +
+    '<div class="applan-meta">Approved by <b>'+dn+'</b>'+(when?(' on '+esc(when)):'')+'</div></div>';
+  if(msg) h += '<div class="applan-msg"><b>&#128172; From your clinician</b><br>'+esc(msg)+'</div>';
+  h += '<div class="applan-h">Your clinician’s recommendations</div>';
+  if(reqs.length){
+    h += '<div class="applan-reqs">' + reqs.map(function(r){
+      return '<div class="applan-req"><span class="applan-ck">&#10003;</span><div class="applan-tx">' +
+        '<div class="applan-lb">'+esc(r.label||'')+'</div>' +
+        (r.note ? '<div class="applan-note">'+esc(r.note)+'</div>' : '') + '</div></div>';
+    }).join('') + '</div>';
+  } else {
+    h += '<div class="prep-clinic">'+dn+' approved your preparation with no additional tests required. Follow the general information below and your surgery-day checklist.</div>';
+  }
+  h += '<div class="applan-foot">&#10003; Bring this plan and your documents on the day of surgery. Always follow the instructions your surgical and anesthesia team give you on the day.</div>';
+  // Educational material kept as clearly-labelled supplementary info (no banner,
+  // so it never reads as "the plan").
+  h += '<div class="applan-divider">General preparation information (educational)</div>' +
+    '<div class="applan-edu">' + prepBuildGuide(_quest, { noBanner:true }) + '</div>';
+  return h;
 }
 function openPrep(){
   var body = ge('prep-modal-body'); if(!body) return;
@@ -940,14 +990,17 @@ function prepReviewBanner(){
   return '<div class="prep-note">&#9888; Educational preparation guide - not yet reviewed by a clinician. Connect a clinician to have it reviewed. Always follow the instructions your surgical and anesthesia team give you.</div>';
 }
 
-function prepBuildGuide(q){
+function prepBuildGuide(q, opts){
+  opts = opts || {};
   var a = q.answers || {};
   var flags = q.risk_flags || [];
   var s = _surgery || {};
   var h = '';
 
   // Context-aware banner: only imply a clinician when one is actually involved.
-  h += prepReviewBanner();
+  // Suppressed when the guide is shown as supplementary material under an
+  // already-approved plan (so it cannot masquerade as the approved plan).
+  if(!opts.noBanner) h += prepReviewBanner();
 
   // 1. Surgery summary
   var sumRows = '';
