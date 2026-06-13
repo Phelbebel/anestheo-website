@@ -142,6 +142,41 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-chk:before{content:'';position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;}
 .ws-chk.done:before{background:#5ee393;} .ws-chk.miss:before{background:rgba(255,255,255,.2);}
 .ws-chk.miss{color:var(--hint);}
+.ws-plan-sum{background:rgba(42,138,116,.1);border:1px solid rgba(42,138,116,.32);border-radius:11px;padding:11px 13px;margin-bottom:12px;}
+.ws-sum-title{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:7px;}
+.ws-sum-meta{font-size:12px;color:var(--hint);margin-bottom:8px;}
+.ws-sum-meta b{color:rgba(255,255,255,.85);font-weight:600;}
+.ws-sum-h{font-size:11.5px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 4px;}
+.ws-sum-row{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#fff;padding:3px 0;}
+.ws-sum-ck{color:#5ee393;flex:0 0 auto;}
+.ws-sum-lb{font-weight:600;}
+.ws-sum-tag{font-size:10px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:1px 6px;border-radius:6px;vertical-align:middle;}
+.ws-sum-note{font-size:12px;color:var(--muted);margin-top:2px;}
+.ws-save-st{font-size:12px;color:var(--hint);align-self:center;}
+.ws-save-st.saving{color:#E8C16b;} .ws-save-st.ok{color:#5ee393;} .ws-save-st.err{color:#ff9b86;}
+/* Approval confirmation modal (sits above the workspace overlay) */
+.ws-cfm-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.78);z-index:7000;align-items:center;justify-content:center;padding:18px;}
+.ws-cfm-bg.open{display:flex;}
+.ws-cfm-box{background:#0A1614;border:1px solid rgba(37,211,102,.45);border-radius:15px;max-width:440px;width:100%;padding:20px 22px;box-shadow:0 24px 60px rgba(0,0,0,.65);}
+.ws-cfm-h{font-size:17px;font-weight:700;color:#5ee393;margin-bottom:14px;}
+.ws-cfm-kv{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:14px;}
+.ws-cfm-kv>div{display:flex;flex-direction:column;gap:2px;}
+.ws-cfm-kv i{font-style:normal;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);}
+.ws-cfm-kv b{font-size:14px;color:#fff;font-weight:600;}
+.ws-cfm-msg{font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.55;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.28);border-radius:9px;padding:11px 13px;margin-bottom:16px;}
+.ws-hist-meta{font-size:12.5px;color:var(--muted);margin-bottom:12px;}
+.ws-hist-meta b{color:rgba(255,255,255,.9);font-weight:600;}
+.ws-hist-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid rgba(255,255,255,.07);}
+.ws-hist-row:first-child{border-top:none;}
+.ws-hist-ic{flex:0 0 auto;font-size:14px;line-height:1.4;}
+.ws-hist-top{font-size:13px;color:rgba(255,255,255,.9);}
+.ws-hist-v{display:inline-block;font-size:11px;font-weight:700;color:#7ECFC0;background:rgba(42,138,116,.2);border-radius:5px;padding:1px 6px;margin-right:5px;}
+.ws-hist-w{font-size:11.5px;color:var(--hint);margin:2px 0 3px;}
+.ws-hist-sub{font-size:12.5px;color:rgba(255,255,255,.75);}
+.ws-hist-req{font-size:12.5px;color:#fff;margin-top:2px;line-height:1.5;}
+.ws-hist-add{font-size:12.5px;color:#5ee393;margin-top:2px;}
+.ws-hist-rem{font-size:12.5px;color:#ff9b86;margin-top:2px;}
+.ws-hist-msg{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:3px;}
 .ws-reqs{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
 .ws-req-item{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:8px 10px;}
 .ws-req-item.on{background:rgba(42,138,116,.14);border-color:rgba(42,138,116,.5);}
@@ -485,28 +520,119 @@ function wsCaptureEdits(){
   var n=document.getElementById('ws-notes'); if(n) _wsCtx.notes=n.value;
   wsCollectReqs();
 }
+// Re-render ONLY the requirements list, never the whole body -- so editing
+// requirements never destroys the Doctor Notes textarea or its focus/scroll.
+function wsRenderReqList(){ var el=document.getElementById('ws-reqs-list'); if(el) el.innerHTML=wsRequirementsHtml(); }
 function wsReqAdd(){
   if(!_wsCtx) return; var inp=document.getElementById('ws-req-custom'); if(!inp) return;
   var v=(inp.value||'').trim(); if(!v) return;
   wsCaptureEdits();
   _wsCtx.requirements['custom_'+Date.now()]={checked:true,note:'',label:v,custom:true};
-  inp.value=''; wsRenderWorkspace();
+  inp.value=''; wsRenderReqList();
+  var ni=document.getElementById('ws-req-custom'); if(ni) ni.focus();   // keep adding
 }
-function wsReqRemove(key){ if(!_wsCtx) return; wsCaptureEdits(); delete _wsCtx.requirements[key]; wsRenderWorkspace(); }
+function wsReqRemove(key){ if(!_wsCtx) return; wsCaptureEdits(); delete _wsCtx.requirements[key]; wsRenderReqList(); }
 function wsPlanPayload(){
   wsCaptureEdits();
   var reqs=[], m=(_wsCtx&&_wsCtx.requirements)||{};
   Object.keys(m).forEach(function(k){ var r=m[k]; reqs.push({key:k,label:r.label,checked:!!r.checked,note:r.note||'',custom:!!r.custom}); });
-  return { notes:(_wsCtx&&_wsCtx.notes)||'', requirements:reqs };
+  return { notes:(_wsCtx&&_wsCtx.notes)||'', requirements:reqs,
+    history:(_wsCtx&&_wsCtx.history)||[], modified_by:window.__wsUserName||'Clinician' };
 }
-async function wsSavePlan(silent){
+function wsFmtTime(t){ if(!t) return 'not saved yet'; try { var d=new Date(t);
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } }
+// ── Audit trail / modification history ──
+// Event shape: { ts, by, version, action, detail?, message?, added?[], removed?[], requested?[] }
+function wsLogEvent(ev){
+  if(!_wsCtx) return;
+  if(!Array.isArray(_wsCtx.history)) _wsCtx.history=[];
+  _wsCtx.history.push(Object.assign({ ts:new Date().toISOString(), by:(window.__wsUserName||'Clinician'), version:(_wsCtx.version||0)+1 }, ev));
+  if(_wsCtx.history.length>80) _wsCtx.history=_wsCtx.history.slice(-80);
+}
+// Diff current checked requirements vs the last saved snapshot.
+function wsReqDiff(){
+  var cur=(_wsCtx&&_wsCtx.requirements)||{}, prev=(_wsCtx&&_wsCtx.savedReqs)||{};
+  var added=[], removed=[];
+  Object.keys(cur).forEach(function(k){ if(cur[k].checked && !(prev[k]&&prev[k].checked)) added.push(cur[k].label||k); });
+  Object.keys(prev).forEach(function(k){ if(prev[k].checked && !(cur[k]&&cur[k].checked)) removed.push(prev[k].label||k); });
+  return { added:added, removed:removed };
+}
+function wsActionGlyph(a){ return ({save:'&#128190;',approve:'&#9989;',reopen:'&#128260;',request_changes:'&#9888;',submit:'&#128203;'})[a]||'&#8226;'; }
+function wsActionVerb(a){ return ({save:'updated the plan',approve:'approved the plan',reopen:'reopened the review',request_changes:'requested changes',submit:'submitted the plan'})[a]||'changed the plan'; }
+function wsHistEntryHtml(e){
+  var lines='';
+  if(e.requested&&e.requested.length) lines+='<div class="ws-hist-req">'+e.requested.map(function(x){return '&bull; '+wsEsc(x);}).join('<br>')+'</div>';
+  if(e.added&&e.added.length)   lines+='<div class="ws-hist-add">+ '+e.added.map(wsEsc).join(', ')+'</div>';
+  if(e.removed&&e.removed.length) lines+='<div class="ws-hist-rem">&minus; '+e.removed.map(wsEsc).join(', ')+'</div>';
+  if(e.message)  lines+='<div class="ws-hist-msg">&ldquo;'+wsEsc(e.message)+'&rdquo;</div>';
+  if(!lines && e.detail) lines='<div class="ws-hist-sub">'+wsEsc(e.detail)+'</div>';
+  return '<div class="ws-hist-row"><span class="ws-hist-ic">'+wsActionGlyph(e.action)+'</span>'+
+    '<div class="ws-hist-tx">'+
+      '<div class="ws-hist-top"><span class="ws-hist-v">v'+(e.version||'?')+'</span> <b>'+wsEsc(e.by||'Clinician')+'</b> '+wsActionVerb(e.action)+'</div>'+
+      '<div class="ws-hist-w">'+wsFmtTime(e.ts)+'</div>'+lines+'</div></div>';
+}
+function wsRenderHistory(){
+  var host=document.getElementById('ws-history'); if(!host||!_wsCtx) return;
+  var meta='<div class="ws-hist-meta">Current version <b>v'+(_wsCtx.version||0)+'</b>'+
+    ' &middot; last modified <b>'+wsFmtTime(_wsCtx.planSavedAt)+'</b>'+
+    (_wsCtx.modifiedBy?(' &middot; by <b>'+wsEsc(_wsCtx.modifiedBy)+'</b>'):'')+'</div>';
+  var h=(_wsCtx.history||[]).slice().reverse();
+  var rows=h.length? h.map(wsHistEntryHtml).join('') : '<div class="ws-ap-facts">No changes recorded yet.</div>';
+  host.innerHTML=meta+rows;
+}
+// Save-state indicator next to the Save buttons.
+function wsSetSaveState(state){
+  ['ws-save-plan-st','ws-save-notes-st'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    if(state==='saving'){ el.className='ws-save-st saving'; el.innerHTML='&#8635; Saving...'; }
+    else if(state==='saved'){ el.className='ws-save-st ok'; el.innerHTML='&#10003; Saved &middot; v'+(_wsCtx?_wsCtx.version:0)+' &middot; '+wsFmtTime(_wsCtx?_wsCtx.planSavedAt:null); }
+    else if(state==='error'){ el.className='ws-save-st err'; el.innerHTML='&#10007; Not saved'; }
+    else { el.className='ws-save-st'; el.innerHTML=_wsCtx&&_wsCtx.planSavedAt?('&#10003; Saved &middot; v'+_wsCtx.version+' &middot; '+wsFmtTime(_wsCtx.planSavedAt)):'Not saved yet'; }
+  });
+}
+// "Current doctor plan" = the last PERSISTED snapshot (not the live editor state).
+function wsRenderPlanSummary(){
+  var host=document.getElementById('ws-plan-summary'); if(!host||!_wsCtx) return;
+  var reqs=_wsCtx.savedReqs||{}, keys=Object.keys(reqs).filter(function(k){ return reqs[k].checked; });
+  var notes=(_wsCtx.savedNotes||'').trim();
+  if(!keys.length && !notes && !_wsCtx.planSavedAt){
+    host.innerHTML='<div class="ws-ap-facts">Nothing saved yet. Select requirements and Save plan below.</div>'; return;
+  }
+  var sel=keys.map(function(k){ var r=reqs[k];
+    return '<div class="ws-sum-row"><span class="ws-sum-ck">&#10003;</span><div><span class="ws-sum-lb">'+wsEsc(r.label||k)+'</span>'+
+      (r.custom?' <span class="ws-sum-tag">custom</span>':'')+(r.note?'<div class="ws-sum-note">'+wsEsc(r.note)+'</div>':'')+'</div></div>'; }).join('');
+  host.innerHTML=
+    '<div class="ws-sum-meta">Last saved: <b>'+wsFmtTime(_wsCtx.planSavedAt)+'</b></div>'+
+    (keys.length?('<div class="ws-sum-h">Requested ('+keys.length+')</div>'+sel):'<div class="ws-ap-facts">No requirements selected.</div>')+
+    (notes?('<div class="ws-sum-h">Internal notes</div><div class="ws-sum-note">'+wsEsc(notes)+'</div>'):'');
+}
+// Core commit. histEntry optional structured event; otherwise logs the
+// requirement/notes diff. Returns true on success. Updates version/timestamp/state.
+async function wsSavePlan(silent, histEntry){
   if(!_wsCtx) return false;
+  wsCaptureEdits();
+  var d=wsReqDiff(); var notesChanged=((_wsCtx.notes||'')!==(_wsCtx.savedNotes||''));
+  if(histEntry){
+    wsLogEvent(histEntry);
+  } else if(d.added.length||d.removed.length){
+    wsLogEvent({ action:'save', detail:'Requirements updated', added:d.added, removed:d.removed });
+  } else if(notesChanged){
+    wsLogEvent({ action:'save', detail:'Doctor notes updated' });
+  }
+  wsSetSaveState('saving');
   try {
-    var r=await window.sb.rpc('save_doctor_plan',{ p_surgery_id:_wsCtx.surgeryId, p_plan:wsPlanPayload() });
+    var payload=wsPlanPayload();
+    var r=await window.sb.rpc('save_doctor_plan',{ p_surgery_id:_wsCtx.surgeryId, p_plan:payload });
     if(r&&r.error) throw new Error(r.error.message);
-    if(!silent) wsToast('Plan saved');
+    var meta=(r&&r.data)||{};
+    _wsCtx.savedNotes=payload.notes; _wsCtx.savedReqs=wsCloneReqs(_wsCtx.requirements);
+    _wsCtx.planSavedAt=meta.updated_at||new Date().toISOString();
+    if(meta.version!=null) _wsCtx.version=meta.version;
+    _wsCtx.modifiedBy=window.__wsUserName||'Clinician';
+    wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState('saved');
+    if(!silent) wsToast('Plan saved (v'+_wsCtx.version+')');
     return true;
-  } catch(e){ wsToast('Save failed: '+(e.message||'error')); return false; }
+  } catch(e){ wsSetSaveState('error'); wsToast('Save failed: '+(e.message||'error')); return false; }
 }
 
 async function wsLoadActivePatients(){
@@ -544,15 +670,30 @@ async function wsOpenPatient(patientId){
   var info=_wsActiveMap[patientId]; if(!info) return;
   var surgeryId=info.surgeryId;
   try { await window.sb.rpc('start_review', { p_surgery_id: surgeryId }); } catch(e){}   // pending -> in_review
-  var surgery={},quest={},items={},plan={};
+  var surgery={},quest={},items={},plan={},planSavedAt=null;
   try { var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; }catch(e){}
   try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; }catch(e){}
   try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).maybeSingle(); items=(c.data&&c.data.items&&c.data.items.prep_guide)||{}; }catch(e){}
-  try { var p=await window.sb.from('preparation_plans').select('id,plan_content,status').eq('surgery_id',surgeryId).in('status',['draft','approved']).order('version',{ascending:false}).limit(1).maybeSingle(); plan=(p.data&&p.data.plan_content)||{}; }catch(e){}
-  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items, notes:plan.notes||'', requirements:wsNormReqs(plan.requirements) };
+  // Robust read: never maybeSingle() here -- after an approve+edit cycle there can
+  // be both an approved and a draft row, and maybeSingle() throws on >1, which
+  // previously swallowed the whole plan. Prefer the draft (editable working copy).
+  var planVersion=0;
+  try {
+    var p=await window.sb.from('preparation_plans').select('plan_content,status,updated_at,version')
+      .eq('surgery_id',surgeryId).in('status',['draft','approved'])
+      .order('status',{ascending:false}).order('updated_at',{ascending:false}).limit(1);
+    var row=(p&&p.data&&p.data[0])||null;
+    plan=(row&&row.plan_content)||{}; planSavedAt=row?row.updated_at:null; planVersion=row?(row.version||0):0;
+  }catch(e){}
+  var reqMap=wsNormReqs(plan.requirements);
+  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items,
+    notes:plan.notes||'', requirements:reqMap, planSavedAt:planSavedAt, version:planVersion,
+    history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'',
+    savedNotes:plan.notes||'', savedReqs:wsCloneReqs(reqMap) };
   wsRenderWorkspace();
   document.getElementById('ws-ws').classList.add('open');
 }
+function wsCloneReqs(m){ var o={}; Object.keys(m||{}).forEach(function(k){ o[k]={checked:!!m[k].checked,note:m[k].note||'',label:m[k].label||'',custom:!!m[k].custom}; }); return o; }
 function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); _wsCtx=null; }
 
 function wsRenderWorkspace(){
@@ -583,26 +724,38 @@ function wsRenderWorkspace(){
   html+='<div class="ws-sec-t">C &middot; Preparation review</div>'+
     '<div class="ws-ap-facts" style="margin-bottom:6px;">Preparation checklist: <b style="color:#fff;">'+nDone+' / 6 complete</b> &middot; review status: <b style="color:#7ECFC0;">'+wsReviewLabel(c.quest.review_state).txt+'</b></div>'+
     WS_PREPARE.map(function(lbl,i){ var done=!!pc[i]; return '<div class="ws-chk '+(done?'done':'miss')+'">'+(done?'':'Missing: ')+wsEsc(lbl)+'</div>'; }).join('');
+  var rs=c.quest.review_state||'not_submitted';
+  var locked=(rs==='approved');   // approved cases are read-only until reopened
   // D Clinical requirements (doctor plan) - shared with the patient
   html+='<div class="ws-sec-t">D &middot; Clinical requirements <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(shared with patient)</span></div>'+
-    '<div class="ws-reqs">'+wsRequirementsHtml()+'</div>'+
-    '<div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button></div>';
+    '<div class="ws-plan-sum"><div class="ws-sum-title">&#128203; Current doctor plan</div><div id="ws-plan-summary"></div></div>';
+  if(locked){
+    html+='<div class="ws-ap-facts">&#128274; This plan is approved and read-only. Use <b>Reopen review</b> below to edit it.</div>';
+  } else {
+    html+='<div class="ws-reqs" id="ws-reqs-list">'+wsRequirementsHtml()+'</div>'+
+      '<div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button><span class="ws-save-st" id="ws-save-plan-st"></span></div>';
+  }
   // E Doctor notes (internal - never shown to the patient)
   html+='<div class="ws-sec-t">E &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
-    '<textarea class="ws-notes" id="ws-notes" placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
-    '<div class="ws-acts"><button class="ws-btn" onclick="wsSaveDocNotes()">Save notes</button></div>';
+    '<textarea class="ws-notes" id="ws-notes" '+(locked?'readonly ':'')+'placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
+    (locked?'':'<div class="ws-acts"><button class="ws-btn" onclick="wsSaveDocNotes()">Save notes</button><span class="ws-save-st" id="ws-save-notes-st"></span></div>');
   // F Review actions
-  var rs=c.quest.review_state||'not_submitted';
-  html+='<div class="ws-sec-t">F &middot; Review actions</div>';
-  if(rs==='not_submitted'){ html+='<div class="ws-ap-facts">Patient has not submitted for review yet.</div>'; }
-  else if(rs==='approved'){ html+='<div class="ws-ap-facts" style="color:#5ee393;">&#9989; Plan approved.</div>'; }
-  else {
-    html+=(c.quest.reviewer_notes&&rs==='changes_requested'?'<div class="ws-ap-facts" style="margin-bottom:8px;">Last note to patient: <i>'+wsEsc(c.quest.reviewer_notes)+'</i></div>':'')+
-      '<div class="ws-ap-facts" style="margin-bottom:8px;">Saving the plan then choosing an action below sends the requirements to the patient. Approval is required before the patient is ready.</div>'+
-      '<div class="ws-acts"><button class="ws-act-changes" onclick="wsRequestChanges()">Request changes / additional requirements</button>'+
-      '<button class="ws-act-approve" onclick="wsApprovePlan()">&#9989; Approve plan</button></div>';
-  }
+  html+='<div class="ws-sec-t">F &middot; Review actions</div><div id="ws-review-actions">'+wsReviewActionsHtml(rs,c)+'</div>';
+  // G Modification history / audit trail
+  html+='<div class="ws-sec-t">G &middot; Modification history</div><div id="ws-history"></div>';
   document.getElementById('ws-ws-body').innerHTML=html;
+  wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState();
+}
+function wsReviewActionsHtml(rs,c){
+  if(rs==='not_submitted') return '<div class="ws-ap-facts">Patient has not submitted for review yet.</div>';
+  if(rs==='approved')
+    return '<div class="ws-ap-facts" style="color:#5ee393;margin-bottom:10px;">&#9989; Plan approved'+(c.quest.reviewed_at?(' on '+new Date(c.quest.reviewed_at).toLocaleDateString()):'')+' and sent to the patient.</div>'+
+      '<div class="ws-ap-facts" style="margin-bottom:8px;">Reopen if new tests arrive, the patient&rsquo;s condition changes, or the surgery date changes.</div>'+
+      '<div class="ws-acts"><button class="ws-act-changes" onclick="wsReopenReview()">&#128260; Reopen review</button></div>';
+  return (c.quest.reviewer_notes&&rs==='changes_requested'?'<div class="ws-ap-facts" style="margin-bottom:8px;">Last note to patient: <i>'+wsEsc(c.quest.reviewer_notes)+'</i></div>':'')+
+    '<div class="ws-ap-facts" style="margin-bottom:8px;">Save the plan, then choose an action. Approval sends the plan to the patient and requires confirmation.</div>'+
+    '<div class="ws-acts"><button class="ws-act-changes" onclick="wsRequestChanges()">Request changes / additional requirements</button>'+
+    '<button class="ws-act-approve" onclick="wsApprovePrompt()">&#9989; Approve plan</button></div>';
 }
 // Notes save now routes through the same guarded RPC as the plan (the old
 // direct-table write silently swallowed RLS errors -> "saved" but not persisted).
@@ -611,20 +764,56 @@ async function wsRequestChanges(){
   if(!_wsCtx) return;
   var notes=window.prompt('Message to the patient (what they need to do):', _wsCtx.quest.reviewer_notes||'');
   if(notes===null) return;
-  if(!(await wsSavePlan(true))) return;                       // persist requirements first
+  wsCaptureEdits();
+  var requested=Object.keys(_wsCtx.requirements||{}).filter(function(k){ return _wsCtx.requirements[k].checked; })
+    .map(function(k){ return _wsCtx.requirements[k].label||k; });
+  // One structured history event: who, message, the requested investigations.
+  if(!(await wsSavePlan(true,{ action:'request_changes', message:notes||'', requested:requested }))) return;
   try { var r=await window.sb.rpc('request_changes',{p_surgery_id:_wsCtx.surgeryId, p_notes:notes}); if(r&&r.error) throw new Error(r.error.message); wsToast('Requirements sent to patient'); }
   catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
   wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
 }
-async function wsApprovePlan(){
-  if(!_wsCtx) return; if(!window.confirm('Approve this preparation plan? The patient will see it as reviewed.')) return;
-  if(!(await wsSavePlan(true))) return;                       // persist requirements first
+// Approval is two-step: a confirmation MODAL (patient, procedure, surgery date,
+// current status + explicit message), then confirm -> approve_plan().
+function wsApprovePrompt(){
+  if(!_wsCtx) return;
+  var c=_wsCtx, s=c.surgery||{};
+  var proc=s.procedure_type||'Not specified';
+  var sdate=s.surgery_date?new Date(s.surgery_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Not set';
+  var status=wsReviewLabel(c.quest.review_state).txt;
+  var box=document.getElementById('ws-cfm-box'); if(!box) return;
+  box.innerHTML=
+    '<div class="ws-cfm-h">&#9989; Confirm approval</div>'+
+    '<div class="ws-cfm-kv">'+
+      '<div><i>Patient</i><b>'+wsEsc(c.name||'-')+'</b></div>'+
+      '<div><i>Procedure</i><b>'+wsEsc(proc)+'</b></div>'+
+      '<div><i>Surgery date</i><b>'+wsEsc(sdate)+'</b></div>'+
+      '<div><i>Current review state</i><b>'+wsEsc(status)+'</b></div></div>'+
+    '<div class="ws-cfm-msg">Are you sure you want to approve this preparation plan? The approved plan will become visible to the patient and the case will move to <b>Approved</b> status.</div>'+
+    '<div class="ws-acts" style="justify-content:flex-end;"><button class="ws-btn" onclick="wsCfmClose()">Cancel</button>'+
+    '<button class="ws-act-approve" onclick="wsApproveConfirm(this)">Confirm approval</button></div>';
+  document.getElementById('ws-cfm').classList.add('open');
+}
+function wsCfmClose(){ var m=document.getElementById('ws-cfm'); if(m) m.classList.remove('open'); }
+async function wsApproveConfirm(btn){
+  if(!_wsCtx) return; if(btn){ btn.disabled=true; btn.textContent='Approving...'; }
+  if(!(await wsSavePlan(true,{action:'approve',detail:'Plan approved and sent to patient'}))){ if(btn){btn.disabled=false;btn.textContent='Confirm approval';} return; }
   try { var r=await window.sb.rpc('approve_plan',{p_surgery_id:_wsCtx.surgeryId}); if(r&&r.error) throw new Error(r.error.message); wsToast('Plan approved'); }
+  catch(e){ wsToast('Failed: '+(e.message||'error')); if(btn){btn.disabled=false;btn.textContent='Confirm approval';} return; }
+  wsCfmClose(); wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
+}
+async function wsReopenReview(){
+  if(!_wsCtx) return;
+  if(!window.confirm('Reopen this approved case? It returns to "under review" and the plan becomes editable again. The patient will no longer see it as approved until you approve it again.')) return;
+  try { var r=await window.sb.rpc('reopen_review',{p_surgery_id:_wsCtx.surgeryId}); if(r&&r.error) throw new Error(r.error.message); }
   catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
-  wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
+  await wsSavePlan(true,{action:'reopen',detail:'Review reopened for editing'});  // logs + persists history onto the now-draft plan
+  wsToast('Review reopened');
+  await wsOpenPatient(_wsCtx.patientId);   // reload fresh in-review (editable) state
 }
 window.wsOpenPatient=wsOpenPatient; window.wsCloseWorkspace=wsCloseWorkspace;
-window.wsSaveDocNotes=wsSaveDocNotes; window.wsSavePlan=wsSavePlan; window.wsRequestChanges=wsRequestChanges; window.wsApprovePlan=wsApprovePlan;
+window.wsSaveDocNotes=wsSaveDocNotes; window.wsSavePlan=wsSavePlan; window.wsRequestChanges=wsRequestChanges;
+window.wsApprovePrompt=wsApprovePrompt; window.wsCfmClose=wsCfmClose; window.wsApproveConfirm=wsApproveConfirm; window.wsReopenReview=wsReopenReview;
 window.wsReqToggle=wsReqToggle; window.wsReqAdd=wsReqAdd; window.wsReqRemove=wsReqRemove;
 
 async function wsRespondRequest(id, decision){
@@ -1375,6 +1564,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     // Wire up modules
     window.__wsRole = role;
     window.__wsUserId = user.id;
+    window.__wsUserName = ((role === 'doctor' || role === 'admin') ? 'Dr. ' : '') + (profile.full_name || name);
     wsInjectModals();
     wsLoadPatients();
     wsLoadRequests();
@@ -1399,7 +1589,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 </script>
 
 <!-- Doctor Active Patient Workspace (in-page overlay; no navigation) -->
-<div class="ws-ws-bg" id="ws-ws" onclick="if(event.target===this)wsCloseWorkspace()">
+<div class="ws-ws-bg" id="ws-ws" onmousedown="window._wsBgDown=(event.target===this)" onclick="if(event.target===this&&window._wsBgDown)wsCloseWorkspace()">
   <div class="ws-ws-modal">
     <div class="ws-ws-head">
       <div><div class="ws-ws-title" id="ws-ws-title">Patient workspace</div>
@@ -1408,6 +1598,11 @@ document.addEventListener('DOMContentLoaded', async function(){
     </div>
     <div class="ws-ws-body" id="ws-ws-body"></div>
   </div>
+</div>
+
+<!-- Approval confirmation modal (above the workspace) -->
+<div class="ws-cfm-bg" id="ws-cfm" onclick="if(event.target===this)wsCfmClose()">
+  <div class="ws-cfm-box" id="ws-cfm-box"></div>
 </div>
 </body>
 </html>

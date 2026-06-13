@@ -105,6 +105,21 @@
 /* preparation plan / guide */
 .prep-note{font-size:12px;color:#E8C16b;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.28);border-radius:9px;padding:10px 12px;margin-bottom:16px;line-height:1.5;}
 .prep-clinic{font-size:14px;color:rgba(255,255,255,.85);line-height:1.6;padding:6px 0;}
+.applan-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;margin-bottom:14px;padding-bottom:13px;border-bottom:1px solid rgba(37,211,102,.25);}
+.applan-badge{font-size:16px;font-weight:700;color:#5ee393;}
+.applan-meta{font-size:13px;color:rgba(255,255,255,.8);}
+.applan-meta b{color:#fff;}
+.applan-msg{font-size:13.5px;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:16px;line-height:1.5;}
+.applan-h{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin:6px 0 8px;}
+.applan-reqs{display:flex;flex-direction:column;gap:2px;margin-bottom:14px;}
+.applan-req{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid rgba(255,255,255,.08);}
+.applan-req:first-child{border-top:none;}
+.applan-ck{color:#5ee393;flex:0 0 auto;font-size:14px;}
+.applan-lb{font-size:14px;color:#fff;font-weight:600;}
+.applan-note{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.applan-foot{font-size:12.5px;color:#9fe3cf;background:rgba(27,107,90,.16);border:1px solid rgba(27,107,90,.3);border-radius:9px;padding:10px 12px;margin-bottom:18px;line-height:1.5;}
+.applan-divider{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hint);text-align:center;margin:8px 0 14px;padding-top:14px;border-top:1px dashed rgba(255,255,255,.15);}
+.applan-edu{opacity:.92;}
 .prep-sec{margin-top:18px;}
 .prep-sec:first-child{margin-top:0;}
 .prep-sec-title{font-size:13px;font-weight:700;color:#7ECFC0;margin-bottom:9px;display:flex;align-items:center;gap:7px;}
@@ -177,6 +192,8 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 .req-tx{flex:1 1 auto;}
 .req-label{font-size:13.5px;color:#fff;font-weight:600;}
 .req-note{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.sday-card{margin:0 0 18px;border-radius:13px;padding:15px 16px;border:1px solid rgba(126,207,192,.32);background:rgba(126,207,192,.06);}
+.sday-h{font-size:15px;font-weight:700;color:#7ECFC0;margin-bottom:4px;}
 .dir-search{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin:6px 0 12px;box-sizing:border-box;min-height:44px;}
 .dir-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.12);}
 .dir-row:last-child{border-bottom:none;}
@@ -230,6 +247,8 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
     <div class="sp-card" id="status-panel"></div>
     <!-- Dedicated doctor plan / approval card (rendered by renderPlanCard) -->
     <div id="plan-host"></div>
+    <!-- Final surgery-day reminder checklist (after approval; rendered by renderSurgeryDayCard) -->
+    <div id="sday-host"></div>
 
     <div class="pd-grid">
 
@@ -319,7 +338,7 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 var _uid = null, _surgery = null, _activity = [];
-var _quest = null, _prepChecklist = {}, _careRequest = null, _docPlan = null, _reqProgress = {};
+var _quest = null, _prepChecklist = {}, _careRequest = null, _docPlan = null, _reqProgress = {}, _sdayProgress = {};
 var _surgeries = [], _editId = null;
 
 // ── ALWAYS-ON STATUS PANEL (derived from the single source of truth) ──
@@ -348,7 +367,37 @@ function renderStatusPanel(){
     '<div class="sp-next-box"><span class="sp-next-lbl">What\'s next</span> '+esc(d.nextStep)+'</div>' +
     spConnectAction();
   renderPlanCard();
+  renderSurgeryDayCard();
 }
+// Final surgery-day reminders (general; separate from doctor-requested tests).
+// Appears only AFTER the clinician approves the plan.
+var SDAY_ITEMS = ['Passport / national ID','Insurance / referral documents','Up-to-date medication list',
+  'Laboratory reports','Imaging reports (X-ray, echo, etc.)','Follow your fasting instructions exactly',
+  'Remove jewellery, makeup and nail polish','Arrange transport and someone to take you home'];
+function renderSurgeryDayCard(){
+  var host = ge('sday-host'); if(!host) return;
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  var ready = !!(_surgery && _surgery.ready_at), done = !!(_surgery && _surgery.completed_at);
+  if(!(rs === 'approved' || ready || done)){ host.innerHTML = ''; return; }
+  var n = SDAY_ITEMS.filter(function(_, i){ return _sdayProgress[i]; }).length;
+  host.innerHTML =
+    '<div class="sday-card"><div class="sday-h">&#129508; Final surgery-day checklist</div>' +
+    '<div class="plan-sub">A general reminder for the day of surgery &mdash; separate from your doctor&rsquo;s requested tests. ('+n+'/'+SDAY_ITEMS.length+')</div>' +
+    SDAY_ITEMS.map(function(lbl, i){ var ck = !!_sdayProgress[i];
+      return '<div class="req-item"><button type="button" class="req-box'+(ck?' on':'')+'" onclick="toggleSday('+i+')" aria-label="Mark done">'+(ck?'&#10003;':'')+'</button>' +
+        '<div class="req-tx"><div class="req-label">'+esc(lbl)+'</div></div></div>'; }).join('') +
+    '</div>';
+}
+async function toggleSday(i){
+  _sdayProgress[i] = !_sdayProgress[i];
+  renderSurgeryDayCard();
+  try {
+    var c = await window.getChecklist(_uid); var existing = (c && c.items) || {};
+    existing.surgery_day_progress = _sdayProgress;
+    await window.saveChecklist(_uid, existing);
+  } catch(e){ /* graceful */ }
+}
+window.toggleSday = toggleSday;
 
 // ── Patient milestone timeline (single source: deriveJourney inputs) ──
 // done | current | warn (additional requirements) | upcoming
@@ -415,15 +464,19 @@ function renderPlanCard(){
       '</div>';
     return;
   }
-  if(rs === 'changes_requested' && reqs.length){
-    var note = (_docPlan && _docPlan.reviewer_notes) ? _docPlan.reviewer_notes : '';
+  if(rs === 'changes_requested'){
+    // reviewer_notes lives on the patient's own questionnaire row (always readable);
+    // requirements come from the sanitized RPC when available.
+    var note = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
     var doneN = reqs.filter(function(r){ return _reqProgress[r.key]; }).length;
     host.innerHTML =
       '<div class="plan-card warn">' +
         '<div class="plan-h">&#9888; Doctor requested additional preparation</div>' +
-        (note ? '<div class="plan-note">&#128172; '+esc(note)+'</div>' : '') +
-        '<div class="plan-sub">Tick each item as you complete it ('+doneN+'/'+reqs.length+'), then resubmit for review:</div>' +
-        reqs.map(function(r){ return reqRow(r, true); }).join('') +
+        (note ? '<div class="plan-note"><b>&#128172; Message from your clinician</b><br>'+esc(note)+'</div>' : '') +
+        (reqs.length
+          ? '<div class="plan-sub">Tick each item as you complete it ('+doneN+'/'+reqs.length+'), then resubmit for review:</div>' +
+            reqs.map(function(r){ return reqRow(r, true); }).join('')
+          : '<div class="plan-sub">Please follow your clinician\'s message above, then resubmit for review.</div>') +
         '<button class="sp-btn" style="margin-top:12px;" onclick="submitForReview()">Resubmit for Review</button>' +
       '</div>';
     return;
@@ -681,6 +734,9 @@ function sjCTA(s, d){
     return '<a class="sjc-cta" href="/v2/recovery.html">&#10084;&#65039; Recovery information</a>';
   if(js==='ready_for_surgery')
     return '<button class="sjc-cta" onclick="openPrep()">&#9989; Surgery-day instructions</button>';
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  if(rs === 'approved')
+    return '<button class="sjc-cta" onclick="openPrep()">&#9989; View Approved Plan</button>';
   if(_quest && _quest.status==='submitted')
     return '<button class="sjc-cta" onclick="openPrep()">&#128203; View Preparation Plan</button>';
   return '<a class="sjc-cta" href="/v2/questionnaire.html">&#128203; '+(_quest?'Continue':'Start')+' Questionnaire</a>';
@@ -867,6 +923,10 @@ function prepClinicianInvolved(){
   return prepOrigin() === 'clinic' || (_careRequest && _careRequest.status === 'accepted');
 }
 function prepContentHtml(){
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  // After approval, the authoritative content is the clinician-approved plan,
+  // NOT the educational guide.
+  if(rs === 'approved'){ return approvedPlanHtml(); }
   // Clinic-initiated journeys keep the placeholder until the reviewed plan lands.
   if(prepOrigin() === 'clinic'){
     return '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>';
@@ -878,6 +938,34 @@ function prepContentHtml(){
       '<a href="/v2/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
   }
   return prepBuildGuide(_quest);
+}
+// The clinician-approved plan (authoritative). Distinct from the educational
+// guide: clinician name, approval date, approved requirements + recommendations,
+// clinician message, and final instructions.
+function approvedPlanHtml(){
+  var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your anesthesiologist';
+  var when = (_quest && _quest.reviewed_at) ? new Date(_quest.reviewed_at).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
+  var reqs = (_docPlan && Array.isArray(_docPlan.requirements)) ? _docPlan.requirements.filter(function(r){ return r && r.checked; }) : [];
+  var msg = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
+  var h = '<div class="applan-head"><div class="applan-badge">&#10003; Approved preparation plan</div>' +
+    '<div class="applan-meta">Approved by <b>'+dn+'</b>'+(when?(' on '+esc(when)):'')+'</div></div>';
+  if(msg) h += '<div class="applan-msg"><b>&#128172; From your clinician</b><br>'+esc(msg)+'</div>';
+  h += '<div class="applan-h">Your clinician’s recommendations</div>';
+  if(reqs.length){
+    h += '<div class="applan-reqs">' + reqs.map(function(r){
+      return '<div class="applan-req"><span class="applan-ck">&#10003;</span><div class="applan-tx">' +
+        '<div class="applan-lb">'+esc(r.label||'')+'</div>' +
+        (r.note ? '<div class="applan-note">'+esc(r.note)+'</div>' : '') + '</div></div>';
+    }).join('') + '</div>';
+  } else {
+    h += '<div class="prep-clinic">'+dn+' approved your preparation with no additional tests required. Follow the general information below and your surgery-day checklist.</div>';
+  }
+  h += '<div class="applan-foot">&#10003; Bring this plan and your documents on the day of surgery. Always follow the instructions your surgical and anesthesia team give you on the day.</div>';
+  // Educational material kept as clearly-labelled supplementary info (no banner,
+  // so it never reads as "the plan").
+  h += '<div class="applan-divider">General preparation information (educational)</div>' +
+    '<div class="applan-edu">' + prepBuildGuide(_quest, { noBanner:true }) + '</div>';
+  return h;
 }
 function openPrep(){
   var body = ge('prep-modal-body'); if(!body) return;
@@ -902,14 +990,17 @@ function prepReviewBanner(){
   return '<div class="prep-note">&#9888; Educational preparation guide - not yet reviewed by a clinician. Connect a clinician to have it reviewed. Always follow the instructions your surgical and anesthesia team give you.</div>';
 }
 
-function prepBuildGuide(q){
+function prepBuildGuide(q, opts){
+  opts = opts || {};
   var a = q.answers || {};
   var flags = q.risk_flags || [];
   var s = _surgery || {};
   var h = '';
 
   // Context-aware banner: only imply a clinician when one is actually involved.
-  h += prepReviewBanner();
+  // Suppressed when the guide is shown as supplementary material under an
+  // already-approved plan (so it cannot masquerade as the approved plan).
+  if(!opts.noBanner) h += prepReviewBanner();
 
   // 1. Surgery summary
   var sumRows = '';
@@ -1214,6 +1305,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       if(c && c.items && (c.items.preop_quick || c.items.dashboard)) _signals.preop = true;
       if(c && c.items && c.items.prep_guide) _prepChecklist = c.items.prep_guide;
       if(c && c.items && c.items.req_progress) _reqProgress = c.items.req_progress;
+      if(c && c.items && c.items.surgery_day_progress) _sdayProgress = c.items.surgery_day_progress;
     } catch(e){}
 
     // Journey cards already rendered above; refresh now that all signals loaded.
