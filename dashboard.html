@@ -109,6 +109,59 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-tile-t{font-size:13.5px;font-weight:500;color:#fff;}
 .ws-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px;}
 .ws-reqs-card{background:linear-gradient(135deg,rgba(42,138,116,.16),rgba(42,138,116,.05));border:1px solid rgba(42,138,116,.4);border-radius:14px;padding:16px 18px;margin-bottom:16px;}
+/* active patients */
+.ws-ap-h{font-size:13px;font-weight:700;color:#7ECFC0;margin:6px 0 10px;display:flex;align-items:center;gap:8px;}
+.ws-ap-h .n{font-size:11px;font-weight:700;background:rgba(42,138,116,.3);color:#fff;border-radius:20px;padding:2px 8px;}
+.ws-ap{display:flex;align-items:center;justify-content:space-between;gap:14px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:9px;flex-wrap:wrap;}
+.ws-ap-name{font-size:15px;font-weight:600;color:#fff;}
+.ws-ap-facts{font-size:12.5px;color:var(--muted);margin-top:3px;}
+.ws-ap-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
+.ws-pill{font-size:10.5px;font-weight:700;border-radius:20px;padding:3px 9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);}
+.ws-pill.ok{color:#5ee393;background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.3);}
+.ws-pill.warn{color:#E8C16b;background:rgba(232,168,56,.12);border-color:rgba(232,168,56,.3);}
+.ws-pill.rev{color:#7ECFC0;background:rgba(42,138,116,.14);border-color:rgba(42,138,116,.35);}
+/* workspace overlay */
+.ws-ws-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.82);z-index:6000;align-items:flex-start;justify-content:center;padding:22px 14px;overflow-y:auto;}
+.ws-ws-bg.open{display:flex;}
+.ws-ws-modal{background:#0A1614;border:1px solid rgba(42,138,116,.4);border-radius:16px;max-width:880px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+.ws-ws-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 20px 12px;background:rgba(42,138,116,.16);border-bottom:1px solid rgba(42,138,116,.3);}
+.ws-ws-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;}
+.ws-ws-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.ws-ws-body{padding:18px 20px 26px;overflow-y:auto;}
+.ws-sec-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:18px 0 8px;padding-top:12px;border-top:1px solid rgba(42,138,116,.16);}
+.ws-sec-t:first-of-type{margin-top:0;padding-top:0;border-top:none;}
+.ws-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;}
+.ws-kc{background:rgba(0,0,0,.2);border-radius:9px;padding:9px 11px;}
+.ws-kc i{font-style:normal;display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin-bottom:3px;}
+.ws-kc b{font-size:14px;color:#fff;font-weight:600;}
+.ws-flag{display:inline-block;font-size:12px;font-weight:600;background:rgba(232,168,56,.13);border:1px solid rgba(232,168,56,.3);color:#E8C16b;border-radius:7px;padding:4px 9px;margin:2px 5px 2px 0;}
+.ws-flag.hi{background:rgba(192,57,43,.16);border-color:rgba(192,57,43,.4);color:#ff9b86;}
+.ws-qrow{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.ws-qrow span{color:var(--muted);} .ws-qrow b{color:#fff;font-weight:600;text-align:right;}
+.ws-chk{font-size:13px;color:rgba(255,255,255,.85);padding:4px 0 4px 18px;position:relative;}
+.ws-chk:before{content:'';position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;}
+.ws-chk.done:before{background:#5ee393;} .ws-chk.miss:before{background:rgba(255,255,255,.2);}
+.ws-chk.miss{color:var(--hint);}
+.ws-reqs{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+.ws-req-item{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:8px 10px;}
+.ws-req-item.on{background:rgba(42,138,116,.14);border-color:rgba(42,138,116,.5);}
+.ws-req-chk{display:flex;align-items:center;gap:9px;font-size:14px;color:rgba(255,255,255,.9);cursor:pointer;}
+.ws-req-chk input{width:16px;height:16px;flex:0 0 auto;accent-color:#2A8A74;cursor:pointer;}
+.ws-req-chk span{flex:1 1 auto;}
+.ws-req-del{background:none;border:none;color:rgba(255,255,255,.4);font-size:18px;line-height:1;cursor:pointer;padding:0 4px;}
+.ws-req-del:hover{color:#ff9b86;}
+.ws-req-note{width:100%;margin-top:7px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:7px 9px;color:#fff;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;}
+.ws-req-note:focus{border-color:#2A8A74;}
+.ws-req-add{display:flex;gap:8px;margin-top:8px;}
+.ws-req-add input{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;}
+.ws-req-add input:focus{border-color:#2A8A74;}
+.ws-notes{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:9px;padding:11px;color:#fff;font-size:14px;font-family:inherit;outline:none;resize:vertical;box-sizing:border-box;}
+.ws-notes:focus{border-color:#2A8A74;}
+.ws-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+.ws-act-approve{background:rgba(37,211,102,.18);border:1px solid rgba(37,211,102,.45);color:#5ee393;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.ws-act-approve:hover{background:rgba(37,211,102,.3);color:#fff;}
+.ws-act-changes{background:rgba(232,168,56,.15);border:1px solid rgba(232,168,56,.4);color:#E8C16b;border-radius:9px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+.ws-act-changes:hover{background:rgba(232,168,56,.28);color:#fff;}
 .ws-reqs-h{font-size:13px;font-weight:700;color:#7ECFC0;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .ws-reqs-n{font-size:11px;font-weight:700;background:rgba(42,138,116,.3);color:#fff;border-radius:20px;padding:2px 8px;}
 .ws-req{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(42,138,116,.18);flex-wrap:wrap;}
@@ -369,6 +422,211 @@ async function wsLoadPendingReviews(){
     '</div>';
 }
 
+// ── Active Patients + in-page workspace (Epic E) ──
+var WS_PREPARE=['Confirm your surgery date, arrival time, and where to check in','Write down a full list of your medications, doses, and supplements','Note any allergies and past reactions to anesthesia','Arrange a responsible adult to take you home and stay with you','Prepare comfortable, loose clothing and flat shoes for the day','Write down questions you want to ask your anesthesiologist'];
+var WS_DAYOF=['Follow your fasting times exactly','Shower; remove makeup, nail polish, and jewelry','Take only the medications you were told to take, with a small sip of water','Bring your ID, medication list, and essentials','Bring your CPAP, inhaler, or glasses/hearing aids if you use them','Arrive on time and have your ride home arranged'];
+var WS_QLBL={age:'Age',sex:'Sex',height:'Height (cm)',weight:'Weight (kg)',history:'Conditions',medications:'Medications',prev_surgery:'Previous surgery',anes_complication:'Anesthesia complication',difficult_airway:'Difficult airway',ponv:'PONV history',allergy_present:'Allergies',allergy_detail:'Allergy detail',smoking:'Smoking',alcohol:'Alcohol',drugs:'Recreational drugs'};
+var _wsActiveMap={}, _wsCtx=null;
+function wsReviewLabel(rs){ var m={not_submitted:['Not submitted',''],pending:['Awaiting review','warn'],in_review:['Under review','rev'],changes_requested:['Changes requested','warn'],approved:['Approved','ok']}; var v=m[rs||'not_submitted']||m.not_submitted; return {txt:v[0],cls:v[1]}; }
+function wsPrepCount(items){ var p=(items&&items.prepare)||[]; var n=0; for(var i=0;i<6;i++){ if(p[i]) n++; } return n; }
+
+// Standard pre-anesthesia clinical requirements (doctor selects/annotates).
+var WS_REQ_CATALOG=[
+  {key:'chest_xray',label:'Chest X-ray'},
+  {key:'ecg',label:'ECG'},
+  {key:'echo',label:'Echocardiography'},
+  {key:'bloods',label:'Blood tests'},
+  {key:'coag',label:'Coagulation profile'},
+  {key:'cardiology',label:'Cardiology consultation'},
+  {key:'pulmonology',label:'Pulmonology consultation'},
+  {key:'endocrinology',label:'Endocrinology consultation'},
+  {key:'anticoag',label:'Stop / continue anticoagulants'},
+  {key:'glp1',label:'Stop / continue GLP-1'},
+  {key:'documents',label:'Bring medical documents'},
+  {key:'clarify_meds',label:'Clarify medications'},
+  {key:'upload_reports',label:'Upload reports'},
+  {key:'delay',label:'Delay surgery pending evaluation'},
+  {key:'proceed',label:'Proceed / no additional tests needed'}
+];
+// saved requirements array -> map keyed by key
+function wsNormReqs(arr){
+  var out={}; (Array.isArray(arr)?arr:[]).forEach(function(r){ if(r&&r.key) out[r.key]={checked:!!r.checked,note:r.note||'',label:r.label||'',custom:!!r.custom}; });
+  return out;
+}
+function wsReqRow(key,label,r,custom){
+  r=r||{}; var checked=r.checked?' checked':'';
+  return '<div class="ws-req-item'+(r.checked?' on':'')+'">'+
+    '<label class="ws-req-chk"><input type="checkbox" data-req-key="'+key+'" data-req-label="'+wsEsc(label)+'"'+(custom?' data-req-custom="1"':'')+checked+' onchange="wsReqToggle(this)"><span>'+wsEsc(label)+'</span>'+
+      (custom?'<button type="button" class="ws-req-del" onclick="wsReqRemove(\''+key+'\')" title="Remove">&times;</button>':'')+'</label>'+
+    '<input class="ws-req-note" data-req-note="'+key+'" placeholder="Note / instructions for the patient (optional)" value="'+wsEsc(r.note||'')+'">'+
+  '</div>';
+}
+function wsRequirementsHtml(){
+  var reqs=(_wsCtx&&_wsCtx.requirements)||{};
+  var catKeys={}; WS_REQ_CATALOG.forEach(function(c){catKeys[c.key]=1;});
+  var html=WS_REQ_CATALOG.map(function(c){ return wsReqRow(c.key,c.label,reqs[c.key],false); }).join('');
+  Object.keys(reqs).forEach(function(k){ if(!catKeys[k]) html+=wsReqRow(k,reqs[k].label||k,reqs[k],true); });
+  html+='<div class="ws-req-add"><input id="ws-req-custom" placeholder="Add a custom requirement..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();wsReqAdd();}"><button type="button" class="ws-btn" onclick="wsReqAdd()">+ Add</button></div>';
+  return html;
+}
+function wsReqToggle(cb){ var row=cb.closest('.ws-req-item'); if(row) row.classList.toggle('on',cb.checked); }
+function wsCollectReqs(){
+  var map={};
+  document.querySelectorAll('#ws-ws-body input[data-req-key]').forEach(function(cb){
+    var k=cb.getAttribute('data-req-key');
+    var noteEl=document.querySelector('#ws-ws-body [data-req-note="'+k+'"]');
+    map[k]={checked:cb.checked, note:noteEl?noteEl.value:'', label:cb.getAttribute('data-req-label')||k, custom:cb.getAttribute('data-req-custom')==='1'};
+  });
+  if(_wsCtx) _wsCtx.requirements=map;
+  return map;
+}
+function wsCaptureEdits(){
+  if(!_wsCtx) return;
+  var n=document.getElementById('ws-notes'); if(n) _wsCtx.notes=n.value;
+  wsCollectReqs();
+}
+function wsReqAdd(){
+  if(!_wsCtx) return; var inp=document.getElementById('ws-req-custom'); if(!inp) return;
+  var v=(inp.value||'').trim(); if(!v) return;
+  wsCaptureEdits();
+  _wsCtx.requirements['custom_'+Date.now()]={checked:true,note:'',label:v,custom:true};
+  inp.value=''; wsRenderWorkspace();
+}
+function wsReqRemove(key){ if(!_wsCtx) return; wsCaptureEdits(); delete _wsCtx.requirements[key]; wsRenderWorkspace(); }
+function wsPlanPayload(){
+  wsCaptureEdits();
+  var reqs=[], m=(_wsCtx&&_wsCtx.requirements)||{};
+  Object.keys(m).forEach(function(k){ var r=m[k]; reqs.push({key:k,label:r.label,checked:!!r.checked,note:r.note||'',custom:!!r.custom}); });
+  return { notes:(_wsCtx&&_wsCtx.notes)||'', requirements:reqs };
+}
+async function wsSavePlan(silent){
+  if(!_wsCtx) return false;
+  try {
+    var r=await window.sb.rpc('save_doctor_plan',{ p_surgery_id:_wsCtx.surgeryId, p_plan:wsPlanPayload() });
+    if(r&&r.error) throw new Error(r.error.message);
+    if(!silent) wsToast('Plan saved');
+    return true;
+  } catch(e){ wsToast('Save failed: '+(e.message||'error')); return false; }
+}
+
+async function wsLoadActivePatients(){
+  var box=document.getElementById('ws-active'); if(!box) return;
+  var uid=window.__wsUserId; if(!uid){ box.innerHTML=''; return; }
+  var crs=[];
+  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).eq('status','accepted'); crs=(r&&r.data)||[]; }
+  catch(e){ box.innerHTML=''; return; }
+  if(!crs.length){ box.innerHTML=''; _wsActiveMap={}; return; }
+  var pids=crs.map(function(c){return c.patient_id;});
+  var sids=crs.map(function(c){return c.surgery_id;}).filter(Boolean);
+  var surg={},q={},chk={};
+  try { var s=await window.sb.from('patient_surgeries').select('*').in('id',sids); ((s&&s.data)||[]).forEach(function(x){surg[x.id]=x;}); }catch(e){}
+  try { var qq=await window.sb.from('preop_questionnaires').select('patient_id,status,completion,review_state').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){q[x.patient_id]=x;}); }catch(e){}
+  try { var cc=await window.sb.from('preop_checklist').select('patient_id,items').in('patient_id',pids); ((cc&&cc.data)||[]).forEach(function(x){chk[x.patient_id]=(x.items&&x.items.prep_guide)||{};}); }catch(e){}
+  var active=crs.filter(function(c){ var sg=surg[c.surgery_id]; return !(sg&&sg.completed_at); });   // visible until completed
+  _wsActiveMap={}; active.forEach(function(c){ _wsActiveMap[c.patient_id]={name:c.patient_name,surgeryId:c.surgery_id}; });
+  if(!active.length){ box.innerHTML=''; return; }
+  box.innerHTML='<div class="ws-ap-h">&#129694; Active patients <span class="n">'+active.length+'</span></div>'+
+    active.map(function(c){
+      var sg=surg[c.surgery_id]||{}, qd=q[c.patient_id]||{}, n=wsPrepCount(chk[c.patient_id]);
+      var rev=wsReviewLabel(qd.review_state);
+      var qst=qd.status==='submitted'?'Questionnaire done':((qd.completion||0)+'% questionnaire');
+      var facts=[c.procedure||sg.procedure_type, sg.surgery_date?new Date(sg.surgery_date).toLocaleDateString():''].filter(Boolean).join(' · ');
+      return '<div class="ws-ap"><div><div class="ws-ap-name">'+wsEsc(c.patient_name||'Patient')+'</div>'+
+        '<div class="ws-ap-facts">'+wsEsc(facts||'Active patient')+'</div>'+
+        '<div class="ws-ap-pills"><span class="ws-pill '+rev.cls+'">'+rev.txt+'</span>'+
+          '<span class="ws-pill '+(qd.status==='submitted'?'ok':'')+'">'+wsEsc(qst)+'</span>'+
+          '<span class="ws-pill '+(n>=6?'ok':(n>0?'warn':''))+'">Prep '+n+'/6</span></div></div>'+
+        '<div class="ws-req-btns"><button class="ws-btn pc-green" onclick="wsOpenPatient(\''+c.patient_id+'\')">Open patient</button></div></div>';
+    }).join('');
+}
+
+async function wsOpenPatient(patientId){
+  var info=_wsActiveMap[patientId]; if(!info) return;
+  var surgeryId=info.surgeryId;
+  try { await window.sb.rpc('start_review', { p_surgery_id: surgeryId }); } catch(e){}   // pending -> in_review
+  var surgery={},quest={},items={},plan={};
+  try { var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; }catch(e){}
+  try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; }catch(e){}
+  try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).maybeSingle(); items=(c.data&&c.data.items&&c.data.items.prep_guide)||{}; }catch(e){}
+  try { var p=await window.sb.from('preparation_plans').select('id,plan_content,status').eq('surgery_id',surgeryId).in('status',['draft','approved']).order('version',{ascending:false}).limit(1).maybeSingle(); plan=(p.data&&p.data.plan_content)||{}; }catch(e){}
+  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items, notes:plan.notes||'', requirements:wsNormReqs(plan.requirements) };
+  wsRenderWorkspace();
+  document.getElementById('ws-ws').classList.add('open');
+}
+function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); _wsCtx=null; }
+
+function wsRenderWorkspace(){
+  var c=_wsCtx; if(!c) return;
+  var a=c.quest.answers||{}, s=c.surgery, flags=c.quest.risk_flags||[];
+  var bmi=''; var h=parseFloat(a.height), w=parseFloat(a.weight); if(h>0&&w>0) bmi=' · BMI '+(w/Math.pow(h/100,2)).toFixed(1);
+  document.getElementById('ws-ws-title').textContent = c.name || 'Patient';
+  document.getElementById('ws-ws-sub').textContent = [s.procedure_type, s.surgery_date?new Date(s.surgery_date).toLocaleDateString():''].filter(Boolean).join(' · ');
+  function kc(l,v){ return '<div class="ws-kc"><i>'+l+'</i><b>'+wsEsc(v||'—')+'</b></div>'; }
+  // A Patient summary
+  var meds=(a.medications&&a.medications.length)?a.medications.join(', '):'None reported';
+  var allerg=a.allergy_present==='severe'?('Severe'+(a.allergy_detail?' ('+a.allergy_detail+')':'')):(a.allergy_present==='mild'?('Mild'+(a.allergy_detail?' ('+a.allergy_detail+')':'')):'None reported');
+  var html='<div class="ws-sec-t">A &middot; Patient summary</div>'+
+    '<div class="ws-kv">'+kc('Age',a.age)+kc('Sex',a.sex)+kc('Height',a.height?a.height+' cm':'')+kc('Weight',(a.weight?a.weight+' kg':'')+bmi)+
+      kc('Procedure',s.procedure_type)+kc('Surgery date',s.surgery_date?new Date(s.surgery_date).toLocaleDateString():'')+kc('Hospital',s.hospital)+kc('Surgeon',s.surgeon)+'</div>'+
+    (flags.length?'<div style="margin-top:10px;">'+flags.map(function(f){return '<span class="ws-flag'+(/severe|difficult|complication|heart|anticoag/i.test(f)?' hi':'')+'">&#9888; '+wsEsc(f)+'</span>';}).join('')+'</div>':'')+
+    '<div class="ws-kv" style="margin-top:8px;">'+kc('Medications',meds)+kc('Allergies',allerg)+'</div>';
+  // B Questionnaire (read-only)
+  html+='<div class="ws-sec-t">B &middot; Questionnaire</div>';
+  if(c.quest.status==='submitted' || Object.keys(a).length){
+    html+=Object.keys(WS_QLBL).filter(function(k){return a[k]!=null && a[k]!=='';}).map(function(k){
+      var v=a[k]; if(Array.isArray(v)) v=v.join(', ');
+      return '<div class="ws-qrow"><span>'+WS_QLBL[k]+'</span><b>'+wsEsc(String(v))+'</b></div>';
+    }).join('') || '<div class="ws-ap-facts">No answers recorded.</div>';
+  } else { html+='<div class="ws-ap-facts">Questionnaire not completed yet.</div>'; }
+  // C Preparation review
+  var pc=(c.items&&c.items.prepare)||[], nDone=wsPrepCount(c.items);
+  html+='<div class="ws-sec-t">C &middot; Preparation review</div>'+
+    '<div class="ws-ap-facts" style="margin-bottom:6px;">Preparation checklist: <b style="color:#fff;">'+nDone+' / 6 complete</b> &middot; review status: <b style="color:#7ECFC0;">'+wsReviewLabel(c.quest.review_state).txt+'</b></div>'+
+    WS_PREPARE.map(function(lbl,i){ var done=!!pc[i]; return '<div class="ws-chk '+(done?'done':'miss')+'">'+(done?'':'Missing: ')+wsEsc(lbl)+'</div>'; }).join('');
+  // D Clinical requirements (doctor plan) - shared with the patient
+  html+='<div class="ws-sec-t">D &middot; Clinical requirements <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(shared with patient)</span></div>'+
+    '<div class="ws-reqs">'+wsRequirementsHtml()+'</div>'+
+    '<div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button></div>';
+  // E Doctor notes (internal - never shown to the patient)
+  html+='<div class="ws-sec-t">E &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
+    '<textarea class="ws-notes" id="ws-notes" placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
+    '<div class="ws-acts"><button class="ws-btn" onclick="wsSaveDocNotes()">Save notes</button></div>';
+  // F Review actions
+  var rs=c.quest.review_state||'not_submitted';
+  html+='<div class="ws-sec-t">F &middot; Review actions</div>';
+  if(rs==='not_submitted'){ html+='<div class="ws-ap-facts">Patient has not submitted for review yet.</div>'; }
+  else if(rs==='approved'){ html+='<div class="ws-ap-facts" style="color:#5ee393;">&#9989; Plan approved.</div>'; }
+  else {
+    html+=(c.quest.reviewer_notes&&rs==='changes_requested'?'<div class="ws-ap-facts" style="margin-bottom:8px;">Last note to patient: <i>'+wsEsc(c.quest.reviewer_notes)+'</i></div>':'')+
+      '<div class="ws-ap-facts" style="margin-bottom:8px;">Saving the plan then choosing an action below sends the requirements to the patient. Approval is required before the patient is ready.</div>'+
+      '<div class="ws-acts"><button class="ws-act-changes" onclick="wsRequestChanges()">Request changes / additional requirements</button>'+
+      '<button class="ws-act-approve" onclick="wsApprovePlan()">&#9989; Approve plan</button></div>';
+  }
+  document.getElementById('ws-ws-body').innerHTML=html;
+}
+// Notes save now routes through the same guarded RPC as the plan (the old
+// direct-table write silently swallowed RLS errors -> "saved" but not persisted).
+async function wsSaveDocNotes(){ return wsSavePlan(false); }
+async function wsRequestChanges(){
+  if(!_wsCtx) return;
+  var notes=window.prompt('Message to the patient (what they need to do):', _wsCtx.quest.reviewer_notes||'');
+  if(notes===null) return;
+  if(!(await wsSavePlan(true))) return;                       // persist requirements first
+  try { var r=await window.sb.rpc('request_changes',{p_surgery_id:_wsCtx.surgeryId, p_notes:notes}); if(r&&r.error) throw new Error(r.error.message); wsToast('Requirements sent to patient'); }
+  catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
+  wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
+}
+async function wsApprovePlan(){
+  if(!_wsCtx) return; if(!window.confirm('Approve this preparation plan? The patient will see it as reviewed.')) return;
+  if(!(await wsSavePlan(true))) return;                       // persist requirements first
+  try { var r=await window.sb.rpc('approve_plan',{p_surgery_id:_wsCtx.surgeryId}); if(r&&r.error) throw new Error(r.error.message); wsToast('Plan approved'); }
+  catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
+  wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
+}
+window.wsOpenPatient=wsOpenPatient; window.wsCloseWorkspace=wsCloseWorkspace;
+window.wsSaveDocNotes=wsSaveDocNotes; window.wsSavePlan=wsSavePlan; window.wsRequestChanges=wsRequestChanges; window.wsApprovePlan=wsApprovePlan;
+window.wsReqToggle=wsReqToggle; window.wsReqAdd=wsReqAdd; window.wsReqRemove=wsReqRemove;
+
 async function wsRespondRequest(id, decision){
   var reason = null;
   if(decision === 'decline'){ reason = window.prompt('Optional reason for declining (the patient sees this):') || null; }
@@ -379,6 +637,7 @@ async function wsRespondRequest(id, decision){
   } catch(e){ wsToast('Failed: ' + (e.message||'error')); }
   wsLoadRequests();
   wsLoadPendingReviews();
+  wsLoadActivePatients();
   wsLoadPatients();
 }
 
@@ -1012,6 +1271,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div class="ws-stats" id="ws-pt-stats"></div>' +
         '<div id="ws-reqs"></div>' +
         '<div id="ws-reviews"></div>' +
+        '<div id="ws-active"></div>' +
         '<div class="ws-pt-cols">' +
           // LEFT — Add patient form (always visible, no modal)
           '<div class="ws-pt-form">' +
@@ -1119,6 +1379,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     wsLoadPatients();
     wsLoadRequests();
     wsLoadPendingReviews();
+    wsLoadActivePatients();
     wsLoadAsk();
     if(isAdminRole){ wsLoadAdmin(); }
 
@@ -1136,5 +1397,17 @@ document.addEventListener('DOMContentLoaded', async function(){
   }
 });
 </script>
+
+<!-- Doctor Active Patient Workspace (in-page overlay; no navigation) -->
+<div class="ws-ws-bg" id="ws-ws" onclick="if(event.target===this)wsCloseWorkspace()">
+  <div class="ws-ws-modal">
+    <div class="ws-ws-head">
+      <div><div class="ws-ws-title" id="ws-ws-title">Patient workspace</div>
+        <div class="ws-ws-sub" id="ws-ws-sub"></div></div>
+      <button class="ws-btn" onclick="wsCloseWorkspace()">&times; Close</button>
+    </div>
+    <div class="ws-ws-body" id="ws-ws-body"></div>
+  </div>
+</div>
 </body>
 </html>
