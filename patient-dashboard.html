@@ -143,15 +143,40 @@
 .sp-pending{display:inline-block;font-size:13.5px;font-weight:600;color:#E8C16b;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.3);border-radius:9px;padding:9px 14px;}
 .sp-pending.ok{color:#5ee393;background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.3);}
 .sp-pending.warn{color:#ff9b86;background:rgba(192,57,43,.14);border-color:rgba(192,57,43,.35);margin-bottom:8px;}
-.req-card{margin-top:14px;border-radius:11px;padding:13px 14px;border:1px solid rgba(232,168,56,.4);background:rgba(232,168,56,.08);}
-.req-card.ok{border-color:rgba(37,211,102,.4);background:rgba(37,211,102,.08);}
-.req-h{font-size:14px;font-weight:700;color:#E8C16b;margin-bottom:9px;}
-.req-card.ok .req-h{color:#5ee393;}
-.req-item{padding:7px 0;border-top:1px solid rgba(255,255,255,.08);}
+/* Patient milestone timeline */
+.sp-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin-bottom:3px;}
+.tl{margin:15px 0 4px;}
+.tl-row{display:flex;align-items:flex-start;gap:11px;position:relative;padding:5px 0 5px 2px;}
+.tl-row:not(:last-child):before{content:'';position:absolute;left:12px;top:24px;bottom:-5px;width:2px;background:rgba(255,255,255,.1);}
+.tl-ic{flex:0 0 22px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;z-index:1;border:1.5px solid rgba(255,255,255,.18);color:var(--hint);background:#16201e;}
+.tl-tx{display:flex;flex-direction:column;padding-top:1px;}
+.tl-lb{font-size:13.5px;color:rgba(255,255,255,.55);}
+.tl-sub{font-size:11.5px;color:var(--hint);margin-top:1px;}
+.tl-done .tl-ic{background:#1B6B5A;border-color:#1B6B5A;color:#fff;}
+.tl-done .tl-lb{color:rgba(255,255,255,.9);}
+.tl-current .tl-ic{background:rgba(232,168,56,.22);border-color:#E8A838;color:#E8C16b;box-shadow:0 0 0 4px rgba(232,168,56,.12);}
+.tl-current .tl-lb{color:#fff;font-weight:700;}
+.tl-warn .tl-ic{background:rgba(192,57,43,.22);border-color:#ff9b86;color:#ff9b86;box-shadow:0 0 0 4px rgba(192,57,43,.12);}
+.tl-warn .tl-lb{color:#ff9b86;font-weight:700;}
+.sp-next-box{font-size:13px;color:#cfe;background:rgba(27,107,90,.16);border:1px solid rgba(27,107,90,.35);border-radius:9px;padding:9px 12px;margin:6px 0 2px;}
+.sp-next-lbl{font-weight:700;color:#7ECFC0;margin-right:5px;}
+/* Dedicated plan / approval card */
+.plan-card{margin:0 0 18px;border-radius:13px;padding:15px 16px;border:1px solid rgba(232,168,56,.45);background:rgba(232,168,56,.09);}
+.plan-card.ok{border-color:rgba(37,211,102,.45);background:rgba(37,211,102,.09);}
+.plan-h{font-size:15.5px;font-weight:700;color:#E8C16b;margin-bottom:6px;}
+.plan-card.ok .plan-h{color:#5ee393;}
+.plan-meta{font-size:13px;color:rgba(255,255,255,.85);margin-bottom:8px;}
+.plan-note{font-size:13px;color:#fff;background:rgba(255,255,255,.06);border-radius:8px;padding:9px 11px;margin-bottom:10px;}
+.plan-sub{font-size:12.5px;color:var(--muted);margin-bottom:6px;}
+.plan-foot{font-size:12px;color:var(--hint);margin-top:11px;}
+.req-item{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-top:1px solid rgba(255,255,255,.08);}
 .req-item:first-of-type{border-top:none;}
+.req-box{flex:0 0 22px;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.04);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font-family:inherit;}
+.req-box.on{background:#1B6B5A;border-color:#1B6B5A;}
+button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
+.req-tx{flex:1 1 auto;}
 .req-label{font-size:13.5px;color:#fff;font-weight:600;}
 .req-note{font-size:12.5px;color:var(--muted);margin-top:2px;}
-.req-foot{font-size:12px;color:var(--hint);margin-top:10px;}
 .dir-search{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin:6px 0 12px;box-sizing:border-box;min-height:44px;}
 .dir-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(27,107,90,.12);}
 .dir-row:last-child{border-bottom:none;}
@@ -203,6 +228,8 @@
 
     <!-- ALWAYS-ON STATUS PANEL (journey spine) -->
     <div class="sp-card" id="status-panel"></div>
+    <!-- Dedicated doctor plan / approval card (rendered by renderPlanCard) -->
+    <div id="plan-host"></div>
 
     <div class="pd-grid">
 
@@ -292,7 +319,7 @@
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 var _uid = null, _surgery = null, _activity = [];
-var _quest = null, _prepChecklist = {}, _careRequest = null, _docPlan = null;
+var _quest = null, _prepChecklist = {}, _careRequest = null, _docPlan = null, _reqProgress = {};
 var _surgeries = [], _editId = null;
 
 // ── ALWAYS-ON STATUS PANEL (derived from the single source of truth) ──
@@ -310,38 +337,117 @@ function renderStatusPanel(){
     archivedAt: _surgery && _surgery.archived_at,
     reviewerNotes: _quest ? _quest.reviewer_notes : ''
   });
-  var total = window.JOURNEY_TOTAL_STAGES || 10;
-  var segs = '';
-  for(var i=1;i<=total;i++){ segs += '<div class="sp-seg'+(i<=d.stage?' on':'')+'"></div>'; }
   panel.innerHTML =
     '<div class="sp-top">' +
-      '<div><div class="sp-stage">Stage '+d.stage+' of '+total+'</div>' +
+      '<div><div class="sp-eyebrow">My surgery journey</div>' +
         '<div class="sp-header">'+esc(d.header)+'</div></div>' +
       '<div class="sp-pill">'+d.pill+' '+esc(d.pillLabel)+'</div>' +
     '</div>' +
     '<div class="sp-conn">'+esc(d.connectionLine)+'</div>' +
-    '<div class="sp-next">'+esc(d.nextStep)+'</div>' +
-    spConnectAction() +
-    requirementsHtml() +
-    '<div class="sp-track">'+segs+'</div>';
+    timelineHtml() +
+    '<div class="sp-next-box"><span class="sp-next-lbl">What\'s next</span> '+esc(d.nextStep)+'</div>' +
+    spConnectAction();
+  renderPlanCard();
 }
-// Doctor-requested clinical requirements (read-only; never includes internal notes).
-function requirementsHtml(){
-  if(!_docPlan) return '';
-  var reqs = (_docPlan.requirements || []).filter(function(r){ return r && r.checked; });
-  if(!reqs.length) return '';
-  var rs = _docPlan.review_state || 'not_submitted';
-  var approved = rs === 'approved';
-  var head = approved ? '&#9989; Your reviewed preparation plan'
-                      : '&#9888; Your anesthesiologist requested additional preparation';
-  return '<div class="req-card'+(approved?' ok':'')+'"><div class="req-h">'+head+'</div>' +
-    reqs.map(function(r){
-      return '<div class="req-item"><div class="req-label">'+esc(r.label||'')+'</div>' +
-        (r.note ? '<div class="req-note">'+esc(r.note)+'</div>' : '') + '</div>';
-    }).join('') +
-    (approved ? '' : '<div class="req-foot">Complete these, then resubmit for review.</div>') +
-    '</div>';
+
+// ── Patient milestone timeline (single source: deriveJourney inputs) ──
+// done | current | warn (additional requirements) | upcoming
+function patientMilestones(){
+  var hasS = !!(_surgery && _surgery.procedure_type);
+  var qSub = !!(_quest && _quest.status === 'submitted');
+  var prep = prepChecklistComplete();
+  var crs  = _careRequest ? _careRequest.status : 'none';
+  var assigned = (crs === 'accepted');
+  var rs   = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  var ready = !!(_surgery && _surgery.ready_at);
+  var done  = !!(_surgery && _surgery.completed_at);
+  var dn    = (_careRequest && _careRequest.doctor_name) ? _careRequest.doctor_name : '';
+  var changes  = (rs === 'changes_requested');
+  var approved = (rs === 'approved') || ready || done;
+  var reviewDone = approved || changes;   // the doctor has reviewed at least once
+
+  var M = [];
+  M.push({ label:'Surgery added', done:hasS });
+  M.push({ label:'Questionnaire submitted', done:qSub });
+  M.push({ label:'Preparation checklist completed', done:prep });
+  M.push({ label:'Clinician assigned', done:assigned, sub: assigned && dn ? ('with ' + dn) : '' });
+  M.push({ label:'Under review', done:reviewDone });
+  if(changes) M.push({ label:'Additional requirements requested', warn:true });
+  M.push({ label:'Plan approved', done:approved, sub: approved && dn ? ('by ' + dn) : '' });
+  M.push({ label:'Ready for surgery', done:ready, sub: ready ? '' : 'set by your clinician' });
+  M.push({ label:'Surgery completed', done:done });
+
+  var hasWarn = M.some(function(m){ return m.warn; });
+  var firstPending = -1;
+  for(var i=0;i<M.length;i++){ if(!M[i].done && !M[i].warn){ firstPending = i; break; } }
+  M.forEach(function(m,idx){
+    m.state = m.done ? 'done' : (m.warn ? 'warn' : (!hasWarn && idx === firstPending ? 'current' : 'upcoming'));
+  });
+  return M;
 }
+function timelineHtml(){
+  var ic = { done:'&#10003;', current:'&#9203;', warn:'&#9888;', upcoming:'&#9675;' };
+  return '<div class="tl">' + patientMilestones().map(function(m){
+    return '<div class="tl-row tl-'+m.state+'">' +
+      '<span class="tl-ic">'+ic[m.state]+'</span>' +
+      '<div class="tl-tx"><span class="tl-lb">'+esc(m.label)+'</span>' +
+        (m.sub ? '<span class="tl-sub">'+esc(m.sub)+'</span>' : '') + '</div></div>';
+  }).join('') + '</div>';
+}
+
+// ── Dedicated plan card: approval (green) or additional requirements (amber) ──
+function renderPlanCard(){
+  var host = ge('plan-host'); if(!host) return;
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  var reqs = (_docPlan && Array.isArray(_docPlan.requirements))
+    ? _docPlan.requirements.filter(function(r){ return r && r.checked; }) : [];
+
+  if(rs === 'approved'){
+    var dn = (_careRequest && _careRequest.doctor_name) ? _careRequest.doctor_name : 'your clinician';
+    var when = (_quest && _quest.reviewed_at) ? new Date(_quest.reviewed_at).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
+    host.innerHTML =
+      '<div class="plan-card ok">' +
+        '<div class="plan-h">&#9989; Preparation plan approved</div>' +
+        '<div class="plan-meta">Approved by <b>'+esc(dn)+'</b>'+(when?(' on '+esc(when)):'')+'.</div>' +
+        (reqs.length ? '<div class="plan-sub">Your anesthesiologist confirmed these requirements:</div>' +
+          reqs.map(function(r){ return reqRow(r, false); }).join('') : '') +
+        '<div class="plan-foot">Bring this plan and your documents on the day of surgery.</div>' +
+      '</div>';
+    return;
+  }
+  if(rs === 'changes_requested' && reqs.length){
+    var note = (_docPlan && _docPlan.reviewer_notes) ? _docPlan.reviewer_notes : '';
+    var doneN = reqs.filter(function(r){ return _reqProgress[r.key]; }).length;
+    host.innerHTML =
+      '<div class="plan-card warn">' +
+        '<div class="plan-h">&#9888; Doctor requested additional preparation</div>' +
+        (note ? '<div class="plan-note">&#128172; '+esc(note)+'</div>' : '') +
+        '<div class="plan-sub">Tick each item as you complete it ('+doneN+'/'+reqs.length+'), then resubmit for review:</div>' +
+        reqs.map(function(r){ return reqRow(r, true); }).join('') +
+        '<button class="sp-btn" style="margin-top:12px;" onclick="submitForReview()">Resubmit for Review</button>' +
+      '</div>';
+    return;
+  }
+  host.innerHTML = '';
+}
+function reqRow(r, interactive){
+  var ckd = !!_reqProgress[r.key];
+  var box = interactive
+    ? '<button type="button" class="req-box'+(ckd?' on':'')+'" onclick="toggleReq(\''+esc(r.key)+'\')" aria-label="Mark done">'+(ckd?'&#10003;':'')+'</button>'
+    : '<span class="req-box on">&#10003;</span>';
+  return '<div class="req-item">'+box+'<div class="req-tx"><div class="req-label">'+esc(r.label||'')+'</div>' +
+    (r.note ? '<div class="req-note">'+esc(r.note)+'</div>' : '') + '</div></div>';
+}
+async function toggleReq(key){
+  _reqProgress[key] = !_reqProgress[key];
+  renderPlanCard();
+  try {
+    var c = await window.getChecklist(_uid); var existing = (c && c.items) || {};
+    existing.req_progress = _reqProgress;
+    await window.saveChecklist(_uid, existing);
+  } catch(e){ /* graceful */ }
+}
+window.toggleReq = toggleReq;
 async function reloadDoctorPlan(){
   _docPlan = null;
   if(!_surgery || !_surgery.id) return;
@@ -363,12 +469,11 @@ function spConnectAction(){
     return '<div class="sp-action"><button class="sp-btn" onclick="openDirectory()">&#129658; Request Review</button></div>';
   }
   // ── Connected: review-submission layer (review_state) ──
+  // pending / in_review show a status chip here; changes_requested and approved
+  // are owned by the dedicated plan card (renderPlanCard) to avoid duplication.
   if(rs === 'pending')   return '<div class="sp-action"><div class="sp-pending">&#9203; Awaiting clinician review</div></div>';
   if(rs === 'in_review') return '<div class="sp-action"><div class="sp-pending">&#128994; Under review by '+dn+'</div></div>';
-  if(rs === 'approved')  return '<div class="sp-action"><div class="sp-pending ok">&#9989; Reviewed by '+dn+'</div></div>';
-  if(rs === 'changes_requested')
-    return '<div class="sp-action"><div class="sp-pending warn">&#9888; Doctor requested additional preparation — see the requirements below, then resubmit</div>' +
-           '<button class="sp-btn" onclick="submitForReview()">Resubmit for Review</button></div>';
+  if(rs === 'approved' || rs === 'changes_requested') return '';
   // not_submitted (connected): gated Submit for Review
   var qDone = !!(_quest && _quest.status === 'submitted');
   var cDone = prepChecklistComplete();
@@ -431,9 +536,13 @@ async function syncConnectionState(){
     try { var q = await window.getQuestionnaire(_uid); if(q) _quest = q; } catch(e){}
     await reloadDoctorPlan();
     renderStatusPanel(); renderJourney();
-    if(prevRs !== 'changes_requested' && _rvState() === 'changes_requested'){
-      addActivity('Your anesthesiologist requested additional preparation', Date.now());
-      renderActivity();
+    // Reflect every review_state transition the doctor drives.
+    var nowRs = _rvState();
+    if(prevRs !== nowRs){
+      var msg = { in_review:'Your clinician started reviewing your questionnaire',
+                  changes_requested:'Your anesthesiologist requested additional preparation',
+                  approved:'Your preparation plan was approved' }[nowRs];
+      if(msg){ addActivity(msg, Date.now()); renderActivity(); }
     }
     if(prevCr !== 'accepted' && _crStatus() === 'accepted'){
       addActivity('Connected with ' + ((_careRequest && _careRequest.doctor_name) || 'your clinician'), Date.now());
@@ -589,7 +698,6 @@ function surgeryCardHtml(s, isPast){
       '<div class="sjc-name">'+esc(s.procedure_type||'Your surgery')+'</div>' +
       (facts.length?'<div class="sjc-facts">'+facts.join(' &middot; ')+'</div>':'') +
     '</div><div class="sjc-pill">'+d.pill+' '+esc(d.pillLabel)+'</div></div>' +
-    sjStepper(d, qSub) +
     '<div class="sjc-next">&#10148; Next: <b>'+esc(d.nextStep)+'</b></div>' +
     '<div class="sjc-actions">' + sjCTA(s, d) +
       '<button class="sjc-edit" onclick="openSurgery(\''+(s.id||'')+'\')">Edit</button>' +
@@ -1105,6 +1213,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       var c = await window.getChecklist(_uid);
       if(c && c.items && (c.items.preop_quick || c.items.dashboard)) _signals.preop = true;
       if(c && c.items && c.items.prep_guide) _prepChecklist = c.items.prep_guide;
+      if(c && c.items && c.items.req_progress) _reqProgress = c.items.req_progress;
     } catch(e){}
 
     // Journey cards already rendered above; refresh now that all signals loaded.
