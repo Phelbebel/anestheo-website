@@ -142,6 +142,16 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-chk:before{content:'';position:absolute;left:2px;top:9px;width:6px;height:6px;border-radius:50%;}
 .ws-chk.done:before{background:#5ee393;} .ws-chk.miss:before{background:rgba(255,255,255,.2);}
 .ws-chk.miss{color:var(--hint);}
+.ws-plan-sum{background:rgba(42,138,116,.1);border:1px solid rgba(42,138,116,.32);border-radius:11px;padding:11px 13px;margin-bottom:12px;}
+.ws-sum-title{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:7px;}
+.ws-sum-meta{font-size:12px;color:var(--hint);margin-bottom:8px;}
+.ws-sum-meta b{color:rgba(255,255,255,.85);font-weight:600;}
+.ws-sum-h{font-size:11.5px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 4px;}
+.ws-sum-row{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#fff;padding:3px 0;}
+.ws-sum-ck{color:#5ee393;flex:0 0 auto;}
+.ws-sum-lb{font-weight:600;}
+.ws-sum-tag{font-size:10px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);padding:1px 6px;border-radius:6px;vertical-align:middle;}
+.ws-sum-note{font-size:12px;color:var(--muted);margin-top:2px;}
 .ws-reqs{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
 .ws-req-item{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:8px 10px;}
 .ws-req-item.on{background:rgba(42,138,116,.14);border-color:rgba(42,138,116,.5);}
@@ -485,25 +495,50 @@ function wsCaptureEdits(){
   var n=document.getElementById('ws-notes'); if(n) _wsCtx.notes=n.value;
   wsCollectReqs();
 }
+// Re-render ONLY the requirements list, never the whole body -- so editing
+// requirements never destroys the Doctor Notes textarea or its focus/scroll.
+function wsRenderReqList(){ var el=document.getElementById('ws-reqs-list'); if(el) el.innerHTML=wsRequirementsHtml(); }
 function wsReqAdd(){
   if(!_wsCtx) return; var inp=document.getElementById('ws-req-custom'); if(!inp) return;
   var v=(inp.value||'').trim(); if(!v) return;
   wsCaptureEdits();
   _wsCtx.requirements['custom_'+Date.now()]={checked:true,note:'',label:v,custom:true};
-  inp.value=''; wsRenderWorkspace();
+  inp.value=''; wsRenderReqList();
+  var ni=document.getElementById('ws-req-custom'); if(ni) ni.focus();   // keep adding
 }
-function wsReqRemove(key){ if(!_wsCtx) return; wsCaptureEdits(); delete _wsCtx.requirements[key]; wsRenderWorkspace(); }
+function wsReqRemove(key){ if(!_wsCtx) return; wsCaptureEdits(); delete _wsCtx.requirements[key]; wsRenderReqList(); }
 function wsPlanPayload(){
   wsCaptureEdits();
   var reqs=[], m=(_wsCtx&&_wsCtx.requirements)||{};
   Object.keys(m).forEach(function(k){ var r=m[k]; reqs.push({key:k,label:r.label,checked:!!r.checked,note:r.note||'',custom:!!r.custom}); });
   return { notes:(_wsCtx&&_wsCtx.notes)||'', requirements:reqs };
 }
+function wsFmtTime(t){ if(!t) return 'not saved yet'; try { return new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } }
+// "Current doctor plan" = the last PERSISTED snapshot (not the live editor state).
+function wsRenderPlanSummary(){
+  var host=document.getElementById('ws-plan-summary'); if(!host||!_wsCtx) return;
+  var reqs=_wsCtx.savedReqs||{}, keys=Object.keys(reqs).filter(function(k){ return reqs[k].checked; });
+  var notes=(_wsCtx.savedNotes||'').trim();
+  if(!keys.length && !notes && !_wsCtx.planSavedAt){
+    host.innerHTML='<div class="ws-ap-facts">Nothing saved yet. Select requirements and Save plan below.</div>'; return;
+  }
+  var sel=keys.map(function(k){ var r=reqs[k];
+    return '<div class="ws-sum-row"><span class="ws-sum-ck">&#10003;</span><div><span class="ws-sum-lb">'+wsEsc(r.label||k)+'</span>'+
+      (r.custom?' <span class="ws-sum-tag">custom</span>':'')+(r.note?'<div class="ws-sum-note">'+wsEsc(r.note)+'</div>':'')+'</div></div>'; }).join('');
+  host.innerHTML=
+    '<div class="ws-sum-meta">Last saved: <b>'+wsFmtTime(_wsCtx.planSavedAt)+'</b></div>'+
+    (keys.length?('<div class="ws-sum-h">Requested ('+keys.length+')</div>'+sel):'<div class="ws-ap-facts">No requirements selected.</div>')+
+    (notes?('<div class="ws-sum-h">Internal notes</div><div class="ws-sum-note">'+wsEsc(notes)+'</div>'):'');
+}
 async function wsSavePlan(silent){
   if(!_wsCtx) return false;
   try {
-    var r=await window.sb.rpc('save_doctor_plan',{ p_surgery_id:_wsCtx.surgeryId, p_plan:wsPlanPayload() });
+    var payload=wsPlanPayload();
+    var r=await window.sb.rpc('save_doctor_plan',{ p_surgery_id:_wsCtx.surgeryId, p_plan:payload });
     if(r&&r.error) throw new Error(r.error.message);
+    // Update the persisted snapshot + summary in place (no full re-render).
+    _wsCtx.savedNotes=payload.notes; _wsCtx.savedReqs=wsCloneReqs(_wsCtx.requirements); _wsCtx.planSavedAt=new Date().toISOString();
+    wsRenderPlanSummary();
     if(!silent) wsToast('Plan saved');
     return true;
   } catch(e){ wsToast('Save failed: '+(e.message||'error')); return false; }
@@ -544,15 +579,28 @@ async function wsOpenPatient(patientId){
   var info=_wsActiveMap[patientId]; if(!info) return;
   var surgeryId=info.surgeryId;
   try { await window.sb.rpc('start_review', { p_surgery_id: surgeryId }); } catch(e){}   // pending -> in_review
-  var surgery={},quest={},items={},plan={};
+  var surgery={},quest={},items={},plan={},planSavedAt=null;
   try { var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; }catch(e){}
   try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; }catch(e){}
   try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).maybeSingle(); items=(c.data&&c.data.items&&c.data.items.prep_guide)||{}; }catch(e){}
-  try { var p=await window.sb.from('preparation_plans').select('id,plan_content,status').eq('surgery_id',surgeryId).in('status',['draft','approved']).order('version',{ascending:false}).limit(1).maybeSingle(); plan=(p.data&&p.data.plan_content)||{}; }catch(e){}
-  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items, notes:plan.notes||'', requirements:wsNormReqs(plan.requirements) };
+  // Robust read: never maybeSingle() here -- after an approve+edit cycle there can
+  // be both an approved and a draft row, and maybeSingle() throws on >1, which
+  // previously swallowed the whole plan. Prefer the draft (editable working copy).
+  try {
+    var p=await window.sb.from('preparation_plans').select('plan_content,status,updated_at')
+      .eq('surgery_id',surgeryId).in('status',['draft','approved'])
+      .order('status',{ascending:false}).order('updated_at',{ascending:false}).limit(1);
+    var row=(p&&p.data&&p.data[0])||null;
+    plan=(row&&row.plan_content)||{}; planSavedAt=row?row.updated_at:null;
+  }catch(e){}
+  var reqMap=wsNormReqs(plan.requirements);
+  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items,
+    notes:plan.notes||'', requirements:reqMap, planSavedAt:planSavedAt,
+    savedNotes:plan.notes||'', savedReqs:wsCloneReqs(reqMap) };
   wsRenderWorkspace();
   document.getElementById('ws-ws').classList.add('open');
 }
+function wsCloneReqs(m){ var o={}; Object.keys(m||{}).forEach(function(k){ o[k]={checked:!!m[k].checked,note:m[k].note||'',label:m[k].label||'',custom:!!m[k].custom}; }); return o; }
 function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); _wsCtx=null; }
 
 function wsRenderWorkspace(){
@@ -585,7 +633,8 @@ function wsRenderWorkspace(){
     WS_PREPARE.map(function(lbl,i){ var done=!!pc[i]; return '<div class="ws-chk '+(done?'done':'miss')+'">'+(done?'':'Missing: ')+wsEsc(lbl)+'</div>'; }).join('');
   // D Clinical requirements (doctor plan) - shared with the patient
   html+='<div class="ws-sec-t">D &middot; Clinical requirements <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(shared with patient)</span></div>'+
-    '<div class="ws-reqs">'+wsRequirementsHtml()+'</div>'+
+    '<div class="ws-plan-sum"><div class="ws-sum-title">&#128203; Current doctor plan</div><div id="ws-plan-summary"></div></div>'+
+    '<div class="ws-reqs" id="ws-reqs-list">'+wsRequirementsHtml()+'</div>'+
     '<div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button></div>';
   // E Doctor notes (internal - never shown to the patient)
   html+='<div class="ws-sec-t">E &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
@@ -603,6 +652,7 @@ function wsRenderWorkspace(){
       '<button class="ws-act-approve" onclick="wsApprovePlan()">&#9989; Approve plan</button></div>';
   }
   document.getElementById('ws-ws-body').innerHTML=html;
+  wsRenderPlanSummary();
 }
 // Notes save now routes through the same guarded RPC as the plan (the old
 // direct-table write silently swallowed RLS errors -> "saved" but not persisted).
@@ -1399,7 +1449,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 </script>
 
 <!-- Doctor Active Patient Workspace (in-page overlay; no navigation) -->
-<div class="ws-ws-bg" id="ws-ws" onclick="if(event.target===this)wsCloseWorkspace()">
+<div class="ws-ws-bg" id="ws-ws" onmousedown="window._wsBgDown=(event.target===this)" onclick="if(event.target===this&&window._wsBgDown)wsCloseWorkspace()">
   <div class="ws-ws-modal">
     <div class="ws-ws-head">
       <div><div class="ws-ws-title" id="ws-ws-title">Patient workspace</div>
