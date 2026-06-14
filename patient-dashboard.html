@@ -192,6 +192,20 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 .req-tx{flex:1 1 auto;}
 .req-label{font-size:13.5px;color:#fff;font-weight:600;}
 .req-note{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.doc-block{margin-top:7px;}
+.doc-pill{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:20px;}
+.doc-pill.requested{color:#E8C16b;background:rgba(232,168,56,.14);border:1px solid rgba(232,168,56,.3);}
+.doc-pill.uploaded{color:#7ECFC0;background:rgba(42,138,116,.18);border:1px solid rgba(42,138,116,.4);}
+.doc-pill.reviewed{color:#5ee393;background:rgba(37,211,102,.14);border:1px solid rgba(37,211,102,.34);}
+.doc-files{display:flex;flex-direction:column;gap:3px;margin:6px 0;}
+.doc-file{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;}
+.doc-link{background:none;border:none;color:#9fd6ff;font-size:12.5px;cursor:pointer;padding:0;font-family:inherit;text-decoration:underline;text-underline-offset:2px;}
+.doc-when{color:var(--hint);font-size:11.5px;}
+.doc-rev{color:#5ee393;font-size:11.5px;}
+.doc-del{background:none;border:none;color:rgba(255,255,255,.4);font-size:16px;line-height:1;cursor:pointer;padding:0 4px;}
+.doc-del:hover{color:#ff9b86;}
+.doc-up{margin-top:2px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#cfe;font-size:12px;border-radius:7px;padding:6px 11px;cursor:pointer;font-family:inherit;}
+.doc-up:hover{background:rgba(255,255,255,.12);color:#fff;}
 .sday-card{margin:0 0 18px;border-radius:13px;padding:15px 16px;border:1px solid rgba(126,207,192,.32);background:rgba(126,207,192,.06);}
 .sday-h{font-size:15px;font-weight:700;color:#7ECFC0;margin-bottom:4px;}
 .dir-search{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;margin:6px 0 12px;box-sizing:border-box;min-height:44px;}
@@ -489,8 +503,92 @@ function reqRow(r, interactive){
     ? '<button type="button" class="req-box'+(ckd?' on':'')+'" onclick="toggleReq(\''+esc(r.key)+'\')" aria-label="Mark done">'+(ckd?'&#10003;':'')+'</button>'
     : '<span class="req-box on">&#10003;</span>';
   return '<div class="req-item">'+box+'<div class="req-tx"><div class="req-label">'+esc(r.label||'')+'</div>' +
-    (r.note ? '<div class="req-note">'+esc(r.note)+'</div>' : '') + '</div></div>';
+    (r.note ? '<div class="req-note">'+esc(r.note)+'</div>' : '') +
+    reqDocBlock(r, interactive) + '</div></div>';
 }
+// ── Document uploads per requirement (Supabase Storage) ──
+var _reqDocs = {};                     // requirement_key -> [doc rows]
+var DOC_MAX = 20*1024*1024;
+var DOC_EXT = ['pdf','jpg','jpeg','png','heic','heif'];
+function docExtOk(name){ return DOC_EXT.indexOf((name||'').split('.').pop().toLowerCase()) >= 0; }
+function reqLabelFor(key){
+  var rs = (_docPlan && _docPlan.requirements) || [];
+  for(var i=0;i<rs.length;i++){ if(rs[i].key===key) return rs[i].label||key; }
+  return key;
+}
+function reqDocStatus(key){
+  var ds=_reqDocs[key]||[];
+  if(!ds.length) return 'requested';
+  return ds.every(function(d){ return d.reviewed_at; }) ? 'reviewed' : 'uploaded';
+}
+function reqDocBlock(r, interactive){
+  var key=r.key, ds=_reqDocs[key]||[], st=reqDocStatus(key);
+  var label={requested:'Requested',uploaded:'Uploaded',reviewed:'Reviewed'}[st];
+  var pill='<span class="doc-pill '+st+'">'+label+'</span>';
+  var files=ds.map(function(d){
+    var when=d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
+    var rev=d.reviewed_at?'<span class="doc-rev">&#10003; reviewed</span>':'';
+    var del=(interactive&&!d.reviewed_at)?'<button type="button" class="doc-del" onclick="docDelete(\''+esc(d.id)+'\')" title="Remove">&times;</button>':'';
+    return '<div class="doc-file"><button type="button" class="doc-link" onclick="docOpen(\''+esc(d.storage_path)+'\')">&#128206; '+esc(d.file_name)+'</button>'+
+      '<span class="doc-when">'+esc(when)+'</span>'+rev+del+'</div>';
+  }).join('');
+  var up=interactive?'<button type="button" class="doc-up" onclick="docPick(\''+esc(key)+'\')">&#11014;&#65039; Upload file</button>':'';
+  return '<div class="doc-block">'+pill+'<div class="doc-files">'+files+'</div>'+up+'</div>';
+}
+async function reloadReqDocs(){
+  _reqDocs = {};
+  if(!_surgery || !_surgery.id) return;
+  try {
+    var r = await window.sb.from('requirement_documents').select('*')
+      .eq('surgery_id', _surgery.id).order('uploaded_at', { ascending:true });
+    ((r&&r.data)||[]).forEach(function(d){ (_reqDocs[d.requirement_key]=_reqDocs[d.requirement_key]||[]).push(d); });
+  } catch(e){ /* graceful */ }
+}
+function docPick(key){
+  var inp=document.createElement('input'); inp.type='file';
+  inp.accept='.pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/*';
+  inp.onchange=function(){ var f=inp.files&&inp.files[0]; if(f) docUpload(key,f); };
+  inp.click();
+}
+async function docUpload(key, file){
+  if(!docExtOk(file.name)){ alert('Unsupported file type. Allowed: PDF, JPG, JPEG, PNG, HEIC.'); return; }
+  if(file.size>DOC_MAX){ alert('File is too large. Maximum size is 20 MB.'); return; }
+  if(!_surgery || !_surgery.id){ alert('Add your surgery first.'); return; }
+  var safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  var path=_uid+'/'+_surgery.id+'/'+key+'/'+Date.now()+'_'+safe;
+  // HEIC (and some browsers) report an empty MIME type -> infer it so the
+  // bucket's allowed-MIME check accepts the upload.
+  var EXT_MIME={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',heic:'image/heic',heif:'image/heif'};
+  var ext=(file.name.split('.').pop()||'').toLowerCase();
+  var ctype=file.type||EXT_MIME[ext]||'application/octet-stream';
+  try {
+    var up=await window.sb.storage.from('patient-documents').upload(path, file, { upsert:false, contentType:ctype });
+    if(up&&up.error) throw new Error(up.error.message);
+    var ins=await window.sb.from('requirement_documents').insert({
+      patient_id:_uid, surgery_id:_surgery.id, requirement_key:key, requirement_name:reqLabelFor(key),
+      storage_path:path, file_name:file.name, file_size:file.size, mime_type:ctype });
+    if(ins&&ins.error) throw new Error(ins.error.message);
+    await reloadReqDocs(); renderPlanCard();
+    addActivity('Uploaded '+file.name+' for '+reqLabelFor(key), Date.now()); renderActivity();
+  } catch(e){ alert('Upload failed: '+(e.message||'error')); }
+}
+async function docOpen(path){
+  try {
+    var r=await window.sb.storage.from('patient-documents').createSignedUrl(path, 3600);
+    if(r&&r.data&&r.data.signedUrl) window.open(r.data.signedUrl,'_blank'); else throw new Error('no url');
+  } catch(e){ alert('Could not open the file.'); }
+}
+async function docDelete(id){
+  if(!window.confirm('Remove this file? You can upload a replacement.')) return;
+  var path=null; Object.keys(_reqDocs).forEach(function(k){ (_reqDocs[k]||[]).forEach(function(d){ if(d.id===id) path=d.storage_path; }); });
+  try {
+    var del=await window.sb.from('requirement_documents').delete().eq('id',id);
+    if(del&&del.error) throw new Error(del.error.message);
+    if(path){ try { await window.sb.storage.from('patient-documents').remove([path]); } catch(e){} }
+    await reloadReqDocs(); renderPlanCard();
+  } catch(e){ alert('Could not remove the file: '+(e.message||'error')); }
+}
+window.docPick=docPick; window.docOpen=docOpen; window.docDelete=docDelete;
 async function toggleReq(key){
   _reqProgress[key] = !_reqProgress[key];
   renderPlanCard();
@@ -552,7 +650,7 @@ async function submitForReview(){
     return;
   }
   try { _quest = await window.getQuestionnaire(_uid); } catch(e){}
-  await reloadDoctorPlan();
+  await reloadDoctorPlan(); await reloadReqDocs();
   renderStatusPanel(); renderJourney(); scheduleSync();
   // lock the open guide if visible
   if(ge('prep-modal') && ge('prep-modal').classList.contains('open')){ ge('prep-modal-body').innerHTML = prepContentHtml(); }
@@ -587,7 +685,7 @@ async function syncConnectionState(){
   try {
     await reloadCareRequest();
     try { var q = await window.getQuestionnaire(_uid); if(q) _quest = q; } catch(e){}
-    await reloadDoctorPlan();
+    await reloadDoctorPlan(); await reloadReqDocs();
     renderStatusPanel(); renderJourney();
     // Reflect every review_state transition the doctor drives.
     var nowRs = _rvState();
@@ -1269,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         .order('requested_at', { ascending: false }).maybeSingle();
       _careRequest = crq.data || null;
     } catch(e){ _careRequest = null; }
-    await reloadDoctorPlan();
+    await reloadDoctorPlan(); await reloadReqDocs();
     renderStatusPanel();
     renderJourney();
 

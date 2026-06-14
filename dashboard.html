@@ -154,6 +154,20 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-sum-note{font-size:12px;color:var(--muted);margin-top:2px;}
 .ws-save-st{font-size:12px;color:var(--hint);align-self:center;}
 .ws-save-st.saving{color:#E8C16b;} .ws-save-st.ok{color:#5ee393;} .ws-save-st.err{color:#ff9b86;}
+/* Patient-submitted documents (doctor side) */
+.ws-docs-status{font-size:12.5px;margin-bottom:8px;}
+.ws-doc-grp{margin-bottom:10px;}
+.ws-doc-grp-h{font-size:12px;font-weight:700;color:#7ECFC0;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+.ws-doc{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:4px;}
+.ws-doc-nm{font-size:13px;color:#fff;font-weight:600;word-break:break-all;}
+.ws-doc-mt{font-size:11.5px;color:var(--hint);margin-top:2px;}
+.ws-doc-acts{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.ws-doc-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:#cfe;font-size:12px;border-radius:7px;padding:6px 11px;cursor:pointer;font-family:inherit;}
+.ws-doc-btn:hover{background:rgba(255,255,255,.14);color:#fff;}
+.ws-doc-rev{background:rgba(37,211,102,.16);border:1px solid rgba(37,211,102,.4);color:#5ee393;font-size:12px;border-radius:7px;padding:6px 11px;cursor:pointer;font-family:inherit;font-weight:600;}
+.ws-doc-rev:hover{background:rgba(37,211,102,.28);color:#fff;}
+.ws-doc-ok{font-size:12px;color:#5ee393;font-weight:600;}
+.ws-cfm-warn{font-size:12.5px;color:#E8C16b;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.3);border-radius:8px;padding:9px 11px;margin-bottom:14px;line-height:1.5;}
 /* Approval confirmation modal (sits above the workspace overlay) */
 .ws-cfm-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.78);z-index:7000;align-items:center;justify-content:center;padding:18px;}
 .ws-cfm-bg.open{display:flex;}
@@ -470,6 +484,8 @@ var WS_REQ_CATALOG=[
   {key:'chest_xray',label:'Chest X-ray'},
   {key:'ecg',label:'ECG'},
   {key:'echo',label:'Echocardiography'},
+  {key:'ct',label:'CT scan'},
+  {key:'mri',label:'MRI'},
   {key:'bloods',label:'Blood tests'},
   {key:'coag',label:'Coagulation profile'},
   {key:'cardiology',label:'Cardiology consultation'},
@@ -685,10 +701,12 @@ async function wsOpenPatient(patientId){
     var row=(p&&p.data&&p.data[0])||null;
     plan=(row&&row.plan_content)||{}; planSavedAt=row?row.updated_at:null; planVersion=row?(row.version||0):0;
   }catch(e){}
+  var docs=[];
+  try { var dr=await window.sb.from('requirement_documents').select('*').eq('surgery_id',surgeryId).order('uploaded_at',{ascending:true}); docs=(dr&&dr.data)||[]; }catch(e){}
   var reqMap=wsNormReqs(plan.requirements);
   _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items,
     notes:plan.notes||'', requirements:reqMap, planSavedAt:planSavedAt, version:planVersion,
-    history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'',
+    history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs,
     savedNotes:plan.notes||'', savedReqs:wsCloneReqs(reqMap) };
   wsRenderWorkspace();
   document.getElementById('ws-ws').classList.add('open');
@@ -735,6 +753,8 @@ function wsRenderWorkspace(){
     html+='<div class="ws-reqs" id="ws-reqs-list">'+wsRequirementsHtml()+'</div>'+
       '<div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button><span class="ws-save-st" id="ws-save-plan-st"></span></div>';
   }
+  // D2 Patient-submitted documents
+  html+='<div class="ws-sum-title" style="margin:14px 0 4px;">&#128206; Submitted documents</div><div id="ws-docs"></div>';
   // E Doctor notes (internal - never shown to the patient)
   html+='<div class="ws-sec-t">E &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
     '<textarea class="ws-notes" id="ws-notes" '+(locked?'readonly ':'')+'placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
@@ -744,8 +764,47 @@ function wsRenderWorkspace(){
   // G Modification history / audit trail
   html+='<div class="ws-sec-t">G &middot; Modification history</div><div id="ws-history"></div>';
   document.getElementById('ws-ws-body').innerHTML=html;
-  wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState();
+  wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); wsRenderDocs();
 }
+// ── Patient-submitted documents (view / download / mark reviewed) ──
+function wsRenderDocs(){
+  var host=document.getElementById('ws-docs'); if(!host||!_wsCtx) return;
+  var docs=_wsCtx.docs||[];
+  if(!docs.length){ host.innerHTML='<div class="ws-ap-facts">No documents uploaded by the patient yet.</div>'; return; }
+  var unrev=docs.filter(function(d){ return !d.reviewed_at; }).length;
+  var groups={}; docs.forEach(function(d){ (groups[d.requirement_key]=groups[d.requirement_key]||{name:d.requirement_name||d.requirement_key,items:[]}).items.push(d); });
+  host.innerHTML='<div class="ws-docs-status">'+(unrev?('<span style="color:#E8C16b;">&#9888; '+unrev+' awaiting your review</span>'):'<span style="color:#5ee393;">&#10003; All documents reviewed</span>')+'</div>'+
+    Object.keys(groups).map(function(k){ var g=groups[k];
+      return '<div class="ws-doc-grp"><div class="ws-doc-grp-h">'+wsEsc(g.name)+'</div>'+
+        g.items.map(function(d){
+          var up=d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+          var rv=d.reviewed_at?new Date(d.reviewed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+          return '<div class="ws-doc"><div class="ws-doc-tx"><div class="ws-doc-nm">'+wsEsc(d.file_name)+'</div>'+
+            '<div class="ws-doc-mt">Uploaded '+up+(rv?(' &middot; <span style="color:#5ee393;">Reviewed '+rv+'</span>'):'')+'</div></div>'+
+            '<div class="ws-doc-acts"><button type="button" class="ws-doc-btn" onclick="wsDocOpen(\''+d.id+'\',0)">View</button>'+
+            '<button type="button" class="ws-doc-btn" onclick="wsDocOpen(\''+d.id+'\',1)">Download</button>'+
+            (d.reviewed_at?'<span class="ws-doc-ok">&#10003; Reviewed</span>':'<button type="button" class="ws-doc-rev" onclick="wsDocReview(\''+d.id+'\')">Mark reviewed</button>')+
+            '</div></div>';
+        }).join('')+'</div>';
+    }).join('');
+}
+async function wsDocOpen(id, dl){
+  var d=(_wsCtx.docs||[]).filter(function(x){ return x.id===id; })[0]; if(!d) return;
+  try {
+    var opt=dl?{download:d.file_name}:undefined;
+    var r=await window.sb.storage.from('patient-documents').createSignedUrl(d.storage_path, 3600, opt);
+    if(r&&r.data&&r.data.signedUrl){ window.open(r.data.signedUrl,'_blank'); } else throw new Error('no url');
+  } catch(e){ wsToast('Could not open file'); }
+}
+async function wsDocReview(id){
+  var res;
+  try { res=await window.sb.rpc('mark_document_reviewed',{p_doc_id:id}); if(res&&res.error) throw new Error(res.error.message); }
+  catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
+  var d=(_wsCtx.docs||[]).filter(function(x){ return x.id===id; })[0];
+  if(d){ d.reviewed_at=(res&&res.data&&res.data.reviewed_at)||new Date().toISOString(); d.reviewed_by=window.__wsUserId; }
+  wsToast('Document marked reviewed'); wsRenderDocs();
+}
+window.wsDocOpen=wsDocOpen; window.wsDocReview=wsDocReview;
 function wsReviewActionsHtml(rs,c){
   if(rs==='not_submitted') return '<div class="ws-ap-facts">Patient has not submitted for review yet.</div>';
   if(rs==='approved')
@@ -781,6 +840,7 @@ function wsApprovePrompt(){
   var proc=s.procedure_type||'Not specified';
   var sdate=s.surgery_date?new Date(s.surgery_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Not set';
   var status=wsReviewLabel(c.quest.review_state).txt;
+  var unrev=(c.docs||[]).filter(function(d){ return !d.reviewed_at; }).length;
   var box=document.getElementById('ws-cfm-box'); if(!box) return;
   box.innerHTML=
     '<div class="ws-cfm-h">&#9989; Confirm approval</div>'+
@@ -790,8 +850,10 @@ function wsApprovePrompt(){
       '<div><i>Surgery date</i><b>'+wsEsc(sdate)+'</b></div>'+
       '<div><i>Current review state</i><b>'+wsEsc(status)+'</b></div></div>'+
     '<div class="ws-cfm-msg">Are you sure you want to approve this preparation plan? The approved plan will become visible to the patient and the case will move to <b>Approved</b> status.</div>'+
+    (unrev? '<div class="ws-cfm-warn">&#9888; '+unrev+' submitted document'+(unrev>1?'s':'')+' still '+(unrev>1?'need':'needs')+' review. Review all submitted documents before approving.</div>':'')+
     '<div class="ws-acts" style="justify-content:flex-end;"><button class="ws-btn" onclick="wsCfmClose()">Cancel</button>'+
-    '<button class="ws-act-approve" onclick="wsApproveConfirm(this)">Confirm approval</button></div>';
+    (unrev? '<button class="ws-act-approve" disabled style="opacity:.45;cursor:not-allowed;">Confirm approval</button>'
+          : '<button class="ws-act-approve" onclick="wsApproveConfirm(this)">Confirm approval</button>')+'</div>';
   document.getElementById('ws-cfm').classList.add('open');
 }
 function wsCfmClose(){ var m=document.getElementById('ws-cfm'); if(m) m.classList.remove('open'); }
