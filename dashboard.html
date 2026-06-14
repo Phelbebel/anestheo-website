@@ -1045,13 +1045,9 @@ async function wsSavePatient(thenSend){
   rec.questionnaire_status = 'not_sent';
   rec.consultation_status = 'not_arrived';
   rec.patient_status = 'awaiting_questionnaire';
-  // Clinic-created surgery → explicit clinic origin (patient self-service
-  // surgeries default to 'patient' in patient-dashboard.html / the DB).
-  rec.origin = 'clinic';
-
-  // ── TEMP DEBUG: show the exact payload + Supabase error ──
-  console.log('CLINIC INSERT PAYLOAD', rec);
-  console.log('CLINIC INSERT doctor_id =', rec.doctor_id, '| auth uid =', (window.__wsUserId || '(none)'));
+  // NOTE: clinic_patients has no 'origin' column (origin lives on the bridge
+  // table patient_surgeries). Every clinic_patients row is clinic-created by
+  // definition, so no origin field is needed here.
 
   try {
     var r = await window.sb.from('clinic_patients').insert(rec).select().maybeSingle();
