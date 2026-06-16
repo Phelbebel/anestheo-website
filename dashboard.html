@@ -154,6 +154,20 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-sum-note{font-size:12px;color:var(--muted);margin-top:2px;}
 .ws-save-st{font-size:12px;color:var(--hint);align-self:center;}
 .ws-save-st.saving{color:#E8C16b;} .ws-save-st.ok{color:#5ee393;} .ws-save-st.err{color:#ff9b86;}
+/* Patient-submitted documents (doctor side) */
+.ws-docs-status{font-size:12.5px;margin-bottom:8px;}
+.ws-doc-grp{margin-bottom:10px;}
+.ws-doc-grp-h{font-size:12px;font-weight:700;color:#7ECFC0;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+.ws-doc{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:4px;}
+.ws-doc-nm{font-size:13px;color:#fff;font-weight:600;word-break:break-all;}
+.ws-doc-mt{font-size:11.5px;color:var(--hint);margin-top:2px;}
+.ws-doc-acts{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.ws-doc-btn{background:rgba(255,255,255,.07);border:1px solid var(--border);color:#cfe;font-size:12px;border-radius:7px;padding:6px 11px;cursor:pointer;font-family:inherit;}
+.ws-doc-btn:hover{background:rgba(255,255,255,.14);color:#fff;}
+.ws-doc-rev{background:rgba(37,211,102,.16);border:1px solid rgba(37,211,102,.4);color:#5ee393;font-size:12px;border-radius:7px;padding:6px 11px;cursor:pointer;font-family:inherit;font-weight:600;}
+.ws-doc-rev:hover{background:rgba(37,211,102,.28);color:#fff;}
+.ws-doc-ok{font-size:12px;color:#5ee393;font-weight:600;}
+.ws-cfm-warn{font-size:12.5px;color:#E8C16b;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.3);border-radius:8px;padding:9px 11px;margin-bottom:14px;line-height:1.5;}
 /* Approval confirmation modal (sits above the workspace overlay) */
 .ws-cfm-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.78);z-index:7000;align-items:center;justify-content:center;padding:18px;}
 .ws-cfm-bg.open{display:flex;}
@@ -272,6 +286,53 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 
 
 
+/* ── Phase 1: Action Center + Active Cases ── */
+.ws-need-badge{margin-left:auto;align-self:center;font-size:12px;font-weight:700;color:#ff9b86;background:rgba(192,57,43,.16);border:1px solid rgba(192,57,43,.4);border-radius:20px;padding:4px 12px;}
+.ac-head,.acs-head{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
+.ac-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#fff;}
+.ac-count{font-size:12px;font-weight:700;color:#fff;background:rgba(192,57,43,.5);border-radius:20px;padding:2px 9px;}
+.acs-n{font-size:12px;color:var(--hint);background:rgba(255,255,255,.08);border-radius:20px;padding:2px 9px;}
+.ac-empty{font-size:13px;color:var(--muted);padding:14px 4px;}
+/* action cards */
+.ac-card{position:relative;display:flex;align-items:stretch;gap:14px;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;padding:13px 15px 13px 18px;margin-bottom:9px;overflow:hidden;}
+.ac-rail{position:absolute;left:0;top:0;bottom:0;width:5px;}
+.rail-red .ac-rail{background:#e0533f;} .rail-blue .ac-rail{background:#3d8bdc;}
+.rail-green .ac-rail{background:#37b86a;} .rail-yellow .ac-rail{background:#E8A838;} .rail-urg .ac-rail{background:#E8A838;}
+.ac-card.rail-red{background:rgba(224,83,63,.07);border-color:rgba(224,83,63,.32);}
+.ac-card.rail-blue{background:rgba(61,139,220,.07);border-color:rgba(61,139,220,.32);}
+.ac-card.rail-urg{background:rgba(232,168,56,.09);border-color:rgba(232,168,56,.45);}
+.ac-card.is-new{box-shadow:0 0 0 1px rgba(224,83,63,.4),0 4px 18px rgba(224,83,63,.14);}
+.ac-body{flex:1 1 auto;min-width:0;}
+.ac-top{display:flex;align-items:center;gap:9px;margin-bottom:4px;}
+.ac-headline{font-size:12.5px;font-weight:800;letter-spacing:.03em;color:#fff;}
+.ac-new{font-size:10px;font-weight:800;letter-spacing:.05em;color:#fff;background:#c0392b;border-radius:20px;padding:2px 8px;}
+.ac-new.pulse{animation:acpulse 1.6s ease-in-out infinite;}
+@keyframes acpulse{0%,100%{box-shadow:0 0 0 0 rgba(224,83,63,.55);}50%{box-shadow:0 0 0 6px rgba(224,83,63,0);}}
+.ac-name{font-size:15px;font-weight:700;color:#fff;}
+.ac-proc{font-size:13px;color:var(--muted);margin-top:1px;}
+.ac-surg{font-size:12.5px;color:#cfe;margin-top:5px;}
+.ac-surg.soon{color:#E8C16b;font-weight:600;} .ac-surg.none{color:var(--hint);}
+.ac-sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+.ac-sub.urg{color:#E8C16b;font-weight:600;}
+.ac-when{font-size:11.5px;color:var(--hint);margin-top:3px;}
+.ac-tag{display:inline-block;font-size:10.5px;font-weight:600;margin-top:7px;padding:2px 9px;border-radius:20px;}
+.ac-tag.patient{color:#7ECFC0;background:rgba(42,138,116,.16);border:1px solid rgba(42,138,116,.35);}
+.ac-tag.clinic{color:#c9a6e8;background:rgba(150,100,200,.16);border:1px solid rgba(150,100,200,.35);}
+.ac-action{display:flex;flex-direction:column;gap:7px;justify-content:center;align-items:flex-end;flex:0 0 auto;}
+.ac-reqgroup{margin-top:8px;border-top:1px dashed rgba(255,255,255,.14);padding-top:12px;}
+.ac-reqhead{font-size:12.5px;font-weight:700;color:#7ECFC0;margin-bottom:8px;}
+.ac-req{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:7px;}
+/* active cases grid */
+.acs-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;}
+.acs-chip{background:rgba(255,255,255,.06);border:1px solid var(--border);color:#cfe;font-size:12px;border-radius:20px;padding:6px 13px;cursor:pointer;font-family:inherit;}
+.acs-chip.on{background:#1B6B5A;border-color:#1B6B5A;color:#fff;font-weight:600;}
+.acs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:11px;}
+.acs-card{position:relative;display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;padding:13px 15px 13px 18px;overflow:hidden;}
+.acs-card .ac-action{flex-direction:row;align-items:stretch;}
+.acs-status{font-size:11.5px;font-weight:800;letter-spacing:.04em;color:#fff;}
+.ws-invite-band{margin-top:26px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025);}
+.ws-invite-head{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
+.ws-invite-sub{font-size:12.5px;color:var(--muted);margin:3px 0 14px;}
 .ws-pt-cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
 .ws-pt-form{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px;position:sticky;top:16px;}
 .ws-form-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:12px;}
@@ -394,68 +455,177 @@ function wsDeriveStatus(p){
 }
 
 // ── Patient-initiated review requests (Epic B inbox) ──
-async function wsLoadRequests(){
-  var box = document.getElementById('ws-reqs'); if(!box) return;
-  var uid = window.__wsUserId; if(!uid){ box.innerHTML=''; return; }
-  var reqs = [];
-  try {
-    var r = await window.sb.from('care_requests').select('*')
-      .eq('doctor_id', uid).eq('status', 'requested')
-      .order('requested_at', { ascending: true });
-    reqs = (r && r.data) || [];
-  } catch(e){ box.innerHTML=''; return; }
-  if(!reqs.length){ box.innerHTML=''; return; }
-  box.innerHTML =
-    '<div class="ws-reqs-card">' +
-      '<div class="ws-reqs-h">&#129658; Review requests <span class="ws-reqs-n">'+reqs.length+'</span></div>' +
-      reqs.map(function(q){
-        var facts = [q.procedure, q.surgery_date ? new Date(q.surgery_date).toLocaleDateString() : ''].filter(Boolean).join(' · ');
-        var via = q.origin_method === 'share_code' ? ' · via code' : '';
-        return '<div class="ws-req">' +
-          '<div class="ws-req-info"><div class="ws-req-name">'+wsEsc(q.patient_name||'Patient')+'</div>' +
-            '<div class="ws-req-meta">'+wsEsc(facts||'Pre-operative review requested')+via+'</div>' +
-            (q.message ? '<div class="ws-req-msg">'+wsEsc(q.message)+'</div>' : '') + '</div>' +
-          '<div class="ws-req-btns">' +
-            '<button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\')">Accept</button>' +
-            '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button>' +
-          '</div></div>';
-      }).join('') +
-    '</div>';
+// ============================================================
+// PHASE 1 — Unified Action Center + Active Cases (derived, no stored status)
+// Supersedes wsLoadRequests / wsLoadPendingReviews / wsLoadActivePatients.
+// All action functions (wsOpenPatient, wsDetail, wsRespondRequest, document
+// review, approval) are reused unchanged.
+// ============================================================
+var URGENCY_CRITICAL=2, URGENCY_SOON=7;
+var _wsCases=[], _wsRequests=[], _wsCaseFilter='all';
+function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
+function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
+function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
+function wsTimeAgo(ts){
+  if(!ts) return '';
+  var s=(Date.now()-ts)/1000;
+  if(s<60) return 'just now';
+  if(s<3600) return Math.max(1,Math.floor(s/60))+' min ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
 }
-// ── Patients who submitted for review (review_state = pending) ──
-async function wsLoadPendingReviews(){
-  var box = document.getElementById('ws-reviews'); if(!box) return;
-  var uid = window.__wsUserId; if(!uid){ box.innerHTML=''; return; }
-  var names = {};
-  try {
-    // accepted connections give us patient_id -> name/procedure (RLS: doctor_id = me)
-    var cr = await window.sb.from('care_requests').select('patient_id,patient_name,procedure')
-      .eq('doctor_id', uid).eq('status','accepted');
-    ((cr && cr.data) || []).forEach(function(c){ names[c.patient_id] = { name:c.patient_name, proc:c.procedure }; });
-  } catch(e){}
-  var rows = [];
-  try {
-    // assignment-scoped RLS returns only questionnaires for surgeries assigned to me
-    var q = await window.sb.from('preop_questionnaires').select('patient_id,review_state,risk_flags,updated_at')
-      .eq('review_state','pending').order('updated_at',{ascending:true});
-    rows = (q && q.data) || [];
-  } catch(e){ box.innerHTML=''; return; }
-  if(!rows.length){ box.innerHTML=''; return; }
-  box.innerHTML =
-    '<div class="ws-reqs-card" style="background:linear-gradient(135deg,rgba(232,168,56,.14),rgba(232,168,56,.04));border-color:rgba(232,168,56,.4);">' +
-      '<div class="ws-reqs-h" style="color:#E8C16b;">&#128203; Awaiting your review <span class="ws-reqs-n" style="background:rgba(232,168,56,.3);">'+rows.length+'</span></div>' +
-      rows.map(function(r){
-        var info = names[r.patient_id] || {};
-        var flags = (r.risk_flags && r.risk_flags.length)
-          ? '<div class="ws-req-meta">&#9888; '+r.risk_flags.map(wsEsc).join(' &middot; ')+'</div>' : '';
-        return '<div class="ws-req"><div class="ws-req-info">' +
-          '<div class="ws-req-name">'+wsEsc(info.name||'Patient')+'</div>' +
-          '<div class="ws-req-meta">'+wsEsc(info.proc||'Pre-operative questionnaire')+' &middot; submitted '+(r.updated_at?new Date(r.updated_at).toLocaleDateString():'')+'</div>' +
-          flags + '</div>' +
-          '<div class="ws-req-btns"><span class="ws-btn" style="cursor:default;opacity:.85;">Pending review</span></div></div>';
-      }).join('') +
-    '</div>';
+function wsUrgency(date){
+  if(!date) return {days:null,label:'',critical:false,soon:false};
+  var days=Math.round((new Date(date).setHours(0,0,0,0)-new Date().setHours(0,0,0,0))/86400000);
+  var label;
+  if(days<0) label='Surgery date passed';
+  else if(days===0) label='Surgery today';
+  else if(days===1) label='Surgery tomorrow';
+  else if(days<=2) label='Surgery in 48 hours';
+  else if(days<=14) label='Surgery in '+days+' days';
+  else if(days<=60) label='Surgery in ~'+Math.round(days/7)+' weeks';
+  else label='Surgery in ~'+Math.round(days/30)+' months';
+  return {days:days, label:label, critical:(days>=0&&days<=URGENCY_CRITICAL), soon:(days>=0&&days<=URGENCY_SOON)};
 }
+function wsColorIcon(c){ return {red:'&#128308;',blue:'&#128309;',green:'&#128994;',yellow:'&#128993;'}[c]||'&#9899;'; }
+function wsIsNew(o){
+  if(!o.eventTs) return false;
+  var id=(o.source==='clinic'?'c'+o.clinicId:o.patientId);
+  return o.eventTs>(wsSeenGet()[id]||0) && (Date.now()-o.eventTs)<86400000;
+}
+
+async function wsLoadCases(){
+  var uid=window.__wsUserId; if(!uid) return;
+  var crs=[];
+  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).in('status',['requested','accepted']); crs=(r&&r.data)||[]; }catch(e){}
+  var accepted=crs.filter(function(c){return c.status==='accepted';});
+  _wsRequests=crs.filter(function(c){return c.status==='requested';})
+    .sort(function(a,b){ return new Date(a.requested_at||0)-new Date(b.requested_at||0); });
+  var pids=accepted.map(function(c){return c.patient_id;});
+  var sids=accepted.map(function(c){return c.surgery_id;}).filter(Boolean);
+  var surg={},q={},chk={},docInfo={};
+  if(sids.length){ try{ var s=await window.sb.from('patient_surgeries').select('*').in('id',sids); ((s&&s.data)||[]).forEach(function(x){surg[x.id]=x;}); }catch(e){} }
+  if(pids.length){ try{ var qq=await window.sb.from('preop_questionnaires').select('patient_id,status,completion,review_state,updated_at').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){q[x.patient_id]=x;}); }catch(e){} }
+  if(pids.length){ try{ var cc=await window.sb.from('preop_checklist').select('patient_id,items').in('patient_id',pids); ((cc&&cc.data)||[]).forEach(function(x){chk[x.patient_id]=(x.items&&x.items.prep_guide)||{};}); }catch(e){} }
+  if(sids.length){ try{ var dd=await window.sb.from('requirement_documents').select('surgery_id,requirement_name,uploaded_at,reviewed_at').in('surgery_id',sids);
+    ((dd&&dd.data)||[]).forEach(function(d){ if(d.reviewed_at) return; var g=docInfo[d.surgery_id]=docInfo[d.surgery_id]||{count:0,names:[],ts:0}; g.count++; if(d.requirement_name) g.names.push(d.requirement_name); var t=d.uploaded_at?new Date(d.uploaded_at).getTime():0; if(t>g.ts) g.ts=t; }); }catch(e){} }
+  var clinics=[];
+  try { var cp=await window.sb.from('clinic_patients').select('*').eq('doctor_id',uid); clinics=(cp&&cp.data)||[]; }catch(e){}
+
+  var cases=[]; _wsActiveMap={};
+  accepted.forEach(function(c){
+    var sg=surg[c.surgery_id]||{};
+    if(sg.completed_at) return;                 // completed -> Archive (Phase 5), excluded
+    _wsActiveMap[c.patient_id]={name:c.patient_name,surgeryId:c.surgery_id};
+    cases.push(wsDeriveBridge(c, sg, q[c.patient_id]||{}, wsPrepCount(chk[c.patient_id]), docInfo[c.surgery_id]||{count:0,names:[],ts:0}));
+  });
+  clinics.forEach(function(p){ var d=wsDeriveClinic(p); if(d) cases.push(d); });
+  _wsCases=cases;
+  wsRenderActionCenter();
+  wsRenderActiveCases();
+}
+function wsDeriveBridge(c, sg, qd, prepN, docG){
+  var rs=qd.review_state||'not_submitted', urg=wsUrgency(sg.surgery_date);
+  var o={source:'bridge', patientId:c.patient_id, surgeryId:c.surgery_id, name:c.patient_name||'Patient',
+    procedure:c.procedure||sg.procedure_type||'Procedure', surgeryDate:sg.surgery_date||null, urgency:urg,
+    prepN:prepN, reviewState:rs, sourceTag:'Patient requested', unreviewedDocs:docG.names||[],
+    openFn:"wsOpenCase('"+c.patient_id+"')"};
+  if(rs==='pending'){ o.color='red'; o.bucket='action'; o.headline='New questionnaire submitted'; o.actionLabel='Review Now'; o.priority=1; o.eventTs=qd.updated_at?new Date(qd.updated_at).getTime():null; o.eventLine='Submitted '+wsTimeAgo(o.eventTs); }
+  else if(docG.count>0){ o.color='blue'; o.bucket='action'; o.headline=docG.count+' document'+(docG.count>1?'s':'')+' received'; o.actionLabel='Review Documents'; o.priority=2; o.eventTs=docG.ts||null; o.eventLine=(o.unreviewedDocs.slice(0,4).join(' + ')||'Documents')+' uploaded '+wsTimeAgo(o.eventTs); }
+  else if(rs==='in_review'){ o.color='green'; o.bucket='action'; o.headline='Ready to approve'; o.actionLabel='Review / Approve'; o.priority=3; o.eventTs=qd.updated_at?new Date(qd.updated_at).getTime():null; o.eventLine='In review · awaiting your approval'; }
+  else if(rs==='changes_requested'){ o.color='yellow'; o.bucket='active'; o.headline='Waiting on patient'; o.actionLabel='Open Case'; }
+  else if(rs==='approved'){ o.color='green'; o.bucket='active'; o.headline='Approved'; o.actionLabel='Open Case'; }
+  else { o.color='yellow'; o.bucket='active'; o.headline='Awaiting questionnaire'; o.actionLabel='Open Case'; }
+  if(urg.critical){ o.bucket='action'; o.priority=0;
+    o.urgentSub=(rs==='pending'?'Patient not reviewed':rs==='in_review'?'Patient waiting for approval':rs==='changes_requested'?'Waiting on patient documents':rs==='approved'?'Approved · confirm readiness':'Questionnaire not completed'); }
+  o.isNew=wsIsNew(o);
+  return o;
+}
+function wsDeriveClinic(p){
+  if(!(p.questionnaire_status==='completed' && p.consultation_status!=='reviewed' && p.patient_status!=='completed')) return null;
+  var urg=wsUrgency(p.surgery_date);
+  var o={source:'clinic', clinicId:p.id, name:p.patient_name||'Patient', procedure:p.procedure||'Procedure',
+    surgeryDate:p.surgery_date||null, urgency:urg, sourceTag:'Clinic invited', unreviewedDocs:[],
+    color:'red', bucket:'action', headline:'New questionnaire submitted', actionLabel:'Review Now', priority:1,
+    openFn:"wsOpenClinic('"+p.id+"')",
+    eventTs:p.completed_at?new Date(p.completed_at).getTime():(p.updated_at?new Date(p.updated_at).getTime():null)};
+  o.eventLine='Submitted '+wsTimeAgo(o.eventTs);
+  if(urg.critical){ o.priority=0; o.urgentSub='Patient not reviewed'; }
+  o.isNew=wsIsNew(o);
+  return o;
+}
+function wsBadge(n){ var el=document.getElementById('ws-need-badge'); if(!el) return; el.textContent=n?('▢ '+n+' need you'):''; el.style.display=n?'inline-block':'none'; }
+function wsActionCardHtml(c){
+  var urgent=c.urgency&&c.urgency.critical;
+  var rail=urgent?'urg':c.color;
+  var head=urgent?('&#9888; '+(c.urgency.label||'Surgery approaching').toUpperCase()):(wsColorIcon(c.color)+' '+c.headline.toUpperCase());
+  var newBadge=c.isNew?'<span class="ac-new pulse">&#9679; NEW</span>':'';
+  var surg=c.surgeryDate?('<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+wsEsc(c.urgency.label)+'</div>'):'<div class="ac-surg none">No surgery date set</div>';
+  var subUrg=urgent&&c.urgentSub?'<div class="ac-sub urg">'+wsEsc(c.urgentSub)+'</div>':'';
+  var when=c.eventLine?'<div class="ac-when">'+wsEsc(c.eventLine)+'</div>':'';
+  return '<div class="ac-card rail-'+rail+(c.isNew?' is-new':'')+'">'+
+    '<span class="ac-rail"></span>'+
+    '<div class="ac-body">'+
+      '<div class="ac-top"><span class="ac-headline">'+head+'</span>'+newBadge+'</div>'+
+      '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
+      '<div class="ac-proc">'+wsEsc(c.procedure)+'</div>'+
+      surg+subUrg+when+
+      '<span class="ac-tag '+(c.source==='clinic'?'clinic':'patient')+'">'+c.sourceTag+'</span>'+
+    '</div>'+
+    '<div class="ac-action"><button class="ws-btn pc-green" onclick="'+c.openFn+'">'+wsEsc(c.actionLabel)+' &rarr;</button></div>'+
+  '</div>';
+}
+function wsRequestsGroupHtml(){
+  if(!_wsRequests.length) return '';
+  return '<div class="ac-reqgroup"><div class="ac-reqhead">&#129658; New consultation requests <span class="ac-count">'+_wsRequests.length+'</span></div>'+
+    _wsRequests.map(function(q){
+      var facts=[q.procedure, q.surgery_date?new Date(q.surgery_date).toLocaleDateString():''].filter(Boolean).join(' · ');
+      return '<div class="ac-req"><div><div class="ac-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
+        '<div class="ac-proc">'+wsEsc(facts||'Pre-operative review requested')+'</div>'+
+        (q.message?'<div class="ac-sub">'+wsEsc(q.message)+'</div>':'')+'</div>'+
+        '<div class="ac-action"><button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\')">Accept</button>'+
+        '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button></div></div>';
+    }).join('')+'</div>';
+}
+function wsRenderActionCenter(){
+  var box=document.getElementById('ws-action-center'); if(!box) return;
+  var items=_wsCases.filter(function(c){return c.bucket==='action';});
+  items.sort(function(a,b){
+    if(a.priority!==b.priority) return a.priority-b.priority;
+    var ad=(a.urgency&&a.urgency.days!=null)?a.urgency.days:9999, bd=(b.urgency&&b.urgency.days!=null)?b.urgency.days:9999;
+    if(ad!==bd) return ad-bd;
+    return (b.eventTs||0)-(a.eventTs||0);
+  });
+  wsBadge(items.length+_wsRequests.length);
+  if(!items.length && !_wsRequests.length){ box.innerHTML='<div class="ac-empty">&#9989; Nothing needs your attention right now.</div>'; return; }
+  box.innerHTML='<div class="ac-head"><span class="ac-title">&#9889; Action center</span>'+(items.length?'<span class="ac-count">'+items.length+'</span>':'')+'</div>'+
+    items.map(wsActionCardHtml).join('')+wsRequestsGroupHtml();
+}
+function wsActiveCardHtml(c){
+  var word=c.color==='yellow'?'WAITING ON PATIENT':(c.color==='green'?'APPROVED':c.headline.toUpperCase());
+  var surg=c.surgeryDate?wsEsc(c.urgency.label):'No surgery date';
+  return '<div class="acs-card rail-'+c.color+'"><span class="ac-rail"></span><div class="ac-body">'+
+    '<div class="acs-status">'+wsColorIcon(c.color)+' '+word+'</div>'+
+    '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
+    '<div class="ac-proc">'+wsEsc(c.procedure)+'</div>'+
+    '<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+surg+'</div>'+
+    '</div><div class="ac-action"><button class="ws-btn" onclick="'+c.openFn+'">Open Case &rarr;</button></div></div>';
+}
+function wsRenderActiveCases(){
+  var box=document.getElementById('ws-active-cases'); if(!box) return;
+  var items=_wsCases.filter(function(c){return c.bucket==='active';});
+  var f=_wsCaseFilter;
+  var shown=items.filter(function(c){ return f==='all'||(f==='waiting'&&c.color==='yellow')||(f==='approved'&&c.color==='green'); });
+  shown.sort(function(a,b){ var ad=a.surgeryDate?new Date(a.surgeryDate).getTime():Infinity, bd=b.surgeryDate?new Date(b.surgeryDate).getTime():Infinity; return ad-bd; });
+  var chips='<div class="acs-chips">'+[['all','All'],['waiting','Waiting on patient'],['approved','Approved']].map(function(x){
+    return '<button class="acs-chip'+(f===x[0]?' on':'')+'" onclick="wsCaseFilter(\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>';
+  var grid=shown.length?('<div class="acs-grid">'+shown.map(wsActiveCardHtml).join('')+'</div>'):'<div class="ac-empty" style="margin-top:6px;">No cases in this view.</div>';
+  box.innerHTML='<div class="acs-head"><span class="ac-title">Active cases</span><span class="acs-n">'+items.length+'</span></div>'+chips+grid;
+}
+function wsCaseFilter(f){ _wsCaseFilter=f; wsRenderActiveCases(); }
+function wsOpenCase(pid){ var c=_wsCases.filter(function(x){return x.source==='bridge'&&x.patientId===pid;})[0]; if(c){ wsSeenSet(pid,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsOpenPatient(pid); }
+function wsOpenClinic(id){ var c=_wsCases.filter(function(x){return x.source==='clinic'&&x.clinicId===id;})[0]; if(c){ wsSeenSet('c'+id,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsDetail(id); }
+window.wsCaseFilter=wsCaseFilter; window.wsOpenCase=wsOpenCase; window.wsOpenClinic=wsOpenClinic;
 
 // ── Active Patients + in-page workspace (Epic E) ──
 var WS_PREPARE=['Confirm your surgery date, arrival time, and where to check in','Write down a full list of your medications, doses, and supplements','Note any allergies and past reactions to anesthesia','Arrange a responsible adult to take you home and stay with you','Prepare comfortable, loose clothing and flat shoes for the day','Write down questions you want to ask your anesthesiologist'];
@@ -470,6 +640,8 @@ var WS_REQ_CATALOG=[
   {key:'chest_xray',label:'Chest X-ray'},
   {key:'ecg',label:'ECG'},
   {key:'echo',label:'Echocardiography'},
+  {key:'ct',label:'CT scan'},
+  {key:'mri',label:'MRI'},
   {key:'bloods',label:'Blood tests'},
   {key:'coag',label:'Coagulation profile'},
   {key:'cardiology',label:'Cardiology consultation'},
@@ -635,37 +807,6 @@ async function wsSavePlan(silent, histEntry){
   } catch(e){ wsSetSaveState('error'); wsToast('Save failed: '+(e.message||'error')); return false; }
 }
 
-async function wsLoadActivePatients(){
-  var box=document.getElementById('ws-active'); if(!box) return;
-  var uid=window.__wsUserId; if(!uid){ box.innerHTML=''; return; }
-  var crs=[];
-  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).eq('status','accepted'); crs=(r&&r.data)||[]; }
-  catch(e){ box.innerHTML=''; return; }
-  if(!crs.length){ box.innerHTML=''; _wsActiveMap={}; return; }
-  var pids=crs.map(function(c){return c.patient_id;});
-  var sids=crs.map(function(c){return c.surgery_id;}).filter(Boolean);
-  var surg={},q={},chk={};
-  try { var s=await window.sb.from('patient_surgeries').select('*').in('id',sids); ((s&&s.data)||[]).forEach(function(x){surg[x.id]=x;}); }catch(e){}
-  try { var qq=await window.sb.from('preop_questionnaires').select('patient_id,status,completion,review_state').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){q[x.patient_id]=x;}); }catch(e){}
-  try { var cc=await window.sb.from('preop_checklist').select('patient_id,items').in('patient_id',pids); ((cc&&cc.data)||[]).forEach(function(x){chk[x.patient_id]=(x.items&&x.items.prep_guide)||{};}); }catch(e){}
-  var active=crs.filter(function(c){ var sg=surg[c.surgery_id]; return !(sg&&sg.completed_at); });   // visible until completed
-  _wsActiveMap={}; active.forEach(function(c){ _wsActiveMap[c.patient_id]={name:c.patient_name,surgeryId:c.surgery_id}; });
-  if(!active.length){ box.innerHTML=''; return; }
-  box.innerHTML='<div class="ws-ap-h">&#129694; Active patients <span class="n">'+active.length+'</span></div>'+
-    active.map(function(c){
-      var sg=surg[c.surgery_id]||{}, qd=q[c.patient_id]||{}, n=wsPrepCount(chk[c.patient_id]);
-      var rev=wsReviewLabel(qd.review_state);
-      var qst=qd.status==='submitted'?'Questionnaire done':((qd.completion||0)+'% questionnaire');
-      var facts=[c.procedure||sg.procedure_type, sg.surgery_date?new Date(sg.surgery_date).toLocaleDateString():''].filter(Boolean).join(' · ');
-      return '<div class="ws-ap"><div><div class="ws-ap-name">'+wsEsc(c.patient_name||'Patient')+'</div>'+
-        '<div class="ws-ap-facts">'+wsEsc(facts||'Active patient')+'</div>'+
-        '<div class="ws-ap-pills"><span class="ws-pill '+rev.cls+'">'+rev.txt+'</span>'+
-          '<span class="ws-pill '+(qd.status==='submitted'?'ok':'')+'">'+wsEsc(qst)+'</span>'+
-          '<span class="ws-pill '+(n>=6?'ok':(n>0?'warn':''))+'">Prep '+n+'/6</span></div></div>'+
-        '<div class="ws-req-btns"><button class="ws-btn pc-green" onclick="wsOpenPatient(\''+c.patient_id+'\')">Open patient</button></div></div>';
-    }).join('');
-}
-
 async function wsOpenPatient(patientId){
   var info=_wsActiveMap[patientId]; if(!info) return;
   var surgeryId=info.surgeryId;
@@ -685,10 +826,12 @@ async function wsOpenPatient(patientId){
     var row=(p&&p.data&&p.data[0])||null;
     plan=(row&&row.plan_content)||{}; planSavedAt=row?row.updated_at:null; planVersion=row?(row.version||0):0;
   }catch(e){}
+  var docs=[];
+  try { var dr=await window.sb.from('requirement_documents').select('*').eq('surgery_id',surgeryId).order('uploaded_at',{ascending:true}); docs=(dr&&dr.data)||[]; }catch(e){}
   var reqMap=wsNormReqs(plan.requirements);
   _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items,
     notes:plan.notes||'', requirements:reqMap, planSavedAt:planSavedAt, version:planVersion,
-    history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'',
+    history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs,
     savedNotes:plan.notes||'', savedReqs:wsCloneReqs(reqMap) };
   wsRenderWorkspace();
   document.getElementById('ws-ws').classList.add('open');
@@ -735,6 +878,8 @@ function wsRenderWorkspace(){
     html+='<div class="ws-reqs" id="ws-reqs-list">'+wsRequirementsHtml()+'</div>'+
       '<div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button><span class="ws-save-st" id="ws-save-plan-st"></span></div>';
   }
+  // D2 Patient-submitted documents
+  html+='<div class="ws-sum-title" style="margin:14px 0 4px;">&#128206; Submitted documents</div><div id="ws-docs"></div>';
   // E Doctor notes (internal - never shown to the patient)
   html+='<div class="ws-sec-t">E &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
     '<textarea class="ws-notes" id="ws-notes" '+(locked?'readonly ':'')+'placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
@@ -744,8 +889,47 @@ function wsRenderWorkspace(){
   // G Modification history / audit trail
   html+='<div class="ws-sec-t">G &middot; Modification history</div><div id="ws-history"></div>';
   document.getElementById('ws-ws-body').innerHTML=html;
-  wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState();
+  wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); wsRenderDocs();
 }
+// ── Patient-submitted documents (view / download / mark reviewed) ──
+function wsRenderDocs(){
+  var host=document.getElementById('ws-docs'); if(!host||!_wsCtx) return;
+  var docs=_wsCtx.docs||[];
+  if(!docs.length){ host.innerHTML='<div class="ws-ap-facts">No documents uploaded by the patient yet.</div>'; return; }
+  var unrev=docs.filter(function(d){ return !d.reviewed_at; }).length;
+  var groups={}; docs.forEach(function(d){ (groups[d.requirement_key]=groups[d.requirement_key]||{name:d.requirement_name||d.requirement_key,items:[]}).items.push(d); });
+  host.innerHTML='<div class="ws-docs-status">'+(unrev?('<span style="color:#E8C16b;">&#9888; '+unrev+' awaiting your review</span>'):'<span style="color:#5ee393;">&#10003; All documents reviewed</span>')+'</div>'+
+    Object.keys(groups).map(function(k){ var g=groups[k];
+      return '<div class="ws-doc-grp"><div class="ws-doc-grp-h">'+wsEsc(g.name)+'</div>'+
+        g.items.map(function(d){
+          var up=d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+          var rv=d.reviewed_at?new Date(d.reviewed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+          return '<div class="ws-doc"><div class="ws-doc-tx"><div class="ws-doc-nm">'+wsEsc(d.file_name)+'</div>'+
+            '<div class="ws-doc-mt">Uploaded '+up+(rv?(' &middot; <span style="color:#5ee393;">Reviewed '+rv+'</span>'):'')+'</div></div>'+
+            '<div class="ws-doc-acts"><button type="button" class="ws-doc-btn" onclick="wsDocOpen(\''+d.id+'\',0)">View</button>'+
+            '<button type="button" class="ws-doc-btn" onclick="wsDocOpen(\''+d.id+'\',1)">Download</button>'+
+            (d.reviewed_at?'<span class="ws-doc-ok">&#10003; Reviewed</span>':'<button type="button" class="ws-doc-rev" onclick="wsDocReview(\''+d.id+'\')">Mark reviewed</button>')+
+            '</div></div>';
+        }).join('')+'</div>';
+    }).join('');
+}
+async function wsDocOpen(id, dl){
+  var d=(_wsCtx.docs||[]).filter(function(x){ return x.id===id; })[0]; if(!d) return;
+  try {
+    var opt=dl?{download:d.file_name}:undefined;
+    var r=await window.sb.storage.from('patient-documents').createSignedUrl(d.storage_path, 3600, opt);
+    if(r&&r.data&&r.data.signedUrl){ window.open(r.data.signedUrl,'_blank'); } else throw new Error('no url');
+  } catch(e){ wsToast('Could not open file'); }
+}
+async function wsDocReview(id){
+  var res;
+  try { res=await window.sb.rpc('mark_document_reviewed',{p_doc_id:id}); if(res&&res.error) throw new Error(res.error.message); }
+  catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
+  var d=(_wsCtx.docs||[]).filter(function(x){ return x.id===id; })[0];
+  if(d){ d.reviewed_at=(res&&res.data&&res.data.reviewed_at)||new Date().toISOString(); d.reviewed_by=window.__wsUserId; }
+  wsToast('Document marked reviewed'); wsRenderDocs();
+}
+window.wsDocOpen=wsDocOpen; window.wsDocReview=wsDocReview;
 function wsReviewActionsHtml(rs,c){
   if(rs==='not_submitted') return '<div class="ws-ap-facts">Patient has not submitted for review yet.</div>';
   if(rs==='approved')
@@ -771,7 +955,7 @@ async function wsRequestChanges(){
   if(!(await wsSavePlan(true,{ action:'request_changes', message:notes||'', requested:requested }))) return;
   try { var r=await window.sb.rpc('request_changes',{p_surgery_id:_wsCtx.surgeryId, p_notes:notes}); if(r&&r.error) throw new Error(r.error.message); wsToast('Requirements sent to patient'); }
   catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
-  wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
+  wsCloseWorkspace(); wsLoadCases();
 }
 // Approval is two-step: a confirmation MODAL (patient, procedure, surgery date,
 // current status + explicit message), then confirm -> approve_plan().
@@ -781,6 +965,7 @@ function wsApprovePrompt(){
   var proc=s.procedure_type||'Not specified';
   var sdate=s.surgery_date?new Date(s.surgery_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'Not set';
   var status=wsReviewLabel(c.quest.review_state).txt;
+  var unrev=(c.docs||[]).filter(function(d){ return !d.reviewed_at; }).length;
   var box=document.getElementById('ws-cfm-box'); if(!box) return;
   box.innerHTML=
     '<div class="ws-cfm-h">&#9989; Confirm approval</div>'+
@@ -790,8 +975,10 @@ function wsApprovePrompt(){
       '<div><i>Surgery date</i><b>'+wsEsc(sdate)+'</b></div>'+
       '<div><i>Current review state</i><b>'+wsEsc(status)+'</b></div></div>'+
     '<div class="ws-cfm-msg">Are you sure you want to approve this preparation plan? The approved plan will become visible to the patient and the case will move to <b>Approved</b> status.</div>'+
+    (unrev? '<div class="ws-cfm-warn">&#9888; '+unrev+' submitted document'+(unrev>1?'s':'')+' still '+(unrev>1?'need':'needs')+' review. Review all submitted documents before approving.</div>':'')+
     '<div class="ws-acts" style="justify-content:flex-end;"><button class="ws-btn" onclick="wsCfmClose()">Cancel</button>'+
-    '<button class="ws-act-approve" onclick="wsApproveConfirm(this)">Confirm approval</button></div>';
+    (unrev? '<button class="ws-act-approve" disabled style="opacity:.45;cursor:not-allowed;">Confirm approval</button>'
+          : '<button class="ws-act-approve" onclick="wsApproveConfirm(this)">Confirm approval</button>')+'</div>';
   document.getElementById('ws-cfm').classList.add('open');
 }
 function wsCfmClose(){ var m=document.getElementById('ws-cfm'); if(m) m.classList.remove('open'); }
@@ -800,7 +987,7 @@ async function wsApproveConfirm(btn){
   if(!(await wsSavePlan(true,{action:'approve',detail:'Plan approved and sent to patient'}))){ if(btn){btn.disabled=false;btn.textContent='Confirm approval';} return; }
   try { var r=await window.sb.rpc('approve_plan',{p_surgery_id:_wsCtx.surgeryId}); if(r&&r.error) throw new Error(r.error.message); wsToast('Plan approved'); }
   catch(e){ wsToast('Failed: '+(e.message||'error')); if(btn){btn.disabled=false;btn.textContent='Confirm approval';} return; }
-  wsCfmClose(); wsCloseWorkspace(); wsLoadActivePatients(); wsLoadPendingReviews();
+  wsCfmClose(); wsCloseWorkspace(); wsLoadCases();
 }
 async function wsReopenReview(){
   if(!_wsCtx) return;
@@ -824,9 +1011,7 @@ async function wsRespondRequest(id, decision){
     if(r && r.error) throw new Error(r.error.message);
     wsToast(decision === 'accept' ? 'Patient connected' : 'Request declined');
   } catch(e){ wsToast('Failed: ' + (e.message||'error')); }
-  wsLoadRequests();
-  wsLoadPendingReviews();
-  wsLoadActivePatients();
+  wsLoadCases();
   wsLoadPatients();
 }
 
@@ -1452,15 +1637,20 @@ document.addEventListener('DOMContentLoaded', async function(){
     var secPatients =
       '<div class="ws-sec active" id="sec-patients">' +
         '<div class="ws-sec-head"><div><div class="ws-sec-title">Patient management</div>' +
-          '<div class="ws-sec-sub">Your pre-operative clinic</div></div></div>' +
-        '<div class="ws-stats" id="ws-pt-stats"></div>' +
-        '<div id="ws-reqs"></div>' +
-        '<div id="ws-reviews"></div>' +
-        '<div id="ws-active"></div>' +
-        '<div class="ws-pt-cols">' +
-          // LEFT — Add patient form (always visible, no modal)
-          '<div class="ws-pt-form">' +
-            '<div class="ws-form-title">Add patient</div>' +
+          '<div class="ws-sec-sub">Your pre-operative clinic</div></div>' +
+          '<span class="ws-need-badge" id="ws-need-badge" style="display:none;"></span></div>' +
+        // Unified Action Center (derived) + Active Cases grid (Phase 1)
+        '<div id="ws-action-center"></div>' +
+        '<div id="ws-active-cases"></div>' +
+        // ── Create / Invite Patient band (both workflows; permanently available) ──
+        '<div class="ws-invite-band">' +
+          '<div class="ws-invite-head">&#10133; Create / Invite Patient</div>' +
+          '<div class="ws-invite-sub">Add a patient and send them the questionnaire, or save for later. Completed invites appear in your Action Center above.</div>' +
+          '<div class="ws-stats" id="ws-pt-stats"></div>' +
+          '<div class="ws-pt-cols">' +
+            // LEFT — Add patient form (always visible, no modal)
+            '<div class="ws-pt-form">' +
+              '<div class="ws-form-title">Add patient</div>' +
             '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
             '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
             '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
@@ -1483,6 +1673,7 @@ document.addEventListener('DOMContentLoaded', async function(){
             '</div>' +
             '<div id="ws-pt-list" class="ws-list"></div>' +
           '</div>' +
+        '</div>' +
         '</div>' +
       '</div>';
 
@@ -1563,9 +1754,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     window.__wsUserName = ((role === 'doctor' || role === 'admin') ? 'Dr. ' : '') + (profile.full_name || name);
     wsInjectModals();
     wsLoadPatients();
-    wsLoadRequests();
-    wsLoadPendingReviews();
-    wsLoadActivePatients();
+    wsLoadCases();
     wsLoadAsk();
     if(isAdminRole){ wsLoadAdmin(); }
 
