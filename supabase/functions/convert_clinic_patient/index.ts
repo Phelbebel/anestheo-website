@@ -81,7 +81,9 @@ Deno.serve(async (req) => {
       const { data: ps } = await admin.from("patient_surgeries").select("id").eq("patient_id", existing.id).limit(1);
       const { data: pq } = await admin.from("preop_questionnaires").select("patient_id").eq("patient_id", existing.id).limit(1);
       if ((ps && ps.length) || (pq && pq.length)) {
-        return json({ status: "conflict", message: "This email already has an Anestheo patient account. Please verify before linking." }, 409);
+        // HTTP 200 so supabase-js delivers it in `data` (not `error`); the
+        // caller branches on `status`. No silent merge.
+        return json({ status: "conflict", message: "This email already has an Anestheo patient account. Please verify before linking." });
       }
       userId = existing.id;
     } else {

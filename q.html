@@ -346,7 +346,18 @@ async function submitForm(){
   try {
     var r = await window.sb.rpc('submit_clinic_questionnaire', { p_token: _token, p_answers: payload });
     if(r.error) throw new Error(r.error.message);
-    renderDone(payload);
+    // Account-linked convergence: turn this completed clinic patient into a
+    // bridge patient. Best-effort — never blocks completion.
+    var portalMsg = 'Your clinic will set up your patient portal shortly.';
+    try {
+      var cv = await window.sb.functions.invoke('convert_clinic_patient', { body: { token: _token } });
+      var d = (cv && cv.data) || null;
+      if(d && (d.status==='converted' || d.status==='already'))
+        portalMsg = 'Your secure patient portal is ready — check your email for a sign-in link to upload documents and view your plan. If it does not arrive, your clinic can send it to you.';
+      else if(d && d.status==='needs_email')
+        portalMsg = 'To upload documents and view your plan online, ask your clinic to add your email address.';
+    } catch(_e){ /* conversion is best-effort; questionnaire is already saved */ }
+    renderDone(payload, portalMsg);
   } catch(e){
     btn.disabled = false; btn.textContent = 'Submit questionnaire';
     alert('Unable to save questionnaire. Please try again.');
@@ -354,7 +365,7 @@ async function submitForm(){
 }
 window.submitForm = submitForm;
 
-function renderDone(answers){
+function renderDone(answers, portalMsg){
   var a = answers || {};
   var s = a._scores || {};
   var flags = a._flags || [];
@@ -396,6 +407,7 @@ function renderDone(answers){
     '<div class="cs-wrap" id="print-area">' +
       '<div class="q-state" style="padding:24px 0 8px;"><div class="ico">&#9989;</div><h2>Questionnaire complete</h2>' +
         '<p>Thank you. Your anesthesia team will review your answers before surgery. Here is your preparation summary.</p></div>' +
+      (portalMsg ? '<div style="font-size:13.5px;color:#1B6B5A;background:rgba(27,107,90,.08);border:1px solid rgba(27,107,90,.25);border-radius:10px;padding:11px 14px;margin:0 0 14px;line-height:1.5;">&#128274; '+esc(portalMsg)+'</div>' : '') +
 
       '<div class="cs-journey-title no-print">Your surgery journey</div>' + '<div class="no-print">'+stepHtml+'</div>' +
       '<div class="cs-next no-print">Next step: <strong>Preparation checklist</strong> — your clinic will guide you on fasting and medications.</div>' +
