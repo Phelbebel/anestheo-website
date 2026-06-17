@@ -278,7 +278,10 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .pc-clin-i span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin-bottom:2px;}
 .pc-clin-i b{font-size:13.5px;color:#fff;font-weight:600;}
 .pc-flag{font-size:11.5px;font-weight:600;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:7px;padding:5px 10px;}
-.pc-actions{display:flex;gap:9px;flex-wrap:wrap;}
+.pc-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+.pc-portal{font-size:11.5px;font-weight:600;border-radius:7px;padding:6px 10px;}
+.pc-portal.ok{color:#5ee393;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.3);}
+.pc-portal.need{color:#E8C16b;background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.3);}
 .pc-green{background:rgba(37,211,102,.14)!important;border-color:rgba(37,211,102,.4)!important;color:#5ee393!important;}
 .pc-green:hover{background:rgba(37,211,102,.22)!important;}
 
@@ -294,8 +297,21 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .acs-n{font-size:12px;color:var(--hint);background:rgba(255,255,255,.08);border-radius:20px;padding:2px 9px;}
 .ac-empty{font-size:13px;color:var(--muted);padding:14px 4px;}
 /* action cards */
-.ac-card{position:relative;display:flex;align-items:stretch;gap:14px;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;padding:13px 15px 13px 18px;margin-bottom:9px;overflow:hidden;}
-.ac-rail{position:absolute;left:0;top:0;bottom:0;width:5px;}
+.ac-card{position:relative;display:flex;flex-direction:column;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;margin-bottom:9px;overflow:hidden;}
+.ac-row{display:flex;align-items:stretch;gap:14px;padding:12px 15px 13px 18px;}
+.ac-rail{position:absolute;left:0;top:0;bottom:0;width:5px;z-index:1;}
+/* source ribbon — primary visual element */
+.ac-ribbon{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 14px 6px 18px;font-size:11px;font-weight:800;letter-spacing:.05em;}
+.ac-ribbon.src-clinic{background:rgba(150,100,200,.22);color:#dcc3f4;border-bottom:1px solid rgba(150,100,200,.32);}
+.ac-ribbon.src-patient{background:rgba(42,138,116,.22);color:#a4e6d6;border-bottom:1px solid rgba(42,138,116,.32);}
+.ac-ribbon-r{font-weight:600;font-size:10.5px;letter-spacing:.02em;text-transform:none;opacity:.9;}
+.ac-card.src-clinic{border-color:rgba(150,100,200,.3);} .ac-card.src-patient{border-color:rgba(42,138,116,.28);}
+/* source filter tabs */
+.ws-src-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;}
+.ws-src-tab{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:#cfe;font-size:13px;font-weight:600;border-radius:10px;padding:9px 15px;cursor:pointer;font-family:inherit;}
+.ws-src-tab:hover{background:rgba(255,255,255,.1);}
+.ws-src-tab.on{background:#1B6B5A;border-color:#2A8A74;color:#fff;}
+.ws-src-n{font-size:11px;font-weight:700;background:rgba(255,255,255,.16);border-radius:20px;padding:1px 8px;}
 .rail-red .ac-rail{background:#e0533f;} .rail-blue .ac-rail{background:#3d8bdc;}
 .rail-green .ac-rail{background:#37b86a;} .rail-yellow .ac-rail{background:#E8A838;} .rail-urg .ac-rail{background:#E8A838;}
 .ac-card.rail-red{background:rgba(224,83,63,.07);border-color:rgba(224,83,63,.32);}
@@ -327,7 +343,8 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .acs-chip{background:rgba(255,255,255,.06);border:1px solid var(--border);color:#cfe;font-size:12px;border-radius:20px;padding:6px 13px;cursor:pointer;font-family:inherit;}
 .acs-chip.on{background:#1B6B5A;border-color:#1B6B5A;color:#fff;font-weight:600;}
 .acs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:11px;}
-.acs-card{position:relative;display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;padding:13px 15px 13px 18px;overflow:hidden;}
+.acs-card{position:relative;display:flex;flex-direction:column;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.acs-card .ac-row{flex-direction:column;gap:10px;}
 .acs-card .ac-action{flex-direction:row;align-items:stretch;}
 .acs-status{font-size:11.5px;font-weight:800;letter-spacing:.04em;color:#fff;}
 .ws-invite-band{margin-top:26px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025);}
@@ -336,6 +353,7 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-pt-cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
 .ws-pt-form{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px;position:sticky;top:16px;}
 .ws-form-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:12px;}
+.wa-hint{font-size:11px;color:var(--hint);margin:5px 0 2px;line-height:1.45;}
 .ws-pt-form label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:11px 0 5px;}
 .ws-pt-form input,.ws-pt-form textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:42px;}
 .ws-pt-form textarea{min-height:58px;resize:vertical;}
@@ -521,14 +539,18 @@ async function wsLoadCases(){
   });
   clinics.forEach(function(p){ var d=wsDeriveClinic(p); if(d) cases.push(d); });
   _wsCases=cases;
+  wsRenderSrcTabs();
   wsRenderActionCenter();
   wsRenderActiveCases();
 }
 function wsDeriveBridge(c, sg, qd, prepN, docG){
   var rs=qd.review_state||'not_submitted', urg=wsUrgency(sg.surgery_date);
-  var o={source:'bridge', patientId:c.patient_id, surgeryId:c.surgery_id, name:c.patient_name||'Patient',
-    procedure:c.procedure||sg.procedure_type||'Procedure', surgeryDate:sg.surgery_date||null, urgency:urg,
-    prepN:prepN, reviewState:rs, sourceTag:'Patient requested', unreviewedDocs:docG.names||[],
+  // source = routing (bridge -> full workspace);  origin = display/filter
+  // (clinic-invited converted patients carry origin='clinic' on the surgery).
+  var origin=(sg.origin==='clinic')?'clinic':'patient';
+  var o={source:'bridge', origin:origin, patientId:c.patient_id, surgeryId:c.surgery_id, name:c.patient_name||'Patient',
+    procedure:c.procedure||sg.procedure_type||'Procedure', hospital:sg.hospital||'', surgeryDate:sg.surgery_date||null, urgency:urg,
+    prepN:prepN, reviewState:rs, sourceTag:(origin==='clinic'?'Clinic invited':'Patient requested'), unreviewedDocs:docG.names||[],
     openFn:"wsOpenCase('"+c.patient_id+"')"};
   if(rs==='pending'){ o.color='red'; o.bucket='action'; o.headline='New questionnaire submitted'; o.actionLabel='Review Now'; o.priority=1; o.eventTs=qd.updated_at?new Date(qd.updated_at).getTime():null; o.eventLine='Submitted '+wsTimeAgo(o.eventTs); }
   else if(docG.count>0){ o.color='blue'; o.bucket='action'; o.headline=docG.count+' document'+(docG.count>1?'s':'')+' received'; o.actionLabel='Review Documents'; o.priority=2; o.eventTs=docG.ts||null; o.eventLine=(o.unreviewedDocs.slice(0,4).join(' + ')||'Documents')+' uploaded '+wsTimeAgo(o.eventTs); }
@@ -542,10 +564,13 @@ function wsDeriveBridge(c, sg, qd, prepN, docG){
   return o;
 }
 function wsDeriveClinic(p){
+  // Converted clinic patients are represented by their bridge case (care_requests);
+  // skip the legacy derivation so they appear ONCE, not twice.
+  if(p.auth_user_id) return null;
   if(!(p.questionnaire_status==='completed' && p.consultation_status!=='reviewed' && p.patient_status!=='completed')) return null;
   var urg=wsUrgency(p.surgery_date);
-  var o={source:'clinic', clinicId:p.id, name:p.patient_name||'Patient', procedure:p.procedure||'Procedure',
-    surgeryDate:p.surgery_date||null, urgency:urg, sourceTag:'Clinic invited', unreviewedDocs:[],
+  var o={source:'clinic', origin:'clinic', clinicId:p.id, name:p.patient_name||'Patient', procedure:p.procedure||'Procedure',
+    hospital:p.hospital||'', surgeryDate:p.surgery_date||null, urgency:urg, sourceTag:'Clinic invited', unreviewedDocs:[],
     color:'red', bucket:'action', headline:'New questionnaire submitted', actionLabel:'Review Now', priority:1,
     openFn:"wsOpenClinic('"+p.id+"')",
     eventTs:p.completed_at?new Date(p.completed_at).getTime():(p.updated_at?new Date(p.updated_at).getTime():null)};
@@ -555,6 +580,16 @@ function wsDeriveClinic(p){
   return o;
 }
 function wsBadge(n){ var el=document.getElementById('ws-need-badge'); if(!el) return; el.textContent=n?('▢ '+n+' need you'):''; el.style.display=n?'inline-block':'none'; }
+// Source is now a PRIMARY visual element: a coloured ribbon at the top of every card.
+function wsSrcRibbon(origin){
+  var clinic=(origin==='clinic');
+  return '<div class="ac-ribbon '+(clinic?'src-clinic':'src-patient')+'">'+
+    '<span class="ac-ribbon-l">'+(clinic?'&#128104;&#8205;&#9877;&#65039; MY PATIENT':'&#128233; CONSULTATION REQUEST')+'</span>'+
+    '<span class="ac-ribbon-r">'+(clinic?'Invited by me':'Requested me')+'</span></div>';
+}
+function wsCaseLine(c){ return [c.procedure, c.hospital].filter(Boolean).map(wsEsc).join(' &middot; '); }
+var _wsSrcFilter='all';
+function wsSrcMatch(c){ return _wsSrcFilter==='all' || (_wsSrcFilter==='mine'&&c.origin==='clinic') || (_wsSrcFilter==='requests'&&c.origin==='patient'); }
 function wsActionCardHtml(c){
   var urgent=c.urgency&&c.urgency.critical;
   var rail=urgent?'urg':c.color;
@@ -563,57 +598,70 @@ function wsActionCardHtml(c){
   var surg=c.surgeryDate?('<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+wsEsc(c.urgency.label)+'</div>'):'<div class="ac-surg none">No surgery date set</div>';
   var subUrg=urgent&&c.urgentSub?'<div class="ac-sub urg">'+wsEsc(c.urgentSub)+'</div>':'';
   var when=c.eventLine?'<div class="ac-when">'+wsEsc(c.eventLine)+'</div>':'';
-  return '<div class="ac-card rail-'+rail+(c.isNew?' is-new':'')+'">'+
-    '<span class="ac-rail"></span>'+
-    '<div class="ac-body">'+
-      '<div class="ac-top"><span class="ac-headline">'+head+'</span>'+newBadge+'</div>'+
-      '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
-      '<div class="ac-proc">'+wsEsc(c.procedure)+'</div>'+
-      surg+subUrg+when+
-      '<span class="ac-tag '+(c.source==='clinic'?'clinic':'patient')+'">'+c.sourceTag+'</span>'+
+  return '<div class="ac-card src-'+(c.origin==='clinic'?'clinic':'patient')+' rail-'+rail+(c.isNew?' is-new':'')+'">'+
+    wsSrcRibbon(c.origin)+
+    '<div class="ac-row"><span class="ac-rail"></span>'+
+      '<div class="ac-body">'+
+        '<div class="ac-top"><span class="ac-headline">'+head+'</span>'+newBadge+'</div>'+
+        '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
+        '<div class="ac-proc">'+wsCaseLine(c)+'</div>'+
+        surg+subUrg+when+
+      '</div>'+
+      '<div class="ac-action"><button class="ws-btn pc-green" onclick="'+c.openFn+'">'+wsEsc(c.actionLabel)+' &rarr;</button></div>'+
     '</div>'+
-    '<div class="ac-action"><button class="ws-btn pc-green" onclick="'+c.openFn+'">'+wsEsc(c.actionLabel)+' &rarr;</button></div>'+
   '</div>';
 }
 function wsRequestsGroupHtml(){
-  if(!_wsRequests.length) return '';
-  return '<div class="ac-reqgroup"><div class="ac-reqhead">&#129658; New consultation requests <span class="ac-count">'+_wsRequests.length+'</span></div>'+
+  if(!_wsRequests.length || _wsSrcFilter==='mine') return '';
+  return '<div class="ac-reqgroup"><div class="ac-reqhead">&#128233; New consultation requests <span class="ac-count">'+_wsRequests.length+'</span></div>'+
     _wsRequests.map(function(q){
       var facts=[q.procedure, q.surgery_date?new Date(q.surgery_date).toLocaleDateString():''].filter(Boolean).join(' · ');
-      return '<div class="ac-req"><div><div class="ac-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
+      return '<div class="ac-card src-patient"><div class="ac-ribbon src-patient"><span class="ac-ribbon-l">&#128233; CONSULTATION REQUEST</span><span class="ac-ribbon-r">Requested me</span></div>'+
+        '<div class="ac-row"><div class="ac-body"><div class="ac-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
         '<div class="ac-proc">'+wsEsc(facts||'Pre-operative review requested')+'</div>'+
         (q.message?'<div class="ac-sub">'+wsEsc(q.message)+'</div>':'')+'</div>'+
         '<div class="ac-action"><button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\')">Accept</button>'+
-        '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button></div></div>';
+        '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button></div></div></div>';
     }).join('')+'</div>';
 }
+function wsRenderSrcTabs(){
+  var box=document.getElementById('ws-src-tabs'); if(!box) return;
+  var mine=_wsCases.filter(function(c){return c.origin==='clinic';}).length;
+  var req=_wsCases.filter(function(c){return c.origin==='patient';}).length+_wsRequests.length;
+  var tabs=[['all','All',mine+req],['mine','&#128104;&#8205;&#9877;&#65039; My Patients',mine],['requests','&#128233; Consultation Requests',req]];
+  box.innerHTML=tabs.map(function(t){ return '<button class="ws-src-tab'+(_wsSrcFilter===t[0]?' on':'')+'" onclick="wsSrcFilter(\''+t[0]+'\')">'+t[1]+' <span class="ws-src-n">'+t[2]+'</span></button>'; }).join('');
+}
+function wsSrcFilter(f){ _wsSrcFilter=f; wsRenderSrcTabs(); wsRenderActionCenter(); wsRenderActiveCases(); }
 function wsRenderActionCenter(){
   var box=document.getElementById('ws-action-center'); if(!box) return;
-  var items=_wsCases.filter(function(c){return c.bucket==='action';});
+  wsBadge(_wsCases.filter(function(c){return c.bucket==='action';}).length+_wsRequests.length);
+  var items=_wsCases.filter(function(c){return c.bucket==='action' && wsSrcMatch(c);});
   items.sort(function(a,b){
     if(a.priority!==b.priority) return a.priority-b.priority;
     var ad=(a.urgency&&a.urgency.days!=null)?a.urgency.days:9999, bd=(b.urgency&&b.urgency.days!=null)?b.urgency.days:9999;
     if(ad!==bd) return ad-bd;
     return (b.eventTs||0)-(a.eventTs||0);
   });
-  wsBadge(items.length+_wsRequests.length);
-  if(!items.length && !_wsRequests.length){ box.innerHTML='<div class="ac-empty">&#9989; Nothing needs your attention right now.</div>'; return; }
+  var reqHtml=wsRequestsGroupHtml();
+  if(!items.length && !reqHtml){ box.innerHTML='<div class="ac-empty">&#9989; Nothing needs your attention in this view.</div>'; return; }
   box.innerHTML='<div class="ac-head"><span class="ac-title">&#9889; Action center</span>'+(items.length?'<span class="ac-count">'+items.length+'</span>':'')+'</div>'+
-    items.map(wsActionCardHtml).join('')+wsRequestsGroupHtml();
+    items.map(wsActionCardHtml).join('')+reqHtml;
 }
 function wsActiveCardHtml(c){
   var word=c.color==='yellow'?'WAITING ON PATIENT':(c.color==='green'?'APPROVED':c.headline.toUpperCase());
   var surg=c.surgeryDate?wsEsc(c.urgency.label):'No surgery date';
-  return '<div class="acs-card rail-'+c.color+'"><span class="ac-rail"></span><div class="ac-body">'+
+  return '<div class="acs-card src-'+(c.origin==='clinic'?'clinic':'patient')+' rail-'+c.color+'">'+
+    wsSrcRibbon(c.origin)+
+    '<div class="ac-row"><span class="ac-rail"></span><div class="ac-body">'+
     '<div class="acs-status">'+wsColorIcon(c.color)+' '+word+'</div>'+
     '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
-    '<div class="ac-proc">'+wsEsc(c.procedure)+'</div>'+
+    '<div class="ac-proc">'+wsCaseLine(c)+'</div>'+
     '<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+surg+'</div>'+
-    '</div><div class="ac-action"><button class="ws-btn" onclick="'+c.openFn+'">Open Case &rarr;</button></div></div>';
+    '</div><div class="ac-action"><button class="ws-btn" onclick="'+c.openFn+'">Open Case &rarr;</button></div></div></div>';
 }
 function wsRenderActiveCases(){
   var box=document.getElementById('ws-active-cases'); if(!box) return;
-  var items=_wsCases.filter(function(c){return c.bucket==='active';});
+  var items=_wsCases.filter(function(c){return c.bucket==='active' && wsSrcMatch(c);});
   var f=_wsCaseFilter;
   var shown=items.filter(function(c){ return f==='all'||(f==='waiting'&&c.color==='yellow')||(f==='approved'&&c.color==='green'); });
   shown.sort(function(a,b){ var ad=a.surgeryDate?new Date(a.surgeryDate).getTime():Infinity, bd=b.surgeryDate?new Date(b.surgeryDate).getTime():Infinity; return ad-bd; });
@@ -625,7 +673,7 @@ function wsRenderActiveCases(){
 function wsCaseFilter(f){ _wsCaseFilter=f; wsRenderActiveCases(); }
 function wsOpenCase(pid){ var c=_wsCases.filter(function(x){return x.source==='bridge'&&x.patientId===pid;})[0]; if(c){ wsSeenSet(pid,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsOpenPatient(pid); }
 function wsOpenClinic(id){ var c=_wsCases.filter(function(x){return x.source==='clinic'&&x.clinicId===id;})[0]; if(c){ wsSeenSet('c'+id,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsDetail(id); }
-window.wsCaseFilter=wsCaseFilter; window.wsOpenCase=wsOpenCase; window.wsOpenClinic=wsOpenClinic;
+window.wsCaseFilter=wsCaseFilter; window.wsSrcFilter=wsSrcFilter; window.wsOpenCase=wsOpenCase; window.wsOpenClinic=wsOpenClinic;
 
 // ── Active Patients + in-page workspace (Epic E) ──
 var WS_PREPARE=['Confirm your surgery date, arrival time, and where to check in','Write down a full list of your medications, doses, and supplements','Note any allergies and past reactions to anesthesia','Arrange a responsible adult to take you home and stay with you','Prepare comfortable, loose clothing and flat shoes for the day','Write down questions you want to ask your anesthesiologist'];
@@ -1148,8 +1196,16 @@ function wsRenderPatients(){
       ? '<div class="pc-flags">' + flags.map(function(f){ return '<span class="pc-flag">&#9888; '+wsEsc(f)+'</span>'; }).join('') + '</div>'
       : '';
 
+    // Account-linked convergence: fallback "Activate Patient Portal" (only when
+    // completed + email present + not yet converted). Otherwise show why it's off.
+    var portalRow = '';
+    if(p.questionnaire_status==='completed'){
+      if(p.auth_user_id) portalRow = '<span class="pc-portal ok">&#10003; Portal active &middot; bridge patient</span>';
+      else if(p.email) portalRow = '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsActivatePortal(\''+p.id+'\')">&#128274; Activate Patient Portal</button>';
+      else portalRow = '<span class="pc-portal need">&#9888; Email required to enable full patient portal</span>';
+    }
     var actionsRow = (p.questionnaire_status==='completed')
-      ? actionsCompleted + workflow + preview
+      ? portalRow + actionsCompleted + workflow + preview
       : send + preview + workflow;
 
     return '<div class="pc-card" onclick="wsDetail(\''+p.id+'\')">' +
@@ -1213,6 +1269,7 @@ function wsCollectAdd(){
     doctor_id: window.__wsUserId,
     patient_name: name,
     phone_number: document.getElementById('wa-phone').value.trim() || null,
+    email: (document.getElementById('wa-email') ? document.getElementById('wa-email').value.trim() : '') || null,
     procedure: document.getElementById('wa-proc').value.trim() || null,
     hospital: document.getElementById('wa-hospital').value.trim() || null,
     surgery_date: document.getElementById('wa-date').value || null,
@@ -1220,7 +1277,7 @@ function wsCollectAdd(){
   };
 }
 function wsClearForm(){
-  ['name','phone','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
+  ['name','phone','email','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
 }
 async function wsSavePatient(thenSend){
   var rec = wsCollectAdd(); if(!rec) return;
@@ -1356,6 +1413,43 @@ async function wsReady(id){
     wsLoadPatients();
   } catch(e){ wsToast('Update failed'); }
 }
+
+// ── ACCOUNT-LINKED CONVERGENCE: Activate Patient Portal (fallback) ──
+async function wsActivatePortal(id){
+  var p = _wsPatients.find(function(x){ return x.id === id; }); if(!p) return;
+  if(!p.token){ wsToast('No questionnaire token for this patient'); return; }
+  wsToast('Activating portal...');
+  try {
+    var r = await window.sb.functions.invoke('convert_clinic_patient', { body: { token: p.token } });
+    var d = (r && r.data) || null;
+    if(!d) throw new Error((r && r.error && r.error.message) || 'No response');
+    if(d.status==='converted' || d.status==='already'){
+      wsToast('Patient portal activated');
+      if(d.magic_link) wsPortalLinkModal(p, d.magic_link);
+      else wsToast('Portal active. Magic link not returned - check Supabase email/SMTP settings.');
+      await wsLoadPatients(); wsLoadCases();
+    } else if(d.status==='needs_email'){ wsToast('Add an email for this patient first'); }
+    else if(d.status==='conflict'){ alert(d.message || 'This email already has an Anestheo patient account. Please verify before linking.'); }
+    else if(d.status==='not_ready'){ wsToast('Questionnaire not completed yet'); }
+    else { wsToast('Activation failed: ' + (d.message || 'error')); }
+  } catch(e){ wsToast('Activation failed: ' + (e.message || 'error')); }
+}
+function wsPortalLinkModal(p, link){
+  var ex = document.getElementById('ws-portal-modal'); if(ex) ex.remove();
+  var waMsg = encodeURIComponent('Hello ' + (p.patient_name || '') + ',\n\nYour Anestheo patient portal is ready. Sign in here to upload your documents and view your plan:\n' + link);
+  var waUrl = p.phone_number ? ('https://wa.me/' + p.phone_number.replace(/[^0-9]/g,'') + '?text=' + waMsg) : ('https://wa.me/?text=' + waMsg);
+  var d = document.createElement('div'); d.id='ws-portal-modal'; d.className='ws-modal-bg open';
+  d.innerHTML = '<div class="ws-modal"><h3>Patient portal link</h3>' +
+    '<div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Send this secure sign-in link to <b style="color:#fff;">' + wsEsc(p.patient_name || 'the patient') + '</b>. It opens their portal to upload documents and view the approved plan.</div>' +
+    '<input id="ws-portal-link" readonly value="' + wsEsc(link) + '">' +
+    '<div class="ws-modal-btns"><button class="ws-btn pc-green" onclick="wsCopyPortalLink()">Copy link</button>' +
+    '<a class="ws-btn ws-btn-wa" href="' + waUrl + '" target="_blank" rel="noopener">Send via WhatsApp</a>' +
+    '<button class="ws-btn" onclick="document.getElementById(\'ws-portal-modal\').remove()">Close</button></div></div>';
+  d.onclick = function(e){ if(e.target===d) d.remove(); };
+  document.body.appendChild(d);
+}
+function wsCopyPortalLink(){ var el=document.getElementById('ws-portal-link'); if(!el) return; el.select(); try { document.execCommand('copy'); wsToast('Link copied'); } catch(e){ wsToast('Select the link and copy manually'); } }
+window.wsActivatePortal=wsActivatePortal; window.wsCopyPortalLink=wsCopyPortalLink;
 
 // ── PATIENT DETAIL ──
 function wsDetail(id){
@@ -1640,6 +1734,7 @@ document.addEventListener('DOMContentLoaded', async function(){
           '<div class="ws-sec-sub">Your pre-operative clinic</div></div>' +
           '<span class="ws-need-badge" id="ws-need-badge" style="display:none;"></span></div>' +
         // Unified Action Center (derived) + Active Cases grid (Phase 1)
+        '<div class="ws-src-tabs" id="ws-src-tabs"></div>' +
         '<div id="ws-action-center"></div>' +
         '<div id="ws-active-cases"></div>' +
         // ── Create / Invite Patient band (both workflows; permanently available) ──
@@ -1653,6 +1748,8 @@ document.addEventListener('DOMContentLoaded', async function(){
               '<div class="ws-form-title">Add patient</div>' +
             '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
             '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
+            '<label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">' +
+            '<div class="wa-hint">Email required to enable full patient portal (document upload + plan). You can still save and send the questionnaire without it.</div>' +
             '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
             '<label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">' +
             '<label>Surgery date</label><input id="wa-date" type="date">' +
