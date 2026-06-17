@@ -296,6 +296,12 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ac-count{font-size:12px;font-weight:700;color:#fff;background:rgba(192,57,43,.5);border-radius:20px;padding:2px 9px;}
 .acs-n{font-size:12px;color:var(--hint);background:rgba(255,255,255,.08);border-radius:20px;padding:2px 9px;}
 .ac-empty{font-size:13px;color:var(--muted);padding:14px 4px;}
+/* whole-card clickable affordance (tap anywhere to open) */
+.ac-card.clickable,.acs-card.clickable{cursor:pointer;transition:border-color .12s ease,box-shadow .12s ease,transform .06s ease;}
+.ac-card.clickable:hover,.acs-card.clickable:hover{border-color:rgba(126,207,192,.55);box-shadow:0 6px 18px rgba(0,0,0,.28);}
+.ac-card.clickable:active,.acs-card.clickable:active{transform:translateY(1px);}
+.ac-card.clickable:focus-visible,.acs-card.clickable:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.ac-card.clickable .ws-btn{pointer-events:auto;}
 /* action cards */
 .ac-card{position:relative;display:flex;flex-direction:column;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;margin-bottom:9px;overflow:hidden;}
 .ac-row{display:flex;align-items:stretch;gap:14px;padding:12px 15px 13px 18px;}
@@ -539,6 +545,7 @@ async function wsLoadCases(){
   });
   clinics.forEach(function(p){ var d=wsDeriveClinic(p); if(d) cases.push(d); });
   _wsCases=cases;
+  wsAttachCardDelegation();
   wsRenderSrcTabs();
   wsRenderActionCenter();
   wsRenderActiveCases();
@@ -590,6 +597,34 @@ function wsSrcRibbon(origin){
 function wsCaseLine(c){ return [c.procedure, c.hospital].filter(Boolean).map(wsEsc).join(' &middot; '); }
 var _wsSrcFilter='all';
 function wsSrcMatch(c){ return _wsSrcFilter==='all' || (_wsSrcFilter==='mine'&&c.origin==='clinic') || (_wsSrcFilter==='requests'&&c.origin==='patient'); }
+// Whole-card click target: same routing as the CTA (wsOpenCase / wsOpenClinic).
+function wsCardAttrs(c){
+  var open=(c.source==='clinic') ? ('data-open="clinic" data-cid="'+c.clinicId+'"') : ('data-open="case" data-pid="'+c.patientId+'"');
+  return 'tabindex="0" role="button" aria-label="Open '+wsEsc(c.name||'case')+'" '+open;
+}
+function wsCardDispatch(card){
+  if(!card) return;
+  var k=card.getAttribute('data-open');
+  if(k==='case') wsOpenCase(card.getAttribute('data-pid'));
+  else if(k==='clinic') wsOpenClinic(card.getAttribute('data-cid'));
+}
+// Delegated once per container; survives innerHTML re-renders. Real controls
+// (Accept/Decline, the CTA button) are excluded so they never double-fire or
+// trigger card-open. No routing/business-logic change.
+function wsAttachCardDelegation(){
+  ['ws-action-center','ws-active-cases'].forEach(function(id){
+    var box=document.getElementById(id); if(!box || box._wsDeleg) return; box._wsDeleg=true;
+    box.addEventListener('click', function(e){
+      if(e.target.closest('button,a,input,select,textarea')) return;
+      var c=e.target.closest('.ac-card.clickable, .acs-card.clickable'); if(c) wsCardDispatch(c);
+    });
+    box.addEventListener('keydown', function(e){
+      if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+      var c=e.target.closest('.ac-card.clickable, .acs-card.clickable');
+      if(c){ e.preventDefault(); wsCardDispatch(c); }
+    });
+  });
+}
 function wsActionCardHtml(c){
   var urgent=c.urgency&&c.urgency.critical;
   var rail=urgent?'urg':c.color;
@@ -598,7 +633,7 @@ function wsActionCardHtml(c){
   var surg=c.surgeryDate?('<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+wsEsc(c.urgency.label)+'</div>'):'<div class="ac-surg none">No surgery date set</div>';
   var subUrg=urgent&&c.urgentSub?'<div class="ac-sub urg">'+wsEsc(c.urgentSub)+'</div>':'';
   var when=c.eventLine?'<div class="ac-when">'+wsEsc(c.eventLine)+'</div>':'';
-  return '<div class="ac-card src-'+(c.origin==='clinic'?'clinic':'patient')+' rail-'+rail+(c.isNew?' is-new':'')+'">'+
+  return '<div class="ac-card clickable src-'+(c.origin==='clinic'?'clinic':'patient')+' rail-'+rail+(c.isNew?' is-new':'')+'" '+wsCardAttrs(c)+'>'+
     wsSrcRibbon(c.origin)+
     '<div class="ac-row"><span class="ac-rail"></span>'+
       '<div class="ac-body">'+
@@ -607,7 +642,7 @@ function wsActionCardHtml(c){
         '<div class="ac-proc">'+wsCaseLine(c)+'</div>'+
         surg+subUrg+when+
       '</div>'+
-      '<div class="ac-action"><button class="ws-btn pc-green" onclick="'+c.openFn+'">'+wsEsc(c.actionLabel)+' &rarr;</button></div>'+
+      '<div class="ac-action"><button class="ws-btn pc-green" onclick="event.stopPropagation();'+c.openFn+'">'+wsEsc(c.actionLabel)+' &rarr;</button></div>'+
     '</div>'+
   '</div>';
 }
@@ -650,14 +685,14 @@ function wsRenderActionCenter(){
 function wsActiveCardHtml(c){
   var word=c.color==='yellow'?'WAITING ON PATIENT':(c.color==='green'?'APPROVED':c.headline.toUpperCase());
   var surg=c.surgeryDate?wsEsc(c.urgency.label):'No surgery date';
-  return '<div class="acs-card src-'+(c.origin==='clinic'?'clinic':'patient')+' rail-'+c.color+'">'+
+  return '<div class="acs-card clickable src-'+(c.origin==='clinic'?'clinic':'patient')+' rail-'+c.color+'" '+wsCardAttrs(c)+'>'+
     wsSrcRibbon(c.origin)+
     '<div class="ac-row"><span class="ac-rail"></span><div class="ac-body">'+
     '<div class="acs-status">'+wsColorIcon(c.color)+' '+word+'</div>'+
     '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
     '<div class="ac-proc">'+wsCaseLine(c)+'</div>'+
     '<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+surg+'</div>'+
-    '</div><div class="ac-action"><button class="ws-btn" onclick="'+c.openFn+'">Open Case &rarr;</button></div></div></div>';
+    '</div><div class="ac-action"><button class="ws-btn" onclick="event.stopPropagation();'+c.openFn+'">Open Case &rarr;</button></div></div></div>';
 }
 function wsRenderActiveCases(){
   var box=document.getElementById('ws-active-cases'); if(!box) return;
