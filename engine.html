@@ -223,7 +223,10 @@ body.embed .eng-wrap{padding-top:14px;}
       <button class="mh-crisis" onclick="openCrisis()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
     </div>
     <div class="input-bar">
-      <div class="inp"><label>Age</label><input id="i-age" type="number" inputmode="numeric" placeholder="years" oninput="compute()"></div>
+      <div class="inp"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
+        <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:0;">
+        <select id="i-age-unit" onchange="compute()" style="flex:0 0 86px;width:86px;"><option value="y">years</option><option value="mo">months</option><option value="w">weeks</option><option value="d">days</option></select>
+      </div></div>
       <div class="inp"><label>Sex</label><select id="i-sex" onchange="compute()"><option value="">—</option><option value="M">Male</option><option value="F">Female</option></select></div>
       <div class="inp"><label>Height (cm)</label><input id="i-height" type="number" inputmode="numeric" placeholder="cm" oninput="compute()"></div>
       <div class="inp"><label>Weight (kg)</label><input id="i-weight" type="number" inputmode="numeric" placeholder="kg" oninput="compute()"></div>
@@ -261,7 +264,8 @@ function ge(id){ return document.getElementById(id); }
 var ENG_KEY = 'anestheo-engine-inputs';
 function saveInputs(){
   try {
-    var d = { age:ge('i-age').value, sex:ge('i-sex').value, height:ge('i-height').value,
+    var d = { age:ge('i-age').value, ageUnit:(ge('i-age-unit')?ge('i-age-unit').value:'y'),
+              sex:ge('i-sex').value, height:ge('i-height').value,
               weight:ge('i-weight').value, asa:ge('i-asa').value, proc:ge('i-proc').value };
     localStorage.setItem(ENG_KEY, JSON.stringify(d));
   } catch(e){}
@@ -271,6 +275,7 @@ function restoreInputs(){
     var raw = localStorage.getItem(ENG_KEY); if(!raw) return false;
     var d = JSON.parse(raw);
     if(ge('i-age')) ge('i-age').value = d.age || '';
+    if(ge('i-age-unit')) ge('i-age-unit').value = d.ageUnit || 'y';   // legacy = years
     if(ge('i-sex')) ge('i-sex').value = d.sex || '';
     if(ge('i-height')) ge('i-height').value = d.height || '';
     if(ge('i-weight')) ge('i-weight').value = d.weight || '';
@@ -283,10 +288,32 @@ function num(id){ var v=parseFloat(ge(id).value); return isNaN(v)?null:v; }
 function r0(x){ return Math.round(x); }
 function r1(x){ return Math.round(x*10)/10; }
 function r2(x){ return Math.round(x*100)/100; }
+// ── A1: canonical age from value + unit (days/weeks/months/years) ──
+// Returns {years, days, months, unit, value} or null. Legacy stored age (a
+// bare number) defaults to years, so all existing adult calcs are unchanged.
+function ageCanon(){
+  var v=num('i-age'); if(v==null) return null;
+  var u=(ge('i-age-unit')&&ge('i-age-unit').value)||'y';
+  var days = u==='d'?v : u==='w'?v*7 : u==='mo'?v*30.4375 : v*365.25;
+  return { years:days/365.25, days:days, months:days/30.4375, unit:u, value:v };
+}
+function ageLabel(ac){
+  if(!ac) return '';
+  if(ac.days<28) return r0(ac.days)+'d';
+  if(ac.days<90) return r0(ac.days/7)+'w';
+  if(ac.years<2) return r0(ac.months)+'mo';
+  return r0(ac.years)+'';            // years: plain number (banner stays "45M")
+}
+// A1b: weight-based neonatal/infant uncuffed ETT (suppresses age/4+4 below 1y)
+function neoETT(wt){
+  if(wt==null) return null;
+  if(wt<1) return 2.5; if(wt<2.5) return 3.0; if(wt<6) return 3.5; if(wt<9) return 4.0; return 4.0;
+}
 
 function compute(){
   saveInputs();
-  var age=num('i-age'), sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
+  var ageC=ageCanon();
+  var age=ageC?ageC.years:null, sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
   var out=ge('output');
   if(age==null||!sex||ht==null||wt==null){
     out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p>Enter age, sex, height and weight to generate the dashboard.</p></div>';
@@ -294,6 +321,8 @@ function compute(){
     return;
   }
   var isPeds=age<16;
+  var ageDays=ageC.days, isInfant=age<1, isNeo=ageDays<28;
+  var wbAir=isPeds && (isInfant || wt<5);          // A1b: weight-based airway precedence
   var htM=ht/100;
   var bmi=wt/(htM*htM);
   var inchesOver5ft=(ht-152.4)/2.54;
@@ -302,10 +331,34 @@ function compute(){
   var lbw=sex==='M'?(0.407*wt)+(0.267*ht)-19.2:(0.252*wt)+(0.473*ht)-48.3;
   var bsa=Math.sqrt((ht*wt)/3600);
   var pbw=(sex==='M'?50:45.5)+0.91*(ht-152.4); if(pbw<1)pbw=wt;
+  // Early weight-based references (hoisted so the neonatal package + panels share one source)
+  var ebvPerKg = isPeds ? (isNeo?90:(isInfant?80:75)) : (sex==='M'?70:65);
+  var ebv = wt*ebvPerKg;
+  var mablH30 = ebv*(40-30)/40, mablH25 = ebv*(40-25)/40;
+  var h421; if(wt<=10)h421=wt*4; else if(wt<=20)h421=40+(wt-10)*2; else h421=60+(wt-20)*1;
 
   // ── AIRWAY (combined recommendations) ──
   var airwayRows='', pedsNote='', emAirway='';
-  if(isPeds){
+  if(isPeds && wbAir){
+    // ── A1b/A1c: NEONATAL / INFANT AIRWAY PACKAGE (weight-based; age formulas
+    // are suppressed below 1 year because age/4+4 is invalid at neonatal ages) ──
+    var ettW=neoETT(wt), ettWc=(ettW!=null?ettW-0.5:null), depthW=(ettW!=null?ettW*3:null);
+    var bladeW = wt<3?'Miller 0':'Miller 1';
+    airwayRows=
+      metric('ETT uncuffed', ettW!=null?r1(ettW):'—','mm ID',true)+
+      metric('ETT cuffed', ettWc!=null?r1(ettWc):'—','mm ID',true)+
+      metric('ETT depth (lips)', depthW!=null?r1(depthW):'—','cm',true)+
+      metric('Blade', bladeW,'')+
+      metric('LMA size', lmaForWeight(wt),'')+
+      metric('i-gel size', igelForWeight(wt),'')+
+      metric('Est. blood volume', r0(ebv),'mL',true)+
+      metric('Maintenance (4-2-1)', r0(h421),'mL/hr',true)+
+      metric('Oral airway (Guedel)', opaPeds(age),'')+
+      metric('Nasopharyngeal', npaPeds(age),'');
+    pedsNote='<div class="peds-note"><b>'+(isNeo?'Neonate':'Infant')+' airway package &middot; weight-based ('+r1(wt)+' kg):</b> age formulas suppressed below 1 year. ETT uncuffed by weight; depth &asymp; 3 &times; ETT size; cuffed &asymp; 0.5 mm smaller.</div>'+
+      '<div class="peds-note">EBV '+ebvPerKg+' mL/kg = '+r0(ebv)+' mL &middot; fluid bolus 10–20 mL/kg = '+r0(wt*10)+'–'+r0(wt*20)+' mL &middot; use glucose-containing maintenance in neonates/infants.</div>';
+    emAirway='<div class="helper"><b>Emergency airway (neonate/infant):</b> small reserve — desaturates fast; pre-oxygenate, gentle mask ventilation, uncuffed or low-pressure cuffed tube, confirm with EtCO₂. Call for senior/PICU help early.</div>';
+  } else if(isPeds){
     var ettU=(age/4)+4, ettC=(age/4)+3.5, depth=(age/2)+12;
     var pBlade = age<0.5?'Miller 0':(age<2?'Miller 1':(age<6?'Miller / Mac 1–2':'Mac 2'));
     airwayRows=
@@ -364,9 +417,9 @@ function compute(){
   // Combined Airway & Ventilation card body
   // Compact at-a-glance key values (airway + ventilation together)
   function av(l,v){ return '<div class="av-cell"><i>'+l+'</i><b>'+v+'</b></div>'; }
-  var ettKey = isPeds ? r1((age/4)+3.5) : (sex==='M'?'8.0':'7.0');
-  var depthKey = isPeds ? r1((age/2)+12) : (sex==='M'?'22–24':'20–22');
-  var macKey = isPeds ? (age<0.5?'Mil 0':age<2?'Mil 1':age<6?'1–2':'Mac 2') : ((ht&&ht>=175)?'Mac 4':'Mac 3');
+  var ettKey = isPeds ? (wbAir ? r1(neoETT(wt)) : r1((age/4)+3.5)) : (sex==='M'?'8.0':'7.0');
+  var depthKey = isPeds ? (wbAir ? r1(neoETT(wt)*3) : r1((age/2)+12)) : (sex==='M'?'22–24':'20–22');
+  var macKey = isPeds ? (wbAir ? (wt<3?'Mil 0':'Mil 1') : (age<0.5?'Mil 0':age<2?'Mil 1':age<6?'1–2':'Mac 2')) : ((ht&&ht>=175)?'Mac 4':'Mac 3');
   var avKey='<div class="av-grid">'+
     av('ETT',ettKey)+av('Depth',depthKey+' cm')+av('LMA',lmaForWeight(wt))+
     av('i-gel',(igelForWeight(wt)+'').split(' ')[0])+av('Blade',macKey)+
@@ -421,11 +474,8 @@ function compute(){
     '<div class="helper"><b>Prep — phenylephrine:</b> 10 mg/100 mL (100 mcg/mL) for bolus; 100 mcg/mL infusion.</div>'+
     '<div class="helper"><b>Prep — adrenaline:</b> 1 mg/50 mL (20 mcg/mL); ephedrine 30 mg/10 mL (3 mg/mL).</div>';
 
-  // BLOOD VOLUME / MABL  (EBV by weight, Hct-based MABL)
-  var ebvPerKg = isPeds ? (age < 1 ? 80 : 75) : (sex==='M' ? 70 : 65);
-  var ebv = wt * ebvPerKg;
-  var mablH30 = ebv * (40 - 30) / 40;  // assuming starting Hct ~40, trigger 30
-  var mablH25 = ebv * (40 - 25) / 40;
+  // BLOOD VOLUME / MABL  (EBV by weight; ebvPerKg/ebv/mablH* hoisted above so the
+  // neonatal airway package and this panel share one source — neonate 90, infant 80.)
   var bloodRows=
     metric('Est. blood volume', r0(ebv), 'mL', true)+
     metric('EBV per kg', ebvPerKg, 'mL/kg')+
@@ -453,10 +503,9 @@ function compute(){
     m2('Ropivacaine','Max · 3 mg/kg TBW',r0(wt*3),'mg')+
     m2('Lidocaine 1%','Volume at 4.5 mg/kg max',r1((wt*4.5)/10),'mL');
 
-  // FLUIDS
+  // FLUIDS  (peds 4-2-1 h421 hoisted above; shared with the neonatal package)
   var fluidRows;
   if(isPeds){
-    var h421; if(wt<=10)h421=wt*4; else if(wt<=20)h421=40+(wt-10)*2; else h421=60+(wt-20)*1;
     fluidRows=metric('Maintenance (4-2-1)',r0(h421),'mL/hr',true)+metric('Daily maintenance',r0(h421*24),'mL/day')+metric('NPO deficit / hr fasted',r0(h421),'mL');
   } else {
     var maint=40+(wt-20)*1;
@@ -469,7 +518,7 @@ function compute(){
   var pb=ge('pt-banner');
   if(pb){
     var parts = [
-      age+(sex==='M'?'M':'F'),
+      ageLabel(ageC)+(sex==='M'?'M':'F'),
       asa?('ASA '+asa):'ASA —',
       'BMI '+r1(bmi),
       'IBW '+r0(ibw),
@@ -494,7 +543,7 @@ function compute(){
   if(age>=65) warns.push(['Age '+age+' — frailty & delirium risk; consider CFS / Mini-Cog / 4AT','']);
   if(age>=80) warns.push(['Advanced age '+age+' — reduce induction doses, delirium precautions','hi']);
   if(asa==='IV'||asa==='V') warns.push(['ASA '+asa+' — high perioperative risk; senior input, invasive monitoring','hi']);
-  if(isPeds) warns.push(['Pediatric ('+age+'y) — weight-based dosing, airway formulas applied','']);
+  if(isPeds) warns.push(['Pediatric ('+ageLabel(ageC)+')'+(wbAir?' — neonatal/infant weight-based airway active':' — weight-based dosing, airway formulas applied'),wbAir?'hi':'']);
   if(isOb) warns.push(['Obstetric patient — see obstetric quick reference','']);
   if(age>50&&!asa) warns.push(['Consider RCRI / functional capacity (METs) for cardiac risk','']);
   var riskHtml = warns.length
@@ -530,11 +579,11 @@ function compute(){
 
   // Pediatric quick reference (conditional)
   var pedHtml = isPeds ?
-    (metric('ETT uncuffed',r1((age/4)+4),'mm ID')+
-     metric('ETT cuffed',r1((age/4)+3.5),'mm ID')+
-     metric('ETT depth (lips)',r1((age/2)+12),'cm')+
+    (metric('ETT uncuffed',r1(wbAir?neoETT(wt):(age/4)+4),'mm ID')+
+     metric('ETT cuffed',r1(wbAir?neoETT(wt)-0.5:(age/4)+3.5),'mm ID')+
+     metric('ETT depth (lips)',r1(wbAir?neoETT(wt)*3:(age/2)+12),'cm')+
      metric('Suggested LMA',lmaForWeight(wt),'')+
-     metric('Laryngoscope',age<1?'Miller 0–1':(age<4?'Mac/Miller 1':(age<8?'Mac 2':'Mac 2–3')),'')+
+     metric('Laryngoscope',wbAir?(wt<3?'Miller 0':'Miller 1'):(age<1?'Miller 0–1':(age<4?'Mac/Miller 1':(age<8?'Mac 2':'Mac 2–3'))),'')+
      '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+
      '<div class="helper"><b>Emergency drugs:</b> Adrenaline 10 mcg/kg ('+r0(wt*10)+' mcg) · Atropine 20 mcg/kg ('+r0(wt*20)+' mcg, min 100) · Succinylcholine 2 mg/kg ('+r0(wt*2)+' mg) · Defib 4 J/kg ('+r0(wt*4)+' J).</div>'+
      '<div class="helper"><b>Fluids:</b> bolus 10–20 mL/kg ('+r0(wt*10)+'–'+r0(wt*20)+' mL). Glucose-containing maintenance in neonates/infants.</div>'+
