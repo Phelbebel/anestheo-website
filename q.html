@@ -22,6 +22,13 @@ body{background:#0A1A15;}
 .q-prog-bar{height:6px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
 .q-prog-fill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74,#7ECFC0);width:0;transition:width .3s;}
 .q-prog-txt{font-size:11px;color:var(--hint);margin-top:5px;}
+/* Secondary portal-status block (dark theme, green success, mobile-first) */
+.q-portal{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3);border-radius:14px;padding:16px 18px;margin:0 0 18px;color:rgba(255,255,255,.9);font-size:14px;line-height:1.6;}
+.qp-lead{font-weight:700;font-size:15.5px;color:#5ee393;margin-bottom:9px;}
+.q-portal p{margin:0 0 8px;}
+.q-portal p:last-child{margin-bottom:0;}
+.q-portal ul{margin:6px 0 0;padding-left:20px;}
+.q-portal li{margin-bottom:5px;color:rgba(255,255,255,.82);}
 .q-sec{margin-bottom:8px;}
 .q-sec-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin:22px 0 4px;}
 .q-field{margin-bottom:15px;animation:qf .25s ease;}
@@ -347,17 +354,20 @@ async function submitForm(){
     var r = await window.sb.rpc('submit_clinic_questionnaire', { p_token: _token, p_answers: payload });
     if(r.error) throw new Error(r.error.message);
     // Account-linked convergence: turn this completed clinic patient into a
-    // bridge patient. Best-effort — never blocks completion.
-    var portalMsg = 'Your clinic will set up your patient portal shortly.';
+    // bridge patient. Best-effort -- never blocks completion, never surfaces
+    // a technical error to the patient (defaults to a calm "activating" note).
+    var portal = { state: 'pending', email_sent: false };
     try {
       var cv = await window.sb.functions.invoke('convert_clinic_patient', { body: { token: _token } });
       var d = (cv && cv.data) || null;
-      if(d && (d.status==='converted' || d.status==='already'))
-        portalMsg = 'Your secure patient portal is ready — check your email for a sign-in link to upload documents and view your plan. If it does not arrive, your clinic can send it to you.';
-      else if(d && d.status==='needs_email')
-        portalMsg = 'To upload documents and view your plan online, ask your clinic to add your email address.';
-    } catch(_e){ /* conversion is best-effort; questionnaire is already saved */ }
-    renderDone(payload, portalMsg);
+      if(d){
+        if(d.status==='converted' || d.status==='already'){ portal.state='converted'; portal.email_sent = !!d.email_sent; }
+        else if(d.status==='needs_email') portal.state='needs_email';
+        else if(d.status==='conflict') portal.state='conflict';
+        // not_ready / error -> leave 'pending' (calm "activating" message)
+      }
+    } catch(_e){ /* keep 'pending'; never show the patient a technical error */ }
+    renderDone(payload, portal);
   } catch(e){
     btn.disabled = false; btn.textContent = 'Submit questionnaire';
     alert('Unable to save questionnaire. Please try again.');
@@ -365,7 +375,35 @@ async function submitForm(){
 }
 window.submitForm = submitForm;
 
-function renderDone(answers, portalMsg){
+// Secondary (green) portal-status block beneath the primary success message.
+// Calm, reassuring, patient-facing; never shows technical/auth/Supabase detail.
+function portalBlockHtml(portal){
+  if(!portal) return '';
+  var lead = '<div class="qp-lead">&#9989; Questionnaire submitted successfully</div>';
+  var body;
+  if(portal.state === 'converted'){
+    var emailLine = portal.email_sent
+      ? 'Check your email for your secure sign-in link, where you can:'
+      : 'Your portal has been activated. Your clinic will send your secure access link shortly. From your portal you can:';
+    body = '<p>Your secure Anestheo patient portal is now ready.</p>' +
+      '<p>' + emailLine + '</p>' +
+      '<ul><li>Upload requested documents</li>' +
+      '<li>View your anesthesia preparation plan</li>' +
+      '<li>Receive additional instructions from your anesthesiologist</li>' +
+      '<li>Track your surgery preparation progress</li></ul>';
+  } else if(portal.state === 'needs_email'){
+    body = '<p>Your questionnaire has been sent to your anesthesiologist.</p>' +
+      '<p>To enable document uploads, plan access, and future surgery instructions, your clinic must add your email address.</p>';
+  } else if(portal.state === 'conflict'){
+    body = '<p>Your questionnaire has been received.</p>' +
+      '<p>Your patient portal requires verification before activation. Your clinic will contact you if any action is required.</p>';
+  } else { // pending / failure / unavailable
+    body = '<p>Your questionnaire has been received.</p>' +
+      '<p>Your patient portal is being activated and may take a few minutes.</p>';
+  }
+  return '<div class="q-portal">' + lead + body + '</div>';
+}
+function renderDone(answers, portal){
   var a = answers || {};
   var s = a._scores || {};
   var flags = a._flags || [];
@@ -407,7 +445,7 @@ function renderDone(answers, portalMsg){
     '<div class="cs-wrap" id="print-area">' +
       '<div class="q-state" style="padding:24px 0 8px;"><div class="ico">&#9989;</div><h2>Questionnaire complete</h2>' +
         '<p>Thank you. Your anesthesia team will review your answers before surgery. Here is your preparation summary.</p></div>' +
-      (portalMsg ? '<div style="font-size:13.5px;color:#1B6B5A;background:rgba(27,107,90,.08);border:1px solid rgba(27,107,90,.25);border-radius:10px;padding:11px 14px;margin:0 0 14px;line-height:1.5;">&#128274; '+esc(portalMsg)+'</div>' : '') +
+      portalBlockHtml(portal) +
 
       '<div class="cs-journey-title no-print">Your surgery journey</div>' + '<div class="no-print">'+stepHtml+'</div>' +
       '<div class="cs-next no-print">Next step: <strong>Preparation checklist</strong> — your clinic will guide you on fasting and medications.</div>' +
