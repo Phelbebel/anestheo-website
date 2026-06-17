@@ -350,6 +350,7 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-pt-cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
 .ws-pt-form{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px;position:sticky;top:16px;}
 .ws-form-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:12px;}
+.wa-hint{font-size:11px;color:var(--hint);margin:5px 0 2px;line-height:1.45;}
 .ws-pt-form label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:11px 0 5px;}
 .ws-pt-form input,.ws-pt-form textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:42px;}
 .ws-pt-form textarea{min-height:58px;resize:vertical;}
@@ -1251,6 +1252,7 @@ function wsCollectAdd(){
     doctor_id: window.__wsUserId,
     patient_name: name,
     phone_number: document.getElementById('wa-phone').value.trim() || null,
+    email: (document.getElementById('wa-email') ? document.getElementById('wa-email').value.trim() : '') || null,
     procedure: document.getElementById('wa-proc').value.trim() || null,
     hospital: document.getElementById('wa-hospital').value.trim() || null,
     surgery_date: document.getElementById('wa-date').value || null,
@@ -1258,7 +1260,7 @@ function wsCollectAdd(){
   };
 }
 function wsClearForm(){
-  ['name','phone','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
+  ['name','phone','email','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
 }
 async function wsSavePatient(thenSend){
   var rec = wsCollectAdd(); if(!rec) return;
@@ -1692,6 +1694,8 @@ document.addEventListener('DOMContentLoaded', async function(){
               '<div class="ws-form-title">Add patient</div>' +
             '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
             '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
+            '<label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">' +
+            '<div class="wa-hint">Email required to enable full patient portal (document upload + plan). You can still save and send the questionnaire without it.</div>' +
             '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
             '<label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">' +
             '<label>Surgery date</label><input id="wa-date" type="date">' +
