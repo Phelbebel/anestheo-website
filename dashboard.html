@@ -622,17 +622,22 @@ function wsCardDispatch(card){
   if(k==='case') wsOpenCase(card.getAttribute('data-pid'));
   else if(k==='clinic') wsOpenClinic(card.getAttribute('data-cid'));
 }
-// Inline per-card handlers (travel with the rendered HTML — immune to listener
-// attachment timing / re-renders). Real controls (CTA, Accept/Decline) are
-// excluded so they never double-fire. No routing/business-logic change.
-function wsCardClick(e, el){
-  if(e.target.closest('button,a,input,select,textarea')) return;
-  wsCardDispatch(el);
-}
-function wsCardKey(e, el){
-  if(e.key==='Enter' || e.key===' ' || e.key==='Spacebar'){ e.preventDefault(); wsCardDispatch(el); }
-}
-window.wsCardClick=wsCardClick; window.wsCardKey=wsCardKey;
+// Bulletproof card activation: ONE document-level delegated listener, attached
+// once at script load. document always exists and is never re-created, so this
+// survives every innerHTML re-render and any async timing. Real controls
+// (CTA / Accept / Decline) are excluded, so nothing double-fires. Routing
+// unchanged: data-open=case -> wsOpenCase; data-open=clinic -> wsOpenClinic.
+document.addEventListener('click', function(e){
+  if(e.target.closest('button,a,input,select,textarea,label')) return;
+  var c=e.target.closest('.ac-card.clickable, .acs-card.clickable');
+  if(c) wsCardDispatch(c);
+});
+document.addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+  var el=document.activeElement; if(!el || !el.closest) return;
+  var c=el.closest('.ac-card.clickable, .acs-card.clickable');
+  if(c){ e.preventDefault(); wsCardDispatch(c); }
+});
 function wsActionCardHtml(c){
   var urgent=c.urgency&&c.urgency.critical;
   var rail=urgent?'urg':c.color;
@@ -641,7 +646,7 @@ function wsActionCardHtml(c){
   var surg=c.surgeryDate?('<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+wsEsc(c.urgency.label)+'</div>'):'<div class="ac-surg none">No surgery date set</div>';
   var subUrg=urgent&&c.urgentSub?'<div class="ac-sub urg">'+wsEsc(c.urgentSub)+'</div>':'';
   var when=c.eventLine?'<div class="ac-when">'+wsEsc(c.eventLine)+'</div>':'';
-  return '<div class="ac-card clickable rail-'+rail+(c.isNew?' is-new':'')+'" '+wsCardAttrs(c)+' onclick="wsCardClick(event,this)" onkeydown="wsCardKey(event,this)">'+
+  return '<div class="ac-card clickable rail-'+rail+(c.isNew?' is-new':'')+'" '+wsCardAttrs(c)+'>'+
     '<div class="ac-row"><span class="ac-rail"></span>'+
       '<div class="ac-body">'+
         '<div class="ac-top"><span class="ac-headline">'+head+'</span>'+newBadge+'</div>'+
@@ -696,7 +701,7 @@ function wsRenderActionCenter(){
 function wsActiveCardHtml(c){
   var word=c.color==='yellow'?'WAITING ON PATIENT':(c.color==='green'?'APPROVED':c.headline.toUpperCase());
   var surg=c.surgeryDate?wsEsc(c.urgency.label):'No surgery date';
-  return '<div class="acs-card clickable rail-'+c.color+'" '+wsCardAttrs(c)+' onclick="wsCardClick(event,this)" onkeydown="wsCardKey(event,this)">'+
+  return '<div class="acs-card clickable rail-'+c.color+'" '+wsCardAttrs(c)+'>'+
     '<div class="ac-row"><span class="ac-rail"></span><div class="ac-body">'+
     '<div class="acs-status">'+wsColorIcon(c.color)+' '+word+'</div>'+
     '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
