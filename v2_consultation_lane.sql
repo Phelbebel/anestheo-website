@@ -14,8 +14,16 @@
 ALTER TABLE public.care_requests
   ADD COLUMN IF NOT EXISTS is_consultation boolean NOT NULL DEFAULT false;
 
+-- Phase 1: private consultation notes (advice-only). One additive TEXT column.
+-- Only the owning doctor reads/writes it (existing cr_update policy covers it).
+-- No messages, attachments, storage, notifications or chat backend -- just a
+-- per-consultation note that syncs across the doctor's devices via Supabase.
+ALTER TABLE public.care_requests
+  ADD COLUMN IF NOT EXISTS consult_notes text;
+
 NOTIFY pgrst, 'reload schema';
 -- ============================================================
--- Done. Accept-as-Consultation / Convert-to-Surgical / Close just flip this
--- flag (or set status='closed') via the doctor's existing update permission.
+-- Done. Accept-as-Consultation / Convert-to-Surgical / Close just flip the
+-- is_consultation flag (or set status='closed'); Save note writes consult_notes
+-- -- all via the doctor's existing update permission.
 -- ============================================================
