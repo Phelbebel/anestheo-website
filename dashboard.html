@@ -377,22 +377,23 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-consult-meta{font-size:12.5px;color:var(--muted);margin-top:1px;}
 .ws-consult-msg{font-size:12.5px;color:var(--hint);font-style:italic;margin-top:3px;}
 .ws-consult-acts{display:flex;gap:7px;flex-wrap:wrap;flex:0 0 auto;}
-/* Phase 1 - expandable consultation card (advice-only; private notes) */
-.ws-cc{background:rgba(61,139,220,.05);border:1px solid rgba(61,139,220,.22);border-radius:11px;margin-bottom:8px;overflow:hidden;}
-.ws-cc.open{border-color:rgba(61,139,220,.5);background:rgba(61,139,220,.08);}
-.ws-cc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;}
-.ws-cc-head:hover{background:rgba(61,139,220,.06);}
-.ws-cc-snip{font-size:12.5px;color:var(--hint);margin-top:2px;}
-.ws-cc-chev{color:#9fb8d6;font-size:15px;transition:transform .18s;flex:0 0 auto;}
-.ws-cc.open .ws-cc-chev{transform:rotate(90deg);}
-.ws-cc-body{display:none;padding:2px 16px 16px;border-top:1px solid rgba(61,139,220,.18);}
-.ws-cc.open .ws-cc-body{display:block;}
-.ws-cc-l{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin:15px 0 6px;}
-.ws-cc-v{font-size:13.5px;color:var(--dim,#d6e6e0);}
-.ws-cc-reason{font-size:13.5px;color:#cfe;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-style:italic;}
-.ws-cc-hint{font-size:11px;color:var(--muted);margin:6px 0 0;}
-.ws-cc-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
-.ws-cc-guard{font-size:11.5px;color:#ffd79a;background:rgba(255,205,107,.07);border:1px solid rgba(255,205,107,.2);border-radius:8px;padding:8px 11px;margin-top:14px;}
+/* Phase A - Active Consultations rows open a dedicated workspace */
+.ws-consult-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(61,139,220,.05);border:1px solid rgba(61,139,220,.22);border-radius:11px;padding:12px 15px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s;}
+.ws-consult-row:hover{border-color:rgba(61,139,220,.5);background:rgba(61,139,220,.09);}
+.ws-consult-open{flex:0 0 auto;font-size:12.5px;font-weight:700;color:#7ECFC0;}
+/* consultation workspace bits (reuses the surgical #ws-ws overlay) */
+.ws-consult-banner{font-size:12px;color:#bcd9f5;background:rgba(61,139,220,.1);border:1px solid rgba(61,139,220,.3);border-radius:9px;padding:9px 13px;margin-bottom:6px;}
+.ws-consult-reason{font-size:13.5px;color:#cfe;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-style:italic;}
+/* Recommendations widget - shared by consultation AND surgical workspaces */
+.ws-rec{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:11px 12px;margin-bottom:9px;}
+.ws-rec-body{width:100%;min-height:46px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px;color:#fff;font-size:13.5px;font-family:inherit;resize:vertical;box-sizing:border-box;}
+.ws-rec-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;}
+.ws-rec-vis{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim,#cfe);cursor:pointer;}
+.ws-rec-st{font-size:10.5px;font-weight:700;border-radius:20px;padding:2px 9px;border:1px solid var(--border);color:var(--muted);background:rgba(255,255,255,.05);}
+.ws-rec-st.pub{color:#5ee393;border-color:rgba(37,211,102,.4);background:rgba(37,211,102,.1);}
+.ws-rec-acts{margin-left:auto;display:flex;gap:7px;}
+.ws-rec-add{display:flex;gap:8px;margin-top:6px;}
+.ws-rec-add input{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;}
 .ws-invite-band{margin-top:26px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025);}
 .ws-invite-head{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
 .ws-invite-sub{font-size:12.5px;color:var(--muted);margin:3px 0 14px;}
@@ -526,7 +527,7 @@ function wsDeriveStatus(p){
 // review, approval) are reused unchanged.
 // ============================================================
 var URGENCY_CRITICAL=2, URGENCY_SOON=7;
-var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsConsultOpen=null;
+var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all';
 function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
 function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
 function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
@@ -699,55 +700,113 @@ function wsRenderConsultations(){
   var box=document.getElementById('ws-consultations'); if(!box) return;
   var hn=document.getElementById('ws-consult-n'); if(hn) hn.textContent=_wsConsults.length||'';
   if(!_wsConsults.length){ box.innerHTML='<div class="ws-consult-empty">No active consultations.</div>'; return; }
-  // Each consultation is an expandable, advice-only card. Bodies are rendered
-  // up front and shown/hidden via a class toggle, so the private-notes textarea
-  // is never destroyed (keeps focus + unsaved text on expand/collapse).
+  // Each consultation is a row that opens the dedicated consultation workspace
+  // (same #ws-ws overlay + same patient record/documents as the surgical side).
   box.innerHTML=_wsConsults.map(function(q){
-    var open=(_wsConsultOpen===q.id);
-    var sent=q.requested_at?new Date(q.requested_at).toLocaleDateString():(q.responded_at?new Date(q.responded_at).toLocaleDateString():'');
-    var snip=q.message?('&ldquo;'+wsEsc(q.message.length>70?q.message.slice(0,70)+'…':q.message)+'&rdquo;'):'Consultation / advice';
-    return '<div class="ws-cc'+(open?' open':'')+'" id="ws-cc-'+q.id+'">'+
-      '<div class="ws-cc-head" onclick="wsToggleConsult(\''+q.id+'\')">'+
-        '<div><div class="ws-consult-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
-        '<div class="ws-cc-snip">'+snip+'</div></div>'+
-        '<span class="ws-cc-chev">&rsaquo;</span>'+
-      '</div>'+
-      '<div class="ws-cc-body">'+
-        '<div class="ws-cc-l">Patient information</div>'+
-        '<div class="ws-cc-v">Name: <b>'+wsEsc(q.patient_name||'Patient')+'</b>'+(sent?' &middot; Sent: '+sent:'')+' &middot; Status: Active consultation</div>'+
-        '<div class="ws-cc-l">Consultation reason</div>'+
-        '<div class="ws-cc-reason">'+(q.message?('&ldquo;'+wsEsc(q.message)+'&rdquo;'):'No reason provided.')+'</div>'+
-        '<div class="ws-cc-l">Private notes <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted);">&mdash; only you can see these</span></div>'+
-        '<textarea class="ws-notes" id="ws-cn-'+q.id+'" placeholder="Type private notes for this consultation…">'+wsEsc(q.consult_notes||'')+'</textarea>'+
-        '<div class="ws-cc-hint">Saved to your account &mdash; syncs across iPad, Mac, Windows &amp; iPhone.</div>'+
-        '<div class="ws-cc-acts">'+
-          '<button class="ws-btn pc-green" onclick="wsSaveConsultNotes(\''+q.id+'\')">Save note</button>'+
-          '<button class="ws-btn" onclick="wsCloseConsult(\''+q.id+'\')">Close</button>'+
-          '<button class="ws-btn ws-btn-consult" onclick="wsConvertConsult(\''+q.id+'\')">Convert to Surgical &rarr;</button>'+
-        '</div>'+
-        '<div class="ws-cc-guard">Never enters Action Center, Active Cases, questionnaire review or surgical approval &mdash; unless you click Convert to Surgical.</div>'+
-      '</div></div>';
+    var snip=q.message?('&ldquo;'+wsEsc(q.message.length>72?q.message.slice(0,72)+'…':q.message)+'&rdquo;'):'Consultation / advice';
+    var when=q.responded_at?new Date(q.responded_at).toLocaleDateString():(q.requested_at?new Date(q.requested_at).toLocaleDateString():'');
+    return '<div class="ws-consult-row" onclick="wsOpenConsult(\''+q.id+'\')">'+
+      '<div class="ws-consult-info"><div class="ws-consult-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
+      '<div class="ws-consult-msg">'+snip+'</div>'+
+      (when?'<div class="ws-consult-meta">Started '+when+'</div>':'')+'</div>'+
+      '<div class="ws-consult-open">Open workspace &rarr;</div></div>';
   }).join('');
 }
-// Expand/collapse a single consultation. Preserves any unsaved note text in
-// other cards because we only toggle classes, never re-render on toggle.
-function wsToggleConsult(id){
-  _wsConsultOpen=(_wsConsultOpen===id)?null:id;
-  document.querySelectorAll('#ws-consultations .ws-cc').forEach(function(el){
-    el.classList.toggle('open', el.id==='ws-cc-'+_wsConsultOpen);
-  });
+
+// ── Recommendations widget (shared: consultation AND surgical workspaces) ──
+// One system, keyed to surgery_id on the patient record. Each item carries a
+// visible_to_patient toggle: false = internal draft, true = published to portal.
+async function wsFetchRecs(surgeryId){
+  if(!surgeryId) return [];
+  try{ var r=await window.sb.from('patient_recommendations').select('*').eq('surgery_id',surgeryId).order('created_at',{ascending:true}); return (r&&r.data)||[]; }catch(e){ return []; }
 }
-async function wsSaveConsultNotes(id){
-  var ta=document.getElementById('ws-cn-'+id); if(!ta) return;
-  var val=ta.value;
-  try{
-    var u=await window.sb.from('care_requests').update({ consult_notes:val }).eq('id', id);
-    if(u&&u.error) throw new Error(u.error.message);
-    var row=_wsConsults.filter(function(c){return c.id===id;})[0]; if(row) row.consult_notes=val;
-    wsToast('Note saved');
-  }catch(e){ wsToast('Save failed: '+(e.message||'error')); }
+function wsRenderRecs(){
+  var host=document.getElementById('ws-recs'); if(!host||!_wsCtx) return;
+  var recs=_wsCtx.recs||[];
+  var list=recs.length?recs.map(function(r){
+    return '<div class="ws-rec" id="ws-rec-'+r.id+'">'+
+      '<textarea class="ws-rec-body" id="ws-rec-body-'+r.id+'">'+wsEsc(r.body||'')+'</textarea>'+
+      '<div class="ws-rec-foot">'+
+        '<label class="ws-rec-vis"><input type="checkbox" '+(r.visible_to_patient?'checked':'')+' onchange="wsRecToggle(\''+r.id+'\',this.checked)"> Visible to patient</label>'+
+        '<span class="ws-rec-st'+(r.visible_to_patient?' pub':'')+'">'+(r.visible_to_patient?'Published to patient':'Internal draft')+'</span>'+
+        '<span class="ws-rec-acts"><button class="ws-btn" onclick="wsRecSave(\''+r.id+'\')">Save</button>'+
+        '<button class="ws-btn" onclick="wsRecDelete(\''+r.id+'\')">Delete</button></span>'+
+      '</div></div>';
+  }).join(''):'<div class="ws-ap-facts">No recommendations yet.</div>';
+  host.innerHTML=list+
+    '<div class="ws-rec-add"><input id="ws-rec-new" placeholder="Add a recommendation (e.g. Stop GLP-1 7 days before surgery)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wsRecAdd();}">'+
+    '<button class="ws-btn pc-green" onclick="wsRecAdd()">+ Add</button></div>';
 }
-window.wsToggleConsult=wsToggleConsult; window.wsSaveConsultNotes=wsSaveConsultNotes;
+async function wsRecAdd(){
+  if(!_wsCtx||!_wsCtx.surgeryId) return; var inp=document.getElementById('ws-rec-new'); if(!inp) return;
+  var v=(inp.value||'').trim(); if(!v) return;
+  var row={ surgery_id:_wsCtx.surgeryId, patient_id:_wsCtx.patientId, doctor_id:(window.__wsUserId||null), body:v, visible_to_patient:false };
+  try{ var r=await window.sb.from('patient_recommendations').insert(row).select().maybeSingle(); if(r&&r.error) throw new Error(r.error.message);
+    _wsCtx.recs=_wsCtx.recs||[]; _wsCtx.recs.push(r.data||row); inp.value=''; wsRenderRecs(); wsToast('Recommendation added'); }
+  catch(e){ wsToast('Add failed: '+(e.message||'error')); }
+}
+async function wsRecSave(id){
+  var ta=document.getElementById('ws-rec-body-'+id); if(!ta) return;
+  try{ var r=await window.sb.from('patient_recommendations').update({ body:ta.value, updated_at:new Date().toISOString() }).eq('id',id); if(r&&r.error) throw new Error(r.error.message);
+    var row=(_wsCtx.recs||[]).filter(function(x){return x.id===id;})[0]; if(row) row.body=ta.value; wsToast('Recommendation saved'); }
+  catch(e){ wsToast('Save failed: '+(e.message||'error')); }
+}
+async function wsRecToggle(id,checked){
+  try{ var r=await window.sb.from('patient_recommendations').update({ visible_to_patient:checked, updated_at:new Date().toISOString() }).eq('id',id); if(r&&r.error) throw new Error(r.error.message);
+    var row=(_wsCtx.recs||[]).filter(function(x){return x.id===id;})[0]; if(row) row.visible_to_patient=checked; wsRenderRecs(); wsToast(checked?'Published to patient':'Set to internal'); }
+  catch(e){ wsToast('Update failed: '+(e.message||'error')); }
+}
+async function wsRecDelete(id){
+  if(!window.confirm('Delete this recommendation?')) return;
+  try{ var r=await window.sb.from('patient_recommendations').delete().eq('id',id); if(r&&r.error) throw new Error(r.error.message);
+    _wsCtx.recs=(_wsCtx.recs||[]).filter(function(x){return x.id!==id;}); wsRenderRecs(); wsToast('Recommendation deleted'); }
+  catch(e){ wsToast('Delete failed: '+(e.message||'error')); }
+}
+window.wsRecAdd=wsRecAdd; window.wsRecSave=wsRecSave; window.wsRecToggle=wsRecToggle; window.wsRecDelete=wsRecDelete;
+
+// ── Consultation workspace (reuses the #ws-ws overlay + shared reads) ──
+async function wsOpenConsult(id){
+  var cr=(_wsConsults||[]).filter(function(x){return x.id===id;})[0]; if(!cr) return;
+  var surgeryId=cr.surgery_id, patientId=cr.patient_id;
+  var surgery={}, quest={}, docs=[];
+  try{ if(surgeryId){ var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; } }catch(e){}
+  try{ if(patientId){ var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; } }catch(e){}
+  try{ if(surgeryId){ var dr=await window.sb.from('requirement_documents').select('*').eq('surgery_id',surgeryId).order('uploaded_at',{ascending:true}); docs=(dr&&dr.data)||[]; } }catch(e){}
+  var recs=await wsFetchRecs(surgeryId);
+  _wsCtx={ mode:'consult', careId:cr.id, patientId:patientId, surgeryId:surgeryId, name:cr.patient_name||'Patient',
+    surgery:surgery, quest:quest, docs:docs, recs:recs, message:cr.message||'', consultNotes:cr.consult_notes||'' };
+  wsRenderConsultWorkspace();
+  document.getElementById('ws-ws').classList.add('open');
+}
+function wsRenderConsultWorkspace(){
+  var c=_wsCtx; if(!c) return;
+  var a=(c.quest&&c.quest.answers)||{}, s=c.surgery||{};
+  document.getElementById('ws-ws-title').textContent=c.name||'Patient';
+  document.getElementById('ws-ws-sub').textContent=['Consultation · advice only', s.procedure_type].filter(Boolean).join(' · ');
+  function kc(l,v){ return '<div class="ws-kc"><i>'+l+'</i><b>'+wsEsc(v||'—')+'</b></div>'; }
+  var html='<div class="ws-consult-banner">&#128172; Consultation (advice only). This patient is NOT in the surgical pipeline until you Convert to Surgical.</div>'+
+    '<div class="ws-sec-t">A &middot; Patient information</div>'+
+    '<div class="ws-kv">'+kc('Name',c.name)+kc('Age',a.age)+kc('Sex',a.sex)+kc('Procedure',s.procedure_type)+kc('Surgery date',s.surgery_date?new Date(s.surgery_date).toLocaleDateString():'')+kc('Hospital',s.hospital)+'</div>'+
+    '<div class="ws-sec-t">B &middot; Consultation reason</div>'+
+    '<div class="ws-consult-reason">'+(c.message?('&ldquo;'+wsEsc(c.message)+'&rdquo;'):'No reason provided.')+'</div>'+
+    '<div class="ws-sec-t">C &middot; Patient documents <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(same repository as surgical)</span></div><div id="ws-docs"></div>'+
+    '<div class="ws-sec-t">D &middot; Recommendations <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(toggle to publish to the patient)</span></div><div id="ws-recs"></div>'+
+    '<div class="ws-sec-t">E &middot; Private notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal &mdash; never shown to the patient)</span></div>'+
+    '<textarea class="ws-notes" id="ws-consult-notes" placeholder="Private notes for this consultation">'+wsEsc(c.consultNotes||'')+'</textarea>'+
+    '<div class="ws-acts"><button class="ws-btn" onclick="wsSaveConsultWsNotes()">Save notes</button></div>'+
+    '<div class="ws-sec-t">F &middot; Resolve</div>'+
+    '<div class="ws-acts"><button class="ws-btn" onclick="wsCloseConsult(\''+c.careId+'\')">Close consultation</button>'+
+    '<button class="ws-btn pc-green" onclick="wsConvertConsult(\''+c.careId+'\')">Convert to Surgical &rarr;</button></div>';
+  document.getElementById('ws-ws-body').innerHTML=html;
+  wsRenderDocs(); wsRenderRecs();
+}
+async function wsSaveConsultWsNotes(){
+  var ta=document.getElementById('ws-consult-notes'); if(!ta||!_wsCtx) return;
+  try{ var u=await window.sb.from('care_requests').update({ consult_notes:ta.value }).eq('id',_wsCtx.careId); if(u&&u.error) throw new Error(u.error.message);
+    var row=(_wsConsults||[]).filter(function(x){return x.id===_wsCtx.careId;})[0]; if(row) row.consult_notes=ta.value;
+    wsToast('Notes saved'); }catch(e){ wsToast('Save failed: '+(e.message||'error')); }
+}
+window.wsOpenConsult=wsOpenConsult; window.wsSaveConsultWsNotes=wsSaveConsultWsNotes;
 // 📨 Requests = incoming, pending (status='requested'). Triage into a lane.
 function wsRenderRequests(){
   var box=document.getElementById('ws-requests'); if(!box) return;
@@ -1017,10 +1076,11 @@ async function wsOpenPatient(patientId){
   }catch(e){}
   var docs=[];
   try { var dr=await window.sb.from('requirement_documents').select('*').eq('surgery_id',surgeryId).order('uploaded_at',{ascending:true}); docs=(dr&&dr.data)||[]; }catch(e){}
+  var recs=await wsFetchRecs(surgeryId);          // same recommendations system as the consultation workspace
   var reqMap=wsNormReqs(plan.requirements);
-  _wsCtx={ patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items,
+  _wsCtx={ mode:'surgical', patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items,
     notes:plan.notes||'', requirements:reqMap, planSavedAt:planSavedAt, version:planVersion,
-    history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs,
+    history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs, recs:recs,
     savedNotes:plan.notes||'', savedReqs:wsCloneReqs(reqMap) };
   wsRenderWorkspace();
   document.getElementById('ws-ws').classList.add('open');
@@ -1069,16 +1129,18 @@ function wsRenderWorkspace(){
   }
   // D2 Patient-submitted documents
   html+='<div class="ws-sum-title" style="margin:14px 0 4px;">&#128206; Submitted documents</div><div id="ws-docs"></div>';
+  // D3 Recommendations (same shared system as the consultation workspace)
+  html+='<div class="ws-sec-t">E &middot; Recommendations <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(toggle to publish to the patient)</span></div><div id="ws-recs"></div>';
   // E Doctor notes (internal - never shown to the patient)
-  html+='<div class="ws-sec-t">E &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
+  html+='<div class="ws-sec-t">F &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
     '<textarea class="ws-notes" id="ws-notes" '+(locked?'readonly ':'')+'placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
     (locked?'':'<div class="ws-acts"><button class="ws-btn" onclick="wsSaveDocNotes()">Save notes</button><span class="ws-save-st" id="ws-save-notes-st"></span></div>');
   // F Review actions
-  html+='<div class="ws-sec-t">F &middot; Review actions</div><div id="ws-review-actions">'+wsReviewActionsHtml(rs,c)+'</div>';
+  html+='<div class="ws-sec-t">G &middot; Review actions</div><div id="ws-review-actions">'+wsReviewActionsHtml(rs,c)+'</div>';
   // G Modification history / audit trail
-  html+='<div class="ws-sec-t">G &middot; Modification history</div><div id="ws-history"></div>';
+  html+='<div class="ws-sec-t">H &middot; Modification history</div><div id="ws-history"></div>';
   document.getElementById('ws-ws-body').innerHTML=html;
-  wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); wsRenderDocs();
+  wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); wsRenderDocs(); wsRenderRecs();
 }
 // ── Patient-submitted documents (view / download / mark reviewed) ──
 function wsRenderDocs(){
@@ -1210,16 +1272,16 @@ async function wsRespondRequest(id, decision, asConsult){
 }
 // 💬 Consultation actions (single-flag writes; no pipeline, no auto-approval).
 async function wsConvertConsult(id){
-  if(!window.confirm('Convert this consultation into a surgical patient? They enter your pre-operative workflow (questionnaire, requirements, documents, review, approval).')) return;
+  if(!window.confirm('Convert this consultation into a surgical patient? They enter your pre-operative workflow (questionnaire, requirements, documents, review, approval). All documents, notes and recommendations stay on the same record.')) return;
   try { var u=await window.sb.from('care_requests').update({ is_consultation:false }).eq('id', id); if(u&&u.error) throw new Error(u.error.message); wsToast('Converted to surgical patient'); }
   catch(e){ wsToast('Convert failed: '+(e.message||'error')); return; }
-  wsLoadCases();
+  wsCloseWorkspace(); wsLoadCases();
 }
 async function wsCloseConsult(id){
   if(!window.confirm('Close this consultation? It will be removed from your active list.')) return;
   try { var u=await window.sb.from('care_requests').update({ status:'closed', responded_at:new Date().toISOString() }).eq('id', id); if(u&&u.error) throw new Error(u.error.message); wsToast('Consultation closed'); }
   catch(e){ wsToast('Close failed: '+(e.message||'error')); return; }
-  wsLoadCases();
+  wsCloseWorkspace(); wsLoadCases();
 }
 window.wsConvertConsult=wsConvertConsult; window.wsCloseConsult=wsCloseConsult;
 
