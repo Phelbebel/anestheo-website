@@ -356,8 +356,17 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-surg-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:4px 0 14px;}
 .ws-surg-t{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:#fff;}
 .ws-surg-sub{font-size:13px;color:var(--muted);}
-/* SECTION 2 — Consultation Requests (secondary, visually smaller/quieter) */
-.ws-consult-sec{margin-top:34px;padding:16px 18px;border:1px solid rgba(61,139,220,.28);border-radius:14px;background:rgba(61,139,220,.035);}
+/* SECTION 2 — Consultations (secondary). SECTION 3 — Requests (smallest). */
+.ws-consult-sec{margin-top:30px;padding:16px 18px;border:1px solid rgba(61,139,220,.28);border-radius:14px;background:rgba(61,139,220,.035);}
+.ws-btn-consult{background:rgba(61,139,220,.16)!important;border:1px solid rgba(61,139,220,.45)!important;color:#bcd9f5!important;}
+.ws-btn-consult:hover{background:rgba(61,139,220,.28)!important;color:#fff!important;}
+/* Requests = smallest, quietest inbox at the very bottom */
+.ws-requests-sec{margin-top:18px;padding:12px 14px;border:1px dashed rgba(255,255,255,.16);border-radius:12px;background:rgba(255,255,255,.015);}
+.ws-requests-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px;}
+.ws-requests-t{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hint);}
+.ws-requests-n{font-size:10.5px;font-weight:700;color:#fff;background:rgba(255,255,255,.22);border-radius:20px;padding:1px 7px;min-width:7px;text-align:center;}
+.ws-req-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:6px;}
+.ws-req-acts{display:flex;gap:6px;flex-wrap:wrap;flex:0 0 auto;}
 .ws-consult-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px;}
 .ws-consult-t{font-size:14px;font-weight:700;letter-spacing:.02em;color:#9fb8d6;}
 .ws-consult-n{font-size:11px;font-weight:700;color:#fff;background:rgba(61,139,220,.45);border-radius:20px;padding:1px 8px;min-width:8px;text-align:center;}
@@ -501,7 +510,7 @@ function wsDeriveStatus(p){
 // review, approval) are reused unchanged.
 // ============================================================
 var URGENCY_CRITICAL=2, URGENCY_SOON=7;
-var _wsCases=[], _wsRequests=[], _wsCaseFilter='all';
+var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all';
 function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
 function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
 function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
@@ -538,10 +547,15 @@ async function wsLoadCases(){
   var crs=[];
   try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).in('status',['requested','accepted']); crs=(r&&r.data)||[]; }catch(e){}
   var accepted=crs.filter(function(c){return c.status==='accepted';});
+  // Lane split: consultations (advice-only) are kept entirely out of the
+  // surgical pipeline; only surgical-accepted patients build the Action Center.
+  var surgicalAccepted=accepted.filter(function(c){return !c.is_consultation;});
+  _wsConsults=accepted.filter(function(c){return !!c.is_consultation;})
+    .sort(function(a,b){ return new Date(b.responded_at||0)-new Date(a.responded_at||0); });
   _wsRequests=crs.filter(function(c){return c.status==='requested';})
     .sort(function(a,b){ return new Date(a.requested_at||0)-new Date(b.requested_at||0); });
-  var pids=accepted.map(function(c){return c.patient_id;});
-  var sids=accepted.map(function(c){return c.surgery_id;}).filter(Boolean);
+  var pids=surgicalAccepted.map(function(c){return c.patient_id;});
+  var sids=surgicalAccepted.map(function(c){return c.surgery_id;}).filter(Boolean);
   var surg={},q={},chk={},docInfo={};
   if(sids.length){ try{ var s=await window.sb.from('patient_surgeries').select('*').in('id',sids); ((s&&s.data)||[]).forEach(function(x){surg[x.id]=x;}); }catch(e){} }
   if(pids.length){ try{ var qq=await window.sb.from('preop_questionnaires').select('patient_id,status,completion,review_state,updated_at').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){q[x.patient_id]=x;}); }catch(e){} }
@@ -552,7 +566,7 @@ async function wsLoadCases(){
   try { var cp=await window.sb.from('clinic_patients').select('*').eq('doctor_id',uid); clinics=(cp&&cp.data)||[]; }catch(e){}
 
   var cases=[]; _wsActiveMap={};
-  accepted.forEach(function(c){
+  surgicalAccepted.forEach(function(c){
     var sg=surg[c.surgery_id]||{};
     if(sg.completed_at) return;                 // completed -> Archive (Phase 5), excluded
     _wsActiveMap[c.patient_id]={name:c.patient_name,surgeryId:c.surgery_id};
@@ -562,7 +576,8 @@ async function wsLoadCases(){
   _wsCases=cases;
   wsRenderActionCenter();
   wsRenderActiveCases();
-  wsRenderConsultRequests();
+  wsRenderConsultations();
+  wsRenderRequests();
 }
 function wsDeriveBridge(c, sg, qd, prepN, docG){
   var rs=qd.review_state||'not_submitted', urg=wsUrgency(sg.surgery_date);
@@ -662,18 +677,38 @@ function wsActionCardHtml(c){
 // SECTION 2 (secondary): consultation requests render into their own block,
 // NEVER inside the surgical Action Center. Not card-clickable; only the
 // Accept/Decline buttons act. _wsRequests = care_requests status='requested'.
-function wsRenderConsultRequests(){
-  var box=document.getElementById('ws-consult-requests'); if(!box) return;
-  var hn=document.getElementById('ws-consult-n'); if(hn) hn.textContent=_wsRequests.length||'';
-  if(!_wsRequests.length){ box.innerHTML='<div class="ws-consult-empty">No new consultation requests.</div>'; return; }
-  box.innerHTML=_wsRequests.map(function(q){
-    var facts=[q.procedure, q.surgery_date?new Date(q.surgery_date).toLocaleDateString():''].filter(Boolean).join(' · ');
+// 💬 Consultations = accepted advice-only patients (is_consultation=true).
+// They never appear in the Action Center / Active Cases / pre-op pipeline.
+function wsRenderConsultations(){
+  var box=document.getElementById('ws-consultations'); if(!box) return;
+  var hn=document.getElementById('ws-consult-n'); if(hn) hn.textContent=_wsConsults.length||'';
+  if(!_wsConsults.length){ box.innerHTML='<div class="ws-consult-empty">No active consultations.</div>'; return; }
+  box.innerHTML=_wsConsults.map(function(q){
+    var when=q.responded_at?('accepted '+new Date(q.responded_at).toLocaleDateString()):'';
     return '<div class="ws-consult-card"><div class="ws-consult-info">'+
       '<div class="ws-consult-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
-      '<div class="ws-consult-meta">'+wsEsc(facts||'Pre-operative review requested')+'</div>'+
+      '<div class="ws-consult-meta">Consultation / advice'+(when?' &middot; '+when:'')+'</div>'+
       (q.message?'<div class="ws-consult-msg">&ldquo;'+wsEsc(q.message)+'&rdquo;</div>':'')+'</div>'+
-      '<div class="ws-consult-acts"><button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\')">Accept</button>'+
-      '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button></div></div>';
+      '<div class="ws-consult-acts"><button class="ws-btn" onclick="wsCloseConsult(\''+q.id+'\')">Close</button>'+
+      '<button class="ws-btn pc-green" onclick="wsConvertConsult(\''+q.id+'\')">Convert to Surgical &rarr;</button></div></div>';
+  }).join('');
+}
+// 📨 Requests = incoming, pending (status='requested'). Triage into a lane.
+function wsRenderRequests(){
+  var box=document.getElementById('ws-requests'); if(!box) return;
+  var hn=document.getElementById('ws-requests-n'); if(hn) hn.textContent=_wsRequests.length||'';
+  if(!_wsRequests.length){ box.innerHTML='<div class="ws-consult-empty">No new requests.</div>'; return; }
+  box.innerHTML=_wsRequests.map(function(q){
+    var facts=[q.procedure, q.surgery_date?new Date(q.surgery_date).toLocaleDateString():''].filter(Boolean).join(' · ');
+    return '<div class="ws-req-row"><div class="ws-consult-info">'+
+      '<div class="ws-consult-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
+      (facts?'<div class="ws-consult-meta">'+wsEsc(facts)+'</div>':'')+
+      (q.message?'<div class="ws-consult-msg">&ldquo;'+wsEsc(q.message)+'&rdquo;</div>':'')+'</div>'+
+      '<div class="ws-req-acts">'+
+        '<button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\',false)">Accept as Surgical</button>'+
+        '<button class="ws-btn ws-btn-consult" onclick="wsRespondRequest(\''+q.id+'\',\'accept\',true)">Accept as Consultation</button>'+
+        '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button>'+
+      '</div></div>';
   }).join('');
 }
 function wsRenderSrcTabs(){
@@ -1102,17 +1137,36 @@ window.wsSaveDocNotes=wsSaveDocNotes; window.wsSavePlan=wsSavePlan; window.wsReq
 window.wsApprovePrompt=wsApprovePrompt; window.wsCfmClose=wsCfmClose; window.wsApproveConfirm=wsApproveConfirm; window.wsReopenReview=wsReopenReview;
 window.wsReqToggle=wsReqToggle; window.wsReqAdd=wsReqAdd; window.wsReqRemove=wsReqRemove;
 
-async function wsRespondRequest(id, decision){
+async function wsRespondRequest(id, decision, asConsult){
   var reason = null;
   if(decision === 'decline'){ reason = window.prompt('Optional reason for declining (the patient sees this):') || null; }
   try {
     var r = await window.sb.rpc('respond_care_request', { p_request_id: id, p_decision: decision, p_reason: reason });
     if(r && r.error) throw new Error(r.error.message);
-    wsToast(decision === 'accept' ? 'Patient connected' : 'Request declined');
+    if(decision === 'accept' && asConsult){
+      // Tag the relationship as advice-only (kept out of the surgical pipeline).
+      var u = await window.sb.from('care_requests').update({ is_consultation:true }).eq('id', id);
+      if(u && u.error) throw new Error(u.error.message);
+    }
+    wsToast(decision !== 'accept' ? 'Request declined' : (asConsult ? 'Accepted as consultation' : 'Accepted as surgical patient'));
   } catch(e){ wsToast('Failed: ' + (e.message||'error')); }
   wsLoadCases();
   wsLoadPatients();
 }
+// 💬 Consultation actions (single-flag writes; no pipeline, no auto-approval).
+async function wsConvertConsult(id){
+  if(!window.confirm('Convert this consultation into a surgical patient? They enter your pre-operative workflow (questionnaire, requirements, documents, review, approval).')) return;
+  try { var u=await window.sb.from('care_requests').update({ is_consultation:false }).eq('id', id); if(u&&u.error) throw new Error(u.error.message); wsToast('Converted to surgical patient'); }
+  catch(e){ wsToast('Convert failed: '+(e.message||'error')); return; }
+  wsLoadCases();
+}
+async function wsCloseConsult(id){
+  if(!window.confirm('Close this consultation? It will be removed from your active list.')) return;
+  try { var u=await window.sb.from('care_requests').update({ status:'closed', responded_at:new Date().toISOString() }).eq('id', id); if(u&&u.error) throw new Error(u.error.message); wsToast('Consultation closed'); }
+  catch(e){ wsToast('Close failed: '+(e.message||'error')); return; }
+  wsLoadCases();
+}
+window.wsConvertConsult=wsConvertConsult; window.wsCloseConsult=wsCloseConsult;
 
 async function wsLoadPatients(){
   _wsDoctorId = window.__wsUserId || null;
@@ -1824,12 +1878,19 @@ document.addEventListener('DOMContentLoaded', async function(){
           '</div>' +
         '</div>' +
         '</div>' +
-        // ════════ SECTION 2 (secondary) — Consultation Requests ════════
+        // ════════ SECTION 2 (secondary) — Consultations (advice-only) ════════
         '<div class="ws-consult-sec">' +
-          '<div class="ws-consult-head"><span class="ws-consult-t">&#128233; Consultation Requests</span>' +
+          '<div class="ws-consult-head"><span class="ws-consult-t">&#128172; Consultations</span>' +
             '<span class="ws-consult-n" id="ws-consult-n"></span>' +
-            '<span class="ws-consult-sub">People who found you and want to connect &mdash; not yet surgical patients</span></div>' +
-          '<div id="ws-consult-requests"></div>' +
+            '<span class="ws-consult-sub">Advice / second opinion &mdash; not in the surgical workflow</span></div>' +
+          '<div id="ws-consultations"></div>' +
+        '</div>' +
+        // ════════ SECTION 3 (smallest) — Requests (incoming inbox) ════════
+        '<div class="ws-requests-sec">' +
+          '<div class="ws-requests-head"><span class="ws-requests-t">&#128233; Requests</span>' +
+            '<span class="ws-requests-n" id="ws-requests-n"></span>' +
+            '<span class="ws-consult-sub">New people who found you &mdash; accept as surgical or consultation</span></div>' +
+          '<div id="ws-requests"></div>' +
         '</div>' +
       '</div>';
 

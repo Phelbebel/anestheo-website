@@ -116,6 +116,16 @@ body.embed .eng-wrap{padding-top:14px;}
 .lt-card.tq-crit{background:rgba(192,57,43,.18);animation:tq-flash 1.1s ease-in-out infinite;}
 .lt-card.tq-crit .lt-time,.lt-card.tq-crit .lt-state{color:#ff7a63;}
 @keyframes tq-flash{0%,100%{box-shadow:inset 0 0 0 0 rgba(192,57,43,0);}50%{box-shadow:inset 0 0 24px 2px rgba(192,57,43,.5);}}
+/* Collapsed preop labs drawer (off the main rapid screen) */
+.labs-drawer{margin:0 0 14px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.025);padding:0 14px;}
+.labs-drawer>summary{cursor:pointer;list-style:none;font-size:12px;font-weight:700;letter-spacing:.03em;color:#8FD9C6;padding:11px 0;user-select:none;}
+.labs-drawer>summary::-webkit-details-marker{display:none;}
+.labs-drawer>summary::before{content:'+ ';font-weight:700;}
+.labs-drawer[open]>summary::before{content:'\2212 ';}
+.labs-drawer .input-bar{background:none;border:none;border-radius:0;padding:0 0 16px;margin:0;}
+/* PACU / Recovery module (separate from intraoperative timers) */
+.pacu-mod{background:#06120D;border:1px solid rgba(126,207,192,.2);border-radius:14px;padding:14px 16px;margin-top:16px;}
+.pacu-mod-head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7ECFC0;margin-bottom:11px;}
 /* PACU widget */
 .lt-card.pacu{flex:1 0 230px;min-width:230px;}
 .lt-pacu-row{display:flex;gap:6px;}
@@ -306,13 +316,16 @@ body.embed .eng-wrap{padding-top:14px;}
       <div class="inp"><label>ASA</label><select id="i-asa" onchange="compute()"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></div>
       <div class="inp"><label>Procedure</label><input id="i-proc" type="text" placeholder="e.g. Laparoscopy" oninput="compute()"></div>
     </div>
-    <div class="input-bar" style="margin-top:-4px;">
+    <details class="labs-drawer">
+      <summary>Preop labs &amp; assessment</summary>
+      <div class="input-bar" style="margin-top:8px;">
       <div class="inp"><label>Hb (g/dL)</label><input id="i-hb" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
       <div class="inp"><label>Platelets (×10³)</label><input id="i-plt" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
       <div class="inp"><label>INR</label><input id="i-inr" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
       <div class="inp"><label>Creatinine (mg/dL)</label><input id="i-cr" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
       <div class="inp"><label>Sodium (mmol/L)</label><input id="i-na" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
-    </div>
+      </div>
+    </details>
     <div class="pt-banner" id="pt-banner" style="display:none"></div>
     <div class="disclaimer"><strong>Reference only.</strong> All values are standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment and verify against current guidelines and product labeling.</div>
 
@@ -345,28 +358,30 @@ body.embed .eng-wrap{padding-top:14px;}
           <div class="lt-state" id="lt-tourn-state">Not inflated</div>
           <div class="lt-btns" id="lt-tourn-btns"></div>
         </div>
-        <div class="lt-card pacu" id="lt-pacu">
-          <div class="lt-head"><span class="lt-ico">&#129658;</span>PACU pain assessment</div>
-          <div class="lt-pacu-row">
-            <div class="lt-pf"><label>Pain 0-10</label><input id="lt-pain" type="number" min="0" max="10" inputmode="numeric" placeholder="-" oninput="ltPacu()"></div>
-            <div class="lt-pf"><label>Nausea 0-10</label><input id="lt-nausea" type="number" min="0" max="10" inputmode="numeric" placeholder="-" oninput="ltPacu()"></div>
-            <div class="lt-pf"><label>Sedation</label>
-              <select id="lt-sed" onchange="ltPacu()">
-                <option value="">-</option>
-                <option value="0">0 Alert</option>
-                <option value="1">1 Drowsy</option>
-                <option value="2">2 Asleep, rousable</option>
-                <option value="3">3 Deep / unrousable</option>
-              </select>
-            </div>
-          </div>
-          <div class="lt-rec" id="lt-rec">Enter scores for an educational suggestion.</div>
-        </div>
       </div>
     </div>
 
     <div id="output">
       <div class="empty-state"><div class="ico">&#129658;</div><p>Enter age, sex, height and weight to generate the dashboard.</p></div>
+    </div>
+
+    <!-- PACU / Recovery — separate from the intraoperative timer strip -->
+    <div class="pacu-mod">
+      <div class="pacu-mod-head"><span class="lt-ico">&#129658;</span> PACU / Recovery</div>
+      <div class="lt-pacu-row">
+        <div class="lt-pf"><label>Pain 0-10</label><input id="lt-pain" type="number" min="0" max="10" inputmode="numeric" placeholder="-" oninput="ltPacu()"></div>
+        <div class="lt-pf"><label>Nausea 0-10</label><input id="lt-nausea" type="number" min="0" max="10" inputmode="numeric" placeholder="-" oninput="ltPacu()"></div>
+        <div class="lt-pf"><label>Sedation / alertness</label>
+          <select id="lt-sed" onchange="ltPacu()">
+            <option value="">-</option>
+            <option value="0">0 Alert</option>
+            <option value="1">1 Drowsy</option>
+            <option value="2">2 Asleep, rousable</option>
+            <option value="3">3 Deep / unrousable</option>
+          </select>
+        </div>
+      </div>
+      <div class="lt-rec" id="lt-rec">Enter scores for an educational suggestion.</div>
     </div>
   </div>
 </div>
