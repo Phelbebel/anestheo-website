@@ -151,19 +151,13 @@ body.embed .eng-wrap{padding-top:14px;}
   color:#ff7a63;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;padding:0 16px;min-width:64px;transition:background .15s;}
 .mh-crisis span{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;}
 .mh-crisis:hover{background:rgba(192,57,43,.3);color:#fff;}
-/* Crisis overlay */
-.crisis-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.82);z-index:5000;align-items:flex-start;justify-content:center;padding:24px 14px;overflow-y:auto;}
-.crisis-bg.open{display:flex;}
-.crisis-modal{background:#0A1614;border:1px solid rgba(192,57,43,.35);border-radius:16px;max-width:680px;width:100%;overflow:hidden;}
-.crisis-head{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:rgba(192,57,43,.14);border-bottom:1px solid rgba(192,57,43,.25);}
-.crisis-title{font-size:18px;font-weight:700;color:#ff8a72;font-family:'Playfair Display',serif;}
-.crisis-x{background:none;border:none;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;}
-.crisis-wt{padding:9px 20px;font-size:12.5px;color:var(--hint);border-bottom:1px solid var(--border);}
-.crisis-wt b{color:#7ECFC0;}
-.crisis-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:13px 18px 4px;}
+/* Inline Crisis Center (no modal) */
+.crisis-wt-inline{font-size:12px;color:var(--hint);margin:8px 0 4px;}
+.crisis-wt-inline b{color:#7ECFC0;}
+.crisis-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px;}
 .crisis-tab{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:18px;padding:7px 13px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
 .crisis-tab.on{background:rgba(192,57,43,.22);border-color:rgba(192,57,43,.5);color:#fff;font-weight:600;}
-.crisis-body{padding:8px 20px 22px;}
+.crisis-body{padding:6px 0 2px;}
 .crisis-sec-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#ff8a72;margin:16px 0 7px;}
 .crisis-step{display:flex;gap:10px;font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.5;padding:5px 0;}
 .crisis-step b{color:#fff;}
@@ -241,11 +235,6 @@ body.embed .eng-wrap{padding-top:14px;}
 .panel.collapsed .panel-head{border-bottom:none;}
 .panel.collapsed .panel-body{display:none;}
 .crisis-panel{border-color:rgba(192,57,43,.35);}
-.crisis-card-grid{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
-.crisis-card-chip{font-size:11px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.32);color:#ffd0c4;border-radius:7px;padding:6px 9px;display:flex;flex-direction:column;gap:1px;}
-.crisis-card-chip b{color:#fff;font-size:12px;font-weight:700;}
-.crisis-open-btn{width:100%;background:rgba(192,57,43,.2);border:1px solid rgba(192,57,43,.45);color:#ff8a72;border-radius:9px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;}
-.crisis-open-btn:hover{background:rgba(192,57,43,.32);color:#fff;}
 .metric{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.14);}
 .metric:last-child{border-bottom:none;}
 .metric-label{font-size:13.5px;color:#e6f2ee;font-weight:500;}
@@ -303,7 +292,7 @@ body.embed .eng-wrap{padding-top:14px;}
         <div class="mh-v mh-temp"><i>Temp</i><b id="mh-temp">36.7</b><u>&deg;C</u></div>
         <div class="mh-v mh-mac"><i>MAC</i><b id="mh-mac">1.0</b><u></u></div>
       </div>
-      <button class="mh-crisis" onclick="openCrisis()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
+      <button class="mh-crisis" onclick="crisisJump()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
     </div>
     <div class="input-bar">
       <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
@@ -383,17 +372,6 @@ body.embed .eng-wrap{padding-top:14px;}
       </div>
       <div class="lt-rec" id="lt-rec">Enter scores for an educational suggestion.</div>
     </div>
-  </div>
-</div>
-<div class="crisis-bg" id="crisis-bg" onclick="if(event.target===this)closeCrisis()">
-  <div class="crisis-modal">
-    <div class="crisis-head">
-      <div class="crisis-title">&#128680; Crisis Center</div>
-      <button class="crisis-x" onclick="closeCrisis()">&times;</button>
-    </div>
-    <div class="crisis-wt" id="crisis-wt"></div>
-    <div class="crisis-tabs" id="crisis-tabs"></div>
-    <div class="crisis-body" id="crisis-body"></div>
   </div>
 </div>
 <script>
@@ -758,13 +736,16 @@ function compute(){
     '<div class="helper"><b>RCRI:</b> High-risk surgery, IHD, CHF, CVD, insulin, creatinine&gt;177.</div>'+
     '<div class="helper">Full interactive calculators in <a href="/v2/scores.html" style="color:#7ECFC0;">Clinical Scores</a>.</div>';
 
-  // Crisis Center card (opens the full overlay)
+  // Crisis Center card — inline protocols. One click on a protocol expands it
+  // right here on the same page (no button, no modal, no navigation).
+  var w0 = crisisWeight();
   var crisisCardBody =
-    '<div class="helper">One-tap emergency reference with weight-based doses — always available.</div>'+
-    '<div class="crisis-card-grid">'+
-      CRISIS.map(function(cz){ return '<span class="crisis-card-chip"><b>'+cz[1]+'</b>'+cz[2]+'</span>'; }).join('')+
+    '<div class="helper">Tap a protocol — it expands here with weight-based doses. No navigation.</div>'+
+    '<div class="crisis-wt-inline">'+(w0?('Doses for <b>'+w0+' kg</b>'):'Enter patient weight for weight-based doses — showing per-kg guidance.')+'</div>'+
+    '<div class="crisis-tabs" id="crisis-tabs-inline">'+
+      CRISIS.map(function(c,i){ return '<button class="crisis-tab'+(i===_crisisIdx?' on':'')+'" onclick="crisisInline('+i+')">'+c[1]+'</button>'; }).join('')+
     '</div>'+
-    '<button class="crisis-open-btn" onclick="openCrisis()">&#128680; Open Crisis Center</button>';
+    '<div class="crisis-body" id="crisis-inline-body"></div>';
 
   out.innerHTML='<div class="panels">'+
     panel('&#129728;','Airway &amp; Ventilation',isPeds?'Pediatric':'Adult',avBody)+
@@ -777,6 +758,7 @@ function compute(){
     panel('&#128202;','Risk scores','Auto',riskScoresBody)+
     panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
+  crisisInline(_crisisIdx);   // expand the current protocol inline (no click needed)
   if(window.innerWidth<=900) collapseForMobile();
 }
 
@@ -844,19 +826,13 @@ var CRISIS = [
     doses:[['IM adrenaline','0.5 mg (0.5 mL 1:1000)'],['IV bolus (hypotension)','20–50 mcg'],['IV bolus (collapse)','100–200 mcg'],['Arrest','1 mg IV q3–5 min'],['Fluid bolus',(w?r0(w*20)+' mL':'20 mL/kg')],['Infusion prep','adrenaline 1 mg/50 mL (20 mcg/mL)']]};}]
 ];
 var _crisisIdx = 0;
-function openCrisis(){
-  var w = crisisWeight();
-  ge('crisis-wt').innerHTML = w ? ('Doses calculated for current weight: <b>'+w+' kg</b>') : 'Enter patient weight for weight-based doses. Showing per-kg guidance.';
-  ge('crisis-tabs').innerHTML = CRISIS.map(function(c,i){
-    return '<button class="crisis-tab'+(i===_crisisIdx?' on':'')+'" onclick="crisisShow('+i+')">'+c[1]+'</button>';
-  }).join('');
-  crisisShow(_crisisIdx);
-  ge('crisis-bg').classList.add('open');
-}
-function closeCrisis(){ ge('crisis-bg').classList.remove('open'); }
-function crisisShow(i){
+// Inline Crisis Center: one click on a protocol expands it in place inside the
+// Crisis Center card. No modal, no overlay, no navigation, no second click.
+function crisisInline(i){
   _crisisIdx = i;
-  document.querySelectorAll('.crisis-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
+  var tabs = ge('crisis-tabs-inline');
+  if(tabs) tabs.querySelectorAll('.crisis-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
+  var body = ge('crisis-inline-body'); if(!body) return;
   var w = crisisWeight();
   var data = CRISIS[i][3](w);
   var title = '<div class="crisis-emg-t">'+CRISIS[i][1]+' <span>'+CRISIS[i][2]+'</span></div>';
@@ -866,9 +842,14 @@ function crisisShow(i){
   var doses = '<div class="crisis-sec-t">Drug doses'+(w?' (for '+w+' kg)':'')+'</div>' + data.doses.map(function(d){
     return '<div class="crisis-dose"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>';
   }).join('');
-  ge('crisis-body').innerHTML = title + steps + doses;
+  body.innerHTML = title + steps + doses;
 }
-window.openCrisis=openCrisis; window.closeCrisis=closeCrisis; window.crisisShow=crisisShow;
+// Header crisis button: scroll the inline Crisis Center into view (no modal).
+function crisisJump(){
+  var el = ge('crisis-inline-body') || document.querySelector('.crisis-panel');
+  if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+window.crisisInline=crisisInline; window.crisisJump=crisisJump;
 
 document.addEventListener('DOMContentLoaded',async function(){
   try{
