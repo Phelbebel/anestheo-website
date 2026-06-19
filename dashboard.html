@@ -377,6 +377,22 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-consult-meta{font-size:12.5px;color:var(--muted);margin-top:1px;}
 .ws-consult-msg{font-size:12.5px;color:var(--hint);font-style:italic;margin-top:3px;}
 .ws-consult-acts{display:flex;gap:7px;flex-wrap:wrap;flex:0 0 auto;}
+/* Phase 1 - expandable consultation card (advice-only; private notes) */
+.ws-cc{background:rgba(61,139,220,.05);border:1px solid rgba(61,139,220,.22);border-radius:11px;margin-bottom:8px;overflow:hidden;}
+.ws-cc.open{border-color:rgba(61,139,220,.5);background:rgba(61,139,220,.08);}
+.ws-cc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;}
+.ws-cc-head:hover{background:rgba(61,139,220,.06);}
+.ws-cc-snip{font-size:12.5px;color:var(--hint);margin-top:2px;}
+.ws-cc-chev{color:#9fb8d6;font-size:15px;transition:transform .18s;flex:0 0 auto;}
+.ws-cc.open .ws-cc-chev{transform:rotate(90deg);}
+.ws-cc-body{display:none;padding:2px 16px 16px;border-top:1px solid rgba(61,139,220,.18);}
+.ws-cc.open .ws-cc-body{display:block;}
+.ws-cc-l{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin:15px 0 6px;}
+.ws-cc-v{font-size:13.5px;color:var(--dim,#d6e6e0);}
+.ws-cc-reason{font-size:13.5px;color:#cfe;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-style:italic;}
+.ws-cc-hint{font-size:11px;color:var(--muted);margin:6px 0 0;}
+.ws-cc-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.ws-cc-guard{font-size:11.5px;color:#ffd79a;background:rgba(255,205,107,.07);border:1px solid rgba(255,205,107,.2);border-radius:8px;padding:8px 11px;margin-top:14px;}
 .ws-invite-band{margin-top:26px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025);}
 .ws-invite-head{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
 .ws-invite-sub{font-size:12.5px;color:var(--muted);margin:3px 0 14px;}
@@ -510,7 +526,7 @@ function wsDeriveStatus(p){
 // review, approval) are reused unchanged.
 // ============================================================
 var URGENCY_CRITICAL=2, URGENCY_SOON=7;
-var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all';
+var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsConsultOpen=null;
 function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
 function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
 function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
@@ -683,16 +699,55 @@ function wsRenderConsultations(){
   var box=document.getElementById('ws-consultations'); if(!box) return;
   var hn=document.getElementById('ws-consult-n'); if(hn) hn.textContent=_wsConsults.length||'';
   if(!_wsConsults.length){ box.innerHTML='<div class="ws-consult-empty">No active consultations.</div>'; return; }
+  // Each consultation is an expandable, advice-only card. Bodies are rendered
+  // up front and shown/hidden via a class toggle, so the private-notes textarea
+  // is never destroyed (keeps focus + unsaved text on expand/collapse).
   box.innerHTML=_wsConsults.map(function(q){
-    var when=q.responded_at?('accepted '+new Date(q.responded_at).toLocaleDateString()):'';
-    return '<div class="ws-consult-card"><div class="ws-consult-info">'+
-      '<div class="ws-consult-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
-      '<div class="ws-consult-meta">Consultation / advice'+(when?' &middot; '+when:'')+'</div>'+
-      (q.message?'<div class="ws-consult-msg">&ldquo;'+wsEsc(q.message)+'&rdquo;</div>':'')+'</div>'+
-      '<div class="ws-consult-acts"><button class="ws-btn" onclick="wsCloseConsult(\''+q.id+'\')">Close</button>'+
-      '<button class="ws-btn pc-green" onclick="wsConvertConsult(\''+q.id+'\')">Convert to Surgical &rarr;</button></div></div>';
+    var open=(_wsConsultOpen===q.id);
+    var sent=q.requested_at?new Date(q.requested_at).toLocaleDateString():(q.responded_at?new Date(q.responded_at).toLocaleDateString():'');
+    var snip=q.message?('&ldquo;'+wsEsc(q.message.length>70?q.message.slice(0,70)+'…':q.message)+'&rdquo;'):'Consultation / advice';
+    return '<div class="ws-cc'+(open?' open':'')+'" id="ws-cc-'+q.id+'">'+
+      '<div class="ws-cc-head" onclick="wsToggleConsult(\''+q.id+'\')">'+
+        '<div><div class="ws-consult-name">'+wsEsc(q.patient_name||'Patient')+'</div>'+
+        '<div class="ws-cc-snip">'+snip+'</div></div>'+
+        '<span class="ws-cc-chev">&rsaquo;</span>'+
+      '</div>'+
+      '<div class="ws-cc-body">'+
+        '<div class="ws-cc-l">Patient information</div>'+
+        '<div class="ws-cc-v">Name: <b>'+wsEsc(q.patient_name||'Patient')+'</b>'+(sent?' &middot; Sent: '+sent:'')+' &middot; Status: Active consultation</div>'+
+        '<div class="ws-cc-l">Consultation reason</div>'+
+        '<div class="ws-cc-reason">'+(q.message?('&ldquo;'+wsEsc(q.message)+'&rdquo;'):'No reason provided.')+'</div>'+
+        '<div class="ws-cc-l">Private notes <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted);">&mdash; only you can see these</span></div>'+
+        '<textarea class="ws-notes" id="ws-cn-'+q.id+'" placeholder="Type private notes for this consultation…">'+wsEsc(q.consult_notes||'')+'</textarea>'+
+        '<div class="ws-cc-hint">Saved to your account &mdash; syncs across iPad, Mac, Windows &amp; iPhone.</div>'+
+        '<div class="ws-cc-acts">'+
+          '<button class="ws-btn pc-green" onclick="wsSaveConsultNotes(\''+q.id+'\')">Save note</button>'+
+          '<button class="ws-btn" onclick="wsCloseConsult(\''+q.id+'\')">Close</button>'+
+          '<button class="ws-btn ws-btn-consult" onclick="wsConvertConsult(\''+q.id+'\')">Convert to Surgical &rarr;</button>'+
+        '</div>'+
+        '<div class="ws-cc-guard">Never enters Action Center, Active Cases, questionnaire review or surgical approval &mdash; unless you click Convert to Surgical.</div>'+
+      '</div></div>';
   }).join('');
 }
+// Expand/collapse a single consultation. Preserves any unsaved note text in
+// other cards because we only toggle classes, never re-render on toggle.
+function wsToggleConsult(id){
+  _wsConsultOpen=(_wsConsultOpen===id)?null:id;
+  document.querySelectorAll('#ws-consultations .ws-cc').forEach(function(el){
+    el.classList.toggle('open', el.id==='ws-cc-'+_wsConsultOpen);
+  });
+}
+async function wsSaveConsultNotes(id){
+  var ta=document.getElementById('ws-cn-'+id); if(!ta) return;
+  var val=ta.value;
+  try{
+    var u=await window.sb.from('care_requests').update({ consult_notes:val }).eq('id', id);
+    if(u&&u.error) throw new Error(u.error.message);
+    var row=_wsConsults.filter(function(c){return c.id===id;})[0]; if(row) row.consult_notes=val;
+    wsToast('Note saved');
+  }catch(e){ wsToast('Save failed: '+(e.message||'error')); }
+}
+window.wsToggleConsult=wsToggleConsult; window.wsSaveConsultNotes=wsSaveConsultNotes;
 // 📨 Requests = incoming, pending (status='requested'). Triage into a lane.
 function wsRenderRequests(){
   var box=document.getElementById('ws-requests'); if(!box) return;
@@ -705,8 +760,8 @@ function wsRenderRequests(){
       (facts?'<div class="ws-consult-meta">'+wsEsc(facts)+'</div>':'')+
       (q.message?'<div class="ws-consult-msg">&ldquo;'+wsEsc(q.message)+'&rdquo;</div>':'')+'</div>'+
       '<div class="ws-req-acts">'+
-        '<button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\',false)">Accept as Surgical</button>'+
-        '<button class="ws-btn ws-btn-consult" onclick="wsRespondRequest(\''+q.id+'\',\'accept\',true)">Accept as Consultation</button>'+
+        '<button class="ws-btn ws-btn-consult" onclick="wsRespondRequest(\''+q.id+'\',\'accept\',true)">Accept Consultation</button>'+
+        '<button class="ws-btn pc-green" onclick="wsRespondRequest(\''+q.id+'\',\'accept\',false)">Accept Surgical</button>'+
         '<button class="ws-btn" onclick="wsRespondRequest(\''+q.id+'\',\'decline\')">Decline</button>'+
       '</div></div>';
   }).join('');
@@ -1880,16 +1935,16 @@ document.addEventListener('DOMContentLoaded', async function(){
         '</div>' +
         // ════════ SECTION 2 (secondary) — Consultations (advice-only) ════════
         '<div class="ws-consult-sec">' +
-          '<div class="ws-consult-head"><span class="ws-consult-t">&#128172; Consultations</span>' +
+          '<div class="ws-consult-head"><span class="ws-consult-t">&#128172; Active Consultations</span>' +
             '<span class="ws-consult-n" id="ws-consult-n"></span>' +
-            '<span class="ws-consult-sub">Advice / second opinion &mdash; not in the surgical workflow</span></div>' +
+            '<span class="ws-consult-sub">Advice only &mdash; separate from the surgical pipeline</span></div>' +
           '<div id="ws-consultations"></div>' +
         '</div>' +
         // ════════ SECTION 3 (smallest) — Requests (incoming inbox) ════════
         '<div class="ws-requests-sec">' +
-          '<div class="ws-requests-head"><span class="ws-requests-t">&#128233; Requests</span>' +
+          '<div class="ws-requests-head"><span class="ws-requests-t">&#128233; Consultation Requests</span>' +
             '<span class="ws-requests-n" id="ws-requests-n"></span>' +
-            '<span class="ws-consult-sub">New people who found you &mdash; accept as surgical or consultation</span></div>' +
+            '<span class="ws-consult-sub">Incoming &mdash; accept as consultation or surgical</span></div>' +
           '<div id="ws-requests"></div>' +
         '</div>' +
       '</div>';
