@@ -560,7 +560,6 @@ async function wsLoadCases(){
   });
   clinics.forEach(function(p){ var d=wsDeriveClinic(p); if(d) cases.push(d); });
   _wsCases=cases;
-  wsAttachCardDelegation();
   wsRenderActionCenter();
   wsRenderActiveCases();
   wsRenderConsultRequests();
@@ -623,23 +622,22 @@ function wsCardDispatch(card){
   if(k==='case') wsOpenCase(card.getAttribute('data-pid'));
   else if(k==='clinic') wsOpenClinic(card.getAttribute('data-cid'));
 }
-// Delegated once per container; survives innerHTML re-renders. Real controls
-// (Accept/Decline, the CTA button) are excluded so they never double-fire or
-// trigger card-open. No routing/business-logic change.
-function wsAttachCardDelegation(){
-  ['ws-action-center','ws-active-cases'].forEach(function(id){
-    var box=document.getElementById(id); if(!box || box._wsDeleg) return; box._wsDeleg=true;
-    box.addEventListener('click', function(e){
-      if(e.target.closest('button,a,input,select,textarea')) return;
-      var c=e.target.closest('.ac-card.clickable, .acs-card.clickable'); if(c) wsCardDispatch(c);
-    });
-    box.addEventListener('keydown', function(e){
-      if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
-      var c=e.target.closest('.ac-card.clickable, .acs-card.clickable');
-      if(c){ e.preventDefault(); wsCardDispatch(c); }
-    });
-  });
-}
+// Bulletproof card activation: ONE document-level delegated listener, attached
+// once at script load. document always exists and is never re-created, so this
+// survives every innerHTML re-render and any async timing. Real controls
+// (CTA / Accept / Decline) are excluded, so nothing double-fires. Routing
+// unchanged: data-open=case -> wsOpenCase; data-open=clinic -> wsOpenClinic.
+document.addEventListener('click', function(e){
+  if(e.target.closest('button,a,input,select,textarea,label')) return;
+  var c=e.target.closest('.ac-card.clickable, .acs-card.clickable');
+  if(c) wsCardDispatch(c);
+});
+document.addEventListener('keydown', function(e){
+  if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+  var el=document.activeElement; if(!el || !el.closest) return;
+  var c=el.closest('.ac-card.clickable, .acs-card.clickable');
+  if(c){ e.preventDefault(); wsCardDispatch(c); }
+});
 function wsActionCardHtml(c){
   var urgent=c.urgency&&c.urgency.critical;
   var rail=urgent?'urg':c.color;

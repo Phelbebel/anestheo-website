@@ -205,6 +205,9 @@ body.embed .eng-wrap{padding-top:14px;}
 .input-bar{background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:14px;
   padding:18px 20px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;align-items:end;}
 .inp{display:flex;flex-direction:column;gap:5px;min-width:0;}
+/* Age cell holds value + unit, so it needs ~2 columns and a hard floor so the
+   value input never collapses (notably on Windows Chrome at 1280/1440/1920). */
+.inp-age{grid-column:span 2;min-width:172px;}
 .inp label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:#8FD9C6;}
 .inp input,.inp select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;
   padding:10px 11px;color:#fff;font-size:16px;font-family:inherit;outline:none;transition:border-color .2s;min-height:44px;appearance:none;-webkit-appearance:none;width:100%;max-width:100%;box-sizing:border-box;min-width:0;}
@@ -252,6 +255,7 @@ body.embed .eng-wrap{padding-top:14px;}
 }
 @media(max-width:640px){
   .input-bar{grid-template-columns:1fr;gap:9px;padding:14px;margin-bottom:10px;}
+  .inp-age{grid-column:auto;min-width:0;}  /* single column: age must not span/overflow */
   .eng-wrap{padding:12px 11px 60px;}
   .mon-header{margin-bottom:10px;}
   .mh-tr{min-height:22px;}
@@ -292,9 +296,9 @@ body.embed .eng-wrap{padding-top:14px;}
       <button class="mh-crisis" onclick="openCrisis()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
     </div>
     <div class="input-bar">
-      <div class="inp"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
-        <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:0;">
-        <select id="i-age-unit" onchange="compute()" style="flex:0 0 86px;width:86px;"><option value="y">years</option><option value="mo">months</option><option value="w">weeks</option><option value="d">days</option></select>
+      <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
+        <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
+        <select id="i-age-unit" onchange="compute()" style="flex:0 0 80px;width:80px;min-width:80px;"><option value="y">years</option><option value="mo">months</option><option value="w">weeks</option><option value="d">days</option></select>
       </div></div>
       <div class="inp"><label>Sex</label><select id="i-sex" onchange="compute()"><option value="">—</option><option value="M">Male</option><option value="F">Female</option></select></div>
       <div class="inp"><label>Height (cm)</label><input id="i-height" type="number" inputmode="numeric" placeholder="cm" oninput="compute()"></div>
