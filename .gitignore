@@ -4,3 +4,5 @@ package-lock.json
 gen-mockups.js
 mock-*.png
 mockup-*.html
+captures.js
+cap-*.png
