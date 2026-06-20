@@ -905,7 +905,7 @@ function wsRenderActiveCases(){
 }
 function wsCaseFilter(f){ _wsCaseFilter=f; wsRenderActiveCases(); }
 function wsOpenCase(pid){ var c=_wsCases.filter(function(x){return x.source==='bridge'&&x.patientId===pid;})[0]; if(c){ wsSeenSet(pid,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsOpenPatient(pid); }
-function wsOpenClinic(id){ var c=_wsCases.filter(function(x){return x.source==='clinic'&&x.clinicId===id;})[0]; if(c){ wsSeenSet('c'+id,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsDetail(id); }
+function wsOpenClinic(id){ var c=_wsCases.filter(function(x){return x.source==='clinic'&&x.clinicId===id;})[0]; if(c){ wsSeenSet('c'+id,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsOpenClinicRecord(id); }
 window.wsCaseFilter=wsCaseFilter; window.wsSrcFilter=wsSrcFilter; window.wsOpenCase=wsOpenCase; window.wsOpenClinic=wsOpenClinic;
 
 // ── Active Patients + in-page workspace (Epic E) ──
@@ -1090,16 +1090,34 @@ async function wsSavePlan(silent, histEntry){
 
 async function wsOpenPatient(patientId){
   var info=_wsActiveMap[patientId]; if(!info) return;
-  var surgeryId=info.surgeryId;
-  try { await window.sb.rpc('start_review', { p_surgery_id: surgeryId }); } catch(e){}   // pending -> in_review
-  var surgery={},quest={},items={},plan={},planSavedAt=null;
+  wsOpenRecord(info.surgeryId);
+}
+// Resolve a clinic (doctor-created) patient to its canonical record, then open
+// the unified workspace. Falls back to the legacy view only for pre-migration
+// rows that have no patient_surgeries yet.
+async function wsOpenClinicRecord(clinicId){
+  var sid=null;
+  try{ var s=await window.sb.from('patient_surgeries').select('id').eq('clinic_patient_id',clinicId).maybeSingle(); sid=s.data&&s.data.id; }catch(e){}
+  if(sid) wsOpenRecord(sid); else wsDetail(clinicId);
+}
+// ── THE one unified workspace entry for ANY patient (both origins, both lanes) ──
+// Loads the canonical record + its surgery_id-keyed children. care_state picks
+// the layout; origin never changes the actions or available tools.
+async function wsOpenRecord(surgeryId){
+  if(!surgeryId) return;
+  var surgery={}, clinic=null;
   try { var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; }catch(e){}
-  try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; }catch(e){}
-  try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).maybeSingle(); items=(c.data&&c.data.items&&c.data.items.prep_guide)||{}; }catch(e){}
-  // Robust read: never maybeSingle() here -- after an approve+edit cycle there can
-  // be both an approved and a draft row, and maybeSingle() throws on >1, which
-  // previously swallowed the whole plan. Prefer the draft (editable working copy).
-  var planVersion=0;
+  if(surgery.clinic_patient_id){ try{ var cpr=await window.sb.from('clinic_patients').select('*').eq('id',surgery.clinic_patient_id).maybeSingle(); clinic=cpr.data||null; }catch(e){} }
+  var patientId=surgery.patient_id||null;
+  var quest={}, items={};
+  if(patientId){
+    try { await window.sb.rpc('start_review', { p_surgery_id: surgeryId }); }catch(e){}
+    try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; }catch(e){}
+    try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).maybeSingle(); items=(c.data&&c.data.items&&c.data.items.prep_guide)||{}; }catch(e){}
+  } else if(clinic){
+    quest={ answers:(clinic.questionnaire_answers||{}), status:(clinic.questionnaire_status==='completed'?'submitted':'in_progress'), review_state:'not_submitted' };
+  }
+  var plan={}, planSavedAt=null, planVersion=0;
   try {
     var p=await window.sb.from('preparation_plans').select('plan_content,status,updated_at,version')
       .eq('surgery_id',surgeryId).in('status',['draft','approved'])
@@ -1109,15 +1127,26 @@ async function wsOpenPatient(patientId){
   }catch(e){}
   var docs=[];
   try { var dr=await window.sb.from('requirement_documents').select('*').eq('surgery_id',surgeryId).order('uploaded_at',{ascending:true}); docs=(dr&&dr.data)||[]; }catch(e){}
-  var recs=await wsFetchRecs(surgeryId);          // same recommendations system as the consultation workspace
+  var recs=await wsFetchRecs(surgeryId);
   var reqMap=wsNormReqs(plan.requirements);
-  _wsCtx={ mode:'surgical', patientId:patientId, surgeryId:surgeryId, name:info.name, surgery:surgery, quest:quest, items:items,
-    notes:plan.notes||'', requirements:reqMap, planSavedAt:planSavedAt, version:planVersion,
+  var name=surgery.patient_name||(clinic&&clinic.patient_name)||(_wsActiveMap[patientId]&&_wsActiveMap[patientId].name)||'Patient';
+  // For a patient-requested consultation, resolve the care_request (Close + reason).
+  var careId=null, careMsg='';
+  if(patientId){
+    try{ var crq=await window.sb.from('care_requests').select('id,message').eq('surgery_id',surgeryId).in('status',['accepted','requested']).maybeSingle();
+      if(crq&&crq.data){ careId=crq.data.id; careMsg=crq.data.message||''; } }catch(e){}
+  }
+  _wsCtx={ mode:(surgery.care_state==='consultation'?'consult':'surgical'), origin:(clinic?'doctor':'patient'),
+    careId:careId, clinicId:(surgery.clinic_patient_id||null), consultId:(clinic?('clinic:'+surgery.clinic_patient_id):careId),
+    patientId:patientId, surgeryId:surgeryId, name:name, surgery:surgery, quest:quest, items:items,
+    notes:(plan.notes||''), requirements:reqMap, planSavedAt:planSavedAt, version:planVersion,
     history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs, recs:recs,
-    savedNotes:plan.notes||'', savedReqs:wsCloneReqs(reqMap) };
-  wsRenderWorkspace();
+    message:(clinic&&clinic.notes)||careMsg||'', consultNotes:(surgery.doctor_notes||''),
+    savedNotes:(plan.notes||''), savedReqs:wsCloneReqs(reqMap) };
+  if(surgery.care_state==='consultation'){ wsRenderConsultWorkspace(); } else { wsRenderWorkspace(); }
   document.getElementById('ws-ws').classList.add('open');
 }
+window.wsOpenRecord=wsOpenRecord; window.wsOpenClinicRecord=wsOpenClinicRecord;
 function wsCloneReqs(m){ var o={}; Object.keys(m||{}).forEach(function(k){ o[k]={checked:!!m[k].checked,note:m[k].note||'',label:m[k].label||'',custom:!!m[k].custom}; }); return o; }
 function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); _wsCtx=null; }
 
@@ -1165,14 +1194,19 @@ function wsRenderWorkspace(){
   html+='<div class="ws-sum-title" style="margin:14px 0 4px;">&#128206; Submitted documents</div><div id="ws-docs"></div>';
   // D3 Recommendations (same shared system as the consultation workspace)
   html+='<div class="ws-sec-t">E &middot; Recommendations <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(toggle to publish to the patient)</span></div><div id="ws-recs"></div>';
-  // E Doctor notes (internal - never shown to the patient)
-  html+='<div class="ws-sec-t">F &middot; Doctor notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
-    '<textarea class="ws-notes" id="ws-notes" '+(locked?'readonly ':'')+'placeholder="Private notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
+  // Canonical private notes on the record (same field as the consultation
+  // workspace; follows the patient across Convert / Move).
+  html+='<div class="ws-sec-t">F &middot; Private notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal &mdash; follows the patient across consultation &amp; surgical)</span></div>'+
+    '<textarea class="ws-notes" id="ws-consult-notes" placeholder="Private notes (not shown to the patient)">'+wsEsc(c.consultNotes||'')+'</textarea>'+
+    '<div class="ws-acts"><button class="ws-btn" onclick="wsSaveConsultWsNotes()">Save notes</button></div>';
+  // G Plan notes (part of the doctor plan)
+  html+='<div class="ws-sec-t">G &middot; Plan notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--hint);">(internal)</span></div>'+
+    '<textarea class="ws-notes" id="ws-notes" '+(locked?'readonly ':'')+'placeholder="Plan notes for this patient (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
     (locked?'':'<div class="ws-acts"><button class="ws-btn" onclick="wsSaveDocNotes()">Save notes</button><span class="ws-save-st" id="ws-save-notes-st"></span></div>');
-  // F Review actions
-  html+='<div class="ws-sec-t">G &middot; Review actions</div><div id="ws-review-actions">'+wsReviewActionsHtml(rs,c)+'</div>';
+  // H Review actions
+  html+='<div class="ws-sec-t">H &middot; Review actions</div><div id="ws-review-actions">'+wsReviewActionsHtml(rs,c)+'</div>';
   // G Modification history / audit trail
-  html+='<div class="ws-sec-t">H &middot; Modification history</div><div id="ws-history"></div>';
+  html+='<div class="ws-sec-t">I &middot; Modification history</div><div id="ws-history"></div>';
   document.getElementById('ws-ws-body').innerHTML=html;
   wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); wsRenderDocs(); wsRenderRecs();
 }
@@ -1445,8 +1479,8 @@ function wsRenderPatients(){
     var send = '<button class="ws-btn ws-btn-wa" onclick="event.stopPropagation();wsSendWhatsApp(\''+p.id+'\')">'+(p.questionnaire_status==='not_sent'?'Send questionnaire':'Resend questionnaire')+'</button>';
     var preview = '<button class="ws-btn" onclick="event.stopPropagation();wsPreview()">Preview questionnaire</button>';
     var actionsCompleted = (p.questionnaire_status==='completed')
-      ? '<button class="ws-btn" onclick="event.stopPropagation();wsDetail(\''+p.id+'\')">View summary</button>' +
-        '<button class="ws-btn" onclick="event.stopPropagation();wsDetail(\''+p.id+'\')">View full questionnaire</button>' +
+      ? '<button class="ws-btn" onclick="event.stopPropagation();wsOpenClinicRecord(\''+p.id+'\')">Open workspace</button>' +
+        '<button class="ws-btn" onclick="event.stopPropagation();wsOpenClinicRecord(\''+p.id+'\')">View full questionnaire</button>' +
         '<button class="ws-btn" onclick="event.stopPropagation();wsPrint(\''+p.id+'\')">Print PDF</button>'
       : '';
 
@@ -1477,7 +1511,7 @@ function wsRenderPatients(){
       ? portalRow + actionsCompleted + workflow + preview
       : send + preview + workflow;
 
-    return '<div class="pc-card" onclick="wsDetail(\''+p.id+'\')">' +
+    return '<div class="pc-card" onclick="wsOpenClinicRecord(\''+p.id+'\')">' +
       '<div class="pc-head">' +
         '<div><div class="pc-name">'+wsEsc(p.patient_name)+'</div>' +
           '<div class="pc-facts">'+facts.join('<span class="pc-sep">&middot;</span>')+'</div></div>' +
