@@ -123,11 +123,39 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 /* workspace overlay */
 .ws-ws-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.82);z-index:6000;align-items:flex-start;justify-content:center;padding:22px 14px;overflow-y:auto;}
 .ws-ws-bg.open{display:flex;}
-.ws-ws-modal{background:#0A1614;border:1px solid rgba(42,138,116,.4);border-radius:16px;max-width:880px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+.ws-ws-modal{background:#0A1614;border:1px solid rgba(42,138,116,.4);border-radius:16px;max-width:1080px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);}
 .ws-ws-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 20px 12px;background:rgba(42,138,116,.16);border-bottom:1px solid rgba(42,138,116,.3);}
 .ws-ws-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;}
 .ws-ws-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
 .ws-ws-body{padding:18px 20px 26px;overflow-y:auto;}
+/* ── Workspace-first UI (tabbed patient workspace) ── */
+.ws-ws-body.wsx-host{padding:0;}
+.wsx{display:grid;grid-template-columns:212px 1fr;min-height:60vh;}
+.wsx-rail{border-right:1px solid rgba(42,138,116,.18);padding:14px 12px;display:flex;flex-direction:column;gap:3px;background:rgba(0,0,0,.12);}
+.wsx-who{display:flex;flex-direction:column;align-items:center;text-align:center;padding:4px 0 13px;border-bottom:1px solid rgba(42,138,116,.18);margin-bottom:10px;}
+.wsx-ava{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#15414f,#1c6e5a);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:#bff5df;margin-bottom:8px;}
+.wsx-nm{font-size:15px;font-weight:800;}
+.wsx-pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;border-radius:20px;padding:3px 10px;margin-top:6px;}
+.wsx-pill.con{color:#CDE7FF;background:rgba(79,168,255,.14);border:1px solid rgba(79,168,255,.45);}
+.wsx-pill.sur{color:#BFF5DF;background:rgba(61,220,151,.14);border:1px solid rgba(61,220,151,.4);}
+.wsx-tab{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--dim,#c2d6ce);padding:9px 11px;border-radius:9px;border:1px solid transparent;cursor:pointer;background:none;font-family:inherit;text-align:left;width:100%;}
+.wsx-tab:hover{background:rgba(255,255,255,.04);color:#fff;}
+.wsx-tab.on{background:rgba(126,207,192,.12);border-color:rgba(126,207,192,.3);color:#fff;font-weight:700;}
+.wsx-tab .b{margin-left:auto;font-size:10px;font-weight:800;color:#062;background:#7ECFC0;border-radius:20px;padding:1px 7px;}
+.wsx-railsec{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:13px 0 6px 10px;}
+.wsx-main{padding:18px 22px 26px;overflow-y:auto;max-height:80vh;}
+.wsx-actbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-bottom:14px;margin-bottom:6px;border-bottom:1px solid rgba(42,138,116,.18);}
+.wsx-actbar .lane{font-size:11px;color:var(--muted);margin-right:auto;}
+.wsx-panel{display:none;}
+.wsx-panel.on{display:block;}
+.wsx-tt{font-size:16px;font-weight:800;margin-bottom:14px;}
+.wsx-stub{text-align:center;color:var(--muted);padding:48px 20px;border:1px dashed rgba(255,255,255,.14);border-radius:12px;font-size:13.5px;}
+.wsx-stub .ic{font-size:30px;margin-bottom:10px;}
+.wsx-journey{margin-top:14px;padding-top:12px;border-top:1px solid rgba(42,138,116,.18);}
+.wsx-jrow{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);padding:3px 0;}
+.wsx-jdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18);flex:0 0 auto;}
+.wsx-jrow.on{color:#fff;font-weight:600;} .wsx-jrow.on .wsx-jdot{background:#4FA8FF;}
+.wsx-jrow.done .wsx-jdot{background:#3DDC97;}
 .ws-sec-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:18px 0 8px;padding-top:12px;border-top:1px solid rgba(42,138,116,.16);}
 .ws-sec-t:first-of-type{margin-top:0;padding-top:0;border-top:none;}
 .ws-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;}
@@ -806,9 +834,95 @@ async function wsOpenConsult(id){
     patientId:patientId, surgeryId:surgeryId, name:cr.patient_name||surgery.patient_name||'Patient',
     surgery:surgery, quest:quest, docs:docs, recs:recs, message:cr.message||'',
     consultNotes:(cr.doctor_notes!=null?cr.doctor_notes:(surgery.doctor_notes||''))||'' };
-  wsRenderConsultWorkspace();
+  _wsTab='overview'; wsRenderWorkspaceUnified();
   document.getElementById('ws-ws').classList.add('open');
 }
+// ── Workspace-first UI: ONE tabbed workspace for every patient ──
+// Structure is identical for both lanes; care_state only changes the action bar
+// and which tool panel leads. Tabs are toggled (not re-rendered) so unsaved text
+// in Notes/Recommendations survives navigation.
+var _wsTab='overview';
+function wsWsTab(t){
+  _wsTab=t;
+  document.querySelectorAll('#ws-ws-body .wsx-panel').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-tab')===t); });
+  document.querySelectorAll('#ws-ws-body .wsx-tab').forEach(function(b){ b.classList.toggle('on', (b.getAttribute('onclick')||'').indexOf("'"+t+"'")>=0); });
+}
+function wsRenderWorkspaceUnified(){
+  var c=_wsCtx; if(!c) return;
+  var cs=(c.surgery&&c.surgery.care_state)||(c.mode==='consult'?'consultation':'surgical');
+  var a=(c.quest&&c.quest.answers)||{}, s=c.surgery||{};
+  var rs=(c.quest&&c.quest.review_state)||'not_submitted', locked=(rs==='approved');
+  var initial=((c.name||'P').trim().charAt(0)||'P').toUpperCase();
+  document.getElementById('ws-ws-title').textContent=c.name||'Patient';
+  document.getElementById('ws-ws-sub').textContent=[(cs==='consultation'?'Consultation · advice only':'Surgical patient'), s.procedure_type].filter(Boolean).join(' · ');
+  function kc(l,v){ return '<div class="ws-kc"><i style="font-style:normal;font-size:10.5px;color:var(--muted);display:block;">'+l+'</i><b style="font-size:14px;">'+wsEsc(v||'—')+'</b></div>'; }
+  function tab(id,icon,label,badge){ return '<button class="wsx-tab'+(_wsTab===id?' on':'')+'" onclick="wsWsTab(\''+id+'\')">'+icon+' <span>'+label+'</span>'+(badge?'<span class="b">'+badge+'</span>':'')+'</button>'; }
+  var actions=(cs==='consultation')
+    ? '<button class="ws-btn pc-green" onclick="wsSetCareState(\'surgical\')">Convert to Surgical &rarr;</button><button class="ws-btn" onclick="wsCloseConsult()">Close</button>'
+    : '<button class="ws-btn" onclick="wsSetCareState(\'consultation\')">Move to Consultations</button>';
+  var nav=tab('overview','&#129534;','Overview','')+tab('questionnaire','&#128203;','Questionnaire','')+
+    tab('documents','&#128206;','Documents',((c.docs&&c.docs.length)||''))+tab('recommendations','&#9989;','Recommendations',((c.recs&&c.recs.length)||''))+
+    tab('notes','&#128221;','Notes','')+tab('messages','&#128172;','Messages','');
+  var toolsNav=(cs==='consultation')?tab('tools','&#129658;','Consultation tools',''):tab('tools','&#127973;','Surgical preparation','');
+  // panels
+  var pOverview='<div class="wsx-tt">Overview</div><div class="ws-kv">'+
+    kc('Age / Sex',[a.age,a.sex].filter(Boolean).join(' · '))+kc('Procedure',s.procedure_type)+
+    kc('Surgery date',s.surgery_date?new Date(s.surgery_date).toLocaleDateString():'')+kc('Hospital',s.hospital)+
+    kc('Contact',s.contact_email||'')+kc('Origin',c.origin==='doctor'?'Doctor-created':'Patient-requested')+'</div>'+
+    ((cs==='consultation'&&c.message)?'<div class="ws-sec-t" style="border:none;">Consultation reason</div><div class="ws-consult-reason">&ldquo;'+wsEsc(c.message)+'&rdquo;</div>':'');
+  var qrows=Object.keys(WS_QLBL).filter(function(k){return a[k]!=null&&a[k]!=='';}).map(function(k){ var v=a[k]; if(Array.isArray(v))v=v.join(', '); return '<div class="ws-qrow"><span>'+WS_QLBL[k]+'</span><b>'+wsEsc(String(v))+'</b></div>'; }).join('');
+  var pQuest='<div class="wsx-tt">Questionnaire</div>'+(qrows||'<div class="ws-ap-facts">Questionnaire not completed yet.</div>');
+  var pDocs='<div class="wsx-tt">Documents <span style="font-size:12px;font-weight:400;color:var(--muted);">— same repository in every state</span></div><div id="ws-docs"></div>';
+  var pRecs='<div class="wsx-tt">Recommendations <span style="font-size:12px;font-weight:400;color:var(--muted);">— toggle to publish to the patient</span></div><div id="ws-recs"></div>';
+  var pNotes='<div class="wsx-tt">Private notes <span style="font-size:12px;font-weight:400;color:var(--muted);">— internal, follows the patient across states</span></div>'+
+    '<textarea class="ws-notes" id="ws-consult-notes" placeholder="Private notes (not shown to the patient)">'+wsEsc(c.consultNotes||'')+'</textarea>'+
+    '<div class="ws-acts"><button class="ws-btn" onclick="wsSaveConsultWsNotes()">Save notes</button></div>';
+  var pMsg='<div class="wsx-tt">Messages</div><div class="wsx-stub"><div class="ic">&#128172;</div>Messaging will be available in a future release.</div>';
+  var pTools;
+  if(cs==='consultation'){
+    pTools='<div class="wsx-tt">Consultation tools</div>'+
+      '<div class="ws-ap-facts">Advise the patient without entering the surgical pipeline. Publish guidance in <b>Recommendations</b>; use <b>Convert to Surgical</b> when the patient decides to proceed. Everything stays on the same record.</div>'+
+      '<div class="ws-acts" style="margin-top:14px;"><button class="ws-btn pc-green" onclick="wsSetCareState(\'surgical\')">Convert to Surgical &rarr;</button><button class="ws-btn" onclick="wsCloseConsult()">Close consultation</button></div>';
+  } else {
+    var prep=WS_PREPARE.map(function(lbl,i){ var pc=(c.items&&c.items.prepare)||[]; var done=!!pc[i]; return '<div class="ws-chk '+(done?'done':'miss')+'">'+(done?'':'Missing: ')+wsEsc(lbl)+'</div>'; }).join('');
+    pTools='<div class="wsx-tt">Surgical preparation</div>'+
+      '<div class="ws-plan-sum"><div class="ws-sum-title">&#128203; Current doctor plan</div><div id="ws-plan-summary"></div></div>'+
+      '<div class="ws-sec-t" style="border:none;">Clinical requirements <span style="font-weight:400;text-transform:none;color:var(--muted);">(shared with patient)</span></div>'+
+      (locked?'<div class="ws-ap-facts">&#128274; Approved &amp; read-only. Use Reopen review below to edit.</div>':'<div class="ws-reqs" id="ws-reqs-list">'+wsRequirementsHtml()+'</div><div class="ws-acts"><button class="ws-btn pc-green" onclick="wsSavePlan(false)">Save plan</button><span class="ws-save-st" id="ws-save-plan-st"></span></div>')+
+      '<div class="ws-sec-t" style="border:none;">Preparation checklist</div>'+prep+
+      '<div class="ws-sec-t" style="border:none;">Review actions</div><div id="ws-review-actions">'+wsReviewActionsHtml(rs,c)+'</div>'+
+      '<div class="ws-sec-t" style="border:none;">Plan notes</div>'+
+      '<textarea class="ws-notes" id="ws-notes" '+(locked?'readonly ':'')+'placeholder="Plan notes (not shown to the patient)">'+wsEsc(c.notes||'')+'</textarea>'+
+      (locked?'':'<div class="ws-acts"><button class="ws-btn" onclick="wsSaveDocNotes()">Save notes</button><span class="ws-save-st" id="ws-save-notes-st"></span></div>')+
+      '<div class="ws-sec-t" style="border:none;">Modification history</div><div id="ws-history"></div>';
+  }
+  function jrow(l,st){ return '<div class="wsx-jrow '+st+'"><span class="wsx-jdot"></span>'+l+'</div>'; }
+  var journey='<div class="wsx-journey">'+jrow('Request','done')+
+    jrow('Consultation', cs==='consultation'?'on':'done')+
+    jrow('Surgical preparation', (cs==='surgical'&&rs!=='approved'&&!s.completed_at)?'on':(cs==='surgical'?'done':''))+
+    jrow('Approved for surgery', rs==='approved'?'on':'')+jrow('Completed', s.completed_at?'on':'')+'</div>';
+  var idchip=(!c.patientId)?'<span class="ws-orig doc" style="margin:0 0 0 8px;">No account · invite to link</span>':'';
+  var body=document.getElementById('ws-ws-body'); body.classList.add('wsx-host');
+  body.innerHTML='<div class="wsx">'+
+    '<div class="wsx-rail">'+
+      '<div class="wsx-who"><div class="wsx-ava">'+wsEsc(initial)+'</div><div class="wsx-nm">'+wsEsc(c.name||'Patient')+'</div>'+
+      '<span class="wsx-pill '+(cs==='consultation'?'con':'sur')+'">'+(cs==='consultation'?'&#128172; Consultation':'&#127973; Surgical')+'</span></div>'+
+      nav+'<div class="wsx-railsec">Tools</div>'+toolsNav+journey+'</div>'+
+    '<div class="wsx-main">'+
+      '<div class="wsx-actbar"><span class="lane">'+(cs==='consultation'?'Advice-only status':'In the pre-operative pipeline')+idchip+'</span>'+actions+'</div>'+
+      '<div class="wsx-panel'+(_wsTab==='overview'?' on':'')+'" data-tab="overview">'+pOverview+'</div>'+
+      '<div class="wsx-panel'+(_wsTab==='questionnaire'?' on':'')+'" data-tab="questionnaire">'+pQuest+'</div>'+
+      '<div class="wsx-panel'+(_wsTab==='documents'?' on':'')+'" data-tab="documents">'+pDocs+'</div>'+
+      '<div class="wsx-panel'+(_wsTab==='recommendations'?' on':'')+'" data-tab="recommendations">'+pRecs+'</div>'+
+      '<div class="wsx-panel'+(_wsTab==='notes'?' on':'')+'" data-tab="notes">'+pNotes+'</div>'+
+      '<div class="wsx-panel'+(_wsTab==='messages'?' on':'')+'" data-tab="messages">'+pMsg+'</div>'+
+      '<div class="wsx-panel'+(_wsTab==='tools'?' on':'')+'" data-tab="tools">'+pTools+'</div>'+
+    '</div></div>';
+  wsRenderDocs(); wsRenderRecs();
+  if(cs==='surgical' && !locked){ wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); }
+  else if(cs==='surgical'){ wsRenderPlanSummary(); wsRenderHistory(); }
+}
+window.wsWsTab=wsWsTab; window.wsRenderWorkspaceUnified=wsRenderWorkspaceUnified;
 function wsRenderConsultWorkspace(){
   var c=_wsCtx; if(!c) return;
   var a=(c.quest&&c.quest.answers)||{}, s=c.surgery||{};
@@ -1143,12 +1257,12 @@ async function wsOpenRecord(surgeryId){
     history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs, recs:recs,
     message:(clinic&&clinic.notes)||careMsg||'', consultNotes:(surgery.doctor_notes||''),
     savedNotes:(plan.notes||''), savedReqs:wsCloneReqs(reqMap) };
-  if(surgery.care_state==='consultation'){ wsRenderConsultWorkspace(); } else { wsRenderWorkspace(); }
+  _wsTab='overview'; wsRenderWorkspaceUnified();
   document.getElementById('ws-ws').classList.add('open');
 }
 window.wsOpenRecord=wsOpenRecord; window.wsOpenClinicRecord=wsOpenClinicRecord;
 function wsCloneReqs(m){ var o={}; Object.keys(m||{}).forEach(function(k){ o[k]={checked:!!m[k].checked,note:m[k].note||'',label:m[k].label||'',custom:!!m[k].custom}; }); return o; }
-function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); _wsCtx=null; }
+function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); var b=document.getElementById('ws-ws-body'); if(b) b.classList.remove('wsx-host'); _wsCtx=null; }
 
 function wsRenderWorkspace(){
   var c=_wsCtx; if(!c) return;
