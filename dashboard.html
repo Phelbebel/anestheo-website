@@ -1574,8 +1574,19 @@ async function wsSavePatient(thenSend){
       btn.disabled = false; btn.textContent = orig;
       return;
     }
+    // Create the canonical record (patient_surgeries) for this doctor-created
+    // patient — auth-optional, back-linked by clinic_patient_id, with the chosen
+    // lane. Documents / notes / recommendations attach here from day one.
+    if(r.data){
+      var laneEl=document.getElementById('wa-lane');
+      var lane=(laneEl&&laneEl.value==='consultation')?'consultation':'surgical';
+      try{ await window.sb.from('patient_surgeries').insert({
+        patient_id:null, assigned_doctor_id:(window.__wsUserId||null), clinic_patient_id:r.data.id,
+        patient_name:rec.patient_name, procedure_type:rec.procedure||null, surgery_date:rec.surgery_date||null,
+        hospital:rec.hospital||null, contact_email:rec.email||null, care_state:lane }); }catch(e){ console.warn('record create:', e&&e.message); }
+    }
     wsClearForm();
-    await wsLoadPatients();
+    await wsLoadPatients(); await wsLoadCases();
     if(thenSend && r.data){ wsSend(r.data.id); }
     else { wsToast('Patient saved'); }
   } catch(e){
@@ -2023,6 +2034,7 @@ document.addEventListener('DOMContentLoaded', async function(){
             '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
             '<label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">' +
             '<label>Surgery date</label><input id="wa-date" type="date">' +
+            '<label>Workflow</label><select id="wa-lane"><option value="surgical">🏥 Surgical patient</option><option value="consultation">💬 Consultation</option></select>' +
             '<label>Anesthesiologist notes</label><textarea id="wa-notes" placeholder="Optional"></textarea>' +
             '<div class="ws-form-btns">' +
               '<button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">Send questionnaire</button>' +
