@@ -589,7 +589,7 @@ function wsDeriveStatus(p){
 // review, approval) are reused unchanged.
 // ============================================================
 var URGENCY_CRITICAL=2, URGENCY_SOON=7;
-var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all';
+var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsActiveClinicIds={};
 function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
 function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
 function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
@@ -676,11 +676,17 @@ async function wsLoadCases(){
   clinics.forEach(function(p){ if(clinicConsult[p.id]) return;   // consultation clinic patients are not in the surgical lane
     var d=wsDeriveClinic(p); if(d) cases.push(d); });
   _wsCases=cases;
+  // Clinic patients that already belong to a board (consultation OR active
+  // surgical case) are excluded from board 4 so a patient is in exactly one board.
+  _wsActiveClinicIds={};
+  Object.keys(clinicConsult).forEach(function(k){ _wsActiveClinicIds[k]=1; });
+  cases.forEach(function(c){ if(c.source==='clinic'&&c.clinicId) _wsActiveClinicIds[c.clinicId]=1; });
   var sn=document.getElementById('ws-surg-n'); if(sn) sn.textContent=_wsCases.length||0;
   wsRenderActionCenter();
   wsRenderActiveCases();
   wsRenderConsultations();
   wsRenderRequests();
+  if(window._wsPatients && document.getElementById('ws-pt-list')) wsRenderPatients();  // refresh board 4 exclusions
 }
 function wsDeriveBridge(c, sg, qd, prepN, docG){
   var rs=qd.review_state||'not_submitted', urg=wsUrgency(sg.surgery_date);
@@ -1564,10 +1570,13 @@ function wsStages(p){
   ];
 }
 function wsRenderPatients(){
-  // Board 4 = invitations only: patients still awaiting questionnaire completion.
-  // Completed clinic patients move to the Surgical board, so they are excluded
-  // here to keep the four boards from overlapping.
-  var list = _wsPatients.filter(function(p){ return p.questionnaire_status !== 'completed'; });
+  // Board 4 = invitations only: patients I invited who are still awaiting their
+  // questionnaire AND not already claimed by another board. Excludes completed
+  // patients (Surgical board) and any clinic patient that is a consultation or an
+  // active surgical case (_wsActiveClinicIds), so a patient is in exactly one board.
+  var list = _wsPatients.filter(function(p){
+    return p.questionnaire_status !== 'completed' && !_wsActiveClinicIds[p.id];
+  });
   var nb = document.getElementById('ws-invites-n'); if(nb) nb.textContent = list.length || 0;
   var box = document.getElementById('ws-pt-list');
   if(!list.length){ box.innerHTML = '<div class="ws-empty">No pending invitations &mdash; everyone you invited has completed their questionnaire.</div>'; return; }
