@@ -427,6 +427,19 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-rec-add{display:flex;gap:8px;margin-top:6px;}
 .ws-rec-add input{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;}
 .ws-invite-band{margin-top:26px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025);}
+/* Four separate Patient Management boards */
+.ws-board{border-radius:16px;padding:15px 17px;margin-bottom:16px;border:1px solid var(--border);}
+.ws-board.req{border-color:rgba(255,180,84,.3);background:linear-gradient(180deg,rgba(255,180,84,.045),rgba(255,255,255,.012));}
+.ws-board.con{border-color:rgba(79,168,255,.3);background:linear-gradient(180deg,rgba(79,168,255,.05),rgba(255,255,255,.012));}
+.ws-board.sur{border-color:rgba(61,220,151,.3);background:linear-gradient(180deg,rgba(61,220,151,.05),rgba(255,255,255,.012));}
+.ws-board.inv{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.015);}
+.ws-bh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.ws-bt{font-size:17px;font-weight:800;color:#fff;}
+.ws-bsub{font-size:12px;color:var(--muted);}
+.ws-bn{font-size:11px;font-weight:800;color:#06140f;border-radius:20px;padding:2px 9px;min-width:18px;text-align:center;}
+.ws-bn.g{background:#3DDC97;} .ws-bn.b{background:#4FA8FF;} .ws-bn.a{background:#FFB454;} .ws-bn.n{background:rgba(255,255,255,.32);color:#fff;}
+.ws-bh .ws-bright{margin-left:auto;}
+.ws-add-wrap{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:rgba(0,0,0,.18);}
 .ws-invite-head{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
 .ws-invite-sub{font-size:12.5px;color:var(--muted);margin:3px 0 14px;}
 .ws-pt-cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
@@ -646,6 +659,7 @@ async function wsLoadCases(){
   clinics.forEach(function(p){ if(clinicConsult[p.id]) return;   // consultation clinic patients are not in the surgical lane
     var d=wsDeriveClinic(p); if(d) cases.push(d); });
   _wsCases=cases;
+  var sn=document.getElementById('ws-surg-n'); if(sn) sn.textContent=_wsCases.length||0;
   wsRenderActionCenter();
   wsRenderActiveCases();
   wsRenderConsultations();
@@ -1502,6 +1516,8 @@ async function wsLoadPatients(){
     document.getElementById('ws-pt-list').innerHTML = '<div class="ws-empty">No patients added yet.</div>';
   }
 }
+function wsToggleAddForm(){ var w=document.getElementById('ws-add-wrap'); if(!w) return; var show=(w.style.display==='none'||!w.style.display); w.style.display=show?'block':'none'; if(show){ var n=document.getElementById('wa-name'); if(n) n.focus(); } }
+window.wsToggleAddForm=wsToggleAddForm;
 function wsPtFilter(f, el){
   _wsPtFilter = f;
   document.querySelectorAll('#sec-patients .ws-subtab').forEach(function(b){ b.classList.remove('active'); });
@@ -1531,14 +1547,13 @@ function wsStages(p){
   ];
 }
 function wsRenderPatients(){
-  var list = _wsPatients.filter(function(p){
-    if(_wsPtFilter==='questionnaire') return p.questionnaire_status !== 'completed';
-    if(_wsPtFilter==='consult') return p.questionnaire_status === 'completed' && p.patient_status !== 'ready_for_surgery';
-    if(_wsPtFilter==='ready') return p.patient_status === 'ready_for_surgery';
-    return true;
-  });
+  // Board 4 = invitations only: patients still awaiting questionnaire completion.
+  // Completed clinic patients move to the Surgical board, so they are excluded
+  // here to keep the four boards from overlapping.
+  var list = _wsPatients.filter(function(p){ return p.questionnaire_status !== 'completed'; });
+  var nb = document.getElementById('ws-invites-n'); if(nb) nb.textContent = list.length || 0;
   var box = document.getElementById('ws-pt-list');
-  if(!list.length){ box.innerHTML = '<div class="ws-empty">No patients added yet.</div>'; return; }
+  if(!list.length){ box.innerHTML = '<div class="ws-empty">No pending invitations &mdash; everyone you invited has completed their questionnaire.</div>'; return; }
 
   box.innerHTML = list.map(function(p){
     var dateFmt = p.surgery_date ? new Date(p.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : 'Date not set';
@@ -2159,22 +2174,42 @@ document.addEventListener('DOMContentLoaded', async function(){
     var secPatients =
       '<div class="ws-sec active" id="sec-patients">' +
         '<div class="ws-sec-head"><div><div class="ws-sec-title">Patient management</div>' +
-          '<div class="ws-sec-sub">Your pre-operative clinic</div></div>' +
+          '<div class="ws-sec-sub">Four separate workflows &mdash; a patient lives in exactly one</div></div>' +
           '<span class="ws-need-badge" id="ws-need-badge" style="display:none;"></span></div>' +
-        // ════════ SECTION 1 (primary) — My Surgical Patients ════════
-        '<div class="ws-surg-head"><span class="ws-surg-t">&#127973; My Surgical Patients</span>' +
-          '<span class="ws-surg-sub">Patients you are actively preparing for surgery</span></div>' +
-        '<div id="ws-action-center"></div>' +
-        '<div id="ws-active-cases"></div>' +
-        // ── Create / Invite Patient band (both workflows; permanently available) ──
-        '<div class="ws-invite-band">' +
-          '<div class="ws-invite-head">&#10133; Create / Invite Patient</div>' +
-          '<div class="ws-invite-sub">Add a patient and send them the questionnaire, or save for later. Completed invites appear in your Action Center above.</div>' +
-          '<div class="ws-stats" id="ws-pt-stats"></div>' +
-          '<div class="ws-pt-cols">' +
-            // LEFT — Add patient form (always visible, no modal)
-            '<div class="ws-pt-form">' +
-              '<div class="ws-form-title">Add patient</div>' +
+
+        // ════════ BOARD 1 — Consultation Requests (incoming, awaiting your decision) ════════
+        '<div class="ws-board req">' +
+          '<div class="ws-bh"><span class="ws-bt">&#128233; Consultation Requests</span>' +
+            '<span class="ws-bn a" id="ws-requests-n">0</span>' +
+            '<span class="ws-bsub">Incoming &mdash; accept as consultation or surgical, or decline</span></div>' +
+          '<div id="ws-requests"></div>' +
+        '</div>' +
+
+        // ════════ BOARD 2 — Active Consultations (advice only) ════════
+        '<div class="ws-board con">' +
+          '<div class="ws-bh"><span class="ws-bt">&#128172; Active Consultations</span>' +
+            '<span class="ws-bn b" id="ws-consult-n">0</span>' +
+            '<span class="ws-bsub">Advice only &mdash; never mixed with surgical</span></div>' +
+          '<div id="ws-consultations"></div>' +
+        '</div>' +
+
+        // ════════ BOARD 3 — Surgical Patients (in the surgical workflow) ════════
+        '<div class="ws-board sur">' +
+          '<div class="ws-bh"><span class="ws-bt">&#127973; Surgical Patients</span>' +
+            '<span class="ws-bn g" id="ws-surg-n">0</span>' +
+            '<span class="ws-bsub">In the surgical workflow &mdash; Action Center &amp; active cases</span></div>' +
+          '<div id="ws-action-center"></div>' +
+          '<div id="ws-active-cases"></div>' +
+        '</div>' +
+
+        // ════════ BOARD 4 — Invitations / Awaiting Questionnaire (pre-workflow) ════════
+        '<div class="ws-board inv">' +
+          '<div class="ws-bh"><span class="ws-bt">&#128203; Invitations / Awaiting Questionnaire</span>' +
+            '<span class="ws-bn n" id="ws-invites-n">0</span>' +
+            '<span class="ws-bsub">Patients you invited &mdash; waiting for questionnaire completion or response</span>' +
+            '<span class="ws-bright"><button class="ws-btn ws-btn-wa" onclick="wsToggleAddForm()">&#10133; New patient</button></span></div>' +
+          '<div class="ws-add-wrap" id="ws-add-wrap" style="display:none;">' +
+            '<div class="ws-form-title">Add patient</div>' +
             '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
             '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
             '<label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">' +
@@ -2189,32 +2224,8 @@ document.addEventListener('DOMContentLoaded', async function(){
               '<button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save patient</button>' +
             '</div>' +
           '</div>' +
-          // RIGHT — My patients
-          '<div class="ws-pt-right">' +
-            '<div class="ws-form-title">My patients</div>' +
-            '<div class="ws-subtabs">' +
-              '<button class="ws-subtab active" onclick="wsPtFilter(\'all\',this)">All</button>' +
-              '<button class="ws-subtab" onclick="wsPtFilter(\'questionnaire\',this)">Awaiting questionnaire</button>' +
-              '<button class="ws-subtab" onclick="wsPtFilter(\'consult\',this)">Awaiting consultation</button>' +
-              '<button class="ws-subtab" onclick="wsPtFilter(\'ready\',this)">Ready for surgery</button>' +
-            '</div>' +
-            '<div id="ws-pt-list" class="ws-list"></div>' +
-          '</div>' +
-        '</div>' +
-        '</div>' +
-        // ════════ SECTION 2 (secondary) — Consultations (advice-only) ════════
-        '<div class="ws-consult-sec">' +
-          '<div class="ws-consult-head"><span class="ws-consult-t">&#128172; Active Consultations</span>' +
-            '<span class="ws-consult-n" id="ws-consult-n"></span>' +
-            '<span class="ws-consult-sub">Advice only &mdash; separate from the surgical pipeline</span></div>' +
-          '<div id="ws-consultations"></div>' +
-        '</div>' +
-        // ════════ SECTION 3 (smallest) — Requests (incoming inbox) ════════
-        '<div class="ws-requests-sec">' +
-          '<div class="ws-requests-head"><span class="ws-requests-t">&#128233; Consultation Requests</span>' +
-            '<span class="ws-requests-n" id="ws-requests-n"></span>' +
-            '<span class="ws-consult-sub">Incoming &mdash; accept as consultation or surgical</span></div>' +
-          '<div id="ws-requests"></div>' +
+          '<div class="ws-stats" id="ws-pt-stats"></div>' +
+          '<div id="ws-pt-list" class="ws-list"></div>' +
         '</div>' +
       '</div>';
 
