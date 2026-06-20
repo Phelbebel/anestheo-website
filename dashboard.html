@@ -440,6 +440,23 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-bn.g{background:#3DDC97;} .ws-bn.b{background:#4FA8FF;} .ws-bn.a{background:#FFB454;} .ws-bn.n{background:rgba(255,255,255,.32);color:#fff;}
 .ws-bh .ws-bright{margin-left:auto;}
 .ws-add-wrap{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:rgba(0,0,0,.18);}
+/* Board 4 compact invitation rows */
+.ws-inv-row{display:flex;align-items:center;gap:12px;background:var(--card,rgba(255,255,255,.035));border:1px solid var(--border);border-radius:10px;padding:9px 13px;margin-bottom:7px;cursor:pointer;}
+.ws-inv-row:hover{border-color:rgba(126,207,192,.3);background:rgba(126,207,192,.04);}
+.ws-inv-ava{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#15414f,#1c6e5a);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#bff5df;flex:0 0 auto;}
+.ws-inv-main{flex:1;min-width:0;}
+.ws-inv-top{display:flex;align-items:baseline;gap:8px;}
+.ws-inv-nm{font-size:14px;font-weight:700;}
+.ws-inv-meta{font-size:12px;color:var(--muted);}
+.ws-inv-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+.ws-inv-st{font-weight:700;}
+.ws-inv-st.new{color:var(--muted);} .ws-inv-st.prog{color:#FFCD8A;}
+.ws-inv-bar{height:4px;border-radius:4px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden;max-width:280px;}
+.ws-inv-fill{height:100%;background:linear-gradient(90deg,#2A8A74,#3DDC97);border-radius:4px;}
+.ws-inv-pct{font-size:12.5px;font-weight:700;color:var(--teal,#7ECFC0);flex:0 0 auto;min-width:38px;text-align:right;}
+.ws-inv-acts{display:flex;gap:6px;flex:0 0 auto;}
+.ws-inv-acts .ws-btn{padding:6px 10px;font-size:11.5px;}
+.ws-inv-cancel{color:#ff9b9b!important;}
 .ws-invite-head{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
 .ws-invite-sub{font-size:12.5px;color:var(--muted);margin:3px 0 14px;}
 .ws-pt-cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
@@ -1555,102 +1572,39 @@ function wsRenderPatients(){
   var box = document.getElementById('ws-pt-list');
   if(!list.length){ box.innerHTML = '<div class="ws-empty">No pending invitations &mdash; everyone you invited has completed their questionnaire.</div>'; return; }
 
+  // Compact invitation rows — same density/visual language as the other boards.
   box.innerHTML = list.map(function(p){
-    var dateFmt = p.surgery_date ? new Date(p.surgery_date).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : 'Date not set';
+    var qs = p.questionnaire_status;
+    var stLabel = (qs==='opened'||qs==='in_progress') ? 'In progress' : 'Not opened';
+    var stCls   = (qs==='opened'||qs==='in_progress') ? 'prog' : 'new';
     var pct = wsProgressPct(p);
-
-    // Detail line (name + facts)
-    var facts = [];
-    if(p.phone_number) facts.push('&#128222; ' + wsEsc(p.phone_number));
-    if(p.procedure) facts.push('&#129658; ' + wsEsc(p.procedure));
-    if(p.hospital) facts.push('&#127973; ' + wsEsc(p.hospital));
-    facts.push('&#128197; ' + dateFmt);
-
-    // Progress stepper
-    var stages = wsStages(p);
-    var stepper = '<div class="pc-track">' + stages.map(function(s, i){
-      return '<div class="pc-step'+(s[1]?' on':'')+'">' +
-        '<span class="pc-dot">'+(s[1]?'&#10003;':(i+1))+'</span>' +
-        '<span class="pc-lbl">'+s[0]+'</span></div>';
-    }).join('<span class="pc-line"></span>') + '</div>';
-
-    // Status chips
-    var chips =
-      '<div class="pc-chips">' +
-        '<div class="pc-chip"><span class="pc-chip-l">Questionnaire</span><span class="pc-chip-v">'+wsQStatusLabel(p.questionnaire_status)+' &middot; '+pct+'%</span></div>' +
-        '<div class="pc-chip"><span class="pc-chip-l">Consultation</span><span class="pc-chip-v">'+(p.consultation_status==='reviewed'?'Reviewed':(p.patient_status==='ready_for_surgery'?'Ready for surgery':'Pending'))+'</span></div>' +
-        '<div class="pc-chip"><span class="pc-chip-l">Arrival</span><span class="pc-chip-v">'+(p.consultation_status==='arrived'||p.consultation_status==='reviewed'||p.arrived_at?'Arrived':'Not arrived')+'</span></div>' +
-      '</div>';
-
-    // Progress bar
-    var bar = '<div class="pc-bar"><div class="pc-bar-fill" style="width:'+pct+'%"></div></div>';
-
-    // Activity line (incl. submission date)
-    var activity = [];
-    if(p.completed_at) activity.push('Submitted ' + new Date(p.completed_at).toLocaleDateString());
-    if(p.updated_at) activity.push('Last activity ' + new Date(p.updated_at).toLocaleDateString());
-    var activityLine = activity.length ? '<div class="pc-activity">'+activity.join(' &middot; ')+'</div>' : '';
-
-    // Clinical summary row (when completed): BMI · STOP-BANG · Pregnancy
-    var ans = p.questionnaire_answers || {};
-    var sc = ans._scores || {};
-    var pregTxt = (ans.pregnant==='Yes') ? 'Pregnant'+(ans.gestation?' '+ans.gestation+'w':'') : (ans.pregnant==='Not sure'?'Possibly pregnant':(ans.sex==='Female'?'Not pregnant':'—'));
-    var clinRow = (p.questionnaire_status === 'completed')
-      ? '<div class="pc-clin">' +
-          '<div class="pc-clin-i"><span>BMI</span><b>'+(sc.bmi!=null?sc.bmi:'—')+'</b></div>' +
-          '<div class="pc-clin-i"><span>STOP-BANG</span><b>'+(sc.stopbang!=null?(sc.stopbang+'/8 '+(sc.stopbang_risk||'')):'—')+'</b></div>' +
-          '<div class="pc-clin-i"><span>Pregnancy</span><b>'+wsEsc(pregTxt)+'</b></div>' +
-          '<div class="pc-clin-i"><span>ASA</span><b>'+(sc.asa_suggestion?('~'+sc.asa_suggestion):'—')+'</b></div>' +
-        '</div>'
-      : '';
-
-    // Workflow buttons (professional, no URLs)
-    var send = '<button class="ws-btn ws-btn-wa" onclick="event.stopPropagation();wsSendWhatsApp(\''+p.id+'\')">'+(p.questionnaire_status==='not_sent'?'Send questionnaire':'Resend questionnaire')+'</button>';
-    var preview = '<button class="ws-btn" onclick="event.stopPropagation();wsPreview()">Preview questionnaire</button>';
-    var actionsCompleted = (p.questionnaire_status==='completed')
-      ? '<button class="ws-btn" onclick="event.stopPropagation();wsOpenClinicRecord(\''+p.id+'\')">Open workspace</button>' +
-        '<button class="ws-btn" onclick="event.stopPropagation();wsOpenClinicRecord(\''+p.id+'\')">View full questionnaire</button>' +
-        '<button class="ws-btn" onclick="event.stopPropagation();wsPrint(\''+p.id+'\')">Print PDF</button>'
-      : '';
-
-    var workflow = '';
-    if(p.consultation_status === 'not_arrived'){
-      workflow += '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsAdvance(\''+p.id+'\',\'arrived\')">Patient arrived</button>';
-    } else if(p.consultation_status === 'arrived'){
-      workflow += '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsAdvance(\''+p.id+'\',\'reviewed\')">Mark reviewed</button>';
-    } else if(p.consultation_status === 'reviewed' && p.patient_status !== 'ready_for_surgery'){
-      workflow += '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsReady(\''+p.id+'\')">Ready for surgery</button>';
-    }
-
-    // Risk flags (from questionnaire scoring) — shown at a glance when completed
-    var flags = (p.questionnaire_answers && p.questionnaire_answers._flags) || [];
-    var flagRow = (p.questionnaire_status === 'completed' && flags.length)
-      ? '<div class="pc-flags">' + flags.map(function(f){ return '<span class="pc-flag">&#9888; '+wsEsc(f)+'</span>'; }).join('') + '</div>'
-      : '';
-
-    // Account-linked convergence: fallback "Activate Patient Portal" (only when
-    // completed + email present + not yet converted). Otherwise show why it's off.
-    var portalRow = '';
-    if(p.questionnaire_status==='completed'){
-      if(p.auth_user_id) portalRow = '<span class="pc-portal ok">&#10003; Portal active &middot; bridge patient</span>';
-      else if(p.email) portalRow = '<button class="ws-btn pc-green" onclick="event.stopPropagation();wsActivatePortal(\''+p.id+'\')">&#128274; Activate Patient Portal</button>';
-      else portalRow = '<span class="pc-portal need">&#9888; Email required to enable full patient portal</span>';
-    }
-    var actionsRow = (p.questionnaire_status==='completed')
-      ? portalRow + actionsCompleted + workflow + preview
-      : send + preview + workflow;
-
-    return '<div class="pc-card" onclick="wsOpenClinicRecord(\''+p.id+'\')">' +
-      '<div class="pc-head">' +
-        '<div><div class="pc-name">'+wsEsc(p.patient_name)+'</div>' +
-          '<div class="pc-facts">'+facts.join('<span class="pc-sep">&middot;</span>')+'</div></div>' +
-        '<div class="pc-status">'+wsDeriveStatus(p)+'</div>' +
-      '</div>' +
-      stepper + bar + chips + clinRow + flagRow + activityLine +
-      '<div class="pc-actions">'+actionsRow+'</div>' +
-    '</div>';
+    var sentTxt = p.sent_at ? ('Sent '+new Date(p.sent_at).toLocaleDateString()) : 'Not sent yet';
+    var initial = ((p.patient_name||'P').trim().charAt(0)||'P').toUpperCase();
+    var proc = p.procedure ? wsEsc(p.procedure) : '';
+    return '<div class="ws-inv-row" onclick="wsOpenClinicRecord(\''+p.id+'\')">'+
+      '<div class="ws-inv-ava">'+wsEsc(initial)+'</div>'+
+      '<div class="ws-inv-main">'+
+        '<div class="ws-inv-top"><span class="ws-inv-nm">'+wsEsc(p.patient_name||'Patient')+'</span>'+(proc?'<span class="ws-inv-meta">'+proc+'</span>':'')+'</div>'+
+        '<div class="ws-inv-sub">'+sentTxt+' &middot; <span class="ws-inv-st '+stCls+'">'+stLabel+'</span></div>'+
+        '<div class="ws-inv-bar"><div class="ws-inv-fill" style="width:'+pct+'%"></div></div>'+
+      '</div>'+
+      '<div class="ws-inv-pct">'+pct+'%</div>'+
+      '<div class="ws-inv-acts" onclick="event.stopPropagation()">'+
+        '<button class="ws-btn" onclick="wsOpenClinicRecord(\''+p.id+'\')">Open</button>'+
+        '<button class="ws-btn" onclick="wsSend(\''+p.id+'\')">Resend</button>'+
+        '<button class="ws-btn ws-inv-cancel" onclick="wsCancelInvite(\''+p.id+'\')">Cancel</button>'+
+      '</div></div>';
   }).join('');
 }
+// Cancel an invitation (doctor owns the clinic_patients row; cp_delete RLS).
+async function wsCancelInvite(id){
+  if(!window.confirm('Cancel this invitation and remove the patient from your list?')) return;
+  try { var r=await window.sb.from('clinic_patients').delete().eq('id', id); if(r&&r.error) throw new Error(r.error.message);
+    wsToast('Invitation cancelled'); }
+  catch(e){ wsToast('Cancel failed: '+(e.message||'error')); return; }
+  await wsLoadPatients(); wsLoadCases();
+}
+window.wsCancelInvite=wsCancelInvite;
 function wsPreview(){ window.open('/v2/q.html?preview=1', '_blank'); }
 function wsPrint(id){
   var p = _wsPatients.find(function(x){ return x.id === id; });
