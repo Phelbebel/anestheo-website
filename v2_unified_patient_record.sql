@@ -17,6 +17,7 @@ ALTER TABLE public.patient_surgeries ALTER COLUMN patient_id DROP NOT NULL;
 ALTER TABLE public.patient_surgeries
   ADD COLUMN IF NOT EXISTS care_state    text NOT NULL DEFAULT 'surgical',
   ADD COLUMN IF NOT EXISTS patient_name  text,
+  ADD COLUMN IF NOT EXISTS doctor_notes  text,
   ADD COLUMN IF NOT EXISTS contact_email text,
   ADD COLUMN IF NOT EXISTS claim_token   uuid DEFAULT gen_random_uuid();
 
@@ -65,6 +66,12 @@ UPDATE public.patient_surgeries ps
    SET care_state = CASE WHEN cr.is_consultation THEN 'consultation' ELSE 'surgical' END
   FROM public.care_requests cr
  WHERE cr.surgery_id = ps.id AND cr.status = 'accepted';
+
+-- Canonical private notes on the record: carry forward existing consult_notes.
+UPDATE public.patient_surgeries ps
+   SET doctor_notes = cr.consult_notes
+  FROM public.care_requests cr
+ WHERE cr.surgery_id = ps.id AND cr.consult_notes IS NOT NULL AND ps.doctor_notes IS NULL;
 
 -- ── 5. Map existing doctor-created clinic_patients -> a canonical record ──
 -- Unconverted clinic patients (no auth identity) get an auth-optional record,
