@@ -427,6 +427,15 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-rec-add{display:flex;gap:8px;margin-top:6px;}
 .ws-rec-add input{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;}
 .ws-invite-band{margin-top:26px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025);}
+/* Patient Management board switcher (tabs + one panel at a time) */
+.ws-pmtabs{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 18px;}
+.ws-pmtab{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:10px 14px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all .14s;}
+.ws-pmtab:hover{color:#fff;border-color:rgba(126,207,192,.3);}
+.ws-pmtab.active{color:#fff;background:rgba(126,207,192,.12);border-color:rgba(126,207,192,.45);}
+.ws-pmtab-n{font-size:11px;font-weight:800;color:#06140f;border-radius:20px;padding:1px 8px;min-width:18px;text-align:center;}
+.ws-pmtab-n.g{background:#3DDC97;} .ws-pmtab-n.b{background:#4FA8FF;} .ws-pmtab-n.a{background:#FFB454;} .ws-pmtab-n.n{background:rgba(255,255,255,.34);color:#fff;}
+.ws-bpanel{display:none;}
+.ws-bpanel.on{display:block;}
 /* Four separate Patient Management boards */
 .ws-board{border-radius:16px;padding:15px 17px;margin-bottom:16px;border:1px solid var(--border);}
 .ws-board.req{border-color:rgba(255,180,84,.3);background:linear-gradient(180deg,rgba(255,180,84,.045),rgba(255,255,255,.012));}
@@ -1541,6 +1550,14 @@ async function wsLoadPatients(){
 }
 function wsToggleAddForm(){ var w=document.getElementById('ws-add-wrap'); if(!w) return; var show=(w.style.display==='none'||!w.style.display); w.style.display=show?'block':'none'; if(show){ var n=document.getElementById('wa-name'); if(n) n.focus(); } }
 window.wsToggleAddForm=wsToggleAddForm;
+// Patient Management board switcher — show one workflow at a time (default Surgical).
+var _wsBoard='surgical';
+function wsBoard(b){
+  _wsBoard=b;
+  document.querySelectorAll('#sec-patients .ws-pmtab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-b')===b); });
+  document.querySelectorAll('#sec-patients .ws-bpanel').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-board')===b); });
+}
+window.wsBoard=wsBoard;
 function wsPtFilter(f, el){
   _wsPtFilter = f;
   document.querySelectorAll('#sec-patients .ws-subtab').forEach(function(b){ b.classList.remove('active'); });
@@ -2133,63 +2150,71 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<iframe class="ws-frame" src="/v2/engine.html?embed=1" title="Anesthesiology Live Tools"></iframe>' +
       '</div>';
 
-    // SECTION 2 — Patient Management
+    // SECTION 2 — Patient Management (board switcher: one workflow at a time)
     var secPatients =
       '<div class="ws-sec active" id="sec-patients">' +
         '<div class="ws-sec-head"><div><div class="ws-sec-title">Patient management</div>' +
-          '<div class="ws-sec-sub">Four separate workflows &mdash; a patient lives in exactly one</div></div>' +
+          '<div class="ws-sec-sub">Choose a workflow &mdash; a patient lives in exactly one board</div></div>' +
           '<span class="ws-need-badge" id="ws-need-badge" style="display:none;"></span></div>' +
 
-        // ════════ BOARD 1 — Consultation Requests (incoming, awaiting your decision) ════════
-        '<div class="ws-board req">' +
-          '<div class="ws-bh"><span class="ws-bt">&#128233; Consultation Requests</span>' +
-            '<span class="ws-bn a" id="ws-requests-n">0</span>' +
-            '<span class="ws-bsub">Incoming &mdash; accept as consultation or surgical, or decline</span></div>' +
-          '<div id="ws-requests"></div>' +
+        // ── Board switcher (tabs) ──
+        '<div class="ws-pmtabs">' +
+          '<button class="ws-pmtab" data-b="requests" onclick="wsBoard(\'requests\')"><span>&#128233; Consultation Requests</span><span class="ws-pmtab-n a" id="ws-requests-n">0</span></button>' +
+          '<button class="ws-pmtab" data-b="consultations" onclick="wsBoard(\'consultations\')"><span>&#128172; Active Consultations</span><span class="ws-pmtab-n b" id="ws-consult-n">0</span></button>' +
+          '<button class="ws-pmtab active" data-b="surgical" onclick="wsBoard(\'surgical\')"><span>&#127973; Surgical Patients</span><span class="ws-pmtab-n g" id="ws-surg-n">0</span></button>' +
+          '<button class="ws-pmtab" data-b="invitations" onclick="wsBoard(\'invitations\')"><span>&#128203; Invitations / Awaiting Questionnaire</span><span class="ws-pmtab-n n" id="ws-invites-n">0</span></button>' +
         '</div>' +
 
-        // ════════ BOARD 2 — Active Consultations (advice only) ════════
-        '<div class="ws-board con">' +
-          '<div class="ws-bh"><span class="ws-bt">&#128172; Active Consultations</span>' +
-            '<span class="ws-bn b" id="ws-consult-n">0</span>' +
-            '<span class="ws-bsub">Advice only &mdash; never mixed with surgical</span></div>' +
-          '<div id="ws-consultations"></div>' +
-        '</div>' +
+        // ── BOARD 1 — Consultation Requests ──
+        '<div class="ws-bpanel" data-board="requests">' +
+          '<div class="ws-board req">' +
+            '<div class="ws-bh"><span class="ws-bt">&#128233; Consultation Requests</span>' +
+              '<span class="ws-bsub">Incoming &mdash; accept as consultation or surgical, or decline</span></div>' +
+            '<div id="ws-requests"></div>' +
+          '</div></div>' +
 
-        // ════════ BOARD 3 — Surgical Patients (in the surgical workflow) ════════
-        '<div class="ws-board sur">' +
-          '<div class="ws-bh"><span class="ws-bt">&#127973; Surgical Patients</span>' +
-            '<span class="ws-bn g" id="ws-surg-n">0</span>' +
-            '<span class="ws-bsub">In the surgical workflow &mdash; Action Center &amp; active cases</span></div>' +
-          '<div id="ws-action-center"></div>' +
-          '<div id="ws-active-cases"></div>' +
-        '</div>' +
+        // ── BOARD 2 — Active Consultations ──
+        '<div class="ws-bpanel" data-board="consultations">' +
+          '<div class="ws-board con">' +
+            '<div class="ws-bh"><span class="ws-bt">&#128172; Active Consultations</span>' +
+              '<span class="ws-bsub">Advice only &mdash; never mixed with surgical</span></div>' +
+            '<div id="ws-consultations"></div>' +
+          '</div></div>' +
 
-        // ════════ BOARD 4 — Invitations / Awaiting Questionnaire (pre-workflow) ════════
-        '<div class="ws-board inv">' +
-          '<div class="ws-bh"><span class="ws-bt">&#128203; Invitations / Awaiting Questionnaire</span>' +
-            '<span class="ws-bn n" id="ws-invites-n">0</span>' +
-            '<span class="ws-bsub">Patients you invited &mdash; waiting for questionnaire completion or response</span>' +
-            '<span class="ws-bright"><button class="ws-btn ws-btn-wa" onclick="wsToggleAddForm()">&#10133; New patient</button></span></div>' +
-          '<div class="ws-add-wrap" id="ws-add-wrap" style="display:none;">' +
-            '<div class="ws-form-title">Add patient</div>' +
-            '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
-            '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
-            '<label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">' +
-            '<div class="wa-hint">Email required to enable full patient portal (document upload + plan). You can still save and send the questionnaire without it.</div>' +
-            '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
-            '<label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">' +
-            '<label>Surgery date</label><input id="wa-date" type="date">' +
-            '<label>Workflow</label><select id="wa-lane"><option value="surgical">🏥 Surgical patient</option><option value="consultation">💬 Consultation</option></select>' +
-            '<label>Anesthesiologist notes</label><textarea id="wa-notes" placeholder="Optional"></textarea>' +
-            '<div class="ws-form-btns">' +
-              '<button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">Send questionnaire</button>' +
-              '<button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save patient</button>' +
+        // ── BOARD 3 — Surgical Patients (default) ──
+        '<div class="ws-bpanel on" data-board="surgical">' +
+          '<div class="ws-board sur">' +
+            '<div class="ws-bh"><span class="ws-bt">&#127973; Surgical Patients</span>' +
+              '<span class="ws-bsub">In the surgical workflow &mdash; Action Center &amp; active cases</span></div>' +
+            '<div id="ws-action-center"></div>' +
+            '<div id="ws-active-cases"></div>' +
+          '</div></div>' +
+
+        // ── BOARD 4 — Invitations / Awaiting Questionnaire ──
+        '<div class="ws-bpanel" data-board="invitations">' +
+          '<div class="ws-board inv">' +
+            '<div class="ws-bh"><span class="ws-bt">&#128203; Invitations / Awaiting Questionnaire</span>' +
+              '<span class="ws-bsub">Patients you invited &mdash; waiting for questionnaire completion or response</span>' +
+              '<span class="ws-bright"><button class="ws-btn ws-btn-wa" onclick="wsToggleAddForm()">&#10133; New patient</button></span></div>' +
+            '<div class="ws-add-wrap" id="ws-add-wrap" style="display:none;">' +
+              '<div class="ws-form-title">Add patient</div>' +
+              '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
+              '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
+              '<label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">' +
+              '<div class="wa-hint">Email required to enable full patient portal (document upload + plan). You can still save and send the questionnaire without it.</div>' +
+              '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
+              '<label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">' +
+              '<label>Surgery date</label><input id="wa-date" type="date">' +
+              '<label>Workflow</label><select id="wa-lane"><option value="surgical">🏥 Surgical patient</option><option value="consultation">💬 Consultation</option></select>' +
+              '<label>Anesthesiologist notes</label><textarea id="wa-notes" placeholder="Optional"></textarea>' +
+              '<div class="ws-form-btns">' +
+                '<button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">Send questionnaire</button>' +
+                '<button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save patient</button>' +
+              '</div>' +
             '</div>' +
-          '</div>' +
-          '<div class="ws-stats" id="ws-pt-stats"></div>' +
-          '<div id="ws-pt-list" class="ws-list"></div>' +
-        '</div>' +
+            '<div class="ws-stats" id="ws-pt-stats"></div>' +
+            '<div id="ws-pt-list" class="ws-list"></div>' +
+          '</div></div>' +
       '</div>';
 
 
