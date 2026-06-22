@@ -444,6 +444,34 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-spanel{display:none;} .ws-spanel.on{display:block;}
 .ws-board.mp{border-color:rgba(61,220,151,.28);background:linear-gradient(180deg,rgba(61,220,151,.04),rgba(255,255,255,.01));}
 .ws-board.cr{border-color:rgba(79,168,255,.28);background:linear-gradient(180deg,rgba(79,168,255,.045),rgba(255,255,255,.01));}
+/* My Patients board rows */
+.ws-mp-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:11px;padding:11px 14px;margin-bottom:8px;cursor:pointer;}
+.ws-mp-row:hover{border-color:rgba(126,207,192,.32);background:rgba(126,207,192,.04);}
+.ws-mp-ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#15414f,#1c6e5a);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#bff5df;flex:0 0 auto;}
+.ws-mp-main{flex:1;min-width:0;}
+.ws-mp-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+.ws-mp-nm{font-size:14.5px;font-weight:700;}
+.ws-mp-meta{font-size:12.5px;color:var(--muted);}
+.ws-mp-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.ws-mp-bar{height:4px;border-radius:4px;background:rgba(255,255,255,.08);margin-top:6px;max-width:320px;overflow:hidden;}
+.ws-mp-fill{height:100%;background:linear-gradient(90deg,#2A8A74,#3DDC97);}
+.ws-mp-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto;}
+.ws-mp-alert{font-size:11.5px;font-weight:700;color:#FFCD8A;}
+.ws-mp-date{font-size:11.5px;color:var(--muted);}
+.ws-mp-pct{font-size:12px;font-weight:700;color:var(--teal);}
+.ws-mp-act{flex:0 0 auto;padding:8px 13px;font-size:12.5px;}
+/* Generic modal (New Patient) */
+.ws-modal-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.78);z-index:6500;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
+.ws-modal-bg.open{display:flex;}
+.ws-modal{background:#0A1614;border:1px solid rgba(42,138,116,.4);border-radius:16px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+.ws-modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid rgba(42,138,116,.25);}
+.ws-modal-title{font-size:16px;font-weight:800;}
+.ws-modal-body{padding:16px 18px;display:flex;flex-direction:column;}
+.ws-modal-body label{font-size:12px;color:var(--muted);margin:10px 0 4px;}
+.ws-modal-body input,.ws-modal-body textarea{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:#fff;font-size:14px;font-family:inherit;outline:none;}
+.ws-modal-body textarea{min-height:60px;resize:vertical;}
+.ws-modal-body .wa-hint{font-size:11px;color:var(--muted);margin-top:5px;}
+.ws-modal-foot{display:flex;gap:9px;justify-content:flex-end;padding:14px 18px;border-top:1px solid rgba(42,138,116,.25);flex-wrap:wrap;}
 /* Four separate Patient Management boards */
 .ws-board{border-radius:16px;padding:15px 17px;margin-bottom:16px;border:1px solid var(--border);}
 .ws-board.req{border-color:rgba(255,180,84,.3);background:linear-gradient(180deg,rgba(255,180,84,.045),rgba(255,255,255,.012));}
@@ -606,7 +634,7 @@ function wsDeriveStatus(p){
 // review, approval) are reused unchanged.
 // ============================================================
 var URGENCY_CRITICAL=2, URGENCY_SOON=7;
-var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsActiveClinicIds={};
+var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsActiveClinicIds={}, _wsMyPatients=[];
 function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
 function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
 function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
@@ -638,80 +666,113 @@ function wsIsNew(o){
   return o.eventTs>(wsSeenGet()[id]||0) && (Date.now()-o.eventTs)<86400000;
 }
 
+// Lane rule (pre-migration safe): care_state if present, else is_consultation.
+function wsIsConsult(cr, sg){ if(sg && sg.care_state) return sg.care_state==='consultation'; return !!(cr && cr.is_consultation); }
+function wsBridgeStage(rs, sg){
+  if(sg && sg.completed_at) return 'completed';
+  if(rs==='approved') return (sg && sg.surgery_date) ? 'scheduled' : 'approved';
+  if(rs==='pending'||rs==='in_review'||rs==='changes_requested') return 'review';
+  return 'awaiting';
+}
+function wsClinicStage(p){
+  if(p.patient_status==='completed') return 'completed';
+  if(p.patient_status==='ready_for_surgery') return 'scheduled';
+  if(p.consultation_status==='reviewed') return 'approved';
+  if(p.questionnaire_status==='completed') return 'review';
+  return 'awaiting';
+}
+function wsStageLabel(s){ return {awaiting:'Awaiting questionnaire', review:'Questionnaire submitted — awaiting your review', approved:'Plan approved', scheduled:'Scheduled for surgery', completed:'Completed'}[s]||s; }
+var WS_MP_STAGES=['awaiting','review','approved','scheduled','completed'];
+
 async function wsLoadCases(){
   var uid=window.__wsUserId; if(!uid) return;
   var crs=[];
-  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).in('status',['requested','accepted']); crs=(r&&r.data)||[]; }catch(e){}
-  var accepted=crs.filter(function(c){return c.status==='accepted';});
-  _wsRequests=crs.filter(function(c){return c.status==='requested';})
-    .sort(function(a,b){ return new Date(a.requested_at||0)-new Date(b.requested_at||0); });
-
-  // Canonical records owned by this doctor (both origins). patient_surgeries
-  // .care_state is the SINGLE source of truth for the consultation/surgical lane.
+  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).in('status',['requested','accepted','closed']); crs=(r&&r.data)||[]; }catch(e){}
   var surgById={}, surgByClinic={};
   try { var s=await window.sb.from('patient_surgeries').select('*').eq('assigned_doctor_id',uid);
     ((s&&s.data)||[]).forEach(function(x){ surgById[x.id]=x; if(x.clinic_patient_id) surgByClinic[x.clinic_patient_id]=x; }); }catch(e){}
   var clinics=[];
   try { var cp=await window.sb.from('clinic_patients').select('*').eq('doctor_id',uid); clinics=(cp&&cp.data)||[]; }catch(e){}
 
-  // ── Lane split by care_state (origin-independent) ──
-  _wsConsults=[]; var surgicalReqs=[]; var clinicConsult={};
-  accepted.forEach(function(c){
-    var sg=surgById[c.surgery_id]||{};
-    if((sg.care_state||'surgical')==='consultation'){
-      _wsConsults.push({ id:c.id, origin:'patient', surgery_id:c.surgery_id, patient_id:c.patient_id,
-        patient_name:c.patient_name||sg.patient_name||'Patient', message:c.message||'',
-        doctor_notes:(sg.doctor_notes!=null?sg.doctor_notes:c.consult_notes)||'', responded_at:c.responded_at });
-    } else { surgicalReqs.push(c); }
-  });
-  clinics.forEach(function(p){
-    var sg=surgByClinic[p.id];
-    if(sg && sg.care_state==='consultation'){ clinicConsult[p.id]=1;
-      _wsConsults.push({ id:'clinic:'+p.id, origin:'doctor', surgery_id:sg.id, patient_id:null,
-        patient_name:p.patient_name||'Patient', message:p.notes||'',
-        doctor_notes:(sg.doctor_notes!=null?sg.doctor_notes:p.doctor_notes)||'', responded_at:p.updated_at });
+  // ── Consultation Requests workflow (care_requests only) ──
+  _wsRequests=[]; _wsConsults=[]; _wsConsultsDone=[]; var surgicalReqs=[];
+  crs.forEach(function(c){
+    var sg=surgById[c.surgery_id]||null;
+    if(c.status==='requested'){ _wsRequests.push(c); return; }
+    if(c.status==='closed'){ if(wsIsConsult(c,sg)) _wsConsultsDone.push(c); return; }
+    if(c.status==='accepted'){
+      if(wsIsConsult(c,sg)){
+        _wsConsults.push({ id:c.id, origin:'patient', surgery_id:c.surgery_id, patient_id:c.patient_id,
+          patient_name:c.patient_name||(sg&&sg.patient_name)||'Patient', message:c.message||'',
+          doctor_notes:((sg&&sg.doctor_notes!=null)?sg.doctor_notes:c.consult_notes)||'', responded_at:c.responded_at });
+      } else { surgicalReqs.push(c); }
     }
   });
+  _wsRequests.sort(function(a,b){ return new Date(a.requested_at||0)-new Date(b.requested_at||0); });
   _wsConsults.sort(function(a,b){ return new Date(b.responded_at||0)-new Date(a.responded_at||0); });
+  _wsConsultsDone.sort(function(a,b){ return new Date(b.responded_at||0)-new Date(a.responded_at||0); });
 
-  // ── Surgical pipeline (Action Center / Active Cases) ──
+  // ── My Patients (surgical ONLY): accepted-surgical care_requests + ALL clinic patients ──
   var pids=surgicalReqs.map(function(c){return c.patient_id;}).filter(Boolean);
-  var sids=surgicalReqs.map(function(c){return c.surgery_id;}).filter(Boolean);
-  var q={},chk={},docInfo={};
-  if(pids.length){ try{ var qq=await window.sb.from('preop_questionnaires').select('patient_id,status,completion,review_state,updated_at').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){q[x.patient_id]=x;}); }catch(e){} }
-  if(pids.length){ try{ var cc=await window.sb.from('preop_checklist').select('patient_id,items').in('patient_id',pids); ((cc&&cc.data)||[]).forEach(function(x){chk[x.patient_id]=(x.items&&x.items.prep_guide)||{};}); }catch(e){} }
-  if(sids.length){ try{ var dd=await window.sb.from('requirement_documents').select('surgery_id,requirement_name,uploaded_at,reviewed_at').in('surgery_id',sids);
-    ((dd&&dd.data)||[]).forEach(function(d){ if(d.reviewed_at) return; var g=docInfo[d.surgery_id]=docInfo[d.surgery_id]||{count:0,names:[],ts:0}; g.count++; if(d.requirement_name) g.names.push(d.requirement_name); var t=d.uploaded_at?new Date(d.uploaded_at).getTime():0; if(t>g.ts) g.ts=t; }); }catch(e){} }
-
-  var cases=[]; _wsActiveMap={};
+  var q={};
+  if(pids.length){ try{ var qq=await window.sb.from('preop_questionnaires').select('patient_id,status,completion,review_state').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){q[x.patient_id]=x;}); }catch(e){} }
+  var mp=[]; _wsActiveMap={};
   surgicalReqs.forEach(function(c){
-    var sg=surgById[c.surgery_id]||{};
-    if(sg.completed_at) return;                 // completed -> Archive (Phase 5), excluded
+    var sg=surgById[c.surgery_id]||{}; var qd=q[c.patient_id]||{}; var rs=qd.review_state||'not_submitted';
+    var stage=wsBridgeStage(rs, sg);
     _wsActiveMap[c.patient_id]={name:c.patient_name,surgeryId:c.surgery_id};
-    cases.push(wsDeriveBridge(c, sg, q[c.patient_id]||{}, wsPrepCount(chk[c.patient_id]), docInfo[c.surgery_id]||{count:0,names:[],ts:0}));
+    mp.push({ key:'b'+c.id, origin:'patient', stage:stage, name:c.patient_name||sg.patient_name||'Patient',
+      procedure:c.procedure||sg.procedure_type||'', hospital:sg.hospital||'', surgeryDate:sg.surgery_date||null,
+      progress:({awaiting:(qd.completion||10),review:70,approved:90,scheduled:95,completed:100})[stage]||0,
+      statusText:wsStageLabel(stage), patientId:c.patient_id, surgeryId:c.surgery_id,
+      openFn:"wsOpenRecord('"+c.surgery_id+"')" });
   });
-  clinics.forEach(function(p){ if(clinicConsult[p.id]) return;   // consultation clinic patients are not in the surgical lane
-    var d=wsDeriveClinic(p); if(d) cases.push(d); });
-  _wsCases=cases;
-  // Clinic patients that already belong to a board (consultation OR active
-  // surgical case) are excluded from board 4 so a patient is in exactly one board.
-  _wsActiveClinicIds={};
-  Object.keys(clinicConsult).forEach(function(k){ _wsActiveClinicIds[k]=1; });
-  cases.forEach(function(c){ if(c.source==='clinic'&&c.clinicId) _wsActiveClinicIds[c.clinicId]=1; });
-  // Stage counts: My Patients pipeline = Awaiting (board4) -> Questionnaire
-  // Completed (Action Center, awaiting review) -> Surgical (Active Cases).
-  var actionN=cases.filter(function(c){return c.bucket==='action';}).length;
-  var activeN=cases.filter(function(c){return c.bucket==='active';}).length;
-  var ec=document.getElementById('ws-mp-completed-n'); if(ec) ec.textContent=actionN||0;
-  var sn=document.getElementById('ws-surg-n'); if(sn) sn.textContent=activeN||0;
-  wsRenderActionCenter();
-  wsRenderActiveCases();
-  wsRenderConsultations();
+  clinics.forEach(function(p){
+    var stage=wsClinicStage(p);
+    mp.push({ key:'c'+p.id, origin:'clinic', stage:stage, name:p.patient_name||'Patient',
+      procedure:p.procedure||'', hospital:p.hospital||'', surgeryDate:p.surgery_date||null,
+      progress:wsProgressPct(p), statusText:wsStageLabel(stage), clinicId:p.id, sent_at:p.sent_at,
+      questionnaire_status:p.questionnaire_status, openFn:"wsOpenClinicRecord('"+p.id+"')" });
+  });
+  _wsMyPatients=mp;
+
+  wsRenderMyPatients();
   wsRenderRequests();
-  if(window._wsPatients && document.getElementById('ws-pt-list')) wsRenderPatients();
+  wsRenderConsultations();
+  wsRenderConsultsDone();
   wsUpdateCrTotal();
-  wsLoadConsultsDone();
 }
+// My Patients board — surgical-only, grouped by the 5 derived stages.
+function wsRenderMyPatients(){
+  // stage counts on the tabs
+  WS_MP_STAGES.forEach(function(st){
+    var el=document.getElementById('ws-mp-'+st+'-n');
+    if(el) el.textContent=_wsMyPatients.filter(function(p){return p.stage===st;}).length||0;
+  });
+  var box=document.getElementById('ws-mp-list'); if(!box) return;
+  var list=_wsMyPatients.filter(function(p){return p.stage===_wsMpStage;})
+    .sort(function(a,b){ var ad=a.surgeryDate?new Date(a.surgeryDate).getTime():Infinity, bd=b.surgeryDate?new Date(b.surgeryDate).getTime():Infinity; return ad-bd; });
+  if(!list.length){ box.innerHTML='<div class="ws-empty">'+wsMpEmpty(_wsMpStage)+'</div>'; return; }
+  box.innerHTML=list.map(function(p){
+    var initial=((p.name||'P').trim().charAt(0)||'P').toUpperCase();
+    var meta=[p.procedure,p.hospital].filter(Boolean).map(wsEsc).join(' &middot; ');
+    var urg=wsUrgency(p.surgeryDate);
+    var alert=(urg.label&&urg.soon)?'<span class="ws-mp-alert">&#9888; '+wsEsc(urg.label)+'</span>':(p.surgeryDate?'<span class="ws-mp-date">&#128197; '+wsEsc(urg.label)+'</span>':'');
+    var pct=Math.max(0,Math.min(100,p.progress||0));
+    var origChip=p.origin==='clinic'?'<span class="ws-orig doc">Created</span>':'<span class="ws-orig pt">Requested</span>';
+    var action=(p.stage==='review')?'Review &rarr;':(p.stage==='awaiting'?'Open &rarr;':'Open &rarr;');
+    return '<div class="ws-mp-row" onclick="'+p.openFn+'">'+
+      '<div class="ws-mp-ava">'+wsEsc(initial)+'</div>'+
+      '<div class="ws-mp-main"><div class="ws-mp-top">'+origChip+'<span class="ws-mp-nm">'+wsEsc(p.name)+'</span>'+(meta?'<span class="ws-mp-meta">'+meta+'</span>':'')+'</div>'+
+        '<div class="ws-mp-sub">'+wsEsc(p.statusText)+'</div>'+
+        '<div class="ws-mp-bar"><div class="ws-mp-fill" style="width:'+pct+'%"></div></div></div>'+
+      '<div class="ws-mp-right">'+alert+'<div class="ws-mp-pct">'+pct+'%</div></div>'+
+      '<button class="ws-btn pc-green ws-mp-act" onclick="event.stopPropagation();'+p.openFn+'">'+action+'</button>'+
+    '</div>';
+  }).join('');
+}
+function wsMpEmpty(st){ return {awaiting:'No patients awaiting questionnaire.',review:'Nothing awaiting your review.',approved:'No approved patients.',scheduled:'No scheduled surgeries.',completed:'No completed patients yet.'}[st]||'No patients in this stage.'; }
+window.wsRenderMyPatients=wsRenderMyPatients;
 // Top-level Consultation Requests badge = new requests + active + completed.
 function wsUpdateCrTotal(){
   var el=document.getElementById('ws-cr-total'); if(!el) return;
@@ -1557,7 +1618,12 @@ async function wsSetCareState(state){
     ? 'Move this patient to Consultations (advice-only, out of the surgical pipeline)? Documents, notes and recommendations stay on the same record.'
     : 'Convert this consultation into a surgical patient? They enter your pre-operative workflow. Documents, notes and recommendations stay on the same record.';
   if(!window.confirm(msg)) return;
-  try { var u=await window.sb.from('patient_surgeries').update({ care_state:state }).eq('id', c.surgeryId); if(u&&u.error) throw new Error(u.error.message);
+  try {
+    // Canonical state on the record (when the column exists).
+    try{ await window.sb.from('patient_surgeries').update({ care_state:state }).eq('id', c.surgeryId); }catch(e){}
+    // Keep the legacy care_requests flag in sync so the patient leaves/enters the
+    // consultation queue even pre-migration (single source of truth either way).
+    if(c.careId){ try{ await window.sb.from('care_requests').update({ is_consultation:(state==='consultation') }).eq('id', c.careId); }catch(e){} }
     wsToast(state==='consultation'?'Moved to Consultations':'Converted to surgical patient'); }
   catch(e){ wsToast('Failed: '+(e.message||'error')); return; }
   wsCloseWorkspace(); wsLoadCases();
@@ -1575,29 +1641,18 @@ async function wsCloseConsult(){
 window.wsSetCareState=wsSetCareState; window.wsCloseConsult=wsCloseConsult;
 
 async function wsLoadPatients(){
+  // Kept for callers that need _wsPatients populated (wsFindP, wsSend, etc.).
+  // The My Patients board itself is rendered by wsLoadCases/wsRenderMyPatients.
   _wsDoctorId = window.__wsUserId || null;
   try {
     var r = await window.sb.from('clinic_patients').select('*').order('created_at',{ascending:false});
     if(r.error) throw new Error(r.error.message);
     _wsPatients = r.data || [];
-    var awaitingQ = _wsPatients.filter(function(p){ return p.questionnaire_status !== 'completed'; }).length;
-    var completedQ = _wsPatients.filter(function(p){ return p.questionnaire_status === 'completed'; }).length;
-    var ready = _wsPatients.filter(function(p){ return p.patient_status === 'ready_for_surgery'; }).length;
-    document.getElementById('ws-pt-stats').innerHTML =
-      '<div class="ws-stat"><div class="ws-stat-n">'+_wsPatients.length+'</div><div class="ws-stat-l">Patients</div></div>' +
-      '<div class="ws-stat"><div class="ws-stat-n">'+awaitingQ+'</div><div class="ws-stat-l">Awaiting questionnaire</div></div>' +
-      '<div class="ws-stat"><div class="ws-stat-n">'+completedQ+'</div><div class="ws-stat-l">Questionnaire done</div></div>' +
-      '<div class="ws-stat"><div class="ws-stat-n">'+ready+'</div><div class="ws-stat-l">Ready for surgery</div></div>';
-    wsRenderPatients();
-  } catch(e){
-    _wsPatients = [];
-    document.getElementById('ws-pt-stats').innerHTML =
-      '<div class="ws-stat"><div class="ws-stat-n">0</div><div class="ws-stat-l">Patients</div></div>';
-    document.getElementById('ws-pt-list').innerHTML = '<div class="ws-empty">No patients added yet.</div>';
-  }
+  } catch(e){ _wsPatients = []; }
 }
-function wsToggleAddForm(){ var w=document.getElementById('ws-add-wrap'); if(!w) return; var show=(w.style.display==='none'||!w.style.display); w.style.display=show?'block':'none'; if(show){ var n=document.getElementById('wa-name'); if(n) n.focus(); } }
-window.wsToggleAddForm=wsToggleAddForm;
+function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m) return; m.classList.add('open'); var n=document.getElementById('wa-name'); if(n) n.focus(); }
+function wsCloseAddModal(){ var m=document.getElementById('ws-add-modal'); if(m) m.classList.remove('open'); }
+window.wsOpenAddModal=wsOpenAddModal; window.wsCloseAddModal=wsCloseAddModal;
 // Patient Management navigation: two workflows, each with internal stages.
 var _wsWf='mypatients', _wsMpStage='awaiting', _wsCrStage='new';
 function wsWf(w){
@@ -1610,7 +1665,12 @@ function wsStageSwitch(wfSel, s){
   wf.querySelectorAll('.ws-stab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-s')===s); });
   wf.querySelectorAll('.ws-spanel').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-s')===s); });
 }
-function wsMpStage(s){ _wsMpStage=s; wsStageSwitch('mypatients', s); }
+function wsMpStage(s){
+  _wsMpStage=s;
+  var wf=document.querySelector('#sec-patients .ws-wf[data-wf="mypatients"]');
+  if(wf) wf.querySelectorAll('.ws-stab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-s')===s); });
+  wsRenderMyPatients();
+}
 function wsCrStage(s){ _wsCrStage=s; wsStageSwitch('consults', s); }
 window.wsWf=wsWf; window.wsMpStage=wsMpStage; window.wsCrStage=wsCrStage;
 function wsPtFilter(f, el){
@@ -1649,8 +1709,7 @@ function wsRenderPatients(){
   var list = _wsPatients.filter(function(p){
     return p.questionnaire_status !== 'completed' && !_wsActiveClinicIds[p.id];
   });
-  var nb = document.getElementById('ws-invites-n'); if(nb) nb.textContent = list.length || 0;
-  var box = document.getElementById('ws-pt-list');
+  var box = document.getElementById('ws-pt-list'); if(!box) return;   // legacy container removed
   if(!list.length){ box.innerHTML = '<div class="ws-empty">No pending invitations &mdash; everyone you invited has completed their questionnaire.</div>'; return; }
 
   // Compact invitation rows — same density/visual language as the other boards.
@@ -1784,7 +1843,8 @@ async function wsSavePatient(thenSend){
         hospital:rec.hospital||null, contact_email:rec.email||null, care_state:lane }); }catch(e){ console.warn('record create:', e&&e.message); }
     }
     wsClearForm();
-    await wsLoadPatients(); await wsLoadCases();
+    wsCloseAddModal();
+    await wsLoadCases();
     if(thenSend && r.data){ wsSend(r.data.id); }
     else { wsToast('Patient saved'); }
   } catch(e){
@@ -2218,45 +2278,23 @@ document.addEventListener('DOMContentLoaded', async function(){
           '<button class="ws-wftab" data-wf="consults" onclick="wsWf(\'consults\')">&#128172; Consultation Requests <span class="ws-wftab-n" id="ws-cr-total">0</span></button>' +
         '</div>' +
 
-        // ════════ WORKFLOW A — MY PATIENTS ════════
+        // ════════ WORKFLOW A — MY PATIENTS (surgical only, 5 stages) ════════
         '<div class="ws-wf on" data-wf="mypatients">' +
           '<div class="ws-wf-bar">' +
             '<div class="ws-stagetabs">' +
-              '<button class="ws-stab active" data-s="awaiting" onclick="wsMpStage(\'awaiting\')">Awaiting Questionnaire <span class="ws-stab-n" id="ws-invites-n">0</span></button>' +
+              '<button class="ws-stab active" data-s="awaiting" onclick="wsMpStage(\'awaiting\')">Awaiting Questionnaire <span class="ws-stab-n" id="ws-mp-awaiting-n">0</span></button>' +
               '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')">Questionnaire Completed <span class="ws-stab-n" id="ws-mp-completed-n">0</span></button>' +
+              '<button class="ws-stab" data-s="review" onclick="wsMpStage(\'review\')">Awaiting Review <span class="ws-stab-n" id="ws-mp-review-n">0</span></button>' +
               '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="surgical" onclick="wsMpStage(\'surgical\')">Surgical Patients <span class="ws-stab-n" id="ws-surg-n">0</span></button>' +
+              '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')">Approved <span class="ws-stab-n" id="ws-mp-approved-n">0</span></button>' +
+              '<span class="ws-sarrow">&rarr;</span>' +
+              '<button class="ws-stab" data-s="scheduled" onclick="wsMpStage(\'scheduled\')">Scheduled <span class="ws-stab-n" id="ws-mp-scheduled-n">0</span></button>' +
+              '<span class="ws-sarrow">&rarr;</span>' +
+              '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')">Completed <span class="ws-stab-n" id="ws-mp-completed-n">0</span></button>' +
             '</div>' +
-            '<div class="ws-wf-acts"><button class="ws-btn ws-btn-wa" onclick="wsToggleAddForm()">&#10133; Add Patient</button></div>' +
+            '<div class="ws-wf-acts"><button class="ws-btn ws-btn-wa" onclick="wsOpenAddModal()">&#10133; New Patient</button></div>' +
           '</div>' +
-          '<div class="ws-add-wrap" id="ws-add-wrap" style="display:none;">' +
-            '<div class="ws-form-title">Add patient</div>' +
-            '<label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">' +
-            '<label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">' +
-            '<label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">' +
-            '<div class="wa-hint">Email required to enable full patient portal (document upload + plan). You can still save and send the questionnaire without it.</div>' +
-            '<label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">' +
-            '<label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">' +
-            '<label>Surgery date</label><input id="wa-date" type="date">' +
-            '<label>Anesthesiologist notes</label><textarea id="wa-notes" placeholder="Optional"></textarea>' +
-            '<div class="ws-form-btns">' +
-              '<button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">&#128241; Send WhatsApp Questionnaire</button>' +
-              '<button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save patient</button>' +
-            '</div>' +
-          '</div>' +
-          // Stage A1 — Awaiting Questionnaire
-          '<div class="ws-spanel on" data-s="awaiting"><div class="ws-board mp">' +
-            '<div class="ws-bh"><span class="ws-bt">Awaiting Questionnaire</span><span class="ws-bsub">Invited &mdash; waiting for the patient to open &amp; complete it</span></div>' +
-            '<div class="ws-stats" id="ws-pt-stats"></div><div id="ws-pt-list" class="ws-list"></div></div></div>' +
-          // Stage A2 — Questionnaire Completed (awaiting your review)
-          '<div class="ws-spanel" data-s="completed"><div class="ws-board mp">' +
-            '<div class="ws-bh"><span class="ws-bt">Questionnaire Completed</span><span class="ws-bsub">Completed &mdash; awaiting your review</span></div>' +
-            '<div id="ws-action-center"></div></div></div>' +
-          // Stage A3 — Surgical Patients (ALL surgical, any origin)
-          '<div class="ws-spanel" data-s="surgical"><div class="ws-board mp">' +
-            '<div class="ws-bh"><span class="ws-bt">&#127973; Surgical Patients</span><span class="ws-bsub">In the surgical workflow &mdash; all origins</span></div>' +
-            '<div id="ws-active-cases"></div></div></div>' +
+          '<div class="ws-board mp"><div id="ws-mp-list" class="ws-list"></div></div>' +
         '</div>' +
 
         // ════════ WORKFLOW B — CONSULTATION REQUESTS ════════
@@ -2385,6 +2423,29 @@ document.addEventListener('DOMContentLoaded', async function(){
       <button class="ws-btn" onclick="wsCloseWorkspace()">&times; Close</button>
     </div>
     <div class="ws-ws-body" id="ws-ws-body"></div>
+  </div>
+</div>
+
+<!-- New Patient modal (surgical; no workflow selector) -->
+<div class="ws-modal-bg" id="ws-add-modal" onmousedown="window._waBgDown=(event.target===this)" onclick="if(event.target===this&&window._waBgDown)wsCloseAddModal()">
+  <div class="ws-modal">
+    <div class="ws-modal-head"><div class="ws-modal-title">&#10133; New Patient</div>
+      <button class="ws-btn" onclick="wsCloseAddModal()">&times;</button></div>
+    <div class="ws-modal-body">
+      <label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">
+      <label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">
+      <label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">
+      <div class="wa-hint">Email enables the full patient portal (documents + plan). Optional.</div>
+      <label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">
+      <label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">
+      <label>Surgery date</label><input id="wa-date" type="date">
+      <label>Notes</label><textarea id="wa-notes" placeholder="Optional"></textarea>
+    </div>
+    <div class="ws-modal-foot">
+      <button class="ws-btn" onclick="wsCloseAddModal()">Cancel</button>
+      <button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save</button>
+      <button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">&#128241; Save &amp; Send WhatsApp</button>
+    </div>
   </div>
 </div>
 
