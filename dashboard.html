@@ -463,6 +463,85 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-q-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;}
 .ws-q-btn{padding:6px 10px;font-size:11.5px;border-color:rgba(126,207,192,.3);background:rgba(126,207,192,.08);color:#bfeee0;}
 .ws-q-btn:hover{background:rgba(126,207,192,.16);}
+/* ════════ My Patients redesign (UI/UX only) ════════ */
+/* Scope the canonical palette to the My Patients board so it renders as designed
+   (these CSS vars are otherwise undefined here). Consultation Requests is untouched. */
+#sec-patients .ws-wf[data-wf="mypatients"]{--border:rgba(27,107,90,.24);--muted:rgba(255,255,255,.56);--hint:rgba(255,255,255,.34);--teal:#7ECFC0;--accent:#7ECFC0;}
+/* Row 1 — statistics */
+.ws-mp-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:18px;}
+.ws-mp-stat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:13px;padding:13px 14px;position:relative;overflow:hidden;}
+.ws-mp-stat .lab{font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);line-height:1.3;}
+.ws-mp-stat .val{font-size:29px;font-weight:800;letter-spacing:-.02em;margin-top:5px;line-height:1;}
+.ws-mp-stat .ic{position:absolute;top:12px;right:13px;font-size:14px;opacity:.5;}
+.ws-mp-stat.acc-o{border-color:rgba(255,154,82,.32);}.ws-mp-stat.acc-o .val{color:#FFC089;}
+.ws-mp-stat.acc-g{border-color:rgba(61,220,151,.3);}.ws-mp-stat.acc-g .val{color:#7CEFC0;}
+/* Search + sort toolbar */
+.ws-mp-tools{display:flex;align-items:center;gap:11px;margin-bottom:16px;flex-wrap:wrap;}
+.ws-mp-search{flex:1;min-width:230px;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:10px 13px;}
+.ws-mp-search:focus-within{border-color:rgba(126,207,192,.45);}
+.ws-mp-search .si{font-size:14px;opacity:.6;flex:0 0 auto;}
+.ws-mp-search input{flex:1;background:none;border:none;outline:none;color:#fff;font-family:inherit;font-size:13.5px;min-width:0;}
+.ws-mp-search input::placeholder{color:var(--hint);}
+.ws-mp-search .clr{background:none;border:none;color:var(--hint);cursor:pointer;font-size:17px;line-height:1;padding:0 2px;display:none;}
+.ws-mp-search .clr:hover{color:#fff;}
+.ws-mp-search.has .clr{display:block;}
+.ws-mp-sortwrap{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:0 11px;}
+.ws-mp-sortwrap .sl{font-size:12.5px;color:var(--muted);font-weight:500;}
+.ws-mp-sort{background:none;border:none;color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 4px;cursor:pointer;outline:none;}
+.ws-mp-sort option{background:#0C1F18;color:#fff;}
+/* Row 2 — richer stage pipeline (colored count + sub-label). Scoped so Consultation Requests stays as-is. */
+#sec-patients .ws-wf[data-wf="mypatients"] .ws-stab{align-items:center;gap:10px;padding:10px 13px;}
+.ws-stab-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#06140f;flex:0 0 auto;}
+.ws-stab-badge.s0{background:#FFCD66;}.ws-stab-badge.s1{background:#FF9A52;}.ws-stab-badge.s2{background:#7ECFC0;}.ws-stab-badge.s3{background:#3DDC97;}.ws-stab-badge.s4{background:rgba(255,255,255,.55);}
+.ws-stab-tx{display:flex;flex-direction:column;gap:1px;min-width:0;text-align:left;}
+.ws-stab-nm{font-size:12.5px;font-weight:700;color:var(--muted);line-height:1.2;white-space:nowrap;}
+.ws-stab.active .ws-stab-nm{color:#fff;}
+.ws-stab-sub{font-size:10px;color:var(--hint);white-space:nowrap;line-height:1.2;}
+/* Awaiting Review — persistently prominent (doctor action), even when not selected */
+.ws-stab.attn{position:relative;border-color:rgba(255,154,82,.55);background:linear-gradient(180deg,rgba(255,154,82,.13),rgba(255,154,82,.03));box-shadow:0 0 0 1px rgba(255,154,82,.22),0 6px 18px rgba(255,154,82,.14);}
+.ws-stab.attn .ws-stab-nm{color:#fff;}
+.ws-stab.attn .ws-stab-sub{color:#FFB98A;}
+.ws-stab.attn.active{border-color:rgba(255,154,82,.72);}
+.ws-stab-attntag{position:absolute;top:-8px;right:8px;font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#06140f;background:#FF9A52;border-radius:20px;padding:1px 7px;box-shadow:0 3px 8px rgba(255,154,82,.4);}
+/* Circular avatar with stage status ring */
+.ws-mp-ava{position:relative;width:38px;height:38px;border-radius:50%;padding:2.5px;background:rgba(255,255,255,.4);display:block;flex:0 0 auto;align-self:flex-start;}
+.ws-mp-ava .av-in{display:flex;width:100%;height:100%;border-radius:50%;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#bff5df;background:linear-gradient(135deg,#15414f,#1c6e5a);border:2px solid #0A1A15;}
+.ws-mp-ava.r0{background:#FFCD66;}.ws-mp-ava.r1{background:#FF9A52;}.ws-mp-ava.r2{background:#7ECFC0;}.ws-mp-ava.r3{background:#3DDC97;}.ws-mp-ava.r4{background:rgba(255,255,255,.5);}
+/* progress (bar + pct) */
+.ws-mp-prog{display:flex;align-items:center;gap:10px;margin-top:6px;}
+.ws-mp-prog .ws-mp-bar{margin-top:0;flex:1;max-width:260px;}
+/* right column — surgery date chip + action */
+.ws-mp-right{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:9px;flex:0 0 auto;min-width:138px;}
+.ws-mp-datechip{width:100%;text-align:right;border-radius:10px;padding:7px 11px;border:1px solid var(--border);background:rgba(255,255,255,.03);}
+.ws-mp-datechip .dl{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);margin-bottom:2px;}
+.ws-mp-datechip .dd{font-size:13.5px;font-weight:700;color:#fff;}
+.ws-mp-datechip .dr{font-size:11px;font-weight:600;margin-top:1px;color:var(--muted);}
+.ws-mp-datechip.red{border-color:rgba(255,92,92,.5);background:rgba(255,92,92,.1);}
+.ws-mp-datechip.red .dr{color:#FF8A8A;}
+.ws-mp-datechip.orange{border-color:rgba(255,154,82,.45);background:rgba(255,154,82,.09);}
+.ws-mp-datechip.orange .dr{color:#FFB98A;}
+.ws-mp-datechip.none .dd{color:var(--hint);font-weight:600;font-size:12.5px;}
+.ws-mp-act{flex:0 0 auto;padding:9px 15px;font-size:12.5px;width:100%;justify-content:center;text-align:center;}
+/* empty state (no search matches) */
+.ws-mp-empty{text-align:center;padding:34px 18px;border:1px dashed var(--border);border-radius:13px;background:rgba(255,255,255,.015);}
+.ws-mp-empty .emo{font-size:26px;opacity:.7;}
+.ws-mp-empty .t{font-size:14.5px;font-weight:700;color:#fff;margin-top:8px;}
+.ws-mp-empty .s{font-size:12.5px;color:var(--muted);margin-top:4px;}
+.ws-mp-clearbtn{margin-top:14px;padding:9px 16px;font-size:12.5px;}
+/* Mobile — horizontal swipe rails for stats + pipeline */
+@media(max-width:760px){
+  .ws-mp-stats{display:flex;overflow-x:auto;gap:9px;margin:0 -2px 18px;padding:0 2px 5px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+  .ws-mp-stats::-webkit-scrollbar{display:none;}
+  .ws-mp-stat{flex:0 0 140px;scroll-snap-align:start;}
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stagetabs{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:6px;}
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stagetabs::-webkit-scrollbar{display:none;}
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stab{flex:0 0 auto;scroll-snap-align:start;}
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-sarrow{display:none;}
+  .ws-mp-row{flex-wrap:wrap;}
+  .ws-mp-right{width:100%;flex-direction:row;align-items:center;min-width:0;}
+  .ws-mp-datechip{flex:1;text-align:left;width:auto;}
+  .ws-mp-act{width:auto;flex:1;}
+}
 /* Generic modal (New Patient) */
 .ws-modal-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.78);z-index:6500;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
 .ws-modal-bg.open{display:flex;}
@@ -641,6 +720,13 @@ var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsActiveC
 function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
 function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
 function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
+// Remember the doctor's last working state on the My Patients dashboard (UI only).
+function wsMpStateKey(){ return 'anestheo_mpstate_'+(window.__wsUserId||'x'); }
+function wsMpStateGet(){ try{ return JSON.parse(localStorage.getItem(wsMpStateKey())||'{}'); }catch(e){ return {}; } }
+function wsMpStateSet(patch){ try{ var m=wsMpStateGet(); for(var k in patch){ m[k]=patch[k]; } localStorage.setItem(wsMpStateKey(), JSON.stringify(m)); }catch(e){} }
+function wsFmtDate(d){ if(!d) return '—'; var dt=new Date(d); if(isNaN(dt.getTime())) return '—';
+  var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return dt.getDate()+' '+mo[dt.getMonth()]+' '+dt.getFullYear(); }
 function wsTimeAgo(ts){
   if(!ts) return '';
   var s=(Date.now()-ts)/1000;
@@ -728,6 +814,7 @@ async function wsLoadCases(){
       procedure:c.procedure||sg.procedure_type||'', hospital:sg.hospital||'', surgeryDate:sg.surgery_date||null,
       progress:({awaiting:(qd.completion||10),review:70,approved:90,scheduled:95,completed:100})[stage]||0,
       statusText:wsStageLabel(stage), patientId:c.patient_id, surgeryId:c.surgery_id,
+      updatedAt:(sg.updated_at||c.responded_at||c.requested_at||null),
       openFn:"wsOpenRecord('"+c.surgery_id+"')" });
   });
   clinics.forEach(function(p){
@@ -735,6 +822,7 @@ async function wsLoadCases(){
     mp.push({ key:'c'+p.id, origin:'clinic', stage:stage, name:p.patient_name||'Patient',
       procedure:p.procedure||'', hospital:p.hospital||'', surgeryDate:p.surgery_date||null,
       progress:wsProgressPct(p), statusText:wsStageLabel(stage), clinicId:p.id, sent_at:p.sent_at,
+      updatedAt:(p.updated_at||p.questionnaire_submitted_at||p.sent_at||p.created_at||null),
       questionnaire_status:p.questionnaire_status, openFn:"wsOpenClinicRecord('"+p.id+"')" });
   });
   _wsMyPatients=mp;
@@ -745,22 +833,60 @@ async function wsLoadCases(){
   wsRenderConsultsDone();
   wsUpdateCrTotal();
 }
+// Row 1 statistics (computed from the full surgical list, independent of stage/search).
+function wsRenderMpStats(){
+  var a=_wsMyPatients||[];
+  var set=function(id,n){ var e=document.getElementById(id); if(e) e.textContent=n; };
+  set('ws-mp-stat-total', a.length);
+  set('ws-mp-stat-awaiting', a.filter(function(p){return p.stage==='awaiting';}).length);
+  set('ws-mp-stat-review', a.filter(function(p){return p.stage==='review';}).length);
+  set('ws-mp-stat-upcoming', a.filter(function(p){return p.stage==='scheduled';}).length);
+  set('ws-mp-stat-active', a.filter(function(p){return p.stage!=='completed';}).length);
+}
+// Client-side sort comparators (no new queries).
+function wsMpComparator(mode){
+  if(mode==='name') return function(a,b){ return (a.name||'').localeCompare(b.name||''); };
+  if(mode==='updated') return function(a,b){ return (new Date(b.updatedAt||0).getTime())-(new Date(a.updatedAt||0).getTime()); };
+  return function(a,b){ var ad=a.surgeryDate?new Date(a.surgeryDate).getTime():Infinity, bd=b.surgeryDate?new Date(b.surgeryDate).getTime():Infinity; return ad-bd; };
+}
 // My Patients board — surgical-only, grouped by the 5 derived stages.
 function wsRenderMyPatients(){
-  // stage counts on the tabs
+  // stage counts on the pipeline + Row 1 statistics
   WS_MP_STAGES.forEach(function(st){
     var el=document.getElementById('ws-mp-'+st+'-n');
     if(el) el.textContent=_wsMyPatients.filter(function(p){return p.stage===st;}).length||0;
   });
+  wsRenderMpStats();
   var box=document.getElementById('ws-mp-list'); if(!box) return;
-  var list=_wsMyPatients.filter(function(p){return p.stage===_wsMpStage;})
-    .sort(function(a,b){ var ad=a.surgeryDate?new Date(a.surgeryDate).getTime():Infinity, bd=b.surgeryDate?new Date(b.surgeryDate).getTime():Infinity; return ad-bd; });
-  if(!list.length){ box.innerHTML='<div class="ws-empty">'+wsMpEmpty(_wsMpStage)+'</div>'; return; }
+  var term=(_wsMpSearch||'').trim().toLowerCase();
+  var list=_wsMyPatients.filter(function(p){
+    if(p.stage!==_wsMpStage) return false;
+    if(!term) return true;
+    return [p.name,p.procedure,p.hospital].filter(Boolean).join(' ').toLowerCase().indexOf(term)>=0;
+  }).sort(wsMpComparator(_wsMpSort));
+  if(!list.length){
+    if(term){
+      box.innerHTML='<div class="ws-mp-empty"><div class="emo">&#128269;</div>'+
+        '<div class="t">No patients match &ldquo;'+wsEsc(_wsMpSearch.trim())+'&rdquo;</div>'+
+        '<div class="s">Try a different name, procedure, or hospital.</div>'+
+        '<button class="ws-btn pc-green ws-mp-clearbtn" onclick="wsMpClearSearch()">Clear search</button></div>';
+    } else {
+      box.innerHTML='<div class="ws-empty">'+wsMpEmpty(_wsMpStage)+'</div>';
+    }
+    return;
+  }
+  var ringMap={awaiting:'r0',review:'r1',approved:'r2',scheduled:'r3',completed:'r4'};
   box.innerHTML=list.map(function(p){
     var initial=((p.name||'P').trim().charAt(0)||'P').toUpperCase();
     var meta=[p.procedure,p.hospital].filter(Boolean).map(wsEsc).join(' &middot; ');
     var urg=wsUrgency(p.surgeryDate);
-    var alert=(urg.label&&urg.soon)?'<span class="ws-mp-alert">&#9888; '+wsEsc(urg.label)+'</span>':(p.surgeryDate?'<span class="ws-mp-date">&#128197; '+wsEsc(urg.label)+'</span>':'');
+    // Surgery-date urgency: red today/tomorrow, orange within 7 days, normal otherwise.
+    var dcls=''; if(urg.days!=null && urg.days>=0){ if(urg.days<=1) dcls='red'; else if(urg.days<=URGENCY_SOON) dcls='orange'; }
+    var rel=urg.label?urg.label.replace(/^Surgery /,''):''; rel=rel?(rel.charAt(0).toUpperCase()+rel.slice(1)):'';
+    var relIco=(dcls==='red'?'&#128308; ':(dcls==='orange'?'&#9888; ':''));
+    var dateChip=p.surgeryDate
+      ? '<div class="ws-mp-datechip '+dcls+'"><div class="dl">Surgery</div><div class="dd">'+wsEsc(wsFmtDate(p.surgeryDate))+'</div>'+(rel?'<div class="dr">'+relIco+wsEsc(rel)+'</div>':'')+'</div>'
+      : '<div class="ws-mp-datechip none"><div class="dl">Surgery</div><div class="dd">Not scheduled</div></div>';
     var pct=Math.max(0,Math.min(100,p.progress||0));
     var origChip=p.origin==='clinic'?'<span class="ws-orig doc">Created</span>':'<span class="ws-orig pt">Requested</span>';
     var action=(p.stage==='review')?'Review &rarr;':'Open &rarr;';
@@ -768,12 +894,12 @@ function wsRenderMyPatients(){
     var qActions=(p.origin==='clinic'&&p.stage==='awaiting')
       ? '<div class="ws-q-row" onclick="event.stopPropagation()">'+wsQActions(p.clinicId, p.questionnaire_status&&p.questionnaire_status!=='not_sent')+'</div>' : '';
     return '<div class="ws-mp-row" onclick="'+p.openFn+'">'+
-      '<div class="ws-mp-ava">'+wsEsc(initial)+'</div>'+
+      '<div class="ws-mp-ava '+(ringMap[p.stage]||'r4')+'"><span class="av-in">'+wsEsc(initial)+'</span></div>'+
       '<div class="ws-mp-main"><div class="ws-mp-top">'+origChip+'<span class="ws-mp-nm">'+wsEsc(p.name)+'</span>'+(meta?'<span class="ws-mp-meta">'+meta+'</span>':'')+'</div>'+
         '<div class="ws-mp-sub">'+wsEsc(p.statusText)+'</div>'+
-        '<div class="ws-mp-bar"><div class="ws-mp-fill" style="width:'+pct+'%"></div></div>'+qActions+'</div>'+
-      '<div class="ws-mp-right">'+alert+'<div class="ws-mp-pct">'+pct+'%</div></div>'+
-      '<button class="ws-btn pc-green ws-mp-act" onclick="event.stopPropagation();'+p.openFn+'">'+action+'</button>'+
+        '<div class="ws-mp-prog"><div class="ws-mp-bar"><div class="ws-mp-fill" style="width:'+pct+'%"></div></div><span class="ws-mp-pct">'+pct+'%</span></div>'+qActions+'</div>'+
+      '<div class="ws-mp-right">'+dateChip+
+        '<button class="ws-btn pc-green ws-mp-act" onclick="event.stopPropagation();'+p.openFn+'">'+action+'</button></div>'+
     '</div>';
   }).join('');
 }
@@ -1665,9 +1791,9 @@ function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m)
 function wsCloseAddModal(){ var m=document.getElementById('ws-add-modal'); if(m) m.classList.remove('open'); }
 window.wsOpenAddModal=wsOpenAddModal; window.wsCloseAddModal=wsCloseAddModal;
 // Patient Management navigation: two workflows, each with internal stages.
-var _wsWf='mypatients', _wsMpStage='awaiting', _wsCrStage='new';
+var _wsWf='mypatients', _wsMpStage='awaiting', _wsCrStage='new', _wsMpSearch='', _wsMpSort='surgery';
 function wsWf(w){
-  _wsWf=w;
+  _wsWf=w; wsMpStateSet({wf:w});
   document.querySelectorAll('#sec-patients .ws-wftab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-wf')===w); });
   document.querySelectorAll('#sec-patients .ws-wf').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-wf')===w); });
 }
@@ -1677,13 +1803,41 @@ function wsStageSwitch(wfSel, s){
   wf.querySelectorAll('.ws-spanel').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-s')===s); });
 }
 function wsMpStage(s){
-  _wsMpStage=s;
+  _wsMpStage=s; wsMpStateSet({mpStage:s});
   var wf=document.querySelector('#sec-patients .ws-wf[data-wf="mypatients"]');
   if(wf) wf.querySelectorAll('.ws-stab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-s')===s); });
   wsRenderMyPatients();
 }
-function wsCrStage(s){ _wsCrStage=s; wsStageSwitch('consults', s); }
+function wsCrStage(s){ _wsCrStage=s; wsMpStateSet({crStage:s}); wsStageSwitch('consults', s); }
+// Search updates results instantly while typing; sort is client-side only.
+function wsMpSearchInput(v){
+  _wsMpSearch=v||''; wsMpStateSet({search:_wsMpSearch});
+  var w=document.getElementById('ws-mp-search'); if(w) w.classList.toggle('has', !!_wsMpSearch);
+  wsRenderMyPatients();
+}
+function wsMpClearSearch(){
+  _wsMpSearch=''; wsMpStateSet({search:''});
+  var i=document.getElementById('ws-mp-search-input'); if(i) i.value='';
+  var w=document.getElementById('ws-mp-search'); if(w) w.classList.remove('has');
+  wsRenderMyPatients();
+  if(i) i.focus();
+}
+function wsMpSort(v){ _wsMpSort=v||'surgery'; wsMpStateSet({sort:_wsMpSort}); wsRenderMyPatients(); }
+// Restore the last working state (workflow, stage, search, sort) on load.
+function wsMpRestoreState(){
+  var st=wsMpStateGet();
+  if(st.wf==='mypatients'||st.wf==='consults') _wsWf=st.wf;
+  if(WS_MP_STAGES.indexOf(st.mpStage)>=0) _wsMpStage=st.mpStage;
+  if(st.crStage==='new'||st.crStage==='active'||st.crStage==='done') _wsCrStage=st.crStage;
+  _wsMpSearch=(typeof st.search==='string')?st.search:'';
+  _wsMpSort=(st.sort==='surgery'||st.sort==='updated'||st.sort==='name')?st.sort:'surgery';
+  var i=document.getElementById('ws-mp-search-input'); if(i) i.value=_wsMpSearch;
+  var w=document.getElementById('ws-mp-search'); if(w) w.classList.toggle('has', !!_wsMpSearch);
+  var so=document.getElementById('ws-mp-sort'); if(so) so.value=_wsMpSort;
+  wsWf(_wsWf); wsMpStage(_wsMpStage); wsCrStage(_wsCrStage);
+}
 window.wsWf=wsWf; window.wsMpStage=wsMpStage; window.wsCrStage=wsCrStage;
+window.wsMpSearchInput=wsMpSearchInput; window.wsMpClearSearch=wsMpClearSearch; window.wsMpSort=wsMpSort;
 function wsPtFilter(f, el){
   _wsPtFilter = f;
   document.querySelectorAll('#sec-patients .ws-subtab').forEach(function(b){ b.classList.remove('active'); });
@@ -2309,17 +2463,38 @@ document.addEventListener('DOMContentLoaded', async function(){
 
         // ════════ WORKFLOW A — MY PATIENTS (surgical only, 5 stages) ════════
         '<div class="ws-wf on" data-wf="mypatients">' +
+          // Row 1 — dashboard statistics
+          '<div class="ws-mp-stats">' +
+            '<div class="ws-mp-stat"><div class="lab">Total patients</div><div class="val" id="ws-mp-stat-total">0</div><span class="ic">&#128101;</span></div>' +
+            '<div class="ws-mp-stat"><div class="lab">Awaiting questionnaire</div><div class="val" id="ws-mp-stat-awaiting">0</div><span class="ic">&#128203;</span></div>' +
+            '<div class="ws-mp-stat acc-o"><div class="lab">Awaiting review</div><div class="val" id="ws-mp-stat-review">0</div><span class="ic">&#128270;</span></div>' +
+            '<div class="ws-mp-stat acc-g"><div class="lab">Upcoming surgeries</div><div class="val" id="ws-mp-stat-upcoming">0</div><span class="ic">&#128197;</span></div>' +
+            '<div class="ws-mp-stat"><div class="lab">Active cases</div><div class="val" id="ws-mp-stat-active">0</div><span class="ic">&#9889;</span></div>' +
+          '</div>' +
+          // Search + sort toolbar
+          '<div class="ws-mp-tools">' +
+            '<div class="ws-mp-search" id="ws-mp-search"><span class="si">&#128269;</span>' +
+              '<input id="ws-mp-search-input" type="text" autocomplete="off" placeholder="Search by patient name, procedure, or hospital..." oninput="wsMpSearchInput(this.value)">' +
+              '<button class="clr" type="button" title="Clear search" onclick="wsMpClearSearch()">&times;</button></div>' +
+            '<div class="ws-mp-sortwrap"><span class="sl">Sort:</span>' +
+              '<select class="ws-mp-sort" id="ws-mp-sort" onchange="wsMpSort(this.value)">' +
+                '<option value="surgery">Surgery date</option>' +
+                '<option value="updated">Recently updated</option>' +
+                '<option value="name">Patient name</option>' +
+              '</select></div>' +
+          '</div>' +
+          // Row 2 — workflow pipeline navigation
           '<div class="ws-wf-bar">' +
             '<div class="ws-stagetabs">' +
-              '<button class="ws-stab active" data-s="awaiting" onclick="wsMpStage(\'awaiting\')">Awaiting Questionnaire <span class="ws-stab-n" id="ws-mp-awaiting-n">0</span></button>' +
+              '<button class="ws-stab active" data-s="awaiting" onclick="wsMpStage(\'awaiting\')"><span class="ws-stab-badge s0" id="ws-mp-awaiting-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Questionnaire</span><span class="ws-stab-sub">Waiting on patient</span></span></button>' +
               '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="review" onclick="wsMpStage(\'review\')">Awaiting Review <span class="ws-stab-n" id="ws-mp-review-n">0</span></button>' +
+              '<button class="ws-stab attn" data-s="review" onclick="wsMpStage(\'review\')"><span class="ws-stab-attntag">Action needed</span><span class="ws-stab-badge s1" id="ws-mp-review-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Review</span><span class="ws-stab-sub">Needs your review</span></span></button>' +
               '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')">Approved <span class="ws-stab-n" id="ws-mp-approved-n">0</span></button>' +
+              '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')"><span class="ws-stab-badge s2" id="ws-mp-approved-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Approved</span><span class="ws-stab-sub">Ready for scheduling</span></span></button>' +
               '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="scheduled" onclick="wsMpStage(\'scheduled\')">Scheduled <span class="ws-stab-n" id="ws-mp-scheduled-n">0</span></button>' +
+              '<button class="ws-stab" data-s="scheduled" onclick="wsMpStage(\'scheduled\')"><span class="ws-stab-badge s3" id="ws-mp-scheduled-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Scheduled</span><span class="ws-stab-sub">Upcoming surgery</span></span></button>' +
               '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')">Completed <span class="ws-stab-n" id="ws-mp-completed-n">0</span></button>' +
+              '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')"><span class="ws-stab-badge s4" id="ws-mp-completed-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Completed</span><span class="ws-stab-sub">Finished</span></span></button>' +
             '</div>' +
             '<div class="ws-wf-acts"><button class="ws-btn ws-btn-wa" onclick="wsOpenAddModal()">&#10133; New Patient</button></div>' +
           '</div>' +
@@ -2423,6 +2598,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     window.__wsUserId = user.id;
     window.__wsUserName = ((role === 'doctor' || role === 'admin') ? 'Dr. ' : '') + (profile.full_name || name);
     wsInjectModals();
+    wsMpRestoreState();
     wsLoadPatients();
     wsLoadCases();
     wsLoadAsk();
