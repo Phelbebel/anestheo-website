@@ -166,6 +166,14 @@ body.embed .eng-wrap{padding-top:14px;}
 .crisis-dose span{color:#cfe;} .crisis-dose b{color:#fff;font-weight:700;text-align:right;}
 .crisis-emg-t{font-size:17px;font-weight:700;color:#fff;margin-top:4px;}
 .crisis-emg-t span{display:block;font-size:12px;font-weight:500;color:#ff9b86;margin-top:1px;}
+/* TCI / Sedation reference panel (reuses crisis tab/dose styles) */
+.sed-panel{border-color:rgba(126,207,192,.3);}
+.sed-panel .crisis-tab.on{background:rgba(126,207,192,.2);border-color:rgba(126,207,192,.55);color:#eafff8;}
+.sed-panel .crisis-sec-t{color:#7ECFC0;}
+.sed-panel .crisis-emg-t span{color:#9fd9cb;}
+.sed-li{font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.85);padding:5px 0 5px 16px;position:relative;}
+.sed-li:before{content:'';position:absolute;left:3px;top:12px;width:5px;height:5px;border-radius:50%;background:#2A8A74;}
+.sed-note{font-size:11px;color:var(--hint);background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:8px 11px;margin-top:14px;line-height:1.5;}
 /* Auto panels — summary & risk */
 .summary-panel{background:linear-gradient(135deg,rgba(27,107,90,.16),rgba(27,107,90,.05));border:1px solid rgba(42,138,116,.3);}
 /* Dominant patient summary */
@@ -747,10 +755,20 @@ function compute(){
     '</div>'+
     '<div class="crisis-body" id="crisis-inline-body"></div>';
 
+  // ── TCI / Sedation reference panel (educational, not decision support) ──
+  var sedBody =
+    '<div class="helper">Tap a drug / mode &mdash; reference target ranges &amp; cautions. Educational reference only.</div>'+
+    '<div class="crisis-wt-inline">'+(w0?('Weight-based examples for <b>'+w0+' kg</b>'):'Enter weight for weight-based examples &mdash; otherwise per-kg ranges are shown.')+'</div>'+
+    '<div class="crisis-tabs" id="sed-tabs-inline">'+
+      SED.map(function(s,i){ return '<button class="crisis-tab'+(i===_sedIdx?' on':'')+'" onclick="sedInline('+i+')">'+s[0]+'</button>'; }).join('')+
+    '</div>'+
+    '<div class="crisis-body" id="sed-inline-body"></div>';
+
   out.innerHTML='<div class="panels">'+
     panel('&#129728;','Airway &amp; Ventilation',isPeds?'Pediatric':'Adult',avBody)+
     panel('&#128138;','Drug references','Ranges',drugRows)+
     panel('&#128138;','TIVA / TCI','Propofol',tivaRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+tivaHelpers+'</div>')+
+    panel('&#128138;','TCI / Sedation','Reference',sedBody,'sed-panel full')+
     panel('&#128137;','Local anesthetic limits','Max dose',laRows)+
     panel('&#129504;','Neuraxial','Reference',neuraxialRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+neuraxialHelpers+'</div>')+
     panel('&#128137;','Vasopressors / Inotropes','Infusions',pressorRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+pressorHelpers+'</div>')+
@@ -759,6 +777,7 @@ function compute(){
     panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
   crisisInline(_crisisIdx);   // expand the current protocol inline (no click needed)
+  sedInline(_sedIdx);         // expand the current TCI / Sedation reference inline
   if(window.innerWidth<=900) collapseForMobile();
 }
 
@@ -850,6 +869,90 @@ function crisisJump(){
   if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); }
 }
 window.crisisInline=crisisInline; window.crisisJump=crisisJump;
+
+// ── TCI / Sedation reference (educational only) ──
+// Each entry: [name, model/drug subtitle, fn(weight) -> { blocks:[{h, rows?, list?}] }]
+var SED = [
+  ['Propofol','Schnider (Ce) · Marsh (plasma) · Paedfusor / Kataria (paediatric)', function(w){ return { blocks:[
+    {h:'Models', rows:[
+      ['Schnider','Effect-site (Ce) target; adjusts for age & lean body mass'],
+      ['Marsh','Plasma target; weight-based (does not use age)'],
+      ['Paediatric','Paedfusor (1–16 y, ≥5 kg) / Kataria (3–16 y)']]},
+    {h:'Target ranges', rows:[
+      ['Sedation (Schnider Ce)','0.5–1.5 mcg/mL'],
+      ['Loss of consciousness','~2.5–4 mcg/mL (typical)'],
+      ['General anaesthesia (Ce)','3–6 mcg/mL'],
+      ['Marsh induction (plasma)','4–6 mcg/mL'],
+      ['Induction bolus (non-TCI)','2–2.5 mg/kg'+(w?' ('+dz(2,'mg')+'–'+dz(2.5,'mg')+')':'')]]},
+    {h:'Use case', list:['TIVA maintenance (often with remifentanil)','Procedural / conscious sedation at low Ce','Induction and general anaesthesia']},
+    {h:'Key cautions', list:['Dose-dependent hypotension and apnoea','Pain on injection','Propofol infusion syndrome (PRIS) — avoid prolonged high-dose, especially children / ICU','Context-sensitive half-time rises with long infusions','No analgesia — pair with an analgesic']},
+    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce targets ~20–40%, titrate slowly (↑ sensitivity, ↓ clearance)','Children need higher mg/kg and infusion rates','Schnider / Marsh not validated <16 y — use Paedfusor / Kataria','Avoid prolonged high-dose infusions in children (PRIS risk)']}
+  ]};}],
+
+  ['Remifentanil','Minto model — effect-site (Ce), scales with age & lean body mass', function(w){ return { blocks:[
+    {h:'Model', rows:[['Minto','Ce target; adjusts for age and lean body mass']]},
+    {h:'Target ranges (Ce)', rows:[
+      ['Analgesia / sedation adjunct','1–3 ng/mL'],
+      ['GA adjunct (with propofol)','3–8 ng/mL'],
+      ['Intense stimulus (intubation/incision)','6–10 ng/mL'],
+      ['Weight-based alt (no TCI / paeds)','0.05–0.5 mcg/kg/min']]},
+    {h:'Use case', list:['Analgesic component of TIVA','Obtund response to laryngoscopy / strong stimulus','Rapid offset — fast, predictable emergence']},
+    {h:'Key cautions', list:['Apnoea — ensure ventilation is controlled','Chest-wall / glottic rigidity (rapid bolus or high Ce)','Bradycardia and hypotension','Acute tolerance / opioid-induced hyperalgesia','No residual analgesia — establish multimodal analgesia before offset']},
+    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce ~50%; slower titration','Minto not validated <12 y — use weight-based infusion','Always combine with a hypnotic (no amnesia alone)']}
+  ]};}],
+
+  ['Dexmedetomidine','Alpha-2 agonist — sedation with largely preserved respiration', function(w){ return { blocks:[
+    {h:'Dosing', rows:[
+      ['Loading (optional)','1 mcg/kg over 10 min'+(w?' ('+dz(1,'mcg')+')':'')],
+      ['Maintenance','0.2–0.7 mcg/kg/hr (up to 1.4)'],
+      ['No-load option','start at infusion to reduce hypotension / bradycardia']]},
+    {h:'Use cases / regimens', rows:[
+      ['Procedural sedation','load 0.5–1 mcg/kg → 0.2–1 mcg/kg/hr'],
+      ['MRI sedation','1–2 mcg/kg load + 1–2 mcg/kg/hr (± propofol)'],
+      ['Awake fibreoptic / regional adjunct','1 mcg/kg over 10 min → 0.3–0.7 mcg/kg/hr']]},
+    {h:'Key cautions', list:['Bradycardia and hypotension (worse with loading dose)','Transient hypertension during loading (biphasic BP response)','Slow onset — not for rapid deepening','Not a reliable sole general anaesthetic','Caution with heart block or AV-nodal blocking drugs']},
+    {h:'Elderly / paediatric adjustment', list:['Elderly: consider no-load or a slower loading dose','Paediatric: widely used off-label; similar per-kg ranges','Caution in cardiac conduction abnormalities']}
+  ]};}],
+
+  ['Pediatric sedation','Spontaneous-ventilation techniques — weight-based, airway-ready', function(w){ return { blocks:[
+    {h:'MRI / imaging', rows:[
+      ['Dexmedetomidine','1–2 mcg/kg load + 1–2 mcg/kg/hr'],
+      ['± Propofol','low infusion to supplement']]},
+    {h:'Propofol guidance', rows:[
+      ['Induction','2.5–3.5 mg/kg'+(w?' ('+dz(2.5,'mg')+'–'+dz(3.5,'mg')+')':'')],
+      ['Infusion','100–300 mcg/kg/min, titrate to effect']]},
+    {h:'Ketamine adjunct', rows:[
+      ['IV','0.5–1 mg/kg'+(w?' ('+dz(0.5,'mg')+'–'+dz(1,'mg')+')':'')]]},
+    {h:'Airway / ventilation warnings', list:['Maintain spontaneous ventilation; capnography mandatory','Airway rescue, suction and oxygen ready; pre-oxygenate','Children desaturate fast (low FRC) — small reserve','Strict fasting; weight-based dosing throughout','Neonates / infants are higher risk — involve senior / PICU early']}
+  ]};}],
+
+  ['MRI sedation','Sedation in the MRI environment — limited access', function(w){ return { blocks:[
+    {h:'MRI-safe setup', list:['MRI-conditional monitors and infusion pumps','Long extension lines; clinician outside the bore','Zone IV safety checklist; remove ferromagnetic items']},
+    {h:'Regimens', rows:[
+      ['Dexmedetomidine ± propofol','spontaneous ventilation'],
+      ['Propofol TCI / infusion','titrate to sedation target']]},
+    {h:'Monitoring', list:['Capnography essential (remote display)','Continuous SpO2 / ECG / NIBP','Direct or camera observation throughout the scan']},
+    {h:'Key cautions', list:['Limited airway access inside the magnet','Temperature changes (especially children)','Contrast reactions; claustrophobia; movement','Plan for scan duration and emergence outside the bore']}
+  ]};}]
+];
+var _sedIdx = 0;
+function sedInline(i){
+  _sedIdx = i;
+  var tabs = ge('sed-tabs-inline');
+  if(tabs) tabs.querySelectorAll('.crisis-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
+  var body = ge('sed-inline-body'); if(!body) return;
+  var w = crisisWeight();
+  var d = SED[i][2](w);
+  var html = '<div class="crisis-emg-t">'+SED[i][0]+' <span>'+SED[i][1]+'</span></div>';
+  d.blocks.forEach(function(blk){
+    html += '<div class="crisis-sec-t">'+blk.h+'</div>';
+    if(blk.rows) html += blk.rows.map(function(r){ return '<div class="crisis-dose"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>'; }).join('');
+    if(blk.list) html += blk.list.map(function(s){ return '<div class="sed-li">'+s+'</div>'; }).join('');
+  });
+  html += '<div class="sed-note">Reference / educational only — not automatic clinical decision support. Always verify doses against current local protocols and the patient’s context.</div>';
+  body.innerHTML = html;
+}
+window.sedInline=sedInline;
 
 document.addEventListener('DOMContentLoaded',async function(){
   try{
