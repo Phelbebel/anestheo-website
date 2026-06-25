@@ -207,6 +207,14 @@ function buildHTML(page){
             '</span>' +
           '</a>' +
         '</div>' +
+        // Role-aware patient navigation (shown only to logged-in patients).
+        '<div class="nb-nav-links" id="nb-nav-patient" style="display:none">' +
+          '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
+          '<a href="/v2/patient-dashboard.html"' + activeCls('/v2/patient-dashboard.html', p) + '>My Space</a>' +
+          '<a href="/v2/ask.html"' + activeCls('/v2/ask.html', p) + '>Ask Anesthesiologist</a>' +
+          '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
+          '<a href="/v2/settings.html"' + activeCls('/v2/settings.html', p) + '>Profile</a>' +
+        '</div>' +
         '<div class="nb-right">' +
           '<div class="nb-search-wrap" id="nb-search-wrap" style="display:none">' +
             '<input type="text" class="nb-search" id="nb-search" placeholder="Search tools &amp; references…" autocomplete="off" ' +
@@ -242,17 +250,27 @@ function buildHTML(page){
       '</div>' +
     '</nav>' +
     '<div class="nb-mob" id="nb-mob">' +
-      '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
-      '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
-      '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
-      '<a href="/v2/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
-      '<a href="/v2/dashboard.html" class="nb-mob-link">&#129728; Anesthesia Live Tools</a>' +
+      // Public mobile nav — guests & doctors (unchanged).
+      '<div id="nb-mob-public">' +
+        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
+        '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
+        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
+        '<a href="/v2/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
+        '<a href="/v2/dashboard.html" class="nb-mob-link">&#129728; Anesthesia Live Tools</a>' +
+      '</div>' +
+      // Patient mobile nav — logged-in patients only.
+      '<div id="nb-mob-patient-nav" style="display:none">' +
+        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
+        '<a href="/v2/patient-dashboard.html" class="nb-mob-link">&#10024; My Space</a>' +
+        '<a href="/v2/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
+        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
+        '<a href="/v2/settings.html" class="nb-mob-link">Profile</a>' +
+      '</div>' +
       '<div class="nb-mob-sep"></div>' +
       '<div id="nb-mob-guest"><button class="nb-btn" style="width:100%" onclick="window.nbOpenModal();window.nbCloseMob()">Login</button></div>' +
       '<div id="nb-mob-auth" style="display:none">' +
-        '<a href="/v2/patient-dashboard.html" class="nb-mob-link" id="nb-mob-patient" style="display:none">&#10024; My Space</a>' +
-        '<a href="/v2/dashboard.html" class="nb-mob-link">Dashboard</a>' +
-        '<a href="/v2/settings.html" class="nb-mob-link">Settings</a>' +
+        '<a href="/v2/dashboard.html" class="nb-mob-link" id="nb-mob-workspace">Dashboard</a>' +
+        '<a href="/v2/settings.html" class="nb-mob-link" id="nb-mob-settings">Settings</a>' +
         '<button class="nb-mob-link" style="background:none;border:none;text-align:left;cursor:pointer;font-family:inherit;color:rgba(255,100,80,.7)" onclick="window.nbSignOut()">Sign out</button>' +
       '</div>' +
     '</div>' +
@@ -322,6 +340,13 @@ function setGuest(){
   var mg = ge('nb-mob-guest'), ma = ge('nb-mob-auth');
   if(mg) mg.style.display = '';
   if(ma) ma.style.display = 'none';
+  // Restore the public navigation for guests (and after sign-out).
+  var navPublic = ge('nb-nav-links'), navPatient = ge('nb-nav-patient');
+  if(navPublic) navPublic.style.display = '';
+  if(navPatient) navPatient.style.display = 'none';
+  var mobPublic = ge('nb-mob-public'), mobPatient = ge('nb-mob-patient-nav');
+  if(mobPublic) mobPublic.style.display = '';
+  if(mobPatient) mobPatient.style.display = 'none';
 }
 
 function setAuth(){
@@ -364,12 +389,21 @@ function populateMenu(user, profile){
   var rlEl = ge('nb-menu-role'); if(rlEl) rlEl.textContent = roleLabels[role] || '';
 
   var isStaff = (role !== 'patient');
-  // Staff see the Doctor Workspace as the single entry; patients see My Dashboard.
+  var isPatient = !isStaff;
+  // Dropdown: staff get the Doctor Workspace entry; patients get My Space.
   var ws  = ge('nb-menu-workspace'); if(ws)  ws.style.display  = isStaff ? 'flex' : 'none';
   var pt  = ge('nb-menu-patient');   if(pt)  pt.style.display  = isStaff ? 'none' : 'flex';
-  var ptm = ge('nb-mob-patient');    if(ptm) ptm.style.display = isStaff ? 'none' : 'block';
-  // The Live Monitor widget is part of the brand identity — always visible.
-  // Global search for staff
+  // Role-aware primary navigation. Patients get a dedicated nav (Home, My Space,
+  // Ask Anesthesiologist, Videos, Profile). The public nav — which carries the
+  // Anesthesia Live monitor and other doctor-facing tools — is reserved for
+  // guests and doctors and is left unchanged.
+  var navPublic  = ge('nb-nav-links');   if(navPublic)  navPublic.style.display  = isPatient ? 'none' : '';
+  var navPatient = ge('nb-nav-patient'); if(navPatient) navPatient.style.display = isPatient ? '' : 'none';
+  var mobPublic  = ge('nb-mob-public');      if(mobPublic)  mobPublic.style.display  = isPatient ? 'none' : 'block';
+  var mobPatient = ge('nb-mob-patient-nav'); if(mobPatient) mobPatient.style.display = isPatient ? 'block' : 'none';
+  var mobWs  = ge('nb-mob-workspace'); if(mobWs)  mobWs.style.display  = isPatient ? 'none' : 'block';
+  var mobSet = ge('nb-mob-settings');  if(mobSet) mobSet.style.display = isPatient ? 'none' : 'block';
+  // Global search for staff only
   var search = ge('nb-search-wrap'); if(search) search.style.display = isStaff ? 'block' : 'none';
 }
 
