@@ -230,7 +230,7 @@ function buildHTML(page){
                   '<div class="nb-menu-email" id="nb-menu-email"></div>' +
                 '</div>' +
                 '<a href="/v2/dashboard.html" class="nb-menu-item" id="nb-menu-workspace">&#129658; Doctor Workspace</a>' +
-                '<a href="/v2/patient-dashboard.html" class="nb-menu-item" id="nb-menu-patient" style="display:none">&#128202; My Dashboard</a>' +
+                '<a href="/v2/patient-dashboard.html" class="nb-menu-item" id="nb-menu-patient" style="display:none">&#10024; My Space</a>' +
                 '<a href="/v2/settings.html" class="nb-menu-item">&#9881; Settings</a>' +
                 '<div class="nb-menu-sep"></div>' +
                 '<button class="nb-menu-item nb-menu-danger" onclick="window.nbSignOut()">&#8594; Sign out</button>' +
@@ -250,6 +250,7 @@ function buildHTML(page){
       '<div class="nb-mob-sep"></div>' +
       '<div id="nb-mob-guest"><button class="nb-btn" style="width:100%" onclick="window.nbOpenModal();window.nbCloseMob()">Login</button></div>' +
       '<div id="nb-mob-auth" style="display:none">' +
+        '<a href="/v2/patient-dashboard.html" class="nb-mob-link" id="nb-mob-patient" style="display:none">&#10024; My Space</a>' +
         '<a href="/v2/dashboard.html" class="nb-mob-link">Dashboard</a>' +
         '<a href="/v2/settings.html" class="nb-mob-link">Settings</a>' +
         '<button class="nb-mob-link" style="background:none;border:none;text-align:left;cursor:pointer;font-family:inherit;color:rgba(255,100,80,.7)" onclick="window.nbSignOut()">Sign out</button>' +
@@ -366,6 +367,7 @@ function populateMenu(user, profile){
   // Staff see the Doctor Workspace as the single entry; patients see My Dashboard.
   var ws  = ge('nb-menu-workspace'); if(ws)  ws.style.display  = isStaff ? 'flex' : 'none';
   var pt  = ge('nb-menu-patient');   if(pt)  pt.style.display  = isStaff ? 'none' : 'flex';
+  var ptm = ge('nb-mob-patient');    if(ptm) ptm.style.display = isStaff ? 'none' : 'block';
   // The Live Monitor widget is part of the brand identity — always visible.
   // Global search for staff
   var search = ge('nb-search-wrap'); if(search) search.style.display = isStaff ? 'block' : 'none';
