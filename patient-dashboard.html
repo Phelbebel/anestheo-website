@@ -33,6 +33,8 @@
   --r-lg:26px; --r-md:20px; --r-sm:14px;
   --shadow:0 18px 50px rgba(0,0,0,.34); --shadow-sm:0 8px 26px rgba(0,0,0,.22);
 }
+#app,#app *,#app *::before,#app *::after{box-sizing:border-box;}
+#app{overflow-x:hidden;}
 #loader{position:fixed;inset:0;background:#06100D;z-index:9999;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(42,138,116,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -590,11 +592,15 @@ function greeting(){
 // Situation-aware status line: reflects today's most relevant event.
 function heroStatus(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  // A completed surgery (with nothing upcoming) takes precedence — celebrate recovery.
+  if(_surgery && _surgery.completed_at && !upcomingSurgeries().length)
+    return { tone:'done', icon:'&#127807;', text:'Your surgery is complete — wishing you a smooth recovery.' };
   var ns = nextSurgery();
   var dd = ns && ns.surgery_date ? daysUntil(ns.surgery_date) : null;
-  if(rs === 'approved') return { tone:'done', icon:'&#10003;', text:'Your preparation plan is approved — you\'re almost ready for surgery.' };
+  // Imminent surgery is the most time-critical message — it outranks review state.
   if(dd !== null && dd === 0) return { tone:'action', icon:'&#9201;', text:'Your surgery is today. Follow your team\'s instructions carefully.' };
   if(dd !== null && dd === 1) return { tone:'action', icon:'&#9201;', text:'Your surgery is tomorrow. Here\'s everything you need.' };
+  if(rs === 'approved') return { tone:'done', icon:'&#10003;', text:'Your preparation plan is approved — you\'re almost ready for surgery.' };
   if(rs === 'changes_requested') return { tone:'action', icon:'&#9888;', text:'Your anesthesiologist requested a little more information.' };
   if(rs === 'in_review') return { tone:'info', icon:'&#129461;', text:'Your anesthesiologist is reviewing your questionnaire.' };
   if(answeredConsults().length) return { tone:'info', icon:'&#128172;', text:'You have a new reply to one of your consultations.' };
@@ -636,6 +642,10 @@ function computeSpotlight(){
   if(!hasS){
     return { tone:'', pin:'&#9733; Start here', icon:'&#129695;', t:'Add your surgery to begin', s:'Tell us about your procedure and we\'ll guide you, step by step.',
       btn:'Add my surgery', btnCls:'ms-btn-action', on:'openSurgery(null)' };
+  }
+  if(_surgery && _surgery.completed_at && !upcomingSurgeries().length){
+    return { tone:'tone-done', pin:'&#127807; Recovery', icon:'&#10084;&#65039;', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
+      btn:'Recovery information', btnCls:'ms-btn-primary', on:'location.href=\'/v2/recovery.html\'' };
   }
   if(rs === 'changes_requested'){
     return { tone:'', pin:'&#9888; Action needed', icon:'&#9888;', t:'Your anesthesiologist requested more information', s:'Review their message, complete the items, and resubmit for review.',
@@ -1220,7 +1230,8 @@ function renderJourney(){
     past.innerHTML=''; return;
   }
   var upList = upcomingSurgeries();
-  var pastList = _surgeries.filter(function(s){ return s.completed_at || s.archived_at; });
+  var pastList = _surgeries.filter(function(s){ return s.completed_at || s.archived_at; })
+    .slice().sort(function(a,b){ var ad=a.surgery_date?new Date(a.surgery_date).getTime():0, bd=b.surgery_date?new Date(b.surgery_date).getTime():0; return bd-ad; });
   ge('upcoming-label').style.display = upList.length ? 'block' : 'none';
   ge('past-label').style.display = pastList.length ? 'block' : 'none';
   if(ge('add-row')) ge('add-row').style.display='flex';
@@ -1246,6 +1257,13 @@ async function loadSurgeries(){
       .eq('patient_id', _uid).order('surgery_date', { ascending: true, nullsFirst: false });
     _surgeries = (r && r.data) || [];
   } catch(e){ _surgeries = []; }
+  // Deterministic nearest-first ordering (dated soonest first, undated last),
+  // independent of the data source so "nearest surgery first" always holds.
+  _surgeries.sort(function(a,b){
+    var ad = a.surgery_date ? new Date(a.surgery_date).getTime() : Infinity;
+    var bd = b.surgery_date ? new Date(b.surgery_date).getTime() : Infinity;
+    return ad - bd;
+  });
   var active = _surgeries.filter(function(s){ return !s.archived_at && !s.completed_at; });
   _surgery = active[0] || _surgeries[0] || null;
 }
