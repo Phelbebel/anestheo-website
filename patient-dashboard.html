@@ -474,21 +474,8 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
       <div id="q-body"></div>
     </section>
 
-    <!-- ⑥ PREPARING FOR SURGERY (wallet cards + clinical plan/recs) -->
-    <section class="ms-sec anim d5">
-      <div class="ms-sec-head">
-        <div class="ms-sec-ico">&#129658;</div>
-        <div><div class="ms-sec-title">Preparing for surgery</div><div class="ms-sec-sub">Everything your team has prepared for you</div></div>
-      </div>
-      <div id="prep-host"></div>
-      <!-- clinical cards (unchanged renderers) -->
-      <div id="plan-host" style="margin-top:16px;"></div>
-      <div id="recs-host"></div>
-      <div id="sday-host"></div>
-      <div id="quest-host" style="margin-top:8px;"></div>
-      <!-- reserved AI companion slot (hidden until built) -->
-      <div id="assist-host"></div>
-    </section>
+    <!-- Preparation lives ONLY inside the modal, opened from each surgery card's
+         "View Preparation Plan" CTA. No preparation panels on the dashboard. -->
 
     <!-- ⑦ RECOMMENDED FOR YOU (contextual education) -->
     <section class="ms-sec anim d6">
@@ -688,43 +675,36 @@ function computeSpotlight(){
     return { tone:'tone-done', pin:'&#127807; Recovery', icon:'&#10084;&#65039;', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
       btn:'Recovery information', btnCls:'ms-btn-primary', on:'location.href=\'/v2/recovery.html\'' };
   }
-  if(rs === 'changes_requested'){
-    return { tone:'', pin:'&#9888; Action needed', icon:'&#9888;', t:'Your anesthesiologist requested more information', s:'Review their message, complete the items, and resubmit for review.',
-      btn:'View what\'s needed', btnCls:'ms-btn-action', on:'openPrep()' };
-  }
+  // Questionnaire not done yet — the single most important step.
   if(hasS && !qSub){
     return { tone:'', pin:'&#9733; Prioritized for you · do this next', icon:'&#9889;', t:'Complete your health questionnaire', s:'About 8 minutes. This lets your anesthesiologist prepare your plan.',
       btn:(_quest?'Continue questionnaire':'Start questionnaire'), btnCls:'ms-btn-action', on:'location.href=\'/v2/questionnaire.html\'',
       celebrate: (_surgery && _surgery.procedure_type) ? '&#127881; Nice — your surgery is added. The questionnaire is the next step.' : '' };
   }
+  // Completed prep ready to send to the clinician.
   if(crs === 'accepted' && (rs === 'not_submitted') && qSub && prepChecklistComplete()){
     return { tone:'', pin:'&#9733; Ready to send', icon:'&#9989;', t:'Submit your preparation for review', s:'Your questionnaire and checklist are complete. Send them to your clinician.',
       btn:'Submit for review', btnCls:'ms-btn-primary', on:'submitForReview()' };
   }
-  if(rs === 'approved'){
-    return { tone:'tone-done', pin:'&#10003; You\'re ready', icon:'&#10003;', t:'Your preparation plan is approved', s:'Review your plan and your surgery-day checklist whenever you like.',
-      btn:'View approved plan', btnCls:'ms-btn-primary', on:'openPrep()',
-      celebrate: dd!==null && dd>=0 ? ('&#127881; You\'re all set'+(dd<=7?(' — surgery '+(dd===0?'today':dd===1?'tomorrow':'in '+dd+' days')):'')+'.') : '' };
-  }
+  // A consultation reply is waiting.
   if(answeredConsults().length){
     return { tone:'tone-info', pin:'&#128172; New reply', icon:'&#128172;', t:'You have a reply to your consultation', s:'Your anesthesiologist answered your question.',
       btn:'Read the reply', btnCls:'ms-btn-con', on:'location.href=\'/v2/ask.html\'' };
   }
-  if(rs === 'in_review' || rs === 'pending'){
-    return { tone:'tone-info', pin:'&#129461; In progress', icon:'&#129461;', t:'Your plan is being reviewed', s:'Your anesthesiologist is reviewing your questionnaire. We\'ll let you know the moment it\'s ready.',
-      btn:'View your guide', btnCls:'ms-btn-quiet', on:'openPrep()',
-      celebrate:'&#127881; Great progress — your questionnaire is in.' };
-  }
-  if(crs !== 'accepted'){
+  // Submitted but not yet connected to a clinician.
+  if(crs !== 'accepted' && rs === 'not_submitted'){
     return { tone:'tone-info', pin:'&#9733; Recommended', icon:'&#129658;', t:'Have your plan reviewed by an anesthesiologist', s:'Connect a clinician to review your questionnaire and approve your preparation.',
       btn:'Connect a clinician', btnCls:'ms-btn-primary', on:'openDirectory()' };
   }
-  return { tone:'tone-info', pin:'&#9733; Up next', icon:'&#128203;', t:'Open your preparation plan', s:'Review everything you need before your procedure.',
-    btn:'View preparation', btnCls:'ms-btn-quiet', on:'openPrep()' };
+  // approved / under review / changes requested / nothing urgent: no spotlight.
+  // Status lives on the surgery card badge + hero; preparation is reached only
+  // from the surgery card's "View Preparation Plan" CTA (single prep entry point).
+  return null;
 }
 function renderSpotlight(){
   var host = ge('spotlight-host'); if(!host) return;
   var sp = computeSpotlight();
+  if(!sp){ host.innerHTML = ''; return; }
   host.innerHTML =
     '<div class="ms-spot '+(sp.tone||'')+'">' +
       '<span class="pin">'+sp.pin+'</span>' +
@@ -944,9 +924,14 @@ async function docUpload(key, file){
       patient_id:_uid, surgery_id:_surgery.id, requirement_key:key, requirement_name:reqLabelFor(key),
       storage_path:path, file_name:file.name, file_size:file.size, mime_type:ctype });
     if(ins&&ins.error) throw new Error(ins.error.message);
-    await reloadReqDocs(); renderPlanCard(); renderPrep();
+    await reloadReqDocs(); refreshPrepModal();
     addActivity('Uploaded '+file.name+' for '+reqLabelFor(key), Date.now()); renderActivity(); renderHero();
   } catch(e){ alert('Upload failed: '+(e.message||'error')); }
+}
+// Re-render the open Preparation Plan modal (the single home for prep actions).
+function refreshPrepModal(){
+  if(ge('prep-modal') && ge('prep-modal').classList.contains('open'))
+    ge('prep-modal-body').innerHTML = prepContentHtml();
 }
 async function docOpen(path){
   try {
@@ -961,13 +946,13 @@ async function docDelete(id){
     var del=await window.sb.from('requirement_documents').delete().eq('id',id);
     if(del&&del.error) throw new Error(del.error.message);
     if(path){ try { await window.sb.storage.from('patient-documents').remove([path]); } catch(e){} }
-    await reloadReqDocs(); renderPlanCard(); renderPrep();
+    await reloadReqDocs(); refreshPrepModal();
   } catch(e){ alert('Could not remove the file: '+(e.message||'error')); }
 }
 window.docPick=docPick; window.docOpen=docOpen; window.docDelete=docDelete;
 async function toggleReq(key){
   _reqProgress[key] = !_reqProgress[key];
-  renderPlanCard();
+  refreshPrepModal();
   try {
     var c = await window.getChecklist(_uid); var existing = (c && c.items) || {};
     existing.req_progress = _reqProgress;
@@ -1209,19 +1194,14 @@ function badgeFor(d){
   else cls = (_quest && _quest.status==='submitted') ? 'info' : 'action';
   return '<span class="ms-badge '+cls+'"><span class="bd"></span>'+esc(d.pillLabel)+'</span>';
 }
-// Primary CTA per derived stage (logic preserved; restyled).
+// One primary CTA per surgery card. Preparation is reached ONLY here, and it
+// always opens the single Preparation Plan modal (which adapts to the current
+// stage internally). Completed/recovery surgeries link to recovery instead.
 function sjCTA(s, d){
   var js = d.journeyStatus;
   if(js==='completed' || js==='in_recovery' || js==='archived')
     return '<a class="ms-btn ms-btn-primary ms-btn-sm" href="/v2/recovery.html">&#10084;&#65039; Recovery information</a>';
-  if(js==='ready_for_surgery')
-    return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#9989; Surgery-day instructions</button>';
-  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
-  if(rs === 'approved')
-    return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#9989; View approved plan</button>';
-  if(_quest && _quest.status==='submitted')
-    return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#128203; View preparation plan</button>';
-  return '<a class="ms-btn ms-btn-action ms-btn-sm" href="/v2/questionnaire.html">&#128203; '+(_quest?'Continue':'Start')+' questionnaire</a>';
+  return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#128203; View Preparation Plan</button>';
 }
 function procIcon(p){
   p = (p||'').toLowerCase();
@@ -1415,17 +1395,36 @@ function prepClinicianInvolved(){
 function prepContentHtml(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   var recs = prepRecsHtml();                    // clinician recommendations
+  var changes = prepChangesHtml();              // changes-requested: uploads + resubmit
   var sday = prepSurgeryDayHtml();              // surgery-day checklist (post-approval)
   var summary = prepSummaryActionsHtml();       // questionnaire summary / print
   if(rs === 'approved'){ return recs + approvedPlanHtml() + sday + summary; }
   if(prepOrigin() === 'clinic'){
-    return recs + '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>' + sday + summary;
+    return recs + changes + '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>' + sday + summary;
   }
   if(!_quest || _quest.status !== 'submitted'){
     return recs + '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Complete your pre-op questionnaire to unlock your personalized preparation guide.</div>' +
       '<a href="/v2/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
   }
-  return recs + prepBuildGuide(_quest) + sday + summary;
+  return recs + changes + prepBuildGuide(_quest) + sday + summary;
+}
+// Changes-requested actionable block (requirement checkboxes + per-item upload +
+// resubmit) — moved into the modal so it is the single home for prep actions.
+function prepChangesHtml(){
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  if(rs !== 'changes_requested') return '';
+  var reqs = (_docPlan && Array.isArray(_docPlan.requirements)) ? _docPlan.requirements.filter(function(r){ return r && r.checked; }) : [];
+  var note = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
+  var doneN = reqs.filter(function(r){ return _reqProgress[r.key]; }).length;
+  return '<div class="plan-card warn">' +
+    '<div class="plan-h">&#9888; Doctor requested additional preparation</div>' +
+    (note ? '<div class="plan-note"><b>&#128172; Message from your clinician</b><br>'+esc(note)+'</div>' : '') +
+    (reqs.length
+      ? '<div class="plan-sub">Tick each item as you complete it ('+doneN+'/'+reqs.length+'), then resubmit for review:</div>' +
+        reqs.map(function(r){ return reqRow(r, true); }).join('')
+      : '<div class="plan-sub">Please follow your clinician\'s message above, then resubmit for review.</div>') +
+    '<button class="sp-btn" style="margin-top:12px;" onclick="submitForReview()">Resubmit for Review</button>' +
+  '</div>';
 }
 function approvedPlanHtml(){
   var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your anesthesiologist';
