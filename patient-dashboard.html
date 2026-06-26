@@ -40,6 +40,23 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
 body{background:var(--bg);color:var(--text);}
+/* icon system */
+.ic{width:1em;height:1em;display:block;}
+.ic-slot{display:inline-flex;align-items:center;justify-content:center;line-height:0;}
+.ic-slot svg{width:18px;height:18px;}
+.ms-sec-ico .ic-slot svg{width:20px;height:20px;}
+.cdot .ic-slot svg{width:18px;height:18px;}
+.ms-sico .ic-slot svg{width:26px;height:26px;}
+.ms-spot-ico .ic-slot svg{width:24px;height:24px;}
+.ms-ficon .ic-slot svg{width:19px;height:19px;}
+.ms-crq-ico .ic-slot svg{width:20px;height:20px;}
+.ms-jnode .ic-slot svg{width:15px;height:15px;}
+.ms-hstatus .hi .ic-slot svg{width:14px;height:14px;}
+.ms-addtile .ai .ic-slot svg{width:19px;height:19px;}
+.ms-smeta .ic-slot svg{width:14px;height:14px;}
+.ms-smeta .ic-slot{margin-right:5px;vertical-align:-2px;}
+.ms-btn .ic-slot svg{width:16px;height:16px;}
+.ms-sec-link .ic-slot svg{width:15px;height:15px;vertical-align:-2px;}
 .ms-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
    radial-gradient(1300px 560px at 82% -12%,rgba(42,138,116,.18),transparent 60%),
@@ -65,12 +82,13 @@ body{background:var(--bg);color:var(--text);}
 .ms-hstatus.action{background:var(--action-bg);border:1px solid var(--action-bd);color:#FFD79B;}
 .ms-hstatus .hi{width:25px;height:25px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 auto;}
 .ms-summary{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;}
-.ms-chip{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--line);border-radius:16px;padding:13px 17px 13px 13px;min-width:178px;transition:.18s;}
-.ms-chip:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.3);box-shadow:var(--shadow-sm);}
-.ms-chip .cdot{width:37px;height:37px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto;}
+.ms-chip{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--line);border-radius:16px;padding:13px 17px 13px 13px;min-width:178px;transition:.18s;cursor:pointer;font-family:inherit;color:inherit;text-align:left;-webkit-appearance:none;appearance:none;}
+.ms-chip:hover{transform:translateY(-3px);border-color:rgba(126,207,192,.34);box-shadow:0 14px 34px rgba(0,0,0,.32);}
+.ms-chip:active{transform:translateY(-1px);}
+.ms-chip .cdot{width:37px;height:37px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .ms-chip .n{font-size:19px;font-weight:800;line-height:1;}
 .ms-chip .k{font-size:12px;color:var(--muted);margin-top:3px;}
-.cdot.g{background:var(--done-bg);} .cdot.b{background:var(--info-bg);} .cdot.o{background:var(--action-bg);} .cdot.u{background:var(--urgent-bg);}
+.cdot.g{background:var(--done-bg);color:var(--done);} .cdot.b{background:var(--info-bg);color:var(--info);} .cdot.o{background:var(--action-bg);color:var(--action);} .cdot.u{background:rgba(126,207,192,.12);color:var(--accent);}
 
 /* spotlight — the ONE thing to do next */
 .ms-spot{position:relative;background:linear-gradient(120deg,rgba(255,179,71,.14),rgba(255,179,71,.04));border:1px solid var(--action-bd);border-radius:var(--r-lg);padding:24px 28px;margin:30px 0 8px;overflow:hidden;animation:glow 4s ease-in-out infinite;}
@@ -246,13 +264,24 @@ body{background:var(--bg);color:var(--text);}
 .ms-vthumb{height:146px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .ms-vthumb.t1{background:linear-gradient(135deg,#0f3b31,#15564a);} .ms-vthumb.t2{background:linear-gradient(135deg,#123a52,#1c5a7a);} .ms-vthumb.t3{background:linear-gradient(135deg,#3a2a52,#52407a);}
 .ms-vthumb::after{content:'';position:absolute;inset:0;background:radial-gradient(120px 120px at 70% 30%,rgba(255,255,255,.12),transparent 70%);}
-.ms-vplay{position:relative;z-index:1;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;color:#0c241d;font-size:17px;padding-left:4px;box-shadow:0 8px 20px rgba(0,0,0,.3);transition:.18s;}
+.ms-vthumb{background:linear-gradient(135deg,#0f3b31,#15564a);}
+.ms-vimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+.ms-vthumb::before{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.45));}
+.ms-vplay{position:relative;z-index:2;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;color:#0c241d;box-shadow:0 8px 20px rgba(0,0,0,.3);transition:.18s;}
+.ms-vplay svg{width:18px;height:18px;fill:currentColor;stroke:none;margin-left:2px;}
 .ms-vcard:hover .ms-vplay{transform:scale(1.08);}
-.ms-vtag{position:absolute;top:12px;left:12px;z-index:1;font-size:11px;font-weight:700;background:rgba(6,16,13,.66);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:20px;padding:5px 10px;color:var(--accent);}
-.ms-vdur{position:absolute;bottom:12px;right:12px;z-index:1;font-size:11px;font-weight:700;background:rgba(6,16,13,.72);border-radius:7px;padding:3px 8px;color:#fff;}
+.ms-vdur{position:absolute;bottom:12px;right:12px;z-index:2;font-size:11px;font-weight:700;background:rgba(6,16,13,.78);border-radius:7px;padding:3px 8px;color:#fff;}
 .ms-vmeta{padding:15px 16px;}
-.ms-vt{font-size:14px;font-weight:700;line-height:1.35;}
+.ms-vt{font-size:14px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .ms-vd{font-size:12px;color:var(--hint);margin-top:6px;}
+.ms-vskel{height:226px;border-radius:var(--r-md);background:linear-gradient(110deg,rgba(255,255,255,.04),rgba(255,255,255,.07),rgba(255,255,255,.04));background-size:200% 100%;animation:vshimmer 1.3s linear infinite;border:1px solid var(--line);}
+@keyframes vshimmer{from{background-position:200% 0;}to{background-position:-200% 0;}}
+.ms-vfallback{grid-column:1/-1;display:flex;align-items:center;gap:18px;background:linear-gradient(135deg,rgba(126,207,192,.10),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:var(--r-md);padding:22px 24px;text-decoration:none;color:inherit;transition:.18s;box-shadow:var(--shadow-sm);}
+.ms-vfallback:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.32);box-shadow:0 18px 40px rgba(0,0,0,.34);}
+.ms-vfb-ic{width:52px;height:52px;border-radius:15px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#FF4D4D;background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.28);}
+.ms-vfb-ic svg{width:26px;height:26px;}
+.ms-vfb-main{flex:1;min-width:0;} .ms-vfb-main b{font-size:15.5px;font-weight:700;display:block;} .ms-vfb-main small{font-size:13px;color:var(--muted);}
+.ms-vgrid{align-items:start;}
 
 /* recovery (future-ready, reserved) */
 .ms-recovery{background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01));border:1px dashed var(--line);border-radius:var(--r-lg);padding:24px 26px;}
@@ -439,18 +468,18 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
     <!-- ③ WHAT'S NEW (notification / activity feed) -->
     <section class="ms-sec anim d3" id="whatsnew-sec" style="display:none;">
       <div class="ms-sec-head">
-        <div class="ms-sec-ico">&#128276;</div>
+        <div class="ms-sec-ico"><span class="ic-slot" data-ic="activity"></span></div>
         <div><div class="ms-sec-title">What's new</div><div class="ms-sec-sub">Updates from your care team</div></div>
       </div>
       <div id="activity-body"></div>
     </section>
 
     <!-- ④ MY SURGERIES (journey timelines) -->
-    <section class="ms-sec anim d3">
+    <section class="ms-sec anim d3" id="surgeries-sec">
       <div class="ms-sec-head">
-        <div class="ms-sec-ico">&#129695;</div>
+        <div class="ms-sec-ico"><span class="ic-slot" data-ic="stethoscope"></span></div>
         <div><div class="ms-sec-title">My surgeries</div><div class="ms-sec-sub">Follow every step of your journey</div></div>
-        <button class="ms-sec-link" onclick="openSurgery(null)">+ Add surgery</button>
+        <button class="ms-sec-link" onclick="openSurgery(null)"><span class="ic-slot" data-ic="plus"></span> Add surgery</button>
       </div>
       <!-- care-team connection + review controls (status-panel) -->
       <div id="status-panel"></div>
@@ -459,30 +488,30 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
       <div class="ms-sec-label" id="past-label" style="display:none;">Past surgeries</div>
       <div id="journey-past"></div>
       <div class="ms-addrow" id="add-row" style="display:none;margin-top:14px;">
-        <div class="ms-addtile" onclick="openSurgery(null)"><span class="ai">&#10133;</span><span><b>I'm having another surgery</b><small>Start a new journey in a few taps</small></span></div>
-        <div class="ms-addtile" onclick="openDirectory()"><span class="ai">&#128273;</span><span><b>Connect a clinician</b><small>Have your plan reviewed</small></span></div>
+        <div class="ms-addtile" onclick="openSurgery(null)"><span class="ai"><span class="ic-slot" data-ic="plus"></span></span><span><b>I'm having another surgery</b><small>Start a new journey in a few taps</small></span></div>
+        <div class="ms-addtile" onclick="openDirectory()"><span class="ai"><span class="ic-slot" data-ic="user-plus"></span></span><span><b>Connect a clinician</b><small>Have your plan reviewed</small></span></div>
       </div>
     </section>
 
     <!-- ⑤ MY CONSULTATIONS -->
-    <section class="ms-sec anim d4">
+    <section class="ms-sec anim d4" id="consults-sec">
       <div class="ms-sec-head">
-        <div class="ms-sec-ico con">&#128172;</div>
+        <div class="ms-sec-ico con"><span class="ic-slot" data-ic="message-circle"></span></div>
         <div><div class="ms-sec-title">My consultations</div><div class="ms-sec-sub">Questions you've asked an anesthesiologist</div></div>
-        <a class="ms-sec-link con" href="/v2/ask.html">+ Ask a question</a>
+        <a class="ms-sec-link con" href="/v2/ask.html"><span class="ic-slot" data-ic="plus"></span> Ask a question</a>
       </div>
       <div id="q-body"></div>
     </section>
 
     <!-- Preparation lives ONLY inside the modal, opened from each surgery card's
-         "View Preparation Plan" CTA. No preparation panels on the dashboard. -->
+         state-aware CTA. No preparation panels on the dashboard. -->
 
-    <!-- ⑦ RECOMMENDED FOR YOU (contextual education) -->
-    <section class="ms-sec anim d6">
+    <!-- ⑦ VIDEOS — latest from the official Anestheo YouTube channel -->
+    <section class="ms-sec anim d6" id="videos-sec">
       <div class="ms-sec-head">
-        <div class="ms-sec-ico">&#127916;</div>
-        <div><div class="ms-sec-title">Recommended for you</div><div class="ms-sec-sub">Chosen to match where you are in your journey</div></div>
-        <a class="ms-sec-link" href="/v2/videos.html">Browse library &rarr;</a>
+        <div class="ms-sec-ico"><span class="ic-slot" data-ic="youtube"></span></div>
+        <div><div class="ms-sec-title">Anestheo videos</div><div class="ms-sec-sub">Latest from our YouTube channel</div></div>
+        <a class="ms-sec-link" id="yt-channel-link" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Visit channel <span class="ic-slot" data-ic="arrow-right"></span></a>
       </div>
       <div id="recs-video-host"></div>
     </section>
@@ -560,6 +589,54 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 <script>
 function ge(id){ return document.getElementById(id); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+/* ── Icon system (Lucide, inline SVG; one consistent line-icon set, no emoji) ── */
+var ICONS = {
+  'calendar-check':'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>',
+  'calendar':'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  'clipboard-check':'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
+  'activity':'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  'message-circle':'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  'stethoscope':'<path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/>',
+  'clock':'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  'check':'<path d="M20 6 9 17l-5-5"/>',
+  'check-circle':'<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>',
+  'plus':'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  'arrow-right':'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'zap':'<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>',
+  'alert-triangle':'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  'file-text':'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  'upload':'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+  'search':'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  'play':'<polygon points="6 3 20 12 6 21 6 3"/>',
+  'user-plus':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
+  'user':'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  'pencil':'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+  'building':'<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>',
+  'heart-pulse':'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  'graduation-cap':'<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+  'youtube':'<path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/>',
+  'sparkles':'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
+  'lock':'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  'notebook-pen':'<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.4 3.6a2.1 2.1 0 0 1 0 3L15.5 12.5 12 13l.5-3.5 5.9-5.9a2.1 2.1 0 0 1 3 0Z"/>',
+  'target':'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  'sun':'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  'briefcase':'<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+  'key':'<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>'
+};
+function ic(name){
+  return '<svg class="ic" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||'')+'</svg>';
+}
+function iconHtml(name, cls){ return '<span class="ic-slot'+(cls?' '+cls:'')+'">'+ic(name)+'</span>'; }
+// Hydrate any static [data-ic] placeholders in the markup.
+function hydrateIcons(root){
+  (root||document).querySelectorAll('[data-ic]:not([data-icd])').forEach(function(el){
+    el.setAttribute('data-icd','1'); el.innerHTML = ic(el.getAttribute('data-ic'));
+  });
+}
+// Smooth-scroll a dashboard section into view (hero summary card interactions).
+function scrollToSec(id){ var el = ge(id); if(el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
+window.scrollToSec = scrollToSec;
 var _uid = null, _surgery = null, _activity = [];
 var _quest = null, _prepChecklist = {}, _careRequest = null, _docPlan = null, _reqProgress = {}, _sdayProgress = {}, _recs = [];
 var _surgeries = [], _editId = null;
@@ -622,20 +699,20 @@ function heroStatus(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   // A completed surgery (with nothing upcoming) takes precedence — celebrate recovery.
   if(_surgery && _surgery.completed_at && !upcomingSurgeries().length)
-    return { tone:'done', icon:'&#127807;', text:'Your surgery is complete — wishing you a smooth recovery.' };
+    return { tone:'done', icon:'heart-pulse', text:'Your surgery is complete — wishing you a smooth recovery.' };
   var ns = nextSurgery();
   var dd = ns && ns.surgery_date ? daysUntil(ns.surgery_date) : null;
   // Imminent surgery is the most time-critical message — it outranks review state.
-  if(dd !== null && dd === 0) return { tone:'action', icon:'&#9201;', text:'Your surgery is today. Follow your team\'s instructions carefully.' };
-  if(dd !== null && dd === 1) return { tone:'action', icon:'&#9201;', text:'Your surgery is tomorrow. Here\'s everything you need.' };
-  if(rs === 'approved') return { tone:'done', icon:'&#10003;', text:'Your preparation plan is approved — you\'re almost ready for surgery.' };
-  if(rs === 'changes_requested') return { tone:'action', icon:'&#9888;', text:'Your anesthesiologist requested a little more information.' };
-  if(rs === 'in_review') return { tone:'info', icon:'&#129461;', text:'Your anesthesiologist is reviewing your questionnaire.' };
-  if(answeredConsults().length) return { tone:'info', icon:'&#128172;', text:'You have a new reply to one of your consultations.' };
-  if(dd !== null && dd > 1 && dd <= 7) return { tone:'info', icon:'&#128197;', text:'Your surgery is in ' + dd + ' days — here\'s how to prepare.' };
-  if(_quest && _quest.status === 'submitted') return { tone:'done', icon:'&#10003;', text:'Your questionnaire is complete — nicely done.' };
-  if(_surgery && _surgery.procedure_type) return { tone:'info', icon:'&#129695;', text:'Let\'s get you ready for your procedure, step by step.' };
-  return { tone:'info', icon:'&#128075;', text:'Welcome back. Everything for your care lives here.' };
+  if(dd !== null && dd === 0) return { tone:'action', icon:'clock', text:'Your surgery is today. Follow your team\'s instructions carefully.' };
+  if(dd !== null && dd === 1) return { tone:'action', icon:'clock', text:'Your surgery is tomorrow. Here\'s everything you need.' };
+  if(rs === 'approved') return { tone:'done', icon:'check-circle', text:'Your preparation plan is approved — you\'re almost ready for surgery.' };
+  if(rs === 'changes_requested') return { tone:'action', icon:'alert-triangle', text:'Your anesthesiologist requested a little more information.' };
+  if(rs === 'in_review') return { tone:'info', icon:'stethoscope', text:'Your anesthesiologist is reviewing your questionnaire.' };
+  if(answeredConsults().length) return { tone:'info', icon:'message-circle', text:'You have a new reply to one of your consultations.' };
+  if(dd !== null && dd > 1 && dd <= 7) return { tone:'info', icon:'calendar-check', text:'Your surgery is in ' + dd + ' days — here\'s how to prepare.' };
+  if(_quest && _quest.status === 'submitted') return { tone:'done', icon:'check-circle', text:'Your questionnaire is complete — nicely done.' };
+  if(_surgery && _surgery.procedure_type) return { tone:'info', icon:'stethoscope', text:'Let\'s get you ready for your procedure, step by step.' };
+  return { tone:'info', icon:'sparkles', text:'Welcome back. Everything for your care lives here.' };
 }
 function renderHero(){
   var host = ge('hero-host'); if(!host) return;
@@ -643,19 +720,24 @@ function renderHero(){
     upcoming: upcomingSurgeries().length,
     waiting: waitingConsults().length,
     prep: prepTaskCount(),
-    days: (function(){ var ns = nextSurgery(); var d = ns && ns.surgery_date ? daysUntil(ns.surgery_date) : null; return d; })()
+    updates: Math.min(_activity.length, 99)
   };
   var st = heroStatus();
+  // Interactive summary cards — each navigates somewhere useful.
+  function chip(dotcls, icon, n, k, onclick){
+    return '<button class="ms-chip" onclick="'+onclick+'"><div class="cdot '+dotcls+'">'+iconHtml(icon)+'</div>' +
+      '<div><div class="n">'+n+'</div><div class="k">'+k+'</div></div></button>';
+  }
   var chips = '';
-  chips += '<div class="ms-chip"><div class="cdot b">&#129695;</div><div><div class="n">'+counts.upcoming+'</div><div class="k">Upcoming '+(counts.upcoming===1?'surgery':'surgeries')+'</div></div></div>';
-  chips += '<div class="ms-chip"><div class="cdot o">&#128172;</div><div><div class="n">'+counts.waiting+'</div><div class="k">'+(counts.waiting===1?'Consultation waiting':'Consultations waiting')+'</div></div></div>';
-  chips += '<div class="ms-chip"><div class="cdot o">&#9989;</div><div><div class="n">'+counts.prep+'</div><div class="k">Preparation '+(counts.prep===1?'task':'tasks')+'</div></div></div>';
-  if(counts.days !== null && counts.days >= 0)
-    chips += '<div class="ms-chip"><div class="cdot u">&#9203;</div><div><div class="n">'+(counts.days===0?'Today':(counts.days===1?'1 day':counts.days+' days'))+'</div><div class="k">To your next surgery</div></div></div>';
+  chips += chip('b','calendar-check', counts.upcoming, 'Upcoming '+(counts.upcoming===1?'surgery':'surgeries'), "scrollToSec('surgeries-sec')");
+  chips += chip('o','message-circle', counts.waiting, (counts.waiting===1?'Consultation waiting':'Consultations waiting'), "scrollToSec('consults-sec')");
+  chips += chip('o','clipboard-check', counts.prep, 'Preparation '+(counts.prep===1?'task':'tasks'), 'openPrep()');
+  chips += chip('u','activity', counts.updates, (counts.updates===1?'New update':'Recent updates'), "scrollToSec('whatsnew-sec')");
   host.innerHTML =
-    '<h1>'+esc(greeting())+' <span class="wave">&#128075;</span></h1>' +
-    '<div class="ms-hstatus '+st.tone+'"><span class="hi">'+st.icon+'</span> '+st.text+'</div>' +
+    '<h1>'+esc(greeting())+'</h1>' +
+    '<div class="ms-hstatus '+st.tone+'"><span class="hi">'+iconHtml(st.icon)+'</span> '+st.text+'</div>' +
     '<div class="ms-summary">'+chips+'</div>';
+  hydrateIcons(host);
 }
 
 /* ── ② SPOTLIGHT — the single prioritized next action ──────── */
@@ -668,32 +750,32 @@ function computeSpotlight(){
   var dd = ns && ns.surgery_date ? daysUntil(ns.surgery_date) : null;
 
   if(!hasS){
-    return { tone:'', pin:'&#9733; Start here', icon:'&#129695;', t:'Add your surgery to begin', s:'Tell us about your procedure and we\'ll guide you, step by step.',
+    return { tone:'', pin:'Start here', icon:'plus', t:'Add your surgery to begin', s:'Tell us about your procedure and we\'ll guide you, step by step.',
       btn:'Add my surgery', btnCls:'ms-btn-action', on:'openSurgery(null)' };
   }
   if(_surgery && _surgery.completed_at && !upcomingSurgeries().length){
-    return { tone:'tone-done', pin:'&#127807; Recovery', icon:'&#10084;&#65039;', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
+    return { tone:'tone-done', pin:'Recovery', icon:'heart-pulse', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
       btn:'Recovery information', btnCls:'ms-btn-primary', on:'location.href=\'/v2/recovery.html\'' };
   }
   // Questionnaire not done yet — the single most important step.
   if(hasS && !qSub){
-    return { tone:'', pin:'&#9733; Prioritized for you · do this next', icon:'&#9889;', t:'Complete your health questionnaire', s:'About 8 minutes. This lets your anesthesiologist prepare your plan.',
+    return { tone:'', pin:'Prioritized for you · do this next', icon:'zap', t:'Complete your health questionnaire', s:'About 8 minutes. This lets your anesthesiologist prepare your plan.',
       btn:(_quest?'Continue questionnaire':'Start questionnaire'), btnCls:'ms-btn-action', on:'location.href=\'/v2/questionnaire.html\'',
-      celebrate: (_surgery && _surgery.procedure_type) ? '&#127881; Nice — your surgery is added. The questionnaire is the next step.' : '' };
+      celebrate: (_surgery && _surgery.procedure_type) ? 'Nice — your surgery is added. The questionnaire is the next step.' : '' };
   }
   // Completed prep ready to send to the clinician.
   if(crs === 'accepted' && (rs === 'not_submitted') && qSub && prepChecklistComplete()){
-    return { tone:'', pin:'&#9733; Ready to send', icon:'&#9989;', t:'Submit your preparation for review', s:'Your questionnaire and checklist are complete. Send them to your clinician.',
+    return { tone:'', pin:'Ready to send', icon:'check-circle', t:'Submit your preparation for review', s:'Your questionnaire and checklist are complete. Send them to your clinician.',
       btn:'Submit for review', btnCls:'ms-btn-primary', on:'submitForReview()' };
   }
   // A consultation reply is waiting.
   if(answeredConsults().length){
-    return { tone:'tone-info', pin:'&#128172; New reply', icon:'&#128172;', t:'You have a reply to your consultation', s:'Your anesthesiologist answered your question.',
+    return { tone:'tone-info', pin:'New reply', icon:'message-circle', t:'You have a reply to your consultation', s:'Your anesthesiologist answered your question.',
       btn:'Read the reply', btnCls:'ms-btn-con', on:'location.href=\'/v2/ask.html\'' };
   }
   // Submitted but not yet connected to a clinician.
   if(crs !== 'accepted' && rs === 'not_submitted'){
-    return { tone:'tone-info', pin:'&#9733; Recommended', icon:'&#129658;', t:'Have your plan reviewed by an anesthesiologist', s:'Connect a clinician to review your questionnaire and approve your preparation.',
+    return { tone:'tone-info', pin:'Recommended', icon:'user-plus', t:'Have your plan reviewed by an anesthesiologist', s:'Connect a clinician to review your questionnaire and approve your preparation.',
       btn:'Connect a clinician', btnCls:'ms-btn-primary', on:'openDirectory()' };
   }
   // approved / under review / changes requested / nothing urgent: no spotlight.
@@ -707,14 +789,15 @@ function renderSpotlight(){
   if(!sp){ host.innerHTML = ''; return; }
   host.innerHTML =
     '<div class="ms-spot '+(sp.tone||'')+'">' +
-      '<span class="pin">'+sp.pin+'</span>' +
+      '<span class="pin">'+esc(sp.pin)+'</span>' +
       '<div class="ms-spot-row">' +
-        '<div class="ms-spot-ico">'+sp.icon+'</div>' +
+        '<div class="ms-spot-ico">'+iconHtml(sp.icon)+'</div>' +
         '<div class="ms-spot-main"><div class="ms-spot-t">'+esc(sp.t)+'</div><div class="ms-spot-s">'+esc(sp.s)+'</div></div>' +
-        '<button class="ms-btn '+sp.btnCls+'" onclick="'+sp.on+'">'+esc(sp.btn)+' &rarr;</button>' +
+        '<button class="ms-btn '+sp.btnCls+'" onclick="'+sp.on+'">'+esc(sp.btn)+' '+iconHtml('arrow-right')+'</button>' +
       '</div>' +
-      (sp.celebrate ? '<div class="ms-celebrate">'+sp.celebrate+'</div>' : '') +
+      (sp.celebrate ? '<div class="ms-celebrate">'+iconHtml('sparkles')+' '+esc(sp.celebrate)+'</div>' : '') +
     '</div>';
+  hydrateIcons(host);
 }
 
 /* ── care-team connection + review controls (status-panel) ── */
@@ -730,6 +813,7 @@ function renderStatusPanel(){
         '<div class="ms-care-conn">'+esc(d.connectionLine)+'</div>' +
         action +
       '</div>';
+    hydrateIcons(panel);
   }
   renderPlanCard();
   renderRecsCard();
@@ -977,16 +1061,16 @@ function spConnectAction(){
   var dn  = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your clinician';
   if(crs !== 'accepted'){
     if(crs === 'requested') return '<div class="sp-action"><button class="sp-btn ghost" onclick="cancelRequest()">Cancel request</button></div>';
-    return '<div class="sp-action"><button class="sp-btn" onclick="openDirectory()">&#129658; Request Review</button></div>';
+    return '<div class="sp-action"><button class="sp-btn" onclick="openDirectory()">'+iconHtml('stethoscope')+' Request Review</button></div>';
   }
-  if(rs === 'pending')   return '<div class="sp-action"><div class="sp-pending">&#9203; Awaiting clinician review</div></div>';
-  if(rs === 'in_review') return '<div class="sp-action"><div class="sp-pending">&#128994; Under review by '+dn+'</div></div>';
+  if(rs === 'pending')   return '<div class="sp-action"><div class="sp-pending">'+iconHtml('clock')+' Awaiting clinician review</div></div>';
+  if(rs === 'in_review') return '<div class="sp-action"><div class="sp-pending">'+iconHtml('stethoscope')+' Under review by '+dn+'</div></div>';
   if(rs === 'approved' || rs === 'changes_requested') return '';
   var qDone = !!(_quest && _quest.status === 'submitted');
   var cDone = prepChecklistComplete();
   var out;
   if(qDone && cDone){
-    out = '<button class="sp-btn" onclick="submitForReview()">&#9989; Submit for Review</button>';
+    out = '<button class="sp-btn" onclick="submitForReview()">'+iconHtml('check-circle')+' Submit for Review</button>';
   } else {
     var miss = !qDone ? 'Complete your questionnaire' : 'Finish the preparation checklist';
     out = '<button class="sp-btn" disabled style="opacity:.5;cursor:default;">Submit for Review</button>' +
@@ -1169,7 +1253,7 @@ function msJourney(d, qSubmitted){
   var r = reached6(d.journeyStatus, qSubmitted);
   return '<div class="ms-journey">' + SJ_STEPS.map(function(st,i){
     var n = i+1, cls = n<r ? 'done' : (n===r ? 'current' : 'todo');
-    var node = n<r ? '&#10003;' : (n===r ? '&#9679;' : '');
+    var node = n<r ? iconHtml('check') : '';
     return '<div class="ms-jstep '+cls+'"><div class="line"></div><div class="ms-jnode">'+node+'</div><div class="ms-jlabel">'+esc(st)+'</div></div>';
   }).join('') + '</div>';
 }
@@ -1201,39 +1285,30 @@ function badgeFor(d){
 function sjCTA(s, d){
   var js = d.journeyStatus;
   if(js==='completed' || js==='in_recovery' || js==='archived')
-    return '<a class="ms-btn ms-btn-primary ms-btn-sm" href="/v2/recovery.html">&#10084;&#65039; Recovery information</a>';
+    return '<a class="ms-btn ms-btn-primary ms-btn-sm" href="/v2/recovery.html">'+iconHtml('heart-pulse')+' Recovery information</a>';
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   var qSub = !!(_quest && _quest.status === 'submitted');
-  var label, icon = '&#128203;', cls = 'ms-btn-primary';
-  if(!qSub){                                   label = 'Complete my preparation';        icon = '&#9889;'; cls = 'ms-btn-action'; }
-  else if(rs === 'changes_requested'){         label = 'Upload requested documents';     icon = '&#11014;&#65039;'; cls = 'ms-btn-action'; }
-  else if(rs === 'in_review' || rs === 'pending'){ label = 'Preparation under review';   icon = '&#129461;'; cls = 'ms-btn-quiet'; }
-  else if(rs === 'approved' || js === 'ready_for_surgery'){ label = 'Review my approved preparation plan'; icon = '&#10003;'; }
-  else {                                       label = 'View my preparation plan';        icon = '&#128203;'; }
-  return '<button class="ms-btn '+cls+' ms-btn-sm" onclick="openPrep()">'+icon+' '+label+'</button>';
+  var label, icon = 'clipboard-check', cls = 'ms-btn-primary';
+  if(!qSub){                                   label = 'Complete my preparation';        icon = 'zap'; cls = 'ms-btn-action'; }
+  else if(rs === 'changes_requested'){         label = 'Upload requested documents';     icon = 'upload'; cls = 'ms-btn-action'; }
+  else if(rs === 'in_review' || rs === 'pending'){ label = 'Preparation under review';   icon = 'search'; cls = 'ms-btn-quiet'; }
+  else if(rs === 'approved' || js === 'ready_for_surgery'){ label = 'Review my approved preparation plan'; icon = 'check-circle'; }
+  else {                                       label = 'View my preparation plan';        icon = 'clipboard-check'; }
+  return '<button class="ms-btn '+cls+' ms-btn-sm" onclick="openPrep()">'+iconHtml(icon)+' '+label+'</button>';
 }
-function procIcon(p){
-  p = (p||'').toLowerCase();
-  if(p.indexOf('ortho')>=0) return '&#129528;';
-  if(p.indexOf('dental')>=0||p.indexOf('oral')>=0) return '&#129463;';
-  if(p.indexOf('ent')>=0) return '&#128066;';
-  if(p.indexOf('plastic')>=0) return '&#10024;';
-  if(p.indexOf('section')>=0||p.indexOf('childbirth')>=0) return '&#128118;';
-  if(p.indexOf('urolog')>=0) return '&#129656;';
-  if(p.indexOf('gyn')>=0) return '&#127801;';
-  return '&#129695;';
-}
+// One consistent surgery glyph (premium, minimal) for every procedure.
+function procIcon(){ return 'stethoscope'; }
 function surgeryCardHtml(s, isPast){
   var d = window.deriveJourney(journeyCtx(s));
   var qSub = !!(_quest && _quest.status==='submitted');
   var facts = [];
   if(s.surgery_date){ var cd = countdownStr(s.surgery_date);
-    facts.push('<span>&#128197; '+fmtDate(s.surgery_date)+(cd?' &middot; '+cd:'')+'</span>'); }
-  if(s.hospital) facts.push('<span>&#127973; '+esc(s.hospital)+'</span>');
-  if(s.surgeon) facts.push('<span>&#129658; '+esc(s.surgeon)+'</span>');
+    facts.push('<span>'+iconHtml('calendar')+fmtDate(s.surgery_date)+(cd?' &middot; '+cd:'')+'</span>'); }
+  if(s.hospital) facts.push('<span>'+iconHtml('building')+esc(s.hospital)+'</span>');
+  if(s.surgeon) facts.push('<span>'+iconHtml('user')+esc(s.surgeon)+'</span>');
   return '<div class="ms-scard'+(isPast?' past':'')+'">' +
     '<div class="ms-shead">' +
-      '<div class="ms-sico">'+procIcon(s.procedure_type)+'</div>' +
+      '<div class="ms-sico">'+iconHtml(procIcon())+'</div>' +
       '<div class="ms-shead-main">' +
         '<div class="ms-sname">'+esc(s.procedure_type||'Your surgery')+'</div>' +
         '<div class="ms-smeta">'+facts.join('')+badgeFor(d)+'</div>' +
@@ -1242,8 +1317,8 @@ function surgeryCardHtml(s, isPast){
     '</div>' +
     msJourney(d, qSub) +
     '<div class="ms-sfoot">' +
-      '<div class="stage">&#10148; Next: <b>'+esc(d.nextStep)+'</b></div>' +
-      '<div class="acts">'+sjCTA(s, d)+'<button class="ms-btn ms-btn-quiet ms-btn-sm" onclick="openSurgery(\''+(s.id||'')+'\')">Edit</button></div>' +
+      '<div class="stage">Next: <b>'+esc(d.nextStep)+'</b></div>' +
+      '<div class="acts">'+sjCTA(s, d)+'<button class="ms-btn ms-btn-quiet ms-btn-sm" onclick="openSurgery(\''+(s.id||'')+'\')">'+iconHtml('pencil')+' Edit</button></div>' +
     '</div></div>';
 }
 function renderJourney(){
@@ -1268,6 +1343,7 @@ function renderJourney(){
   up.innerHTML = upList.map(function(s){ return surgeryCardHtml(s, false); }).join('') ||
     '<div class="ms-empty">No upcoming surgeries.</div>';
   past.innerHTML = pastList.map(function(s){ return surgeryCardHtml(s, true); }).join('');
+  hydrateIcons(up); hydrateIcons(past);
 }
 function openSurgery(id){
   var s = id ? (_surgeries.filter(function(x){ return x.id === id; })[0] || {}) : {};
@@ -1648,41 +1724,82 @@ function renderQuestions(qs, replies){
       cls = '';
       var waitLbl = st === 'under_review' ? 'Under review' : 'Waiting for reply';
       badge = '<span class="ms-cbadge wait"><span class="bd"></span>'+waitLbl+'</span>' + (when?' Sent '+esc(when):'');
-      acts = '<a class="ms-link" href="/v2/ask.html">&#9998; Edit</a><a class="ms-link" href="/v2/ask.html">View</a>';
+      acts = '<a class="ms-link" href="/v2/ask.html">'+iconHtml('pencil')+' Edit</a><a class="ms-link" href="/v2/ask.html">View</a>';
     }
     return '<div class="ms-crq '+cls+'">' +
-      '<div class="ms-crq-ico">&#128172;</div>' +
+      '<div class="ms-crq-ico">'+iconHtml('message-circle')+'</div>' +
       '<div class="ms-crq-main"><div class="ms-crq-nm">'+esc(subj)+'</div>' +
         '<div class="ms-crq-sub">'+badge+'</div>'+replyHtml+'</div>' +
       '<div class="ms-crq-acts">'+acts+'</div></div>';
   }).join('');
+  hydrateIcons(host);
 }
 
-// ── RECOMMENDED EDUCATION (contextual; static recommendations by procedure) ──
-function recVideosFor(proc){
-  proc = (proc||'').toLowerCase();
-  var base = [
-    { tag:'Understand', t1:'t1', t:'Understanding anesthesia for your surgery', d:'Regional vs general, explained simply', dur:'4:12' },
-    { tag:'Prepare', t1:'t2', t:'How to prepare the night before', d:'Fasting, medications & what to bring', dur:'3:05' },
-    { tag:'Recovery', t1:'t3', t:'What to expect after your surgery', d:'Recovery, pain relief & going home', dur:'5:20' }
-  ];
-  if(proc.indexOf('ortho')>=0){
-    base[0].t = 'Understanding spinal anesthesia';
-    base[2] = { tag:'Recovery', t1:'t3', t:'Walking after surgery', d:'Getting moving safely in the first days', dur:'3:48' };
-  }
-  return base;
+// ── VIDEOS — latest from the official Anestheo YouTube channel ──
+// Live data needs a referrer-restricted YouTube Data API key. Set YT_API_KEY
+// (and confirm YT_CHANNEL) to enable real thumbnails/titles/duration/date that
+// auto-update on every load. Without a key, a graceful channel CTA is shown.
+var YT_CHANNEL = '@anestheo';
+var YT_API_KEY = '';
+var YT_MAX = 6;
+function ytDur(iso){
+  if(!iso) return '';
+  var m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return '';
+  var h=+(m[1]||0), mi=+(m[2]||0), s=+(m[3]||0), pad=function(n){return (n<10?'0':'')+n;};
+  return h ? h+':'+pad(mi)+':'+pad(s) : mi+':'+pad(s);
 }
-function renderEducation(vids){
+function ytDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return ''; } }
+function ytChannelUrl(){ return 'https://www.youtube.com/'+(YT_CHANNEL.charAt(0)==='@'?YT_CHANNEL:'@'+YT_CHANNEL); }
+async function ytFetch(url){ var r = await fetch(url); if(!r.ok) throw new Error('yt '+r.status); return r.json(); }
+async function loadYouTube(){
+  if(!YT_API_KEY) return null;                        // not configured → fallback
+  var base = 'https://www.googleapis.com/youtube/v3/', key = '&key='+YT_API_KEY;
+  var ch = await ytFetch(base+'channels?part=contentDetails&forHandle='+encodeURIComponent(YT_CHANNEL.replace(/^@/,''))+key);
+  var up = ch && ch.items && ch.items[0] && ch.items[0].contentDetails.relatedPlaylists.uploads;
+  if(!up) return null;
+  var pl = await ytFetch(base+'playlistItems?part=snippet,contentDetails&maxResults='+YT_MAX+'&playlistId='+up+key);
+  var items = (pl.items||[]).map(function(it){
+    var th = it.snippet.thumbnails || {};
+    return { id: it.contentDetails.videoId, title: it.snippet.title,
+      published: it.contentDetails.videoPublishedAt || it.snippet.publishedAt,
+      thumb: (th.medium||th.high||th.default||{}).url };
+  }).filter(function(v){ return v.id; });
+  var ids = items.map(function(i){ return i.id; }).join(',');
+  if(ids){ try {
+    var vd = await ytFetch(base+'videos?part=contentDetails&id='+ids+key);
+    var dmap = {}; (vd.items||[]).forEach(function(v){ dmap[v.id] = v.contentDetails.duration; });
+    items.forEach(function(i){ i.dur = ytDur(dmap[i.id]); });
+  } catch(e){} }
+  return items;
+}
+function ytCard(v){
+  var thumb = v.thumb || ('https://i.ytimg.com/vi/'+v.id+'/hqdefault.jpg');
+  return '<a class="ms-vcard" href="https://www.youtube.com/watch?v='+encodeURIComponent(v.id)+'" target="_blank" rel="noopener">' +
+    '<div class="ms-vthumb"><img class="ms-vimg" src="'+esc(thumb)+'" alt="" loading="lazy">' +
+      '<span class="ms-vplay">'+ic('play')+'</span>' +
+      (v.dur?'<span class="ms-vdur">'+esc(v.dur)+'</span>':'') + '</div>' +
+    '<div class="ms-vmeta"><div class="ms-vt">'+esc(v.title)+'</div>' +
+      (v.published?'<div class="ms-vd">'+esc(ytDate(v.published))+'</div>':'') + '</div></a>';
+}
+function ytFallback(){
+  return '<a class="ms-vfallback" href="'+ytChannelUrl()+'" target="_blank" rel="noopener">' +
+    '<span class="ms-vfb-ic">'+ic('youtube')+'</span>' +
+    '<span class="ms-vfb-main"><b>Watch the latest from Anestheo</b>' +
+    '<small>Educational anesthesia videos on our official YouTube channel</small></span>' +
+    '<span class="ms-btn ms-btn-primary ms-btn-sm">Open channel '+ic('arrow-right')+'</span></a>';
+}
+function renderYouTube(){
   var host = ge('recs-video-host'); if(!host) return;
-  var proc = (_surgery && _surgery.procedure_type) || '';
-  var list = recVideosFor(proc);
-  var because = proc ? ('<div class="ms-because">Because you\'re having <b>'+esc(proc)+'</b>, we picked these for you:</div>') : '';
-  host.innerHTML = because + '<div class="ms-vgrid">' + list.map(function(v){
-    return '<a class="ms-vcard" href="/v2/videos.html"><div class="ms-vthumb '+v.t1+'">' +
-      '<span class="ms-vtag">'+esc(v.tag)+'</span><span class="ms-vplay">&#9654;</span><span class="ms-vdur">'+esc(v.dur)+'</span></div>' +
-      '<div class="ms-vmeta"><div class="ms-vt">'+esc(v.t)+'</div><div class="ms-vd">'+esc(v.d)+'</div></div></a>';
-  }).join('') + '</div>';
+  host.innerHTML = '<div class="ms-vgrid">' +
+    '<div class="ms-vskel"></div><div class="ms-vskel"></div><div class="ms-vskel"></div></div>';
+  loadYouTube().then(function(vids){
+    if(!vids || !vids.length){ host.innerHTML = ytFallback(); hydrateIcons(host); return; }
+    host.innerHTML = '<div class="ms-vgrid">' + vids.map(ytCard).join('') + '</div>';
+    hydrateIcons(host);
+  }).catch(function(){ host.innerHTML = ytFallback(); hydrateIcons(host); });
 }
+// Backwards-compatible alias (init still calls renderEducation()).
+function renderEducation(){ renderYouTube(); }
 
 // ── PROGRESS SIGNALS ──
 var _signals = { procedure:false, questionnaire:false, preop:false, education:false, questions:false };
@@ -1696,7 +1813,7 @@ function activityIcon(text){
   return 'o';
 }
 function activityGlyph(cls){
-  return cls==='g' ? '&#10003;' : cls==='b' ? '&#129461;' : cls==='con' ? '&#128172;' : '&#128276;';
+  return cls==='g' ? 'check-circle' : cls==='b' ? 'stethoscope' : cls==='con' ? 'message-circle' : 'calendar-check';
 }
 function renderActivity(){
   _activity.sort(function(a,b){ return (b.t||0) - (a.t||0); });
@@ -1707,9 +1824,10 @@ function renderActivity(){
   ge('activity-body').innerHTML = '<div class="ms-feed">' + items.map(function(a, idx){
     var cls = activityIcon(a.text);
     var unread = idx < 3 ? '<span class="ms-fdot"></span>' : '<span style="width:9px;flex:0 0 auto;"></span>';
-    return '<div class="ms-fitem"><div class="ms-ficon '+cls+'">'+activityGlyph(cls)+'</div>' +
+    return '<div class="ms-fitem"><div class="ms-ficon '+cls+'">'+iconHtml(activityGlyph(cls))+'</div>' +
       '<div class="ms-fmain"><div class="ms-ftext">'+esc(a.text)+'</div><div class="ms-fmeta">'+esc(relTime(a.t))+'</div></div>'+unread+'</div>';
   }).join('') + '</div>';
+  hydrateIcons(ge('activity-body'));
 }
 function addActivity(text, t){ _activity.push({ text:text, t: t ? new Date(t).getTime() : Date.now() }); }
 
@@ -1814,6 +1932,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     renderActivity();
     renderRecovery();
     renderFab();
+    hydrateIcons();   // static section / add-tile icons
 
     startConnectionSync();
 
