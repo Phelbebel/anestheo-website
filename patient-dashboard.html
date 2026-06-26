@@ -1194,14 +1194,23 @@ function badgeFor(d){
   else cls = (_quest && _quest.status==='submitted') ? 'info' : 'action';
   return '<span class="ms-badge '+cls+'"><span class="bd"></span>'+esc(d.pillLabel)+'</span>';
 }
-// One primary CTA per surgery card. Preparation is reached ONLY here, and it
-// always opens the single Preparation Plan modal (which adapts to the current
-// stage internally). Completed/recovery surgeries link to recovery instead.
+// One primary, STATE-AWARE CTA per surgery card — the single entry point into
+// the Preparation Plan modal (which adapts to the stage internally). The label
+// and emphasis change with the patient's current stage; completed/recovery
+// surgeries link to recovery instead.
 function sjCTA(s, d){
   var js = d.journeyStatus;
   if(js==='completed' || js==='in_recovery' || js==='archived')
     return '<a class="ms-btn ms-btn-primary ms-btn-sm" href="/v2/recovery.html">&#10084;&#65039; Recovery information</a>';
-  return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#128203; View Preparation Plan</button>';
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  var qSub = !!(_quest && _quest.status === 'submitted');
+  var label, icon = '&#128203;', cls = 'ms-btn-primary';
+  if(!qSub){                                   label = 'Complete my preparation';        icon = '&#9889;'; cls = 'ms-btn-action'; }
+  else if(rs === 'changes_requested'){         label = 'Upload requested documents';     icon = '&#11014;&#65039;'; cls = 'ms-btn-action'; }
+  else if(rs === 'in_review' || rs === 'pending'){ label = 'Preparation under review';   icon = '&#129461;'; cls = 'ms-btn-quiet'; }
+  else if(rs === 'approved' || js === 'ready_for_surgery'){ label = 'Review my approved preparation plan'; icon = '&#10003;'; }
+  else {                                       label = 'View my preparation plan';        icon = '&#128203;'; }
+  return '<button class="ms-btn '+cls+' ms-btn-sm" onclick="openPrep()">'+icon+' '+label+'</button>';
 }
 function procIcon(p){
   p = (p||'').toLowerCase();
@@ -1606,69 +1615,10 @@ async function prepSaveChecklist(){
 }
 window.prepSaveChecklist = prepSaveChecklist;
 
-/* ── ⑥ PREPARATION wallet cards ─────────────────────────────── */
-function renderPrep(){
-  var host = ge('prep-host'); if(!host) return;
-  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
-  var qSub = !!(_quest && _quest.status === 'submitted');
-  var proc = esc((_surgery && _surgery.procedure_type) || 'your surgery');
-  var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : '';
-
-  // One consolidated summary — the single entry point to the (unchanged) modal.
-  var reqs = approvedReqs();
-  var totalFiles = 0; Object.keys(_reqDocs).forEach(function(k){ totalFiles += (_reqDocs[k] || []).length; });
-  var stillRequired = reqs.filter(function(r){ return reqDocStatus(r.key) === 'requested'; }).length;
-  var ns = nextSurgery(); var dd = (ns && ns.surgery_date) ? daysUntil(ns.surgery_date) : null;
-
-  // Status chip (chip 1) reflects the live review state.
-  var cls = '', statusChip = '';
-  var sub = 'Everything your anesthesiologist prepared for your surgery.';
-  if(!qSub){
-    cls = 'action'; statusChip = '<span class="ms-chip2 warn"><i>&#9888;</i> Complete questionnaire</span>';
-    sub = 'Complete your health questionnaire to unlock your preparation plan.';
-  } else if(rs === 'approved'){
-    cls = 'approved'; statusChip = '<span class="ms-chip2 ok"><i>&#10003;</i> Plan approved</span>';
-  } else if(rs === 'changes_requested'){
-    cls = 'action'; statusChip = '<span class="ms-chip2 warn"><i>&#9888;</i> Action needed</span>';
-    sub = 'Your anesthesiologist asked for a little more — open to complete it.';
-  } else if(rs === 'in_review' || rs === 'pending'){
-    statusChip = '<span class="ms-chip2 info"><i>&#129461;</i> Under review</span>';
-  } else {
-    statusChip = '<span class="ms-chip2 ok"><i>&#10003;</i> Ready to view</span>';
-  }
-
-  // Up to four compact status chips: status · requirements · documents · countdown.
-  function chip(c, ic, txt){ return '<span class="ms-chip2'+(c ? ' '+c : '')+'"><i>'+ic+'</i> '+txt+'</span>'; }
-  var chips = statusChip;
-  if(reqs.length)       chips += chip('', '&#128203;', reqs.length+' requirement'+(reqs.length>1?'s':''));
-  else if(qSub)         chips += chip('', '&#128203;', 'Checklist &amp; guidance');
-  if(totalFiles)        chips += chip('ok', '&#128196;', totalFiles+' document'+(totalFiles>1?'s':'')+' uploaded');
-  else if(stillRequired) chips += chip('warn', '&#128196;', stillRequired+' document'+(stillRequired>1?'s':'')+' required');
-  if(dd != null && dd >= 0) chips += chip('', '&#128197;', dd===0?'Surgery today':dd===1?'Surgery tomorrow':'Surgery in '+dd+' days');
-
-  host.innerHTML =
-    '<button class="ms-planbig '+cls+'" onclick="openPrep()" aria-label="Open Preparation Plan">' +
-      '<div class="ms-planbig-top">' +
-        '<div class="ms-planbig-ico">&#128203;</div>' +
-        '<div class="ms-planbig-main">' +
-          '<div class="ms-planbig-title">Preparation Plan</div>' +
-          '<div class="ms-planbig-sub">'+sub+'</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="ms-planbig-chips">'+chips+'</div>' +
-      '<div class="ms-planbig-foot"><span class="ms-planbig-cta">Open Preparation Plan <span class="arr">&rarr;</span></span></div>' +
-    '</button>';
-
-  // reserved AI companion inline prompt (hidden until built)
-  var assist = ge('assist-host');
-  if(assist){
-    assist.innerHTML = FEATURE_COMPANION ?
-      ('<div class="ms-assist"><div class="av">&#10024;</div>' +
-       '<div><div class="at">Need help understanding your preparation plan? <b>Ask Anesto</b></div>' +
-       '<div class="as">Your AI care companion · explains anything in plain language</div></div>' +
-       '<button class="ms-btn ms-btn-quiet ms-btn-sm" onclick="openPrep()">Ask a question</button></div>') : '';
-  }
-}
+/* Preparation has no dashboard panel — it is reached ONLY from the surgery
+   card's state-aware CTA (see sjCTA). renderPrep is intentionally a no-op,
+   kept so existing callers stay valid. */
+function renderPrep(){ /* preparation lives only in the modal */ }
 
 // ── CONSULTATIONS (questions/replies → Waiting / Reply received / Closed) ──
 function renderQuestions(qs, replies){
@@ -1766,8 +1716,10 @@ function addActivity(text, t){ _activity.push({ text:text, t: t ? new Date(t).ge
 // ── reserved floating AI companion dock (hidden until built) ──
 function renderFab(){
   var host = ge('fab-host'); if(!host) return;
+  // Reserved AI companion — does NOT open the Preparation Plan (the surgery
+  // card's CTA is the single entry point to prep). Wires up when built.
   host.innerHTML = FEATURE_COMPANION ?
-    ('<div class="ms-fab" onclick="openPrep()"><div class="fi">&#10024;</div><div class="ft">Ask Anesto<small>Your care companion</small></div></div>') : '';
+    ('<div class="ms-fab"><div class="fi">&#10024;</div><div class="ft">Ask Anesto<small>Your care companion</small></div></div>') : '';
 }
 function renderRecovery(){
   var sec = ge('recovery-sec'); if(sec) sec.style.display = FEATURE_RECOVERY ? 'block' : 'none';
