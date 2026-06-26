@@ -200,6 +200,42 @@ body{background:var(--bg);color:var(--text);}
 .ms-pcard .ps{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45;min-height:34px;}
 .ms-ptag{display:inline-flex;align-items:center;gap:6px;margin-top:13px;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:20px;}
 .ms-ptag.done{color:#9FF0CF;background:var(--done-bg);} .ms-ptag.action{color:#FFD79B;background:var(--action-bg);} .ms-ptag.info{color:#A9D2FF;background:var(--info-bg);} .ms-ptag.future{color:var(--muted);background:rgba(255,255,255,.05);}
+/* Preparation "mission control" — the hero card of the prep section.
+   Deliberately larger & more premium than every other card (Apple Wallet/Health). */
+.ms-planbig{display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(126,207,192,.15),rgba(42,138,116,.06) 58%,rgba(255,255,255,.02));
+  border:1px solid rgba(126,207,192,.24);border-radius:30px;padding:34px 36px;
+  box-shadow:0 26px 64px rgba(0,0,0,.42);
+  transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s,border-color .24s;}
+.ms-planbig:hover{transform:translateY(-5px);border-color:rgba(126,207,192,.42);box-shadow:0 38px 90px rgba(0,0,0,.52);}
+.ms-planbig:active{transform:translateY(-2px);}
+.ms-planbig.approved{background:linear-gradient(135deg,rgba(52,211,153,.17),rgba(27,107,90,.06) 58%,rgba(255,255,255,.02));border-color:var(--done-bd);}
+.ms-planbig.action{background:linear-gradient(135deg,rgba(255,179,71,.17),rgba(240,138,36,.06) 58%,rgba(255,255,255,.02));border-color:var(--action-bd);}
+.ms-planbig::after{content:'';position:absolute;right:-50px;top:-50px;width:230px;height:230px;border-radius:50%;
+  background:radial-gradient(circle,rgba(126,207,192,.18),transparent 70%);pointer-events:none;}
+.ms-planbig.approved::after{background:radial-gradient(circle,rgba(52,211,153,.20),transparent 70%);}
+.ms-planbig.action::after{background:radial-gradient(circle,rgba(255,179,71,.20),transparent 70%);}
+.ms-planbig-top{display:flex;align-items:center;gap:24px;position:relative;z-index:1;}
+.ms-planbig-ico{width:86px;height:86px;border-radius:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:42px;
+  background:linear-gradient(135deg,rgba(126,207,192,.3),rgba(126,207,192,.08));border:1px solid rgba(126,207,192,.32);box-shadow:0 12px 32px rgba(0,0,0,.28);}
+.ms-planbig.approved .ms-planbig-ico{background:linear-gradient(135deg,rgba(52,211,153,.3),rgba(52,211,153,.08));border-color:var(--done-bd);}
+.ms-planbig.action .ms-planbig-ico{background:linear-gradient(135deg,rgba(255,179,71,.3),rgba(255,179,71,.08));border-color:var(--action-bd);}
+.ms-planbig-main{flex:1;min-width:0;}
+.ms-planbig-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;letter-spacing:-.01em;line-height:1.1;}
+.ms-planbig-sub{font-size:14.5px;color:var(--muted);margin-top:7px;max-width:560px;}
+.ms-planbig-chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;position:relative;z-index:1;}
+.ms-chip2{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--text);
+  background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:13px;padding:10px 15px;}
+.ms-chip2 i{font-style:normal;font-size:14px;opacity:.95;}
+.ms-chip2.ok{color:#9FF0CF;background:var(--done-bg);border-color:var(--done-bd);}
+.ms-chip2.warn{color:#FFD79B;background:var(--action-bg);border-color:var(--action-bd);}
+.ms-chip2.info{color:#A9D2FF;background:var(--info-bg);border-color:var(--info-bd);}
+.ms-planbig-foot{display:flex;align-items:center;justify-content:flex-end;margin-top:26px;padding-top:22px;
+  border-top:1px solid var(--line-soft);position:relative;z-index:1;}
+.ms-planbig-cta{display:inline-flex;align-items:center;gap:11px;font-size:15.5px;font-weight:800;color:var(--accent);}
+.ms-planbig-cta .arr{display:inline-flex;width:30px;height:30px;border-radius:50%;background:rgba(126,207,192,.16);
+  align-items:center;justify-content:center;transition:transform .2s,background .2s;}
+.ms-planbig:hover .ms-planbig-cta .arr{transform:translateX(4px);background:rgba(126,207,192,.3);}
 
 /* recommended video thumbnails */
 .ms-vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px;}
@@ -256,6 +292,11 @@ body{background:var(--bg);color:var(--text);}
   .ms-sfoot{flex-direction:column;align-items:stretch;gap:14px;} .ms-sfoot .acts{margin-left:0;} .ms-sfoot .acts .ms-btn{flex:1;justify-content:center;}
   .ms-btn{padding:14px 20px;}
   .ms-prep{grid-template-columns:repeat(2,1fr);gap:11px;}
+  .ms-planbig{padding:24px 20px;border-radius:24px;}
+  .ms-planbig-top{gap:16px;}
+  .ms-planbig-ico{width:64px;height:64px;font-size:31px;border-radius:19px;}
+  .ms-planbig-title{font-size:23px;}
+  .ms-planbig-foot{justify-content:center;}
   .ms-vgrid{grid-template-columns:1fr;}
   .ms-rgrid{grid-template-columns:repeat(2,1fr);}
   .ms-crq{flex-wrap:wrap;gap:13px;} .ms-crq-acts{width:100%;justify-content:flex-start;} .ms-crq-acts .ms-btn{flex:1;justify-content:center;}
@@ -433,21 +474,8 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
       <div id="q-body"></div>
     </section>
 
-    <!-- ⑥ PREPARING FOR SURGERY (wallet cards + clinical plan/recs) -->
-    <section class="ms-sec anim d5">
-      <div class="ms-sec-head">
-        <div class="ms-sec-ico">&#129658;</div>
-        <div><div class="ms-sec-title">Preparing for surgery</div><div class="ms-sec-sub">Everything your team has prepared for you</div></div>
-      </div>
-      <div id="prep-host"></div>
-      <!-- clinical cards (unchanged renderers) -->
-      <div id="plan-host" style="margin-top:16px;"></div>
-      <div id="recs-host"></div>
-      <div id="sday-host"></div>
-      <div id="quest-host" style="margin-top:8px;"></div>
-      <!-- reserved AI companion slot (hidden until built) -->
-      <div id="assist-host"></div>
-    </section>
+    <!-- Preparation lives ONLY inside the modal, opened from each surgery card's
+         "View Preparation Plan" CTA. No preparation panels on the dashboard. -->
 
     <!-- ⑦ RECOMMENDED FOR YOU (contextual education) -->
     <section class="ms-sec anim d6">
@@ -647,43 +675,36 @@ function computeSpotlight(){
     return { tone:'tone-done', pin:'&#127807; Recovery', icon:'&#10084;&#65039;', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
       btn:'Recovery information', btnCls:'ms-btn-primary', on:'location.href=\'/v2/recovery.html\'' };
   }
-  if(rs === 'changes_requested'){
-    return { tone:'', pin:'&#9888; Action needed', icon:'&#9888;', t:'Your anesthesiologist requested more information', s:'Review their message, complete the items, and resubmit for review.',
-      btn:'View what\'s needed', btnCls:'ms-btn-action', on:'openPrep()' };
-  }
+  // Questionnaire not done yet — the single most important step.
   if(hasS && !qSub){
     return { tone:'', pin:'&#9733; Prioritized for you · do this next', icon:'&#9889;', t:'Complete your health questionnaire', s:'About 8 minutes. This lets your anesthesiologist prepare your plan.',
       btn:(_quest?'Continue questionnaire':'Start questionnaire'), btnCls:'ms-btn-action', on:'location.href=\'/v2/questionnaire.html\'',
       celebrate: (_surgery && _surgery.procedure_type) ? '&#127881; Nice — your surgery is added. The questionnaire is the next step.' : '' };
   }
+  // Completed prep ready to send to the clinician.
   if(crs === 'accepted' && (rs === 'not_submitted') && qSub && prepChecklistComplete()){
     return { tone:'', pin:'&#9733; Ready to send', icon:'&#9989;', t:'Submit your preparation for review', s:'Your questionnaire and checklist are complete. Send them to your clinician.',
       btn:'Submit for review', btnCls:'ms-btn-primary', on:'submitForReview()' };
   }
-  if(rs === 'approved'){
-    return { tone:'tone-done', pin:'&#10003; You\'re ready', icon:'&#10003;', t:'Your preparation plan is approved', s:'Review your plan and your surgery-day checklist whenever you like.',
-      btn:'View approved plan', btnCls:'ms-btn-primary', on:'openPrep()',
-      celebrate: dd!==null && dd>=0 ? ('&#127881; You\'re all set'+(dd<=7?(' — surgery '+(dd===0?'today':dd===1?'tomorrow':'in '+dd+' days')):'')+'.') : '' };
-  }
+  // A consultation reply is waiting.
   if(answeredConsults().length){
     return { tone:'tone-info', pin:'&#128172; New reply', icon:'&#128172;', t:'You have a reply to your consultation', s:'Your anesthesiologist answered your question.',
       btn:'Read the reply', btnCls:'ms-btn-con', on:'location.href=\'/v2/ask.html\'' };
   }
-  if(rs === 'in_review' || rs === 'pending'){
-    return { tone:'tone-info', pin:'&#129461; In progress', icon:'&#129461;', t:'Your plan is being reviewed', s:'Your anesthesiologist is reviewing your questionnaire. We\'ll let you know the moment it\'s ready.',
-      btn:'View your guide', btnCls:'ms-btn-quiet', on:'openPrep()',
-      celebrate:'&#127881; Great progress — your questionnaire is in.' };
-  }
-  if(crs !== 'accepted'){
+  // Submitted but not yet connected to a clinician.
+  if(crs !== 'accepted' && rs === 'not_submitted'){
     return { tone:'tone-info', pin:'&#9733; Recommended', icon:'&#129658;', t:'Have your plan reviewed by an anesthesiologist', s:'Connect a clinician to review your questionnaire and approve your preparation.',
       btn:'Connect a clinician', btnCls:'ms-btn-primary', on:'openDirectory()' };
   }
-  return { tone:'tone-info', pin:'&#9733; Up next', icon:'&#128203;', t:'Open your preparation plan', s:'Review everything you need before your procedure.',
-    btn:'View preparation', btnCls:'ms-btn-quiet', on:'openPrep()' };
+  // approved / under review / changes requested / nothing urgent: no spotlight.
+  // Status lives on the surgery card badge + hero; preparation is reached only
+  // from the surgery card's "View Preparation Plan" CTA (single prep entry point).
+  return null;
 }
 function renderSpotlight(){
   var host = ge('spotlight-host'); if(!host) return;
   var sp = computeSpotlight();
+  if(!sp){ host.innerHTML = ''; return; }
   host.innerHTML =
     '<div class="ms-spot '+(sp.tone||'')+'">' +
       '<span class="pin">'+sp.pin+'</span>' +
@@ -726,37 +747,46 @@ async function loadRecs(){
     if(r && !r.error) _recs = r.data || [];
   } catch(e){ _recs = []; }
 }
+// Doctor recommendations now live INSIDE the preparation modal (one entry point);
+// the standalone dashboard card is intentionally not rendered.
 function renderRecsCard(){
-  var host = ge('recs-host'); if(!host) return;
-  if(!_recs || !_recs.length){ host.innerHTML = ''; return; }
-  host.innerHTML =
-    '<div class="plan-card" style="margin-top:16px;">' +
-      '<div class="plan-h">&#128203; Recommendations from your anesthesiologist</div>' +
-      _recs.map(function(r){ return '<div class="rec-li">'+esc(r.body||'')+'</div>'; }).join('') +
-      '<div class="plan-foot">Please follow these before your procedure. Ask your clinician if anything is unclear.</div>' +
-    '</div>';
+  var host = ge('recs-host'); if(host) host.innerHTML = '';
+}
+// Recommendations section for the modal.
+function prepRecsHtml(){
+  if(!_recs || !_recs.length) return '';
+  return '<div class="prep-sec"><div class="prep-sec-title">&#128203; Recommendations from your anesthesiologist</div>' +
+    _recs.map(function(r){ return '<div class="rec-li">'+esc(r.body||'')+'</div>'; }).join('') +
+    '<div class="plan-foot" style="margin-top:8px;">Please follow these before your procedure. Ask your clinician if anything is unclear.</div></div>';
 }
 // Final surgery-day reminders (general; separate from doctor-requested tests).
 var SDAY_ITEMS = ['Passport / national ID','Insurance / referral documents','Up-to-date medication list',
   'Laboratory reports','Imaging reports (X-ray, echo, etc.)','Follow your fasting instructions exactly',
   'Remove jewellery, makeup and nail polish','Arrange transport and someone to take you home'];
+// Surgery-day checklist now lives INSIDE the preparation modal.
 function renderSurgeryDayCard(){
-  var host = ge('sday-host'); if(!host) return;
+  var host = ge('sday-host'); if(host) host.innerHTML = '';
+}
+// Surgery-day checklist section for the modal (after approval / readiness).
+function prepSurgeryDayHtml(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   var ready = !!(_surgery && _surgery.ready_at), done = !!(_surgery && _surgery.completed_at);
-  if(!(rs === 'approved' || ready || done)){ host.innerHTML = ''; return; }
+  if(!(rs === 'approved' || ready || done)) return '';
   var n = SDAY_ITEMS.filter(function(_, i){ return _sdayProgress[i]; }).length;
-  host.innerHTML =
-    '<div class="sday-card" style="margin-top:16px;"><div class="sday-h">&#129508; Final surgery-day checklist</div>' +
-    '<div class="plan-sub">A general reminder for the day of surgery &mdash; separate from your doctor&rsquo;s requested tests. ('+n+'/'+SDAY_ITEMS.length+')</div>' +
+  return '<div class="prep-sec"><div class="prep-sec-title">&#129508; Final surgery-day checklist</div>' +
+    '<div class="plan-sub">A general reminder for the day of surgery &mdash; separate from your doctor&rsquo;s requested tests. (<span id="sday-count">'+n+'</span>/'+SDAY_ITEMS.length+')</div>' +
     SDAY_ITEMS.map(function(lbl, i){ var ck = !!_sdayProgress[i];
-      return '<div class="req-item"><button type="button" class="req-box'+(ck?' on':'')+'" onclick="toggleSday('+i+')" aria-label="Mark done">'+(ck?'&#10003;':'')+'</button>' +
+      return '<div class="req-item"><button type="button" class="req-box'+(ck?' on':'')+'" data-sday="'+i+'" onclick="toggleSday('+i+')" aria-label="Mark done">'+(ck?'&#10003;':'')+'</button>' +
         '<div class="req-tx"><div class="req-label">'+esc(lbl)+'</div></div></div>'; }).join('') +
     '</div>';
 }
 async function toggleSday(i){
   _sdayProgress[i] = !_sdayProgress[i];
-  renderSurgeryDayCard();
+  // Update in place inside the modal (no full re-render → no scroll jump).
+  var btn = document.querySelector('#prep-modal-body [data-sday="'+i+'"]');
+  if(btn){ var on = !!_sdayProgress[i]; btn.classList.toggle('on', on); btn.innerHTML = on ? '&#10003;' : ''; }
+  var cnt = document.getElementById('sday-count');
+  if(cnt){ cnt.textContent = SDAY_ITEMS.filter(function(_, j){ return _sdayProgress[j]; }).length; }
   try {
     var c = await window.getChecklist(_uid); var existing = (c && c.items) || {};
     existing.surgery_day_progress = _sdayProgress;
@@ -798,25 +828,16 @@ function patientMilestones(){
   return M;
 }
 
-// ── Dedicated plan card: approval (green) or additional requirements (amber) ──
+// ── Dedicated plan card ──
+// The APPROVED summary now lives inside the preparation modal (single entry
+// point), so it is no longer drawn as a separate green panel on the dashboard.
+// The changes-requested panel remains: it is the actionable upload + resubmit
+// surface and has no other home.
 function renderPlanCard(){
   var host = ge('plan-host'); if(!host) return;
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   var reqs = (_docPlan && Array.isArray(_docPlan.requirements))
     ? _docPlan.requirements.filter(function(r){ return r && r.checked; }) : [];
-  if(rs === 'approved'){
-    var dn = (_careRequest && _careRequest.doctor_name) ? _careRequest.doctor_name : 'your clinician';
-    var when = (_quest && _quest.reviewed_at) ? new Date(_quest.reviewed_at).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
-    host.innerHTML =
-      '<div class="plan-card ok">' +
-        '<div class="plan-h">&#9989; Preparation plan approved</div>' +
-        '<div class="plan-meta">Approved by <b>'+esc(dn)+'</b>'+(when?(' on '+esc(when)):'')+'.</div>' +
-        (reqs.length ? '<div class="plan-sub">Your anesthesiologist confirmed these requirements:</div>' +
-          reqs.map(function(r){ return reqRow(r, false); }).join('') : '') +
-        '<div class="plan-foot">Bring this plan and your documents on the day of surgery.</div>' +
-      '</div>';
-    return;
-  }
   if(rs === 'changes_requested'){
     var note = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
     var doneN = reqs.filter(function(r){ return _reqProgress[r.key]; }).length;
@@ -903,9 +924,14 @@ async function docUpload(key, file){
       patient_id:_uid, surgery_id:_surgery.id, requirement_key:key, requirement_name:reqLabelFor(key),
       storage_path:path, file_name:file.name, file_size:file.size, mime_type:ctype });
     if(ins&&ins.error) throw new Error(ins.error.message);
-    await reloadReqDocs(); renderPlanCard(); renderPrep();
+    await reloadReqDocs(); refreshPrepModal();
     addActivity('Uploaded '+file.name+' for '+reqLabelFor(key), Date.now()); renderActivity(); renderHero();
   } catch(e){ alert('Upload failed: '+(e.message||'error')); }
+}
+// Re-render the open Preparation Plan modal (the single home for prep actions).
+function refreshPrepModal(){
+  if(ge('prep-modal') && ge('prep-modal').classList.contains('open'))
+    ge('prep-modal-body').innerHTML = prepContentHtml();
 }
 async function docOpen(path){
   try {
@@ -920,13 +946,13 @@ async function docDelete(id){
     var del=await window.sb.from('requirement_documents').delete().eq('id',id);
     if(del&&del.error) throw new Error(del.error.message);
     if(path){ try { await window.sb.storage.from('patient-documents').remove([path]); } catch(e){} }
-    await reloadReqDocs(); renderPlanCard(); renderPrep();
+    await reloadReqDocs(); refreshPrepModal();
   } catch(e){ alert('Could not remove the file: '+(e.message||'error')); }
 }
 window.docPick=docPick; window.docOpen=docOpen; window.docDelete=docDelete;
 async function toggleReq(key){
   _reqProgress[key] = !_reqProgress[key];
-  renderPlanCard();
+  refreshPrepModal();
   try {
     var c = await window.getChecklist(_uid); var existing = (c && c.items) || {};
     existing.req_progress = _reqProgress;
@@ -1168,19 +1194,23 @@ function badgeFor(d){
   else cls = (_quest && _quest.status==='submitted') ? 'info' : 'action';
   return '<span class="ms-badge '+cls+'"><span class="bd"></span>'+esc(d.pillLabel)+'</span>';
 }
-// Primary CTA per derived stage (logic preserved; restyled).
+// One primary, STATE-AWARE CTA per surgery card — the single entry point into
+// the Preparation Plan modal (which adapts to the stage internally). The label
+// and emphasis change with the patient's current stage; completed/recovery
+// surgeries link to recovery instead.
 function sjCTA(s, d){
   var js = d.journeyStatus;
   if(js==='completed' || js==='in_recovery' || js==='archived')
     return '<a class="ms-btn ms-btn-primary ms-btn-sm" href="/v2/recovery.html">&#10084;&#65039; Recovery information</a>';
-  if(js==='ready_for_surgery')
-    return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#9989; Surgery-day instructions</button>';
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
-  if(rs === 'approved')
-    return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#9989; View approved plan</button>';
-  if(_quest && _quest.status==='submitted')
-    return '<button class="ms-btn ms-btn-primary ms-btn-sm" onclick="openPrep()">&#128203; View preparation plan</button>';
-  return '<a class="ms-btn ms-btn-action ms-btn-sm" href="/v2/questionnaire.html">&#128203; '+(_quest?'Continue':'Start')+' questionnaire</a>';
+  var qSub = !!(_quest && _quest.status === 'submitted');
+  var label, icon = '&#128203;', cls = 'ms-btn-primary';
+  if(!qSub){                                   label = 'Complete my preparation';        icon = '&#9889;'; cls = 'ms-btn-action'; }
+  else if(rs === 'changes_requested'){         label = 'Upload requested documents';     icon = '&#11014;&#65039;'; cls = 'ms-btn-action'; }
+  else if(rs === 'in_review' || rs === 'pending'){ label = 'Preparation under review';   icon = '&#129461;'; cls = 'ms-btn-quiet'; }
+  else if(rs === 'approved' || js === 'ready_for_surgery'){ label = 'Review my approved preparation plan'; icon = '&#10003;'; }
+  else {                                       label = 'View my preparation plan';        icon = '&#128203;'; }
+  return '<button class="ms-btn '+cls+' ms-btn-sm" onclick="openPrep()">'+icon+' '+label+'</button>';
 }
 function procIcon(p){
   p = (p||'').toLowerCase();
@@ -1289,31 +1319,26 @@ async function saveSurgery(){
 window.saveSurgery=saveSurgery;
 
 // ── QUESTIONNAIRE STATUS (compact card in the Preparation section) ──
+// The questionnaire summary/print now lives INSIDE the preparation modal
+// (see prepSummaryActionsHtml); the standalone dashboard card is not drawn.
+// We still cache the submitted questionnaire for pdSummary()/pdPrint().
 function renderQuestionnaire(q){
-  var body = ge('quest-host');
-  if(!body) return;
-  if(!q){
-    body.innerHTML = '';  // handled by spotlight + surgery CTA
-    return;
-  }
-  if(q.status === 'submitted'){
-    window._pdQuest = q;
-    var when = q.submitted_at || q.updated_at;
-    var dateFmt = when ? new Date(when).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
-    var flags = q.risk_flags || [];
-    body.innerHTML =
-      '<div class="plan-card ok" style="margin-top:0;">' +
-        '<div class="plan-h">&#10003; Health questionnaire complete</div>' +
-        (dateFmt ? '<div class="plan-meta">Completed '+esc(dateFmt)+'.</div>' : '') +
-        (flags.length ? '<div class="pdq-flags">'+flags.map(function(f){return '<span class="pdq-flag">&#9888; '+esc(f)+'</span>';}).join('')+'</div>' : '') +
-        '<div class="pdq-btns">' +
-          '<button class="btn-sm" onclick="pdSummary()">View summary</button>' +
-          '<button class="btn-sm" onclick="pdPrint()">Print / Download PDF</button>' +
-        '</div>' +
-      '</div>';
-    return;
-  }
-  body.innerHTML = '';  // in-progress handled by spotlight + surgery CTA
+  var body = ge('quest-host'); if(body) body.innerHTML = '';
+  if(q && q.status === 'submitted') window._pdQuest = q;
+}
+// Questionnaire summary / print actions, shown in the modal once submitted.
+function prepSummaryActionsHtml(){
+  var q = window._pdQuest || _quest;
+  if(!(q && q.status === 'submitted')) return '';
+  window._pdQuest = q;
+  var when = q.submitted_at || q.updated_at;
+  var dateFmt = when ? new Date(when).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
+  var flags = q.risk_flags || [];
+  return '<div class="prep-sec"><div class="prep-sec-title">&#128203; Your health questionnaire</div>' +
+    (dateFmt ? '<div class="plan-sub">Completed '+esc(dateFmt)+'.</div>' : '') +
+    (flags.length ? '<div class="pdq-flags">'+flags.map(function(f){return '<span class="pdq-flag">&#9888; '+esc(f)+'</span>';}).join('')+'</div>' : '') +
+    '<div class="pdq-btns"><button class="btn-sm" onclick="pdSummary()">View summary</button>' +
+    '<button class="btn-sm" onclick="pdPrint()">Print / Download PDF</button></div></div>';
 }
 
 // View summary + Print/PDF for the registered patient's questionnaire
@@ -1373,17 +1398,42 @@ var PREP_MED_LABELS = {
 function prepClinicianInvolved(){
   return prepOrigin() === 'clinic' || (_careRequest && _careRequest.status === 'accepted');
 }
+// The modal is the single home for everything: clinician notes/recommendations,
+// requirements, uploads, medication, imaging, lab requests, surgery-day checklist,
+// questionnaire summary and educational information.
 function prepContentHtml(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
-  if(rs === 'approved'){ return approvedPlanHtml(); }
+  var recs = prepRecsHtml();                    // clinician recommendations
+  var changes = prepChangesHtml();              // changes-requested: uploads + resubmit
+  var sday = prepSurgeryDayHtml();              // surgery-day checklist (post-approval)
+  var summary = prepSummaryActionsHtml();       // questionnaire summary / print
+  if(rs === 'approved'){ return recs + approvedPlanHtml() + sday + summary; }
   if(prepOrigin() === 'clinic'){
-    return '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>';
+    return recs + changes + '<div class="prep-clinic">Your anesthesiologist is preparing your personalized surgery plan.</div>' + sday + summary;
   }
   if(!_quest || _quest.status !== 'submitted'){
-    return '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Complete your pre-op questionnaire to unlock your personalized preparation guide.</div>' +
+    return recs + '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Complete your pre-op questionnaire to unlock your personalized preparation guide.</div>' +
       '<a href="/v2/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
   }
-  return prepBuildGuide(_quest);
+  return recs + changes + prepBuildGuide(_quest) + sday + summary;
+}
+// Changes-requested actionable block (requirement checkboxes + per-item upload +
+// resubmit) — moved into the modal so it is the single home for prep actions.
+function prepChangesHtml(){
+  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
+  if(rs !== 'changes_requested') return '';
+  var reqs = (_docPlan && Array.isArray(_docPlan.requirements)) ? _docPlan.requirements.filter(function(r){ return r && r.checked; }) : [];
+  var note = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
+  var doneN = reqs.filter(function(r){ return _reqProgress[r.key]; }).length;
+  return '<div class="plan-card warn">' +
+    '<div class="plan-h">&#9888; Doctor requested additional preparation</div>' +
+    (note ? '<div class="plan-note"><b>&#128172; Message from your clinician</b><br>'+esc(note)+'</div>' : '') +
+    (reqs.length
+      ? '<div class="plan-sub">Tick each item as you complete it ('+doneN+'/'+reqs.length+'), then resubmit for review:</div>' +
+        reqs.map(function(r){ return reqRow(r, true); }).join('')
+      : '<div class="plan-sub">Please follow your clinician\'s message above, then resubmit for review.</div>') +
+    '<button class="sp-btn" style="margin-top:12px;" onclick="submitForReview()">Resubmit for Review</button>' +
+  '</div>';
 }
 function approvedPlanHtml(){
   var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your anesthesiologist';
@@ -1565,66 +1615,10 @@ async function prepSaveChecklist(){
 }
 window.prepSaveChecklist = prepSaveChecklist;
 
-/* ── ⑥ PREPARATION wallet cards ─────────────────────────────── */
-function renderPrep(){
-  var host = ge('prep-host'); if(!host) return;
-  var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
-  var qSub = !!(_quest && _quest.status === 'submitted');
-  var cards = '';
-
-  // Preparation plan card
-  var planTag = (rs==='approved') ? '<span class="ms-ptag done">&#10003; Approved</span>'
-    : qSub ? '<span class="ms-ptag done">&#10003; Ready to view</span>'
-    : '<span class="ms-ptag action">&#9888; Questionnaire first</span>';
-  cards += '<button class="ms-pcard" onclick="openPrep()"><div class="pi">&#128203;</div>' +
-    '<div class="pt">Preparation Plan</div><div class="ps">'+(qSub?'Your personalized plan for '+(esc((_surgery&&_surgery.procedure_type)||'surgery'))+'.':'Unlocks once your questionnaire is complete.')+'</div>'+planTag+'</button>';
-
-  // Doctor-requested requirements become real wallet cards (blood tests, imaging, etc.)
-  var reqs = approvedReqs();
-  var interactive = (rs === 'changes_requested');
-  reqs.forEach(function(r){
-    var st = reqDocStatus(r.key);
-    var tag = st==='reviewed' ? '<span class="ms-ptag done">&#10003; Reviewed</span>'
-      : st==='uploaded' ? '<span class="ms-ptag info">&#8593; Uploaded</span>'
-      : '<span class="ms-ptag action">&#9888; To upload</span>';
-    var icon = /image|imag|x-ray|xray|mri|scan|echo/i.test(r.label||r.key) ? '&#129535;'
-      : /blood|lab|cbc|coag|panel/i.test(r.label||r.key) ? '&#129656;'
-      : /med|drug/i.test(r.label||r.key) ? '&#128138;' : '&#128203;';
-    var act = (interactive && st==='requested') ? ('docPick(\''+esc(r.key)+'\')') : 'openPrep()';
-    cards += '<button class="ms-pcard" onclick="'+act+'"><div class="pi">'+icon+'</div>' +
-      '<div class="pt">'+esc(r.label||r.key)+'</div><div class="ps">'+(r.note?esc(r.note):'Requested by your anesthesiologist.')+'</div>'+tag+'</button>';
-  });
-
-  // If no clinician requirements yet, show the general "tests" placeholder card
-  if(!reqs.length){
-    cards += '<button class="ms-pcard" onclick="openDirectory()"><div class="pi">&#129656;</div>' +
-      '<div class="pt">Blood tests &amp; imaging</div><div class="ps">Any tests your anesthesiologist needs will appear here.</div>' +
-      '<span class="ms-ptag future">Awaiting review</span></button>';
-  }
-
-  // Medication instructions card (educational; opens the guide)
-  cards += '<button class="ms-pcard" onclick="openPrep()"><div class="pi">&#128138;</div>' +
-    '<div class="pt">Medication Instructions</div><div class="ps">What to bring and review before surgery day.</div>' +
-    (qSub?'<span class="ms-ptag info">&#9733; Ready</span>':'<span class="ms-ptag future">After questionnaire</span>')+'</button>';
-
-  host.innerHTML = '<div class="ms-prep">'+cards+'</div>';
-
-  // celebrate progress when nearly done
-  var n = prepTaskCount();
-  if(qSub && n <= 1){
-    host.insertAdjacentHTML('afterbegin', '<div class="ms-celebrate" style="margin-bottom:16px;">'+(n===0?'&#10003; Everything here is taken care of. Nicely done.':'&#9989; Almost there — only one preparation task remaining.')+'</div>');
-  }
-
-  // reserved AI companion inline prompt (hidden until built)
-  var assist = ge('assist-host');
-  if(assist){
-    assist.innerHTML = FEATURE_COMPANION ?
-      ('<div class="ms-assist"><div class="av">&#10024;</div>' +
-       '<div><div class="at">Need help understanding your preparation plan? <b>Ask Anesto</b></div>' +
-       '<div class="as">Your AI care companion · explains anything in plain language</div></div>' +
-       '<button class="ms-btn ms-btn-quiet ms-btn-sm" onclick="openPrep()">Ask a question</button></div>') : '';
-  }
-}
+/* Preparation has no dashboard panel — it is reached ONLY from the surgery
+   card's state-aware CTA (see sjCTA). renderPrep is intentionally a no-op,
+   kept so existing callers stay valid. */
+function renderPrep(){ /* preparation lives only in the modal */ }
 
 // ── CONSULTATIONS (questions/replies → Waiting / Reply received / Closed) ──
 function renderQuestions(qs, replies){
@@ -1722,8 +1716,10 @@ function addActivity(text, t){ _activity.push({ text:text, t: t ? new Date(t).ge
 // ── reserved floating AI companion dock (hidden until built) ──
 function renderFab(){
   var host = ge('fab-host'); if(!host) return;
+  // Reserved AI companion — does NOT open the Preparation Plan (the surgery
+  // card's CTA is the single entry point to prep). Wires up when built.
   host.innerHTML = FEATURE_COMPANION ?
-    ('<div class="ms-fab" onclick="openPrep()"><div class="fi">&#10024;</div><div class="ft">Ask Anesto<small>Your care companion</small></div></div>') : '';
+    ('<div class="ms-fab"><div class="fi">&#10024;</div><div class="ft">Ask Anesto<small>Your care companion</small></div></div>') : '';
 }
 function renderRecovery(){
   var sec = ge('recovery-sec'); if(sec) sec.style.display = FEATURE_RECOVERY ? 'block' : 'none';
