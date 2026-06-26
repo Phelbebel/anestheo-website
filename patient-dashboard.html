@@ -200,6 +200,32 @@ body{background:var(--bg);color:var(--text);}
 .ms-pcard .ps{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45;min-height:34px;}
 .ms-ptag{display:inline-flex;align-items:center;gap:6px;margin-top:13px;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:20px;}
 .ms-ptag.done{color:#9FF0CF;background:var(--done-bg);} .ms-ptag.action{color:#FFD79B;background:var(--action-bg);} .ms-ptag.info{color:#A9D2FF;background:var(--info-bg);} .ms-ptag.future{color:var(--muted);background:rgba(255,255,255,.05);}
+/* single consolidated preparation card (one premium entry point → modal) */
+.ms-planbig{display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;
+  background:linear-gradient(135deg,rgba(126,207,192,.10),rgba(255,255,255,.02));
+  border:1px solid var(--line);border-radius:var(--r-lg);padding:26px 28px;box-shadow:var(--shadow);transition:.2s;}
+.ms-planbig:hover{transform:translateY(-3px);border-color:rgba(126,207,192,.34);box-shadow:0 26px 60px rgba(0,0,0,.42);}
+.ms-planbig.approved{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(255,255,255,.02));border-color:var(--done-bd);}
+.ms-planbig.action{background:linear-gradient(135deg,rgba(255,179,71,.12),rgba(255,255,255,.02));border-color:var(--action-bd);}
+.ms-planbig-row{display:flex;align-items:center;gap:20px;}
+.ms-planbig-ico{width:60px;height:60px;border-radius:17px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:28px;background:rgba(126,207,192,.14);border:1px solid var(--line);}
+.ms-planbig-main{flex:1;min-width:0;}
+.ms-planbig-h{font-size:20px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:11px;flex-wrap:wrap;color:var(--text);}
+.ms-planbig-s{font-size:13.5px;color:var(--muted);margin-top:5px;}
+.ms-planbig-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+.ms-stat{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--text);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:11px;padding:7px 12px;}
+.ms-stat i{font-style:normal;font-size:13px;opacity:.9;}
+.ms-stat.warn{color:#FFD79B;background:var(--action-bg);border-color:var(--action-bd);}
+.ms-stat.ok{color:#9FF0CF;background:var(--done-bg);border-color:var(--done-bd);}
+.ms-pill{font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:20px;white-space:nowrap;}
+.ms-pill.done{color:#9FF0CF;background:var(--done-bg);border:1px solid var(--done-bd);}
+.ms-pill.action{color:#FFD79B;background:var(--action-bg);border:1px solid var(--action-bd);}
+.ms-pill.info{color:#A9D2FF;background:var(--info-bg);border:1px solid var(--info-bd);}
+.ms-planbig-cta{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--accent);background:rgba(126,207,192,.1);border:1px solid var(--line);border-radius:13px;padding:13px 18px;}
+.ms-planbig:hover .ms-planbig-cta{background:rgba(126,207,192,.18);}
+.ms-planbig-cta span{transition:transform .18s;}
+.ms-planbig:hover .ms-planbig-cta span{transform:translateX(3px);}
+.ms-planbig-foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft);font-size:13px;color:#9FF0CF;display:flex;align-items:center;gap:8px;}
 
 /* recommended video thumbnails */
 .ms-vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:17px;}
@@ -256,6 +282,9 @@ body{background:var(--bg);color:var(--text);}
   .ms-sfoot{flex-direction:column;align-items:stretch;gap:14px;} .ms-sfoot .acts{margin-left:0;} .ms-sfoot .acts .ms-btn{flex:1;justify-content:center;}
   .ms-btn{padding:14px 20px;}
   .ms-prep{grid-template-columns:repeat(2,1fr);gap:11px;}
+  .ms-planbig{padding:22px 18px;}
+  .ms-planbig-row{flex-wrap:wrap;gap:15px;}
+  .ms-planbig-cta{width:100%;justify-content:center;}
   .ms-vgrid{grid-template-columns:1fr;}
   .ms-rgrid{grid-template-columns:repeat(2,1fr);}
   .ms-crq{flex-wrap:wrap;gap:13px;} .ms-crq-acts{width:100%;justify-content:flex-start;} .ms-crq-acts .ms-btn{flex:1;justify-content:center;}
@@ -1570,50 +1599,58 @@ function renderPrep(){
   var host = ge('prep-host'); if(!host) return;
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   var qSub = !!(_quest && _quest.status === 'submitted');
-  var cards = '';
+  var proc = esc((_surgery && _surgery.procedure_type) || 'your surgery');
+  var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : '';
 
-  // Preparation plan card
-  var planTag = (rs==='approved') ? '<span class="ms-ptag done">&#10003; Approved</span>'
-    : qSub ? '<span class="ms-ptag done">&#10003; Ready to view</span>'
-    : '<span class="ms-ptag action">&#9888; Questionnaire first</span>';
-  cards += '<button class="ms-pcard" onclick="openPrep()"><div class="pi">&#128203;</div>' +
-    '<div class="pt">Preparation Plan</div><div class="ps">'+(qSub?'Your personalized plan for '+(esc((_surgery&&_surgery.procedure_type)||'surgery'))+'.':'Unlocks once your questionnaire is complete.')+'</div>'+planTag+'</button>';
-
-  // Doctor-requested requirements become real wallet cards (blood tests, imaging, etc.)
+  // One consolidated summary — the single entry point to the (unchanged) modal.
   var reqs = approvedReqs();
-  var interactive = (rs === 'changes_requested');
-  reqs.forEach(function(r){
-    var st = reqDocStatus(r.key);
-    var tag = st==='reviewed' ? '<span class="ms-ptag done">&#10003; Reviewed</span>'
-      : st==='uploaded' ? '<span class="ms-ptag info">&#8593; Uploaded</span>'
-      : '<span class="ms-ptag action">&#9888; To upload</span>';
-    var icon = /image|imag|x-ray|xray|mri|scan|echo/i.test(r.label||r.key) ? '&#129535;'
-      : /blood|lab|cbc|coag|panel/i.test(r.label||r.key) ? '&#129656;'
-      : /med|drug/i.test(r.label||r.key) ? '&#128138;' : '&#128203;';
-    var act = (interactive && st==='requested') ? ('docPick(\''+esc(r.key)+'\')') : 'openPrep()';
-    cards += '<button class="ms-pcard" onclick="'+act+'"><div class="pi">'+icon+'</div>' +
-      '<div class="pt">'+esc(r.label||r.key)+'</div><div class="ps">'+(r.note?esc(r.note):'Requested by your anesthesiologist.')+'</div>'+tag+'</button>';
-  });
+  var totalFiles = 0; Object.keys(_reqDocs).forEach(function(k){ totalFiles += (_reqDocs[k] || []).length; });
+  var stillRequired = reqs.filter(function(r){ return reqDocStatus(r.key) === 'requested'; }).length;
+  var ns = nextSurgery(); var dd = (ns && ns.surgery_date) ? daysUntil(ns.surgery_date) : null;
 
-  // If no clinician requirements yet, show the general "tests" placeholder card
-  if(!reqs.length){
-    cards += '<button class="ms-pcard" onclick="openDirectory()"><div class="pi">&#129656;</div>' +
-      '<div class="pt">Blood tests &amp; imaging</div><div class="ps">Any tests your anesthesiologist needs will appear here.</div>' +
-      '<span class="ms-ptag future">Awaiting review</span></button>';
+  var cls = '', label = 'Preparation Plan', pill = '', sub = '';
+  if(!qSub){
+    pill = '<span class="ms-pill action">Questionnaire first</span>'; cls = 'action';
+    sub = 'Complete your health questionnaire to unlock your personalized plan.';
+  } else if(rs === 'approved'){
+    label = 'Preparation Plan Approved'; cls = 'approved';
+    pill = '<span class="ms-pill done">&#10003; Approved</span>';
+    sub = 'Reviewed and approved'+(dn ? (' by '+dn) : '')+' — everything you need is inside.';
+  } else if(rs === 'changes_requested'){
+    label = 'Action needed'; cls = 'action';
+    pill = '<span class="ms-pill action">Additional preparation</span>';
+    sub = 'Your anesthesiologist asked for a little more before approval.';
+  } else if(rs === 'in_review' || rs === 'pending'){
+    pill = '<span class="ms-pill info">Under review</span>';
+    sub = 'Your guide is ready while your anesthesiologist reviews it.';
+  } else {
+    pill = '<span class="ms-pill done">Ready to view</span>';
+    sub = 'Your personalized guide for '+proc+' — checklist, fasting, medication &amp; more.';
   }
 
-  // Medication instructions card (educational; opens the guide)
-  cards += '<button class="ms-pcard" onclick="openPrep()"><div class="pi">&#128138;</div>' +
-    '<div class="pt">Medication Instructions</div><div class="ps">What to bring and review before surgery day.</div>' +
-    (qSub?'<span class="ms-ptag info">&#9733; Ready</span>':'<span class="ms-ptag future">After questionnaire</span>')+'</button>';
+  function stat(c, ic, txt){ return '<span class="ms-stat'+(c ? ' '+c : '')+'"><i>'+ic+'</i> '+txt+'</span>'; }
+  var stats = '';
+  if(reqs.length)     stats += stat('', '&#128203;', reqs.length+' requirement'+(reqs.length>1?'s':''));
+  if(totalFiles)      stats += stat('ok', '&#10003;', totalFiles+' document'+(totalFiles>1?'s':'')+' uploaded');
+  if(stillRequired)   stats += stat('warn', '&#9888;', stillRequired+' still required');
+  if(dd != null && dd >= 0) stats += stat('', '&#128197;', dd===0?'Surgery today':dd===1?'Surgery tomorrow':'Surgery in '+dd+' days');
+  if(!stats && qSub)  stats += stat('', '&#9989;', 'Checklist, fasting &amp; medication guidance');
 
-  host.innerHTML = '<div class="ms-prep">'+cards+'</div>';
+  var foot = (qSub && rs === 'approved' && stillRequired === 0)
+    ? '<div class="ms-planbig-foot"><span>&#127881;</span> Everything is taken care of — you\'re ready for surgery.</div>' : '';
 
-  // celebrate progress when nearly done
-  var n = prepTaskCount();
-  if(qSub && n <= 1){
-    host.insertAdjacentHTML('afterbegin', '<div class="ms-celebrate" style="margin-bottom:16px;">'+(n===0?'&#10003; Everything here is taken care of. Nicely done.':'&#9989; Almost there — only one preparation task remaining.')+'</div>');
-  }
+  host.innerHTML =
+    '<button class="ms-planbig '+cls+'" onclick="openPrep()" aria-label="Open preparation plan">' +
+      '<div class="ms-planbig-row">' +
+        '<div class="ms-planbig-ico">&#128203;</div>' +
+        '<div class="ms-planbig-main">' +
+          '<div class="ms-planbig-h">'+label+' '+pill+'</div>' +
+          '<div class="ms-planbig-s">'+sub+'</div>' +
+          (stats ? '<div class="ms-planbig-stats">'+stats+'</div>' : '') +
+        '</div>' +
+        '<div class="ms-planbig-cta">Open preparation plan <span>&rarr;</span></div>' +
+      '</div>' + foot +
+    '</button>';
 
   // reserved AI companion inline prompt (hidden until built)
   var assist = ge('assist-host');
