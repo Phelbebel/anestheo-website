@@ -882,7 +882,14 @@ async function wsLoadCases(){
    Two additive, RLS-scoped reads enrich the active day with risk flags and
    document review status. No DB / SQL / RPC / schema changes; no change to the
    Patient Management, consultation, or patient-workspace workflows. */
-var _wsCasesLoaded = false, _wsOlOffset = 1, _wsOlRisk = {}, _wsOlDocs = {};
+var _wsCasesLoaded = false, _wsOlOffset = 1, _wsOlRisk = {}, _wsOlDocs = {}, _wsOlPlan = {};
+// Missing documents = requirements the doctor REQUESTED (checked in the plan)
+// that the patient has NOT uploaded yet (no requirement_documents row for that key).
+function wsOlMissing(c){
+  var req=_wsOlPlan[c.surgeryId]||[]; if(!req.length) return 0;
+  var up=(_wsOlDocs[c.surgeryId]&&_wsOlDocs[c.surgeryId].keys)||{};
+  var m=0; req.forEach(function(k){ if(!up[k]) m++; }); return m;
+}
 function wsOlDateStr(off){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+off);
   return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function wsOlSameDay(sd, off){ return !!sd && String(sd).slice(0,10)===wsOlDateStr(off); }
@@ -904,13 +911,20 @@ async function wsLoadOpList(){
   if(!_wsCasesLoaded){ var sm=document.getElementById('ws-ol-summary'); if(sm) sm.innerHTML='';
     body.innerHTML='<div class="ws-ol-empty">Loading your list…</div>'; return; }
   var cases=wsOlCasesFor(_wsOlOffset);
-  _wsOlRisk={}; _wsOlDocs={};
+  _wsOlRisk={}; _wsOlDocs={}; _wsOlPlan={};
   var pids=cases.map(function(c){return c.patientId;}).filter(Boolean);
   var sids=cases.map(function(c){return c.surgeryId;}).filter(Boolean);
   try{ if(pids.length){ var q=await window.sb.from('preop_questionnaires').select('patient_id,risk_flags').in('patient_id',pids);
     ((q&&q.data)||[]).forEach(function(x){ _wsOlRisk[x.patient_id]=x.risk_flags||[]; }); } }catch(e){}
-  try{ if(sids.length){ var dr=await window.sb.from('requirement_documents').select('surgery_id,reviewed_at').in('surgery_id',sids);
-    ((dr&&dr.data)||[]).forEach(function(x){ var o=_wsOlDocs[x.surgery_id]||(_wsOlDocs[x.surgery_id]={t:0,u:0}); o.t++; if(!x.reviewed_at) o.u++; }); } }catch(e){}
+  try{ if(sids.length){ var dr=await window.sb.from('requirement_documents').select('surgery_id,requirement_key,reviewed_at').in('surgery_id',sids);
+    ((dr&&dr.data)||[]).forEach(function(x){ var o=_wsOlDocs[x.surgery_id]||(_wsOlDocs[x.surgery_id]={t:0,u:0,keys:{}}); o.t++; if(!x.reviewed_at) o.u++; if(x.requirement_key) o.keys[x.requirement_key]=1; }); } }catch(e){}
+  // Requested requirements (checked) from the latest draft/approved plan → drives "missing documents".
+  try{ if(sids.length){ var pp=await window.sb.from('preparation_plans').select('surgery_id,plan_content,status,updated_at').in('surgery_id',sids);
+    var best={}; ((pp&&pp.data)||[]).forEach(function(x){ if(x.status!=='draft'&&x.status!=='approved') return;
+      var rank=(x.status==='approved'?2:1), cur=best[x.surgery_id];
+      if(!cur||rank>cur.rank||(rank===cur.rank&&new Date(x.updated_at||0)>new Date(cur.updated_at||0))) best[x.surgery_id]={rank:rank,updated_at:x.updated_at,plan:x.plan_content}; });
+    Object.keys(best).forEach(function(sid){ var reqs=(best[sid].plan&&best[sid].plan.requirements)||[];
+      _wsOlPlan[sid]=reqs.filter(function(r){return r&&r.checked;}).map(function(r){return r.key;}).filter(Boolean); }); } }catch(e){}
   wsRenderOpList(cases);
 }
 function wsRenderOlDates(){
@@ -927,12 +941,12 @@ function wsRenderOpList(cases){
   var needs=cases.filter(function(c){return c.stage==='review';}).length;
   var ready=cases.filter(function(c){return c.stage==='scheduled'||c.stage==='approved';}).length;
   var highRisk=cases.filter(function(c){return wsOlFlags(c.patientId).length>0;}).length;
-  var docsPending=cases.filter(function(c){var o=_wsOlDocs[c.surgeryId]; return o&&o.u>0;}).length;
+  var missingDocs=cases.filter(function(c){return wsOlMissing(c)>0;}).length;
   if(sum) sum.innerHTML =
     '<div class="ws-ol-chip"><span class="d"></span><b>'+total+'</b><span class="l">'+(total===1?'case':'cases')+'</span></div>' +
     '<div class="ws-ol-chip rev"><span class="d"></span><b>'+needs+'</b><span class="l">need review</span></div>' +
     '<div class="ws-ol-chip risk"><span class="d"></span><b>'+highRisk+'</b><span class="l">flagged risks</span></div>' +
-    '<div class="ws-ol-chip docs"><span class="d"></span><b>'+docsPending+'</b><span class="l">documents to review</span></div>' +
+    '<div class="ws-ol-chip docs"><span class="d"></span><b>'+missingDocs+'</b><span class="l">missing documents</span></div>' +
     '<div class="ws-ol-chip ready"><span class="d"></span><b>'+ready+'</b><span class="l">ready &amp; approved</span></div>';
   if(!total){
     body.innerHTML='<div class="ws-ol-empty"><b>No surgical cases on '+wsEsc(wsOlNice(_wsOlOffset))+'</b>Choose another day above, or manage patients in Patient Management.</div>';
@@ -958,7 +972,9 @@ function wsOlRowHtml(c){
   else if(c.stage==='scheduled'||c.stage==='approved'){ rowCls='ok'; chips+='<span class="ws-ol-c appr">Approved</span>'; }
   flags.slice(0,3).forEach(function(f){ chips+='<span class="ws-ol-c risk">'+wsEsc(f)+'</span>'; });
   if(flags.length>3) chips+='<span class="ws-ol-c muted">+'+(flags.length-3)+' more</span>';
-  if(docs && docs.t){ chips+='<span class="ws-ol-c doc">'+docs.t+' doc'+(docs.t>1?'s':'')+(docs.u?' · '+docs.u+' to review':'')+'</span>'; }
+  var miss=wsOlMissing(c);
+  if(miss){ chips+='<span class="ws-ol-c urgent">'+miss+' document'+(miss>1?'s':'')+' missing</span>'; }
+  if(docs && docs.u){ chips+='<span class="ws-ol-c doc">'+docs.u+' to review</span>'; }
   var doneCls=(c.stage==='scheduled'||c.stage==='approved')?' done':'';
   var meta=[c.procedure].filter(Boolean).join(' · ')||'Surgical case';
   var open=(c.openFn||'').replace(/"/g,'&quot;');
