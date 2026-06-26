@@ -1736,48 +1736,34 @@ function renderQuestions(qs, replies){
 }
 
 // ── VIDEOS — latest from the official Anestheo YouTube channel ──
-// Live data needs a referrer-restricted YouTube Data API key. Set YT_API_KEY
-// (and confirm YT_CHANNEL) to enable real thumbnails/titles/duration/date that
-// auto-update on every load. Without a key, a graceful channel CTA is shown.
+// Live data is served by the Supabase Edge Function `youtube-latest`, which
+// keeps the YouTube Data API key server-side and returns real thumbnails,
+// titles, durations and publish dates (auto-updating each load). Until that
+// function is deployed (and its YOUTUBE_API_KEY secret set), a graceful
+// channel CTA is shown instead.
 var YT_CHANNEL = '@anestheo';
-var YT_API_KEY = '';
+var YT_PROXY = '/functions/v1/youtube-latest';
 var YT_MAX = 6;
-function ytDur(iso){
-  if(!iso) return '';
-  var m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if(!m) return '';
-  var h=+(m[1]||0), mi=+(m[2]||0), s=+(m[3]||0), pad=function(n){return (n<10?'0':'')+n;};
-  return h ? h+':'+pad(mi)+':'+pad(s) : mi+':'+pad(s);
-}
 function ytDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return ''; } }
 function ytChannelUrl(){ return 'https://www.youtube.com/'+(YT_CHANNEL.charAt(0)==='@'?YT_CHANNEL:'@'+YT_CHANNEL); }
-async function ytFetch(url){ var r = await fetch(url); if(!r.ok) throw new Error('yt '+r.status); return r.json(); }
 async function loadYouTube(){
-  if(!YT_API_KEY) return null;                        // not configured → fallback
-  var base = 'https://www.googleapis.com/youtube/v3/', key = '&key='+YT_API_KEY;
-  var ch = await ytFetch(base+'channels?part=contentDetails&forHandle='+encodeURIComponent(YT_CHANNEL.replace(/^@/,''))+key);
-  var up = ch && ch.items && ch.items[0] && ch.items[0].contentDetails.relatedPlaylists.uploads;
-  if(!up) return null;
-  var pl = await ytFetch(base+'playlistItems?part=snippet,contentDetails&maxResults='+YT_MAX+'&playlistId='+up+key);
-  var items = (pl.items||[]).map(function(it){
-    var th = it.snippet.thumbnails || {};
-    return { id: it.contentDetails.videoId, title: it.snippet.title,
-      published: it.contentDetails.videoPublishedAt || it.snippet.publishedAt,
-      thumb: (th.medium||th.high||th.default||{}).url };
-  }).filter(function(v){ return v.id; });
-  var ids = items.map(function(i){ return i.id; }).join(',');
-  if(ids){ try {
-    var vd = await ytFetch(base+'videos?part=contentDetails&id='+ids+key);
-    var dmap = {}; (vd.items||[]).forEach(function(v){ dmap[v.id] = v.contentDetails.duration; });
-    items.forEach(function(i){ i.dur = ytDur(dmap[i.id]); });
-  } catch(e){} }
-  return items;
+  try {
+    var base = (typeof SUPA_URL !== 'undefined' && SUPA_URL) ? SUPA_URL : (window.SUPA_URL || '');
+    if(!base) return null;
+    var anon = (typeof SUPA_ANON !== 'undefined' && SUPA_ANON) ? SUPA_ANON : (window.SUPA_ANON || '');
+    var r = await fetch(base + YT_PROXY + '?channel=' + encodeURIComponent(YT_CHANNEL) + '&max=' + YT_MAX,
+      { headers: anon ? { apikey: anon, 'Authorization': 'Bearer ' + anon } : {} });
+    if(!r.ok) return null;
+    var data = await r.json();
+    return Array.isArray(data) ? data : null;   // {error:'not_configured'} → fallback
+  } catch(e){ return null; }
 }
 function ytCard(v){
   var thumb = v.thumb || ('https://i.ytimg.com/vi/'+v.id+'/hqdefault.jpg');
   return '<a class="ms-vcard" href="https://www.youtube.com/watch?v='+encodeURIComponent(v.id)+'" target="_blank" rel="noopener">' +
     '<div class="ms-vthumb"><img class="ms-vimg" src="'+esc(thumb)+'" alt="" loading="lazy">' +
       '<span class="ms-vplay">'+ic('play')+'</span>' +
-      (v.dur?'<span class="ms-vdur">'+esc(v.dur)+'</span>':'') + '</div>' +
+      (v.duration?'<span class="ms-vdur">'+esc(v.duration)+'</span>':'') + '</div>' +
     '<div class="ms-vmeta"><div class="ms-vt">'+esc(v.title)+'</div>' +
       (v.published?'<div class="ms-vd">'+esc(ytDate(v.published))+'</div>':'') + '</div></a>';
 }
