@@ -732,49 +732,22 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-ol-empty{background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:16px;padding:36px;text-align:center;color:var(--muted);font-size:14px;}
 .ws-ol-empty b{color:#fff;font-weight:700;display:block;font-size:15px;margin-bottom:5px;}
 .ws-open .dico{width:15px;height:15px;vertical-align:-2px;margin-right:3px;}
-/* ════════ Live Tools — premium launcher ════════ */
+/* ════════ Live Tools = embedded Anesthesia Workstation ════════ */
 #sec-tools{--border:rgba(27,107,90,.24);--muted:rgba(255,255,255,.56);--hint:rgba(255,255,255,.34);}
-.ws-lt-search{position:relative;display:flex;align-items:center;margin:6px 0 22px;}
-.ws-lt-search .ic{position:absolute;left:16px;color:rgba(255,255,255,.4);display:flex;}
-.ws-lt-search .ic .dico{width:18px;height:18px;}
-.ws-lt-search input{width:100%;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(27,107,90,.28);border-radius:14px;padding:15px 44px;color:#fff;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .2s ease,box-shadow .2s ease;}
-.ws-lt-search input::placeholder{color:rgba(255,255,255,.34);}
-.ws-lt-search input:focus{border-color:rgba(126,207,192,.55);box-shadow:0 0 0 3px rgba(126,207,192,.14);}
-.ws-lt-search .clr{position:absolute;right:12px;background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:8px;}
-.ws-lt-search .clr:hover{color:#fff;background:rgba(255,255,255,.06);}
-.ws-lt-lbl{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.38);margin:24px 0 12px;}
-.ws-lt-lbl:first-child{margin-top:4px;}
-.ws-lt-lbl .dico{width:14px;height:14px;color:#7ECFC0;}
-.ws-lt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:14px;}
-.ws-lt-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;
-  background:linear-gradient(155deg,rgba(255,255,255,.06),rgba(255,255,255,.016));border:1px solid rgba(255,255,255,.08);border-radius:18px;
-  padding:20px 18px 18px;cursor:pointer;font-family:inherit;color:#fff;overflow:hidden;
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-  box-shadow:0 10px 26px rgba(0,0,0,.22);transition:transform .24s cubic-bezier(.2,.7,.3,1),box-shadow .24s ease,border-color .24s ease;
-  --tc:#7ECFC0;--tc-soft:rgba(126,207,192,.16);}
-.ws-lt-tile.cat-emerg{--tc:#FF6B6B;--tc-soft:rgba(255,107,107,.18);}
-.ws-lt-tile.cat-calc{--tc:#7ECFC0;--tc-soft:rgba(126,207,192,.16);}
-.ws-lt-tile.cat-ref{--tc:#5BA8FF;--tc-soft:rgba(91,168,255,.16);}
-.ws-lt-tile.cat-guide{--tc:#C9A8FF;--tc-soft:rgba(201,168,255,.16);}
-.ws-lt-tile::after{content:'';position:absolute;inset:0;border-radius:18px;pointer-events:none;opacity:0;transition:opacity .3s ease;background:radial-gradient(360px circle at 78% -20%,var(--tc-soft),transparent 60%);}
-.ws-lt-tile:hover{transform:translateY(-5px);border-color:var(--tc);box-shadow:0 24px 48px rgba(0,0,0,.36);}
-.ws-lt-tile:hover::after{opacity:1;}
-.ws-lt-tile:hover .ws-lt-ico{transform:translateY(-2px) scale(1.06);box-shadow:0 12px 26px var(--tc-soft);}
-.ws-lt-tile:hover .ws-lt-go{opacity:1;transform:translateX(0);}
-.ws-lt-tile:focus-visible{outline:none;border-color:var(--tc);box-shadow:0 0 0 2px var(--tc);}
-.ws-lt-ico{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:13px;margin-bottom:9px;
-  background:linear-gradient(150deg,var(--tc-soft),rgba(255,255,255,.03));border:1px solid var(--tc-soft);color:var(--tc);
-  transition:transform .24s ease,box-shadow .24s ease;}
-.ws-lt-ico .dico{width:23px;height:23px;}
-.ws-lt-nm{font-size:15px;font-weight:700;letter-spacing:-.01em;position:relative;z-index:1;}
-.ws-lt-desc{font-size:12.5px;color:var(--muted);line-height:1.4;position:relative;z-index:1;}
-.ws-lt-go{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--tc);margin-top:9px;opacity:0;transform:translateX(-4px);transition:opacity .22s ease,transform .22s ease;position:relative;z-index:1;}
-.ws-lt-go .dico{width:14px;height:14px;}
-.ws-lt-star{position:absolute;top:12px;right:12px;z-index:2;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;color:rgba(255,255,255,.3);transition:color .2s ease,background .2s ease,transform .2s ease;}
-.ws-lt-star .dico{width:17px;height:17px;fill:none;}
-.ws-lt-star:hover{color:#FFD79B;background:rgba(255,255,255,.06);transform:scale(1.1);}
-.ws-lt-star.on{color:#FFC14D;} .ws-lt-star.on .dico{fill:#FFC14D;}
-@media(max-width:760px){.ws-lt-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}}
+.ws-wkbar{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+.ws-wkbar-l{display:flex;align-items:center;gap:14px;min-width:0;}
+.ws-wk-live{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#9FF0CF;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.34);border-radius:30px;padding:7px 13px;flex:0 0 auto;}
+.ws-wk-live .d{width:7px;height:7px;border-radius:50%;background:#34D399;box-shadow:0 0 10px #34D399;animation:wkblink 1.6s ease-in-out infinite;}
+@keyframes wkblink{0%,100%{opacity:1;}50%{opacity:.35;}}
+.ws-wk-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:-.01em;}
+.ws-wk-sub{font-size:12.5px;color:var(--muted);margin-top:1px;}
+.ws-wkbar .ws-open{margin-left:auto;flex:0 0 auto;}
+.ws-wkframe-wrap{position:relative;border:1px solid rgba(126,207,192,.22);border-radius:20px;overflow:hidden;
+  background:#06120D;box-shadow:0 30px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);}
+.ws-wkframe-wrap::before{content:'';position:absolute;inset:0;border-radius:20px;pointer-events:none;
+  box-shadow:inset 0 0 90px rgba(0,0,0,.5);z-index:2;}
+.ws-wkframe{width:100%;height:calc(100vh - 150px);min-height:680px;border:none;display:block;background:#0A1A15;position:relative;z-index:1;}
+@media(max-width:760px){.ws-wkframe{height:calc(100vh - 120px);min-height:560px;}.ws-wk-sub{display:none;}.ws-wk-title{font-size:17px;}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
@@ -1286,81 +1259,14 @@ async function wsOlApprove(sid, btn){
 window.wsOlApprove=wsOlApprove;
 window.wsLoadOpList=wsLoadOpList;
 
-/* ════════ Live Tools — premium launcher (presentation only) ════════
-   A Raycast/Linear-style command center. Tiles deep-link to the EXISTING
-   tool pages / full workstation (no new URLs, no backend). Favorites and
-   recently-used are stored locally in the browser only. */
-var WS_TOOLS = [
-  {k:'drugcalc',   name:'Drug Calculator',        desc:'Weight-based dosing',          icon:'pill',           href:'/v2/engine.html',   cat:'calc'},
-  {k:'abg',        name:'ABG Analyzer',           desc:'Acid–base interpretation',     icon:'activity',       href:'/v2/engine.html',   cat:'calc'},
-  {k:'airway',     name:'Airway',                 desc:'Assessment & difficult airway',icon:'wind',           href:'/v2/airway.html',   cat:'ref'},
-  {k:'ultrasound', name:'Ultrasound',             desc:'Probe & preset guide',         icon:'scan',           href:'/v2/engine.html',   cat:'guide'},
-  {k:'regional',   name:'Regional Blocks',        desc:'Landmarks & dosing',           icon:'target',         href:'/v2/regional.html', cat:'ref'},
-  {k:'ventilation',name:'Ventilation',            desc:'Lung-protective settings',     icon:'wind',           href:'/v2/engine.html',   cat:'calc'},
-  {k:'infusions',  name:'Infusions',              desc:'Rate & concentration',         icon:'droplets',       href:'/v2/engine.html',   cat:'calc'},
-  {k:'tci',        name:'TCI / TIVA',             desc:'Target-controlled infusion',   icon:'gauge',          href:'/v2/engine.html',   cat:'calc'},
-  {k:'last',       name:'LAST',                   desc:'Local anesthetic toxicity',    icon:'alert-triangle', href:'/v2/last.html',     cat:'emerg'},
-  {k:'mh',         name:'Malignant Hyperthermia', desc:'Crisis protocol & dosing',     icon:'flame',          href:'/v2/engine.html',   cat:'emerg'},
-  {k:'ecmo',       name:'ECMO',                   desc:'Cannulation & support',        icon:'heart-pulse',    href:'/v2/engine.html',   cat:'ref'},
-  {k:'icu',        name:'ICU',                    desc:'Critical-care references',     icon:'hospital',       href:'/v2/icu.html',      cat:'ref'}
-];
-var _wsToolQ='';
-function wsToolLS(key,def){ try{ var v=JSON.parse(localStorage.getItem(key)); return Array.isArray(v)?v:def; }catch(e){ return def; } }
-function wsToolFavs(){ return wsToolLS('anestheo_tool_favs',[]); }
-function wsToolRecent(){ return wsToolLS('anestheo_tool_recent',[]); }
-function wsToolByKey(k){ for(var i=0;i<WS_TOOLS.length;i++){ if(WS_TOOLS[i].k===k) return WS_TOOLS[i]; } return null; }
-function wsToolFav(k,ev){ if(ev){ ev.stopPropagation(); ev.preventDefault(); }
-  var f=wsToolFavs(), i=f.indexOf(k);
-  if(i>=0) f.splice(i,1); else f.unshift(k);
-  try{ localStorage.setItem('anestheo_tool_favs',JSON.stringify(f.slice(0,8))); }catch(e){}
-  wsRenderTools();
+/* ════════ Live Tools = the integrated Anesthesia Workstation ════════
+   Lazy-embed the existing engine (engine.html) — its monitor, shared patient
+   inputs and reactive panels ARE the workstation. No medical logic here. */
+function wsOpenTools(){
+  var f=document.getElementById('ws-wkframe');
+  if(f && !f.getAttribute('src')) f.setAttribute('src','/v2/engine.html?embed=1');
 }
-function wsToolOpen(k){
-  var t=wsToolByKey(k); if(!t) return;
-  var r=wsToolRecent().filter(function(x){return x!==k;}); r.unshift(k);
-  try{ localStorage.setItem('anestheo_tool_recent',JSON.stringify(r.slice(0,5))); }catch(e){}
-  window.open(t.href,'_blank','noopener');
-  wsRenderTools();
-}
-function wsToolSearch(v){ _wsToolQ=(v||'').toLowerCase().trim(); wsRenderTools(); }
-function wsToolClearSearch(){ var i=document.getElementById('ws-lt-search-input'); if(i) i.value=''; _wsToolQ=''; wsRenderTools(); }
-function wsToolTile(t){
-  var fav=wsToolFavs().indexOf(t.k)>=0;
-  return '<button class="ws-lt-tile cat-'+t.cat+'" onclick="wsToolOpen(\''+t.k+'\')">' +
-    '<span class="ws-lt-star'+(fav?' on':'')+'" role="button" title="'+(fav?'Remove favorite':'Add favorite')+'" onclick="wsToolFav(\''+t.k+'\',event)">'+dIcon('star')+'</span>' +
-    '<span class="ws-lt-ico">'+dIcon(t.icon)+'</span>' +
-    '<span class="ws-lt-nm">'+wsEsc(t.name)+'</span>' +
-    '<span class="ws-lt-desc">'+wsEsc(t.desc)+'</span>' +
-    '<span class="ws-lt-go">Open '+dIcon('arrow-right')+'</span>' +
-  '</button>';
-}
-function wsRenderTools(){
-  var body=document.getElementById('ws-lt-body'); if(!body) return;
-  var q=_wsToolQ;
-  var filtered=WS_TOOLS.filter(function(t){ return !q || (t.name+' '+t.desc).toLowerCase().indexOf(q)>=0; });
-  var html='';
-  if(!q){
-    var favs=wsToolFavs().map(wsToolByKey).filter(Boolean);
-    var rec=wsToolRecent().map(wsToolByKey).filter(Boolean);
-    if(favs.length){
-      html += '<div class="ws-lt-lbl">'+dIcon('star')+' Favorites</div>' +
-        '<div class="ws-lt-grid">'+favs.map(wsToolTile).join('')+'</div>';
-    }
-    if(rec.length){
-      html += '<div class="ws-lt-lbl">'+dIcon('clock')+' Recently used</div>' +
-        '<div class="ws-lt-grid">'+rec.map(wsToolTile).join('')+'</div>';
-    }
-    html += '<div class="ws-lt-lbl">'+dIcon('layout-grid')+' All tools</div>';
-  }
-  if(filtered.length){
-    html += '<div class="ws-lt-grid">'+filtered.map(wsToolTile).join('')+'</div>';
-  } else {
-    html += '<div class="ws-ol-empty"><b>No tools match &ldquo;'+wsEsc(q)+'&rdquo;</b>Try a different search.</div>';
-  }
-  body.innerHTML=html;
-}
-window.wsToolSearch=wsToolSearch; window.wsToolClearSearch=wsToolClearSearch;
-window.wsToolFav=wsToolFav; window.wsToolOpen=wsToolOpen; window.wsRenderTools=wsRenderTools;
+window.wsOpenTools=wsOpenTools;
 
 // Row 1 statistics (computed from the full surgical list, independent of stage/search).
 function wsRenderMpStats(){
@@ -2971,7 +2877,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       '</div>' +
       '<div class="ws-railgrp">' +
         '<div class="ws-railgrp-lbl">Live Tools</div>' +
-        railTab('tools','layout-grid','Live Tools',';wsRenderTools()') +
+        railTab('tools','layout-grid','Live Tools',';wsOpenTools()') +
       '</div>' +
       '<div class="ws-railgrp">' +
         '<div class="ws-railgrp-lbl">Knowledge</div>' +
@@ -2995,16 +2901,17 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div id="ws-ol-body"></div>' +
       '</div>';
 
-    // SECTION 1 — Live Tools (premium launcher: search, favorites, recents, tiles)
+    // SECTION 1 — Live Tools = the integrated Anesthesia Workstation (embedded engine,
+    // full-bleed). One living screen: monitor + shared patient inputs + reactive panels.
     var secTools =
       '<div class="ws-sec" id="sec-tools">' +
-        '<div class="ws-sec-head"><div><div class="ws-sec-title">Live Tools</div>' +
-          '<div class="ws-sec-sub">Your anesthesiology workstation &mdash; instant access to calculators, references and crisis protocols</div></div>' +
-          '<a href="/v2/engine.html" target="_blank" class="ws-open">'+dIcon('external-link')+' Open full workstation</a></div>' +
-        '<div class="ws-lt-search"><span class="ic">'+dIcon('search')+'</span>' +
-          '<input id="ws-lt-search-input" type="text" autocomplete="off" placeholder="Search tools — drug calculator, airway, TCI, LAST…" oninput="wsToolSearch(this.value)">' +
-          '<button class="clr" type="button" title="Clear" onclick="wsToolClearSearch()">&times;</button></div>' +
-        '<div id="ws-lt-body"></div>' +
+        '<div class="ws-wkbar">' +
+          '<div class="ws-wkbar-l"><span class="ws-wk-live"><span class="d"></span> Live</span>' +
+            '<div><div class="ws-wk-title">Anesthesia Workstation</div>' +
+            '<div class="ws-wk-sub">Change the patient &mdash; every drug, airway, ventilation, fluid &amp; regional value recalculates instantly</div></div></div>' +
+          '<a href="/v2/engine.html" target="_blank" class="ws-open">'+dIcon('external-link')+' Full screen</a>' +
+        '</div>' +
+        '<div class="ws-wkframe-wrap"><iframe class="ws-wkframe" id="ws-wkframe" title="Anesthesia Workstation" loading="lazy"></iframe></div>' +
       '</div>';
 
     // SECTION 2 — Patient Management (board switcher: one workflow at a time)
