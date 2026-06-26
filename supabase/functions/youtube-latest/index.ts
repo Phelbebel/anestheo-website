@@ -67,19 +67,24 @@ Deno.serve(async (req: Request) => {
           published: it.contentDetails?.videoPublishedAt || it.snippet?.publishedAt || "",
           thumb: (th.medium || th.high || th.default || {}).url || "",
           duration: "",
+          views: 0,
         };
       })
       .filter((v: any) => v.id);
 
-    // 3) durations
+    // 3) durations + view counts (contentDetails + statistics)
     const ids = items.map((i: any) => i.id).join(",");
     if (ids) {
       try {
-        const vd = await yt(`videos?part=contentDetails&id=${ids}`, key);
+        const vd = await yt(`videos?part=contentDetails,statistics&id=${ids}`, key);
         const dmap: Record<string, string> = {};
-        (vd.items || []).forEach((v: any) => { dmap[v.id] = v.contentDetails?.duration; });
-        items.forEach((i: any) => { i.duration = fmtDuration(dmap[i.id] || ""); });
-      } catch (_) { /* durations are optional */ }
+        const vmap: Record<string, number> = {};
+        (vd.items || []).forEach((v: any) => {
+          dmap[v.id] = v.contentDetails?.duration;
+          vmap[v.id] = parseInt(v.statistics?.viewCount || "0", 10) || 0;
+        });
+        items.forEach((i: any) => { i.duration = fmtDuration(dmap[i.id] || ""); i.views = vmap[i.id] || 0; });
+      } catch (_) { /* duration/views are optional */ }
     }
 
     return json(items, 200);
