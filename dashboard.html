@@ -86,12 +86,22 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-role{font-size:13px;color:var(--muted);margin-top:2px;}
 .ws-online{color:#7ECFC0;}
 .verify-banner{max-width:1180px;margin:8px auto 0;padding:11px 16px;background:rgba(232,168,56,.08);border:1px solid rgba(232,168,56,.25);border-radius:10px;font-size:13px;color:#E8C16b;}
-.ws-shell{max-width:1180px;margin:14px auto 0;padding:0 20px 70px;display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start;}
-.ws-rail{display:flex;flex-direction:column;gap:4px;position:sticky;top:16px;}
-.ws-tab{display:flex;align-items:center;gap:9px;text-align:left;background:none;border:1px solid transparent;border-radius:9px;padding:11px 13px;font-size:13.5px;color:var(--muted);cursor:pointer;font-family:inherit;text-decoration:none;transition:all .15s;}
-.ws-tab:hover{background:rgba(255,255,255,.04);color:#fff;}
-.ws-tab.active{background:rgba(27,107,90,.18);border-color:rgba(42,138,116,.4);color:#fff;font-weight:600;}
-.ws-rail-sp{height:14px;}
+.ws-shell{max-width:1200px;margin:14px auto 0;padding:0 20px 70px;display:grid;grid-template-columns:228px 1fr;gap:26px;align-items:start;}
+.ws-rail{display:flex;flex-direction:column;gap:3px;position:sticky;top:16px;padding:10px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border:1px solid rgba(27,107,90,.22);border-radius:18px;box-shadow:0 18px 40px rgba(0,0,0,.28);}
+.ws-railgrp{display:flex;flex-direction:column;gap:2px;}
+.ws-railgrp + .ws-railgrp{margin-top:12px;}
+.ws-railgrp-lbl{font-size:9.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:rgba(255,255,255,.32);padding:8px 11px 5px;}
+.dico{width:18px;height:18px;display:block;flex:0 0 auto;}
+.ws-tab{position:relative;display:flex;align-items:center;gap:11px;text-align:left;background:none;border:1px solid transparent;border-radius:11px;padding:9.5px 12px;font-size:13.5px;color:rgba(255,255,255,.62);cursor:pointer;font-family:inherit;text-decoration:none;transition:color .2s ease,background .2s ease,transform .12s ease;overflow:hidden;}
+.ws-tab-ic{display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.45);transition:color .2s ease,transform .2s ease;}
+.ws-tab-tx{white-space:nowrap;}
+.ws-tab:hover{background:rgba(255,255,255,.05);color:#fff;}
+.ws-tab:hover .ws-tab-ic{color:#7ECFC0;transform:translateY(-1px);}
+.ws-tab.active{background:linear-gradient(135deg,rgba(42,138,116,.28),rgba(27,107,90,.12));color:#fff;font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+.ws-tab.active .ws-tab-ic{color:#7ECFC0;}
+.ws-tab.active::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#7ECFC0,#2A8A74);box-shadow:0 0 10px rgba(126,207,192,.6);}
+.ws-tab:focus-visible{outline:2px solid rgba(126,207,192,.55);outline-offset:1px;}
+.ws-rail-sp{height:10px;}
 .ws-body{min-width:0;}
 .ws-sec{display:none;animation:wsfade .25s ease;}
 .ws-sec.active{display:block;}
@@ -619,7 +629,7 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-d-section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:18px 0 8px;}
 .ws-d-notes{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:9px;padding:12px;color:#fff;font-size:14px;font-family:inherit;min-height:90px;resize:vertical;outline:none;}
 .ws-d-notes:focus{border-color:#2A8A74;}
-@media(max-width:760px){.ws-shell{grid-template-columns:1fr;}.ws-rail{position:static;flex-direction:row;flex-wrap:wrap;overflow-x:auto;}.ws-rail-sp{display:none;}}
+@media(max-width:760px){.ws-shell{grid-template-columns:1fr;gap:14px;}.ws-rail{position:static;flex-direction:row;flex-wrap:wrap;overflow-x:auto;}.ws-railgrp{flex-direction:row;flex-wrap:wrap;}.ws-railgrp + .ws-railgrp{margin-top:0;}.ws-railgrp-lbl{display:none;}.ws-rail-sp{display:none;}}
 /* ════════ Operating List (Phase 1 — read-only, date-first) ════════ */
 #sec-oplist{--border:rgba(27,107,90,.24);--muted:rgba(255,255,255,.56);--hint:rgba(255,255,255,.34);
   --info:#5BA8FF;--info-bg:rgba(91,168,255,.12);--info-bd:rgba(91,168,255,.30);
@@ -632,55 +642,139 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-ol-dpill.on{background:rgba(126,207,192,.14);border-color:rgba(126,207,192,.34);color:#fff;}
 .ws-ol-dpill .n{font-size:11.5px;font-weight:700;background:rgba(255,255,255,.08);border-radius:20px;padding:1px 8px;color:var(--hint);}
 .ws-ol-dpill.on .n{background:rgba(126,207,192,.2);color:#cdeee6;}
-.ws-ol-summary{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 6px;}
-.ws-ol-chip{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:13px;padding:11px 15px;font-size:13.5px;}
-.ws-ol-chip b{font-size:17px;font-weight:800;line-height:1;} .ws-ol-chip .l{color:var(--muted);font-size:12.5px;}
-.ws-ol-chip .d{width:9px;height:9px;border-radius:50%;background:var(--teal);}
-.ws-ol-chip.rev{border-color:var(--action-bd);background:var(--action-bg);} .ws-ol-chip.rev .d{background:var(--action);} .ws-ol-chip.rev b{color:#FFD79B;}
-.ws-ol-chip.risk .d{background:var(--urgent);} .ws-ol-chip.docs .d{background:var(--info);} .ws-ol-chip.ready .d{background:var(--done);}
+/* ── summary chips → interactive filters ── */
+.ws-ol-summary{display:flex;flex-wrap:wrap;gap:11px;margin:22px 0 8px;}
+.ws-ol-chip{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));border:1px solid var(--border);border-radius:15px;padding:11px 17px;font-size:13.5px;font-family:inherit;color:#fff;cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s ease,border-color .2s ease,background .2s ease;}
+.ws-ol-chip:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.4);box-shadow:0 12px 26px rgba(0,0,0,.3);}
+.ws-ol-chip b{font-size:18px;font-weight:800;line-height:1;} .ws-ol-chip .l{color:var(--muted);font-size:12.5px;}
+.ws-ol-chip .d{width:9px;height:9px;border-radius:50%;background:#7ECFC0;box-shadow:0 0 0 4px rgba(126,207,192,.12);}
+.ws-ol-chip.rev .d{background:var(--action);box-shadow:0 0 0 4px var(--action-bg);} .ws-ol-chip.rev b{color:#FFD79B;}
+.ws-ol-chip.risk .d{background:var(--urgent);box-shadow:0 0 0 4px var(--urgent-bg);} .ws-ol-chip.risk b{color:#FFB3B3;}
+.ws-ol-chip.docs .d{background:var(--info);box-shadow:0 0 0 4px var(--info-bg);} .ws-ol-chip.docs b{color:#A9D2FF;}
+.ws-ol-chip.ready .d{background:var(--done);box-shadow:0 0 0 4px var(--done-bg);} .ws-ol-chip.ready b{color:#9FF0CF;}
+.ws-ol-chip.on{border-color:rgba(126,207,192,.6);background:rgba(126,207,192,.13);box-shadow:0 0 0 1px rgba(126,207,192,.35),0 12px 26px rgba(0,0,0,.3);}
+.ws-ol-chip.rev.on{border-color:var(--action-bd);background:var(--action-bg);box-shadow:0 0 0 1px var(--action-bd),0 12px 26px rgba(0,0,0,.3);}
+.ws-ol-chip.risk.on{border-color:var(--urgent-bd);background:var(--urgent-bg);box-shadow:0 0 0 1px var(--urgent-bd),0 12px 26px rgba(0,0,0,.3);}
+.ws-ol-chip.docs.on{border-color:var(--info-bd);background:var(--info-bg);box-shadow:0 0 0 1px var(--info-bd),0 12px 26px rgba(0,0,0,.3);}
+.ws-ol-chip.ready.on{border-color:var(--done-bd);background:var(--done-bg);box-shadow:0 0 0 1px var(--done-bd),0 12px 26px rgba(0,0,0,.3);}
+.ws-ol-chip.off{opacity:.4;cursor:default;} .ws-ol-chip.off:hover{transform:none;box-shadow:none;border-color:var(--border);}
+.ws-ol-filterbar{display:flex;align-items:center;gap:12px;margin:20px 0 2px;font-size:13px;color:var(--muted);}
+.ws-ol-clearf{margin-left:auto;background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;border-radius:9px;padding:6px 13px;font-size:12.5px;font-family:inherit;cursor:pointer;transition:all .15s;}
+.ws-ol-clearf:hover{border-color:rgba(126,207,192,.4);background:rgba(126,207,192,.1);}
+#ws-ol-body{transition:opacity .18s ease;}
+#ws-ol-body.ws-ol-fade{opacity:0;}
 /* mission-control bands */
-.ws-ol-band{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.06em;margin:30px 0 14px;}
+.ws-ol-band{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.06em;margin:30px 0 15px;}
 .ws-ol-band .dot{width:9px;height:9px;border-radius:50%;background:var(--action);box-shadow:0 0 0 4px rgba(255,179,71,.14);}
 .ws-ol-band .cnt{font-size:11px;background:var(--action-bg);border:1px solid var(--action-bd);color:#FFD79B;border-radius:20px;padding:2px 9px;}
-.ws-ol-band.quiet{color:var(--muted);margin-top:34px;} .ws-ol-band.quiet .dot{background:var(--done);box-shadow:none;opacity:.7;} .ws-ol-band.quiet .cnt{background:rgba(255,255,255,.05);border-color:var(--border);color:var(--hint);}
-.ws-ol-cards{display:flex;flex-direction:column;gap:14px;}
+.ws-ol-band.quiet{color:var(--muted);margin-top:38px;} .ws-ol-band.quiet .dot{background:var(--done);box-shadow:none;opacity:.7;} .ws-ol-band.quiet .cnt{background:rgba(255,255,255,.05);border-color:var(--border);color:var(--hint);}
+.ws-ol-cards{display:flex;flex-direction:column;gap:15px;}
 .ws-ol-c{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
 .ws-ol-c.pend{color:#FFD79B;background:var(--action-bg);border:1px solid var(--action-bd);}
 .ws-ol-c.appr{color:#9FF0CF;background:var(--done-bg);border:1px solid var(--done-bd);}
 .ws-ol-c.urgent,.ws-ol-c.risk{color:#FFB3B3;background:var(--urgent-bg);border:1px solid var(--urgent-bd);}
 .ws-ol-c.doc{color:#A9D2FF;background:var(--info-bg);border:1px solid var(--info-bd);}
 .ws-ol-c.muted{color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--border);}
-.ws-ol-nm{font-size:17px;font-weight:800;letter-spacing:-.01em;}
-.ws-ol-meta{font-size:12.5px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.ws-ol-nm{font-size:17.5px;font-weight:800;letter-spacing:-.015em;}
+.ws-ol-meta{font-size:12.5px;color:var(--muted);margin-top:9px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
 .ws-ol-loc{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:#CBD9E8;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:3px 10px;}
 .ws-ol-loc .pin{font-size:11px;opacity:.75;}
 .ws-ol-proc{color:var(--muted);}
-.ws-ol-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;}
-/* attention cards */
-.ws-ol-card{display:flex;align-items:center;gap:20px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--border);border-left:3px solid var(--action);border-radius:18px;padding:20px 22px;box-shadow:0 12px 30px rgba(0,0,0,.22);cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;}
-.ws-ol-card:hover{transform:translateY(-3px);box-shadow:0 22px 46px rgba(0,0,0,.34);}
-.ws-ol-card.hi{border-left-color:var(--urgent);background:linear-gradient(180deg,rgba(255,107,107,.07),rgba(255,255,255,.015));}
-.ws-ol-card-main{flex:1;min-width:0;}
-.ws-ol-card-top{display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
-.ws-ol-risk-flag{font-size:11px;font-weight:800;color:#FFB3B3;background:var(--urgent-bg);border:1px solid var(--urgent-bd);border-radius:20px;padding:3px 10px;letter-spacing:.02em;}
-.ws-ol-card-act{flex:0 0 auto;}
-.ws-ol-btn{font-family:inherit;font-weight:800;font-size:13.5px;border-radius:12px;padding:13px 20px;cursor:pointer;border:none;white-space:nowrap;transition:transform .16s ease,box-shadow .16s ease;}
-.ws-ol-btn:hover{transform:translateY(-2px);}
-.ws-ol-btn.approve{background:linear-gradient(135deg,#34D399,#1f9d6f);color:#04140d;box-shadow:0 10px 24px rgba(52,211,153,.3);}
-.ws-ol-btn.review{background:linear-gradient(135deg,#2A8A74,#1B6B5A);color:#fff;box-shadow:0 10px 24px rgba(27,107,90,.34);}
-.ws-ol-btn[disabled]{opacity:.6;cursor:default;transform:none;}
+.ws-ol-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+/* ── premium attention cards (glass + urgency accent) ── */
+.ws-ol-card{position:relative;display:flex;align-items:center;gap:22px;
+  background:linear-gradient(150deg,rgba(255,255,255,.062),rgba(255,255,255,.016));
+  border:1px solid rgba(255,255,255,.085);border-radius:20px;padding:22px 24px 22px 27px;
+  box-shadow:0 14px 34px rgba(0,0,0,.26);cursor:pointer;overflow:hidden;
+  -webkit-backdrop-filter:blur(9px) saturate(1.1);backdrop-filter:blur(9px) saturate(1.1);
+  transition:transform .26s cubic-bezier(.2,.7,.3,1),box-shadow .26s ease,border-color .26s ease,opacity .3s ease;
+  --acc:var(--action);--acc-soft:rgba(255,179,71,.16);--acc-bd:rgba(255,179,71,.5);}
+.ws-ol-card.acc-red{--acc:var(--urgent);--acc-soft:rgba(255,107,107,.18);--acc-bd:rgba(255,107,107,.5);}
+.ws-ol-card.acc-amber{--acc:var(--action);--acc-soft:rgba(255,179,71,.16);--acc-bd:rgba(255,179,71,.5);}
+.ws-ol-card.acc-blue{--acc:var(--info);--acc-soft:rgba(91,168,255,.18);--acc-bd:rgba(91,168,255,.5);}
+.ws-ol-rail{position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--acc),transparent 150%);box-shadow:0 0 18px var(--acc-soft);}
+.ws-ol-card::after{content:'';position:absolute;inset:0;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .3s ease;
+  background:radial-gradient(460px circle at var(--mx,82%) var(--my,-10%),var(--acc-soft),transparent 62%);}
+.ws-ol-card:hover{transform:translateY(-4px);border-color:var(--acc-bd);box-shadow:0 26px 52px rgba(0,0,0,.38);}
+.ws-ol-card:hover::after{opacity:1;}
+.ws-ol-card:focus-visible{outline:none;border-color:var(--acc-bd);box-shadow:0 0 0 2px var(--acc-bd),0 22px 46px rgba(0,0,0,.34);}
+.ws-ol-card-main{flex:1;min-width:0;position:relative;z-index:1;}
+.ws-ol-card-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.ws-ol-sig{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:4px 11px;border-radius:20px;display:inline-flex;align-items:center;gap:6px;}
+.ws-ol-sig::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;}
+.ws-ol-sig.red{color:#FFB3B3;background:var(--urgent-bg);border:1px solid var(--urgent-bd);}
+.ws-ol-sig.amber{color:#FFD79B;background:var(--action-bg);border:1px solid var(--action-bd);}
+.ws-ol-sig.blue{color:#A9D2FF;background:var(--info-bg);border:1px solid var(--info-bd);}
+.ws-ol-sig.green{color:#9FF0CF;background:var(--done-bg);border:1px solid var(--done-bd);}
+.ws-ol-card-act{flex:0 0 auto;position:relative;z-index:1;}
+.ws-ol-btn{display:inline-flex;align-items:center;gap:7px;font-family:inherit;font-weight:700;font-size:13.5px;border-radius:13px;padding:12px 19px;cursor:pointer;border:none;white-space:nowrap;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;}
+.ws-ol-btn .dico{width:16px;height:16px;}
+.ws-ol-btn:hover{transform:translateY(-2px);filter:brightness(1.07);}
+.ws-ol-btn:active{transform:translateY(0);}
+.ws-ol-btn.approve{background:linear-gradient(135deg,#34D399,#1f9d6f);color:#04140d;box-shadow:0 12px 26px rgba(52,211,153,.34);}
+.ws-ol-btn.review{background:linear-gradient(135deg,#2A8A74,#1B6B5A);color:#fff;box-shadow:0 12px 26px rgba(27,107,90,.36);}
+.ws-ol-btn[disabled]{opacity:.7;cursor:default;transform:none;filter:none;}
+/* approve transition */
+.ws-ol-card.approved-flash{border-color:var(--done-bd);box-shadow:0 0 0 1px var(--done-bd),0 20px 44px rgba(52,211,153,.32);}
+.ws-ol-card.approved-flash .ws-ol-rail{background:linear-gradient(180deg,#34D399,transparent 150%);box-shadow:0 0 22px rgba(52,211,153,.45);}
+.ws-ol-card.leaving{opacity:0;transform:translateY(14px) scale(.96);}
 /* ready (faded, quiet) */
-.ws-ol-ready{display:flex;flex-direction:column;gap:2px;opacity:.6;}
-.ws-ol-rd{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;cursor:pointer;transition:background .15s ease,opacity .15s ease;}
-.ws-ol-rd:hover{background:rgba(255,255,255,.03);opacity:1;}
-.ws-ol-rd-ck{width:20px;height:20px;border-radius:50%;background:var(--done-bg);border:1px solid var(--done-bd);color:var(--done);font-size:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.ws-ol-ready{display:flex;flex-direction:column;gap:3px;opacity:.62;transition:opacity .25s ease;}
+.ws-ol-ready:hover{opacity:.92;}
+.ws-ol-rd{display:flex;align-items:center;gap:13px;padding:12px 16px;border-radius:13px;cursor:pointer;border:1px solid transparent;transition:background .18s ease,border-color .18s ease,transform .18s ease;}
+.ws-ol-rd:hover{background:rgba(255,255,255,.04);border-color:rgba(52,211,153,.22);transform:translateX(2px);}
+.ws-ol-rd-ck{width:22px;height:22px;border-radius:50%;background:var(--done-bg);border:1px solid var(--done-bd);color:var(--done);font-size:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .ws-ol-rd-nm{font-size:14px;font-weight:600;} .ws-ol-rd-meta{font-size:12.5px;color:var(--hint);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ws-ol-rd-loc{font-weight:700;color:#B6C6D8;} .ws-ol-rd-loc .pin{opacity:.7;font-size:10.5px;}
 .ws-ol-rd-go{font-size:12px;font-weight:700;color:var(--muted);}
-.ws-ol-allclear{display:flex;align-items:center;gap:11px;background:var(--done-bg);border:1px solid var(--done-bd);border-radius:16px;padding:18px 22px;color:#9FF0CF;font-size:14px;font-weight:600;}
-.ws-ol-allclear .ic{width:26px;height:26px;border-radius:50%;background:rgba(52,211,153,.18);display:flex;align-items:center;justify-content:center;}
-.ws-ol-empty{background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:15px;padding:34px;text-align:center;color:var(--muted);font-size:14px;}
+.ws-ol-allclear{display:flex;align-items:center;gap:13px;background:linear-gradient(135deg,var(--done-bg),rgba(52,211,153,.04));border:1px solid var(--done-bd);border-radius:18px;padding:20px 24px;color:#9FF0CF;font-size:14.5px;font-weight:600;}
+.ws-ol-allclear .ic{width:30px;height:30px;border-radius:50%;background:rgba(52,211,153,.2);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.ws-ol-empty{background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:16px;padding:36px;text-align:center;color:var(--muted);font-size:14px;}
 .ws-ol-empty b{color:#fff;font-weight:700;display:block;font-size:15px;margin-bottom:5px;}
+.ws-open .dico{width:15px;height:15px;vertical-align:-2px;margin-right:3px;}
+/* ════════ Live Tools — premium launcher ════════ */
+#sec-tools{--border:rgba(27,107,90,.24);--muted:rgba(255,255,255,.56);--hint:rgba(255,255,255,.34);}
+.ws-lt-search{position:relative;display:flex;align-items:center;margin:6px 0 22px;}
+.ws-lt-search .ic{position:absolute;left:16px;color:rgba(255,255,255,.4);display:flex;}
+.ws-lt-search .ic .dico{width:18px;height:18px;}
+.ws-lt-search input{width:100%;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid rgba(27,107,90,.28);border-radius:14px;padding:15px 44px;color:#fff;font-size:14.5px;font-family:inherit;outline:none;transition:border-color .2s ease,box-shadow .2s ease;}
+.ws-lt-search input::placeholder{color:rgba(255,255,255,.34);}
+.ws-lt-search input:focus{border-color:rgba(126,207,192,.55);box-shadow:0 0 0 3px rgba(126,207,192,.14);}
+.ws-lt-search .clr{position:absolute;right:12px;background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:8px;}
+.ws-lt-search .clr:hover{color:#fff;background:rgba(255,255,255,.06);}
+.ws-lt-lbl{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.38);margin:24px 0 12px;}
+.ws-lt-lbl:first-child{margin-top:4px;}
+.ws-lt-lbl .dico{width:14px;height:14px;color:#7ECFC0;}
+.ws-lt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:14px;}
+.ws-lt-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;
+  background:linear-gradient(155deg,rgba(255,255,255,.06),rgba(255,255,255,.016));border:1px solid rgba(255,255,255,.08);border-radius:18px;
+  padding:20px 18px 18px;cursor:pointer;font-family:inherit;color:#fff;overflow:hidden;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 10px 26px rgba(0,0,0,.22);transition:transform .24s cubic-bezier(.2,.7,.3,1),box-shadow .24s ease,border-color .24s ease;
+  --tc:#7ECFC0;--tc-soft:rgba(126,207,192,.16);}
+.ws-lt-tile.cat-emerg{--tc:#FF6B6B;--tc-soft:rgba(255,107,107,.18);}
+.ws-lt-tile.cat-calc{--tc:#7ECFC0;--tc-soft:rgba(126,207,192,.16);}
+.ws-lt-tile.cat-ref{--tc:#5BA8FF;--tc-soft:rgba(91,168,255,.16);}
+.ws-lt-tile.cat-guide{--tc:#C9A8FF;--tc-soft:rgba(201,168,255,.16);}
+.ws-lt-tile::after{content:'';position:absolute;inset:0;border-radius:18px;pointer-events:none;opacity:0;transition:opacity .3s ease;background:radial-gradient(360px circle at 78% -20%,var(--tc-soft),transparent 60%);}
+.ws-lt-tile:hover{transform:translateY(-5px);border-color:var(--tc);box-shadow:0 24px 48px rgba(0,0,0,.36);}
+.ws-lt-tile:hover::after{opacity:1;}
+.ws-lt-tile:hover .ws-lt-ico{transform:translateY(-2px) scale(1.06);box-shadow:0 12px 26px var(--tc-soft);}
+.ws-lt-tile:hover .ws-lt-go{opacity:1;transform:translateX(0);}
+.ws-lt-tile:focus-visible{outline:none;border-color:var(--tc);box-shadow:0 0 0 2px var(--tc);}
+.ws-lt-ico{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:13px;margin-bottom:9px;
+  background:linear-gradient(150deg,var(--tc-soft),rgba(255,255,255,.03));border:1px solid var(--tc-soft);color:var(--tc);
+  transition:transform .24s ease,box-shadow .24s ease;}
+.ws-lt-ico .dico{width:23px;height:23px;}
+.ws-lt-nm{font-size:15px;font-weight:700;letter-spacing:-.01em;position:relative;z-index:1;}
+.ws-lt-desc{font-size:12.5px;color:var(--muted);line-height:1.4;position:relative;z-index:1;}
+.ws-lt-go{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--tc);margin-top:9px;opacity:0;transform:translateX(-4px);transition:opacity .22s ease,transform .22s ease;position:relative;z-index:1;}
+.ws-lt-go .dico{width:14px;height:14px;}
+.ws-lt-star{position:absolute;top:12px;right:12px;z-index:2;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;color:rgba(255,255,255,.3);transition:color .2s ease,background .2s ease,transform .2s ease;}
+.ws-lt-star .dico{width:17px;height:17px;fill:none;}
+.ws-lt-star:hover{color:#FFD79B;background:rgba(255,255,255,.06);transform:scale(1.1);}
+.ws-lt-star.on{color:#FFC14D;} .ws-lt-star.on .dico{fill:#FFC14D;}
+@media(max-width:760px){.ws-lt-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
@@ -740,6 +834,41 @@ function wsToast(msg){
   document.body.appendChild(t); setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(function(){t.remove();},400); }, 1600);
 }
 function wsEsc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+// ── Premium Lucide inline-SVG icon system (doctor workspace) ──
+var DICONS = {
+  'layout-grid':'<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+  'clipboard-list':'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  'users':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  'message-circle':'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  'book-open':'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  'folder':'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  'play-circle':'<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
+  'settings':'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  'log-out':'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  'shield-check':'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  'pill':'<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
+  'activity':'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  'wind':'<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>',
+  'scan':'<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  'target':'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  'droplets':'<path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 4.8 7 3.5c-.29 1.3-1.14 2.63-2.29 3.56S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/>',
+  'gauge':'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  'alert-triangle':'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  'flame':'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  'heart-pulse':'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  'hospital':'<path d="M12 6v4"/><path d="M14 14h-4"/><path d="M14 18h-4"/><path d="M14 8h-4"/><path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h2"/><path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>',
+  'search':'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  'star':'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+  'clock':'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  'arrow-right':'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'external-link':'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  'sparkles':'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>'
+};
+function dIcon(name, cls){
+  return '<svg class="dico'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(DICONS[name]||'')+'</svg>';
+}
+window.dIcon=dIcon;
 
 // SECTION 2 — Patient management (clinic_patients table)
 var _wsPatients = [], _wsPtFilter = 'all', _wsDoctorId = null;
@@ -904,7 +1033,7 @@ async function wsLoadCases(){
    Two additive, RLS-scoped reads enrich the active day with risk flags and
    document review status. No DB / SQL / RPC / schema changes; no change to the
    Patient Management, consultation, or patient-workspace workflows. */
-var _wsCasesLoaded = false, _wsOlOffset = 1, _wsOlRisk = {}, _wsOlDocs = {}, _wsOlPlan = {}, _wsOlQ = {};
+var _wsCasesLoaded = false, _wsOlOffset = 1, _wsOlRisk = {}, _wsOlDocs = {}, _wsOlPlan = {}, _wsOlQ = {}, _wsOlFilter = 'all';
 // Missing documents = requirements the doctor REQUESTED (checked in the plan)
 // that the patient has NOT uploaded yet (no requirement_documents row for that key).
 function wsOlMissing(c){
@@ -991,33 +1120,80 @@ function wsRenderOpList(cases){
   var ready=cases.filter(wsOlIsReady).length;
   var highRisk=cases.filter(function(c){return wsOlFlags(c.patientId).length>0;}).length;
   var missingDocs=cases.filter(function(c){return wsOlMissing(c)>0;}).length;
+  function chip(key,cls,val,label){
+    var on=(_wsOlFilter===key), dis=(key!=='all'&&!val);
+    return '<button class="ws-ol-chip '+cls+(on?' on':'')+(dis?' off':'')+'" '+(dis?'disabled ':'')+'onclick="wsOlFilter(\''+key+'\')">' +
+      '<span class="d"></span><b>'+val+'</b><span class="l">'+label+'</span></button>';
+  }
   if(sum) sum.innerHTML =
-    '<div class="ws-ol-chip"><span class="d"></span><b>'+total+'</b><span class="l">'+(total===1?'case':'cases')+'</span></div>' +
-    '<div class="ws-ol-chip rev"><span class="d"></span><b>'+needs+'</b><span class="l">need review</span></div>' +
-    '<div class="ws-ol-chip risk"><span class="d"></span><b>'+highRisk+'</b><span class="l">flagged risks</span></div>' +
-    '<div class="ws-ol-chip docs"><span class="d"></span><b>'+missingDocs+'</b><span class="l">missing documents</span></div>' +
-    '<div class="ws-ol-chip ready"><span class="d"></span><b>'+ready+'</b><span class="l">ready &amp; approved</span></div>';
+    chip('all','',total,(total===1?'case':'cases')) +
+    chip('review','rev',needs,'need review') +
+    chip('risk','risk',highRisk,'flagged risks') +
+    chip('docs','docs',missingDocs,'missing documents') +
+    chip('ready','ready',ready,'ready &amp; approved');
   if(!total){
     body.innerHTML='<div class="ws-ol-empty"><b>No surgical cases on '+wsEsc(wsOlNice(_wsOlOffset))+'</b>Choose another day above, or manage patients in Patient Management.</div>';
     return;
   }
+  // Active filter narrows which cases are shown (counts above stay full-day totals).
+  function matchFilter(c){
+    switch(_wsOlFilter){
+      case 'review': return c.stage==='review';
+      case 'risk':   return wsOlFlags(c.patientId).length>0;
+      case 'docs':   return wsOlMissing(c)>0;
+      case 'ready':  return wsOlIsReady(c);
+      default:       return true;
+    }
+  }
+  var shown=cases.filter(matchFilter);
   // Attention first (unsafe/blocked rise to the top); ready fades to a quiet group.
-  var attention=cases.filter(function(c){return !wsOlIsReady(c);}).sort(function(a,b){
+  var attention=shown.filter(function(c){return !wsOlIsReady(c);}).sort(function(a,b){
     var d=wsOlPriority(b)-wsOlPriority(a); return d!==0?d:(a.name||'').localeCompare(b.name||''); });
-  var done=cases.filter(wsOlIsReady).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var done=shown.filter(wsOlIsReady).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   var html='';
+  if(_wsOlFilter!=='all'){
+    html += '<div class="ws-ol-filterbar"><span>Showing '+shown.length+' '+({review:'needing review',risk:'high-risk',docs:'with missing documents',ready:'ready'}[_wsOlFilter]||'')+'</span>' +
+      '<button class="ws-ol-clearf" onclick="wsOlFilter(\'all\')">Clear filter &times;</button></div>';
+  }
   if(attention.length){
-    html += '<div class="ws-ol-band"><span class="dot"></span>Needs your attention <span class="cnt">'+attention.length+'</span></div>';
+    if(_wsOlFilter==='all') html += '<div class="ws-ol-band"><span class="dot"></span>Needs your attention <span class="cnt">'+attention.length+'</span></div>';
     html += '<div class="ws-ol-cards">' + attention.map(wsOlCardHtml).join('') + '</div>';
-  } else {
+  } else if(_wsOlFilter==='all'){
     html += '<div class="ws-ol-allclear"><span class="ic">&#10003;</span> All cases are reviewed and ready. Nothing needs your attention '+(_wsOlOffset===1?'for tomorrow':'on this day')+'.</div>';
   }
   if(done.length){
-    html += '<div class="ws-ol-band quiet"><span class="dot"></span>Ready for surgery <span class="cnt">'+done.length+'</span></div>';
+    if(_wsOlFilter==='all') html += '<div class="ws-ol-band quiet"><span class="dot"></span>Ready for surgery <span class="cnt">'+done.length+'</span></div>';
     html += '<div class="ws-ol-ready">' + done.map(wsOlReadyHtml).join('') + '</div>';
   }
+  if(!attention.length && !done.length){
+    html += '<div class="ws-ol-empty"><b>Nothing matches this filter</b>Clear the filter to see the full day.</div>';
+  }
   body.innerHTML=html;
+  wsOlAttachGlow();
 }
+// Beautiful hover lighting — the accent glow follows the cursor across each card.
+function wsOlAttachGlow(){
+  var body=document.getElementById('ws-ol-body');
+  if(!body || body._glow) return; body._glow=true;
+  body.addEventListener('mousemove',function(e){
+    var card=e.target.closest && e.target.closest('.ws-ol-card'); if(!card) return;
+    var r=card.getBoundingClientRect();
+    card.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');
+    card.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%');
+  });
+}
+// Interactive summary chips → instant filter (click the active chip again to clear).
+function wsOlFilter(key){
+  _wsOlFilter=(_wsOlFilter===key)?'all':key;
+  var body=document.getElementById('ws-ol-body');
+  if(body) body.classList.add('ws-ol-fade');
+  setTimeout(function(){
+    wsRenderOpList(wsOlCasesFor(_wsOlOffset));
+    var b=document.getElementById('ws-ol-body');
+    if(b){ void b.offsetWidth; b.classList.remove('ws-ol-fade'); }
+  }, 110);
+}
+window.wsOlFilter=wsOlFilter;
 function wsOlChips(c){
   var flags=wsOlFlags(c.patientId), docs=_wsOlDocs[c.surgeryId], chips='';
   if(c.stage==='awaiting') chips+='<span class="ws-ol-c urgent">Awaiting questionnaire</span>';
@@ -1030,17 +1206,41 @@ function wsOlChips(c){
   if((_wsOlQ[c.patientId]||0)>0) chips+='<span class="ws-ol-c doc">'+_wsOlQ[c.patientId]+' open question'+((_wsOlQ[c.patientId]>1)?'s':'')+'</span>';
   return chips;
 }
+// Primary urgency accent for the card's left rail / glow.
+// red = high risk, amber = needs review / awaiting, blue = missing documents.
+function wsOlAccent(c){
+  if(wsOlFlags(c.patientId).length>0) return 'acc-red';
+  if(c.stage==='awaiting') return 'acc-amber';
+  if(wsOlMissing(c)>0) return 'acc-blue';
+  var d=_wsOlDocs[c.surgeryId]; if(d&&d.u>0) return 'acc-blue';
+  return 'acc-amber';
+}
+// One-word readiness signal, scannable without reading chips.
+function wsOlSignal(c){
+  if(wsOlFlags(c.patientId).length>0) return '<span class="ws-ol-sig red">High risk</span>';
+  if(c.stage==='awaiting') return '<span class="ws-ol-sig amber">Waiting on patient</span>';
+  if(wsOlMissing(c)>0) return '<span class="ws-ol-sig blue">Missing documents</span>';
+  if(wsOlEligible(c)) return '<span class="ws-ol-sig green">Ready to approve</span>';
+  return '<span class="ws-ol-sig amber">Needs review</span>';
+}
+function wsOlKey(e){
+  if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+  if(e.target && e.target.closest && e.target.closest('.ws-ol-btn')) return; // let the button handle it
+  e.preventDefault(); e.currentTarget.click();
+}
+window.wsOlKey=wsOlKey;
 function wsOlCardHtml(c){
   var flags=wsOlFlags(c.patientId), hi=flags.length>0;
   var open=(c.openFn||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
   var loc='<span class="ws-ol-loc"><span class="pin">&#128205;</span>'+wsEsc(c.hospital||'Hospital TBD')+'</span>';
   var proc=c.procedure?'<span class="ws-ol-proc">'+wsEsc(c.procedure)+'</span>':'';
   var action = wsOlEligible(c)
-    ? '<button class="ws-ol-btn approve" onclick="event.stopPropagation();wsOlApprove(\''+(c.surgeryId||'')+'\',this)">&#10003; Approve</button>'
-    : '<button class="ws-ol-btn review" onclick="event.stopPropagation();'+open+'">Open review &rarr;</button>';
-  return '<div class="ws-ol-card'+(hi?' hi':'')+'" onclick="'+open+'">' +
+    ? '<button class="ws-ol-btn approve" onclick="event.stopPropagation();wsOlApprove(\''+(c.surgeryId||'')+'\',this)">'+dIcon('shield-check')+'Approve</button>'
+    : '<button class="ws-ol-btn review" onclick="event.stopPropagation();'+open+'">Open review '+dIcon('arrow-right')+'</button>';
+  return '<div class="ws-ol-card '+wsOlAccent(c)+(hi?' hi':'')+'" data-sid="'+wsEsc(c.surgeryId||'')+'" role="button" tabindex="0" aria-label="Open review for '+wsEsc(c.name||'patient')+'" onkeydown="wsOlKey(event)" onclick="'+open+'">' +
+    '<span class="ws-ol-rail"></span>' +
     '<div class="ws-ol-card-main">' +
-      '<div class="ws-ol-card-top"><span class="ws-ol-nm">'+wsEsc(c.name||'Patient')+'</span>'+(hi?'<span class="ws-ol-risk-flag">&#9650; High risk</span>':'')+'</div>' +
+      '<div class="ws-ol-card-top"><span class="ws-ol-nm">'+wsEsc(c.name||'Patient')+'</span>'+wsOlSignal(c)+'</div>' +
       '<div class="ws-ol-meta">'+loc+proc+'</div>' +
       '<div class="ws-ol-chips">'+wsOlChips(c)+'</div>' +
     '</div>' +
@@ -1062,19 +1262,105 @@ function wsOlReadyHtml(c){
 // promotes any draft plan, and already blocks if any document is unreviewed).
 async function wsOlApprove(sid, btn){
   if(!sid) return;
-  if(btn){ btn.disabled=true; btn.textContent='Approving…'; }
+  var card=document.querySelector('#ws-ol-body .ws-ol-card[data-sid="'+sid+'"]');
+  if(btn){ btn.disabled=true; btn.classList.add('loading'); btn.innerHTML=dIcon('shield-check')+'Approving…'; }
   try{
     var r=await window.sb.rpc('approve_plan',{p_surgery_id:sid});
     if(r && r.error) throw new Error(r.error.message);
     wsToast('Plan approved');
+    // Premium transition: flash the card green, then let it slide/fade out before
+    // the Ready section absorbs it on the next render (no jarring instant swap).
+    if(card){
+      card.classList.add('approved-flash');
+      await new Promise(function(res){ setTimeout(res,240); });
+      card.classList.add('leaving');
+      await new Promise(function(res){ setTimeout(res,300); });
+    }
     await wsLoadCases();         // refresh from server; the hook re-renders the Operating List
   }catch(e){
-    if(btn){ btn.disabled=false; btn.innerHTML='&#10003; Approve'; }
+    if(btn){ btn.disabled=false; btn.classList.remove('loading'); btn.innerHTML=dIcon('shield-check')+'Approve'; }
+    if(card) card.classList.remove('approved-flash','leaving');
     wsToast((e&&e.message)||'Could not approve — open the case to review.');
   }
 }
 window.wsOlApprove=wsOlApprove;
 window.wsLoadOpList=wsLoadOpList;
+
+/* ════════ Live Tools — premium launcher (presentation only) ════════
+   A Raycast/Linear-style command center. Tiles deep-link to the EXISTING
+   tool pages / full workstation (no new URLs, no backend). Favorites and
+   recently-used are stored locally in the browser only. */
+var WS_TOOLS = [
+  {k:'drugcalc',   name:'Drug Calculator',        desc:'Weight-based dosing',          icon:'pill',           href:'/v2/engine.html',   cat:'calc'},
+  {k:'abg',        name:'ABG Analyzer',           desc:'Acid–base interpretation',     icon:'activity',       href:'/v2/engine.html',   cat:'calc'},
+  {k:'airway',     name:'Airway',                 desc:'Assessment & difficult airway',icon:'wind',           href:'/v2/airway.html',   cat:'ref'},
+  {k:'ultrasound', name:'Ultrasound',             desc:'Probe & preset guide',         icon:'scan',           href:'/v2/engine.html',   cat:'guide'},
+  {k:'regional',   name:'Regional Blocks',        desc:'Landmarks & dosing',           icon:'target',         href:'/v2/regional.html', cat:'ref'},
+  {k:'ventilation',name:'Ventilation',            desc:'Lung-protective settings',     icon:'wind',           href:'/v2/engine.html',   cat:'calc'},
+  {k:'infusions',  name:'Infusions',              desc:'Rate & concentration',         icon:'droplets',       href:'/v2/engine.html',   cat:'calc'},
+  {k:'tci',        name:'TCI / TIVA',             desc:'Target-controlled infusion',   icon:'gauge',          href:'/v2/engine.html',   cat:'calc'},
+  {k:'last',       name:'LAST',                   desc:'Local anesthetic toxicity',    icon:'alert-triangle', href:'/v2/last.html',     cat:'emerg'},
+  {k:'mh',         name:'Malignant Hyperthermia', desc:'Crisis protocol & dosing',     icon:'flame',          href:'/v2/engine.html',   cat:'emerg'},
+  {k:'ecmo',       name:'ECMO',                   desc:'Cannulation & support',        icon:'heart-pulse',    href:'/v2/engine.html',   cat:'ref'},
+  {k:'icu',        name:'ICU',                    desc:'Critical-care references',     icon:'hospital',       href:'/v2/icu.html',      cat:'ref'}
+];
+var _wsToolQ='';
+function wsToolLS(key,def){ try{ var v=JSON.parse(localStorage.getItem(key)); return Array.isArray(v)?v:def; }catch(e){ return def; } }
+function wsToolFavs(){ return wsToolLS('anestheo_tool_favs',[]); }
+function wsToolRecent(){ return wsToolLS('anestheo_tool_recent',[]); }
+function wsToolByKey(k){ for(var i=0;i<WS_TOOLS.length;i++){ if(WS_TOOLS[i].k===k) return WS_TOOLS[i]; } return null; }
+function wsToolFav(k,ev){ if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  var f=wsToolFavs(), i=f.indexOf(k);
+  if(i>=0) f.splice(i,1); else f.unshift(k);
+  try{ localStorage.setItem('anestheo_tool_favs',JSON.stringify(f.slice(0,8))); }catch(e){}
+  wsRenderTools();
+}
+function wsToolOpen(k){
+  var t=wsToolByKey(k); if(!t) return;
+  var r=wsToolRecent().filter(function(x){return x!==k;}); r.unshift(k);
+  try{ localStorage.setItem('anestheo_tool_recent',JSON.stringify(r.slice(0,5))); }catch(e){}
+  window.open(t.href,'_blank','noopener');
+  wsRenderTools();
+}
+function wsToolSearch(v){ _wsToolQ=(v||'').toLowerCase().trim(); wsRenderTools(); }
+function wsToolClearSearch(){ var i=document.getElementById('ws-lt-search-input'); if(i) i.value=''; _wsToolQ=''; wsRenderTools(); }
+function wsToolTile(t){
+  var fav=wsToolFavs().indexOf(t.k)>=0;
+  return '<button class="ws-lt-tile cat-'+t.cat+'" onclick="wsToolOpen(\''+t.k+'\')">' +
+    '<span class="ws-lt-star'+(fav?' on':'')+'" role="button" title="'+(fav?'Remove favorite':'Add favorite')+'" onclick="wsToolFav(\''+t.k+'\',event)">'+dIcon('star')+'</span>' +
+    '<span class="ws-lt-ico">'+dIcon(t.icon)+'</span>' +
+    '<span class="ws-lt-nm">'+wsEsc(t.name)+'</span>' +
+    '<span class="ws-lt-desc">'+wsEsc(t.desc)+'</span>' +
+    '<span class="ws-lt-go">Open '+dIcon('arrow-right')+'</span>' +
+  '</button>';
+}
+function wsRenderTools(){
+  var body=document.getElementById('ws-lt-body'); if(!body) return;
+  var q=_wsToolQ;
+  var filtered=WS_TOOLS.filter(function(t){ return !q || (t.name+' '+t.desc).toLowerCase().indexOf(q)>=0; });
+  var html='';
+  if(!q){
+    var favs=wsToolFavs().map(wsToolByKey).filter(Boolean);
+    var rec=wsToolRecent().map(wsToolByKey).filter(Boolean);
+    if(favs.length){
+      html += '<div class="ws-lt-lbl">'+dIcon('star')+' Favorites</div>' +
+        '<div class="ws-lt-grid">'+favs.map(wsToolTile).join('')+'</div>';
+    }
+    if(rec.length){
+      html += '<div class="ws-lt-lbl">'+dIcon('clock')+' Recently used</div>' +
+        '<div class="ws-lt-grid">'+rec.map(wsToolTile).join('')+'</div>';
+    }
+    html += '<div class="ws-lt-lbl">'+dIcon('layout-grid')+' All tools</div>';
+  }
+  if(filtered.length){
+    html += '<div class="ws-lt-grid">'+filtered.map(wsToolTile).join('')+'</div>';
+  } else {
+    html += '<div class="ws-ol-empty"><b>No tools match &ldquo;'+wsEsc(q)+'&rdquo;</b>Try a different search.</div>';
+  }
+  body.innerHTML=html;
+}
+window.wsToolSearch=wsToolSearch; window.wsToolClearSearch=wsToolClearSearch;
+window.wsToolFav=wsToolFav; window.wsToolOpen=wsToolOpen; window.wsRenderTools=wsRenderTools;
 
 // Row 1 statistics (computed from the full surgical list, independent of stage/search).
 function wsRenderMpStats(){
@@ -2671,17 +2957,33 @@ document.addEventListener('DOMContentLoaded', async function(){
     }
 
     // Section rail (switches panels in-place — no navigation away)
+    function railTab(sec, icon, label, extra){
+      return '<button class="ws-tab'+(sec==='patients'?' active':'')+'" data-sec="'+sec+'" onclick="wsShow(\''+sec+'\')'+(extra||'')+'">' +
+        '<span class="ws-tab-ic">'+dIcon(icon)+'</span><span class="ws-tab-tx">'+label+'</span></button>';
+    }
     var rail =
-      '<button class="ws-tab" data-sec="oplist" onclick="wsShow(\'oplist\');wsLoadOpList()">&#128197; Operating List</button>' +
-      '<button class="ws-tab active" data-sec="patients" onclick="wsShow(\'patients\')">&#128101; Patient Management</button>' +
-      '<button class="ws-tab" data-sec="tools" onclick="wsShow(\'tools\')">&#129658; Live Tools</button>' +
-      '<button class="ws-tab" data-sec="refs" onclick="wsShow(\'refs\')">&#128214; References</button>' +
-      '<button class="ws-tab" data-sec="resources" onclick="wsShow(\'resources\')">&#128218; Resources</button>' +
-      '<button class="ws-tab" data-sec="ask" onclick="wsShow(\'ask\')">&#128172; Questions Management</button>' +
-      (isAdminRole ? '<button class="ws-tab" data-sec="admin" onclick="wsShow(\'admin\')">&#128274; Admin</button>' : '') +
+      '<div class="ws-railgrp">' +
+        '<div class="ws-railgrp-lbl">Clinical Workspace</div>' +
+        railTab('oplist','clipboard-list','Operating List',';wsLoadOpList()') +
+        railTab('patients','users','Patient Management') +
+        railTab('ask','message-circle','Questions') +
+        (isAdminRole ? railTab('admin','shield-check','Admin') : '') +
+      '</div>' +
+      '<div class="ws-railgrp">' +
+        '<div class="ws-railgrp-lbl">Live Tools</div>' +
+        railTab('tools','layout-grid','Live Tools',';wsRenderTools()') +
+      '</div>' +
+      '<div class="ws-railgrp">' +
+        '<div class="ws-railgrp-lbl">Knowledge</div>' +
+        railTab('refs','book-open','References') +
+        railTab('resources','folder','Resources') +
+        '<a class="ws-tab" href="/v2/videos.html"><span class="ws-tab-ic">'+dIcon('play-circle')+'</span><span class="ws-tab-tx">Videos</span></a>' +
+      '</div>' +
       '<div class="ws-rail-sp"></div>' +
-      '<a class="ws-tab" href="/v2/settings.html">&#9881; Settings</a>' +
-      '<button class="ws-tab" onclick="window.nbSignOut()">&#8594; Sign out</button>';
+      '<div class="ws-railgrp ws-railgrp-util">' +
+        '<a class="ws-tab" href="/v2/settings.html"><span class="ws-tab-ic">'+dIcon('settings')+'</span><span class="ws-tab-tx">Settings</span></a>' +
+        '<button class="ws-tab" onclick="window.nbSignOut()"><span class="ws-tab-ic">'+dIcon('log-out')+'</span><span class="ws-tab-tx">Sign out</span></button>' +
+      '</div>';
 
     // SECTION 0 — Operating List (Phase 1: read-only, date-first tomorrow's list)
     var secOpList =
@@ -2693,13 +2995,16 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div id="ws-ol-body"></div>' +
       '</div>';
 
-    // SECTION 1 — Live Tools (flagship, embedded full calculators)
+    // SECTION 1 — Live Tools (premium launcher: search, favorites, recents, tiles)
     var secTools =
       '<div class="ws-sec" id="sec-tools">' +
-        '<div class="ws-sec-head"><div><div class="ws-sec-title">Anesthesiology Live Tools</div>' +
-          '<div class="ws-sec-sub">Airway &middot; drug dosing &middot; ventilation &middot; TIVA/TCI &middot; regional &middot; obstetric &middot; pediatric &middot; ICU</div></div>' +
-          '<a href="/v2/engine.html" target="_blank" class="ws-open">Open full screen &#8599;</a></div>' +
-        '<iframe class="ws-frame" src="/v2/engine.html?embed=1" title="Anesthesiology Live Tools"></iframe>' +
+        '<div class="ws-sec-head"><div><div class="ws-sec-title">Live Tools</div>' +
+          '<div class="ws-sec-sub">Your anesthesiology workstation &mdash; instant access to calculators, references and crisis protocols</div></div>' +
+          '<a href="/v2/engine.html" target="_blank" class="ws-open">'+dIcon('external-link')+' Open full workstation</a></div>' +
+        '<div class="ws-lt-search"><span class="ic">'+dIcon('search')+'</span>' +
+          '<input id="ws-lt-search-input" type="text" autocomplete="off" placeholder="Search tools — drug calculator, airway, TCI, LAST…" oninput="wsToolSearch(this.value)">' +
+          '<button class="clr" type="button" title="Clear" onclick="wsToolClearSearch()">&times;</button></div>' +
+        '<div id="ws-lt-body"></div>' +
       '</div>';
 
     // SECTION 2 — Patient Management (board switcher: one workflow at a time)
