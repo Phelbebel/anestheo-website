@@ -638,25 +638,43 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-ol-chip .d{width:9px;height:9px;border-radius:50%;background:var(--teal);}
 .ws-ol-chip.rev{border-color:var(--action-bd);background:var(--action-bg);} .ws-ol-chip.rev .d{background:var(--action);} .ws-ol-chip.rev b{color:#FFD79B;}
 .ws-ol-chip.risk .d{background:var(--urgent);} .ws-ol-chip.docs .d{background:var(--info);} .ws-ol-chip.ready .d{background:var(--done);}
-.ws-ol-grp{margin-top:24px;}
-.ws-ol-grp-h{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;}
-.ws-ol-grp-h .cnt{font-size:11px;background:rgba(255,255,255,.06);border-radius:20px;padding:2px 9px;color:var(--hint);}
-.ws-ol-row{display:grid;grid-template-columns:8px 1fr auto;gap:16px;align-items:center;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid var(--border);border-radius:15px;padding:15px 18px 15px 14px;margin-bottom:10px;box-shadow:0 8px 22px rgba(0,0,0,.16);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;}
-.ws-ol-row:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(0,0,0,.3);border-color:rgba(126,207,192,.3);}
-.ws-ol-acu{width:8px;align-self:stretch;border-radius:5px;background:rgba(255,255,255,.1);}
-.ws-ol-row.need .ws-ol-acu{background:var(--action);} .ws-ol-row.urgent .ws-ol-acu{background:var(--urgent);} .ws-ol-row.ok .ws-ol-acu{background:var(--done);}
-.ws-ol-row.done{opacity:.74;}
-.ws-ol-nm{font-size:16px;font-weight:700;} .ws-ol-meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
-.ws-ol-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+/* mission-control bands */
+.ws-ol-band{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.06em;margin:30px 0 14px;}
+.ws-ol-band .dot{width:9px;height:9px;border-radius:50%;background:var(--action);box-shadow:0 0 0 4px rgba(255,179,71,.14);}
+.ws-ol-band .cnt{font-size:11px;background:var(--action-bg);border:1px solid var(--action-bd);color:#FFD79B;border-radius:20px;padding:2px 9px;}
+.ws-ol-band.quiet{color:var(--muted);margin-top:34px;} .ws-ol-band.quiet .dot{background:var(--done);box-shadow:none;opacity:.7;} .ws-ol-band.quiet .cnt{background:rgba(255,255,255,.05);border-color:var(--border);color:var(--hint);}
+.ws-ol-cards{display:flex;flex-direction:column;gap:14px;}
 .ws-ol-c{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
 .ws-ol-c.pend{color:#FFD79B;background:var(--action-bg);border:1px solid var(--action-bd);}
-.ws-ol-c.inrev{color:#A9D2FF;background:var(--info-bg);border:1px solid var(--info-bd);}
 .ws-ol-c.appr{color:#9FF0CF;background:var(--done-bg);border:1px solid var(--done-bd);}
-.ws-ol-c.chg,.ws-ol-c.urgent,.ws-ol-c.risk{color:#FFB3B3;background:var(--urgent-bg);border:1px solid var(--urgent-bd);}
+.ws-ol-c.urgent,.ws-ol-c.risk{color:#FFB3B3;background:var(--urgent-bg);border:1px solid var(--urgent-bd);}
 .ws-ol-c.doc{color:#A9D2FF;background:var(--info-bg);border:1px solid var(--info-bd);}
 .ws-ol-c.muted{color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--border);}
-.ws-ol-go{font-size:13.5px;font-weight:700;color:#cfe;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:11px;padding:10px 15px;white-space:nowrap;}
-.ws-ol-row:hover .ws-ol-go{background:rgba(126,207,192,.14);color:#fff;}
+.ws-ol-nm{font-size:17px;font-weight:800;letter-spacing:-.01em;}
+.ws-ol-meta{font-size:13px;color:var(--muted);margin-top:3px;}
+.ws-ol-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;}
+/* attention cards */
+.ws-ol-card{display:flex;align-items:center;gap:20px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--border);border-left:3px solid var(--action);border-radius:18px;padding:20px 22px;box-shadow:0 12px 30px rgba(0,0,0,.22);cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;}
+.ws-ol-card:hover{transform:translateY(-3px);box-shadow:0 22px 46px rgba(0,0,0,.34);}
+.ws-ol-card.hi{border-left-color:var(--urgent);background:linear-gradient(180deg,rgba(255,107,107,.07),rgba(255,255,255,.015));}
+.ws-ol-card-main{flex:1;min-width:0;}
+.ws-ol-card-top{display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+.ws-ol-risk-flag{font-size:11px;font-weight:800;color:#FFB3B3;background:var(--urgent-bg);border:1px solid var(--urgent-bd);border-radius:20px;padding:3px 10px;letter-spacing:.02em;}
+.ws-ol-card-act{flex:0 0 auto;}
+.ws-ol-btn{font-family:inherit;font-weight:800;font-size:13.5px;border-radius:12px;padding:13px 20px;cursor:pointer;border:none;white-space:nowrap;transition:transform .16s ease,box-shadow .16s ease;}
+.ws-ol-btn:hover{transform:translateY(-2px);}
+.ws-ol-btn.approve{background:linear-gradient(135deg,#34D399,#1f9d6f);color:#04140d;box-shadow:0 10px 24px rgba(52,211,153,.3);}
+.ws-ol-btn.review{background:linear-gradient(135deg,#2A8A74,#1B6B5A);color:#fff;box-shadow:0 10px 24px rgba(27,107,90,.34);}
+.ws-ol-btn[disabled]{opacity:.6;cursor:default;transform:none;}
+/* ready (faded, quiet) */
+.ws-ol-ready{display:flex;flex-direction:column;gap:2px;opacity:.6;}
+.ws-ol-rd{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:11px;cursor:pointer;transition:background .15s ease,opacity .15s ease;}
+.ws-ol-rd:hover{background:rgba(255,255,255,.03);opacity:1;}
+.ws-ol-rd-ck{width:20px;height:20px;border-radius:50%;background:var(--done-bg);border:1px solid var(--done-bd);color:var(--done);font-size:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.ws-ol-rd-nm{font-size:14px;font-weight:600;} .ws-ol-rd-meta{font-size:12.5px;color:var(--hint);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ws-ol-rd-go{font-size:12px;font-weight:700;color:var(--muted);}
+.ws-ol-allclear{display:flex;align-items:center;gap:11px;background:var(--done-bg);border:1px solid var(--done-bd);border-radius:16px;padding:18px 22px;color:#9FF0CF;font-size:14px;font-weight:600;}
+.ws-ol-allclear .ic{width:26px;height:26px;border-radius:50%;background:rgba(52,211,153,.18);display:flex;align-items:center;justify-content:center;}
 .ws-ol-empty{background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:15px;padding:34px;text-align:center;color:var(--muted);font-size:14px;}
 .ws-ol-empty b{color:#fff;font-weight:700;display:block;font-size:15px;margin-bottom:5px;}
 </style>
@@ -882,7 +900,7 @@ async function wsLoadCases(){
    Two additive, RLS-scoped reads enrich the active day with risk flags and
    document review status. No DB / SQL / RPC / schema changes; no change to the
    Patient Management, consultation, or patient-workspace workflows. */
-var _wsCasesLoaded = false, _wsOlOffset = 1, _wsOlRisk = {}, _wsOlDocs = {}, _wsOlPlan = {};
+var _wsCasesLoaded = false, _wsOlOffset = 1, _wsOlRisk = {}, _wsOlDocs = {}, _wsOlPlan = {}, _wsOlQ = {};
 // Missing documents = requirements the doctor REQUESTED (checked in the plan)
 // that the patient has NOT uploaded yet (no requirement_documents row for that key).
 function wsOlMissing(c){
@@ -911,7 +929,7 @@ async function wsLoadOpList(){
   if(!_wsCasesLoaded){ var sm=document.getElementById('ws-ol-summary'); if(sm) sm.innerHTML='';
     body.innerHTML='<div class="ws-ol-empty">Loading your list…</div>'; return; }
   var cases=wsOlCasesFor(_wsOlOffset);
-  _wsOlRisk={}; _wsOlDocs={}; _wsOlPlan={};
+  _wsOlRisk={}; _wsOlDocs={}; _wsOlPlan={}; _wsOlQ={};
   var pids=cases.map(function(c){return c.patientId;}).filter(Boolean);
   var sids=cases.map(function(c){return c.surgeryId;}).filter(Boolean);
   try{ if(pids.length){ var q=await window.sb.from('preop_questionnaires').select('patient_id,risk_flags').in('patient_id',pids);
@@ -925,6 +943,9 @@ async function wsLoadOpList(){
       if(!cur||rank>cur.rank||(rank===cur.rank&&new Date(x.updated_at||0)>new Date(cur.updated_at||0))) best[x.surgery_id]={rank:rank,updated_at:x.updated_at,plan:x.plan_content}; });
     Object.keys(best).forEach(function(sid){ var reqs=(best[sid].plan&&best[sid].plan.requirements)||[];
       _wsOlPlan[sid]=reqs.filter(function(r){return r&&r.checked;}).map(function(r){return r.key;}).filter(Boolean); }); } }catch(e){}
+  // Unanswered patient questions (status not answered/closed) — a one-click-approve blocker.
+  try{ if(pids.length){ var qn=await window.sb.from('questions').select('patient_id,status').in('patient_id',pids);
+    ((qn&&qn.data)||[]).forEach(function(x){ var st=x.status||'new'; if(st!=='answered'&&st!=='closed') _wsOlQ[x.patient_id]=(_wsOlQ[x.patient_id]||0)+1; }); } }catch(e){}
   wsRenderOpList(cases);
 }
 function wsRenderOlDates(){
@@ -934,12 +955,36 @@ function wsRenderOlDates(){
   el.innerHTML = pill(0,'Today')+pill(1,'Tomorrow')+
     '<input type="date" class="ws-ol-dpill'+(custom?' on':'')+'" style="color-scheme:dark;" value="'+wsOlDateStr(_wsOlOffset)+'" onchange="wsOlPickDate(this.value)" title="Pick a date">';
 }
+// ── triage helpers (mission control) ──
+function wsOlIsReady(c){ return c.stage==='scheduled'||c.stage==='approved'; }
+// One-click Approve is offered ONLY for clearly-safe, clearly-straightforward
+// cases: submitted & under review, no high-risk flags, no missing documents,
+// no documents still to review (approve_plan would block), no open questions.
+function wsOlEligible(c){
+  if(!c.patientId || c.origin!=='patient' || !c.surgeryId) return false;   // only surgical w/ identity
+  if(c.stage!=='review') return false;                                     // submitted, awaiting your review
+  if(wsOlFlags(c.patientId).length>0) return false;                        // no high-risk flags
+  if(wsOlMissing(c)>0) return false;                                       // no missing documents
+  var d=_wsOlDocs[c.surgeryId]; if(d && d.u>0) return false;               // no documents to review
+  if((_wsOlQ[c.patientId]||0)>0) return false;                            // no unanswered questions
+  return true;
+}
+function wsOlPriority(c){
+  var p=0, flags=wsOlFlags(c.patientId).length;
+  if(flags) p+=100;                          // unsafe → top
+  if(c.stage==='awaiting') p+=80;            // blocks the list (no questionnaire)
+  if(wsOlMissing(c)>0) p+=50;                // missing documents
+  var d=_wsOlDocs[c.surgeryId]; if(d&&d.u>0) p+=30;
+  if((_wsOlQ[c.patientId]||0)>0) p+=20;
+  if(c.stage==='review') p+=10;
+  return p;
+}
 function wsRenderOpList(cases){
   wsRenderOlDates();
   var sum=document.getElementById('ws-ol-summary'), body=document.getElementById('ws-ol-body');
   var total=cases.length;
   var needs=cases.filter(function(c){return c.stage==='review';}).length;
-  var ready=cases.filter(function(c){return c.stage==='scheduled'||c.stage==='approved';}).length;
+  var ready=cases.filter(wsOlIsReady).length;
   var highRisk=cases.filter(function(c){return wsOlFlags(c.patientId).length>0;}).length;
   var missingDocs=cases.filter(function(c){return wsOlMissing(c)>0;}).length;
   if(sum) sum.innerHTML =
@@ -952,38 +997,76 @@ function wsRenderOpList(cases){
     body.innerHTML='<div class="ws-ol-empty"><b>No surgical cases on '+wsEsc(wsOlNice(_wsOlOffset))+'</b>Choose another day above, or manage patients in Patient Management.</div>';
     return;
   }
-  var groups={};
-  cases.forEach(function(c){ var h=(c.hospital||'Unspecified hospital'); (groups[h]=groups[h]||[]).push(c); });
-  var hospitals=Object.keys(groups).sort(function(a,b){return a.localeCompare(b);});
+  // Attention first (unsafe/blocked rise to the top); ready fades to a quiet group.
+  var attention=cases.filter(function(c){return !wsOlIsReady(c);}).sort(function(a,b){
+    var d=wsOlPriority(b)-wsOlPriority(a); return d!==0?d:(a.name||'').localeCompare(b.name||''); });
+  var done=cases.filter(wsOlIsReady).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   var html='';
-  hospitals.forEach(function(h){
-    var rows=groups[h].slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
-    html += '<div class="ws-ol-grp"><div class="ws-ol-grp-h">&#127973; '+wsEsc(h)+' <span class="cnt">'+rows.length+(rows.length===1?' case':' cases')+'</span></div>';
-    rows.forEach(function(c){ html += wsOlRowHtml(c); });
-    html += '</div>';
-  });
+  if(attention.length){
+    html += '<div class="ws-ol-band"><span class="dot"></span>Needs your attention <span class="cnt">'+attention.length+'</span></div>';
+    html += '<div class="ws-ol-cards">' + attention.map(wsOlCardHtml).join('') + '</div>';
+  } else {
+    html += '<div class="ws-ol-allclear"><span class="ic">&#10003;</span> All cases are reviewed and ready. Nothing needs your attention '+(_wsOlOffset===1?'for tomorrow':'on this day')+'.</div>';
+  }
+  if(done.length){
+    html += '<div class="ws-ol-band quiet"><span class="dot"></span>Ready for surgery <span class="cnt">'+done.length+'</span></div>';
+    html += '<div class="ws-ol-ready">' + done.map(wsOlReadyHtml).join('') + '</div>';
+  }
   body.innerHTML=html;
 }
-function wsOlRowHtml(c){
-  var flags=wsOlFlags(c.patientId), docs=_wsOlDocs[c.surgeryId];
-  var rowCls='', chips='';
-  if(c.stage==='review'){ rowCls='need'; chips+='<span class="ws-ol-c pend">Pending review</span>'; }
-  else if(c.stage==='awaiting'){ rowCls='urgent'; chips+='<span class="ws-ol-c urgent">Awaiting questionnaire</span>'; }
-  else if(c.stage==='scheduled'||c.stage==='approved'){ rowCls='ok'; chips+='<span class="ws-ol-c appr">Approved</span>'; }
+function wsOlChips(c){
+  var flags=wsOlFlags(c.patientId), docs=_wsOlDocs[c.surgeryId], chips='';
+  if(c.stage==='awaiting') chips+='<span class="ws-ol-c urgent">Awaiting questionnaire</span>';
+  else if(c.stage==='review') chips+='<span class="ws-ol-c pend">Pending review</span>';
   flags.slice(0,3).forEach(function(f){ chips+='<span class="ws-ol-c risk">'+wsEsc(f)+'</span>'; });
   if(flags.length>3) chips+='<span class="ws-ol-c muted">+'+(flags.length-3)+' more</span>';
   var miss=wsOlMissing(c);
-  if(miss){ chips+='<span class="ws-ol-c urgent">'+miss+' document'+(miss>1?'s':'')+' missing</span>'; }
-  if(docs && docs.u){ chips+='<span class="ws-ol-c doc">'+docs.u+' to review</span>'; }
-  var doneCls=(c.stage==='scheduled'||c.stage==='approved')?' done':'';
-  var meta=[c.procedure].filter(Boolean).join(' · ')||'Surgical case';
-  var open=(c.openFn||'').replace(/"/g,'&quot;');
-  return '<div class="ws-ol-row '+rowCls+doneCls+'"'+(open?' onclick="'+open+'"':'')+'>' +
-    '<div class="ws-ol-acu"></div>' +
-    '<div><div class="ws-ol-nm">'+wsEsc(c.name||'Patient')+'</div><div class="ws-ol-meta">'+wsEsc(meta)+'</div>' +
-      '<div class="ws-ol-chips">'+chips+'</div></div>' +
-    '<div class="ws-ol-go">Open &rarr;</div></div>';
+  if(miss) chips+='<span class="ws-ol-c urgent">'+miss+' document'+(miss>1?'s':'')+' missing</span>';
+  if(docs && docs.u) chips+='<span class="ws-ol-c doc">'+docs.u+' to review</span>';
+  if((_wsOlQ[c.patientId]||0)>0) chips+='<span class="ws-ol-c doc">'+_wsOlQ[c.patientId]+' open question'+((_wsOlQ[c.patientId]>1)?'s':'')+'</span>';
+  return chips;
 }
+function wsOlCardHtml(c){
+  var flags=wsOlFlags(c.patientId), hi=flags.length>0;
+  var open=(c.openFn||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  var meta=[c.procedure, c.hospital].filter(Boolean).join(' · ')||'Surgical case';
+  var action = wsOlEligible(c)
+    ? '<button class="ws-ol-btn approve" onclick="event.stopPropagation();wsOlApprove(\''+(c.surgeryId||'')+'\',this)">&#10003; Approve</button>'
+    : '<button class="ws-ol-btn review" onclick="event.stopPropagation();'+open+'">Open review &rarr;</button>';
+  return '<div class="ws-ol-card'+(hi?' hi':'')+'" onclick="'+open+'">' +
+    '<div class="ws-ol-card-main">' +
+      '<div class="ws-ol-card-top"><span class="ws-ol-nm">'+wsEsc(c.name||'Patient')+'</span>'+(hi?'<span class="ws-ol-risk-flag">&#9650; High risk</span>':'')+'</div>' +
+      '<div class="ws-ol-meta">'+wsEsc(meta)+'</div>' +
+      '<div class="ws-ol-chips">'+wsOlChips(c)+'</div>' +
+    '</div>' +
+    '<div class="ws-ol-card-act">'+action+'</div>' +
+  '</div>';
+}
+function wsOlReadyHtml(c){
+  var open=(c.openFn||'').replace(/"/g,'&quot;');
+  var meta=[c.procedure, c.hospital].filter(Boolean).join(' · ');
+  return '<div class="ws-ol-rd"'+(open?' onclick="'+open+'"':'')+'>' +
+    '<span class="ws-ol-rd-ck">&#10003;</span>' +
+    '<span class="ws-ol-rd-nm">'+wsEsc(c.name||'Patient')+'</span>' +
+    '<span class="ws-ol-rd-meta">'+wsEsc(meta)+'</span>' +
+    '<span class="ws-ol-rd-go">View</span></div>';
+}
+// One-click Approve — reuses the EXISTING approve_plan RPC (no save needed; it
+// promotes any draft plan, and already blocks if any document is unreviewed).
+async function wsOlApprove(sid, btn){
+  if(!sid) return;
+  if(btn){ btn.disabled=true; btn.textContent='Approving…'; }
+  try{
+    var r=await window.sb.rpc('approve_plan',{p_surgery_id:sid});
+    if(r && r.error) throw new Error(r.error.message);
+    wsToast('Plan approved');
+    await wsLoadCases();         // refresh from server; the hook re-renders the Operating List
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.innerHTML='&#10003; Approve'; }
+    wsToast((e&&e.message)||'Could not approve — open the case to review.');
+  }
+}
+window.wsOlApprove=wsOlApprove;
 window.wsLoadOpList=wsLoadOpList;
 
 // Row 1 statistics (computed from the full surgical list, independent of stage/search).
@@ -2597,7 +2680,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     var secOpList =
       '<div class="ws-sec" id="sec-oplist">' +
         '<div class="ws-sec-head"><div><div class="ws-sec-title">Operating list</div>' +
-          '<div class="ws-sec-sub">Your surgical cases for a day &mdash; grouped by hospital, with who still needs your review</div></div></div>' +
+          '<div class="ws-sec-sub">Your surgical cases for a day &mdash; what needs your attention first, and who is ready</div></div></div>' +
         '<div class="ws-ol-dates" id="ws-ol-dates"></div>' +
         '<div class="ws-ol-summary" id="ws-ol-summary"></div>' +
         '<div id="ws-ol-body"></div>' +
