@@ -57,6 +57,9 @@ body{background:var(--bg);color:var(--text);}
 .ms-smeta .ic-slot{margin-right:5px;vertical-align:-2px;}
 .ms-btn .ic-slot svg{width:16px;height:16px;}
 .ms-sec-link .ic-slot svg{width:15px;height:15px;vertical-align:-2px;}
+.ms-rtile .ri .ic-slot svg{width:18px;height:18px;} .ms-rtile .ri{color:var(--accent);}
+.ms-rnote .ic-slot svg{width:14px;height:14px;vertical-align:-2px;} .ms-rnote .ic-slot{color:var(--hint);}
+.ms-fab .fi .ic-slot svg{width:17px;height:17px;}
 /* semantic icon colours — calm & consistent */
 .ic-info{color:var(--info);} .ic-done{color:var(--done);} .ic-con{color:var(--con);}
 .ic-action{color:var(--action);} .ic-urgent{color:var(--urgent);} .ic-muted{color:var(--hint);}
@@ -482,11 +485,21 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 .sp-btn[disabled]{pointer-events:none;} .sp-hint{font-size:12px;color:var(--hint);margin-top:7px;}
 .sp-pending{display:inline-block;font-size:13.5px;font-weight:600;color:#E8C16b;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.3);border-radius:9px;padding:9px 14px;}
 .sp-pending.ok{color:#5ee393;background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.3);}
-.ppm-bg{display:none;position:fixed;inset:0;background:rgba(5,12,9,.74);z-index:1300;align-items:flex-start;justify-content:center;padding:28px 16px;overflow-y:auto;}
+.ppm-bg{display:none;position:fixed;inset:0;background:rgba(4,10,8,.66);backdrop-filter:blur(8px);z-index:1300;align-items:flex-start;justify-content:center;padding:34px 16px;overflow-y:auto;}
 .ppm-bg.open{display:flex;}
-.ppm{background:#0C1F18;border:1px solid rgba(27,107,90,.3);border-radius:16px;padding:22px;max-width:620px;width:100%;}
-.ppm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.ppm-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;}
+.ppm{background:linear-gradient(180deg,#0d2019,#0a1813);border:1px solid var(--line);border-radius:24px;padding:26px 28px;max-width:640px;width:100%;box-shadow:0 40px 100px rgba(0,0,0,.6);animation:celebIn .32s cubic-bezier(.2,.7,.2,1) both;}
+.ppm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line-soft);}
+.ppm-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;display:flex;align-items:center;gap:11px;}
+.ppm-title .ic-slot{width:38px;height:38px;border-radius:11px;background:rgba(126,207,192,.1);border:1px solid var(--line);color:var(--accent);flex:0 0 auto;}
+.ppm-title .ic-slot svg{width:19px;height:19px;}
+.ppm-close{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);width:36px;height:36px;border-radius:11px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.16s;}
+.ppm-close:hover{background:rgba(255,255,255,.1);color:#fff;transform:translateY(-1px);}
+.prep-sec-title .ic-slot svg{width:16px;height:16px;}
+.prep-sec-title .ic-slot{color:var(--accent);}
+.req-box .ic-slot svg{width:13px;height:13px;}
+.applan-ck .ic-slot svg,.doc-rev .ic-slot svg{width:13px;height:13px;vertical-align:-2px;}
+.prep-note .ic-slot svg,.plan-h .ic-slot svg,.plan-note .ic-slot svg,.applan-badge .ic-slot svg,.applan-msg .ic-slot svg,.applan-foot .ic-slot svg,.pdq-flag .ic-slot svg{width:14px;height:14px;vertical-align:-2px;}
+.doc-link .ic-slot svg,.doc-up .ic-slot svg{width:13px;height:13px;vertical-align:-2px;}
 .ms-care{background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--line);border-radius:var(--r-md);padding:18px 20px;margin-bottom:18px;}
 .ms-care-conn{font-size:13.5px;color:var(--muted);margin-bottom:10px;}
 .ms-care-conn b{color:var(--text);}
@@ -563,18 +576,18 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
     <!-- ⑧ RECOVERY (future-ready; hidden until built) -->
     <section class="ms-sec anim d7" id="recovery-sec" style="display:none;">
       <div class="ms-sec-head">
-        <div class="ms-sec-ico">&#127807;</div>
+        <div class="ms-sec-ico"><span class="ic-slot" data-ic="heart-pulse"></span></div>
         <div><div class="ms-sec-title">Recovery</div><div class="ms-sec-sub">Your space for healing — ready when you are</div></div>
       </div>
       <div class="ms-recovery">
         <div class="ms-rgrid">
-          <div class="ms-rtile"><div class="ri">&#128221;</div><div class="rt">Pain diary</div></div>
-          <div class="ms-rtile"><div class="ri">&#127919;</div><div class="rt">Recovery milestones</div></div>
-          <div class="ms-rtile"><div class="ri">&#9728;</div><div class="rt">Daily instructions</div></div>
-          <div class="ms-rtile"><div class="ri">&#128467;</div><div class="rt">Follow-up appointments</div></div>
-          <div class="ms-rtile"><div class="ri">&#128188;</div><div class="rt">Return-to-work guidance</div></div>
+          <div class="ms-rtile"><div class="ri"><span class="ic-slot" data-ic="notebook-pen"></span></div><div class="rt">Pain diary</div></div>
+          <div class="ms-rtile"><div class="ri"><span class="ic-slot" data-ic="target"></span></div><div class="rt">Recovery milestones</div></div>
+          <div class="ms-rtile"><div class="ri"><span class="ic-slot" data-ic="sun"></span></div><div class="rt">Daily instructions</div></div>
+          <div class="ms-rtile"><div class="ri"><span class="ic-slot" data-ic="calendar-check-2"></span></div><div class="rt">Follow-up appointments</div></div>
+          <div class="ms-rtile"><div class="ri"><span class="ic-slot" data-ic="briefcase"></span></div><div class="rt">Return-to-work guidance</div></div>
         </div>
-        <div class="ms-rnote"><span>&#128274;</span> These unlock automatically after your surgery day.</div>
+        <div class="ms-rnote"><span class="ic-slot" data-ic="lock"></span> These unlock automatically after your surgery day.</div>
       </div>
     </section>
 
@@ -611,8 +624,8 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 <!-- Preparation Plan modal -->
 <div class="ppm-bg" id="prep-modal" onclick="if(event.target===this)closePrep()">
   <div class="ppm">
-    <div class="ppm-head"><div class="ppm-title">&#128203; Preparation plan</div>
-      <button class="btn-sm" onclick="closePrep()">Close</button></div>
+    <div class="ppm-head"><div class="ppm-title"><span class="ic-slot" data-ic="clipboard-check"></span> Preparation plan</div>
+      <button class="ppm-close" onclick="closePrep()" aria-label="Close">&times;</button></div>
     <div id="prep-modal-body"></div>
   </div>
 </div>
@@ -645,6 +658,10 @@ var ICONS = {
   'circle-check-big':'<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>',
   'route':'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
   'eye':'<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+  'pill':'<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
+  'paperclip':'<path d="M13.234 20.252 21 12.3"/><path d="m16 6-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486l8.414-8.586"/>',
+  'utensils':'<path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  'briefcase-medical':'<path d="M12 11v4"/><path d="M14 13h-4"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M18 6v14"/><path d="M6 6v14"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
   'calendar-check':'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>',
   'calendar':'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
   'clipboard-check':'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
@@ -928,7 +945,7 @@ function renderRecsCard(){
 // Recommendations section for the modal.
 function prepRecsHtml(){
   if(!_recs || !_recs.length) return '';
-  return '<div class="prep-sec"><div class="prep-sec-title">&#128203; Recommendations from your anesthesiologist</div>' +
+  return '<div class="prep-sec"><div class="prep-sec-title">'+iconHtml('stethoscope')+' Recommendations from your anesthesiologist</div>' +
     _recs.map(function(r){ return '<div class="rec-li">'+esc(r.body||'')+'</div>'; }).join('') +
     '<div class="plan-foot" style="margin-top:8px;">Please follow these before your procedure. Ask your clinician if anything is unclear.</div></div>';
 }
@@ -946,10 +963,10 @@ function prepSurgeryDayHtml(){
   var ready = !!(_surgery && _surgery.ready_at), done = !!(_surgery && _surgery.completed_at);
   if(!(rs === 'approved' || ready || done)) return '';
   var n = SDAY_ITEMS.filter(function(_, i){ return _sdayProgress[i]; }).length;
-  return '<div class="prep-sec"><div class="prep-sec-title">&#129508; Final surgery-day checklist</div>' +
+  return '<div class="prep-sec"><div class="prep-sec-title">'+iconHtml('clipboard-check')+' Final surgery-day checklist</div>' +
     '<div class="plan-sub">A general reminder for the day of surgery &mdash; separate from your doctor&rsquo;s requested tests. (<span id="sday-count">'+n+'</span>/'+SDAY_ITEMS.length+')</div>' +
     SDAY_ITEMS.map(function(lbl, i){ var ck = !!_sdayProgress[i];
-      return '<div class="req-item"><button type="button" class="req-box'+(ck?' on':'')+'" data-sday="'+i+'" onclick="toggleSday('+i+')" aria-label="Mark done">'+(ck?'&#10003;':'')+'</button>' +
+      return '<div class="req-item"><button type="button" class="req-box'+(ck?' on':'')+'" data-sday="'+i+'" onclick="toggleSday('+i+')" aria-label="Mark done">'+(ck?iconHtml('check'):'')+'</button>' +
         '<div class="req-tx"><div class="req-label">'+esc(lbl)+'</div></div></div>'; }).join('') +
     '</div>';
 }
@@ -957,7 +974,7 @@ async function toggleSday(i){
   _sdayProgress[i] = !_sdayProgress[i];
   // Update in place inside the modal (no full re-render → no scroll jump).
   var btn = document.querySelector('#prep-modal-body [data-sday="'+i+'"]');
-  if(btn){ var on = !!_sdayProgress[i]; btn.classList.toggle('on', on); btn.innerHTML = on ? '&#10003;' : ''; }
+  if(btn){ var on = !!_sdayProgress[i]; btn.classList.toggle('on', on); btn.innerHTML = on ? iconHtml('check') : ''; }
   var cnt = document.getElementById('sday-count');
   if(cnt){ cnt.textContent = SDAY_ITEMS.filter(function(_, j){ return _sdayProgress[j]; }).length; }
   try {
@@ -1016,8 +1033,8 @@ function renderPlanCard(){
     var doneN = reqs.filter(function(r){ return _reqProgress[r.key]; }).length;
     host.innerHTML =
       '<div class="plan-card warn">' +
-        '<div class="plan-h">&#9888; Doctor requested additional preparation</div>' +
-        (note ? '<div class="plan-note"><b>&#128172; Message from your clinician</b><br>'+esc(note)+'</div>' : '') +
+        '<div class="plan-h">'+iconHtml('alert-triangle')+' Doctor requested additional preparation</div>' +
+        (note ? '<div class="plan-note"><b>'+iconHtml('message-circle')+' Message from your clinician</b><br>'+esc(note)+'</div>' : '') +
         (reqs.length
           ? '<div class="plan-sub">Tick each item as you complete it ('+doneN+'/'+reqs.length+'), then resubmit for review:</div>' +
             reqs.map(function(r){ return reqRow(r, true); }).join('')
@@ -1031,8 +1048,8 @@ function renderPlanCard(){
 function reqRow(r, interactive){
   var ckd = !!_reqProgress[r.key];
   var box = interactive
-    ? '<button type="button" class="req-box'+(ckd?' on':'')+'" onclick="toggleReq(\''+esc(r.key)+'\')" aria-label="Mark done">'+(ckd?'&#10003;':'')+'</button>'
-    : '<span class="req-box on">&#10003;</span>';
+    ? '<button type="button" class="req-box'+(ckd?' on':'')+'" onclick="toggleReq(\''+esc(r.key)+'\')" aria-label="Mark done">'+(ckd?iconHtml('check'):'')+'</button>'
+    : '<span class="req-box on">'+iconHtml('check')+'</span>';
   return '<div class="req-item">'+box+'<div class="req-tx"><div class="req-label">'+esc(r.label||'')+'</div>' +
     (r.note ? '<div class="req-note">'+esc(r.note)+'</div>' : '') +
     reqDocBlock(r, interactive) + '</div></div>';
@@ -1058,12 +1075,12 @@ function reqDocBlock(r, interactive){
   var pill='<span class="doc-pill '+st+'">'+label+'</span>';
   var files=ds.map(function(d){
     var when=d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
-    var rev=d.reviewed_at?'<span class="doc-rev">&#10003; reviewed</span>':'';
+    var rev=d.reviewed_at?'<span class="doc-rev">'+iconHtml('check')+' reviewed</span>':'';
     var del=(interactive&&!d.reviewed_at)?'<button type="button" class="doc-del" onclick="docDelete(\''+esc(d.id)+'\')" title="Remove">&times;</button>':'';
-    return '<div class="doc-file"><button type="button" class="doc-link" onclick="docOpen(\''+esc(d.storage_path)+'\')">&#128206; '+esc(d.file_name)+'</button>'+
+    return '<div class="doc-file"><button type="button" class="doc-link" onclick="docOpen(\''+esc(d.storage_path)+'\')"">'+iconHtml('paperclip')+' '+esc(d.file_name)+'</button>'+
       '<span class="doc-when">'+esc(when)+'</span>'+rev+del+'</div>';
   }).join('');
-  var up=interactive?'<button type="button" class="doc-up" onclick="docPick(\''+esc(key)+'\')">&#11014;&#65039; Upload file</button>':'';
+  var up=interactive?'<button type="button" class="doc-up" onclick="docPick(\''+esc(key)+'\')"">'+iconHtml('upload')+' Upload file</button>':'';
   return '<div class="doc-block">'+pill+'<div class="doc-files">'+files+'</div>'+up+'</div>';
 }
 async function reloadReqDocs(){
@@ -1501,9 +1518,9 @@ function prepSummaryActionsHtml(){
   var when = q.submitted_at || q.updated_at;
   var dateFmt = when ? new Date(when).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
   var flags = q.risk_flags || [];
-  return '<div class="prep-sec"><div class="prep-sec-title">&#128203; Your health questionnaire</div>' +
+  return '<div class="prep-sec"><div class="prep-sec-title">'+iconHtml('clipboard-list')+' Your health questionnaire</div>' +
     (dateFmt ? '<div class="plan-sub">Completed '+esc(dateFmt)+'.</div>' : '') +
-    (flags.length ? '<div class="pdq-flags">'+flags.map(function(f){return '<span class="pdq-flag">&#9888; '+esc(f)+'</span>';}).join('')+'</div>' : '') +
+    (flags.length ? '<div class="pdq-flags">'+flags.map(function(f){return '<span class="pdq-flag">'+iconHtml('alert-triangle')+' '+esc(f)+'</span>';}).join('')+'</div>' : '') +
     '<div class="pdq-btns"><button class="btn-sm" onclick="pdSummary()">View summary</button>' +
     '<button class="btn-sm" onclick="pdPrint()">Print / Download PDF</button></div></div>';
 }
@@ -1523,7 +1540,7 @@ function pdSummary(){
     '<button class="btn-sm" onclick="document.getElementById(\'pd-modal\').classList.remove(\'open\')">Close</button></div>' +
     '<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Completion '+(q.completion!=null?q.completion:100)+'%' +
       (q.submitted_at?' · '+new Date(q.submitted_at).toLocaleDateString():'')+'</div>' +
-    (flags.length?'<div class="pdq-flags" style="margin-bottom:12px;">'+flags.map(function(f){return '<span class="pdq-flag">&#9888; '+f+'</span>';}).join('')+'</div>':'') +
+    (flags.length?'<div class="pdq-flags" style="margin-bottom:12px;">'+flags.map(function(f){return '<span class="pdq-flag">'+iconHtml('alert-triangle')+' '+f+'</span>';}).join('')+'</div>':'') +
     '<table class="pd-table">'+(rows||'<tr><td>No answers recorded</td><td></td></tr>')+'</table>';
   m.classList.add('open');
 }
@@ -1593,8 +1610,8 @@ function prepChangesHtml(){
   var note = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
   var doneN = reqs.filter(function(r){ return _reqProgress[r.key]; }).length;
   return '<div class="plan-card warn">' +
-    '<div class="plan-h">&#9888; Doctor requested additional preparation</div>' +
-    (note ? '<div class="plan-note"><b>&#128172; Message from your clinician</b><br>'+esc(note)+'</div>' : '') +
+    '<div class="plan-h">'+iconHtml('alert-triangle')+' Doctor requested additional preparation</div>' +
+    (note ? '<div class="plan-note"><b>'+iconHtml('message-circle')+' Message from your clinician</b><br>'+esc(note)+'</div>' : '') +
     (reqs.length
       ? '<div class="plan-sub">Tick each item as you complete it ('+doneN+'/'+reqs.length+'), then resubmit for review:</div>' +
         reqs.map(function(r){ return reqRow(r, true); }).join('')
@@ -1607,20 +1624,20 @@ function approvedPlanHtml(){
   var when = (_quest && _quest.reviewed_at) ? new Date(_quest.reviewed_at).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '';
   var reqs = (_docPlan && Array.isArray(_docPlan.requirements)) ? _docPlan.requirements.filter(function(r){ return r && r.checked; }) : [];
   var msg = (_quest && _quest.reviewer_notes) ? _quest.reviewer_notes : ((_docPlan && _docPlan.reviewer_notes) || '');
-  var h = '<div class="applan-head"><div class="applan-badge">&#10003; Approved preparation plan</div>' +
+  var h = '<div class="applan-head"><div class="applan-badge">'+iconHtml('shield-check')+' Approved preparation plan</div>' +
     '<div class="applan-meta">Approved by <b>'+dn+'</b>'+(when?(' on '+esc(when)):'')+'</div></div>';
-  if(msg) h += '<div class="applan-msg"><b>&#128172; From your clinician</b><br>'+esc(msg)+'</div>';
+  if(msg) h += '<div class="applan-msg"><b>'+iconHtml('message-circle')+' From your clinician</b><br>'+esc(msg)+'</div>';
   h += '<div class="applan-h">Your clinician’s recommendations</div>';
   if(reqs.length){
     h += '<div class="applan-reqs">' + reqs.map(function(r){
-      return '<div class="applan-req"><span class="applan-ck">&#10003;</span><div class="applan-tx">' +
+      return '<div class="applan-req"><span class="applan-ck">'+iconHtml('check')+'</span><div class="applan-tx">' +
         '<div class="applan-lb">'+esc(r.label||'')+'</div>' +
         (r.note ? '<div class="applan-note">'+esc(r.note)+'</div>' : '') + '</div></div>';
     }).join('') + '</div>';
   } else {
     h += '<div class="prep-clinic">'+dn+' approved your preparation with no additional tests required. Follow the general information below and your surgery-day checklist.</div>';
   }
-  h += '<div class="applan-foot">&#10003; Bring this plan and your documents on the day of surgery. Always follow the instructions your surgical and anesthesia team give you on the day.</div>';
+  h += '<div class="applan-foot">'+iconHtml('shield-check')+' Bring this plan and your documents on the day of surgery. Always follow the instructions your surgical and anesthesia team give you on the day.</div>';
   h += '<div class="applan-divider">General preparation information (educational)</div>' +
     '<div class="applan-edu">' + prepBuildGuide(_quest, { noBanner:true }) + '</div>';
   return h;
@@ -1637,12 +1654,12 @@ function prepReviewBanner(){
   var connected = _careRequest && _careRequest.status === 'accepted';
   var dn = (_careRequest && _careRequest.doctor_name) ? esc(_careRequest.doctor_name) : 'your anesthesiologist';
   if(rs === 'approved')
-    return '<div class="prep-note" style="color:#5ee393;background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);">&#10003; Reviewed and approved by '+dn+'. This guide reflects their guidance.</div>';
+    return '<div class="prep-note" style="color:#5ee393;background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.3);">'+iconHtml('shield-check')+' Reviewed and approved by '+dn+'. This guide reflects their guidance.</div>';
   if(rs === 'changes_requested')
-    return '<div class="prep-note">&#9888; '+dn+' requested more information. Update your questionnaire and resubmit. Meanwhile, here is your educational guide.</div>';
+    return '<div class="prep-note">'+iconHtml('alert-triangle')+' '+dn+' requested more information. Update your questionnaire and resubmit. Meanwhile, here is your educational guide.</div>';
   if(rs === 'in_review' || rs === 'pending' || connected)
-    return '<div class="prep-note">&#9888; Educational preparation guide. '+dn+' is reviewing your questionnaire and a reviewed plan will follow. Always follow the instructions your surgical and anesthesia team give you.</div>';
-  return '<div class="prep-note">&#9888; Educational preparation guide - not yet reviewed by a clinician. Connect a clinician to have it reviewed. Always follow the instructions your surgical and anesthesia team give you.</div>';
+    return '<div class="prep-note">'+iconHtml('alert-triangle')+' Educational preparation guide. '+dn+' is reviewing your questionnaire and a reviewed plan will follow. Always follow the instructions your surgical and anesthesia team give you.</div>';
+  return '<div class="prep-note">'+iconHtml('alert-triangle')+' Educational preparation guide - not yet reviewed by a clinician. Connect a clinician to have it reviewed. Always follow the instructions your surgical and anesthesia team give you.</div>';
 }
 function prepBuildGuide(q, opts){
   opts = opts || {};
@@ -1662,8 +1679,8 @@ function prepBuildGuide(q, opts){
   if(s.hospital) sumRows += '<tr><td>Hospital</td><td>'+esc(s.hospital)+'</td></tr>';
   if(s.surgeon)  sumRows += '<tr><td>Surgeon</td><td>'+esc(s.surgeon)+'</td></tr>';
   sumRows += '<tr><td>Anesthesia</td><td>'+esc(s.anesthesia_type || 'To be decided with your anesthesiologist')+'</td></tr>';
-  h += prepSec('&#129656; Surgery summary', '<table class="prep-tbl">'+sumRows+'</table>');
-  h += prepSec('&#9989; Preparation checklist', prepChecklistHtml('prepare', [
+  h += prepSec(iconHtml('clipboard-list')+' Surgery summary', '<table class="prep-tbl">'+sumRows+'</table>');
+  h += prepSec(iconHtml('clipboard-check')+' Preparation checklist', prepChecklistHtml('prepare', [
     'Confirm your surgery date, arrival time, and where to check in',
     'Write down a full list of your medications, doses, and supplements',
     'Note any allergies and past reactions to anesthesia',
@@ -1671,25 +1688,25 @@ function prepBuildGuide(q, opts){
     'Prepare comfortable, loose clothing and flat shoes for the day',
     'Write down questions you want to ask your anesthesiologist'
   ]));
-  h += prepSec('&#9201; Fasting information', '<table class="prep-tbl">' +
+  h += prepSec(iconHtml('clock')+' Fasting information', '<table class="prep-tbl">' +
     '<tr><td>Solid food / milk</td><td>Usually stop at least 6 hours before surgery</td></tr>' +
     '<tr><td>Clear fluids (water, clear juice, black coffee/tea)</td><td>Usually allowed up to 2 hours before</td></tr>' +
     '<tr><td>Chewing gum / sweets</td><td>Avoid on the day of surgery</td></tr>' +
     '<tr><td>Alcohol</td><td>Avoid for 24 hours before</td></tr>' +
     '</table><div class="prep-li" style="margin-top:6px;">These are general timings — your team may give you exact fasting times to follow instead.</div>');
-  h += prepSec('&#129509; What to bring', [
+  h += prepSec(iconHtml('briefcase-medical')+' What to bring', [
     'Photo ID and any hospital paperwork or appointment letters',
     'A complete written list of your medications and allergies',
     'Glasses, hearing aids, inhalers, or your CPAP machine if you use one',
     'A small bag with essentials; leave jewelry, valuables, and contact lenses at home'
   ].map(function(x){ return '<div class="prep-li">'+esc(x)+'</div>'; }).join(''));
-  h += prepSec('&#128138; Medication review', prepMedicationHtml(a));
+  h += prepSec(iconHtml('pill')+' Medication review', prepMedicationHtml(a));
   var special = prepSpecial(a, flags);
   if(special.length){
-    h += prepSec('&#128221; Special instructions for you',
+    h += prepSec(iconHtml('notebook-pen')+' Special instructions for you',
       special.map(function(x){ return '<div class="prep-special">'+x+'</div>'; }).join(''));
   }
-  h += prepSec('&#127973; Day-of-surgery checklist', prepChecklistHtml('dayof', [
+  h += prepSec(iconHtml('hospital')+' Day-of-surgery checklist', prepChecklistHtml('dayof', [
     'Follow your fasting times exactly',
     'Shower; remove makeup, nail polish, and jewelry',
     'Take only the medications you were told to take, with a small sip of water',
@@ -1717,7 +1734,7 @@ function prepMedicationHtml(a){
     var label = PREP_MED_LABELS[v] || v;
     if(PREP_HIGH_RISK[v]){
       return '<div class="prep-med hr"><div class="prep-med-name">'+esc(PREP_HIGH_RISK[v])+'</div>' +
-             '<div class="prep-med-tag">&#9888; Requires anesthesiologist review</div></div>';
+             '<div class="prep-med-tag">'+iconHtml('alert-triangle')+' Requires anesthesiologist review</div></div>';
     }
     return '<div class="prep-med"><div class="prep-med-name">'+esc(label)+'</div>' +
            '<div class="prep-med-note">Bring details — your anesthesiologist will advise</div></div>';
@@ -1923,7 +1940,7 @@ function renderFab(){
   // Reserved AI companion — does NOT open the Preparation Plan (the surgery
   // card's CTA is the single entry point to prep). Wires up when built.
   host.innerHTML = FEATURE_COMPANION ?
-    ('<div class="ms-fab"><div class="fi">&#10024;</div><div class="ft">Ask Anesto<small>Your care companion</small></div></div>') : '';
+    ('<div class="ms-fab"><div class="fi">'+ic('sparkles')+'</div><div class="ft">Ask Anesto<small>Your care companion</small></div></div>') : '';
 }
 function renderRecovery(){
   var sec = ge('recovery-sec'); if(sec) sec.style.display = FEATURE_RECOVERY ? 'block' : 'none';
