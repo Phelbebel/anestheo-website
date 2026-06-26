@@ -76,6 +76,36 @@ function initializeAuth() {
   return requireAuth();
 }
 
+// ── requireRole ───────────────────────────────────────────────
+// UX guard for staff-only pages. Authorization is still enforced
+// authoritatively by Supabase RLS + backend policies; this only avoids
+// rendering a doctor page to the wrong role.
+//   allowed: 'staff' (doctor or admin) | 'admin' | 'doctor' | array of roles
+//   opts.deny: explicit redirect target for the wrong role (optional)
+// Returns { session, user, profile } when permitted, or null after redirect.
+async function requireRole(allowed, opts) {
+  opts = opts || {};
+  var auth = await requireAuth(opts);              // unauthenticated → /v2/index.html
+  if (!auth) return null;
+  var p = auth.profile || {};
+  var role = p.role || 'patient';
+  var isAdmin = (p.is_admin === true || role === 'admin');
+  if (isAdmin) role = 'admin';
+  var isStaff = (role === 'doctor' || role === 'admin');
+  var allow = Array.isArray(allowed) ? allowed : [allowed];
+  var ok;
+  if (allow.indexOf('staff') >= 0) ok = isStaff;
+  else { ok = allow.indexOf(role) >= 0; if (isAdmin && allow.indexOf('admin') >= 0) ok = true; }
+  if (ok) return auth;
+  // Wrong role: non-staff (patients/other) go to their own space; a staff
+  // member lacking a finer role (e.g. a doctor on an admin page) goes to the
+  // staff dashboard. replace() so Back doesn't return to the blocked page.
+  var dest = opts.deny || (isStaff ? '/v2/dashboard.html' : '/v2/patient-dashboard.html');
+  console.log('ROLE GUARD: role "' + role + '" not permitted here — redirecting to ' + dest);
+  window.location.replace(dest);
+  return null;
+}
+
 // ── saveProfile ───────────────────────────────────────────────
 async function saveProfile(userId, data) {
   try {
@@ -190,6 +220,7 @@ async function getAllQuestionnaires() {
 window.getSession        = getSession;
 window.getProfile        = getProfile;
 window.requireAuth       = requireAuth;
+window.requireRole       = requireRole;
 window.initializeAuth    = initializeAuth;
 window.saveProfile       = saveProfile;
 window.signOut           = signOut;

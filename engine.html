@@ -969,9 +969,7 @@ document.addEventListener('DOMContentLoaded',async function(){
       console.log('ENGINE READY (embedded)');
       return;
     }
-    var auth=await window.requireAuth(); if(!auth)return;
-    var role=auth.profile?auth.profile.role:'';
-    if(role==='patient'){ window.location.href='/v2/dashboard.html'; return; }
+    var auth=await window.requireRole('staff'); if(!auth)return;
     ge('loader').style.display='none';
     ge('app').style.display='block';
     if(restoreInputs()) compute();     // preserve patient data from the embedded view

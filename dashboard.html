@@ -2350,8 +2350,8 @@ document.addEventListener('DOMContentLoaded', async function(){
   try {
     console.log('LOGIN START — dashboard init');
 
-    var auth = await window.requireAuth();   // logs AUTH SUCCESS + PROFILE internally
-    if (!auth) { _dashDone = true; clearTimeout(_dashWatchdog); return; } // redirected to index
+    var auth = await window.requireRole('staff');   // staff-only; patients → My Space
+    if (!auth) { _dashDone = true; clearTimeout(_dashWatchdog); return; } // redirected (login or My Space)
 
     var user    = auth.user;
     var profile = auth.profile;
