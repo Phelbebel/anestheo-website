@@ -31,51 +31,47 @@ html,body{max-width:100%;overflow-x:hidden;}
 .eng-head{margin-bottom:22px;}
 .eng-head h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;}
 .eng-head p{font-size:14px;color:var(--muted);}
-/* ── Monitor (anesthesia workstation HERO — dominates the page) ── */
-.mon-header{display:flex;flex-direction:column;
-  background:linear-gradient(180deg,#07140E,#020806);border:1px solid rgba(126,207,192,.28);
-  border-radius:18px;overflow:hidden;margin-bottom:16px;
-  box-shadow:0 28px 64px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 70px rgba(0,0,0,.5);}
-.mh-strip{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,0,0,.32);border-bottom:1px solid rgba(126,207,192,.16);}
-.mh-brand{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9FE6D6;}
-.mh-brand-live{font-size:8.5px;font-weight:800;letter-spacing:.08em;color:#04130d;background:#46d39a;border-radius:20px;padding:2px 8px;}
-.mh-livedot{width:8px;height:8px;border-radius:50%;background:#46d39a;box-shadow:0 0 9px #46d39a;animation:mhLive 1.6s ease-in-out infinite;}
-@keyframes mhLive{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.8);}}
-.mh-clock{font-variant-numeric:tabular-nums;font-size:16px;font-weight:800;color:#eafff8;letter-spacing:.06em;text-shadow:0 0 12px rgba(126,207,192,.4);}
-.mh-main{display:flex;align-items:stretch;}
-.mh-traces{flex:1.4;min-width:160px;display:flex;flex-direction:column;border-right:1px solid rgba(126,207,192,.14);position:relative;}
-.mh-traces::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 30px);}
-.mh-tr{flex:1;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.05);min-height:62px;}
-.mh-tr:last-child{border-bottom:none;}
-.mh-lbl{position:absolute;top:4px;left:10px;font-size:9px;font-weight:800;letter-spacing:.06em;z-index:2;opacity:.9;}
-.mh-tr svg{width:100%;height:100%;display:block;overflow:visible;}
-.mh-tr path{fill:none;stroke-width:1.7;vector-effect:non-scaling-stroke;}
-.mh-tr.ecg path{stroke:#46d39a;filter:drop-shadow(0 0 3px rgba(70,211,154,.5));}
-.mh-tr.ecg .mh-lbl{color:#46d39a;}
-.mh-tr.pleth path{stroke:#5ad0e6;filter:drop-shadow(0 0 3px rgba(90,208,230,.5));}
-.mh-tr.pleth .mh-lbl{color:#5ad0e6;}
-.mh-tr.capno path{stroke:#e8c454;filter:drop-shadow(0 0 3px rgba(232,196,84,.45));}
-.mh-tr.capno .mh-lbl{color:#e8c454;}
-.mh-tr.resp path{stroke:#9b8cff;filter:drop-shadow(0 0 3px rgba(155,140,255,.5));}
-.mh-tr.resp .mh-lbl{color:#9b8cff;}
-.wave-anim{will-change:transform;}
-.mh-vitals{display:grid;grid-template-columns:repeat(3,minmax(78px,1fr));background:rgba(126,207,192,.08);gap:1px;}
-.mh-v{padding:11px 18px;display:flex;flex-direction:column;justify-content:center;gap:1px;background:#040d09;min-width:78px;}
-.mh-v i{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.5);}
-.mh-v b{font-size:26px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums;}
-.mh-v u{text-decoration:none;font-size:9.5px;color:var(--hint);margin-left:2px;}
-.mh-hr b{color:#46d39a;} .mh-hr i{color:#46d39a;}
-.mh-spo2 b{color:#5ad0e6;} .mh-spo2 i{color:#5ad0e6;}
-.mh-co2 b{color:#e8c454;} .mh-co2 i{color:#e8c454;}
-.mh-bp b{color:#fff;font-size:20px;} .mh-temp b{color:#A9D2FF;} .mh-mac b{color:#C9A8FF;}
+/* ── Clinical Workspace hero (premium header; no simulated monitor) ── */
+.cw-hero{display:grid;grid-template-columns:1fr auto;grid-template-areas:"id time" "status status";gap:18px 22px;
+  background:linear-gradient(150deg,rgba(42,138,116,.17),rgba(255,255,255,.014));
+  border:1px solid rgba(126,207,192,.26);border-radius:20px;padding:22px 26px;margin-bottom:18px;
+  box-shadow:0 18px 44px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.05);}
+.cw-hero-id{grid-area:id;min-width:0;}
+.cw-title{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;letter-spacing:-.01em;line-height:1.04;}
+.cw-sub{font-size:14px;color:var(--muted);margin-top:6px;}
+.cw-hero-time{grid-area:time;display:flex;gap:26px;align-self:start;}
+.cw-tblock{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.cw-tl{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--hint);}
+.cw-tv{font-variant-numeric:tabular-nums;font-size:26px;font-weight:800;color:#eafff8;letter-spacing:.04em;line-height:1.05;text-shadow:0 0 14px rgba(126,207,192,.22);}
+.cw-status{grid-area:status;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.cw-ready{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:#9FF0CF;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.36);border-radius:30px;padding:8px 15px;}
+.cw-ready .dot{width:9px;height:9px;border-radius:50%;background:#34D399;box-shadow:0 0 12px #34D399;animation:cwPulse 1.9s ease-in-out infinite;}
+@keyframes cwPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.78);}}
+.cw-chk{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#cfe9e1;background:rgba(126,207,192,.07);border:1px solid rgba(126,207,192,.2);border-radius:9px;padding:7px 12px;font-family:inherit;}
+.cw-chk::before{content:'\2713';color:#46d39a;font-weight:800;font-size:11px;}
+.cw-chk-em{cursor:pointer;color:#FFC8C0;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.3);transition:transform .16s ease,background .16s ease,border-color .16s ease;}
+.cw-chk-em::before{color:#FF8A73;}
+.cw-chk-em:hover{background:rgba(255,107,107,.16);border-color:rgba(255,107,107,.55);transform:translateY(-1px);}
+/* section labels, patient summary, derived values */
+.cw-sec-lbl{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--hint);margin:2px 2px 9px;}
+.cw-derived{display:grid;grid-template-columns:repeat(6,1fr);gap:11px;margin-bottom:18px;}
+.cw-d{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--border);border-radius:13px;padding:13px 15px;display:flex;flex-direction:column;gap:4px;min-width:0;}
+.cw-d-l{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.cw-d-l small{font-weight:700;letter-spacing:0;text-transform:none;color:var(--hint);}
+.cw-d-val{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1;color:#fff;font-variant-numeric:tabular-nums;}
+.cw-d-u{font-size:10px;color:var(--hint);font-weight:600;}
+.cw-flash{animation:cwValFlash .65s ease;}
+@keyframes cwValFlash{0%{color:#7ECFC0;text-shadow:0 0 16px rgba(126,207,192,.75);}100%{color:#fff;text-shadow:none;}}
 @media(max-width:760px){
-  .mh-main{flex-direction:column;}
-  .mh-traces{border-right:none;border-bottom:1px solid rgba(255,255,255,.06);}
-  .mh-tr{min-height:40px;}
-  .mh-vitals{grid-template-columns:repeat(3,1fr);}
-  .mh-v{border-left:none;border-top:1px solid rgba(255,255,255,.05);align-items:center;text-align:center;}
-  .mh-v b{font-size:22px;}
+  /* stack: title → status → time/timers (exact mobile order) */
+  .cw-hero{grid-template-columns:1fr;grid-template-areas:"id" "status" "time";gap:14px;padding:18px;}
+  .cw-title{font-size:25px;}
+  .cw-hero-time{gap:34px;align-self:stretch;}
+  .cw-tblock{align-items:flex-start;}
+  .cw-derived{grid-template-columns:repeat(3,1fr);gap:9px;}
+  .cw-d-val{font-size:20px;}
 }
+@media(max-width:430px){.cw-derived{grid-template-columns:repeat(2,1fr);}}
 /* In embedded mode (inside the Doctor Workspace) hide the duplicate site nav */
 body.embed .nb,body.embed #nb-nav{display:none!important;}
 body.embed .eng-wrap{padding-top:14px;}
@@ -322,29 +318,25 @@ body.embed .eng-wrap{padding-top:14px;}
 <div id="nb-placeholder"></div>
 <div id="app">
   <div class="eng-wrap">
-    <div class="mon-header" id="mon-header">
-      <div class="mh-strip">
-        <span class="mh-brand"><span class="mh-livedot"></span>Anesthesia Workstation <span class="mh-brand-live">Live monitor</span></span>
-        <span class="mh-clock" id="mh-clock">--:--:--</span>
+    <div class="cw-hero">
+      <div class="cw-hero-id">
+        <h1 class="cw-title">Anesthesia Workstation</h1>
+        <p class="cw-sub">One workspace. Every calculation. Instantly updated.</p>
       </div>
-      <div class="mh-main">
-        <div class="mh-traces">
-          <div class="mh-tr ecg"><span class="mh-lbl">ECG II</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-ecg"/></g></svg></div>
-          <div class="mh-tr pleth"><span class="mh-lbl">SpO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-pleth"/></g></svg></div>
-          <div class="mh-tr capno"><span class="mh-lbl">CO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-capno"/></g></svg></div>
-          <div class="mh-tr resp"><span class="mh-lbl">RESP</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-resp"/></g></svg></div>
-        </div>
-        <div class="mh-vitals">
-          <div class="mh-v mh-hr"><i>HR</i><b id="mh-hr">78</b><u>bpm</u></div>
-          <div class="mh-v mh-spo2"><i>SpO&#8322;</i><b id="mh-spo2">99</b><u>%</u></div>
-          <div class="mh-v mh-co2"><i>ETCO&#8322;</i><b id="mh-co2">36</b><u>mmHg</u></div>
-          <div class="mh-v mh-bp"><i>NIBP</i><b id="mh-bp">128/72</b><u>mmHg</u></div>
-          <div class="mh-v mh-temp"><i>Temp</i><b id="mh-temp">36.7</b><u>&deg;C</u></div>
-          <div class="mh-v mh-mac"><i>MAC</i><b id="mh-mac">1.0</b><u></u></div>
-        </div>
-        <button class="mh-crisis" onclick="crisisJump()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
+      <div class="cw-status">
+        <span class="cw-ready"><span class="dot"></span>Workstation Ready</span>
+        <span class="cw-chk">Drug calculations</span>
+        <span class="cw-chk">Airway tools</span>
+        <span class="cw-chk">Ventilation</span>
+        <span class="cw-chk">Regional anesthesia</span>
+        <button class="cw-chk cw-chk-em" onclick="crisisJump()">Emergency protocols</button>
+      </div>
+      <div class="cw-hero-time">
+        <div class="cw-tblock"><span class="cw-tl">Time</span><span class="cw-tv" id="cw-clock">--:--:--</span></div>
+        <div class="cw-tblock"><span class="cw-tl">Case timer</span><span class="cw-tv" id="cw-casetimer">00:00:00</span></div>
       </div>
     </div>
+    <div class="cw-sec-lbl">Patient summary</div>
     <div class="input-bar">
       <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
         <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
@@ -366,7 +358,15 @@ body.embed .eng-wrap{padding-top:14px;}
       <div class="inp"><label>Sodium (mmol/L)</label><input id="i-na" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
       </div>
     </details>
-    <div class="pt-banner" id="pt-banner" style="display:none"></div>
+    <div class="cw-sec-lbl">Derived values</div>
+    <div class="cw-derived" id="cw-derived">
+      <div class="cw-d"><span class="cw-d-l">BMI</span><span class="cw-d-val" id="cw-bmi">&mdash;</span></div>
+      <div class="cw-d"><span class="cw-d-l">IBW</span><span class="cw-d-val" id="cw-ibw">&mdash;</span><span class="cw-d-u">kg</span></div>
+      <div class="cw-d"><span class="cw-d-l">LBW</span><span class="cw-d-val" id="cw-lbw">&mdash;</span><span class="cw-d-u">kg</span></div>
+      <div class="cw-d"><span class="cw-d-l">BSA</span><span class="cw-d-val" id="cw-bsa">&mdash;</span><span class="cw-d-u">m&sup2;</span></div>
+      <div class="cw-d"><span class="cw-d-l">EBV</span><span class="cw-d-val" id="cw-ebv">&mdash;</span><span class="cw-d-u">mL</span></div>
+      <div class="cw-d"><span class="cw-d-l">MAC <small>age-adj</small></span><span class="cw-d-val" id="cw-mac">&mdash;</span></div>
+    </div>
     <div class="disclaimer"><strong>Reference only.</strong> All values are standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment and verify against current guidelines and product labeling.</div>
 
     <!-- ── LIVE TIMERS (intraoperative workspace strip) ── -->
@@ -483,8 +483,8 @@ function compute(){
   var age=ageC?ageC.years:null, sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
   var out=ge('output');
   if(age==null||!sex||ht==null||wt==null){
-    out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation on standby</b>Enter age, weight and height &mdash; or load a patient &mdash; and every panel activates instantly. The monitor above is running live.</p></div>';
-    var pb0=ge('pt-banner'); if(pb0) pb0.style.display='none';
+    out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height &mdash; or load a patient &mdash; and every panel and derived value activates instantly.</p></div>';
+    cwClearDerived();
     return;
   }
   var isPeds=age<16;
@@ -681,23 +681,15 @@ function compute(){
 
   // ── AUTO-GENERATED WORKSTATION PANELS ──
   var proc=(ge('i-proc').value||'').trim(), asa=ge('i-asa').value;
-  // Sticky patient status bar: "77M | ASA II | BMI 22.7 | IBW 72 | LBW 57 | ABW 72 | BSA 1.87 | EBV 4970 mL | Procedure"
-  var pb=ge('pt-banner');
-  if(pb){
-    var parts = [
-      ageLabel(ageC)+(sex==='M'?'M':'F'),
-      asa?('ASA '+asa):'ASA —',
-      'BMI '+r1(bmi),
-      'IBW '+r0(ibw),
-      'LBW '+r0(lbw),
-      'ABW '+r0(abw),
-      'BSA '+r2(bsa),
-      'EBV '+r0(ebv)+' mL'
-    ];
-    if(proc) parts.push(proc.replace(/</g,'&lt;'));
-    pb.innerHTML = '<span class="pb-dot"></span>' + parts.map(function(p,ix){return '<span class="pb-i'+(ix===0?' pb-id':'')+'">'+p+'</span>';}).join('<span class="pb-sep">|</span>');
-    pb.style.display='flex';
-  }
+  // Hero "Derived values" row — reuses the values already computed above (no new
+  // formulas); MAC is the standard age-adjustment factor relative to a 40-year-old.
+  var macAge = Math.pow(10, -0.00269*((age||40)-40));
+  cwSetDerived('cw-bmi', r1(bmi));
+  cwSetDerived('cw-ibw', r0(ibw));
+  cwSetDerived('cw-lbw', r0(lbw));
+  cwSetDerived('cw-bsa', r2(bsa));
+  cwSetDerived('cw-ebv', r0(ebv));
+  cwSetDerived('cw-mac', r2(macAge)+'&times;');
   var procL=proc.toLowerCase();
   var isCS = /cesar|caesar|c-?section|c\/s/.test(procL);
   var isOb = sex==='F' && (isCS || /obstet|labou?r|delivery|hysterect|gyn/.test(procL));
@@ -1112,22 +1104,25 @@ function animMonitor(ts){
   requestAnimationFrame(animMonitor);
 }
 
-// Subtle "live" monitor header vitals
+// Workspace hero — live clock + case timer (UI motion, not simulated monitoring).
+var _cwCaseStart=null;
 function startMonitorHeader(){
-  setupMonitor();
-  function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function hms(ms){ var s=Math.floor(ms/1000); return pad(Math.floor(s/3600))+':'+pad(Math.floor(s/60)%60)+':'+pad(s%60); }
+  if(_cwCaseStart===null) _cwCaseStart=Date.now();
   function tick(){
-    var hr=ge('mh-hr'), spo2=ge('mh-spo2'), co2=ge('mh-co2'), bp=ge('mh-bp'), temp=ge('mh-temp');
-    if(hr) hr.textContent=r(70,80);
-    if(spo2) spo2.textContent=r(97,100);
-    if(co2) co2.textContent=r(34,40);
-    if(bp) bp.textContent=r(118,132)+'/'+r(68,80);
-    if(temp) temp.textContent=(36.4+Math.random()*0.6).toFixed(1);
+    var c=ge('cw-clock'); if(c){ var d=new Date(); c.textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+    var t=ge('cw-casetimer'); if(t){ t.textContent=hms(Date.now()-_cwCaseStart); }
   }
-  tick(); setInterval(tick,3500);
-  function clock(){ var c=ge('mh-clock'); if(!c) return; var d=new Date();
-    c.textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2); }
-  clock(); setInterval(clock,1000);
+  tick(); setInterval(tick,1000);
+}
+// Derived-value setters — smooth flash when a value changes (presentation only).
+function cwSetDerived(id,val){
+  var e=ge(id); if(!e) return; var s=String(val);
+  if(e.innerHTML!==s){ e.innerHTML=s; e.classList.remove('cw-flash'); void e.offsetWidth; e.classList.add('cw-flash'); }
+}
+function cwClearDerived(){
+  ['cw-bmi','cw-ibw','cw-lbw','cw-bsa','cw-ebv','cw-mac'].forEach(function(id){ var e=ge(id); if(e) e.innerHTML='&mdash;'; });
 }
 
 
