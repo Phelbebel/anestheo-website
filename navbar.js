@@ -340,6 +340,10 @@ function showMsg(type, text){
 // Auth modal mode: 'signin' or 'register'
 var _authMode = 'signin';
 var _regRole = null;
+// Current auth state (UI only) so the login modal is never shown to an
+// already-authenticated user. Set by setAuth/populateMenu, cleared by setGuest.
+var _nbAuthed = false;
+var _nbRole = null;
 
 function setBtns(disabled){
   var b = ge('nb-submit-btn');
@@ -350,6 +354,7 @@ function setBtns(disabled){
 }
 
 function setGuest(){
+  _nbAuthed = false; _nbRole = null;
   var g = ge('nb-guest-links'), a = ge('nb-auth-links');
   if(g) g.style.display = '';
   if(a) a.style.display = 'none';
@@ -368,6 +373,7 @@ function setGuest(){
 }
 
 function setAuth(){
+  _nbAuthed = true;
   var g = ge('nb-guest-links'), a = ge('nb-auth-links');
   if(g) g.style.display = 'none';
   if(a) a.style.display = 'flex';
@@ -380,6 +386,7 @@ function setAuth(){
 function populateMenu(user, profile){
   var role    = profile ? (profile.role || 'patient') : 'patient';
   var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
+  _nbAuthed = true; _nbRole = isAdmin ? 'admin' : role;
   if(isAdmin) role = 'admin';
 
   var fullName = (profile && profile.full_name) ? profile.full_name : '';
@@ -537,12 +544,36 @@ window.nbSearchKey = function(e){
 };
 
 // ── PUBLIC API ────────────────────────────────────────────────
-window.nbOpenModal = function(){
+function nbShowAuthModal(){
   _authMode = 'signin';
   applyMode();
-  ge('nb-modal').classList.add('open');
+  var m = ge('nb-modal'); if(m) m.classList.add('open');
   document.body.style.overflow = 'hidden';
   setTimeout(function(){ var e = ge('nb-email'); if(e) e.focus(); }, 80);
+}
+function nbGoWorkspace(role){
+  location.href = (role === 'patient') ? '/v2/patient-dashboard.html' : '/v2/dashboard.html';
+}
+// The sign-in modal must ONLY appear when there is no authenticated session.
+// If a valid Supabase session already exists, reuse it and send the user to
+// their own workspace instead of ever asking them to sign in again.
+window.nbOpenModal = function(){
+  if(_nbAuthed){ nbGoWorkspace(_nbRole); return; }
+  // Navbar state not populated yet — double-check the persisted session before
+  // ever showing the modal (handles a click during auth initialisation).
+  if(typeof window.getSession === 'function'){
+    Promise.resolve(window.getSession()).then(function(s){
+      if(!s){ nbShowAuthModal(); return; }
+      if(_nbRole){ nbGoWorkspace(_nbRole); return; }
+      if(typeof window.getProfile === 'function'){
+        Promise.resolve(window.getProfile(s.user.id))
+          .then(function(p){ nbGoWorkspace(p && p.role); })
+          .catch(function(){ nbGoWorkspace(null); });
+      } else { nbGoWorkspace(null); }
+    }).catch(function(){ nbShowAuthModal(); });
+    return;
+  }
+  nbShowAuthModal();
 };
 
 window.nbCloseModal = function(){
