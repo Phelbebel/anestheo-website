@@ -198,7 +198,7 @@ function isStaff(p){ return !!(p && (p.is_admin===true || p.role==='admin' || p.
     if(!session){ showGuest(); return; }
     var uid = session.user.id;
     var profile = await getProfile(uid);
-    if(isStaff(profile)){ showClin(); return; }   // clinicians: no patient redirect
+    if(isStaff(profile)){ showGuest(); return; }   // clinicians preview the patient-facing site (no redirect)
 
     showHome(profile, session.user);
 

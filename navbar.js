@@ -215,6 +215,15 @@ function buildHTML(page){
           '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
           '<a href="/v2/settings.html"' + activeCls('/v2/settings.html', p) + '>Profile</a>' +
         '</div>' +
+        // Doctor navigation (shown only to logged-in doctors). Doctors are
+        // anesthesiologists, so "Ask Anesthesiologist" is omitted; "For Patients"
+        // stays so they can preview the patient-facing site.
+        '<div class="nb-nav-links" id="nb-nav-doctor" style="display:none">' +
+          '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
+          '<a href="/v2/patients.html"' + activeCls('/v2/patients.html', p) + '>For Patients</a>' +
+          '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
+          '<a href="/v2/dashboard.html"' + activeCls('/v2/dashboard.html', p) + '>Dashboard</a>' +
+        '</div>' +
         '<div class="nb-right">' +
           '<div class="nb-search-wrap" id="nb-search-wrap" style="display:none">' +
             '<input type="text" class="nb-search" id="nb-search" placeholder="Search tools &amp; references…" autocomplete="off" ' +
@@ -265,6 +274,13 @@ function buildHTML(page){
         '<a href="/v2/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
         '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
         '<a href="/v2/settings.html" class="nb-mob-link">Profile</a>' +
+      '</div>' +
+      // Doctor mobile nav — logged-in doctors only (no Ask Anesthesiologist;
+      // Dashboard comes from the auth section below).
+      '<div id="nb-mob-doctor-nav" style="display:none">' +
+        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
+        '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
+        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
       '</div>' +
       '<div class="nb-mob-sep"></div>' +
       '<div id="nb-mob-guest"><button class="nb-btn" style="width:100%" onclick="window.nbOpenModal();window.nbCloseMob()">Login</button></div>' +
@@ -341,12 +357,14 @@ function setGuest(){
   if(mg) mg.style.display = '';
   if(ma) ma.style.display = 'none';
   // Restore the public navigation for guests (and after sign-out).
-  var navPublic = ge('nb-nav-links'), navPatient = ge('nb-nav-patient');
+  var navPublic = ge('nb-nav-links'), navPatient = ge('nb-nav-patient'), navDoctor = ge('nb-nav-doctor');
   if(navPublic) navPublic.style.display = '';
   if(navPatient) navPatient.style.display = 'none';
-  var mobPublic = ge('nb-mob-public'), mobPatient = ge('nb-mob-patient-nav');
+  if(navDoctor) navDoctor.style.display = 'none';
+  var mobPublic = ge('nb-mob-public'), mobPatient = ge('nb-mob-patient-nav'), mobDoctor = ge('nb-mob-doctor-nav');
   if(mobPublic) mobPublic.style.display = '';
   if(mobPatient) mobPatient.style.display = 'none';
+  if(mobDoctor) mobDoctor.style.display = 'none';
 }
 
 function setAuth(){
@@ -390,16 +408,19 @@ function populateMenu(user, profile){
 
   var isStaff = (role !== 'patient');
   var isPatient = !isStaff;
+  var isDoctor = (role === 'doctor');
   // Dropdown: staff get the Doctor Workspace entry; patients get My Space.
   var ws  = ge('nb-menu-workspace'); if(ws)  ws.style.display  = isStaff ? 'flex' : 'none';
   var pt  = ge('nb-menu-patient');   if(pt)  pt.style.display  = isStaff ? 'none' : 'flex';
-  // Role-aware primary navigation. Patients get a dedicated nav (Home, My Space,
-  // Ask Anesthesiologist, Videos, Profile). The public nav — which carries the
-  // Anesthesia Live monitor and other doctor-facing tools — is reserved for
-  // guests and doctors and is left unchanged.
-  var navPublic  = ge('nb-nav-links');   if(navPublic)  navPublic.style.display  = isPatient ? 'none' : '';
+  // Role-aware primary navigation: patients get the patient nav, doctors get a
+  // simplified doctor nav (no "Ask Anesthesiologist"), everyone else (guests,
+  // admins, other staff) keeps the public nav.
+  var isPublicNav = !isPatient && !isDoctor;
+  var navPublic  = ge('nb-nav-links');   if(navPublic)  navPublic.style.display  = isPublicNav ? '' : 'none';
+  var navDoctor  = ge('nb-nav-doctor');  if(navDoctor)  navDoctor.style.display  = isDoctor ? '' : 'none';
   var navPatient = ge('nb-nav-patient'); if(navPatient) navPatient.style.display = isPatient ? '' : 'none';
-  var mobPublic  = ge('nb-mob-public');      if(mobPublic)  mobPublic.style.display  = isPatient ? 'none' : 'block';
+  var mobPublic  = ge('nb-mob-public');      if(mobPublic)  mobPublic.style.display  = isPublicNav ? 'block' : 'none';
+  var mobDoctor  = ge('nb-mob-doctor-nav');  if(mobDoctor)  mobDoctor.style.display  = isDoctor ? 'block' : 'none';
   var mobPatient = ge('nb-mob-patient-nav'); if(mobPatient) mobPatient.style.display = isPatient ? 'block' : 'none';
   var mobWs  = ge('nb-mob-workspace'); if(mobWs)  mobWs.style.display  = isPatient ? 'none' : 'block';
   var mobSet = ge('nb-mob-settings');  if(mobSet) mobSet.style.display = isPatient ? 'none' : 'block';
