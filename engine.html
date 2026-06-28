@@ -35,10 +35,6 @@ html,body{max-width:100%;overflow-x:hidden;}
 .cw-ready{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;color:#9FF0CF;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.36);border-radius:30px;padding:5px 12px;}
 .cw-ready .dot{width:8px;height:8px;border-radius:50%;background:#34D399;box-shadow:0 0 11px #34D399;animation:cwPulse 1.9s ease-in-out infinite;}
 @keyframes cwPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.78);}}
-.cw-hero-time{display:flex;gap:22px;flex:0 0 auto;}
-.cw-tblock{display:flex;flex-direction:column;gap:2px;}
-.cw-tl{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);}
-.cw-tv{font-variant-numeric:tabular-nums;font-size:24px;font-weight:800;color:#eafff8;letter-spacing:.04em;line-height:1.05;}
 /* Crisis Center — the one prominent action; siren-style, urgent, always visible */
 .cw-crisis{display:inline-flex;align-items:center;gap:11px;cursor:pointer;font-family:inherit;text-align:left;
   background:linear-gradient(135deg,#ff5b5b,#b5271b);color:#fff;border:1px solid rgba(255,140,120,.6);border-radius:14px;padding:11px 18px;
@@ -82,8 +78,6 @@ html,body{max-width:100%;overflow-x:hidden;}
   .cw-hero{padding:15px 16px;gap:12px;}
   .cw-title{font-size:22px;}
   .cw-hero-row{flex-wrap:wrap;}
-  .cw-hero-id{flex:1 1 100%;}
-  .cw-hero-time{margin-left:auto;gap:26px;}
   .cw-crisis{flex:0 0 auto;}
   .cw-derived{grid-template-columns:repeat(3,1fr);gap:9px;}
   .cw-d-val{font-size:20px;}
@@ -330,15 +324,11 @@ body.embed .eng-wrap{padding-top:14px;}
 <div id="app">
   <div class="eng-wrap">
     <div class="cw-hero">
-      <!-- Row 1: title + subtitle (left) | Time + Case Timer (right) -->
+      <!-- Row 1: title + subtitle -->
       <div class="cw-hero-row cw-hero-r1">
         <div class="cw-hero-id">
           <h1 class="cw-title">Anesthesia Workstation</h1>
           <p class="cw-sub">One workspace. Every calculation. Instantly updated.</p>
-        </div>
-        <div class="cw-hero-time">
-          <div class="cw-tblock"><span class="cw-tl">Time</span><span class="cw-tv" id="cw-clock">--:--:--</span></div>
-          <div class="cw-tblock"><span class="cw-tl">Case timer</span><span class="cw-tv" id="cw-casetimer">00:00:00</span></div>
         </div>
       </div>
       <!-- Row 2: Workstation Ready (left) | Crisis Center (right) -->
@@ -348,6 +338,38 @@ body.embed .eng-wrap{padding-top:14px;}
           <span class="cw-crisis-ic">&#128680;</span>
           <span class="cw-crisis-tx"><b>Crisis Center</b><i>Immediate emergency protocols</i></span>
         </button>
+      </div>
+    </div>
+
+    <!-- ── LIVE TIMERS (intraoperative workflow) — directly below the hero ── -->
+    <div class="lt-strip" id="live-timers">
+      <div class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></div>
+      <div class="lt-row">
+        <div class="lt-card" id="lt-anes" data-t="anes">
+          <div class="lt-head"><span class="lt-ico">&#129764;</span>Anesthesia</div>
+          <div class="lt-time" id="lt-anes-time">00:00:00</div>
+          <div class="lt-state" id="lt-anes-state">Not started</div>
+          <div class="lt-btns" id="lt-anes-btns"></div>
+        </div>
+        <div class="lt-card" id="lt-relax" data-t="relax">
+          <div class="lt-head"><span class="lt-ico">&#128137;</span>Relaxant / Intubation</div>
+          <div class="lt-time" id="lt-relax-time">00:00</div>
+          <div class="lt-state" id="lt-relax-state">Give relaxant to start</div>
+          <div class="lt-relbar"><div class="band"></div><div class="fill" id="lt-relax-fill"></div></div>
+          <div class="lt-btns" id="lt-relax-btns"></div>
+        </div>
+        <div class="lt-card" id="lt-surg" data-t="surg">
+          <div class="lt-head"><span class="lt-ico">&#128298;</span>Surgery</div>
+          <div class="lt-time" id="lt-surg-time">00:00:00</div>
+          <div class="lt-state" id="lt-surg-state">Not started</div>
+          <div class="lt-btns" id="lt-surg-btns"></div>
+        </div>
+        <div class="lt-card" id="lt-tourn" data-t="tourn">
+          <div class="lt-head"><span class="lt-ico">&#129705;</span>Tourniquet</div>
+          <div class="lt-time" id="lt-tourn-time">00:00:00</div>
+          <div class="lt-state" id="lt-tourn-state">Not inflated</div>
+          <div class="lt-btns" id="lt-tourn-btns"></div>
+        </div>
       </div>
     </div>
 
@@ -406,38 +428,6 @@ body.embed .eng-wrap{padding-top:14px;}
     <div id="output">
       <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
       <button class="cw-open-pt" onclick="var a=ge('acc-patient');if(a)a.scrollIntoView({behavior:'smooth',block:'center'});var f=ge('i-age');if(f)f.focus();">Enter patient details</button></div>
-    </div>
-
-    <!-- ── LIVE TIMERS (intraoperative workspace strip) — below the calculators ── -->
-    <div class="lt-strip" id="live-timers">
-      <div class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></div>
-      <div class="lt-row">
-        <div class="lt-card" id="lt-anes" data-t="anes">
-          <div class="lt-head"><span class="lt-ico">&#129764;</span>Anesthesia</div>
-          <div class="lt-time" id="lt-anes-time">00:00:00</div>
-          <div class="lt-state" id="lt-anes-state">Not started</div>
-          <div class="lt-btns" id="lt-anes-btns"></div>
-        </div>
-        <div class="lt-card" id="lt-relax" data-t="relax">
-          <div class="lt-head"><span class="lt-ico">&#128137;</span>Relaxant / Intubation</div>
-          <div class="lt-time" id="lt-relax-time">00:00</div>
-          <div class="lt-state" id="lt-relax-state">Give relaxant to start</div>
-          <div class="lt-relbar"><div class="band"></div><div class="fill" id="lt-relax-fill"></div></div>
-          <div class="lt-btns" id="lt-relax-btns"></div>
-        </div>
-        <div class="lt-card" id="lt-surg" data-t="surg">
-          <div class="lt-head"><span class="lt-ico">&#128298;</span>Surgery</div>
-          <div class="lt-time" id="lt-surg-time">00:00:00</div>
-          <div class="lt-state" id="lt-surg-state">Not started</div>
-          <div class="lt-btns" id="lt-surg-btns"></div>
-        </div>
-        <div class="lt-card" id="lt-tourn" data-t="tourn">
-          <div class="lt-head"><span class="lt-ico">&#129705;</span>Tourniquet</div>
-          <div class="lt-time" id="lt-tourn-time">00:00:00</div>
-          <div class="lt-state" id="lt-tourn-state">Not inflated</div>
-          <div class="lt-btns" id="lt-tourn-btns"></div>
-        </div>
-      </div>
     </div>
 
     <!-- PACU / Recovery — separate from the intraoperative timer strip -->
@@ -1050,7 +1040,6 @@ window.sedInline=sedInline;
 document.addEventListener('DOMContentLoaded',async function(){
   try{
     var embed = location.search.indexOf('embed=1') >= 0;
-    startMonitorHeader();   // animate vitals in the monitor header
     if(embed){
       // Embedded inside the Doctor Workspace — CSS (body.embed .nb) hides the
       // duplicate site navbar. We keep the monitor header as the workstation top.
@@ -1075,18 +1064,6 @@ document.addEventListener('DOMContentLoaded',async function(){
   }
 });
 
-// Workspace hero — live clock + case timer (UI motion, not simulated monitoring).
-var _cwCaseStart=null;
-function startMonitorHeader(){
-  function pad(n){ return (n<10?'0':'')+n; }
-  function hms(ms){ var s=Math.floor(ms/1000); return pad(Math.floor(s/3600))+':'+pad(Math.floor(s/60)%60)+':'+pad(s%60); }
-  if(_cwCaseStart===null) _cwCaseStart=Date.now();
-  function tick(){
-    var c=ge('cw-clock'); if(c){ var d=new Date(); c.textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
-    var t=ge('cw-casetimer'); if(t){ t.textContent=hms(Date.now()-_cwCaseStart); }
-  }
-  tick(); setInterval(tick,1000);
-}
 // Patient Identity glance (presentation only — these fields drive no calculation).
 function cwIdentity(){
   var f=ge('i-fname'), l=ge('i-lname'), p=ge('i-pid'), sub=ge('acc-ident-sub'); if(!sub) return;
