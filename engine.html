@@ -22,7 +22,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 #app{display:none;}
 .eng-wrap{max-width:1100px;margin:0 auto;padding:30px 24px 80px;position:relative;z-index:1;}
 /* ── Clinical Workspace hero (compact; calculators are the focus) ── */
-.cw-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+.cw-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;
   background:linear-gradient(150deg,rgba(42,138,116,.15),rgba(255,255,255,.012));
   border:1px solid rgba(126,207,192,.24);border-radius:16px;padding:15px 20px;margin-bottom:14px;
   box-shadow:0 12px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04);}
@@ -59,6 +59,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 .cw-acc>summary:focus-visible{outline:2px solid rgba(126,207,192,.7);outline-offset:-2px;}
 .cw-acc-chev{color:#7ECFC0;font-size:11px;transition:transform .2s ease;flex:0 0 auto;}
 .cw-acc[open] .cw-acc-chev{transform:rotate(90deg);}
+.cw-acc-head{display:flex;align-items:center;gap:11px;padding:13px 16px;font-size:13.5px;font-weight:800;color:#f1fffb;}
 .cw-acc-t{letter-spacing:.01em;flex:0 0 auto;}
 .cw-acc-sub{margin-left:auto;min-width:0;font-size:12px;font-weight:700;color:#c2d6cf;font-variant-numeric:tabular-nums;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cw-acc-body{padding:2px 16px 16px;}
@@ -343,9 +344,19 @@ body.embed .eng-wrap{padding-top:14px;}
       </div>
     </div>
 
-    <!-- Clinical sections — collapsible, collapsed by default (keeps the calculators in focus) -->
-    <details class="cw-acc" id="acc-patient">
-      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Patient Details</span><span class="cw-acc-sub" id="acc-patient-sub">Not entered</span></summary>
+    <!-- Patient Identity — collapsible, collapsed by default (does not affect any calculation) -->
+    <details class="cw-acc">
+      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Patient Identity</span><span class="cw-acc-sub" id="acc-ident-sub">Not entered</span></summary>
+      <div class="cw-acc-body"><div class="input-bar">
+        <div class="inp"><label>First name</label><input id="i-fname" type="text" placeholder="first name" autocomplete="off" oninput="cwIdentity()"></div>
+        <div class="inp"><label>Last name</label><input id="i-lname" type="text" placeholder="last name" autocomplete="off" oninput="cwIdentity()"></div>
+        <div class="inp"><label>Patient ID</label><input id="i-pid" type="text" placeholder="ID / MRN" autocomplete="off" oninput="cwIdentity()"></div>
+      </div></div>
+    </details>
+
+    <!-- Patient Details — always expanded (drives the calculations) -->
+    <section class="cw-acc" id="acc-patient">
+      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span></div>
       <div class="cw-acc-body"><div class="input-bar">
         <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
           <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
@@ -357,7 +368,7 @@ body.embed .eng-wrap{padding-top:14px;}
         <div class="inp"><label>ASA</label><select id="i-asa" onchange="compute()"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></div>
         <div class="inp"><label>Procedure</label><input id="i-proc" type="text" placeholder="e.g. Laparoscopy" oninput="compute()"></div>
       </div></div>
-    </details>
+    </section>
 
     <details class="cw-acc">
       <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Laboratory Results</span><span class="cw-acc-sub" id="acc-lab-sub">Not entered</span></summary>
@@ -370,8 +381,9 @@ body.embed .eng-wrap{padding-top:14px;}
       </div></div>
     </details>
 
-    <details class="cw-acc">
-      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Derived Values</span><span class="cw-acc-sub" id="acc-derived-sub">Not entered</span></summary>
+    <!-- Derived Values — always expanded -->
+    <section class="cw-acc" id="acc-derived">
+      <div class="cw-acc-head"><span class="cw-acc-t">Derived Values</span></div>
       <div class="cw-acc-body"><div class="cw-derived" id="cw-derived">
         <div class="cw-d"><span class="cw-d-l">BMI</span><span class="cw-d-val" id="cw-bmi">&mdash;</span></div>
         <div class="cw-d"><span class="cw-d-l">IBW</span><span class="cw-d-val" id="cw-ibw">&mdash;</span><span class="cw-d-u">kg</span></div>
@@ -381,12 +393,12 @@ body.embed .eng-wrap{padding-top:14px;}
         <div class="cw-d"><span class="cw-d-l">EBV</span><span class="cw-d-val" id="cw-ebv">&mdash;</span><span class="cw-d-u">mL</span></div>
         <div class="cw-d"><span class="cw-d-l">MAC <small>age-adj</small></span><span class="cw-d-val" id="cw-mac">&mdash;</span></div>
       </div></div>
-    </details>
+    </section>
     <div class="disclaimer"><strong>Reference only.</strong> All values are standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment and verify against current guidelines and product labeling.</div>
 
     <div id="output">
       <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
-      <button class="cw-open-pt" onclick="var a=ge('acc-patient');a.open=true;a.scrollIntoView({behavior:'smooth',block:'center'});var f=ge('i-age');if(f)f.focus();">Open Patient Details</button></div>
+      <button class="cw-open-pt" onclick="var a=ge('acc-patient');if(a)a.scrollIntoView({behavior:'smooth',block:'center'});var f=ge('i-age');if(f)f.focus();">Enter patient details</button></div>
     </div>
 
     <!-- ── LIVE TIMERS (intraoperative workspace strip) — below the calculators ── -->
@@ -1068,6 +1080,15 @@ function startMonitorHeader(){
   }
   tick(); setInterval(tick,1000);
 }
+// Patient Identity glance (presentation only — these fields drive no calculation).
+function cwIdentity(){
+  var f=ge('i-fname'), l=ge('i-lname'), p=ge('i-pid'), sub=ge('acc-ident-sub'); if(!sub) return;
+  var name=[(f&&f.value.trim())||'', (l&&l.value.trim())||''].filter(Boolean).join(' '), parts=[];
+  if(name) parts.push(name);
+  if(p && p.value.trim()) parts.push('ID '+p.value.trim());
+  sub.textContent = parts.length ? parts.join(' • ') : 'Not entered';
+}
+window.cwIdentity=cwIdentity;
 // Derived-value setters — smooth flash when a value changes (presentation only).
 function cwSetDerived(id,val){
   var e=ge(id); if(!e) return; var s=String(val);
