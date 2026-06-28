@@ -351,18 +351,15 @@ body.embed .eng-wrap{padding-top:14px;}
         </div>
         <button class="cw-crisis" onclick="crisisJump()" aria-label="Open Crisis Center">
           <span class="cw-crisis-ic">&#128680;</span>
-          <span class="cw-crisis-tx"><b>Crisis Center</b><i>If something goes wrong</i></span>
+          <span class="cw-crisis-tx"><b>Crisis Center</b><i>Immediate emergency protocols</i></span>
         </button>
       </div>
     </div>
 
     <!-- Clinical sections — collapsible, collapsed by default (keeps the calculators in focus) -->
     <details class="cw-acc" id="acc-patient">
-      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Patient Details</span><span class="cw-acc-sub" id="acc-patient-sub">Tap to enter</span></summary>
+      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Patient Details</span><span class="cw-acc-sub" id="acc-patient-sub">Not entered</span></summary>
       <div class="cw-acc-body"><div class="input-bar">
-        <div class="inp"><label>Name</label><input id="i-name" type="text" placeholder="first name" autocomplete="off"></div>
-        <div class="inp"><label>Last name</label><input id="i-lname" type="text" placeholder="last name" autocomplete="off"></div>
-        <div class="inp"><label>ID number</label><input id="i-mrn" type="text" placeholder="MRN / ID" autocomplete="off"></div>
         <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
           <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
           <select id="i-age-unit" onchange="compute()" style="flex:0 0 80px;width:80px;min-width:80px;"><option value="y">years</option><option value="mo">months</option><option value="w">weeks</option><option value="d">days</option></select>
@@ -376,20 +373,18 @@ body.embed .eng-wrap{padding-top:14px;}
     </details>
 
     <details class="cw-acc">
-      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Laboratory Results</span><span class="cw-acc-sub">Optional</span></summary>
+      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Laboratory Results</span><span class="cw-acc-sub" id="acc-lab-sub">Not entered</span></summary>
       <div class="cw-acc-body"><div class="input-bar">
         <div class="inp"><label>Hemoglobin (g/dL)</label><input id="i-hb" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
         <div class="inp"><label>Platelets (×10³)</label><input id="i-plt" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
         <div class="inp"><label>INR</label><input id="i-inr" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
         <div class="inp"><label>Creatinine (mg/dL)</label><input id="i-cr" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
         <div class="inp"><label>Sodium (mmol/L)</label><input id="i-na" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
-        <div class="inp"><label>Potassium (mmol/L)</label><input id="i-k" type="number" inputmode="decimal" step="0.1" placeholder="opt." oninput="compute()"></div>
-        <div class="inp"><label>Glucose (mg/dL)</label><input id="i-glu" type="number" inputmode="numeric" placeholder="opt." oninput="compute()"></div>
       </div></div>
     </details>
 
     <details class="cw-acc">
-      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Derived Values</span><span class="cw-acc-sub" id="acc-derived-sub">&mdash;</span></summary>
+      <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Derived Values</span><span class="cw-acc-sub" id="acc-derived-sub">Not entered</span></summary>
       <div class="cw-acc-body"><div class="cw-derived" id="cw-derived">
         <div class="cw-d"><span class="cw-d-l">BMI</span><span class="cw-d-val" id="cw-bmi">&mdash;</span></div>
         <div class="cw-d"><span class="cw-d-l">IBW</span><span class="cw-d-val" id="cw-ibw">&mdash;</span><span class="cw-d-u">kg</span></div>
@@ -726,9 +721,11 @@ function compute(){
   cwSetDerived('cw-bsa', r2(bsa));
   cwSetDerived('cw-ebv', r0(ebv));
   cwSetDerived('cw-mac', r2(macAge)+'&times;');
-  // Collapsed-section glances (so the doctor sees patient + key value without expanding)
-  var ps=ge('acc-patient-sub'); if(ps) ps.textContent=ageLabel(ageC)+' '+(sex==='M'?'M':'F')+' · '+r0(wt)+' kg'+(asa?(' · ASA '+asa):'');
-  var ds=ge('acc-derived-sub'); if(ds) ds.textContent='BMI '+r1(bmi)+' · IBW '+r0(ibw)+' kg';
+  // Collapsed-section glances (the doctor reads patient status without expanding)
+  var ageStr=(ageC && ageC.years>=2)?(ageLabel(ageC)+' y'):ageLabel(ageC);
+  var ps=ge('acc-patient-sub'); if(ps) ps.textContent=ageStr+' • '+(sex==='M'?'Male':'Female')+' • '+r0(wt)+' kg'+(asa?(' • ASA '+asa):'');
+  var ds=ge('acc-derived-sub'); if(ds) ds.textContent='BMI '+r1(bmi)+' • IBW '+r0(ibw)+' kg';
+  var ls=ge('acc-lab-sub'); if(ls){ var lsum=cwLabSummary(); ls.textContent=lsum||'Not entered'; }
   var procL=proc.toLowerCase();
   var isCS = /cesar|caesar|c-?section|c\/s/.test(procL);
   var isOb = sex==='F' && (isCS || /obstet|labou?r|delivery|hysterect|gyn/.test(procL));
@@ -1160,10 +1157,17 @@ function cwSetDerived(id,val){
   var e=ge(id); if(!e) return; var s=String(val);
   if(e.innerHTML!==s){ e.innerHTML=s; e.classList.remove('cw-flash'); void e.offsetWidth; e.classList.add('cw-flash'); }
 }
+// Collapsed Laboratory Results glance — only the labs the doctor actually entered.
+function cwLabSummary(){
+  var parts=[], fields=[['i-hb','Hb'],['i-plt','Plt'],['i-inr','INR'],['i-cr','Cr'],['i-na','Na']];
+  fields.forEach(function(f){ var el=ge(f[0]); if(el && el.value!=='' && !isNaN(parseFloat(el.value))) parts.push(f[1]+' '+el.value); });
+  return parts.join(' • ');
+}
 function cwClearDerived(){
   ['cw-bmi','cw-ibw','cw-lbw','cw-abw','cw-bsa','cw-ebv','cw-mac'].forEach(function(id){ var e=ge(id); if(e) e.innerHTML='&mdash;'; });
-  var ps=ge('acc-patient-sub'); if(ps) ps.textContent='Tap to enter';
-  var ds=ge('acc-derived-sub'); if(ds) ds.innerHTML='&mdash;';
+  var ps=ge('acc-patient-sub'); if(ps) ps.textContent='Not entered';
+  var ds=ge('acc-derived-sub'); if(ds) ds.textContent='Not entered';
+  var ls=ge('acc-lab-sub'); if(ls){ var lsum=cwLabSummary(); ls.textContent=lsum||'Not entered'; }
 }
 
 
