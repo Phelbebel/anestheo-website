@@ -101,6 +101,19 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-tab.active .ws-tab-ic{color:#7ECFC0;}
 .ws-tab.active::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#7ECFC0,#2A8A74);box-shadow:0 0 10px rgba(126,207,192,.6);}
 .ws-tab:focus-visible{outline:2px solid rgba(126,207,192,.55);outline-offset:1px;}
+/* Live Tools — the signature feature: brighter, breathing glow, animated ECG, live dot */
+.ws-tab-sig{background:linear-gradient(135deg,rgba(42,138,116,.26),rgba(126,207,192,.07));border-color:rgba(126,207,192,.34);color:#fff;animation:sigBreath 3.4s ease-in-out infinite;}
+@keyframes sigBreath{0%,100%{box-shadow:0 0 0 1px rgba(126,207,192,.10),0 0 14px rgba(126,207,192,.07);}50%{box-shadow:0 0 0 1px rgba(126,207,192,.26),0 0 28px rgba(126,207,192,.22);}}
+.ws-tab-sig .ws-tab-tx{font-weight:700;}
+.ws-tab-sig .ws-tab-ic{color:#7ECFC0;}
+.ws-tab-sig:hover{transform:translateY(-1px);background:linear-gradient(135deg,rgba(42,138,116,.36),rgba(126,207,192,.14));border-color:rgba(126,207,192,.55);}
+.ws-tab-sig.active{background:linear-gradient(135deg,rgba(42,138,116,.44),rgba(126,207,192,.17));border-color:rgba(126,207,192,.62);}
+.sig-ecg svg{width:20px;height:14px;overflow:visible;}
+.sig-ecg-l{stroke-dasharray:22 130;stroke-dashoffset:152;animation:sigTrace 2.6s linear infinite;filter:drop-shadow(0 0 3px rgba(126,207,192,.75));}
+@keyframes sigTrace{to{stroke-dashoffset:0;}}
+.sig-live{margin-left:auto;width:7px;height:7px;border-radius:50%;background:#34D399;box-shadow:0 0 9px #34D399;animation:sigPulse 1.8s ease-in-out infinite;flex:0 0 auto;}
+@keyframes sigPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);}}
+@media(prefers-reduced-motion:reduce){.ws-tab-sig,.sig-ecg-l,.sig-live{animation:none;}}
 .ws-rail-sp{height:10px;}
 .ws-body{min-width:0;}
 .ws-sec{display:none;animation:wsfade .25s ease;}
@@ -446,6 +459,7 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-wf{display:none;} .ws-wf.on{display:block;}
 .ws-wf-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
 .ws-stagetabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ws-mp-pipe{gap:10px;margin-bottom:18px;align-items:stretch;}
 .ws-stab{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:9px 13px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;}
 .ws-stab:hover{color:#fff;border-color:rgba(126,207,192,.3);}
 .ws-stab.active{color:#fff;background:rgba(126,207,192,.12);border-color:rgba(126,207,192,.45);}
@@ -477,14 +491,20 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 /* Scope the canonical palette to the My Patients board so it renders as designed
    (these CSS vars are otherwise undefined here). Consultation Requests is untouched. */
 #sec-patients .ws-wf[data-wf="mypatients"]{--border:rgba(27,107,90,.24);--muted:rgba(255,255,255,.56);--hint:rgba(255,255,255,.34);--teal:#7ECFC0;--accent:#7ECFC0;}
-/* Row 1 — statistics */
-.ws-mp-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:18px;}
-.ws-mp-stat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:13px;padding:13px 14px;position:relative;overflow:hidden;}
-.ws-mp-stat .lab{font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);line-height:1.3;}
-.ws-mp-stat .val{font-size:29px;font-weight:800;letter-spacing:-.02em;margin-top:5px;line-height:1;}
-.ws-mp-stat .ic{position:absolute;top:12px;right:13px;font-size:14px;opacity:.5;}
-.ws-mp-stat.acc-o{border-color:rgba(255,154,82,.32);}.ws-mp-stat.acc-o .val{color:#FFC089;}
-.ws-mp-stat.acc-g{border-color:rgba(61,220,151,.3);}.ws-mp-stat.acc-g .val{color:#7CEFC0;}
+/* Headline — replaces the redundant stat-card grid (single source of truth) */
+.ws-mp-headline{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+.hl-total{font-size:14.5px;color:var(--muted);display:flex;align-items:baseline;gap:6px;}
+.hl-total b{font-size:25px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1;}
+.hl-attn{display:inline-flex;align-items:center;gap:9px;font-family:inherit;font-size:13.5px;font-weight:600;color:#FFC089;
+  background:linear-gradient(180deg,rgba(255,154,82,.15),rgba(255,154,82,.04));border:1px solid rgba(255,154,82,.42);
+  border-radius:12px;padding:9px 15px;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;}
+.hl-attn b{font-size:16px;font-weight:800;color:#fff;}
+.hl-attn .d{width:8px;height:8px;border-radius:50%;background:#FF9A52;box-shadow:0 0 9px rgba(255,154,82,.7);flex:0 0 auto;}
+.hl-attn:hover{transform:translateY(-1px);border-color:rgba(255,154,82,.72);box-shadow:0 10px 22px rgba(255,154,82,.18);}
+.hl-attn.zero{color:#9FF0CF;background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.3);cursor:default;}
+.hl-attn.zero{pointer-events:none;}
+.hl-attn.zero .d{background:#34D399;box-shadow:0 0 8px rgba(52,211,153,.6);}
+.hl-add{margin-left:auto;flex:0 0 auto;}
 /* Search + sort toolbar */
 .ws-mp-tools{display:flex;align-items:center;gap:11px;margin-bottom:16px;flex-wrap:wrap;}
 .ws-mp-search{flex:1;min-width:230px;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:10px 13px;}
@@ -507,12 +527,16 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-stab-nm{font-size:12.5px;font-weight:700;color:var(--muted);line-height:1.2;white-space:nowrap;}
 .ws-stab.active .ws-stab-nm{color:#fff;}
 .ws-stab-sub{font-size:10px;color:var(--hint);white-space:nowrap;line-height:1.2;}
-/* Awaiting Review — persistently prominent (doctor action), even when not selected */
-.ws-stab.attn{position:relative;border-color:rgba(255,154,82,.55);background:linear-gradient(180deg,rgba(255,154,82,.13),rgba(255,154,82,.03));box-shadow:0 0 0 1px rgba(255,154,82,.22),0 6px 18px rgba(255,154,82,.14);}
-.ws-stab.attn .ws-stab-nm{color:#fff;}
+/* Awaiting Review — top priority (doctor action). Inline flag never clips. */
+.ws-stab.attn{position:relative;border-color:rgba(255,154,82,.55);background:linear-gradient(180deg,rgba(255,154,82,.14),rgba(255,154,82,.03));box-shadow:0 0 0 1px rgba(255,154,82,.22),0 6px 18px rgba(255,154,82,.14);}
+.ws-stab.attn .ws-stab-nm{color:#fff;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .ws-stab.attn .ws-stab-sub{color:#FFB98A;}
 .ws-stab.attn.active{border-color:rgba(255,154,82,.72);}
-.ws-stab-attntag{position:absolute;top:-8px;right:8px;font-size:8.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#06140f;background:#FF9A52;border-radius:20px;padding:1px 7px;box-shadow:0 3px 8px rgba(255,154,82,.4);}
+.ws-stab-flag{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#06140f;background:#FF9A52;border-radius:20px;padding:2px 8px;line-height:1.5;white-space:nowrap;}
+/* Scheduled — upcoming surgery: secondary priority emphasis (calmer than attention) */
+.ws-stab.acc-up{border-color:rgba(61,220,151,.4);background:linear-gradient(180deg,rgba(61,220,151,.08),rgba(61,220,151,.02));}
+.ws-stab.acc-up .ws-stab-nm{color:#fff;}
+.ws-stab.acc-up .ws-stab-sub{color:#8FE9C4;}
 /* Circular avatar with stage status ring */
 .ws-mp-ava{position:relative;width:38px;height:38px;border-radius:50%;padding:2.5px;background:rgba(255,255,255,.4);display:block;flex:0 0 auto;align-self:flex-start;}
 .ws-mp-ava .av-in{display:flex;width:100%;height:100%;border-radius:50%;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#bff5df;background:linear-gradient(135deg,#15414f,#1c6e5a);border:2px solid #0A1A15;}
@@ -540,13 +564,18 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-mp-clearbtn{margin-top:14px;padding:9px 16px;font-size:12.5px;}
 /* Mobile — horizontal swipe rails for stats + pipeline */
 @media(max-width:760px){
-  .ws-mp-stats{display:flex;overflow-x:auto;gap:9px;margin:0 -2px 18px;padding:0 2px 5px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
-  .ws-mp-stats::-webkit-scrollbar{display:none;}
-  .ws-mp-stat{flex:0 0 140px;scroll-snap-align:start;}
-  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stagetabs{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:6px;}
-  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stagetabs::-webkit-scrollbar{display:none;}
-  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stab{flex:0 0 auto;scroll-snap-align:start;}
-  #sec-patients .ws-wf[data-wf="mypatients"] .ws-sarrow{display:none;}
+  /* Headline stacks; "needs review" stays a full-width priority banner */
+  .ws-mp-headline{gap:10px;}
+  .hl-total{flex:0 0 auto;}
+  .hl-attn{order:3;flex:1 1 100%;justify-content:center;}
+  .hl-add{order:2;margin-left:auto;}
+  /* Pipeline WRAPS (no horizontal scroll → nothing clips). Attention rises to the
+     top full-width so Action Needed / Awaiting Review is always visible. */
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stagetabs{flex-wrap:wrap;overflow:visible;gap:8px;}
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stab{flex:1 1 calc(50% - 8px);min-width:0;}
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stab.attn{order:-2;flex:1 1 100%;}
+  #sec-patients .ws-wf[data-wf="mypatients"] .ws-stab.acc-up{order:-1;}
+  .ws-stab-nm{white-space:normal;}
   .ws-mp-row{flex-wrap:wrap;}
   .ws-mp-right{width:100%;flex-direction:row;align-items:center;min-width:0;}
   .ws-mp-datechip{flex:1;text-align:left;width:auto;}
@@ -1272,11 +1301,18 @@ window.wsOpenTools=wsOpenTools;
 function wsRenderMpStats(){
   var a=_wsMyPatients||[];
   var set=function(id,n){ var e=document.getElementById(id); if(e) e.textContent=n; };
-  set('ws-mp-stat-total', a.length);
-  set('ws-mp-stat-awaiting', a.filter(function(p){return p.stage==='awaiting';}).length);
-  set('ws-mp-stat-review', a.filter(function(p){return p.stage==='review';}).length);
-  set('ws-mp-stat-upcoming', a.filter(function(p){return p.stage==='scheduled';}).length);
-  set('ws-mp-stat-active', a.filter(function(p){return p.stage!=='completed';}).length);
+  // Headline — the single source for "how many patients" + "who needs me".
+  set('ws-mp-hl-total', a.length);
+  var pl=document.getElementById('ws-mp-hl-total'); var lab=pl&&pl.parentNode&&pl.parentNode.querySelector('.hl-total-l');
+  if(lab) lab.textContent=(a.length===1?'patient':'patients');
+  var attn=a.filter(function(p){return p.stage==='review';}).length;
+  var pill=document.getElementById('ws-mp-hl-pill');
+  if(pill){
+    pill.classList.toggle('zero', attn===0);
+    pill.innerHTML = attn>0
+      ? '<span class="d"></span><b>'+attn+'</b> '+(attn===1?'patient needs':'patients need')+' your review'
+      : '<span class="d"></span>All caught up &mdash; no patients awaiting review';
+  }
 }
 // Client-side sort comparators (no new queries).
 function wsMpComparator(mode){
@@ -2877,7 +2913,11 @@ document.addEventListener('DOMContentLoaded', async function(){
       '</div>' +
       '<div class="ws-railgrp">' +
         '<div class="ws-railgrp-lbl">Live Tools</div>' +
-        railTab('tools','layout-grid','Live Tools',';wsOpenTools()') +
+        '<button class="ws-tab ws-tab-sig" data-sec="tools" onclick="wsShow(\'tools\');wsOpenTools()" aria-label="Live Tools — Anesthesia Workstation">' +
+          '<span class="ws-tab-ic sig-ecg"><svg viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="sig-ecg-l" d="M1 9h4l2-6 3 11 2-8 1.5 3H23"/></svg></span>' +
+          '<span class="ws-tab-tx">Live Tools</span>' +
+          '<span class="sig-live" aria-hidden="true"></span>' +
+        '</button>' +
       '</div>' +
       '<div class="ws-railgrp">' +
         '<div class="ws-railgrp-lbl">Knowledge</div>' +
@@ -2929,13 +2969,19 @@ document.addEventListener('DOMContentLoaded', async function(){
 
         // ════════ WORKFLOW A — MY PATIENTS (surgical only, 5 stages) ════════
         '<div class="ws-wf on" data-wf="mypatients">' +
-          // Row 1 — dashboard statistics
-          '<div class="ws-mp-stats">' +
-            '<div class="ws-mp-stat"><div class="lab">Total patients</div><div class="val" id="ws-mp-stat-total">0</div><span class="ic">&#128101;</span></div>' +
-            '<div class="ws-mp-stat"><div class="lab">Awaiting questionnaire</div><div class="val" id="ws-mp-stat-awaiting">0</div><span class="ic">&#128203;</span></div>' +
-            '<div class="ws-mp-stat acc-o"><div class="lab">Awaiting review</div><div class="val" id="ws-mp-stat-review">0</div><span class="ic">&#128270;</span></div>' +
-            '<div class="ws-mp-stat acc-g"><div class="lab">Upcoming surgeries</div><div class="val" id="ws-mp-stat-upcoming">0</div><span class="ic">&#128197;</span></div>' +
-            '<div class="ws-mp-stat"><div class="lab">Active cases</div><div class="val" id="ws-mp-stat-active">0</div><span class="ic">&#9889;</span></div>' +
+          // Headline — single source: how many patients + who needs attention
+          '<div class="ws-mp-headline">' +
+            '<div class="hl-total"><b id="ws-mp-hl-total">0</b> <span class="hl-total-l">patients</span></div>' +
+            '<button id="ws-mp-hl-pill" class="hl-attn" onclick="wsMpStage(\'review\')"><span class="d"></span>All caught up</button>' +
+            '<button class="ws-btn ws-btn-wa hl-add" onclick="wsOpenAddModal()">&#10133; New Patient</button>' +
+          '</div>' +
+          // Stage pipeline (single source of stage info; reads left→right, no arrows)
+          '<div class="ws-stagetabs ws-mp-pipe">' +
+            '<button class="ws-stab active" data-s="awaiting" onclick="wsMpStage(\'awaiting\')"><span class="ws-stab-badge s0" id="ws-mp-awaiting-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Questionnaire</span><span class="ws-stab-sub">Waiting on patient</span></span></button>' +
+            '<button class="ws-stab attn" data-s="review" onclick="wsMpStage(\'review\')"><span class="ws-stab-badge s1" id="ws-mp-review-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Review <span class="ws-stab-flag">Action needed</span></span><span class="ws-stab-sub">Needs your review</span></span></button>' +
+            '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')"><span class="ws-stab-badge s2" id="ws-mp-approved-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Approved</span><span class="ws-stab-sub">Ready for scheduling</span></span></button>' +
+            '<button class="ws-stab acc-up" data-s="scheduled" onclick="wsMpStage(\'scheduled\')"><span class="ws-stab-badge s3" id="ws-mp-scheduled-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Scheduled</span><span class="ws-stab-sub">Upcoming surgery</span></span></button>' +
+            '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')"><span class="ws-stab-badge s4" id="ws-mp-completed-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Completed</span><span class="ws-stab-sub">Finished</span></span></button>' +
           '</div>' +
           // Search + sort toolbar
           '<div class="ws-mp-tools">' +
@@ -2948,21 +2994,6 @@ document.addEventListener('DOMContentLoaded', async function(){
                 '<option value="updated">Recently updated</option>' +
                 '<option value="name">Patient name</option>' +
               '</select></div>' +
-          '</div>' +
-          // Row 2 — workflow pipeline navigation
-          '<div class="ws-wf-bar">' +
-            '<div class="ws-stagetabs">' +
-              '<button class="ws-stab active" data-s="awaiting" onclick="wsMpStage(\'awaiting\')"><span class="ws-stab-badge s0" id="ws-mp-awaiting-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Questionnaire</span><span class="ws-stab-sub">Waiting on patient</span></span></button>' +
-              '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab attn" data-s="review" onclick="wsMpStage(\'review\')"><span class="ws-stab-attntag">Action needed</span><span class="ws-stab-badge s1" id="ws-mp-review-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Review</span><span class="ws-stab-sub">Needs your review</span></span></button>' +
-              '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')"><span class="ws-stab-badge s2" id="ws-mp-approved-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Approved</span><span class="ws-stab-sub">Ready for scheduling</span></span></button>' +
-              '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="scheduled" onclick="wsMpStage(\'scheduled\')"><span class="ws-stab-badge s3" id="ws-mp-scheduled-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Scheduled</span><span class="ws-stab-sub">Upcoming surgery</span></span></button>' +
-              '<span class="ws-sarrow">&rarr;</span>' +
-              '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')"><span class="ws-stab-badge s4" id="ws-mp-completed-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Completed</span><span class="ws-stab-sub">Finished</span></span></button>' +
-            '</div>' +
-            '<div class="ws-wf-acts"><button class="ws-btn ws-btn-wa" onclick="wsOpenAddModal()">&#10133; New Patient</button></div>' +
           '</div>' +
           '<div class="ws-board mp"><div id="ws-mp-list" class="ws-list"></div></div>' +
         '</div>' +
