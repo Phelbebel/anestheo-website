@@ -101,19 +101,31 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-tab.active .ws-tab-ic{color:#7ECFC0;}
 .ws-tab.active::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#7ECFC0,#2A8A74);box-shadow:0 0 10px rgba(126,207,192,.6);}
 .ws-tab:focus-visible{outline:2px solid rgba(126,207,192,.55);outline-offset:1px;}
-/* Live Tools — the signature feature: brighter, breathing glow, animated ECG, live dot */
-.ws-tab-sig{background:linear-gradient(135deg,rgba(42,138,116,.26),rgba(126,207,192,.07));border-color:rgba(126,207,192,.34);color:#fff;animation:sigBreath 3.4s ease-in-out infinite;}
-@keyframes sigBreath{0%,100%{box-shadow:0 0 0 1px rgba(126,207,192,.10),0 0 14px rgba(126,207,192,.07);}50%{box-shadow:0 0 0 1px rgba(126,207,192,.26),0 0 28px rgba(126,207,192,.22);}}
-.ws-tab-sig .ws-tab-tx{font-weight:700;}
-.ws-tab-sig .ws-tab-ic{color:#7ECFC0;}
-.ws-tab-sig:hover{transform:translateY(-1px);background:linear-gradient(135deg,rgba(42,138,116,.36),rgba(126,207,192,.14));border-color:rgba(126,207,192,.55);}
-.ws-tab-sig.active{background:linear-gradient(135deg,rgba(42,138,116,.44),rgba(126,207,192,.17));border-color:rgba(126,207,192,.62);}
-.sig-ecg svg{width:20px;height:14px;overflow:visible;}
-.sig-ecg-l{stroke-dasharray:22 130;stroke-dashoffset:152;animation:sigTrace 2.6s linear infinite;filter:drop-shadow(0 0 3px rgba(126,207,192,.75));}
-@keyframes sigTrace{to{stroke-dashoffset:0;}}
-.sig-live{margin-left:auto;width:7px;height:7px;border-radius:50%;background:#34D399;box-shadow:0 0 9px #34D399;animation:sigPulse 1.8s ease-in-out infinite;flex:0 0 auto;}
-@keyframes sigPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);}}
-@media(prefers-reduced-motion:reduce){.ws-tab-sig,.sig-ecg-l,.sig-live{animation:none;}}
+/* Live Tools — the signature feature: a living monitor card that owns the sidebar */
+.ws-sig{position:relative;display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;padding:0;margin:2px 0;
+  border:1px solid rgba(126,207,192,.5);border-radius:15px;overflow:hidden;
+  background:linear-gradient(150deg,rgba(42,138,116,.5),rgba(8,30,24,.65));
+  animation:sigGlow 3s ease-in-out infinite;transition:transform .2s ease;}
+@keyframes sigGlow{
+  0%,100%{box-shadow:0 0 0 1px rgba(126,207,192,.2),0 10px 24px rgba(0,0,0,.35),0 0 16px rgba(126,207,192,.12);}
+  50%{box-shadow:0 0 0 1px rgba(126,207,192,.45),0 12px 30px rgba(0,0,0,.42),0 0 36px rgba(126,207,192,.34);}}
+.ws-sig:hover{transform:translateY(-2px);}
+.ws-sig.active{border-color:rgba(126,207,192,.85);}
+.ws-sig.active::before{content:'';position:absolute;left:0;top:14%;bottom:14%;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,#7ECFC0,#2A8A74);box-shadow:0 0 12px rgba(126,207,192,.8);z-index:3;}
+.ws-sig-wave{display:block;height:32px;background:radial-gradient(120% 140% at 50% 0,rgba(70,211,154,.12),transparent 70%),#04130d;border-bottom:1px solid rgba(126,207,192,.16);overflow:hidden;}
+.ws-sig-wave svg{display:block;width:200%;height:100%;animation:sigScroll 2.2s linear infinite;}
+.ws-sig-wave path{fill:none;stroke:#46d39a;stroke-width:1.8;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 4px rgba(70,211,154,.85));}
+@keyframes sigScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.ws-sig-body{display:flex;align-items:center;gap:10px;padding:11px 12px;}
+.ws-sig-ic{display:flex;color:#7ECFC0;}
+.ws-sig-ic .dico{width:20px;height:20px;}
+.ws-sig-tx{display:flex;flex-direction:column;line-height:1.18;min-width:0;}
+.ws-sig-tx b{font-size:14.5px;font-weight:800;color:#fff;letter-spacing:-.01em;}
+.ws-sig-tx i{font-style:normal;font-size:10.5px;color:#9FE6D6;}
+.ws-sig-live{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:8.5px;font-weight:800;letter-spacing:.09em;color:#04130d;background:#34D399;border-radius:20px;padding:3px 8px;flex:0 0 auto;box-shadow:0 0 12px rgba(52,211,153,.4);}
+.ws-sig-live .dot{width:5px;height:5px;border-radius:50%;background:#04130d;animation:sigPulse 1.3s ease-in-out infinite;}
+@keyframes sigPulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+@media(prefers-reduced-motion:reduce){.ws-sig,.ws-sig-wave svg,.ws-sig-live .dot{animation:none;}}
 .ws-rail-sp{height:10px;}
 .ws-body{min-width:0;}
 .ws-sec{display:none;animation:wsfade .25s ease;}
@@ -828,7 +840,7 @@ function dashFail(msg){
 // ── WORKSPACE MODULES ─────────────────────────────────────────
 function wsShow(sec){
   document.querySelectorAll('.ws-sec').forEach(function(s){ s.classList.remove('active'); });
-  document.querySelectorAll('.ws-tab[data-sec]').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-sec')===sec); });
+  document.querySelectorAll('.ws-tab[data-sec],.ws-sig[data-sec]').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-sec')===sec); });
   var el = document.getElementById('sec-'+sec); if(el) el.classList.add('active');
 }
 function wsToast(msg){
@@ -2912,11 +2924,15 @@ document.addEventListener('DOMContentLoaded', async function(){
         (isAdminRole ? railTab('admin','shield-check','Admin') : '') +
       '</div>' +
       '<div class="ws-railgrp">' +
-        '<div class="ws-railgrp-lbl">Live Tools</div>' +
-        '<button class="ws-tab ws-tab-sig" data-sec="tools" onclick="wsShow(\'tools\');wsOpenTools()" aria-label="Live Tools — Anesthesia Workstation">' +
-          '<span class="ws-tab-ic sig-ecg"><svg viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="sig-ecg-l" d="M1 9h4l2-6 3 11 2-8 1.5 3H23"/></svg></span>' +
-          '<span class="ws-tab-tx">Live Tools</span>' +
-          '<span class="sig-live" aria-hidden="true"></span>' +
+        '<button class="ws-sig" data-sec="tools" onclick="wsShow(\'tools\');wsOpenTools()" aria-label="Live Tools — Anesthesia Workstation">' +
+          '<span class="ws-sig-wave" aria-hidden="true">' +
+            '<svg viewBox="0 0 240 30" preserveAspectRatio="none"><path d="M0,20 L14,20 18,20 22,9 26,27 30,6 34,22 38,20 60,20 74,20 78,20 82,9 86,27 90,6 94,22 98,20 120,20 134,20 138,20 142,9 146,27 150,6 154,22 158,20 180,20 194,20 198,20 202,9 206,27 210,6 214,22 218,20 240,20"/></svg>' +
+          '</span>' +
+          '<span class="ws-sig-body">' +
+            '<span class="ws-sig-ic">'+dIcon('activity')+'</span>' +
+            '<span class="ws-sig-tx"><b>Live Tools</b><i>Anesthesia workstation</i></span>' +
+            '<span class="ws-sig-live"><span class="dot"></span>LIVE</span>' +
+          '</span>' +
         '</button>' +
       '</div>' +
       '<div class="ws-railgrp">' +

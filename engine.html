@@ -28,6 +28,9 @@ html,body{max-width:100%;overflow-x:hidden;}
 .pt-banner .pb-i{font-size:13.5px;font-weight:700;color:#fff;letter-spacing:.01em;}
 .pt-banner .pb-id{color:#7ECFC0;}
 .pt-banner .pb-sep{color:rgba(126,207,192,.45);font-weight:400;}
+.pt-banner.pb-sample{border-color:rgba(232,168,56,.5);background:#171208;}
+.pt-banner.pb-sample .pb-dot{background:#E8A838;box-shadow:0 0 7px #E8A838;}
+.pt-banner.pb-sample .pb-i{font-weight:600;color:#F0CE8E;} .pt-banner.pb-sample .pb-i b{color:#FFD98A;}
 .eng-head{margin-bottom:22px;}
 .eng-head h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;}
 .eng-head p{font-size:14px;color:var(--muted);}
@@ -1006,7 +1009,7 @@ document.addEventListener('DOMContentLoaded',async function(){
       var s = await getSession();
       ge('loader').style.display='none';
       ge('app').style.display='block';
-      if(restoreInputs()) compute();   // carry state in from a previous session
+      if(restoreInputs()){ compute(); } else { wsDemoPatient(); }   // alive on open
       setupWorkspace();
       console.log('ENGINE READY (embedded)');
       return;
@@ -1014,7 +1017,7 @@ document.addEventListener('DOMContentLoaded',async function(){
     var auth=await window.requireRole('staff'); if(!auth)return;
     ge('loader').style.display='none';
     ge('app').style.display='block';
-    if(restoreInputs()) compute();     // preserve patient data from the embedded view
+    if(restoreInputs()){ compute(); } else { wsDemoPatient(); }   // alive on open
     setupWorkspace();
     console.log('ENGINE READY');
   }catch(e){
@@ -1107,6 +1110,22 @@ function startMonitorHeader(){
     if(temp) temp.textContent=(36.4+Math.random()*0.6).toFixed(1);
   }
   tick(); setInterval(tick,3500);
+}
+
+// Open the workstation already "alive": if no patient is loaded, seed a standard
+// 70 kg adult so every panel is populated on open (clearly editable up top). Never
+// overrides real/saved inputs. Purely a starting template — reference values only.
+function wsDemoPatient(){
+  if((ge('i-weight')&&ge('i-weight').value) || (ge('i-age')&&ge('i-age').value)) return;
+  if(ge('i-age')) ge('i-age').value='40';
+  if(ge('i-sex')) ge('i-sex').value='M';
+  if(ge('i-height')) ge('i-height').value='170';
+  if(ge('i-weight')) ge('i-weight').value='70';
+  compute();
+  // After compute() (which rebuilds the patient banner), flag this as a sample so the
+  // doctor never mistakes it for a real patient. Clears automatically once they edit.
+  var b=ge('pt-banner'); if(b){ b.style.display='flex'; b.classList.add('pb-sample');
+    b.innerHTML='<span class="pb-dot"></span><span class="pb-i"><b>Sample patient</b> <span class="pb-sep">&middot;</span> <span class="pb-id">70 kg adult template</span> <span class="pb-sep">&middot;</span> edit the fields above for your case</span>'; }
 }
 
 /* ════════ Workspace layer — collapse / resize / drag-reorder + live highlight ════════
