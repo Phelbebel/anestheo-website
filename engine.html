@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anesthesiology Live Tools — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
@@ -33,7 +33,7 @@ html,body{max-width:100%;overflow-x:hidden;}
 .cw-ready .dot{width:8px;height:8px;border-radius:50%;background:#34D399;box-shadow:0 0 11px #34D399;animation:cwPulse 1.9s ease-in-out infinite;}
 @keyframes cwPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.78);}}
 .cw-hero-right{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
-.cw-hero-time{display:flex;gap:26px;margin-top:13px;}
+.cw-hero-time{display:flex;gap:22px;}
 .cw-tblock{display:flex;flex-direction:column;gap:2px;}
 .cw-tl{font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);}
 .cw-tv{font-variant-numeric:tabular-nums;font-size:24px;font-weight:800;color:#eafff8;letter-spacing:.04em;line-height:1.05;}
@@ -308,6 +308,16 @@ body.embed .eng-wrap{padding-top:14px;}
   .drug-grid{grid-template-columns:1fr 1fr;}
   .av-grid{grid-template-columns:repeat(4,1fr);}
 }
+/* ── Clinical-monitor readability: heavier, consistent type across the whole workstation ── */
+.eng-wrap{font-weight:600;}
+.eng-wrap .disclaimer{font-weight:600;}
+.eng-wrap .inp input,.eng-wrap .inp select{font-weight:700;}
+.eng-wrap .cw-sub,.eng-wrap .m2-sub,.eng-wrap .dc-sub{font-weight:600;}
+.eng-wrap .metric-label,.eng-wrap .lt-state,.eng-wrap .warn-chip,.eng-wrap .cw-d-u,.eng-wrap .helper b{font-weight:700;}
+.eng-wrap .metric-value,.eng-wrap .av-cell b,.eng-wrap .av-sub,.eng-wrap .dc-name,.eng-wrap .dc-dose,
+.eng-wrap .crisis-dose b,.eng-wrap .crisis-sec-t,.eng-wrap .crisis-emg-t,.eng-wrap .crisis-num,
+.eng-wrap .lt-head,.eng-wrap .lt-time,.eng-wrap .pacu-mod-head,.eng-wrap .panel-title,
+.eng-wrap .cw-acc-sub,.eng-wrap .inp label{font-weight:800;}
 </style>
 </head>
 <body>
@@ -320,12 +330,12 @@ body.embed .eng-wrap{padding-top:14px;}
         <h1 class="cw-title">Anesthesia Workstation</h1>
         <p class="cw-sub">One workspace. Every calculation. Instantly updated.</p>
         <span class="cw-ready"><span class="dot"></span>Workstation Ready</span>
+      </div>
+      <div class="cw-hero-right">
         <div class="cw-hero-time">
           <div class="cw-tblock"><span class="cw-tl">Time</span><span class="cw-tv" id="cw-clock">--:--:--</span></div>
           <div class="cw-tblock"><span class="cw-tl">Case timer</span><span class="cw-tv" id="cw-casetimer">00:00:00</span></div>
         </div>
-      </div>
-      <div class="cw-hero-right">
         <button class="cw-crisis" onclick="crisisJump()" aria-label="Open Crisis Center">
           <span class="cw-crisis-ic">&#128680;</span>
           <span class="cw-crisis-tx"><b>Crisis Center</b><i>Immediate emergency protocols</i></span>
