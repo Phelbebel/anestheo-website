@@ -28,20 +28,24 @@ html,body{max-width:100%;overflow-x:hidden;}
 .pt-banner .pb-i{font-size:13.5px;font-weight:700;color:#fff;letter-spacing:.01em;}
 .pt-banner .pb-id{color:#7ECFC0;}
 .pt-banner .pb-sep{color:rgba(126,207,192,.45);font-weight:400;}
-.pt-banner.pb-sample{border-color:rgba(232,168,56,.5);background:#171208;}
-.pt-banner.pb-sample .pb-dot{background:#E8A838;box-shadow:0 0 7px #E8A838;}
-.pt-banner.pb-sample .pb-i{font-weight:600;color:#F0CE8E;} .pt-banner.pb-sample .pb-i b{color:#FFD98A;}
 .eng-head{margin-bottom:22px;}
 .eng-head h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;}
 .eng-head p{font-size:14px;color:var(--muted);}
-/* ── Monitor header (anesthesia workstation HERO) ── */
-.mon-header{display:flex;align-items:stretch;gap:0;
-  background:linear-gradient(180deg,#07140E,#020806);border:1px solid rgba(126,207,192,.26);
+/* ── Monitor (anesthesia workstation HERO — dominates the page) ── */
+.mon-header{display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#07140E,#020806);border:1px solid rgba(126,207,192,.28);
   border-radius:18px;overflow:hidden;margin-bottom:16px;
-  box-shadow:0 26px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 60px rgba(0,0,0,.5);}
-.mh-traces{flex:1.25;min-width:160px;display:flex;flex-direction:column;border-right:1px solid rgba(126,207,192,.14);position:relative;}
-.mh-traces::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 1px,transparent 1px,transparent 26px);}
-.mh-tr{flex:1;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.05);min-height:46px;}
+  box-shadow:0 28px 64px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 70px rgba(0,0,0,.5);}
+.mh-strip{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,0,0,.32);border-bottom:1px solid rgba(126,207,192,.16);}
+.mh-brand{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9FE6D6;}
+.mh-brand-live{font-size:8.5px;font-weight:800;letter-spacing:.08em;color:#04130d;background:#46d39a;border-radius:20px;padding:2px 8px;}
+.mh-livedot{width:8px;height:8px;border-radius:50%;background:#46d39a;box-shadow:0 0 9px #46d39a;animation:mhLive 1.6s ease-in-out infinite;}
+@keyframes mhLive{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.8);}}
+.mh-clock{font-variant-numeric:tabular-nums;font-size:16px;font-weight:800;color:#eafff8;letter-spacing:.06em;text-shadow:0 0 12px rgba(126,207,192,.4);}
+.mh-main{display:flex;align-items:stretch;}
+.mh-traces{flex:1.4;min-width:160px;display:flex;flex-direction:column;border-right:1px solid rgba(126,207,192,.14);position:relative;}
+.mh-traces::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0,rgba(255,255,255,.02) 1px,transparent 1px,transparent 30px);}
+.mh-tr{flex:1;position:relative;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.05);min-height:62px;}
 .mh-tr:last-child{border-bottom:none;}
 .mh-lbl{position:absolute;top:4px;left:10px;font-size:9px;font-weight:800;letter-spacing:.06em;z-index:2;opacity:.9;}
 .mh-tr svg{width:100%;height:100%;display:block;overflow:visible;}
@@ -65,11 +69,12 @@ html,body{max-width:100%;overflow-x:hidden;}
 .mh-co2 b{color:#e8c454;} .mh-co2 i{color:#e8c454;}
 .mh-bp b{color:#fff;font-size:20px;} .mh-temp b{color:#A9D2FF;} .mh-mac b{color:#C9A8FF;}
 @media(max-width:760px){
-  .mon-header{flex-direction:column;}
+  .mh-main{flex-direction:column;}
   .mh-traces{border-right:none;border-bottom:1px solid rgba(255,255,255,.06);}
-  .mh-tr{min-height:26px;}
+  .mh-tr{min-height:40px;}
   .mh-vitals{grid-template-columns:repeat(3,1fr);}
   .mh-v{border-left:none;border-top:1px solid rgba(255,255,255,.05);align-items:center;text-align:center;}
+  .mh-v b{font-size:22px;}
 }
 /* In embedded mode (inside the Doctor Workspace) hide the duplicate site nav */
 body.embed .nb,body.embed #nb-nav{display:none!important;}
@@ -235,9 +240,13 @@ body.embed .eng-wrap{padding-top:14px;}
 .inp select option{background:#132218;}
 .disclaimer{font-size:11px;color:var(--hint);margin-bottom:24px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
 .disclaimer strong{color:#E8A838;}
-.empty-state{text-align:center;padding:60px 20px;color:var(--hint);}
-.empty-state .ico{font-size:40px;margin-bottom:14px;opacity:.6;}
-.empty-state p{font-size:14px;}
+.empty-state{text-align:center;padding:54px 24px;color:var(--muted);
+  background:linear-gradient(180deg,rgba(126,207,192,.05),rgba(255,255,255,.012));
+  border:1px dashed rgba(126,207,192,.28);border-radius:16px;}
+.empty-state .ico{font-size:38px;margin-bottom:12px;opacity:.85;animation:esPulse 2.6s ease-in-out infinite;}
+@keyframes esPulse{0%,100%{opacity:.55;}50%{opacity:.95;}}
+.empty-state b{display:block;font-size:16px;font-weight:800;color:#eafff8;letter-spacing:-.01em;margin-bottom:6px;}
+.empty-state p{font-size:13.5px;line-height:1.6;max-width:420px;margin:0 auto;}
 .panels{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:15px;align-items:start;}
 .panel.full{grid-column:1 / -1;}
 .panel.wide{grid-column:span 2;}
@@ -314,21 +323,27 @@ body.embed .eng-wrap{padding-top:14px;}
 <div id="app">
   <div class="eng-wrap">
     <div class="mon-header" id="mon-header">
-      <div class="mh-traces">
-        <div class="mh-tr ecg"><span class="mh-lbl">ECG II</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-ecg"/></g></svg></div>
-        <div class="mh-tr pleth"><span class="mh-lbl">SpO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-pleth"/></g></svg></div>
-        <div class="mh-tr capno"><span class="mh-lbl">CO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-capno"/></g></svg></div>
-        <div class="mh-tr resp"><span class="mh-lbl">RESP</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-resp"/></g></svg></div>
+      <div class="mh-strip">
+        <span class="mh-brand"><span class="mh-livedot"></span>Anesthesia Workstation <span class="mh-brand-live">Live monitor</span></span>
+        <span class="mh-clock" id="mh-clock">--:--:--</span>
       </div>
-      <div class="mh-vitals">
-        <div class="mh-v mh-hr"><i>HR</i><b id="mh-hr">78</b><u>bpm</u></div>
-        <div class="mh-v mh-spo2"><i>SpO&#8322;</i><b id="mh-spo2">99</b><u>%</u></div>
-        <div class="mh-v mh-co2"><i>ETCO&#8322;</i><b id="mh-co2">36</b><u>mmHg</u></div>
-        <div class="mh-v mh-bp"><i>NIBP</i><b id="mh-bp">128/72</b><u>mmHg</u></div>
-        <div class="mh-v mh-temp"><i>Temp</i><b id="mh-temp">36.7</b><u>&deg;C</u></div>
-        <div class="mh-v mh-mac"><i>MAC</i><b id="mh-mac">1.0</b><u></u></div>
+      <div class="mh-main">
+        <div class="mh-traces">
+          <div class="mh-tr ecg"><span class="mh-lbl">ECG II</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-ecg"/></g></svg></div>
+          <div class="mh-tr pleth"><span class="mh-lbl">SpO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-pleth"/></g></svg></div>
+          <div class="mh-tr capno"><span class="mh-lbl">CO&#8322;</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-capno"/></g></svg></div>
+          <div class="mh-tr resp"><span class="mh-lbl">RESP</span><svg viewBox="0 0 500 40" preserveAspectRatio="none"><g class="wave-anim"><path id="wave-resp"/></g></svg></div>
+        </div>
+        <div class="mh-vitals">
+          <div class="mh-v mh-hr"><i>HR</i><b id="mh-hr">78</b><u>bpm</u></div>
+          <div class="mh-v mh-spo2"><i>SpO&#8322;</i><b id="mh-spo2">99</b><u>%</u></div>
+          <div class="mh-v mh-co2"><i>ETCO&#8322;</i><b id="mh-co2">36</b><u>mmHg</u></div>
+          <div class="mh-v mh-bp"><i>NIBP</i><b id="mh-bp">128/72</b><u>mmHg</u></div>
+          <div class="mh-v mh-temp"><i>Temp</i><b id="mh-temp">36.7</b><u>&deg;C</u></div>
+          <div class="mh-v mh-mac"><i>MAC</i><b id="mh-mac">1.0</b><u></u></div>
+        </div>
+        <button class="mh-crisis" onclick="crisisJump()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
       </div>
-      <button class="mh-crisis" onclick="crisisJump()" aria-label="Crisis Center">&#128680;<span>Crisis</span></button>
     </div>
     <div class="input-bar">
       <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
@@ -387,7 +402,7 @@ body.embed .eng-wrap{padding-top:14px;}
     </div>
 
     <div id="output">
-      <div class="empty-state"><div class="ico">&#129658;</div><p>Enter age, sex, height and weight to generate the dashboard.</p></div>
+      <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation on standby</b>Enter age, weight and height &mdash; or load a patient &mdash; and every panel activates instantly. The monitor above is running live.</p></div>
     </div>
 
     <!-- PACU / Recovery — separate from the intraoperative timer strip -->
@@ -468,7 +483,7 @@ function compute(){
   var age=ageC?ageC.years:null, sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
   var out=ge('output');
   if(age==null||!sex||ht==null||wt==null){
-    out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p>Enter age, sex, height and weight to generate the dashboard.</p></div>';
+    out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation on standby</b>Enter age, weight and height &mdash; or load a patient &mdash; and every panel activates instantly. The monitor above is running live.</p></div>';
     var pb0=ge('pt-banner'); if(pb0) pb0.style.display='none';
     return;
   }
@@ -1009,7 +1024,7 @@ document.addEventListener('DOMContentLoaded',async function(){
       var s = await getSession();
       ge('loader').style.display='none';
       ge('app').style.display='block';
-      if(restoreInputs()){ compute(); } else { wsDemoPatient(); }   // alive on open
+      if(restoreInputs()) compute();   // only ever from real saved/incoming data
       setupWorkspace();
       console.log('ENGINE READY (embedded)');
       return;
@@ -1017,7 +1032,7 @@ document.addEventListener('DOMContentLoaded',async function(){
     var auth=await window.requireRole('staff'); if(!auth)return;
     ge('loader').style.display='none';
     ge('app').style.display='block';
-    if(restoreInputs()){ compute(); } else { wsDemoPatient(); }   // alive on open
+    if(restoreInputs()) compute();   // only ever from real saved/incoming data
     setupWorkspace();
     console.log('ENGINE READY');
   }catch(e){
@@ -1110,23 +1125,11 @@ function startMonitorHeader(){
     if(temp) temp.textContent=(36.4+Math.random()*0.6).toFixed(1);
   }
   tick(); setInterval(tick,3500);
+  function clock(){ var c=ge('mh-clock'); if(!c) return; var d=new Date();
+    c.textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2); }
+  clock(); setInterval(clock,1000);
 }
 
-// Open the workstation already "alive": if no patient is loaded, seed a standard
-// 70 kg adult so every panel is populated on open (clearly editable up top). Never
-// overrides real/saved inputs. Purely a starting template — reference values only.
-function wsDemoPatient(){
-  if((ge('i-weight')&&ge('i-weight').value) || (ge('i-age')&&ge('i-age').value)) return;
-  if(ge('i-age')) ge('i-age').value='40';
-  if(ge('i-sex')) ge('i-sex').value='M';
-  if(ge('i-height')) ge('i-height').value='170';
-  if(ge('i-weight')) ge('i-weight').value='70';
-  compute();
-  // After compute() (which rebuilds the patient banner), flag this as a sample so the
-  // doctor never mistakes it for a real patient. Clears automatically once they edit.
-  var b=ge('pt-banner'); if(b){ b.style.display='flex'; b.classList.add('pb-sample');
-    b.innerHTML='<span class="pb-dot"></span><span class="pb-i"><b>Sample patient</b> <span class="pb-sep">&middot;</span> <span class="pb-id">70 kg adult template</span> <span class="pb-sep">&middot;</span> edit the fields above for your case</span>'; }
-}
 
 /* ════════ Workspace layer — collapse / resize / drag-reorder + live highlight ════════
    Presentation only. compute() rebuilds #output each change; this re-applies the
