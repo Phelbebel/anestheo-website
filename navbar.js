@@ -247,6 +247,7 @@ function buildHTML(page){
                   '<div class="nb-menu-email" id="nb-menu-email"></div>' +
                 '</div>' +
                 '<a href="/v2/dashboard.html" class="nb-menu-item" id="nb-menu-workspace">&#129658; Doctor Workspace</a>' +
+                '<button class="nb-menu-item" id="nb-menu-myjourney" style="display:none;background:none;border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;" onclick="window.nbStartPatientJourney()">&#129489; My Patient Journey</button>' +
                 '<a href="/v2/patient-dashboard.html" class="nb-menu-item" id="nb-menu-patient" style="display:none">&#10024; My Space</a>' +
                 '<a href="/v2/settings.html" class="nb-menu-item">&#9881; Settings</a>' +
                 '<div class="nb-menu-sep"></div>' +
@@ -416,8 +417,10 @@ function populateMenu(user, profile){
   var isStaff = (role !== 'patient');
   var isPatient = !isStaff;
   var isDoctor = (role === 'doctor');
-  // Dropdown: staff get the Doctor Workspace entry; patients get My Space.
+  // Dropdown: staff get the Doctor Workspace entry + a "My Patient Journey"
+  // switch (same account, no logout); patients get My Space.
   var ws  = ge('nb-menu-workspace'); if(ws)  ws.style.display  = isStaff ? 'flex' : 'none';
+  var mj  = ge('nb-menu-myjourney'); if(mj)  mj.style.display  = isStaff ? 'flex' : 'none';
   var pt  = ge('nb-menu-patient');   if(pt)  pt.style.display  = isStaff ? 'none' : 'flex';
   // Role-aware primary navigation: patients get the patient nav, doctors get a
   // simplified doctor nav (no "Ask Anesthesiologist"), everyone else (guests,
@@ -574,6 +577,58 @@ window.nbOpenModal = function(){
     return;
   }
   nbShowAuthModal();
+};
+
+// ── One account, multiple roles ───────────────────────────────
+// A logged-in clinician can also be their own patient. We NEVER touch their
+// auth account or profile role — the patient journey simply uses the same
+// authenticated user (patient data is keyed by auth.uid()). No second login.
+function _nbPatientOptKey(uid){ return 'anestheo-patient-optin-' + uid; }
+async function _nbHasPatientData(uid){
+  try { var r = await window.sb.from('patient_surgeries').select('id').eq('patient_id', uid).limit(1);
+        if (r && r.data && r.data.length) return true; } catch(e){}
+  try { if (typeof window.getQuestionnaire === 'function') { var q = await window.getQuestionnaire(uid); if (q) return true; } } catch(e){}
+  return false;
+}
+function _nbShowPatientOptIn(uid){
+  if (document.getElementById('nb-pj-modal')) return;
+  var bg = document.createElement('div');
+  bg.id = 'nb-pj-modal';
+  bg.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(4,10,8,.8);display:flex;align-items:center;justify-content:center;padding:20px;';
+  bg.innerHTML =
+    '<div role="dialog" aria-modal="true" style="background:#0A1614;border:1px solid rgba(42,138,116,.4);border-radius:16px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);padding:24px;font-family:inherit;">' +
+      '<div style="font-family:\'Playfair Display\',serif;font-size:21px;font-weight:700;color:#fff;margin-bottom:10px;">Start your own surgery journey</div>' +
+      '<p style="font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.65;margin-bottom:6px;">You are currently using your <b style="color:#9FF0CF;">Doctor workspace</b>.</p>' +
+      '<p style="font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.65;margin-bottom:20px;">Would you like to create your personal Patient profile? It stays on this same account &mdash; no new login &mdash; and you can switch back to your Doctor workspace any time.</p>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+        '<button id="nb-pj-go" style="flex:1;min-width:170px;background:linear-gradient(135deg,#2A8A74,#1B6B5A);color:#fff;border:none;border-radius:11px;padding:12px 18px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;">Start my patient journey</button>' +
+        '<button id="nb-pj-cancel" style="flex:0 0 auto;background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:12px 18px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(bg);
+  document.body.style.overflow = 'hidden';
+  function close(){ bg.remove(); document.body.style.overflow = ''; }
+  bg.addEventListener('click', function(e){ if (e.target === bg) close(); });
+  document.getElementById('nb-pj-cancel').onclick = close;
+  document.getElementById('nb-pj-go').onclick = function(){
+    // Mark the opt-in (same auth user) and open the patient journey. The journey
+    // page (patient-dashboard.html) is open to any authenticated user and saves
+    // data under this auth.uid(); the doctor role/profile is left untouched.
+    try { localStorage.setItem(_nbPatientOptKey(uid), '1'); } catch(e){}
+    window.location.href = '/v2/patient-dashboard.html';
+  };
+}
+// "Start my surgery journey" / "My Patient Journey" entry point.
+window.nbStartPatientJourney = async function(){
+  var sess = null;
+  try { sess = (typeof window.getSession === 'function') ? await window.getSession() : null; } catch(e){}
+  if (!sess){ nbShowAuthModal(); return; }                 // not signed in → sign in / sign up
+  if (_nbRole === 'patient'){ window.location.href = '/v2/patient-dashboard.html'; return; }
+  var uid = sess.user.id;
+  var optedIn = false;
+  try { optedIn = localStorage.getItem(_nbPatientOptKey(uid)) === '1'; } catch(e){}
+  if (optedIn || await _nbHasPatientData(uid)){ window.location.href = '/v2/patient-dashboard.html'; return; }
+  _nbShowPatientOptIn(uid);                                  // clinician with no journey yet → ask first
 };
 
 window.nbCloseModal = function(){
