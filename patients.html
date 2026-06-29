@@ -140,11 +140,11 @@ function countdown(d){ try{ var x=new Date(d);x.setHours(0,0,0,0);var t=new Date
 // Home shows a compact 4-step pre-op view; REACHED is computed from the
 // derived journey_status (journey.js) - the single source of truth.
 var PILL_CLASS = { waiting:'ph-pill-waiting', under_review:'ph-pill-under_review', reviewed:'ph-pill-reviewed', changes:'ph-pill-changes' };
-var STEPS = ['Surgery added','Questionnaire','Preparation plan','Ready for surgery'];
+var STEPS = ['Surgery added','Questionnaire','Preparation plan','Approved'];
 function reachedFromJourney(js, qSubmitted){
-  if(js==='ready_for_surgery'||js==='completed'||js==='in_recovery'||js==='archived') return 4;
-  if(js==='plan_approved') return 3;
-  if(js==='submitted_for_review'||js==='in_review'||js==='changes_requested'||qSubmitted) return 2;
+  if(js==='plan_approved'||js==='surgery_day'||js==='ready_for_surgery'||js==='completed'||js==='in_recovery'||js==='archived') return 4;
+  if(js==='submitted_for_review'||js==='in_review'||js==='changes_requested') return 3;
+  if(qSubmitted) return 2;
   return 1;
 }
 

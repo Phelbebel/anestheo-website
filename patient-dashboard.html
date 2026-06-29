@@ -746,7 +746,7 @@ function relTime(t){
 }
 function fmtDate(d){ try{ return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}); }catch(e){ return ''; } }
 
-function upcomingSurgeries(){ return _surgeries.filter(function(s){ return !s.completed_at && !s.archived_at; }); }
+function upcomingSurgeries(){ return _surgeries.filter(function(s){ return !effDone(s) && !s.archived_at; }); }
 function nextSurgery(){
   var up = upcomingSurgeries().filter(function(s){ return s.surgery_date; });
   up.sort(function(a,b){ return new Date(a.surgery_date) - new Date(b.surgery_date); });
@@ -776,14 +776,14 @@ function greeting(){
 function heroStatus(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   // A completed surgery (with nothing upcoming) takes precedence — celebrate recovery.
-  if(_surgery && _surgery.completed_at && !upcomingSurgeries().length)
+  if(_surgery && effDone(_surgery) && !upcomingSurgeries().length)
     return { tone:'done', icon:'heart-pulse', text:'Your surgery is complete — wishing you a smooth recovery.' };
   var ns = nextSurgery();
   var dd = ns && ns.surgery_date ? daysUntil(ns.surgery_date) : null;
   // Imminent surgery is the most time-critical message — it outranks review state.
   if(dd !== null && dd === 0) return { tone:'action', icon:'clock', text:'Your surgery is today. Follow your team\'s instructions carefully.' };
   if(dd !== null && dd === 1) return { tone:'action', icon:'clock', text:'Your surgery is tomorrow. Here\'s everything you need.' };
-  if(rs === 'approved') return { tone:'done', icon:'shield-check', text:'Your preparation plan is approved — you\'re almost ready for surgery.' };
+  if(rs === 'approved') return { tone:'done', icon:'shield-check', text:'Your preparation plan is approved — you\'re all set for the day of your surgery.' };
   if(rs === 'changes_requested') return { tone:'action', icon:'alert-triangle', text:'Your anesthesiologist requested a little more information.' };
   if(rs === 'in_review') return { tone:'info', icon:'stethoscope', text:'Your anesthesiologist is reviewing your questionnaire.' };
   if(answeredConsults().length) return { tone:'info', icon:'stethoscope', text:'You have a new reply to one of your consultations.' };
@@ -834,12 +834,11 @@ function renderHero(){
 function renderCelebration(){
   var host = ge('celebrate-host'); if(!host) return;
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
-  var ready = !!(_surgery && _surgery.ready_at);
-  var done = !!(_surgery && _surgery.completed_at);
   var msg = null;
-  if(done){ host.innerHTML=''; return; }                 // recovery handled elsewhere
-  if(ready){ msg = { t:'You\'re ready for surgery.', s:'Everything is prepared and approved — we\'ll see you on the day.', icon:'shield-check' }; }
-  else if(rs === 'approved'){ msg = { t:'Great news — your preparation is complete!', s:'Your anesthesiologist approved your plan. You\'re all set.', icon:'shield-check' }; }
+  if(effDone(_surgery)){ host.innerHTML=''; return; }     // recovery handled elsewhere
+  // Approval is the terminal milestone the patient sees — no separate "ready"
+  // banner. ready_at is internal; the date moves them on to surgery day.
+  if(rs === 'approved'){ msg = { t:'Great news — your preparation is approved!', s:'Your anesthesiologist approved your plan. You\'re all set for the day of your surgery.', icon:'shield-check' }; }
   if(!msg){ host.innerHTML=''; return; }
   host.innerHTML = '<div class="ms-celebrate-banner"><div class="cb-ic">'+iconHtml('sparkles')+'</div>' +
     '<div><div class="cb-t">'+esc(msg.t)+'</div><div class="cb-s">'+esc(msg.s)+'</div></div></div>';
@@ -859,7 +858,7 @@ function computeSpotlight(){
     return { tone:'', pin:'Start here', icon:'plus', t:'Add your surgery to begin', s:'Tell us about your procedure and we\'ll guide you, step by step.',
       btn:'Add my surgery', btnCls:'ms-btn-action', on:'openSurgery(null)' };
   }
-  if(_surgery && _surgery.completed_at && !upcomingSurgeries().length){
+  if(_surgery && effDone(_surgery) && !upcomingSurgeries().length){
     return { tone:'tone-done', pin:'Recovery', icon:'heart-pulse', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
       btn:'Recovery information', btnCls:'ms-btn-primary', on:'location.href=\'/v2/recovery.html\'' };
   }
@@ -960,7 +959,7 @@ function renderSurgeryDayCard(){
 // Surgery-day checklist section for the modal (after approval / readiness).
 function prepSurgeryDayHtml(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
-  var ready = !!(_surgery && _surgery.ready_at), done = !!(_surgery && _surgery.completed_at);
+  var ready = !!(_surgery && _surgery.ready_at), done = effDone(_surgery);
   if(!(rs === 'approved' || ready || done)) return '';
   var n = SDAY_ITEMS.filter(function(_, i){ return _sdayProgress[i]; }).length;
   return '<div class="prep-sec"><div class="prep-sec-title">'+iconHtml('clipboard-check')+' Final surgery-day checklist</div>' +
@@ -994,7 +993,7 @@ function patientMilestones(){
   var assigned = (crs === 'accepted');
   var rs   = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   var ready = !!(_surgery && _surgery.ready_at);
-  var done  = !!(_surgery && _surgery.completed_at);
+  var done  = effDone(_surgery);
   var dn    = (_careRequest && _careRequest.doctor_name) ? _careRequest.doctor_name : '';
   var changes  = (rs === 'changes_requested');
   var approved = (rs === 'approved') || ready || done;
@@ -1332,6 +1331,23 @@ function countdownStr(dateStr){
   if(dd === 0) return 'today';
   return Math.abs(dd) + ' days ago';
 }
+// Local calendar day (YYYY-MM-DD) — drives the derived "surgery date passed".
+function todayStr(){
+  var d = new Date(); d.setHours(0,0,0,0);
+  return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+}
+// Effective completion/recovery — single rule, shared with journey.js so the
+// hero, lists and the derived journey all agree (cleared + date passed = done).
+function effComp(s){
+  if(!s) return { completedAt:null, recoveryStartedAt:null };
+  if(window.journeyEffectiveCompletion)
+    return window.journeyEffectiveCompletion({ readyAt:s.ready_at, completedAt:s.completed_at,
+      recoveryStartedAt:s.recovery_started_at, surgeryDate:s.surgery_date, today:todayStr() });
+  return { completedAt:s.completed_at||null, recoveryStartedAt:s.recovery_started_at||null };
+}
+function effDone(s){ return !!effComp(s).completedAt; }
+function effRecovery(s){ return !!effComp(s).recoveryStartedAt; }
+
 function journeyCtx(s){
   return {
     hasSurgery: !!(s && s.procedure_type),
@@ -1341,15 +1357,16 @@ function journeyCtx(s){
     reviewState: _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted',
     readyAt: s && s.ready_at, completedAt: s && s.completed_at,
     recoveryStartedAt: s && s.recovery_started_at, archivedAt: s && s.archived_at,
+    surgeryDate: s && s.surgery_date, today: todayStr(),
     reviewerNotes: _quest ? _quest.reviewer_notes : ''
   };
 }
 // 6-step journey stepper, REACHED computed from derived journey_status only.
-var SJ_STEPS = ['Added','Questionnaire','Preparation','Review','Ready','Surgery'];
+var SJ_STEPS = ['Added','Questionnaire','Preparation','Review','Approved','Surgery'];
 function reached6(js, qSubmitted){
   switch(js){
     case 'archived': case 'in_recovery': case 'completed': return 6;
-    case 'ready_for_surgery': return 6;
+    case 'surgery_day': case 'ready_for_surgery': return 6;
     case 'plan_approved': return 5;
     case 'submitted_for_review': case 'in_review': case 'changes_requested': return 4;
     default: return qSubmitted ? 3 : 2;
@@ -1381,7 +1398,7 @@ function badgeFor(d){
   var js = d.journeyStatus;
   var cls = 'info';
   if(js==='changes_requested') cls='urgent';
-  else if(js==='plan_approved'||js==='ready_for_surgery'||js==='completed'||js==='in_recovery'||js==='archived') cls='done';
+  else if(js==='plan_approved'||js==='surgery_day'||js==='ready_for_surgery'||js==='completed'||js==='in_recovery'||js==='archived') cls='done';
   else if(js==='in_review'||js==='submitted_for_review') cls='info';
   else cls = (_quest && _quest.status==='submitted') ? 'info' : 'action';
   return '<span class="ms-badge '+cls+'"><span class="bd"></span>'+esc(d.pillLabel)+'</span>';
@@ -1443,7 +1460,7 @@ function renderJourney(){
     past.innerHTML=''; return;
   }
   var upList = upcomingSurgeries();
-  var pastList = _surgeries.filter(function(s){ return s.completed_at || s.archived_at; })
+  var pastList = _surgeries.filter(function(s){ return effDone(s) || s.archived_at; })
     .slice().sort(function(a,b){ var ad=a.surgery_date?new Date(a.surgery_date).getTime():0, bd=b.surgery_date?new Date(b.surgery_date).getTime():0; return bd-ad; });
   ge('upcoming-label').style.display = upList.length ? 'block' : 'none';
   ge('past-label').style.display = pastList.length ? 'block' : 'none';

@@ -29,6 +29,25 @@
     };
   }
 
+  // Effective surgery completion (§1). The hospital is the eventual source of
+  // truth, but until that feed exists we INFER completion: once the patient is
+  // cleared for anesthesia (readyAt) and the scheduled surgery date has passed,
+  // the surgery is treated as done and recovery unlocks — no extra action. A
+  // real completedAt (e.g. a future hospital feed) always takes precedence.
+  // Pure: the caller supplies `today` (YYYY-MM-DD), so no clock is read here.
+  //   in:  { readyAt, completedAt, recoveryStartedAt, surgeryDate, today }
+  //   out: { completedAt, recoveryStartedAt }  (effective)
+  function effectiveCompletion(ctx) {
+    ctx = ctx || {};
+    if (ctx.completedAt)
+      return { completedAt: ctx.completedAt, recoveryStartedAt: ctx.recoveryStartedAt || null };
+    var sd = (ctx.surgeryDate || '').slice(0, 10);
+    var td = (ctx.today || '').slice(0, 10);
+    if (ctx.readyAt && sd && td && td > sd)            // surgery day has passed
+      return { completedAt: sd, recoveryStartedAt: ctx.recoveryStartedAt || sd };
+    return { completedAt: null, recoveryStartedAt: ctx.recoveryStartedAt || null };
+  }
+
   // ctx (all optional):
   //   hasSurgery            bool
   //   questionnaireStatus   'none' | 'in_progress' | 'submitted'
@@ -36,19 +55,27 @@
   //   doctorName            string
   //   reviewState           'not_submitted' | 'pending' | 'in_review' | 'changes_requested' | 'approved'
   //   readyAt, completedAt, recoveryStartedAt, archivedAt   truthy when reached
+  //   surgeryDate, today    'YYYY-MM-DD' — used to infer completion (see above)
   //   reviewerNotes         string (shown on changes_requested)
   function deriveJourney(ctx) {
     ctx = ctx || {};
     var rs = ctx.reviewState || 'not_submitted';
     var cr = ctx.careRequestStatus || 'none';
     var dn = ctx.doctorName || 'your clinician';
+    var eff = effectiveCompletion(ctx);   // derived completion / recovery
+    // ready_at is an INTERNAL clearance flag (set on approval). It is NOT shown
+    // as its own patient stage — after approval the patient simply sees
+    // "Approved", then the date moves them to Surgery day -> Recovery.
+    var sd = (ctx.surgeryDate || '').slice(0, 10);
+    var td = (ctx.today || '').slice(0, 10);
+    var isSurgeryToday = !!ctx.readyAt && sd && td && td === sd;
 
     // ── Derived journey_status (§1 mapping, top-down, first match wins) ──
     var js;
     if (ctx.archivedAt)            js = 'archived';
-    else if (ctx.recoveryStartedAt) js = 'in_recovery';
-    else if (ctx.completedAt)      js = 'completed';
-    else if (ctx.readyAt)          js = 'ready_for_surgery';
+    else if (eff.recoveryStartedAt) js = 'in_recovery';
+    else if (eff.completedAt)      js = 'completed';
+    else if (isSurgeryToday)       js = 'surgery_day';
     else if (rs === 'approved')    js = 'plan_approved';
     else if (rs === 'changes_requested') js = 'changes_requested';
     else if (rs === 'in_review')   js = 'in_review';
@@ -92,11 +119,11 @@
                  (ctx.reviewerNotes ? (' ' + ctx.reviewerNotes) : '') +
                  ' Update your questionnaire and resubmit.');
     if (js === 'plan_approved')
-      return out(js, 6, 'reviewed', 'Preparation plan ready', connection,
-                 'Your reviewed plan is ready — review your approved plan.');
-    if (js === 'ready_for_surgery')
-      return out(js, 7, 'reviewed', 'Ready for surgery', connection,
-                 "You're ready for surgery. Bring your plan on the day.");
+      return out(js, 6, 'reviewed', 'Approved', connection,
+                 'Your plan is approved — review it and prepare for the day.');
+    if (js === 'surgery_day')
+      return out(js, 7, 'reviewed', 'Surgery day', connection,
+                 "It's the day of your surgery — follow your care team's instructions.");
     if (js === 'completed')
       return out(js, 8, 'reviewed', 'Surgery completed', connection,
                  'Start your recovery guide.');
@@ -109,6 +136,7 @@
   }
 
   window.deriveJourney = deriveJourney;
+  window.journeyEffectiveCompletion = effectiveCompletion;  // reused by surfaces
   window.JOURNEY_PILLS = PILLS;
   window.JOURNEY_TOTAL_STAGES = 10;
 })();
