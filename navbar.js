@@ -132,34 +132,6 @@ body{padding-top:56px;}
 #nb-role-pill{display:flex;align-items:center;justify-content:space-between;background:rgba(27,107,90,.12);
   border:1px solid rgba(42,138,116,.3);border-radius:9px;padding:9px 13px;margin-bottom:14px;font-size:13px;color:#7ECFC0;}
 #nb-role-pill button{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;}
-/* Doctor Tools dropdown */
-/* ── Live Monitor widget (brand identity, every page) ── */
-.nb-monitor{position:relative;display:inline-flex;align-items:center;gap:8px;text-decoration:none;
-  background:#06120D;border:1px solid rgba(126,207,192,.22);border-radius:9px;padding:5px 10px;margin-left:4px;
-  transition:border-color .18s,box-shadow .18s;white-space:nowrap;}
-.nb-monitor:hover{border-color:rgba(126,207,192,.5);box-shadow:0 0 0 1px rgba(126,207,192,.18),0 8px 22px rgba(0,0,0,.4);}
-.nb-mon-pulse{width:7px;height:7px;border-radius:50%;background:#46d39a;box-shadow:0 0 7px #46d39a;animation:nbmonpulse 1.5s infinite;flex-shrink:0;}
-@keyframes nbmonpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
-.nb-mon-ecg{width:54px;height:20px;overflow:hidden;display:block;}
-.nb-mon-ecg svg{width:200%;height:100%;display:block;}
-.nb-mon-ecg path{fill:none;stroke:#46d39a;stroke-width:1.4;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 2px rgba(70,211,154,.5));}
-.nb-ecg-scroll{animation:nbsweep 4.5s linear infinite;}
-@keyframes nbsweep{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.nb-mon-vitals{display:inline-flex;align-items:center;gap:9px;}
-.nbv{display:inline-flex;align-items:baseline;gap:3px;font-variant-numeric:tabular-nums;}
-.nbv i{font-style:normal;font-size:9px;letter-spacing:.03em;color:rgba(255,255,255,.45);}
-.nbv b{font-size:13px;font-weight:700;color:#46d39a;}
-.nbv-co2 b{color:#e8c454;}
-.nb-mon-vitals .nbv:nth-child(2) b{color:#5ad0e6;}
-/* tooltip */
-.nb-mon-tip{display:none;position:absolute;top:calc(100% + 9px);right:0;width:230px;
-  background:#0C1F18;border:1px solid rgba(42,138,116,.4);border-radius:11px;padding:13px 15px;
-  box-shadow:0 16px 44px rgba(0,0,0,.55);z-index:1100;font-size:12px;line-height:1.7;color:rgba(255,255,255,.7);white-space:normal;}
-.nb-mon-tip strong{display:block;font-size:13px;color:#fff;margin-bottom:5px;}
-.nb-mon-tip em{display:block;font-style:normal;color:#7ECFC0;font-weight:600;margin-top:8px;}
-.nb-monitor:hover .nb-mon-tip{display:block;animation:nbfade .15s ease;}
-@media(max-width:980px){.nbv-co2{display:none;}}
-@media(max-width:860px){.nb-mon-vitals{display:none;}.nb-monitor{padding:5px 9px;}}
 @media(max-width:740px){
   .nb-nav-links{display:none;}
   .nb-burger{display:block;}
@@ -189,23 +161,7 @@ function buildHTML(page){
           '<a href="/v2/patients.html"' + activeCls('/v2/patients.html', p) + '>For Patients</a>' +
           '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
           '<a href="/v2/ask.html"' + activeCls('/v2/ask.html', p) + '>Ask Anesthesiologist</a>' +
-          '<a class="nb-monitor" id="nb-monitor" href="/v2/dashboard.html" aria-label="Anesthesia Live Tools">' +
-            '<span class="nb-mon-pulse"></span>' +
-            '<span class="nb-mon-ecg"><svg viewBox="0 0 120 24" preserveAspectRatio="none"><g class="nb-ecg-scroll">' +
-              '<path d="M0,12 L14,12 18,5 22,19 26,12 40,12 54,12 58,5 62,19 66,12 80,12 94,12 98,5 102,19 106,12 120,12"/>' +
-              '<path d="M120,12 L134,12 138,5 142,19 146,12 160,12 174,12 178,5 182,19 186,12 200,12 214,12 218,5 222,19 226,12 240,12"/>' +
-            '</g></svg></span>' +
-            '<span class="nb-mon-vitals">' +
-              '<span class="nbv"><i>HR</i><b id="nbv-hr">78</b></span>' +
-              '<span class="nbv"><i>SpO&#8322;</i><b id="nbv-spo2">99</b></span>' +
-              '<span class="nbv nbv-co2"><i>ETCO&#8322;</i><b id="nbv-co2">36</b></span>' +
-            '</span>' +
-            '<span class="nb-mon-tip">' +
-              '<strong>Anesthesia Live Tools</strong>' +
-              'Airway &middot; Drug dosing &middot; Ventilation<br>TIVA / TCI &middot; Regional &middot; ICU tools' +
-              '<em>Click to open</em>' +
-            '</span>' +
-          '</a>' +
+          '<a href="/v2/engine.html"' + activeCls('/v2/engine.html', p) + '>Live Tools</a>' +
         '</div>' +
         // Role-aware patient navigation (shown only to logged-in patients).
         '<div class="nb-nav-links" id="nb-nav-patient" style="display:none">' +
@@ -266,7 +222,7 @@ function buildHTML(page){
         '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
         '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
         '<a href="/v2/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
-        '<a href="/v2/dashboard.html" class="nb-mob-link">&#129728; Anesthesia Live Tools</a>' +
+        '<a href="/v2/engine.html" class="nb-mob-link">Live Tools</a>' +
       '</div>' +
       // Patient mobile nav — logged-in patients only.
       '<div id="nb-mob-patient-nav" style="display:none">' +
@@ -896,16 +852,6 @@ window.nbSignOut = async function(){
 
 // ── INIT ──────────────────────────────────────────────────────
 var _nbInitDone = false;
-function nbStartMonitor(){
-  function rnd(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-  function tick(){
-    var hr=document.getElementById('nbv-hr'), spo2=document.getElementById('nbv-spo2'), co2=document.getElementById('nbv-co2');
-    if(hr) hr.textContent = rnd(70,80);
-    if(spo2) spo2.textContent = rnd(97,100);
-    if(co2) co2.textContent = rnd(34,40);
-  }
-  tick(); setInterval(tick, 3500);
-}
 async function nbInit(){
   if(_nbInitDone){ console.log('nbInit already ran - skipping duplicate'); return; }
   _nbInitDone = true;
@@ -922,7 +868,6 @@ async function nbInit(){
   }
 
   setGuest(); // default while session loads
-  nbStartMonitor(); // animate the navbar live-monitor vitals
 
   try {
     var session = await window.getSession();
