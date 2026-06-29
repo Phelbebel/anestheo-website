@@ -3,114 +3,260 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Anestheo — Anesthesia, understood</title>
+<meta name="description" content="A single, calm home for perioperative medicine — guiding patients through surgery and equipping clinical teams with professional-grade anesthesia tools.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
 <style>
+:root{
+  /* Light palette */
+  --cream:#FBFAF7;
+  --cream2:#F3F1EA;
+  --ink:#0A1A15;
+  --ink-soft:#56635C;
+  --ink-faint:#8A958E;
+  --line-light:rgba(10,26,21,.10);
+  /* Brand */
+  --teal:#1B6B5A;
+  --teal2:#2A8A74;
+  --accent:#7ECFC0;
+  /* Dark palette */
+  --dark:#0A1A15;
+  --darker:#06120D;
+  --on-dark:#ffffff;
+  --on-dark-soft:rgba(255,255,255,.60);
+  --on-dark-faint:rgba(255,255,255,.34);
+  --line-dark:rgba(255,255,255,.10);
+  /* System */
+  --max:1080px;
+  --wide:1180px;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'DM Sans',sans-serif;background:#0A1A15;color:#fff;min-height:100vh;
-  -webkit-font-smoothing:antialiased;}
-.hero{min-height:calc(100vh - 56px);display:flex;align-items:center;justify-content:center;
-  text-align:center;padding:40px 20px;
-  background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(27,107,90,.18) 0%,transparent 65%);}
-.hero h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,58px);
-  font-weight:700;line-height:1.1;margin-bottom:16px;}
-.hero h1 span{color:#2A8A74;}
-.hero p{font-size:16px;color:rgba(255,255,255,.55);max-width:440px;
-  margin:0 auto 32px;line-height:1.75;font-weight:300;}
-.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.btn-primary{background:#1B6B5A;color:#fff;border:none;padding:13px 26px;
-  border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;
-  font-family:inherit;transition:background .2s;text-decoration:none;display:inline-block;}
-.btn-primary:hover{background:#2A8A74;}
-.btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.18);
-  padding:13px 26px;border-radius:8px;font-size:15px;font-weight:500;
-  cursor:pointer;font-family:inherit;transition:all .2s;text-decoration:none;display:inline-block;}
-.btn-ghost:hover{border-color:rgba(255,255,255,.38);background:rgba(255,255,255,.04);}
-/* session-aware hero swaps handled by JS */
-#hero-auth{display:none;}
-/* For Anesthesiologists section */
-.docs-section{padding:70px 20px;background:linear-gradient(180deg,transparent,rgba(27,107,90,.04));}
-.docs-wrap{max-width:1060px;margin:0 auto;}
-.docs-eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7ECFC0;text-align:center;margin-bottom:14px;}
-.docs-h2{font-family:'Playfair Display',serif;font-size:clamp(26px,3.5vw,38px);font-weight:700;text-align:center;margin-bottom:12px;}
-.docs-sub{font-size:16px;color:rgba(255,255,255,.55);max-width:600px;margin:0 auto 44px;text-align:center;line-height:1.7;font-weight:300;}
-.docs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
-.docs-card{background:rgba(255,255,255,.04);border:1px solid rgba(27,107,90,.2);border-radius:15px;padding:24px;transition:all .2s;}
-.docs-card:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.09);transform:translateY(-2px);}
-.docs-ico{font-size:28px;margin-bottom:12px;}
-.docs-title{font-size:16px;font-weight:600;color:#fff;margin-bottom:12px;}
-.docs-list{list-style:none;}
-.docs-list li{font-size:13.5px;color:rgba(255,255,255,.7);line-height:1.5;padding:5px 0 5px 20px;position:relative;}
-.docs-list li:before{content:'';position:absolute;left:3px;top:12px;width:6px;height:6px;border-radius:50%;background:#2A8A74;}
-.docs-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:40px;}
-@media(max-width:560px){.docs-section{padding:48px 16px;}}
-/* ── Professional Anesthesia Tools showcase ── */
-.tools-section{padding:64px 20px 30px;}
-.tools-wrap{max-width:var(--max);margin:0 auto;text-align:center;}
-.tv-p{font-size:13px;color:var(--muted);line-height:1.55;margin-top:6px;}
-.monitor{margin:30px auto 0;max-width:860px;background:#06120D;border:1px solid rgba(126,207,192,.18);border-radius:18px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.45);text-align:left;}
-.mon-bar{display:flex;align-items:center;gap:9px;padding:11px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06);font-size:12.5px;font-weight:600;color:#cfe;letter-spacing:.02em;}
-.mon-dot{width:8px;height:8px;border-radius:50%;background:#46d39a;box-shadow:0 0 8px #46d39a;animation:monpulse 1.6s infinite;}
-@keyframes monpulse{0%,100%{opacity:1}50%{opacity:.3}}
-.mon-time{margin-left:auto;color:var(--hint);font-variant-numeric:tabular-nums;}
-.mon-body{display:grid;grid-template-columns:1fr 150px;gap:0;}
-.mon-traces{padding:6px 0;border-right:1px solid rgba(255,255,255,.06);}
-.trace{position:relative;height:60px;overflow:hidden;border-bottom:1px solid rgba(255,255,255,.04);}
-.trace:last-child{border-bottom:none;}
-.trace-lbl{position:absolute;top:5px;left:12px;font-size:10px;font-weight:700;letter-spacing:.05em;z-index:2;opacity:.85;}
-.trace svg{width:200%;height:100%;display:block;}
-.trace svg path{fill:none;stroke-width:1.8;vector-effect:non-scaling-stroke;}
-.trace .scroll{animation:sweep 7s linear infinite;}
-@keyframes sweep{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.ecg path{stroke:#46d39a;filter:drop-shadow(0 0 3px rgba(70,211,154,.5));}
-.ecg .trace-lbl{color:#46d39a;}
-.pleth path{stroke:#5ad0e6;filter:drop-shadow(0 0 3px rgba(90,208,230,.5));}
-.pleth .trace-lbl{color:#5ad0e6;}
-.capno path{stroke:#e8c454;filter:drop-shadow(0 0 3px rgba(232,196,84,.45));}
-.capno .trace-lbl{color:#e8c454;}
-.mon-vitals{display:flex;flex-direction:column;}
-.vital{flex:1;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;}
-.vital:last-child{border-bottom:none;}
-.v-l{font-size:10px;font-weight:700;letter-spacing:.04em;width:100%;opacity:.7;}
-.v-n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
-.v-u{font-size:10px;color:var(--hint);}
-.v-hr .v-n,.v-hr .v-l{color:#46d39a;}
-.v-spo2 .v-n,.v-spo2 .v-l{color:#5ad0e6;}
-.v-co2 .v-n,.v-co2 .v-l{color:#e8c454;}
-.v-bp .v-n,.v-rr .v-n,.v-temp .v-n{color:#fff;}
-.mon-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.06);}
-.mon-card{background:#06120D;padding:12px 14px;}
-.mc-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin-bottom:7px;}
-.mc-r{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:var(--muted);}
-.mc-r b{color:#fff;font-weight:600;}
-@media(max-width:620px){.mon-body{grid-template-columns:1fr;}.mon-vitals{flex-direction:row;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.06);}.vital{width:33.33%;border-bottom:none;}.mon-cards{grid-template-columns:1fr;}}
-/* ── V1 footer / legal component ── */
-.site-footer{background:#06120D;border-top:1px solid rgba(255,255,255,.07);margin-top:48px;padding:52px 20px 26px;}
-.ft-wrap{max-width:1060px;margin:0 auto;}
-.ft-grid{display:grid;grid-template-columns:1.7fr 1fr 1fr 1.5fr;gap:36px;}
-.ft-logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:12px;}
-.ft-about{font-size:13.5px;color:rgba(255,255,255,.55);line-height:1.7;font-weight:300;max-width:320px;margin-bottom:14px;}
-.ft-mail{font-size:13.5px;color:#7ECFC0;text-decoration:none;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--sans);
+  background:var(--cream);
+  color:var(--ink);
+  padding-top:56px;            /* fixed navbar height */
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  line-height:1.5;
+}
+a{color:inherit;}
+img{max-width:100%;display:block;}
+:focus-visible{outline:2px solid var(--teal2);outline-offset:3px;border-radius:4px;}
+
+/* ── Shared typographic helpers ───────────────────────────── */
+.eyebrow{
+  font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--teal);margin-bottom:20px;
+}
+.dark-zone .eyebrow{color:var(--accent);}
+.section{padding:clamp(72px,11vw,150px) 24px;}
+.wrap{max-width:var(--max);margin:0 auto;}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:inherit;font-size:16px;font-weight:500;
+  padding:15px 30px;border-radius:100px;border:1px solid transparent;
+  cursor:pointer;text-decoration:none;transition:transform .25s ease,background .25s ease,border-color .25s ease,color .25s ease;
+  white-space:nowrap;
+}
+.btn svg{width:17px;height:17px;}
+.btn-fill{background:var(--ink);color:#fff;}
+.btn-fill:hover{background:var(--teal);transform:translateY(-2px);}
+.btn-line{background:transparent;color:var(--ink);border-color:var(--line-light);}
+.btn-line:hover{border-color:var(--ink);transform:translateY(-2px);}
+.dark-zone .btn-fill{background:#fff;color:var(--ink);}
+.dark-zone .btn-fill:hover{background:var(--accent);}
+.dark-zone .btn-line{color:#fff;border-color:var(--line-dark);}
+.dark-zone .btn-line:hover{border-color:rgba(255,255,255,.6);}
+
+/* ── 1 · HERO (light) ─────────────────────────────────────── */
+.hero{
+  position:relative;min-height:calc(100svh - 56px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:60px 24px 40px;overflow:hidden;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% -8%,rgba(27,107,90,.10),transparent 60%),
+    var(--cream);
+}
+.hero-inner{position:relative;max-width:880px;}
+.hero-welcome{
+  display:none;align-items:center;gap:8px;margin:0 auto 26px;
+  font-size:14px;color:var(--ink-soft);background:#fff;border:1px solid var(--line-light);
+  padding:8px 16px 8px 12px;border-radius:100px;width:fit-content;
+  box-shadow:0 2px 18px rgba(10,26,21,.05);text-decoration:none;transition:transform .2s,box-shadow .2s;
+}
+.hero-welcome:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(10,26,21,.08);}
+.hero-welcome .dot{width:7px;height:7px;border-radius:50%;background:var(--teal2);}
+.hero-welcome b{font-weight:600;color:var(--ink);}
+.hero-welcome .arr{color:var(--teal);}
+.hero h1{
+  font-family:var(--serif);font-weight:600;
+  font-size:clamp(48px,8.5vw,104px);line-height:.98;letter-spacing:-.02em;
+  color:var(--ink);margin-bottom:30px;
+}
+.hero h1 em{font-style:italic;color:var(--teal);font-weight:500;}
+.hero-sub{
+  font-size:clamp(17px,2.1vw,22px);font-weight:300;line-height:1.6;
+  color:var(--ink-soft);max-width:600px;margin:0 auto 42px;
+}
+.hero-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.scroll-cue{
+  position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);
+}
+.scroll-cue .line{width:1px;height:40px;background:linear-gradient(var(--ink-faint),transparent);animation:cue 2.4s ease-in-out infinite;}
+@keyframes cue{0%,100%{transform:scaleY(.4);transform-origin:top;opacity:.5;}50%{transform:scaleY(1);opacity:1;}}
+
+/* ── 2 · CHOOSE YOUR JOURNEY (light) ──────────────────────── */
+.journey{background:var(--cream);}
+.sec-head{text-align:center;max-width:620px;margin:0 auto clamp(44px,6vw,68px);}
+.sec-head h2{
+  font-family:var(--serif);font-weight:600;letter-spacing:-.015em;line-height:1.05;
+  font-size:clamp(32px,5vw,56px);color:var(--ink);margin-bottom:18px;
+}
+.dark-zone .sec-head h2{color:#fff;}
+.sec-head p{font-size:clamp(16px,2vw,19px);font-weight:300;line-height:1.6;color:var(--ink-soft);}
+.dark-zone .sec-head p{color:var(--on-dark-soft);}
+.choose-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:920px;margin:0 auto;}
+.choose-card{
+  position:relative;display:flex;flex-direction:column;
+  background:#fff;border:1px solid var(--line-light);border-radius:24px;
+  padding:clamp(28px,4vw,44px);text-decoration:none;color:var(--ink);
+  min-height:300px;transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease;
+  overflow:hidden;
+}
+.choose-card:hover{transform:translateY(-4px);box-shadow:0 24px 60px rgba(10,26,21,.10);border-color:rgba(27,107,90,.3);}
+.choose-ico{
+  width:54px;height:54px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+  background:rgba(27,107,90,.08);color:var(--teal);margin-bottom:24px;
+}
+.choose-ico svg{width:27px;height:27px;}
+.choose-card h3{font-family:var(--serif);font-weight:600;font-size:27px;letter-spacing:-.01em;margin-bottom:12px;}
+.choose-card p{font-size:16px;font-weight:300;line-height:1.6;color:var(--ink-soft);margin-bottom:auto;}
+.choose-go{display:inline-flex;align-items:center;gap:8px;margin-top:28px;font-weight:500;font-size:15px;color:var(--teal);}
+.choose-go svg{width:16px;height:16px;transition:transform .25s ease;}
+.choose-card:hover .choose-go svg{transform:translateX(5px);}
+.choose-note{text-align:center;margin-top:30px;font-size:14px;color:var(--ink-faint);font-weight:300;}
+
+/* ── 3 · WHY TRUST (light) ────────────────────────────────── */
+.trust{background:var(--cream2);}
+.trust-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:34px 28px;max-width:1000px;margin:0 auto;}
+.trust-item{text-align:left;}
+.trust-item .ti-ico{width:40px;height:40px;color:var(--teal);margin-bottom:18px;}
+.trust-item .ti-ico svg{width:34px;height:34px;stroke-width:1.4;}
+.trust-item h4{font-size:18px;font-weight:600;margin-bottom:9px;color:var(--ink);}
+.trust-item p{font-size:14.5px;font-weight:300;line-height:1.6;color:var(--ink-soft);}
+
+/* ── transition band light → dark ─────────────────────────── */
+.to-dark{height:200px;background:linear-gradient(180deg,var(--cream2) 0%,var(--dark) 100%);}
+
+/* ── DARK ZONE ────────────────────────────────────────────── */
+.dark-zone{background:var(--dark);color:var(--on-dark);}
+
+/* ── 4 · PRODUCT SCREENSHOTS (dark) ───────────────────────── */
+.product{padding-top:clamp(20px,4vw,40px);}
+.shots{display:flex;flex-direction:column;gap:clamp(64px,9vw,120px);max-width:var(--wide);margin:0 auto;}
+.shot{display:grid;grid-template-columns:0.85fr 1.15fr;gap:clamp(28px,5vw,64px);align-items:center;}
+.shot.flip .shot-copy{order:2;}
+.shot-copy .tag{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;}
+.shot-copy h3{font-family:var(--serif);font-weight:600;font-size:clamp(26px,3.4vw,38px);line-height:1.1;letter-spacing:-.01em;margin-bottom:16px;color:#fff;}
+.shot-copy p{font-size:16.5px;font-weight:300;line-height:1.65;color:var(--on-dark-soft);max-width:420px;}
+.frame{
+  border-radius:14px;overflow:hidden;border:1px solid var(--line-dark);
+  background:var(--darker);box-shadow:0 40px 90px rgba(0,0,0,.5);
+}
+.frame-bar{display:flex;align-items:center;gap:7px;padding:11px 15px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line-dark);}
+.frame-bar i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16);}
+.frame img{width:100%;display:block;}
+
+/* ── 5 · TIMELINE (dark) ──────────────────────────────────── */
+.timeline-wrap{max-width:760px;margin:0 auto;position:relative;}
+.timeline-wrap::before{content:'';position:absolute;left:23px;top:14px;bottom:14px;width:1px;background:linear-gradient(var(--teal2),rgba(126,207,192,.12));}
+.tl-step{position:relative;display:flex;gap:26px;padding-bottom:38px;}
+.tl-step:last-child{padding-bottom:0;}
+.tl-num{
+  flex:none;width:48px;height:48px;border-radius:50%;z-index:1;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--dark);border:1px solid rgba(126,207,192,.35);
+  font-family:var(--serif);font-size:18px;font-weight:600;color:var(--accent);
+}
+.tl-body{padding-top:9px;}
+.tl-body h4{font-size:19px;font-weight:600;color:#fff;margin-bottom:6px;}
+.tl-body p{font-size:15px;font-weight:300;line-height:1.6;color:var(--on-dark-soft);}
+
+/* ── 6 · VIDEOS (dark) ────────────────────────────────────── */
+.vid-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:var(--max);margin:0 auto;}
+.vid-card{
+  display:flex;flex-direction:column;text-decoration:none;color:#fff;
+  background:rgba(255,255,255,.03);border:1px solid var(--line-dark);border-radius:18px;
+  overflow:hidden;transition:transform .3s ease,border-color .3s ease,background .3s ease;
+}
+.vid-card:hover{transform:translateY(-4px);border-color:rgba(126,207,192,.4);background:rgba(255,255,255,.05);}
+.vid-thumb{aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;position:relative;
+  background:radial-gradient(ellipse at 50% 40%,rgba(27,107,90,.35),rgba(6,18,13,.9));border-bottom:1px solid var(--line-dark);}
+.vid-play{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.10);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.2);transition:transform .3s ease,background .3s ease;}
+.vid-card:hover .vid-play{transform:scale(1.08);background:rgba(126,207,192,.22);}
+.vid-play svg{width:20px;height:20px;color:#fff;margin-left:3px;}
+.vid-meta{padding:20px 22px 24px;}
+.vid-meta .vk{font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:9px;}
+.vid-meta h4{font-size:18px;font-weight:600;line-height:1.25;margin-bottom:7px;}
+.vid-meta p{font-size:14px;font-weight:300;line-height:1.55;color:var(--on-dark-soft);}
+.vid-cta{text-align:center;margin-top:46px;}
+
+/* ── 7 · FOOTER (dark) ────────────────────────────────────── */
+.site-footer{background:var(--darker);border-top:1px solid var(--line-dark);padding:72px 24px 36px;color:#fff;}
+.ft-wrap{max-width:var(--max);margin:0 auto;}
+.ft-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;}
+.ft-logo{font-family:var(--serif);font-size:26px;font-weight:600;margin-bottom:16px;}
+.ft-about{font-size:14.5px;font-weight:300;line-height:1.7;color:var(--on-dark-soft);max-width:340px;margin-bottom:18px;}
+.ft-mail{font-size:14px;color:var(--accent);text-decoration:none;}
 .ft-mail:hover{text-decoration:underline;}
-.ft-h{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7ECFC0;margin-bottom:13px;}
-.ft-col a{display:block;font-size:14px;color:rgba(255,255,255,.7);text-decoration:none;padding:6px 0;transition:color .15s;}
+.ft-h{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--on-dark-faint);margin-bottom:16px;}
+.ft-col a{display:block;font-size:14.5px;font-weight:300;color:var(--on-dark-soft);text-decoration:none;padding:7px 0;transition:color .18s;}
 .ft-col a:hover{color:#fff;}
-.ft-news p{font-size:13px;color:rgba(255,255,255,.5);line-height:1.6;margin-bottom:12px;font-weight:300;}
-.ft-form{display:flex;gap:8px;flex-wrap:wrap;}
-.ft-form input{flex:1;min-width:150px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit;outline:none;}
-.ft-form input:focus{border-color:rgba(42,138,116,.6);}
-.ft-form button{background:#1B6B5A;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .2s;}
-.ft-form button:hover{background:#2A8A74;}
-.ft-news-msg{font-size:13px;color:#7ECFC0;margin-top:10px;min-height:18px;}
-.ft-bottom{margin-top:42px;padding-top:22px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:9px;}
-.ft-copy{font-size:13px;color:rgba(255,255,255,.45);}
-.ft-disc{font-size:11.5px;color:rgba(255,255,255,.35);line-height:1.6;max-width:780px;}
-@media(max-width:820px){.ft-grid{grid-template-columns:1fr 1fr;gap:28px;}}
-@media(max-width:480px){.ft-grid{grid-template-columns:1fr;}}
+.ft-bottom{margin-top:56px;padding-top:26px;border-top:1px solid var(--line-dark);display:flex;flex-direction:column;gap:12px;}
+.ft-copy{font-size:13px;color:var(--on-dark-faint);}
+.ft-disc{font-size:12px;font-weight:300;color:var(--on-dark-faint);line-height:1.65;max-width:820px;}
+
+/* ── reveal-on-scroll ─────────────────────────────────────── */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1);}
+.reveal.in{opacity:1;transform:none;}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media(max-width:880px){
+  .trust-grid{grid-template-columns:1fr 1fr;gap:30px 24px;}
+  .shot,.shot.flip .shot-copy{grid-template-columns:1fr;order:0;}
+  .shot{gap:26px;}
+  .vid-grid{grid-template-columns:1fr;max-width:440px;}
+  .ft-top{grid-template-columns:1fr 1fr;gap:32px;}
+  .ft-brand{grid-column:1/-1;}
+}
+@media(max-width:560px){
+  .choose-grid{grid-template-columns:1fr;}
+  .trust-grid{grid-template-columns:1fr;}
+  .hero-cta .btn{width:100%;justify-content:center;}
+  .scroll-cue{display:none;}
+  .ft-top{grid-template-columns:1fr 1fr;}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  .reveal{opacity:1;transform:none;transition:none;}
+  .scroll-cue .line{animation:none;}
+  .btn:hover,.choose-card:hover,.vid-card:hover{transform:none;}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
@@ -118,166 +264,235 @@ body{font-family:'DM Sans',sans-serif;background:#0A1A15;color:#fff;min-height:1
 <body>
 <div id="nb-placeholder"></div>
 
-<section class="hero">
-  <div>
-    <div id="hero-guest">
-      <h1>Understand your<br><span>anesthesia</span><br>before surgery</h1>
-      <p>Educational resources and clinical tools for patients and healthcare professionals.</p>
-      <div class="hero-btns">
-        <button class="btn-primary" onclick="console.log('BUTTON CLICKED - get started');nbOpenModal()">Get started</button>
-        <a href="/v2/patients.html" class="btn-ghost">For patients</a>
-      </div>
-    </div>
-    <div id="hero-auth">
-      <h1 id="hero-auth-h1">Welcome back</h1>
-      <p id="hero-auth-sub">You are signed in.</p>
-      <div class="hero-btns" id="hero-auth-btns"></div>
+<main>
+
+<!-- ── 1 · HERO ─────────────────────────────────────────────── -->
+<section class="hero" aria-label="Introduction">
+  <div class="hero-inner">
+    <a class="hero-welcome" id="hero-welcome" href="/v2/patient-dashboard.html">
+      <span class="dot"></span><span id="hero-welcome-txt">Welcome back</span><span class="arr">&rarr;</span>
+    </a>
+    <h1>Anesthesia,<br><em>understood.</em></h1>
+    <p class="hero-sub">A single, calm home for perioperative medicine — guiding patients through surgery, and equipping clinical teams with professional-grade tools.</p>
+    <div class="hero-cta">
+      <a href="#journey" class="btn btn-fill">Find your path
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      </a>
+      <a href="/v2/engine.html" class="btn btn-line">Explore Live Tools</a>
     </div>
   </div>
+  <div class="scroll-cue" aria-hidden="true"><div class="line"></div>Scroll</div>
 </section>
 
-<section class="tools-section">
-  <div class="tools-wrap">
-    <div class="docs-eyebrow">Anesthesia Live Tools</div>
-    <h2 class="docs-h2">Professional anesthesia tools</h2>
-    <p class="docs-sub">Built for anesthesiologists, residents, ICU physicians, and perioperative teams.</p>
-
-    <!-- Animated anesthesia workstation preview -->
-    <div class="monitor" aria-label="Anesthesia monitor preview">
-      <div class="mon-bar">
-        <span class="mon-dot"></span> Anestheo Monitor
-        <span class="mon-time" id="mon-time">08:24</span>
-      </div>
-      <div class="mon-body">
-        <div class="mon-traces">
-          <div class="trace ecg">
-            <span class="trace-lbl">ECG II</span>
-            <svg viewBox="0 0 600 60" preserveAspectRatio="none"><g class="scroll">
-              <path d="M0,30 L40,30 50,30 55,12 60,48 66,30 100,30 140,30 150,30 155,12 160,48 166,30 200,30 240,30 250,30 255,12 260,48 266,30 300,30 340,30 350,30 355,12 360,48 366,30 400,30 440,30 450,30 455,12 460,48 466,30 500,30 540,30 550,30 555,12 560,48 566,30 600,30"/>
-              <path d="M600,30 L640,30 650,30 655,12 660,48 666,30 700,30 740,30 750,30 755,12 760,48 766,30 800,30 840,30 850,30 855,12 860,48 866,30 900,30 940,30 950,30 955,12 960,48 966,30 1000,30 1040,30 1050,30 1055,12 1060,48 1066,30 1100,30 1140,30 1150,30 1155,12 1160,48 1166,30 1200,30"/>
-            </g></svg>
-          </div>
-          <div class="trace pleth">
-            <span class="trace-lbl">SpO&#8322; Pleth</span>
-            <svg viewBox="0 0 600 60" preserveAspectRatio="none"><g class="scroll">
-              <path d="M0,45 Q20,10 40,18 T80,45 Q100,12 120,20 T160,45 Q180,12 200,20 T240,45 Q260,12 280,20 T320,45 Q340,12 360,20 T400,45 Q420,12 440,20 T480,45 Q500,12 520,20 T560,45 Q580,12 600,20"/>
-              <path d="M600,45 Q620,10 640,18 T680,45 Q700,12 720,20 T760,45 Q780,12 800,20 T840,45 Q860,12 880,20 T920,45 Q940,12 960,20 T1000,45 Q1020,12 1040,20 T1080,45 Q1100,12 1120,20 T1160,45 Q1180,12 1200,20"/>
-            </g></svg>
-          </div>
-          <div class="trace capno">
-            <span class="trace-lbl">ETCO&#8322;</span>
-            <svg viewBox="0 0 600 60" preserveAspectRatio="none"><g class="scroll">
-              <path d="M0,50 L20,50 24,16 70,14 74,50 110,50 114,16 160,14 164,50 200,50 204,16 250,14 254,50 290,50 294,16 340,14 344,50 380,50 384,16 430,14 434,50 470,50 474,16 520,14 524,50 560,50 564,16 600,14"/>
-              <path d="M600,50 L620,50 624,16 670,14 674,50 710,50 714,16 760,14 764,50 800,50 804,16 850,14 854,50 890,50 894,16 940,14 944,50 980,50 984,16 1030,14 1034,50 1070,50 1074,16 1120,14 1124,50 1160,50 1164,16 1200,14"/>
-            </g></svg>
-          </div>
+<!-- ── 2 · CHOOSE YOUR JOURNEY ──────────────────────────────── -->
+<section class="section journey" id="journey" aria-label="Choose your journey">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Choose your journey</div>
+      <h2>Where do you fit in?</h2>
+      <p>Anestheo brings everyone around surgery together. Tell us who you are, and we&rsquo;ll take you to the right place.</p>
+    </div>
+    <div class="choose-grid">
+      <a href="/v2/patients.html" class="choose-card reveal" id="card-patient">
+        <div class="choose-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.5 2-5a4 4 0 0 0-8 0 4 4 0 0 0-8 0c0 1.5.5 3.5 2 5l6 6 6-6Z"/></svg>
         </div>
-        <div class="mon-vitals">
-          <div class="vital v-hr"><span class="v-l">HR</span><span class="v-n" id="v-hr">72</span><span class="v-u">bpm</span></div>
-          <div class="vital v-spo2"><span class="v-l">SpO&#8322;</span><span class="v-n" id="v-spo2">98</span><span class="v-u">%</span></div>
-          <div class="vital v-bp"><span class="v-l">NIBP</span><span class="v-n">118/76</span><span class="v-u">mmHg</span></div>
-          <div class="vital v-co2"><span class="v-l">ETCO&#8322;</span><span class="v-n" id="v-co2">38</span><span class="v-u">mmHg</span></div>
-          <div class="vital v-rr"><span class="v-l">RR</span><span class="v-n">14</span><span class="v-u">/min</span></div>
-          <div class="vital v-temp"><span class="v-l">Temp</span><span class="v-n">36.6</span><span class="v-u">&deg;C</span></div>
+        <h3>I&rsquo;m having surgery</h3>
+        <p>Understand your procedure, prepare with confidence, and stay connected to your care team — every step explained in plain language.</p>
+        <span class="choose-go">Start as a patient
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+      <a href="/v2/dashboard.html" class="choose-card reveal" id="card-pro">
+        <div class="choose-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H4zM4 17l3 3M20 17l-3 3M9 9h6M9 13h4"/></svg>
+        </div>
+        <h3>I deliver care</h3>
+        <p>Run your operating list, manage patients and pre-operative information, and reach for clinical tools the moment you need them.</p>
+        <span class="choose-go">Enter the workspace
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+      </a>
+    </div>
+    <p class="choose-note reveal">Nurses, residents, students and surgeons — dedicated spaces are coming. Choose <b>I deliver care</b> to begin.</p>
+  </div>
+</section>
+
+<!-- ── 3 · WHY TRUST ────────────────────────────────────────── -->
+<section class="section trust" aria-label="Why trust Anestheo">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Why Anestheo</div>
+      <h2>Care you can trust</h2>
+      <p>Built with practicing clinicians, grounded in current anesthesia practice, and private by design.</p>
+    </div>
+    <div class="trust-grid">
+      <div class="trust-item reveal">
+        <div class="ti-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h4>Clinically grounded</h4>
+        <p>Tools and references reflect current perioperative and anesthesia practice.</p>
+      </div>
+      <div class="trust-item reveal">
+        <div class="ti-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+        <h4>Private by design</h4>
+        <p>Your data is protected with row-level security and encryption at every layer.</p>
+      </div>
+      <div class="trust-item reveal">
+        <div class="ti-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h11a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4V5Z"/><path d="M20 5h-1a3 3 0 0 0-3 3v11"/></svg></div>
+        <h4>Education first</h4>
+        <p>Clear information to help you understand care — never a replacement for medical judgement.</p>
+      </div>
+      <div class="trust-item reveal">
+        <div class="ti-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5"/><path d="M16 6a3 3 0 0 1 0 6M18 20c0-2-.7-3.6-2-4.6"/></svg></div>
+        <h4>Made with clinicians</h4>
+        <p>Designed alongside practicing anesthesiologists who use it in real workflows.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── transition into the dark workspace ───────────────────── -->
+<div class="to-dark" aria-hidden="true"></div>
+
+<div class="dark-zone">
+
+  <!-- ── 4 · PRODUCT SCREENSHOTS ────────────────────────────── -->
+  <section class="section product" aria-label="Inside Anestheo">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">Inside Anestheo</div>
+        <h2>One workspace. Every tool.</h2>
+        <p>From your operating list to live clinical calculators — the real product, not a mockup.</p>
+      </div>
+    </div>
+    <div class="shots">
+
+      <div class="shot reveal">
+        <div class="shot-copy">
+          <div class="tag">Anesthesia Live Tools</div>
+          <h3>Every calculation, one tap away</h3>
+          <p>Weight-based dosing, airway planning, regional anesthesia and emergency references — a complete anesthesia workstation that works the way you think.</p>
+        </div>
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i></div>
+          <img src="/v2/home-livetools.png" alt="Anestheo Live Tools showing patient details, derived values and an anesthesia workstation" loading="lazy" width="1280" height="840">
         </div>
       </div>
-      <div class="mon-cards">
-        <div class="mon-card"><div class="mc-t">Drug dosing</div><div class="mc-r"><span>Propofol</span><b>140 mg</b></div><div class="mc-r"><span>Rocuronium</span><b>50 mg</b></div><div class="mc-r"><span>Fentanyl</span><b>100 mcg</b></div></div>
-        <div class="mon-card"><div class="mc-t">Airway</div><div class="mc-r"><span>ETT</span><b>7.5</b></div><div class="mc-r"><span>Depth</span><b>22 cm</b></div><div class="mc-r"><span>Mallampati</span><b>II</b></div></div>
-        <div class="mon-card"><div class="mc-t">Regional</div><div class="mc-r"><span>Max ropiv.</span><b>225 mg</b></div><div class="mc-r"><span>Block</span><b>Interscalene</b></div><div class="mc-r"><span>Volume</span><b>20 mL</b></div></div>
+
+      <div class="shot flip reveal">
+        <div class="shot-copy">
+          <div class="tag">Operating List</div>
+          <h3>Your day, at a glance</h3>
+          <p>Every case for the day in one calm view, with the patients who need your attention surfaced first — so nothing is missed before theatre.</p>
+        </div>
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i></div>
+          <img src="/v2/home-oplist.png" alt="Operating List view with summary chips and cards highlighting patients needing attention" loading="lazy">
+        </div>
+      </div>
+
+      <div class="shot reveal">
+        <div class="shot-copy">
+          <div class="tag">Patient Management</div>
+          <h3>Pre-op information, organised</h3>
+          <p>Create patients, send secure questionnaires, and review everything in one place — with a clear pipeline from awaiting review to scheduled.</p>
+        </div>
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i></div>
+          <img src="/v2/home-patients.png" alt="Patient management showing the pipeline of patients across review stages" loading="lazy">
+        </div>
+      </div>
+
+      <div class="shot flip reveal">
+        <div class="shot-copy">
+          <div class="tag">The Patient Journey</div>
+          <h3>A calm, guided path</h3>
+          <p>From the first questionnaire to recovery, patients see exactly what comes next — connected to their anesthesiologist the whole way through.</p>
+        </div>
+        <div class="frame">
+          <div class="frame-bar"><i></i><i></i><i></i></div>
+          <img src="/v2/home-journey.png" alt="A patient's journey dashboard with upcoming surgery, updates and progress" loading="lazy">
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── 5 · SURGERY JOURNEY TIMELINE ───────────────────────── -->
+  <section class="section timeline" aria-label="The surgery journey">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">The path through surgery</div>
+        <h2>From first question to full recovery</h2>
+        <p>A clear sequence, the same for every patient — so surgery feels understood, not uncertain.</p>
+      </div>
+      <div class="timeline-wrap">
+        <div class="tl-step reveal"><div class="tl-num">1</div><div class="tl-body"><h4>Get connected</h4><p>You&rsquo;re linked to your anesthesiologist and your surgery is added to your space.</p></div></div>
+        <div class="tl-step reveal"><div class="tl-num">2</div><div class="tl-body"><h4>Complete your questionnaire</h4><p>Share your history and medications securely, at your own pace, from any device.</p></div></div>
+        <div class="tl-step reveal"><div class="tl-num">3</div><div class="tl-body"><h4>Review with your anesthesiologist</h4><p>Your team reviews your answers and prepares a plan tailored to you.</p></div></div>
+        <div class="tl-step reveal"><div class="tl-num">4</div><div class="tl-body"><h4>Prepare with confidence</h4><p>Follow a simple checklist and clear guidance for the days before surgery.</p></div></div>
+        <div class="tl-step reveal"><div class="tl-num">5</div><div class="tl-body"><h4>Surgery day</h4><p>Arrive knowing what to expect — your anesthesia plan is ready and waiting.</p></div></div>
+        <div class="tl-step reveal"><div class="tl-num">6</div><div class="tl-body"><h4>Recovery</h4><p>Stay informed through recovery, with your care team only a message away.</p></div></div>
       </div>
     </div>
+  </section>
 
-    <!-- Value cards -->
-    <div class="docs-grid" style="margin-top:34px;">
-      <div class="docs-card"><div class="docs-ico">&#128168;</div><div class="docs-title">Airway management</div><p class="tv-p">Difficult airway assessment and planning.</p></div>
-      <div class="docs-card"><div class="docs-ico">&#128137;</div><div class="docs-title">Drug dosing</div><p class="tv-p">Weight-based anesthesia calculations.</p></div>
-      <div class="docs-card"><div class="docs-ico">&#129504;</div><div class="docs-title">Regional anesthesia</div><p class="tv-p">Block references and local anesthetic dosing.</p></div>
-      <div class="docs-card"><div class="docs-ico">&#127973;</div><div class="docs-title">ICU &amp; hemodynamics</div><p class="tv-p">Vasoactive medications and critical care tools.</p></div>
-      <div class="docs-card"><div class="docs-ico">&#128138;</div><div class="docs-title">TIVA / TCI</div><p class="tv-p">Anesthetic infusion guidance.</p></div>
-      <div class="docs-card"><div class="docs-ico">&#9888;</div><div class="docs-title">Emergency references</div><p class="tv-p">LAST, anaphylaxis, malignant hyperthermia and more.</p></div>
+  <!-- ── 6 · EDUCATIONAL VIDEOS ─────────────────────────────── -->
+  <section class="section videos" aria-label="Educational videos">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <div class="eyebrow">Learn at your own pace</div>
+        <h2>Short, clear, reassuring</h2>
+        <p>A growing library of educational videos that demystify anesthesia and surgery.</p>
+      </div>
+      <div class="vid-grid">
+        <a href="/v2/videos.html" class="vid-card reveal">
+          <div class="vid-thumb"><span class="vid-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></div>
+          <div class="vid-meta"><div class="vk">Foundations</div><h4>What is anesthesia?</h4><p>The types of anesthesia and how they keep you safe and comfortable.</p></div>
+        </a>
+        <a href="/v2/videos.html" class="vid-card reveal">
+          <div class="vid-thumb"><span class="vid-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></div>
+          <div class="vid-meta"><div class="vk">Before surgery</div><h4>Preparing for your procedure</h4><p>What to do — and what to avoid — in the days leading up to surgery.</p></div>
+        </a>
+        <a href="/v2/videos.html" class="vid-card reveal">
+          <div class="vid-thumb"><span class="vid-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></div>
+          <div class="vid-meta"><div class="vk">Your options</div><h4>Spinal vs general anesthesia</h4><p>How the main approaches differ, and what they mean for you.</p></div>
+        </a>
+      </div>
+      <div class="vid-cta reveal"><a href="/v2/videos.html" class="btn btn-line">Watch the full library</a></div>
     </div>
+  </section>
 
-    <div class="docs-cta">
-      <a href="/v2/engine.html" class="btn-primary">Explore Anesthesia Live Tools</a>
-      <button class="btn-ghost" onclick="window.nbOpenModal()">Create free doctor account</button>
-    </div>
-  </div>
-</section>
+</div><!-- /dark-zone -->
 
-    <h2 class="docs-h2">Built for practicing anesthesiologists.</h2>
-    <p class="docs-sub">Manage patients, collect pre-operative information, send questionnaires, and access anesthesia tools from one workspace.</p>
+</main>
 
-    <div class="docs-grid">
-      <div class="docs-card">
-        <div class="docs-ico">&#128101;</div>
-        <div class="docs-title">Patient management</div>
-        <ul class="docs-list"><li>Create patient</li><li>Send secure patient links</li><li>Track completion</li><li>Review responses</li></ul>
-      </div>
-      <div class="docs-card">
-        <div class="docs-ico">&#128241;</div>
-        <div class="docs-title">WhatsApp workflow</div>
-        <ul class="docs-list"><li>Generate patient link</li><li>Send through WhatsApp</li><li>Monitor completion status</li></ul>
-      </div>
-      <div class="docs-card">
-        <div class="docs-ico">&#129658;</div>
-        <div class="docs-title">Anesthesiology Live Tools</div>
-        <ul class="docs-list"><li>Drug calculations</li><li>Airway tools &amp; ventilation</li><li>TIVA / TCI</li><li>Regional anesthesia &amp; scores</li></ul>
-      </div>
-      <div class="docs-card">
-        <div class="docs-ico">&#128214;</div>
-        <div class="docs-title">Clinical references</div>
-        <ul class="docs-list"><li>Airway &amp; difficult airway</li><li>Anticoagulation &amp; regional</li><li>ICU, obstetric, pediatric</li><li>LAST &amp; anaphylaxis</li></ul>
-      </div>
-      <div class="docs-card">
-        <div class="docs-ico">&#128172;</div>
-        <div class="docs-title">Ask Anesthesiologist</div>
-        <ul class="docs-list"><li>Patient questions</li><li>Doctor responses</li><li>Communication center</li></ul>
-      </div>
-      <div class="docs-card">
-        <div class="docs-ico">&#128218;</div>
-        <div class="docs-title">Resources library</div>
-        <ul class="docs-list"><li>Books &amp; PDFs</li><li>Guides &amp; checklists</li><li>Templates</li></ul>
-      </div>
-    </div>
-
-    <div class="docs-cta">
-      <button class="btn-primary" onclick="window.nbOpenModal()">Create doctor account</button>
-      <a href="/v2/dashboard.html" class="btn-ghost">View doctor workspace</a>
-    </div>
-  </div>
-</section>
-
-<!-- ── V1 Footer / Legal ── -->
+<!-- ── 7 · FOOTER ───────────────────────────────────────────── -->
 <footer class="site-footer">
   <div class="ft-wrap">
-    <div class="ft-grid">
+    <div class="ft-top">
       <div class="ft-col ft-brand">
         <div class="ft-logo">Anestheo</div>
-        <p class="ft-about">Educational anesthesia resources and clinical reference tools for patients and perioperative teams. For information and education only &mdash; not a substitute for professional medical judgement.</p>
-        <a class="ft-mail" href="mailto:support@anestheo.com">&#9993;&#65039; support@anestheo.com</a>
+        <p class="ft-about">A calm home for perioperative medicine — educational resources for patients and professional-grade clinical tools for the teams who deliver anesthesia care.</p>
+        <a class="ft-mail" href="mailto:support@anestheo.com">support@anestheo.com</a>
+      </div>
+      <div class="ft-col">
+        <div class="ft-h">Product</div>
+        <a href="/v2/patients.html">For patients</a>
+        <a href="/v2/dashboard.html">For professionals</a>
+        <a href="/v2/engine.html">Live Tools</a>
+        <a href="/v2/videos.html">Videos</a>
       </div>
       <div class="ft-col">
         <div class="ft-h">Company</div>
-        <a href="/v2/about.html">About Anestheo</a>
+        <a href="/v2/about.html">About</a>
         <a href="mailto:support@anestheo.com">Contact</a>
-        <a href="/v2/patients.html">For patients</a>
-        <a href="/v2/engine.html">Anesthesia Live</a>
       </div>
       <div class="ft-col">
         <div class="ft-h">Legal</div>
-        <a href="/v2/privacy.html">Privacy Policy</a>
-        <a href="/v2/terms.html">Terms of Service</a>
+        <a href="/v2/privacy.html">Privacy</a>
+        <a href="/v2/terms.html">Terms</a>
         <a href="/v2/medical-disclaimer.html">Medical Disclaimer</a>
-      </div>
-      <div class="ft-col ft-news">
-        <div class="ft-h">Newsletter</div>
-        <p>Occasional updates on new tools and features. No spam.</p>
-        <form class="ft-form" onsubmit="return ftSubscribe(event)">
-          <input type="email" id="ft-email" placeholder="you@email.com" aria-label="Email address" required>
-          <button type="submit">Subscribe</button>
-        </form>
-        <div class="ft-news-msg" id="ft-news-msg" role="status"></div>
       </div>
     </div>
     <div class="ft-bottom">
@@ -286,94 +501,62 @@ body{font-family:'DM Sans',sans-serif;background:#0A1A15;color:#fff;min-height:1
     </div>
   </div>
 </footer>
-<script>
-  (function(){
-    var y=document.getElementById('ft-year'); if(y) y.textContent=new Date().getFullYear();
-    window.ftSubscribe=function(e){
-      e.preventDefault();
-      var em=document.getElementById('ft-email'), msg=document.getElementById('ft-news-msg');
-      if(em && em.value){ if(msg) msg.textContent='Thanks for subscribing — we’ll be in touch.'; em.value=''; }
-      return false;
-    };
-  })();
-</script>
 
 <script>
-// ── Role-aware hero ───────────────────────────────────────────
-function renderAuthHero(user, profile){
-  var role = profile ? (profile.role || 'patient') : 'patient';
-  var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
-  if(isAdmin) role = 'admin';
+// Footer year
+(function(){var y=document.getElementById('ft-year');if(y)y.textContent=new Date().getFullYear();})();
 
-  // Name
-  var name = (profile && profile.full_name)
-    ? profile.full_name.split(' ').slice(-1)[0]   // last name
-    : user.email.split('@')[0];
-  var first = (profile && profile.full_name)
-    ? profile.full_name.split(' ')[0]
-    : user.email.split('@')[0];
-  first = first.charAt(0).toUpperCase() + first.slice(1);
-  name  = name.charAt(0).toUpperCase() + name.slice(1);
-
-  var heading, sub, btns;
-
-  if(role === 'doctor'){
-    heading = 'Welcome back, Dr. ' + name;
-    sub     = 'Your clinical workspace is ready.';
-    btns    = '<a href="/v2/dashboard.html" class="btn-primary">Go to dashboard</a>' +
-              '<a href="/v2/engine.html" class="btn-ghost">Doctor Tools</a>';
-  } else if(role === 'admin'){
-    heading = 'Welcome back, Dr. ' + name;
-    sub     = 'Anestheo.';
-    btns    = '<a href="/v2/dashboard.html" class="btn-primary">Go to dashboard</a>' +
-              '<a href="/v2/engine.html" class="btn-ghost">Doctor Tools</a>';
-  } else { // patient
-    heading = 'Welcome back, ' + first;
-    sub     = 'Continue preparing for your procedure.';
-    btns    = '<a href="/v2/questionnaire.html" class="btn-primary">Continue preparation</a>' +
-              '<a href="/v2/dashboard.html" class="btn-ghost">Open dashboard</a>';
-  }
-
-  document.getElementById('hero-auth-h1').textContent  = heading;
-  document.getElementById('hero-auth-sub').textContent = sub;
-  document.getElementById('hero-auth-btns').innerHTML  = btns;
-  document.getElementById('hero-guest').style.display  = 'none';
-  document.getElementById('hero-auth').style.display   = 'block';
-}
-
-function showGuestHero(){
-  document.getElementById('hero-guest').style.display = 'block';
-  document.getElementById('hero-auth').style.display  = 'none';
-}
-
-(async function(){
-  var session = await getSession();
-  if(session){
-    var profile = await getProfile(session.user.id);
-    renderAuthHero(session.user, profile);
-  }
-  window.sb.auth.onAuthStateChange(async function(event, sess){
-    if(event === 'SIGNED_IN' && sess){
-      var p = await getProfile(sess.user.id);
-      renderAuthHero(sess.user, p);
-    }
-    if(event === 'SIGNED_OUT'){
-      showGuestHero();
-    }
-  });
+// Reveal-on-scroll (restrained; respects reduced motion via CSS)
+(function(){
+  var els=document.querySelectorAll('.reveal');
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in');});return;}
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});
+  },{rootMargin:'0px 0px -8% 0px',threshold:.12});
+  els.forEach(function(e){io.observe(e);});
 })();
 
-// Subtle "live" monitor preview (vitals jitter + clock)
+// Lightweight session enhancement — surface a "welcome back" shortcut without
+// replacing the hero. Routes returning users to their own space.
 (function(){
-  function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-  function tick(){
-    var hr=document.getElementById('v-hr'), spo2=document.getElementById('v-spo2'), co2=document.getElementById('v-co2'), t=document.getElementById('mon-time');
-    if(hr) hr.textContent = r(68,78);
-    if(spo2) spo2.textContent = r(97,100);
-    if(co2) co2.textContent = r(35,40);
-    if(t){ var d=new Date(); t.textContent = ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+  if(typeof getSession!=='function')return;
+  function firstName(profile,user){
+    var n=(profile&&profile.full_name)?profile.full_name.split(' ')[0]:(user.email||'').split('@')[0];
+    return n?n.charAt(0).toUpperCase()+n.slice(1):'';
   }
-  tick(); setInterval(tick, 3000);
+  function apply(user,profile){
+    if(!user)return;
+    var role=(profile&&profile.role)||'patient';
+    var el=document.getElementById('hero-welcome');
+    var txt=document.getElementById('hero-welcome-txt');
+    if(!el||!txt)return;
+    if(role==='doctor'||role==='admin'){
+      el.setAttribute('href','/v2/dashboard.html');
+      txt.textContent='Welcome back, Dr. '+firstName(profile,user)+' — open your workspace';
+    }else{
+      el.setAttribute('href','/v2/patient-dashboard.html');
+      txt.textContent='Welcome back, '+firstName(profile,user)+' — continue your journey';
+    }
+    el.style.display='inline-flex';
+  }
+  (async function(){
+    try{
+      var session=await getSession();
+      if(session){
+        var profile=(typeof getProfile==='function')?await getProfile(session.user.id):null;
+        apply(session.user,profile);
+      }
+    }catch(e){}
+    if(window.sb&&window.sb.auth&&window.sb.auth.onAuthStateChange){
+      window.sb.auth.onAuthStateChange(async function(event,sess){
+        if(event==='SIGNED_IN'&&sess){
+          var p=(typeof getProfile==='function')?await getProfile(sess.user.id):null;
+          apply(sess.user,p);
+        }
+        if(event==='SIGNED_OUT'){var el=document.getElementById('hero-welcome');if(el)el.style.display='none';}
+      });
+    }
+  })();
 })();
 </script>
 </body>
