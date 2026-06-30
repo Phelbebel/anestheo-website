@@ -1,0 +1,50 @@
+/* ============================================================
+   THE POINT  ·  Anestheo design-system primitive
+   Not branding. Composition.
+
+   The single steady light a dark surface is built around. Add the
+   class `lit` to any dark composition (a workspace, a product image,
+   any dark frame). The light's position, its warmth, and the wash it
+   casts all come from one source — so if the light is removed, the
+   composition goes flat. Its absence is felt before it is noticed.
+
+   Inviolable:
+     · never animated — it never moves, never blinks, never pulses
+     · never the focal centre — the work is the hero; this only lights it
+     · warm, never blue — the temperature of presence, not a monitor
+     · kept subtle enough to miss consciously — never brighten it to be seen
+   If it is noticed immediately, it is too strong.
+   If it can be removed and nothing changes, it was not integrated deeply enough.
+   ============================================================ */
+
+:root{
+  --point:        #F7EFDD;   /* the temperature of presence — never blue */
+  --point-x:      50%;       /* where the light hangs (override per composition) */
+  --point-y:      6%;
+  --point-size:   6px;       /* the visible core */
+  --point-reach:  .05;       /* how far its light falls into the dark */
+}
+
+/* A dark composition declares itself lit by the point. */
+.lit{ position: relative; }
+
+/* The wash — the composition is lit FROM the point, not merely decorated. */
+.lit::before{
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background: radial-gradient(58% 44% at var(--point-x) var(--point-y),
+              rgba(247,239,221, var(--point-reach)), transparent 72%);
+}
+
+/* The point itself — steady, warm, still. */
+.lit::after{
+  content:""; position:absolute; left:var(--point-x); top:var(--point-y);
+  transform: translate(-50%,-50%);
+  width:var(--point-size); height:var(--point-size); border-radius:50%;
+  background:var(--point); z-index:1; pointer-events:none;
+  box-shadow: 0 0 3px 1px rgba(247,239,221,.5), 0 0 22px 7px rgba(247,239,221,.10);
+}
+
+/* The work sits in its light. */
+.lit > *{ position: relative; z-index: 1; }
+
+/* It never moves, so there is nothing to disable for reduced motion. */

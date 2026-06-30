@@ -1,6 +1,9 @@
 /* ── Anestheo /v2 shared styles ── */
 /* All pages import this. navbar.js injects its own scoped CSS. */
 
+/* The Point — design-system primitive. Every dark composition inherits it. */
+@import url("point.css");
+
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
