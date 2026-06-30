@@ -85,8 +85,18 @@ img{display:block;max-width:100%;}
 .to-light{height:42vh;background:linear-gradient(180deg,var(--dark) 0%,var(--paper) 100%);}
 
 /* ── 3 · 4 · THE WORK (dark, centered plates) ───────────────── */
-.zone-dark{background:var(--dark);color:var(--on-dark);}
+.zone-dark{background:#070D0A;color:var(--on-dark);}
 .zone-dark .frame{align-items:center;text-align:center;}
+/* The point — the single steady light the work happens beneath. Never moves,
+   never blinks, never centered or announced. Felt, not seen. */
+.point{
+  position:absolute;top:5%;left:50%;transform:translateX(-50%);
+  width:6px;height:6px;border-radius:50%;background:#F7EFDD;pointer-events:none;
+  box-shadow:
+    0 0 3px 1px rgba(247,239,221,.55),
+    0 0 22px 7px rgba(247,239,221,.10),
+    0 0 300px 150px rgba(247,239,221,.045);
+}
 .zone-dark .work-line{
   font-family:var(--serif);font-weight:450;color:var(--on-dark);
   font-size:clamp(26px,3.4vw,44px);line-height:1.12;letter-spacing:-.015em;
@@ -191,6 +201,7 @@ img{display:block;max-width:100%;}
   <div class="zone-dark">
 
     <section class="frame f-work-1 f-center" aria-label="The work">
+      <span class="point" aria-hidden="true"></span>
       <div class="inner">
         <p class="work-line reveal">Care is delivered one decision at a time.</p>
         <figure class="plate reveal d1">
@@ -204,6 +215,7 @@ img{display:block;max-width:100%;}
     </section>
 
     <section class="frame f-work-2 f-center" aria-label="The patient journey">
+      <span class="point" aria-hidden="true"></span>
       <div class="inner">
         <figure class="plate reveal">
           <div class="plate-img"><img src="/v2/home-journey.png" alt="A patient's journey in Anestheo — prepared and accompanied" loading="lazy"></div>
