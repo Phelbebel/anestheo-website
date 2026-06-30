@@ -21,6 +21,13 @@ unmistakably ours — without asking anyone a question.
 6. **COMPONENTS.md** — the parts.
 7. **PRODUCT_PRESENTATION.md** — how the work is shown.
 
+### Governance — the locks on the system
+
+- **DESIGN_DECISIONS.md** — what we rejected, and why. Read before re-proposing it.
+- **NORTH_STAR.md** — the ten-question review every screen passes before shipping.
+- **CHANGELOG.md** — Version 1.0, frozen. Evolution is encouraged; redefinition
+  requires founder approval.
+
 ### The shape of every document
 
 Every document explains **why before how.** The reasoning is not preamble — it
