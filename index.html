@@ -43,7 +43,7 @@ img{display:block;max-width:100%;}
   display:flex;align-items:center;justify-content:space-between;
   padding:clamp(22px,3.4vw,40px) var(--edge);
 }
-.wordmark{font-family:var(--sans);font-weight:600;font-size:19px;letter-spacing:-.01em;color:var(--ink);}
+.wordmark{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.01em;color:var(--ink);}
 .signin{font-size:14px;color:var(--muted);background:none;border:none;font-family:inherit;cursor:pointer;letter-spacing:.01em;transition:color .2s;}
 .signin:hover{color:var(--ink);}
 
@@ -74,8 +74,10 @@ img{display:block;max-width:100%;}
   text-transform:uppercase;color:var(--faint);
 }
 
-/* ── 1 · THE BELIEF (paper, low-left) ───────────────────────── */
+/* ── 1 · THE BELIEF (paper, centered — content in immediate view) ─ */
+.f-belief{min-height:88svh;}
 .f-belief .monument{max-width:15ch;}
+.f-belief .lede{max-width:38ch;}
 
 /* ── 2 · THE WORLD (paper, high-left) ───────────────────────── */
 .f-world .monument{max-width:19ch;}
@@ -133,7 +135,7 @@ img{display:block;max-width:100%;}
 .colophon{padding:clamp(64px,9vh,120px) var(--edge) clamp(40px,5vh,56px);border-top:1px solid var(--hair);}
 .colo-inner{max-width:1180px;margin:0 auto;}
 .colo-top{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;align-items:flex-start;}
-.colo-mark{font-family:var(--serif);font-weight:450;font-size:26px;color:var(--ink);}
+.colo-mark{font-family:var(--serif);font-weight:500;font-size:26px;color:var(--ink);}
 .colo-belief{font-family:var(--serif);font-weight:450;font-size:clamp(17px,1.7vw,20px);color:var(--muted);max-width:24ch;line-height:1.45;letter-spacing:-.01em;}
 .colo-cols{display:flex;gap:clamp(36px,6vw,80px);flex-wrap:wrap;}
 .colo-col h4{font-family:var(--sans);font-weight:500;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
@@ -174,16 +176,17 @@ img{display:block;max-width:100%;}
 <main>
 
   <!-- 1 · THE BELIEF ──────────────────────────────────────── -->
-  <section class="frame f-belief f-bottom" aria-label="Anestheo">
+  <section class="frame f-belief f-center" aria-label="Anestheo">
     <div class="inner">
       <h1 class="monument reveal">Nobody should have to be lucky to receive great care.</h1>
+      <p class="lede reveal d1">The anesthesia platform helping care teams make the best possible decision, for every patient.</p>
     </div>
   </section>
 
   <!-- 2 · THE WORLD ───────────────────────────────────────── -->
   <section class="frame f-world f-top" aria-label="Our vision">
     <div class="inner">
-      <p class="monument smaller reveal">A world where every patient receives the best possible care&mdash;regardless of who they are, or where they are treated.</p>
+      <p class="monument smaller reveal">A world where every patient receives the best possible care, regardless of who they are or where they are treated.</p>
       <p class="lede reveal d1">The same standard, in every hospital, for everyone.</p>
     </div>
   </section>
@@ -212,7 +215,7 @@ img{display:block;max-width:100%;}
           <div class="plate-img"><img src="/v2/home-journey.png" alt="A patient's journey in Anestheo — prepared and accompanied" loading="lazy"></div>
           <figcaption class="plate-cap">
             <div class="label">The Patient Journey</div>
-            <div class="cap-line">Every patient arrives prepared&mdash;and never alone.</div>
+            <div class="cap-line">Every patient arrives prepared, and never alone.</div>
           </figcaption>
         </figure>
       </div>
