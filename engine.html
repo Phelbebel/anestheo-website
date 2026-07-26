@@ -9,6 +9,8 @@
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
+<script src="/v2/evidence-api.js"></script>
+<script src="/v2/evidence-drawer.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
@@ -1267,6 +1269,28 @@ function cwClearDerived(){
   ltPacu();
   tick();
   setInterval(tick, 250);
+})();
+</script>
+
+<!-- Evidence Transparency (Phase 1): attach the "Check our work" control beneath
+     the Local anesthetic limits result. Re-attaches whenever the panel re-renders. -->
+<script>
+(function(){
+  var EVIDENCE_ID='CALC-LA-001', PK='local-anesthetic-limits';
+  function inject(){
+    if(!window.EvidenceDrawer) return;
+    var body=document.querySelector('.panel[data-pk="'+PK+'"] .panel-body');
+    if(!body || body.querySelector('.cow-wrap')) return;   // absent, or already attached
+    try{ window.EvidenceDrawer.attach(body, EVIDENCE_ID); }catch(e){}
+  }
+  var out=document.getElementById('output');
+  if(!out) return;
+  var scheduled=false;
+  new MutationObserver(function(){
+    if(scheduled) return; scheduled=true;
+    requestAnimationFrame(function(){ scheduled=false; inject(); });
+  }).observe(out,{childList:true,subtree:true});
+  inject();
 })();
 </script>
 </body>

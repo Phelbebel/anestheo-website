@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidence editor — CALC-LA-001 — Anestheo Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<link rel="stylesheet" href="/v2/styles.css">
+<style>
+#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#app{display:none;}
+.crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
+.crumb a{color:var(--accent);text-decoration:none;}
+.eid{font-family:'DM Sans',monospace;font-size:12px;letter-spacing:.08em;color:#7ECFC0;background:rgba(126,207,192,.1);border:1px solid rgba(126,207,192,.28);border-radius:6px;padding:3px 9px;display:inline-block;}
+.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;padding:20px 22px;margin-bottom:16px;}
+.card h3{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:4px;}
+.card .hint{font-size:12px;color:var(--hint);margin-bottom:16px;line-height:1.5;}
+label.f{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8FD9C6;margin:12px 0 5px;}
+input,select,textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:9px 11px;color:#fff;font-size:14px;font-family:inherit;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:#2A8A74;}
+input[readonly]{opacity:.7;cursor:not-allowed;}
+textarea{min-height:70px;resize:vertical;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn{display:inline-flex;align-items:center;gap:7px;background:var(--teal);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:14px;}
+.btn:hover{background:var(--teal2);}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.18);}
+.btn.small{padding:5px 11px;font-size:12px;margin:0;}
+.srcrow,.itemrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(27,107,90,.1);font-size:13px;}
+.srcrow .g,.itemrow .g{flex:1;color:rgba(255,255,255,.85);}
+.msg{font-size:13px;padding:10px 12px;border-radius:8px;margin-top:12px;}
+.msg.ok{background:rgba(27,107,90,.16);color:#9FF0CF;border:1px solid rgba(42,138,116,.35);}
+.msg.err{background:rgba(192,57,43,.13);color:rgba(255,140,120,.95);border:1px solid rgba(192,57,43,.3);}
+.hist{font-size:12.5px;color:rgba(255,255,255,.7);padding:6px 0;border-bottom:1px solid rgba(27,107,90,.1);line-height:1.5;}
+.note{font-size:11.5px;color:var(--hint);margin-top:8px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div id="nb-placeholder"></div>
+<div id="app">
+  <div class="page-wrap" style="max-width:860px;">
+    <div class="crumb"><a href="/v2/dashboard.html">Dashboard</a> &rsaquo; <a href="/v2/admin.html">Admin</a> &rsaquo; Evidence editor</div>
+    <div class="section" style="margin-bottom:20px;">
+      <div class="section-tag">Evidence transparency</div>
+      <h2 class="section-title">Local anaesthetic maximum dose</h2>
+      <p style="margin-top:6px;"><span class="eid" id="eid-badge">CALC-LA-001</span> <span class="note" style="display:inline;">Evidence ID is permanent and cannot be changed.</span></p>
+    </div>
+    <div id="editor"></div>
+    <div id="msg"></div>
+  </div>
+</div>
+
+<script>
+var EVIDENCE_ID='CALC-LA-001';
+var sb=window.sb, tool=null, sources=[], review=null, items=[], history=[], me='admin';
+
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function ge(id){return document.getElementById(id);}
+function msg(t,ok){var m=ge('msg');m.innerHTML='<div class="msg '+(ok?'ok':'err')+'">'+esc(t)+'</div>';if(ok)setTimeout(function(){m.innerHTML='';},4000);}
+function lines(v){return (v||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);}
+
+async function loadAll(){
+  var t=await sb.from('evidence_tools').select('*').eq('evidence_id',EVIDENCE_ID).maybeSingle();
+  tool=t.data;
+  if(!tool){ ge('editor').innerHTML='<div class="card"><p>Record not found. Run the Phase 1 seed first.</p></div>'; return; }
+  var s=await sb.from('evidence_sources').select('*').eq('tool_id',tool.id).order('sort_order');
+  sources=s.data||[];
+  review=null;items=[];
+  if(tool.current_review_id){
+    var r=await sb.from('evidence_reviews').select('*').eq('id',tool.current_review_id).maybeSingle();
+    review=r.data;
+    if(review){ var it=await sb.from('evidence_review_items').select('*').eq('review_id',review.id).order('sort_order'); items=it.data||[]; }
+  }
+  var h=await sb.from('evidence_change_history').select('*').eq('tool_id',tool.id).order('changed_at',{ascending:false});
+  history=h.data||[];
+  render();
+}
+
+function render(){
+  var itemsOf=function(k){return items.filter(function(i){return i.kind===k;}).map(function(i){return i.body;});};
+  var ur = tool.publication_status==='under_revision';
+  ge('editor').innerHTML =
+  // ---- lifecycle ----
+  '<div class="card"><h3>Lifecycle &amp; content</h3>'+
+    '<p class="hint">Publication status governs public visibility. An item can be Published only once it has a recorded review and at least one source.</p>'+
+    '<label class="f">Publication status</label>'+
+    '<select id="f-status">'+['draft','published','under_revision','retired'].map(function(o){return '<option value="'+o+'"'+(tool.publication_status===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'+
+    '<div id="ur-wrap" style="'+(ur?'':'display:none')+'"><label class="f">Under-revision — prior version</label>'+
+      '<select id="f-ur">'+['','available','withdrawn'].map(function(o){return '<option value="'+o+'"'+((tool.under_revision_prior_state||'')===o?' selected':'')+'>'+(o||'(choose)')+'</option>';}).join('')+'</select></div>'+
+    '<label class="f">Title</label><input id="f-title" value="'+esc(tool.title)+'">'+
+    '<label class="f">Scope</label><input id="f-scope" value="'+esc(tool.scope||'')+'" placeholder="leave empty if none">'+
+    '<label class="f">Calculation basis</label><textarea id="f-calc" placeholder="leave empty if none">'+esc(tool.calculation_basis||'')+'</textarea>'+
+    '<button class="btn" id="save-tool">Save content</button>'+
+  '</div>'+
+  // ---- sources ----
+  '<div class="card"><h3>Sources</h3><p class="hint">Name is required; version, date and URL are optional and omitted if empty. Use only real references.</p>'+
+    (sources.length? sources.map(function(s){return '<div class="srcrow"><span class="g">'+esc(s.name)+(s.version?' · '+esc(s.version):'')+(s.source_date?' · '+esc(s.source_date):'')+'</span><button class="btn ghost small" data-del-src="'+s.id+'">Remove</button></div>';}).join('') : '<p class="hint">No sources yet.</p>')+
+    '<label class="f">Add source — name</label><input id="s-name" placeholder="e.g. Manufacturer prescribing information">'+
+    '<div class="grid2"><div><label class="f">Version (optional)</label><input id="s-ver"></div><div><label class="f">Publication date (optional)</label><input id="s-date" type="date"></div></div>'+
+    '<label class="f">URL (optional)</label><input id="s-url">'+
+    '<button class="btn" id="add-src">Add source</button>'+
+  '</div>'+
+  // ---- review ----
+  '<div class="card"><h3>Record a clinical review</h3>'+
+    '<p class="hint">A review makes the item presentable as reviewed. Enter only real reviewer details and a real date — never placeholders. Recording a new review supersedes the previous one; the old review is kept.</p>'+
+    (review? '<p class="hint">Current review: <b>'+esc(review.review_type)+'</b> · '+esc(review.evidence_basis)+' · '+esc(review.reviewer_name)+' · '+esc(review.reviewed_at)+'</p>':'<p class="hint">No review recorded. review_type is effectively <b>none</b>.</p>')+
+    '<div class="grid2"><div><label class="f">Reviewer name</label><input id="r-name" placeholder="real name only"></div>'+
+      '<div><label class="f">Reviewer role</label><input id="r-role" placeholder="e.g. Consultant anaesthetist"></div></div>'+
+    '<div class="grid2"><div><label class="f">Review type</label><select id="r-type">'+
+      [['founder','founder'],['internal_clinical','internal clinical'],['external_clinical','external clinical']].map(function(o){return '<option value="'+o[0]+'">'+o[1]+'</option>';}).join('')+'</select></div>'+
+      '<div><label class="f">Evidence basis</label><select id="r-basis">'+
+      [['calculation_based','calculation based'],['guideline_based','guideline based'],['source_based','source based'],['consensus_based','consensus based']].map(function(o){return '<option value="'+o[0]+'">'+o[1]+'</option>';}).join('')+'</select></div></div>'+
+    '<div id="ext-wrap" style="display:none"><label class="f">External reviewer relationship (required for external)</label><input id="r-ext" placeholder="how the reviewer is independent of the team"></div>'+
+    '<label class="f">Review date</label><input id="r-date" type="date">'+
+    '<label class="f">Assumptions (one per line, optional)</label><textarea id="r-assump">'+esc(itemsOf('assumption').join('\n'))+'</textarea>'+
+    '<label class="f">Limitations (one per line, optional)</label><textarea id="r-limit">'+esc(itemsOf('limitation').join('\n'))+'</textarea>'+
+    '<label class="f">Notes (optional)</label><textarea id="r-notes">'+esc(itemsOf('note').join('\n'))+'</textarea>'+
+    '<button class="btn" id="save-review">Record review</button>'+
+    (review? ' <button class="btn ghost" id="clear-review">Remove current review (back to none)</button>':'')+
+  '</div>'+
+  // ---- history ----
+  '<div class="card"><h3>Change history</h3>'+
+    (history.length? history.map(function(h){return '<div class="hist">'+esc(String(h.changed_at).slice(0,10))+' — '+esc(h.summary)+' <span style="color:var(--hint)">('+esc(h.changed_by)+')</span></div>';}).join('') : '<p class="hint">No history.</p>')+
+    '<label class="f">Add entry</label><input id="h-sum" placeholder="what changed">'+
+    '<button class="btn" id="add-hist">Add history entry</button>'+
+  '</div>';
+
+  ge('f-status').addEventListener('change',function(){ ge('ur-wrap').style.display=(this.value==='under_revision')?'block':'none'; });
+  ge('r-type').addEventListener('change',function(){ ge('ext-wrap').style.display=(this.value==='external_clinical')?'block':'none'; });
+  ge('save-tool').addEventListener('click',saveTool);
+  ge('add-src').addEventListener('click',addSource);
+  ge('save-review').addEventListener('click',saveReview);
+  ge('add-hist').addEventListener('click',addHistory);
+  if(ge('clear-review')) ge('clear-review').addEventListener('click',clearReview);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-del-src]'),function(b){ b.addEventListener('click',function(){ delSource(b.getAttribute('data-del-src')); }); });
+}
+
+async function saveTool(){
+  var status=ge('f-status').value, ur=ge('f-ur')?ge('f-ur').value:'';
+  if(status==='published' && (!tool.current_review_id || sources.length===0)){ msg('Cannot publish without a recorded review and at least one source.',false); return; }
+  var patch={ title:ge('f-title').value.trim(), scope:ge('f-scope').value.trim()||null, calculation_basis:ge('f-calc').value.trim()||null, publication_status:status, under_revision_prior_state:(status==='under_revision'?(ur||null):null) };
+  var r=await sb.from('evidence_tools').update(patch).eq('evidence_id',EVIDENCE_ID);
+  if(r.error){ msg(r.error.message,false); return; }
+  await addHistoryRow('Content/status updated ('+status+').');
+  msg('Saved.',true); await loadAll();
+}
+async function addSource(){
+  var name=ge('s-name').value.trim(); if(!name){ msg('Source name is required.',false); return; }
+  var row={ tool_id:tool.id, name:name, version:ge('s-ver').value.trim()||null, source_date:ge('s-date').value||null, url:ge('s-url').value.trim()||null, sort_order:sources.length };
+  var r=await sb.from('evidence_sources').insert(row);
+  if(r.error){ msg(r.error.message,false); return; }
+  msg('Source added.',true); await loadAll();
+}
+async function delSource(id){ var r=await sb.from('evidence_sources').delete().eq('id',id); if(r.error){ msg(r.error.message,false); return; } msg('Source removed.',true); await loadAll(); }
+
+async function saveReview(){
+  var type=ge('r-type').value, name=ge('r-name').value.trim(), role=ge('r-role').value.trim(), date=ge('r-date').value, basis=ge('r-basis').value, ext=ge('r-ext')?ge('r-ext').value.trim():'';
+  if(!name||!role||!date){ msg('Reviewer name, role and date are required — enter real values only.',false); return; }
+  if(type==='external_clinical' && !ext){ msg('External review requires the reviewer-relationship to be documented.',false); return; }
+  // create new review
+  var ins=await sb.from('evidence_reviews').insert({ tool_id:tool.id, reviewer_name:name, reviewer_role:role, review_type:type, external_reviewer_relationship:(type==='external_clinical'?ext:null), evidence_basis:basis, reviewed_at:date, review_status:'published' }).select().maybeSingle();
+  if(ins.error){ msg(ins.error.message,false); return; }
+  var newId=ins.data.id;
+  // items
+  var rows=[]; lines(ge('r-assump').value).forEach(function(b,i){rows.push({review_id:newId,kind:'assumption',body:b,sort_order:i});});
+  lines(ge('r-limit').value).forEach(function(b,i){rows.push({review_id:newId,kind:'limitation',body:b,sort_order:i});});
+  var nt=lines(ge('r-notes').value); if(nt.length) rows.push({review_id:newId,kind:'note',body:nt.join(' '),sort_order:0});
+  if(rows.length){ var ri=await sb.from('evidence_review_items').insert(rows); if(ri.error){ msg(ri.error.message,false); return; } }
+  // supersede previous, point current at the new one
+  if(tool.current_review_id){ await sb.from('evidence_reviews').update({review_status:'superseded'}).eq('id',tool.current_review_id); }
+  var up=await sb.from('evidence_tools').update({current_review_id:newId}).eq('evidence_id',EVIDENCE_ID);
+  if(up.error){ msg(up.error.message,false); return; }
+  await addHistoryRow('Review recorded ('+type+', '+basis+', reviewed '+date+').');
+  msg('Review recorded.',true); await loadAll();
+}
+async function clearReview(){
+  await sb.from('evidence_tools').update({current_review_id:null,publication_status:(tool.publication_status==='published'?'draft':tool.publication_status)}).eq('evidence_id',EVIDENCE_ID);
+  if(tool.current_review_id) await sb.from('evidence_reviews').update({review_status:'superseded'}).eq('id',tool.current_review_id);
+  await addHistoryRow('Current review removed; item returned to review_type none.');
+  msg('Review removed.',true); await loadAll();
+}
+async function addHistoryRow(summary){ await sb.from('evidence_change_history').insert({ tool_id:tool.id, changed_by:me, summary:summary }); }
+async function addHistory(){ var s=ge('h-sum').value.trim(); if(!s){ msg('Enter a summary.',false); return; } await addHistoryRow(s); msg('History entry added.',true); await loadAll(); }
+
+document.addEventListener('DOMContentLoaded',async function(){
+  var safety=setTimeout(function(){ var l=ge('loader'); if(l&&l.style.display!=='none'){ l.innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Taking longer than expected. <a href="/v2/dashboard.html" style="color:#7ECFC0;">Back</a></p>'; } },8000);
+  try{
+    var auth=await window.requireRole('admin'); if(!auth){ clearTimeout(safety); return; }
+    try{ var s=await getSession(); if(s&&s.user){ me=s.user.email||'admin'; } }catch(e){}
+    await loadAll();
+    clearTimeout(safety);
+    ge('loader').style.display='none'; ge('app').style.display='block';
+  }catch(e){
+    clearTimeout(safety);
+    ge('loader').innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Could not load: '+esc(e.message)+' <a href="/v2/dashboard.html" style="color:#7ECFC0;">Back</a></p>';
+  }
+});
+</script>
+</body>
+</html>
