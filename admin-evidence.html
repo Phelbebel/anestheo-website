@@ -86,6 +86,12 @@ function render(){
   var itemsOf=function(k){return items.filter(function(i){return i.kind===k;}).map(function(i){return i.body;});};
   var ur = tool.publication_status==='under_revision';
   ge('editor').innerHTML =
+  // ---- identity (routing vs audit; both immutable) ----
+  '<div class="card"><h3>Identity</h3>'+
+    '<p class="hint">Routing identity and audit identity are separate, and both are immutable after creation.</p>'+
+    '<label class="f">Tool slug (routing — used by the frontend)</label><input value="'+esc(tool.tool_slug||'')+'" readonly>'+
+    '<label class="f">Evidence ID (audit — permanent)</label><input value="'+esc(tool.evidence_id)+'" readonly>'+
+  '</div>'+
   // ---- lifecycle ----
   '<div class="card"><h3>Lifecycle &amp; content</h3>'+
     '<p class="hint">Publication status governs public visibility. An item can be Published only once it has a recorded review and at least one source.</p>'+
@@ -109,7 +115,7 @@ function render(){
   // ---- review ----
   '<div class="card"><h3>Record a clinical review</h3>'+
     '<p class="hint">A review makes the item presentable as reviewed. Enter only real reviewer details and a real date — never placeholders. Recording a new review supersedes the previous one; the old review is kept.</p>'+
-    (review? '<p class="hint">Current review: <b>'+esc(review.review_type)+'</b> · '+esc(review.evidence_basis)+' · '+esc(review.reviewer_name)+' · '+esc(review.reviewed_at)+'</p>':'<p class="hint">No review recorded. review_type is effectively <b>none</b>.</p>')+
+    (review? '<p class="hint">Current review: <b>v'+esc(review.review_version)+'</b> · <b>'+esc(review.review_type)+'</b> · '+esc(review.evidence_basis)+' · '+esc(review.reviewer_name)+' · '+esc(review.reviewed_at)+' <span style="color:var(--hint)">(review_version is an internal audit field, auto-assigned)</span></p>':'<p class="hint">No review recorded. review_type is effectively <b>none</b>.</p>')+
     '<div class="grid2"><div><label class="f">Reviewer name</label><input id="r-name" placeholder="real name only"></div>'+
       '<div><label class="f">Reviewer role</label><input id="r-role" placeholder="e.g. Consultant anaesthetist"></div></div>'+
     '<div class="grid2"><div><label class="f">Review type</label><select id="r-type">'+
@@ -176,8 +182,9 @@ async function saveReview(){
   if(tool.current_review_id){ await sb.from('evidence_reviews').update({review_status:'superseded'}).eq('id',tool.current_review_id); }
   var up=await sb.from('evidence_tools').update({current_review_id:newId}).eq('evidence_id',EVIDENCE_ID);
   if(up.error){ msg(up.error.message,false); return; }
-  await addHistoryRow('Review recorded ('+type+', '+basis+', reviewed '+date+').');
-  msg('Review recorded.',true); await loadAll();
+  var ver=(ins.data && ins.data.review_version)!=null? ins.data.review_version : '?';
+  await addHistoryRow('Review v'+ver+' recorded ('+type+', '+basis+', reviewed '+date+').');
+  msg('Review recorded (version '+ver+').',true); await loadAll();
 }
 async function clearReview(){
   await sb.from('evidence_tools').update({current_review_id:null,publication_status:(tool.publication_status==='published'?'draft':tool.publication_status)}).eq('evidence_id',EVIDENCE_ID);

@@ -1276,12 +1276,14 @@ function cwClearDerived(){
      the Local anesthetic limits result. Re-attaches whenever the panel re-renders. -->
 <script>
 (function(){
-  var EVIDENCE_ID='CALC-LA-001', PK='local-anesthetic-limits';
+  // TOOL_SLUG is the routing identity; the drawer shows evidence_id (CALC-LA-001)
+  // from the resolved payload.
+  var TOOL_SLUG='local-anesthetic-max-dose', PK='local-anesthetic-limits';
   function inject(){
     if(!window.EvidenceDrawer) return;
     var body=document.querySelector('.panel[data-pk="'+PK+'"] .panel-body');
     if(!body || body.querySelector('.cow-wrap')) return;   // absent, or already attached
-    try{ window.EvidenceDrawer.attach(body, EVIDENCE_ID); }catch(e){}
+    try{ window.EvidenceDrawer.attach(body, TOOL_SLUG); }catch(e){}
   }
   var out=document.getElementById('output');
   if(!out) return;

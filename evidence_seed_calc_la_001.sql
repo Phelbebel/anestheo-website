@@ -14,12 +14,20 @@
 --     ABSENT because they are not verified here.
 --
 -- Idempotent: safe to run more than once.
+-- Run AFTER evidence_transparency_phase1.sql and evidence_transparency_phase1_1.sql
+-- (the latter adds tool_slug). If this seed was applied before the 1.1 migration,
+-- that migration backfills the same tool_slug, so the result is identical.
+--
+--   evidence_id ('CALC-LA-001')            = permanent AUDIT identifier
+--   tool_slug   ('local-anesthetic-max-dose') = public ROUTING identifier
+-- The two are independent; both are immutable after creation.
 -- ============================================================================
 
 insert into public.evidence_tools
-  (evidence_id, type, title, calculation_basis, scope, publication_status)
+  (evidence_id, tool_slug, type, title, calculation_basis, scope, publication_status)
 values (
   'CALC-LA-001',
+  'local-anesthetic-max-dose',
   'calculator',
   'Local anaesthetic maximum dose',
   'Maximum dose (mg) = weight (kg) × agent limit (mg/kg). '

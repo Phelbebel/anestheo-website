@@ -1,9 +1,11 @@
 /* ============================================================================
-   EvidenceDrawer — the ONE reusable "Check our work" component  (Phase 1)
+   EvidenceDrawer — the ONE reusable "Check our work" component  (Phase 1 / 1.1)
 
-   EvidenceDrawer.attach(container, evidenceId, opts?)
+   EvidenceDrawer.attach(container, toolSlug, opts?)
      Appends a "Check our work" trigger + an accessible disclosure region to
-     `container`. On first open it fetches getEvidence(evidenceId) and renders.
+     `container`. On first open it fetches getEvidence(toolSlug) and renders.
+     Lookup is by tool_slug (routing identity); the drawer displays evidence_id
+     (audit identity) from the returned payload.
      opts.fixture  : render this object instead of fetching (used by tests)
      opts.label    : custom trigger label (default "Check our work")
 
@@ -132,7 +134,7 @@
     return head + rows + '<div class="cow-disc">' + esc(DISCLAIMER) + '</div>' + ref2;
   }
 
-  function attach(container, evidenceId, opts) {
+  function attach(container, toolSlug, opts) {
     opts = opts || {};
     injectCss();
     var id = 'cow-' + (++seq);
@@ -162,8 +164,10 @@
     async function ensureContent() {
       if (loaded) return;
       var ev = ('fixture' in opts) ? opts.fixture
-             : (typeof global.getEvidence === 'function' ? await global.getEvidence(evidenceId) : null);
-      if (ev == null) ev = { evidence_id: evidenceId };  // unknown -> Draft state, id preserved
+             : (typeof global.getEvidence === 'function' ? await global.getEvidence(toolSlug) : null);
+      // Unknown slug / backend unreachable -> Draft state with NO Ref line
+      // (we do not know the evidence_id, and a slug must never be shown as one).
+      if (ev == null) ev = {};
       var titleId = id + '-title';
       region.innerHTML = bodyHtml(ev, titleId);
       region.setAttribute('aria-labelledby', titleId);
