@@ -9,6 +9,8 @@
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
+<script src="/v2/evidence-api.js"></script>
+<script src="/v2/evidence-drawer.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
@@ -51,6 +53,7 @@
     <h1 class="ref-h1">Airway</h1>
     <p class="ref-sub">Assessment, equipment sizing, and routine management.</p>
     <div class="disclaimer"><strong>Reference only.</strong> Summary for education and quick reference. Not a substitute for clinical judgment, current guidelines, or local protocols. Verify all doses and intervals before use.</div>
+    <div id="ref-evidence"></div>
     <div class="block"><div class="block-title">Quick reference — ETT & LMA sizing</div><table class="rtbl"><thead><tr><th>Patient</th><th>ETT size (mm ID)</th><th>Depth at lips</th><th>LMA</th></tr></thead><tbody><tr><td>Adult male</td><td>7.5 – 8.0</td><td>22 – 24 cm</td><td>4 – 5</td></tr><tr><td>Adult female</td><td>7.0 – 7.5</td><td>20 – 22 cm</td><td>3 – 4</td></tr><tr><td>Child (cuffed)</td><td>age/4 + 3.5</td><td>age/2 + 12 cm</td><td>by weight</td></tr><tr><td>Child (uncuffed)</td><td>age/4 + 4</td><td>age/2 + 12 cm</td><td>by weight</td></tr></tbody></table></div><div class="block"><div class="block-title">LMA by weight</div><table class="rtbl"><thead><tr><th>Weight</th><th>LMA size</th></tr></thead><tbody><tr><td>&lt;5 kg</td><td>1</td></tr><tr><td>5–10 kg</td><td>1.5</td></tr><tr><td>10–20 kg</td><td>2</td></tr><tr><td>20–30 kg</td><td>2.5</td></tr><tr><td>30–50 kg</td><td>3</td></tr><tr><td>50–70 kg</td><td>4</td></tr><tr><td>70–100 kg</td><td>5</td></tr><tr><td>&gt;100 kg</td><td>5–6</td></tr></tbody></table></div><div class="block"><div class="block-title">Assessment — predictors of difficulty</div><div class="note">&bull; <b>Mallampati III–IV</b> — limited view of posterior pharynx.</div><div class="note">&bull; <b>3-3-2 rule</b> — &lt;3 fingers mouth opening, &lt;3 fingers hyoid-chin, &lt;2 fingers thyroid-floor of mouth.</div><div class="note">&bull; <b>Thyromental distance</b> &lt;6 cm suggests difficulty.</div><div class="note">&bull; <b>Reduced neck mobility</b>, large incisors, receding mandible, beard, obesity.</div></div><div class="block"><div class="block-title">Preoxygenation & RSI</div><div class="algo"><div class="algo-step"><span class="algo-num">1</span><span>Preoxygenate 3 min tidal breathing or 8 vital-capacity breaths (target EtO2 &gt;90%).</span></div><div class="algo-step"><span class="algo-num">2</span><span>Position: sniffing position; ramp obese patients (ear to sternal notch).</span></div><div class="algo-step"><span class="algo-num">3</span><span>RSI: induction agent + rapid neuromuscular blocker (rocuronium 1.2 mg/kg or succinylcholine 1–1.5 mg/kg).</span></div><div class="algo-step"><span class="algo-num">4</span><span>Apply cricoid pressure per local practice; confirm tube with capnography.</span></div></div></div><div class="block"><div class="block-title">Important notes</div><div class="note">&bull; Always confirm placement with <b>continuous waveform capnography</b>.</div><div class="note">&bull; Have a backup plan and rescue devices (LMA, bougie, video laryngoscope) immediately available.</div><div class="note">&bull; For anticipated difficulty, see the <a href="/v2/difficult-airway.html" style="color:#7ECFC0;">Difficult Airway</a> reference.</div></div>
   </div>
 </div>
@@ -62,6 +65,9 @@ document.addEventListener('DOMContentLoaded', async function(){
     if(role === 'patient'){ window.location.href = '/v2/dashboard.html'; return; }
     document.getElementById('loader').style.display='none';
     document.getElementById('app').style.display='block';
+    // Evidence Transparency: document-level "Check our work" (resolves by tool_slug).
+    var evc = document.getElementById('ref-evidence');
+    if(evc && window.EvidenceDrawer){ try{ window.EvidenceDrawer.attach(evc, 'airway-reference'); }catch(e){} }
   }catch(e){
     document.getElementById('loader').innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: '+e.message+'</p>';
   }

@@ -48,7 +48,7 @@ textarea{min-height:70px;resize:vertical;}
     <div class="crumb"><a href="/v2/dashboard.html">Dashboard</a> &rsaquo; <a href="/v2/admin.html">Admin</a> &rsaquo; Evidence editor</div>
     <div class="section" style="margin-bottom:20px;">
       <div class="section-tag">Evidence transparency</div>
-      <h2 class="section-title">Local anaesthetic maximum dose</h2>
+      <h2 class="section-title" id="tool-title">Evidence editor</h2>
       <p style="margin-top:6px;"><span class="eid" id="eid-badge">CALC-LA-001</span> <span class="note" style="display:inline;">Evidence ID is permanent and cannot be changed.</span></p>
     </div>
     <div id="editor"></div>
@@ -57,7 +57,11 @@ textarea{min-height:70px;resize:vertical;}
 </div>
 
 <script>
-var EVIDENCE_ID='CALC-LA-001';
+// Target any evidence record via query param; default to CALC-LA-001.
+//   ?slug=airway-reference   (routing identity)  or  ?evidence_id=REF-AIRWAY-001 (audit)
+var qs=new URLSearchParams(location.search);
+var TARGET_SLUG=qs.get('slug');
+var TARGET_EID=qs.get('evidence_id')||(TARGET_SLUG?null:'CALC-LA-001');
 var sb=window.sb, tool=null, sources=[], review=null, items=[], history=[], me='admin';
 
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -66,9 +70,14 @@ function msg(t,ok){var m=ge('msg');m.innerHTML='<div class="msg '+(ok?'ok':'err'
 function lines(v){return (v||'').split('\n').map(function(s){return s.trim();}).filter(Boolean);}
 
 async function loadAll(){
-  var t=await sb.from('evidence_tools').select('*').eq('evidence_id',EVIDENCE_ID).maybeSingle();
+  var q=sb.from('evidence_tools').select('*');
+  q = TARGET_SLUG ? q.eq('tool_slug',TARGET_SLUG) : q.eq('evidence_id',TARGET_EID);
+  var t=await q.maybeSingle();
   tool=t.data;
-  if(!tool){ ge('editor').innerHTML='<div class="card"><p>Record not found. Run the Phase 1 seed first.</p></div>'; return; }
+  if(!tool){ ge('editor').innerHTML='<div class="card"><p>Record not found for '+esc(TARGET_SLUG||TARGET_EID)+'. Run its seed first.</p></div>'; return; }
+  if(ge('tool-title')) ge('tool-title').textContent=tool.title;
+  if(ge('eid-badge')) ge('eid-badge').textContent=tool.evidence_id;
+  document.title='Evidence editor — '+tool.evidence_id+' — Anestheo Admin';
   var s=await sb.from('evidence_sources').select('*').eq('tool_id',tool.id).order('sort_order');
   sources=s.data||[];
   review=null;items=[];
@@ -151,7 +160,7 @@ async function saveTool(){
   var status=ge('f-status').value, ur=ge('f-ur')?ge('f-ur').value:'';
   if(status==='published' && (!tool.current_review_id || sources.length===0)){ msg('Cannot publish without a recorded review and at least one source.',false); return; }
   var patch={ title:ge('f-title').value.trim(), scope:ge('f-scope').value.trim()||null, calculation_basis:ge('f-calc').value.trim()||null, publication_status:status, under_revision_prior_state:(status==='under_revision'?(ur||null):null) };
-  var r=await sb.from('evidence_tools').update(patch).eq('evidence_id',EVIDENCE_ID);
+  var r=await sb.from('evidence_tools').update(patch).eq('id',tool.id);
   if(r.error){ msg(r.error.message,false); return; }
   await addHistoryRow('Content/status updated ('+status+').');
   msg('Saved.',true); await loadAll();
@@ -180,14 +189,14 @@ async function saveReview(){
   if(rows.length){ var ri=await sb.from('evidence_review_items').insert(rows); if(ri.error){ msg(ri.error.message,false); return; } }
   // supersede previous, point current at the new one
   if(tool.current_review_id){ await sb.from('evidence_reviews').update({review_status:'superseded'}).eq('id',tool.current_review_id); }
-  var up=await sb.from('evidence_tools').update({current_review_id:newId}).eq('evidence_id',EVIDENCE_ID);
+  var up=await sb.from('evidence_tools').update({current_review_id:newId}).eq('id',tool.id);
   if(up.error){ msg(up.error.message,false); return; }
   var ver=(ins.data && ins.data.review_version)!=null? ins.data.review_version : '?';
   await addHistoryRow('Review v'+ver+' recorded ('+type+', '+basis+', reviewed '+date+').');
   msg('Review recorded (version '+ver+').',true); await loadAll();
 }
 async function clearReview(){
-  await sb.from('evidence_tools').update({current_review_id:null,publication_status:(tool.publication_status==='published'?'draft':tool.publication_status)}).eq('evidence_id',EVIDENCE_ID);
+  await sb.from('evidence_tools').update({current_review_id:null,publication_status:(tool.publication_status==='published'?'draft':tool.publication_status)}).eq('id',tool.id);
   if(tool.current_review_id) await sb.from('evidence_reviews').update({review_status:'superseded'}).eq('id',tool.current_review_id);
   await addHistoryRow('Current review removed; item returned to review_type none.');
   msg('Review removed.',true); await loadAll();
