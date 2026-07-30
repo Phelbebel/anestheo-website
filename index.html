@@ -331,13 +331,33 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   els.forEach(function(e){ io.observe(e); });
 })();
 
-// Session-aware: a signed-in visitor's "Log in" becomes a way back to their space.
+// Session-aware behaviour.
+//  (a) The clinician/patient tool pages (engine.html, references.html,
+//      dashboard.html, patient-dashboard.html) are auth-gated: auth.js
+//      requireAuth() redirects a LOGGED-OUT visitor straight back to this
+//      homepage (window.location.href = '/v2/index.html'), which the visitor
+//      experiences as the button "scrolling to the top". So for logged-out
+//      visitors we open the sign-in / registration modal instead of walking
+//      them into that silent bounce. Logged-in visitors navigate normally.
+//  (b) A signed-in visitor's nav "Log in" becomes a link back to their space.
 (function(){
+  var GATED = ['engine.html','references.html','dashboard.html','patient-dashboard.html'];
+  function gated(href){ return href && GATED.some(function(g){ return href.indexOf(g) !== -1; }); }
+  var authed = false;
+  // Attached synchronously so it is active before the async session check resolves.
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href]');
+    if(!a || !gated(a.getAttribute('href'))) return;
+    if(authed) return;                       // (a) logged in → let it navigate to the tool
+    e.preventDefault();                      // logged out → sign-in prompt, not a bounce
+    if(window.nbOpenModal) window.nbOpenModal();
+  }, false);
   if(typeof getSession!=='function') return;
   (async function(){
     try{
       var s=await getSession(); if(!s) return;
-      var p=(typeof getProfile==='function')?await getProfile(s.user.id):null;
+      authed = true;                         // (a) allow gated links to navigate
+      var p=(typeof getProfile==='function')?await getProfile(s.user.id):null;   // (b)
       var role=(p&&p.role)||'patient';
       var href=(role==='doctor'||role==='admin')?'/v2/dashboard.html':'/v2/patient-dashboard.html';
       var btn=document.getElementById('nav-login');
