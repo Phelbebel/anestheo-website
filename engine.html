@@ -343,38 +343,6 @@ body.embed .eng-wrap{padding-top:14px;}
       </div>
     </div>
 
-    <!-- ── LIVE TIMERS (intraoperative workflow) — directly below the hero ── -->
-    <div class="lt-strip" id="live-timers">
-      <div class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></div>
-      <div class="lt-row">
-        <div class="lt-card" id="lt-anes" data-t="anes">
-          <div class="lt-head"><span class="lt-ico">&#129764;</span>Anesthesia</div>
-          <div class="lt-time" id="lt-anes-time">00:00:00</div>
-          <div class="lt-state" id="lt-anes-state">Not started</div>
-          <div class="lt-btns" id="lt-anes-btns"></div>
-        </div>
-        <div class="lt-card" id="lt-relax" data-t="relax">
-          <div class="lt-head"><span class="lt-ico">&#128137;</span>Relaxant / Intubation</div>
-          <div class="lt-time" id="lt-relax-time">00:00</div>
-          <div class="lt-state" id="lt-relax-state">Give relaxant to start</div>
-          <div class="lt-relbar"><div class="band"></div><div class="fill" id="lt-relax-fill"></div></div>
-          <div class="lt-btns" id="lt-relax-btns"></div>
-        </div>
-        <div class="lt-card" id="lt-surg" data-t="surg">
-          <div class="lt-head"><span class="lt-ico">&#128298;</span>Surgery</div>
-          <div class="lt-time" id="lt-surg-time">00:00:00</div>
-          <div class="lt-state" id="lt-surg-state">Not started</div>
-          <div class="lt-btns" id="lt-surg-btns"></div>
-        </div>
-        <div class="lt-card" id="lt-tourn" data-t="tourn">
-          <div class="lt-head"><span class="lt-ico">&#129705;</span>Tourniquet</div>
-          <div class="lt-time" id="lt-tourn-time">00:00:00</div>
-          <div class="lt-state" id="lt-tourn-state">Not inflated</div>
-          <div class="lt-btns" id="lt-tourn-btns"></div>
-        </div>
-      </div>
-    </div>
-
     <!-- Patient Identity — collapsible, collapsed by default (does not affect any calculation) -->
     <details class="cw-acc">
       <summary><span class="cw-acc-chev">&#9656;</span><span class="cw-acc-t">Patient Identity</span><span class="cw-acc-sub" id="acc-ident-sub">Not entered</span></summary>
@@ -425,6 +393,39 @@ body.embed .eng-wrap{padding-top:14px;}
         <div class="cw-d"><span class="cw-d-l">MAC <small>age-adj</small></span><span class="cw-d-val" id="cw-mac">&mdash;</span></div>
       </div></div>
     </section>
+
+    <!-- ── LIVE TIMERS (intraoperative workflow) — below Derived Values ── -->
+    <div class="lt-strip" id="live-timers">
+      <div class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></div>
+      <div class="lt-row">
+        <div class="lt-card" id="lt-anes" data-t="anes">
+          <div class="lt-head"><span class="lt-ico">&#129764;</span>Anesthesia</div>
+          <div class="lt-time" id="lt-anes-time">00:00:00</div>
+          <div class="lt-state" id="lt-anes-state">Not started</div>
+          <div class="lt-btns" id="lt-anes-btns"></div>
+        </div>
+        <div class="lt-card" id="lt-relax" data-t="relax">
+          <div class="lt-head"><span class="lt-ico">&#128137;</span>Relaxant / Intubation</div>
+          <div class="lt-time" id="lt-relax-time">00:00</div>
+          <div class="lt-state" id="lt-relax-state">Give relaxant to start</div>
+          <div class="lt-relbar"><div class="band"></div><div class="fill" id="lt-relax-fill"></div></div>
+          <div class="lt-btns" id="lt-relax-btns"></div>
+        </div>
+        <div class="lt-card" id="lt-surg" data-t="surg">
+          <div class="lt-head"><span class="lt-ico">&#128298;</span>Surgery</div>
+          <div class="lt-time" id="lt-surg-time">00:00:00</div>
+          <div class="lt-state" id="lt-surg-state">Not started</div>
+          <div class="lt-btns" id="lt-surg-btns"></div>
+        </div>
+        <div class="lt-card" id="lt-tourn" data-t="tourn">
+          <div class="lt-head"><span class="lt-ico">&#129705;</span>Tourniquet</div>
+          <div class="lt-time" id="lt-tourn-time">00:00:00</div>
+          <div class="lt-state" id="lt-tourn-state">Not inflated</div>
+          <div class="lt-btns" id="lt-tourn-btns"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="disclaimer"><strong>Reference only.</strong> All values are standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment and verify against current guidelines and product labeling.</div>
 
     <div id="output">
