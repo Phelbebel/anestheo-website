@@ -88,14 +88,62 @@ section{padding:var(--sec) var(--edge);}
 .path-clinician .role{color:var(--teal);opacity:1;}
 .path-clinician p{color:var(--muted);}
 
-/* ── Session-aware "Welcome back" hero (logged-in only; same visual language) ── */
-.hero-welcome{text-align:center;max-width:820px;margin:0 auto;}
-.hero-welcome .hero-o{margin-bottom:0;}
-.wl-links{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:28px auto 0;}
-.wl-chip{display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;padding:12px 18px;border-radius:9px;border:1px solid var(--hair-2);background:#fff;color:var(--ink);min-height:46px;transition:border-color .14s,background .14s,color .14s;}
-.wl-chip:hover{border-color:var(--ink);}
-.wl-chip.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
-.wl-chip.primary:hover{background:var(--ink-hover);}
+/* ── Authenticated application Home (dark; reuses the product's own tokens) ──
+   Activated only when the user is logged in (html.pre-app / html.app). The
+   public homepage below is untouched; it is simply hidden for authed users. */
+html.pre-app body, html.app body{background:#0A1A15;}
+html.pre-app .skip, html.app .skip,
+html.pre-app header.mast, html.app header.mast,
+html.pre-app main#main, html.app main#main,
+html.pre-app footer, html.app footer{display:none !important;}
+.ah{display:none;}
+html.pre-app .ah, html.app .ah{display:block;}
+.ah{--bd:rgba(27,107,90,.22);--tx:#fff;--mu:rgba(255,255,255,.55);--hi:rgba(255,255,255,.32);--tl:#1B6B5A;--tl2:#2A8A74;--ac:#7ECFC0;
+  font-family:'DM Sans',-apple-system,system-ui,sans-serif;color:var(--tx);min-height:100vh;background:#0A1A15;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:52px 52px;}
+.ah-wrap{max-width:1040px;margin:0 auto;padding:26px 20px 72px;}
+.ah-load{color:var(--mu);font-size:14px;padding:40px 0;}
+.ah-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+.ah-hello{font-size:23px;font-weight:800;letter-spacing:-.015em;line-height:1.1;}
+.ah-sub{font-size:13px;color:var(--mu);margin-top:4px;}
+.ah-counts{display:flex;gap:10px;flex-wrap:wrap;}
+.ah-count{background:rgba(255,255,255,.045);border:1px solid var(--bd);border-radius:12px;padding:9px 14px;min-width:92px;}
+.ah-count b{display:block;font-size:22px;font-weight:800;line-height:1;}
+.ah-count span{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mu);}
+.ah-verify{border-radius:12px;padding:12px 15px;font-size:13px;line-height:1.5;margin-bottom:14px;}
+.ah-verify.pending{background:rgba(232,168,56,.08);border:1px solid rgba(232,168,56,.32);color:#E8C16b;}
+.ah-panel{background:rgba(255,255,255,.035);border:1px solid var(--bd);border-radius:14px;padding:15px 17px;margin-bottom:13px;}
+.ah-panel-h{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8FD9C6;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.ah-more{font-size:11.5px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ac);}
+.ah-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.ah-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;font-size:14px;font-weight:700;padding:11px 16px;border-radius:9px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:#fff;min-height:44px;}
+.ah-btn:hover{border-color:rgba(126,207,192,.5);}
+.ah-btn.primary{background:var(--tl);border-color:var(--tl2);}
+.ah-btn.primary:hover{background:var(--tl2);}
+.ah-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ah-tool{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--bd);border-radius:11px;background:rgba(255,255,255,.03);color:#fff;min-height:60px;transition:border-color .15s,background .15s;}
+.ah-tool:hover{border-color:rgba(126,207,192,.4);background:rgba(27,107,90,.1);}
+.ah-tool .n{font-size:14px;font-weight:700;}
+.ah-tool .s{font-size:11px;color:var(--mu);}
+.ah-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid rgba(27,107,90,.14);}
+.ah-row:first-child{border-top:none;}
+.ah-row .nm{font-size:14.5px;font-weight:700;}
+.ah-row .st{font-size:10.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
+.ah-row .st.amber{color:#FFD79B;background:rgba(255,179,71,.12);border:1px solid rgba(255,179,71,.34);}
+.ah-row .st.blue{color:#B9D7FF;background:rgba(91,168,255,.12);border:1px solid rgba(91,168,255,.30);}
+.ah-row .st.green{color:#9FF0CF;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.32);}
+.ah-row .go{margin-left:auto;font-size:12px;font-weight:700;color:var(--ac);}
+.ah-empty{font-size:13px;color:var(--mu);padding:6px 0 4px;line-height:1.5;}
+.ah-empty a{color:var(--ac);}
+.ah-jrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid rgba(27,107,90,.14);font-size:13.5px;}
+.ah-jrow:first-child{border-top:none;}
+.ah-jrow .jl{color:var(--mu);}
+.ah-jrow .jv{font-weight:700;}
+@media(max-width:560px){
+  .ah-tools{grid-template-columns:1fr 1fr;}
+  .ah-hello{font-size:20px;}
+  .ah-btn{flex:1 1 auto;}
+}
 
 /* ── Card sections ────────────────────────────────────────────────────── */
 .head{max-width:var(--maxw);margin:0 auto clamp(24px,3vw,32px);}
@@ -184,6 +232,13 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 </style>
 </head>
 <body>
+<script>
+/* If a Supabase session token is already stored, hide the public homepage
+   immediately (before paint) so a logged-in user does not see the marketing
+   page flash before the app Home renders. The async session check below either
+   confirms this (renders the app Home) or reverts it (public homepage). */
+(function(){ try{ for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf('sb-')===0&&k.indexOf('auth-token')>-1){ document.documentElement.className+=' pre-app'; break; } } }catch(e){} })();
+</script>
 
 <a class="skip" href="#main">Skip to content</a>
 
@@ -329,6 +384,9 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   </div>
 </footer>
 
+<!-- Authenticated application Home (populated by JS; hidden for logged-out visitors). -->
+<div id="ah" class="ah"><div class="ah-wrap"><p class="ah-load">Loading your home&hellip;</p></div></div>
+
 <script>
 // Single opacity fade for below-hero content (hero is visible immediately).
 (function(){
@@ -341,75 +399,132 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 })();
 
 // Session-aware behaviour.
-//  (a) The clinician/patient tool pages (engine.html, references.html,
-//      dashboard.html, patient-dashboard.html) are auth-gated: auth.js
-//      requireAuth() redirects a LOGGED-OUT visitor straight back to this
-//      homepage (window.location.href = '/v2/index.html'), which the visitor
-//      experiences as the button "scrolling to the top". So for logged-out
-//      visitors we open the sign-in / registration modal instead of walking
-//      them into that silent bounce. Logged-in visitors navigate normally.
-//  (b) A signed-in visitor's nav "Log in" becomes a link back to their space.
+//  (a) Auth-gated tool pages (engine/references/dashboard/patient-dashboard)
+//      bounce a LOGGED-OUT visitor back here via requireAuth(); so for a
+//      logged-out visitor a click on those opens the sign-in modal instead.
+//  (b) When the user IS logged in, the whole public homepage body is replaced
+//      by a role-specific application Home (dark product environment). The
+//      public markup is untouched — only hidden (html.app) for authed users.
+//      All data comes from the product's own queries; nothing is invented, and
+//      missing data is omitted or shown as an honest empty state.
 (function(){
   var GATED = ['engine.html','references.html','dashboard.html','patient-dashboard.html'];
-  function gated(href){ return href && GATED.some(function(g){ return href.indexOf(g) !== -1; }); }
+  function gatedHref(href){ return href && GATED.some(function(g){ return href.indexOf(g) !== -1; }); }
   var authed = false;
-  // Attached synchronously so it is active before the async session check resolves.
   document.addEventListener('click', function(e){
     var a = e.target.closest && e.target.closest('a[href]');
-    if(!a || !gated(a.getAttribute('href'))) return;
-    if(authed) return;                       // (a) logged in → let it navigate to the tool
+    if(!a || !gatedHref(a.getAttribute('href'))) return;
+    if(authed) return;                       // logged in → navigate normally
     e.preventDefault();                      // logged out → sign-in prompt, not a bounce
     if(window.nbOpenModal) window.nbOpenModal();
   }, false);
 
-  // Session-aware hero (conditional rendering). Visitors keep the public hero;
-  // logged-in users get a personalised "Welcome back" hero. ONLY the hero
-  // <section> is replaced — everything below it is untouched.
+  var sb = window.sb;
   function esc(x){ return (x==null?'':String(x)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function chip(label,href,primary){ return '<a class="wl-chip'+(primary?' primary':'')+'" href="'+href+'">'+esc(label)+'</a>'; }
-  function renderWelcomeHero(role, profile){
-    var hero=document.querySelector('section.hero'); if(!hero) return;
-    var html;
-    if(role==='doctor'||role==='admin'){
-      var name=esc(((profile&&(profile.full_name||profile.name))||'').replace(/^dr\.?\s*/i,'').trim());
-      html='<div class="hero-welcome">'
-        +'<h1 class="hero-h" id="hero-h">'+(name?('Welcome back, Dr. '+name):'Welcome back, Doctor')+'</h1>'
-        +'<p class="hero-o">Continue where you left off.</p>'
-        +'<div class="wl-links">'
-        +chip('Dashboard','/v2/dashboard.html',true)
-        +chip('Workspace','/v2/engine.html')
-        +chip('Calculators','/v2/scores.html')
-        +chip('References','/v2/references.html')
-        +chip('Recent patients','/v2/dashboard.html')
-        +chip('Pending questionnaires','/v2/questionnaires.html')
-        +chip('Latest evidence updates','/v2/references.html')
-        +'</div></div>';
-    } else {
-      html='<div class="hero-welcome">'
-        +'<h1 class="hero-h" id="hero-h">Welcome back</h1>'
-        +'<p class="hero-o">Continue your anesthesia journey.</p>'
-        +'<div class="wl-links">'
-        +chip('Continue questionnaire','/v2/questionnaire.html',true)
-        +chip('Surgery checklist','/v2/patient-dashboard.html')
-        +chip('Educational videos','/v2/videos.html')
-        +chip('Messages from your doctor','/v2/ask.html')
-        +'</div></div>';
-    }
-    hero.innerHTML=html;
+  function acts(items){ return items.map(function(it){ return '<a class="ah-btn'+(it.p?' primary':'')+'" href="'+it.href+'">'+esc(it.label)+'</a>'; }).join(''); }
+  function tools(items){ return items.map(function(it){ return '<a class="ah-tool" href="'+it.href+'"><span class="n">'+esc(it.n)+'</span><span class="s">'+esc(it.s)+'</span></a>'; }).join(''); }
+  function count(n,label){ return '<div class="ah-count"><b>'+n+'</b><span>'+esc(label)+'</span></div>'; }
+  function jrow(l,v,raw){ return '<div class="ah-jrow"><span class="jl">'+esc(l)+'</span><span class="jv">'+(raw?v:esc(v))+'</span></div>'; }
+
+  // Verbatim from dashboard.html — derive a clinic patient's stage from its columns.
+  function wsClinicStage(p){
+    if(p.patient_status==='completed') return 'completed';
+    if(p.patient_status==='ready_for_surgery') return 'scheduled';
+    if(p.consultation_status==='reviewed') return 'approved';
+    if(p.questionnaire_status==='completed') return 'review';
+    return 'awaiting';
   }
 
-  if(typeof getSession!=='function') return;
-  (async function(){
+  // ---------- DOCTOR ----------
+  function buildDoctor(ah, session, profile, role){
+    var name=esc(((profile&&profile.full_name)||'').replace(/^dr\.?\s*/i,'').trim());
+    var pending=(profile&&profile.verification_status==='pending')||role==='pending';
+    var h='<div class="ah-wrap">';
+    h+='<div class="ah-top"><div><div class="ah-hello">Welcome back, Dr. '+(name||'')+'</div><div class="ah-sub">Your day at a glance</div></div><div class="ah-counts" id="ah-counts"></div></div>';
+    if(pending) h+='<div class="ah-verify pending">Your clinician account is pending verification. Some tools may be unavailable until an administrator approves your account.</div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Needs attention <a class="ah-more" href="/v2/dashboard.html">Open today’s list →</a></div><div id="ah-needs"><p class="ah-empty">Loading…</p></div></div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Quick actions</div><div class="ah-actions">'+acts([{label:'Open today’s list',href:'/v2/dashboard.html',p:true},{label:'New patient',href:'/v2/dashboard.html'},{label:'Open workstation',href:'/v2/engine.html'}])+'</div></div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Clinical workspace</div><div class="ah-tools">'+tools([
+      {n:'Live Tools',s:'Anesthesia workstation',href:'/v2/engine.html'},
+      {n:'Drug references',s:'In Live Tools',href:'/v2/engine.html'},
+      {n:'Clinical references',s:'Airway, anticoagulation & more',href:'/v2/references.html'},
+      {n:'Scores & calculators',s:'Clinical scores',href:'/v2/scores.html'},
+      {n:'Airway',s:'Assessment & sizing',href:'/v2/airway.html'},
+      {n:'Crisis Center',s:'In Live Tools',href:'/v2/engine.html'}
+    ])+'</div></div></div>';
+    ah.innerHTML=h;
+    loadDoctor(session.user.id);
+  }
+  async function loadDoctor(uid){
+    var pts=[], failed=false;
     try{
-      var s=await getSession(); if(!s) return;
-      authed = true;                         // (a) allow gated links to navigate
-      var p=(typeof getProfile==='function')?await getProfile(s.user.id):null;   // (b)
-      var role=(p&&p.role)||'patient';
-      renderWelcomeHero(role, p);            // session-aware hero (hero only)
-      var href=(role==='doctor'||role==='admin')?'/v2/dashboard.html':'/v2/patient-dashboard.html';
-      var btn=document.getElementById('nav-login');
-      if(btn){ var a=document.createElement('a'); a.href=href; a.textContent='Enter'; a.className='nav-login'; a.style.textDecoration='none'; btn.replaceWith(a); }
-    }catch(e){}
+      var cp=await sb.from('clinic_patients').select('*').eq('doctor_id',uid);
+      if(cp&&cp.error) throw cp.error;
+      ((cp&&cp.data)||[]).forEach(function(p){ pts.push({ name:p.patient_name||'Patient', stage:wsClinicStage(p) }); });
+    }catch(e){ failed=true; }
+    var needsBody=document.getElementById('ah-needs'), cts=document.getElementById('ah-counts');
+    if(failed){ if(needsBody) needsBody.innerHTML='<p class="ah-empty">Couldn’t load your patients right now. <a href="/v2/dashboard.html">Open today’s list →</a></p>'; return; }
+    var nr=0, inc=0, rd=0;
+    pts.forEach(function(p){ if(p.stage==='review')nr++; else if(p.stage==='awaiting')inc++; else if(p.stage==='approved'||p.stage==='scheduled')rd++; });
+    if(cts) cts.innerHTML=count(nr,'Need review')+count(inc,'Incomplete')+count(rd,'Ready');
+    var need=pts.filter(function(p){ return p.stage==='review'||p.stage==='awaiting'; }).slice(0,6);
+    if(!needsBody) return;
+    if(!need.length){ needsBody.innerHTML='<p class="ah-empty">No patients need action right now. <a href="/v2/dashboard.html">Open today’s list →</a></p>'; return; }
+    needsBody.innerHTML=need.map(function(p){
+      var s = p.stage==='review' ? ['Needs review','amber'] : ['Information incomplete','blue'];
+      return '<div class="ah-row"><span class="nm">'+esc(p.name)+'</span><span class="st '+s[1]+'">'+esc(s[0])+'</span><a class="go" href="/v2/dashboard.html">Open →</a></div>';
+    }).join('');
+  }
+
+  // ---------- PATIENT ----------
+  function buildPatient(ah, session, profile){
+    var first=esc((((profile&&profile.full_name)||'').trim().split(/\s+/)[0])||'');
+    var h='<div class="ah-wrap">';
+    h+='<div class="ah-top"><div><div class="ah-hello">Welcome back'+(first?', '+first:'')+'</div><div class="ah-sub">Your anesthesia preparation</div></div></div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Your journey</div><div id="ah-journey"><p class="ah-empty">Loading…</p></div></div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Continue</div><div class="ah-actions">'+acts([{label:'Continue questionnaire',href:'/v2/questionnaire.html',p:true},{label:'Open checklist',href:'/v2/patient-dashboard.html'},{label:'Messages from your doctor',href:'/v2/ask.html'}])+'</div></div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Preparation <a class="ah-more" href="/v2/patient-dashboard.html">Open checklist →</a></div><div class="ah-tools">'+tools([
+      {n:'Fasting',s:'When to stop eating & drinking',href:'/v2/patient-dashboard.html'},
+      {n:'Medicines',s:'Review your medications',href:'/v2/patient-dashboard.html'},
+      {n:'Documents',s:'What to bring',href:'/v2/patient-dashboard.html'},
+      {n:'Questions',s:'Ask your team',href:'/v2/ask.html'}
+    ])+'</div></div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Learn</div><div class="ah-actions">'+acts([{label:'Educational videos',href:'/v2/videos.html'}])+'</div></div></div>';
+    ah.innerHTML=h;
+    loadPatient(session.user.id);
+  }
+  async function loadPatient(uid){
+    var quest=null, surgery=null, prepDone=null;
+    try{ quest=(typeof getQuestionnaire==='function')?await getQuestionnaire(uid):((await sb.from('preop_questionnaires').select('*').eq('patient_id',uid).maybeSingle()).data); }catch(e){}
+    try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).order('surgery_date',{ascending:true,nullsFirst:false}); var rows=((r&&r.data)||[]); var act=rows.filter(function(x){return !x.archived_at&&!x.completed_at;}); surgery=act[0]||rows[0]||null; }catch(e){}
+    try{ var c=(typeof getChecklist==='function')?await getChecklist(uid):((await sb.from('preop_checklist').select('*').eq('patient_id',uid).maybeSingle()).data); if(c&&c.items&&c.items.prep_guide&&c.items.prep_guide.prepare){ var pr=c.items.prep_guide.prepare; prepDone=0; for(var i=0;i<6;i++){ if(pr[i]) prepDone++; } } }catch(e){}
+    var jb=document.getElementById('ah-journey'); if(!jb) return;
+    var parts=[];
+    if(quest){ var pct=(quest.status==='submitted')?100:(quest.completion||0); parts.push(jrow('Questionnaire', quest.status==='submitted'?'Submitted':(pct+'% complete'))); }
+    else parts.push(jrow('Questionnaire','Not started'));
+    if(prepDone!=null) parts.push(jrow('Preparation checklist', prepDone+' of 6 done'));
+    if(surgery && (surgery.procedure_type||surgery.surgery_date)){ var when=surgery.surgery_date?(' · '+esc(String(surgery.surgery_date).slice(0,10))):''; parts.push(jrow('Upcoming', esc(surgery.procedure_type||'Surgery')+when, true)); }
+    jb.innerHTML=parts.join('') || '<p class="ah-empty">Start your questionnaire to begin. <a href="/v2/questionnaire.html">Continue →</a></p>';
+  }
+
+  function renderAppHome(session, profile, role){
+    var ah=document.getElementById('ah'), de=document.documentElement;
+    if(!ah){ de.classList.remove('pre-app'); return; }
+    de.classList.add('app'); de.classList.remove('pre-app');
+    var isDoc = role==='doctor'||role==='admin'||role==='pending'||(profile&&profile.is_admin);
+    if(isDoc) buildDoctor(ah, session, profile, role);
+    else buildPatient(ah, session, profile);
+  }
+
+  if(typeof getSession!=='function'){ document.documentElement.classList.remove('pre-app'); return; }
+  (async function(){
+    var s=null;
+    try{ s=await getSession(); }catch(e){}
+    if(!s){ document.documentElement.classList.remove('pre-app'); return; }   // visitor → public homepage
+    authed = true;
+    var p=null;
+    try{ p=(typeof getProfile==='function')?await getProfile(s.user.id):null; }catch(e){}
+    renderAppHome(s, p, (p&&p.role)||'patient');
   })();
 })();
 </script>
