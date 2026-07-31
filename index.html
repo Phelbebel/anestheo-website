@@ -88,6 +88,15 @@ section{padding:var(--sec) var(--edge);}
 .path-clinician .role{color:var(--teal);opacity:1;}
 .path-clinician p{color:var(--muted);}
 
+/* ── Session-aware "Welcome back" hero (logged-in only; same visual language) ── */
+.hero-welcome{text-align:center;max-width:820px;margin:0 auto;}
+.hero-welcome .hero-o{margin-bottom:0;}
+.wl-links{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:28px auto 0;}
+.wl-chip{display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;padding:12px 18px;border-radius:9px;border:1px solid var(--hair-2);background:#fff;color:var(--ink);min-height:46px;transition:border-color .14s,background .14s,color .14s;}
+.wl-chip:hover{border-color:var(--ink);}
+.wl-chip.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+.wl-chip.primary:hover{background:var(--ink-hover);}
+
 /* ── Card sections ────────────────────────────────────────────────────── */
 .head{max-width:var(--maxw);margin:0 auto clamp(24px,3vw,32px);}
 .cards{display:grid;gap:clamp(16px,2vw,20px);max-width:var(--maxw);margin:0 auto;}
@@ -352,6 +361,43 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     e.preventDefault();                      // logged out → sign-in prompt, not a bounce
     if(window.nbOpenModal) window.nbOpenModal();
   }, false);
+
+  // Session-aware hero (conditional rendering). Visitors keep the public hero;
+  // logged-in users get a personalised "Welcome back" hero. ONLY the hero
+  // <section> is replaced — everything below it is untouched.
+  function esc(x){ return (x==null?'':String(x)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function chip(label,href,primary){ return '<a class="wl-chip'+(primary?' primary':'')+'" href="'+href+'">'+esc(label)+'</a>'; }
+  function renderWelcomeHero(role, profile){
+    var hero=document.querySelector('section.hero'); if(!hero) return;
+    var html;
+    if(role==='doctor'||role==='admin'){
+      var name=esc(((profile&&(profile.full_name||profile.name))||'').replace(/^dr\.?\s*/i,'').trim());
+      html='<div class="hero-welcome">'
+        +'<h1 class="hero-h" id="hero-h">'+(name?('Welcome back, Dr. '+name):'Welcome back, Doctor')+'</h1>'
+        +'<p class="hero-o">Continue where you left off.</p>'
+        +'<div class="wl-links">'
+        +chip('Dashboard','/v2/dashboard.html',true)
+        +chip('Workspace','/v2/engine.html')
+        +chip('Calculators','/v2/scores.html')
+        +chip('References','/v2/references.html')
+        +chip('Recent patients','/v2/dashboard.html')
+        +chip('Pending questionnaires','/v2/questionnaires.html')
+        +chip('Latest evidence updates','/v2/references.html')
+        +'</div></div>';
+    } else {
+      html='<div class="hero-welcome">'
+        +'<h1 class="hero-h" id="hero-h">Welcome back</h1>'
+        +'<p class="hero-o">Continue your anesthesia journey.</p>'
+        +'<div class="wl-links">'
+        +chip('Continue questionnaire','/v2/questionnaire.html',true)
+        +chip('Surgery checklist','/v2/patient-dashboard.html')
+        +chip('Educational videos','/v2/videos.html')
+        +chip('Messages from your doctor','/v2/ask.html')
+        +'</div></div>';
+    }
+    hero.innerHTML=html;
+  }
+
   if(typeof getSession!=='function') return;
   (async function(){
     try{
@@ -359,6 +405,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       authed = true;                         // (a) allow gated links to navigate
       var p=(typeof getProfile==='function')?await getProfile(s.user.id):null;   // (b)
       var role=(p&&p.role)||'patient';
+      renderWelcomeHero(role, p);            // session-aware hero (hero only)
       var href=(role==='doctor'||role==='admin')?'/v2/dashboard.html':'/v2/patient-dashboard.html';
       var btn=document.getElementById('nav-login');
       if(btn){ var a=document.createElement('a'); a.href=href; a.textContent='Enter'; a.className='nav-login'; a.style.textDecoration='none'; btn.replaceWith(a); }
