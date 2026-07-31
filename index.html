@@ -30,7 +30,12 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
 body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.55;overflow-x:hidden;}
-.nb,.nb-mob,#nb-placeholder{display:none !important;}
+/* Public (logged-out) homepage uses its own header.mast; hide the shared app
+   nav only for visitors. Logged-in users (html.pre-app / html.app) keep the
+   authenticated navbar.js shell — same one dashboard.html / engine.html use. */
+html:not(.pre-app):not(.app) .nb,
+html:not(.pre-app):not(.app) .nb-mob,
+html:not(.pre-app):not(.app) #nb-placeholder{display:none !important;}
 a{color:inherit;text-decoration:none;}
 ::selection{background:rgba(27,107,90,.16);}
 :focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:3px;}
@@ -101,7 +106,7 @@ html.pre-app .ah, html.app .ah{display:block;}
 .ah{--bd:rgba(27,107,90,.22);--tx:#fff;--mu:rgba(255,255,255,.55);--hi:rgba(255,255,255,.32);--tl:#1B6B5A;--tl2:#2A8A74;--ac:#7ECFC0;
   font-family:'DM Sans',-apple-system,system-ui,sans-serif;color:var(--tx);min-height:100vh;background:#0A1A15;
   background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:52px 52px;}
-.ah-wrap{max-width:1040px;margin:0 auto;padding:26px 20px 72px;}
+.ah-wrap{max-width:1040px;margin:0 auto;padding:80px 20px 40px;}  /* top clears the fixed 56px navbar */
 .ah-load{color:var(--mu);font-size:14px;padding:40px 0;}
 .ah-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
 .ah-hello{font-size:23px;font-weight:800;letter-spacing:-.015em;line-height:1.1;}
@@ -139,10 +144,17 @@ html.pre-app .ah, html.app .ah{display:block;}
 .ah-jrow:first-child{border-top:none;}
 .ah-jrow .jl{color:var(--mu);}
 .ah-jrow .jv{font-weight:700;}
+/* Compact application footer (utility links only — NOT the public marketing footer) */
+.ah-foot{margin-top:26px;padding-top:18px;border-top:1px solid var(--bd);
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;}
+.ah-foot a{font-size:12.5px;font-weight:600;color:var(--mu);}
+.ah-foot a:hover{color:var(--ac);}
+.ah-foot .ah-copy{font-size:12px;color:var(--hi);margin-left:auto;}
 @media(max-width:560px){
   .ah-tools{grid-template-columns:1fr 1fr;}
   .ah-hello{font-size:20px;}
   .ah-btn{flex:1 1 auto;}
+  .ah-foot .ah-copy{margin-left:0;width:100%;}
 }
 
 /* ── Card sections ────────────────────────────────────────────────────── */
@@ -421,10 +433,40 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 
   var sb = window.sb;
   function esc(x){ return (x==null?'':String(x)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  // Resolve a usable display name without inventing profile fields. Order:
+  //  1) profile.full_name  2) profile.name  3) user_metadata.full_name
+  //  4) user_metadata.name  5) cleaned email local-part  6) '' (caller decides).
+  function pickName(session, profile){
+    function s(v){ return (v==null?'':String(v)).trim(); }
+    var meta = (session && session.user && session.user.user_metadata) || {};
+    var n = s(profile&&profile.full_name) || s(profile&&profile.name) || s(meta.full_name) || s(meta.name);
+    if(n) return n;
+    var email = s(profile&&profile.email) || s(session&&session.user&&session.user.email);
+    if(email){
+      var lp = email.split('@')[0].split('+')[0].replace(/[._-]+/g,' ').replace(/\s+/g,' ').trim();
+      if(lp) return lp.replace(/\b\w/g,function(c){return c.toUpperCase();});
+    }
+    return '';
+  }
+  // Strip a leading "Dr"/"Dr." so we never render "Dr. Dr. Smith".
+  function stripDr(n){ return (n||'').replace(/^dr\.?\s+/i,'').trim(); }
   function acts(items){ return items.map(function(it){ return '<a class="ah-btn'+(it.p?' primary':'')+'" href="'+it.href+'">'+esc(it.label)+'</a>'; }).join(''); }
   function tools(items){ return items.map(function(it){ return '<a class="ah-tool" href="'+it.href+'"><span class="n">'+esc(it.n)+'</span><span class="s">'+esc(it.s)+'</span></a>'; }).join(''); }
   function count(n,label){ return '<div class="ah-count"><b>'+n+'</b><span>'+esc(label)+'</span></div>'; }
   function jrow(l,v,raw){ return '<div class="ah-jrow"><span class="jl">'+esc(l)+'</span><span class="jv">'+(raw?v:esc(v))+'</span></div>'; }
+  // Compact application footer — utility links only (existing routes), not the
+  // public marketing footer. Rendered inside #ah so it stays in the dark shell.
+  function appFooter(){
+    return '<div class="ah-foot">'
+      + '<a href="/v2/about.html">About</a>'
+      + '<a href="mailto:support@anestheo.com">Support</a>'
+      + '<a href="/v2/privacy.html">Privacy</a>'
+      + '<a href="/v2/terms.html">Terms</a>'
+      + '<a href="/v2/medical-disclaimer.html">Medical disclaimer</a>'
+      + '<span class="ah-copy">Anestheo</span>'
+      + '</div>';
+  }
 
   // Verbatim from dashboard.html — derive a clinic patient's stage from its columns.
   function wsClinicStage(p){
@@ -437,10 +479,11 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 
   // ---------- DOCTOR ----------
   function buildDoctor(ah, session, profile, role){
-    var name=esc(((profile&&profile.full_name)||'').replace(/^dr\.?\s*/i,'').trim());
+    var name=stripDr(pickName(session, profile));
+    var hello = name ? ('Welcome back, Dr. '+esc(name)) : 'Welcome back, Doctor';
     var pending=(profile&&profile.verification_status==='pending')||role==='pending';
     var h='<div class="ah-wrap">';
-    h+='<div class="ah-top"><div><div class="ah-hello">Welcome back, Dr. '+(name||'')+'</div><div class="ah-sub">Your day at a glance</div></div><div class="ah-counts" id="ah-counts"></div></div>';
+    h+='<div class="ah-top"><div><div class="ah-hello">'+hello+'</div><div class="ah-sub">Your day at a glance</div></div><div class="ah-counts" id="ah-counts"></div></div>';
     if(pending) h+='<div class="ah-verify pending">Your clinician account is pending verification. Some tools may be unavailable until an administrator approves your account.</div>';
     h+='<div class="ah-panel"><div class="ah-panel-h">Needs attention <a class="ah-more" href="/v2/dashboard.html">Open today’s list →</a></div><div id="ah-needs"><p class="ah-empty">Loading…</p></div></div>';
     h+='<div class="ah-panel"><div class="ah-panel-h">Quick actions</div><div class="ah-actions">'+acts([{label:'Open today’s list',href:'/v2/dashboard.html',p:true},{label:'New patient',href:'/v2/dashboard.html'},{label:'Open workstation',href:'/v2/engine.html'}])+'</div></div>';
@@ -451,7 +494,18 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       {n:'Scores & calculators',s:'Clinical scores',href:'/v2/scores.html'},
       {n:'Airway',s:'Assessment & sizing',href:'/v2/airway.html'},
       {n:'Crisis Center',s:'In Live Tools',href:'/v2/engine.html'}
-    ])+'</div></div></div>';
+    ])+'</div></div>';
+    // Practice destinations (only routes that already exist). Admin appears only
+    // for admins — matches dashboard.html's own gate (is_admin || role==='admin').
+    var isAdmin = (profile && (profile.is_admin===true || profile.role==='admin')) || role==='admin';
+    var practice=[
+      {n:'Patients',s:'Your patient list',href:'/v2/patients.html'},
+      {n:'Questions',s:'Patient questions',href:'/v2/questions.html'},
+      {n:'Resources',s:'Guides & materials',href:'/v2/resources.html'}
+    ];
+    if(isAdmin) practice.push({n:'Admin',s:'Administration',href:'/v2/admin.html'});
+    h+='<div class="ah-panel"><div class="ah-panel-h">Practice</div><div class="ah-tools">'+tools(practice)+'</div></div>';
+    h+=appFooter()+'</div>';
     ah.innerHTML=h;
     loadDoctor(session.user.id);
   }
@@ -478,9 +532,9 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 
   // ---------- PATIENT ----------
   function buildPatient(ah, session, profile){
-    var first=esc((((profile&&profile.full_name)||'').trim().split(/\s+/)[0])||'');
+    var first=stripDr(pickName(session, profile)).split(/\s+/)[0]||'';
     var h='<div class="ah-wrap">';
-    h+='<div class="ah-top"><div><div class="ah-hello">Welcome back'+(first?', '+first:'')+'</div><div class="ah-sub">Your anesthesia preparation</div></div></div>';
+    h+='<div class="ah-top"><div><div class="ah-hello">Welcome back'+(first?', '+esc(first):'')+'</div><div class="ah-sub">Your anesthesia preparation</div></div></div>';
     h+='<div class="ah-panel"><div class="ah-panel-h">Your journey</div><div id="ah-journey"><p class="ah-empty">Loading…</p></div></div>';
     h+='<div class="ah-panel"><div class="ah-panel-h">Continue</div><div class="ah-actions">'+acts([{label:'Continue questionnaire',href:'/v2/questionnaire.html',p:true},{label:'Open checklist',href:'/v2/patient-dashboard.html'},{label:'Messages from your doctor',href:'/v2/ask.html'}])+'</div></div>';
     h+='<div class="ah-panel"><div class="ah-panel-h">Preparation <a class="ah-more" href="/v2/patient-dashboard.html">Open checklist →</a></div><div class="ah-tools">'+tools([
@@ -489,7 +543,8 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       {n:'Documents',s:'What to bring',href:'/v2/patient-dashboard.html'},
       {n:'Questions',s:'Ask your team',href:'/v2/ask.html'}
     ])+'</div></div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Learn</div><div class="ah-actions">'+acts([{label:'Educational videos',href:'/v2/videos.html'}])+'</div></div></div>';
+    h+='<div class="ah-panel"><div class="ah-panel-h">Learn</div><div class="ah-actions">'+acts([{label:'Educational videos',href:'/v2/videos.html'}])+'</div></div>';
+    h+=appFooter()+'</div>';
     ah.innerHTML=h;
     loadPatient(session.user.id);
   }
