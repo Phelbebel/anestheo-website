@@ -157,6 +157,92 @@ html.pre-app .ah, html.app .ah{display:block;}
   .ah-foot .ah-copy{margin-left:0;width:100%;}
 }
 
+/* ── Premium application dashboard (compact, purpose-driven) ───────────────── */
+.ah-hd{margin-bottom:14px;}
+.ah-sec{margin-bottom:22px;}
+.ah-sec-h{display:flex;align-items:center;gap:10px;margin:0 0 10px;}
+.ah-sec-t{font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--mu);}
+.ah-sec-h .ah-more{margin-left:auto;}
+/* Search everything */
+.ah-search{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.045);border:1px solid var(--bd);border-radius:12px;padding:0 14px;height:46px;margin-bottom:22px;transition:border-color .15s;}
+.ah-search:focus-within{border-color:rgba(126,207,192,.55);}
+.ah-search svg{width:17px;height:17px;stroke:var(--mu);flex:0 0 auto;}
+.ah-search input{flex:1;background:none;border:none;outline:none;color:#fff;font-family:inherit;font-size:14.5px;}
+.ah-search input::placeholder{color:var(--mu);}
+.ah-search kbd{font-size:10.5px;font-weight:700;color:var(--mu);border:1px solid var(--bd);border-radius:5px;padding:2px 6px;background:rgba(255,255,255,.03);}
+/* TODAY — stat tiles */
+.ah-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+.ah-stat{background:rgba(255,255,255,.035);border:1px solid var(--bd);border-radius:13px;padding:14px 15px;display:block;color:#fff;transition:border-color .15s,background .15s;}
+a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1);}
+.ah-stat b{display:block;font-size:26px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+.ah-stat.warn b{color:#FFC98A;} .ah-stat.info b{color:#B9D7FF;} .ah-stat.ok b{color:#8FE9C4;}
+.ah-stat span{display:block;font-size:11px;font-weight:600;color:var(--mu);margin-top:6px;line-height:1.3;}
+.ah-stat.zero b{color:var(--hi);}
+/* CONTINUE / grids of compact cards */
+.ah-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ah-grid.g2{grid-template-columns:repeat(2,1fr);}
+.ah-cc{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border:1px solid var(--bd);border-radius:12px;background:rgba(255,255,255,.03);color:#fff;transition:border-color .15s,background .15s;}
+.ah-cc:hover{border-color:rgba(126,207,192,.4);background:rgba(27,107,90,.1);}
+.ah-cc .ic{font-size:17px;line-height:1;flex:0 0 auto;margin-top:1px;}
+.ah-cc .tx{min-width:0;display:flex;flex-direction:column;}
+.ah-cc .n{display:block;font-size:13.5px;font-weight:700;line-height:1.25;}
+.ah-cc .s{display:block;font-size:11.5px;color:var(--mu);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* CREATE — three primary actions */
+.ah-create{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ah-ca{display:flex;align-items:center;justify-content:center;gap:9px;height:52px;border-radius:12px;border:1px solid var(--bd);background:rgba(255,255,255,.04);color:#fff;font-weight:700;font-size:14.5px;transition:border-color .15s,background .15s;}
+.ah-ca:hover{border-color:rgba(126,207,192,.5);background:rgba(27,107,90,.12);}
+.ah-ca.accent{background:var(--tl);border-color:var(--tl2);}
+.ah-ca.accent:hover{background:var(--tl2);}
+/* Empty states (elegant) */
+.ah-blank{border:1px dashed var(--bd);border-radius:13px;padding:22px 18px;text-align:center;color:var(--mu);font-size:13px;line-height:1.5;background:rgba(255,255,255,.015);}
+.ah-blank .bt{color:#fff;font-weight:700;font-size:13.5px;margin-bottom:3px;}
+.ah-blank a{color:var(--ac);font-weight:600;}
+/* Collapsible sections — Crisis Center pattern (expand inline, no navigation) */
+.ah-coll{border:1px solid var(--bd);border-radius:14px;background:rgba(255,255,255,.025);overflow:hidden;}
+.ah-coll-h{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:#fff;font-family:inherit;cursor:pointer;padding:15px 17px;}
+.ah-coll-h .cico{font-size:16px;flex:0 0 auto;}
+.ah-coll-h .ct{font-size:14px;font-weight:700;}
+.ah-coll-h .cs{font-size:12px;color:var(--mu);margin-left:2px;}
+.ah-coll-h .chev{margin-left:auto;color:var(--mu);font-size:12px;transition:transform .2s;flex:0 0 auto;}
+.ah-coll.open .ah-coll-h .chev{transform:rotate(180deg);}
+.ah-coll-b{display:none;padding:0 17px 16px;}
+.ah-coll.open .ah-coll-b{display:block;}
+.ah-refs{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.ah-ref{display:flex;flex-direction:column;gap:3px;padding:12px 13px;border:1px solid var(--bd);border-radius:11px;background:rgba(255,255,255,.03);color:#fff;transition:border-color .15s,background .15s;min-height:56px;}
+.ah-ref:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.12);}
+.ah-ref .n{font-size:13px;font-weight:700;}
+.ah-ref .s{font-size:10.5px;color:var(--mu);}
+/* RECENT ACTIVITY — timeline */
+.ah-time{position:relative;}
+.ah-trow{display:flex;align-items:flex-start;gap:12px;padding:9px 0;border-top:1px solid rgba(27,107,90,.14);color:#fff;}
+.ah-trow:first-child{border-top:none;}
+.ah-trow .dot{width:8px;height:8px;border-radius:50%;background:var(--tl2);margin-top:5px;flex:0 0 auto;}
+.ah-trow .tt{font-size:13px;font-weight:600;}
+.ah-trow .tm{font-size:11px;color:var(--mu);margin-top:1px;}
+.ah-trow .tgo{margin-left:auto;color:var(--ac);font-size:12px;font-weight:700;flex:0 0 auto;}
+/* LATEST VIDEOS */
+.ah-vids{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ah-vid{display:block;border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);color:#fff;transition:border-color .15s;}
+.ah-vid:hover{border-color:rgba(126,207,192,.45);}
+.ah-vid .thumb{aspect-ratio:16/9;background:linear-gradient(135deg,rgba(27,107,90,.35),rgba(10,26,21,.6));display:flex;align-items:center;justify-content:center;font-size:22px;color:rgba(255,255,255,.5);}
+.ah-vid .vm{padding:9px 11px;font-size:12.5px;font-weight:600;}
+/* WHAT'S NEW */
+.ah-new-row{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;color:#fff;border-top:1px solid rgba(27,107,90,.14);}
+.ah-new-row:first-child{border-top:none;}
+.ah-tag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8FE9C4;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);border-radius:20px;padding:2px 8px;flex:0 0 auto;}
+@media(max-width:820px){
+  .ah-stats{grid-template-columns:repeat(2,1fr);}
+  .ah-grid,.ah-create,.ah-vids{grid-template-columns:1fr 1fr;}
+  .ah-refs{grid-template-columns:repeat(3,1fr);}
+}
+@media(max-width:560px){
+  .ah-grid,.ah-create,.ah-vids,.ah-refs{grid-template-columns:1fr 1fr;}
+  .ah-search kbd{display:none;}
+}
+@media(max-width:400px){
+  .ah-stats,.ah-grid,.ah-create,.ah-vids,.ah-refs{grid-template-columns:1fr;}
+}
+
 /* ── Card sections ────────────────────────────────────────────────────── */
 .head{max-width:var(--maxw);margin:0 auto clamp(24px,3vw,32px);}
 .cards{display:grid;gap:clamp(16px,2vw,20px);max-width:var(--maxw);margin:0 auto;}
@@ -477,57 +563,155 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     return 'awaiting';
   }
 
+  // Verbatim from dashboard.html — derive a bridge patient's stage.
+  function wsBridgeStage(rs, sg){
+    if(sg && sg.completed_at) return 'completed';
+    if(rs==='approved') return (sg && sg.surgery_date) ? 'scheduled' : 'approved';
+    if(rs==='pending'||rs==='in_review'||rs==='changes_requested') return 'review';
+    return 'awaiting';
+  }
   // ---------- DOCTOR ----------
+  // A small localStorage log of the doctor's OWN homepage actions (genuinely
+  // their clicks — never fabricated). Powers Continue working + Recent activity;
+  // empty by default, so both sections show honest empty states until used.
+  function ahLog(kind,label,href){
+    try{ var a=JSON.parse(localStorage.getItem('ah_recent')||'[]');
+      a=a.filter(function(x){return x.href!==href;});
+      a.unshift({kind:kind,label:label,href:href,ts:Date.now()});
+      localStorage.setItem('ah_recent',JSON.stringify(a.slice(0,12)));
+    }catch(e){} }
+  window.ahLog=ahLog;
+  function ahRecent(){ try{ return JSON.parse(localStorage.getItem('ah_recent')||'[]'); }catch(e){ return []; } }
+  function ahRel(ts){ var d=Math.max(0,Date.now()-ts),m=Math.floor(d/60000),h=Math.floor(m/60),dy=Math.floor(h/24);
+    if(m<1)return 'just now'; if(m<60)return m+'m ago'; if(h<24)return h+'h ago'; if(dy<7)return dy+'d ago'; return new Date(ts).toLocaleDateString(); }
+  // Collapse — Crisis Center pattern: expand inline, no navigation.
+  window.ahToggle=function(btn){ var c=btn.closest('.ah-coll'); if(!c) return; var o=c.classList.toggle('open'); btn.setAttribute('aria-expanded', o?'true':'false'); };
+  // Search — reuse the navbar's staff search when present; otherwise inert.
+  window.ahSearch=function(ev,inp){ if(ev&&ev.key!=='Enter')return; var q=(inp&&inp.value||'').trim(); if(q&&typeof window.nbSearch==='function'){ try{ window.nbSearch(q); }catch(e){} } };
+  var SEARCH_SVG='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
+  // Real reference destinations only (routes that exist; mirrors references.html).
+  var AH_REFS=[
+    {n:'Airway',s:'Assessment & sizing',h:'/v2/airway.html'},
+    {n:'Difficult airway',s:'Failed intubation',h:'/v2/difficult-airway.html'},
+    {n:'Anticoagulation',s:'Bridging & timing',h:'/v2/anticoagulation.html'},
+    {n:'Anaphylaxis',s:'Crisis management',h:'/v2/anaphylaxis.html'},
+    {n:'Obstetrics',s:'Obstetric anaesthesia',h:'/v2/obstetric.html'},
+    {n:'Pediatrics',s:'Paediatric anaesthesia',h:'/v2/pediatric.html'},
+    {n:'Regional',s:'Blocks & dosing',h:'/v2/regional.html'},
+    {n:'Critical care',s:'ICU reference',h:'/v2/icu.html'},
+    {n:'Procedures',s:'By procedure',h:'/v2/procedures.html'}
+  ];
+  var AH_RES=[
+    {n:'Protocols',s:'Departmental protocols'},{n:'Downloads',s:'Files & guides'},
+    {n:'Presentations',s:'Teaching decks'},{n:'Templates',s:'Reusable templates'},
+    {n:'Patient PDFs',s:'Handouts'},{n:'Hospital documents',s:'Forms & policies'}
+  ];
+  function refCard(r){ return '<a class="ah-ref" href="'+r.h+'" onclick="ahLog(\'ref\',\''+esc(r.n)+'\',\''+r.h+'\')"><span class="n">'+esc(r.n)+'</span><span class="s">'+esc(r.s)+'</span></a>'; }
+  function statTile(id,cls,label){ return '<div class="ah-stat '+cls+'" id="'+id+'"><b>—</b><span>'+esc(label)+'</span></div>'; }
+
   function buildDoctor(ah, session, profile, role){
     var name=stripDr(pickName(session, profile));
     var hello = name ? ('Welcome back, Dr. '+esc(name)) : 'Welcome back, Doctor';
     var pending=(profile&&profile.verification_status==='pending')||role==='pending';
     var h='<div class="ah-wrap">';
-    h+='<div class="ah-top"><div><div class="ah-hello">'+hello+'</div><div class="ah-sub">Your day at a glance</div></div><div class="ah-counts" id="ah-counts"></div></div>';
+    h+='<div class="ah-hd"><div class="ah-hello">'+hello+'</div><div class="ah-sub">Your anesthesiology workspace</div></div>';
+    // 1 — Search everything
+    h+='<div class="ah-search">'+SEARCH_SVG+'<input type="text" placeholder="Search patients, references, drugs, videos…" aria-label="Search everything" onkeydown="ahSearch(event,this)"><kbd>Enter</kbd></div>';
     if(pending) h+='<div class="ah-verify pending">Your clinician account is pending verification. Some tools may be unavailable until an administrator approves your account.</div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Needs attention <a class="ah-more" href="/v2/dashboard.html">Open today’s list →</a></div><div id="ah-needs"><p class="ah-empty">Loading…</p></div></div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Quick actions</div><div class="ah-actions">'+acts([{label:'Open today’s list',href:'/v2/dashboard.html',p:true},{label:'New patient',href:'/v2/dashboard.html'},{label:'Open workstation',href:'/v2/engine.html'}])+'</div></div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Clinical workspace</div><div class="ah-tools">'+tools([
-      {n:'Live Tools',s:'Anesthesia workstation',href:'/v2/engine.html'},
-      {n:'Drug references',s:'In Live Tools',href:'/v2/engine.html'},
-      {n:'Clinical references',s:'Airway, anticoagulation & more',href:'/v2/references.html'},
-      {n:'Scores & calculators',s:'Clinical scores',href:'/v2/scores.html'},
-      {n:'Airway',s:'Assessment & sizing',href:'/v2/airway.html'},
-      {n:'Crisis Center',s:'In Live Tools',href:'/v2/engine.html'}
-    ])+'</div></div>';
-    // Practice destinations (only routes that already exist). Admin appears only
-    // for admins — matches dashboard.html's own gate (is_admin || role==='admin').
-    var isAdmin = (profile && (profile.is_admin===true || profile.role==='admin')) || role==='admin';
-    var practice=[
-      {n:'Patients',s:'Your patient list',href:'/v2/patients.html'},
-      {n:'Questions',s:'Patient questions',href:'/v2/questions.html'},
-      {n:'Resources',s:'Guides & materials',href:'/v2/resources.html'}
-    ];
-    if(isAdmin) practice.push({n:'Admin',s:'Administration',href:'/v2/admin.html'});
-    h+='<div class="ah-panel"><div class="ah-panel-h">Practice</div><div class="ah-tools">'+tools(practice)+'</div></div>';
+    // 2 — TODAY
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Today</span><a class="ah-more" href="/v2/dashboard.html">Open Dashboard →</a></div>'+
+       '<div class="ah-stats">'+statTile('ah-t-review','warn','Patients needing review')+statTile('ah-t-quest','info','Questionnaires waiting')+
+         statTile('ah-t-quests','info','Questions waiting')+statTile('ah-t-today','ok','On today’s list')+'</div></div>';
+    // 3 — CONTINUE WORKING
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Continue working</span></div><div id="ah-continue"><div class="ah-blank">Loading…</div></div></div>';
+    // 4 — CREATE (exactly three actions; one Live Workspace entry point)
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Create</span></div><div class="ah-create">'+
+         '<a class="ah-ca" href="/v2/dashboard.html" onclick="ahLog(\'action\',\'New patient\',\'/v2/dashboard.html\')">＋ New Patient</a>'+
+         '<a class="ah-ca" href="/v2/dashboard.html" onclick="ahLog(\'action\',\'Start consultation\',\'/v2/dashboard.html\')">＋ Start Consultation</a>'+
+         '<a class="ah-ca accent" href="/v2/engine.html" onclick="ahLog(\'workspace\',\'Live Workspace\',\'/v2/engine.html\')">⚡ Open Live Workspace</a>'+
+       '</div></div>';
+    // 5 — PINNED (placeholder for future pinning)
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Pinned</span></div>'+
+       '<div class="ah-blank"><div class="bt">No pinned items yet</div>Pin references, calculators, protocols and tools here for one-tap access. Pinning is coming soon.</div></div>';
+    // 6 — CLINICAL REFERENCES (collapsed; expands inline like Crisis Center)
+    h+='<div class="ah-sec"><div class="ah-coll"><button class="ah-coll-h" onclick="ahToggle(this)" aria-expanded="false">'+
+         '<span class="cico">📚</span><span class="ct">Clinical references</span><span class="cs">Airway, anticoagulation, obstetrics &amp; more</span><span class="chev">▾</span></button>'+
+       '<div class="ah-coll-b"><div class="ah-sec-h" style="margin-bottom:10px;"><span class="ah-sec-t">Reference library</span><a class="ah-more" href="/v2/references.html">View all →</a></div>'+
+       '<div class="ah-refs">'+AH_REFS.map(refCard).join('')+'</div></div></div></div>';
+    // 7 — RESOURCES (collapsed; expands inline)
+    h+='<div class="ah-sec"><div class="ah-coll"><button class="ah-coll-h" onclick="ahToggle(this)" aria-expanded="false">'+
+         '<span class="cico">🗂️</span><span class="ct">Resources</span><span class="cs">Protocols, downloads, templates &amp; documents</span><span class="chev">▾</span></button>'+
+       '<div class="ah-coll-b"><div class="ah-refs">'+AH_RES.map(function(r){ return '<a class="ah-ref" href="/v2/resources.html" onclick="ahLog(\'resource\',\''+esc(r.n)+'\',\'/v2/resources.html\')"><span class="n">'+esc(r.n)+'</span><span class="s">'+esc(r.s)+'</span></a>'; }).join('')+'</div></div></div></div>';
+    // 8 — RECENT ACTIVITY
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Recent activity</span></div><div id="ah-activity"></div></div>';
+    // 9 — LATEST VIDEOS (lightweight; honest placeholder — no fabricated titles)
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest videos</span><a class="ah-more" href="/v2/videos.html">View all →</a></div>'+
+       '<div class="ah-blank"><div class="bt">Video library</div>Short teaching videos by a certified anesthesiologist. <a href="/v2/videos.html">Browse all videos →</a></div></div>';
+    // 10 — WHAT'S NEW
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">What’s new</span></div>'+
+       '<div class="ah-blank">Product updates and newly added references, videos and protocols will appear here.</div></div>';
     h+=appFooter()+'</div>';
     ah.innerHTML=h;
+    renderActivity();
     loadDoctor(session.user.id);
   }
+
+  function renderContinue(last){
+    var box=document.getElementById('ah-continue'); if(!box) return;
+    var cards=[];
+    if(last && last.name) cards.push('<a class="ah-cc" href="/v2/dashboard.html" onclick="ahLog(\'patient\',\''+esc(last.name)+'\',\'/v2/dashboard.html\')"><span class="ic">👤</span><span class="tx"><span class="n">Continue last patient</span><span class="s">'+esc(last.name)+'</span></span></a>');
+    ahRecent().filter(function(x){ return x.kind==='ref'||x.kind==='workspace'||x.kind==='resource'; }).slice(0,3).forEach(function(x){
+      var ic = x.kind==='workspace'?'⚡':(x.kind==='resource'?'🗂️':'📖');
+      cards.push('<a class="ah-cc" href="'+x.href+'"><span class="ic">'+ic+'</span><span class="tx"><span class="n">Continue '+esc(x.label)+'</span><span class="s">'+ahRel(x.ts)+'</span></span></a>');
+    });
+    box.innerHTML = cards.length
+      ? '<div class="ah-grid">'+cards.join('')+'</div>'
+      : '<div class="ah-blank"><div class="bt">No unfinished work</div>When you open a patient, reference or the Live Workspace, you’ll be able to pick up right where you left off.</div>';
+  }
+  function renderActivity(){
+    var box=document.getElementById('ah-activity'); if(!box) return;
+    var items=ahRecent();
+    if(!items.length){ box.innerHTML='<div class="ah-blank">No recent activity.</div>'; return; }
+    box.innerHTML='<div class="ah-time">'+items.slice(0,8).map(function(x){
+      var verb={ref:'Opened',resource:'Opened',workspace:'Opened',action:'Started',patient:'Opened'}[x.kind]||'Opened';
+      return '<a class="ah-trow" href="'+x.href+'"><span class="dot"></span><span><span class="tt">'+verb+' '+esc(x.label)+'</span><span class="tm">'+ahRel(x.ts)+'</span></span><span class="tgo">→</span></a>';
+    }).join('')+'</div>';
+  }
+
   async function loadDoctor(uid){
-    var pts=[], failed=false;
-    try{
-      var cp=await sb.from('clinic_patients').select('*').eq('doctor_id',uid);
-      if(cp&&cp.error) throw cp.error;
-      ((cp&&cp.data)||[]).forEach(function(p){ pts.push({ name:p.patient_name||'Patient', stage:wsClinicStage(p) }); });
-    }catch(e){ failed=true; }
-    var needsBody=document.getElementById('ah-needs'), cts=document.getElementById('ah-counts');
-    if(failed){ if(needsBody) needsBody.innerHTML='<p class="ah-empty">Couldn’t load your patients right now. <a href="/v2/dashboard.html">Open today’s list →</a></p>'; return; }
-    var nr=0, inc=0, rd=0;
-    pts.forEach(function(p){ if(p.stage==='review')nr++; else if(p.stage==='awaiting')inc++; else if(p.stage==='approved'||p.stage==='scheduled')rd++; });
-    if(cts) cts.innerHTML=count(nr,'Need review')+count(inc,'Incomplete')+count(rd,'Ready');
-    var need=pts.filter(function(p){ return p.stage==='review'||p.stage==='awaiting'; }).slice(0,6);
-    if(!needsBody) return;
-    if(!need.length){ needsBody.innerHTML='<p class="ah-empty">No patients need action right now. <a href="/v2/dashboard.html">Open today’s list →</a></p>'; return; }
-    needsBody.innerHTML=need.map(function(p){
-      var s = p.stage==='review' ? ['Needs review','amber'] : ['Information incomplete','blue'];
-      return '<div class="ah-row"><span class="nm">'+esc(p.name)+'</span><span class="st '+s[1]+'">'+esc(s[0])+'</span><a class="go" href="/v2/dashboard.html">Open →</a></div>';
-    }).join('');
+    // Real data only. Each read degrades independently; nothing is fabricated.
+    var clinics=[], crs=[], surgById={}, surgByPid={}, pqByPid={}, qCount=0;
+    try{ var cp=await sb.from('clinic_patients').select('*').eq('doctor_id',uid); clinics=((cp&&cp.data)||[]); }catch(e){}
+    try{ var cr=await sb.from('care_requests').select('patient_id,surgery_id,status,is_consultation').eq('doctor_id',uid).in('status',['accepted']); crs=((cr&&cr.data)||[]).filter(function(c){return !c.is_consultation;}); }catch(e){}
+    try{ var s=await sb.from('patient_surgeries').select('id,patient_id,surgery_date,updated_at,archived_at,completed_at').eq('assigned_doctor_id',uid);
+      ((s&&s.data)||[]).forEach(function(x){ surgById[x.id]=x; if(x.patient_id) surgByPid[x.patient_id]=x; }); }catch(e){}
+    var pids=crs.map(function(c){return c.patient_id;}).filter(Boolean);
+    if(pids.length){
+      try{ var pq=await sb.from('preop_questionnaires').select('patient_id,review_state').in('patient_id',pids); ((pq&&pq.data)||[]).forEach(function(x){ pqByPid[x.patient_id]=x.review_state; }); }catch(e){}
+      try{ var qq=await sb.from('questions').select('patient_id,status').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){ var st=x.status||'new'; if(st!=='answered'&&st!=='closed') qCount++; }); }catch(e){}
+    }
+    var t=new Date(), today=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+    var need=0, qWait=0, todayN=0, last=null, lastTs=-1;
+    function consider(name,ts){ if(ts){ var v=new Date(ts).getTime(); if(v>lastTs){ lastTs=v; last={name:name||'Patient'}; } } }
+    crs.forEach(function(c){
+      var sg=surgById[c.surgery_id]||{}; if(sg.archived_at) return;
+      var rs=pqByPid[c.patient_id]||'not_submitted'; var stage=wsBridgeStage(rs,sg);
+      if(stage==='review') need++;
+      if(rs==='pending') qWait++;
+      if(!sg.completed_at && sg.surgery_date && String(sg.surgery_date).slice(0,10)===today) todayN++;
+      consider(sg.patient_name, sg.updated_at);
+    });
+    clinics.forEach(function(p){
+      if(p.archived_at) return;
+      var stage=wsClinicStage(p);
+      if(stage==='review') need++;
+      if(p.questionnaire_status==='completed' && p.consultation_status!=='reviewed' && ['ready_for_surgery','completed'].indexOf(p.patient_status)<0) qWait++;
+      if(p.patient_status!=='completed' && p.surgery_date && String(p.surgery_date).slice(0,10)===today) todayN++;
+      consider(p.patient_name, p.updated_at||p.created_at);
+    });
+    function put(id,v){ var e=document.querySelector('#'+id+' b'); if(e) e.textContent=v; var tile=document.getElementById(id); if(tile && v===0) tile.classList.add('zero'); }
+    put('ah-t-review',need); put('ah-t-quest',qWait); put('ah-t-quests',qCount); put('ah-t-today',todayN);
+    renderContinue(last);
   }
 
   // ---------- PATIENT ----------
