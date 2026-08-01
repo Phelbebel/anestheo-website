@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Status — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/v2/supabase.js"></script>
+<script src="/v2/auth.js"></script>
+<script src="/v2/navbar.js"></script>
+<style>
+:root{--accent:#7ECFC0;--teal:#2A8A74;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0A1A15;color:#fff;font-family:'DM Sans',-apple-system,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:52px 52px;}
+a{color:var(--accent);}
+.doc-wrap{max-width:760px;margin:0 auto;padding:88px 24px 40px;}
+.doc-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);}
+.doc-h1{font-size:clamp(24px,4vw,30px);font-weight:700;letter-spacing:-.02em;margin:8px 0 6px;}
+.doc-lead{font-size:15px;color:rgba(255,255,255,.6);margin-bottom:22px;}
+.doc-card{background:rgba(255,255,255,.035);border:1px solid rgba(27,107,90,.22);border-radius:14px;padding:20px 22px;margin-bottom:14px;}
+.doc-card h2{font-size:16px;font-weight:700;margin-bottom:8px;}
+.doc-card p{font-size:14px;color:rgba(255,255,255,.74);margin-bottom:10px;}
+.doc-card p:last-child{margin-bottom:0;}
+.status-line{display:inline-flex;align-items:center;gap:10px;font-size:14.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.04);border:1px solid rgba(27,107,90,.24);border-radius:11px;padding:12px 16px;margin-bottom:18px;}
+.status-dot{width:9px;height:9px;border-radius:50%;background:#7ECFC0;flex:0 0 auto;}
+.doc-note{font-size:12.5px;color:rgba(255,255,255,.45);margin-top:14px;}
+</style>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+<div class="doc-wrap">
+  <div class="doc-eyebrow">Technical</div>
+  <h1 class="doc-h1">System Status</h1>
+  <p class="doc-lead">Service notices, incidents and planned maintenance for Anestheo.</p>
+
+  <div class="status-line"><span class="status-dot"></span>No incidents or scheduled maintenance are currently posted.</div>
+
+  <div class="doc-card">
+    <h2>How this page works</h2>
+    <p>We publish service disruptions and planned maintenance windows here. This page is maintained by the team; it is not a live automated monitor, so the absence of a notice is not a guarantee of uptime.</p>
+  </div>
+
+  <div class="doc-card">
+    <h2>Something not working?</h2>
+    <p>If you are experiencing a problem — especially one affecting patient care — please tell us right away at <a href="mailto:support@anestheo.com?subject=Service%20issue">support@anestheo.com</a> or <a href="mailto:support@anestheo.com?subject=Bug%20report">report a bug</a>. Include what you were doing and what you expected to happen.</p>
+  </div>
+</div>
+</body>
+</html>

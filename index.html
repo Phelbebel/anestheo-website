@@ -395,7 +395,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 }
 </style>
 </head>
-<body>
+<body data-app-footer="self">
 <script>
 /* If a Supabase session token is already stored, hide the public homepage
    immediately (before paint) so a logged-in user does not see the marketing
@@ -607,17 +607,14 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   function tools(items){ return items.map(function(it){ return '<a class="ah-tool" href="'+it.href+'"><span class="n">'+esc(it.n)+'</span><span class="s">'+esc(it.s)+'</span></a>'; }).join(''); }
   function count(n,label){ return '<div class="ah-count"><b>'+n+'</b><span>'+esc(label)+'</span></div>'; }
   function jrow(l,v,raw){ return '<div class="ah-jrow"><span class="jl">'+esc(l)+'</span><span class="jv">'+(raw?v:esc(v))+'</span></div>'; }
-  // Compact application footer — utility links only (existing routes), not the
-  // public marketing footer. Rendered inside #ah so it stays in the dark shell.
+  // Shared application footer — the SAME component every authenticated page uses
+  // (defined in navbar.js). Rendered inside #ah so it sits in the dark shell.
   function appFooter(){
-    return '<div class="ah-foot">'
-      + '<a href="/v2/about.html">About</a>'
-      + '<a href="mailto:support@anestheo.com">Support</a>'
-      + '<a href="/v2/privacy.html">Privacy</a>'
-      + '<a href="/v2/terms.html">Terms</a>'
-      + '<a href="/v2/medical-disclaimer.html">Medical disclaimer</a>'
-      + '<span class="ah-copy">Anestheo</span>'
-      + '</div>';
+    if(typeof window.nbAppFooter === 'function') return window.nbAppFooter();
+    return '<div class="ah-foot"><a href="/v2/about.html">About</a>'
+      + '<a href="mailto:support@anestheo.com">Support</a><a href="/v2/privacy.html">Privacy</a>'
+      + '<a href="/v2/terms.html">Terms</a><a href="/v2/medical-disclaimer.html">Medical disclaimer</a>'
+      + '<span class="ah-copy">Anestheo</span></div>';
   }
 
   // Verbatim from dashboard.html — derive a clinic patient's stage from its columns.
