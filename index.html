@@ -262,16 +262,51 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ah-chip{font-size:11.5px;font-weight:600;color:var(--ac);border:1px solid var(--bd);border-radius:20px;padding:5px 11px;}
 .ah-chip:hover{border-color:rgba(126,207,192,.5);}
 .ah-rel-l{font-size:11px;color:var(--hi);margin-right:2px;}
-@media(max-width:820px){
-  .ah-stats{grid-template-columns:repeat(2,1fr);}
-  .ah-grid,.ah-vids{grid-template-columns:1fr 1fr;}
-}
+/* Today's Overview — ONE grouped command-center panel, vertical status rows */
+.ov-card{border:1px solid var(--bd);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));overflow:hidden;}
+.ov-hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 18px 6px;}
+.ov-hd .ov-t{font-size:15px;font-weight:800;letter-spacing:-.01em;color:#fff;}
+.ov-rows{padding:4px 10px 10px;}
+.ov-row{display:flex;align-items:center;gap:13px;padding:13px 10px;border-top:1px solid rgba(27,107,90,.13);}
+.ov-row:first-child{border-top:none;}
+.ov-row .ov-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:var(--tl2);}
+.ov-row.a .ov-dot{background:#7ECFC0;} .ov-row.b .ov-dot{background:#5BA8FF;} .ov-row.c .ov-dot{background:#FFB347;} .ov-row.d .ov-dot{background:#34D399;} .ov-row.e .ov-dot{background:#8FD9C6;}
+.ov-row .ov-l{font-size:14px;font-weight:600;color:#fff;}
+.ov-row .ov-v{margin-left:auto;font-size:23px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+.ov-row.c{background:rgba(255,179,71,.06);border-radius:10px;}
+.ov-row.c .ov-v{color:#FFC98A;}
+.ov-row.zero .ov-v{color:var(--hi);font-weight:700;}
+/* Patient Inbox — the primary work area (actionable, work-describing buttons) */
+.inbox{display:flex;flex-direction:column;gap:9px;}
+.ib-row{display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid var(--bd);border-radius:13px;background:rgba(255,255,255,.032);}
+.ib-row.warn{border-color:rgba(255,179,71,.28);}
+.ib-row .ib-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto;background:rgba(126,207,192,.1);border:1px solid var(--bd);}
+.ib-row.warn .ib-ic{background:rgba(255,179,71,.13);border-color:rgba(255,179,71,.3);}
+.ib-row .ib-tx{min-width:0;flex:1;display:flex;flex-direction:column;}
+.ib-row .ib-nm{font-size:14px;font-weight:700;color:#fff;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ib-row .ib-sub{font-size:12px;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ib-row .ib-act{margin-left:auto;font-size:12.5px;font-weight:700;color:#06140f;background:var(--ac);border-radius:9px;padding:9px 14px;flex:0 0 auto;white-space:nowrap;}
+.ib-row .ib-act:hover{background:#9be0d3;}
+/* Live Workspace — one large primary action */
+.lw-card{display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:16px;background:var(--tl);border:1px solid var(--tl2);color:#fff;}
+.lw-card:hover{background:var(--tl2);}
+.lw-card .lw-ic{font-size:26px;flex:0 0 auto;}
+.lw-card .lw-tx{flex:1;min-width:0;display:flex;flex-direction:column;}
+.lw-card .lw-tx b{font-size:17px;font-weight:800;letter-spacing:-.01em;}
+.lw-card .lw-tx span{font-size:12.5px;color:rgba(255,255,255,.82);margin-top:2px;}
+.lw-card .lw-go{font-size:20px;flex:0 0 auto;opacity:.9;}
+.lw-sub{display:flex;gap:16px;margin-top:11px;padding-left:2px;}
+.lw-sub a{font-size:13px;font-weight:600;color:var(--ac);}
+.lw-sub a:hover{color:#9be0d3;}
 @media(max-width:560px){
-  .ah-grid,.ah-vids,.ah-qa{grid-template-columns:1fr 1fr;}
-  .ah-nrow .nsub{display:none;}
+  .ah-vids{grid-template-columns:1fr 1fr;}
+  .ib-row{flex-wrap:wrap;}
+  .ib-row .ib-act{margin-left:47px;margin-top:6px;}
+  .lw-card .lw-tx span{display:none;}
 }
 @media(max-width:400px){
-  .ah-stats,.ah-grid,.ah-vids,.ah-qa{grid-template-columns:1fr;}
+  .ah-vids{grid-template-columns:1fr;}
+  .ib-row .ib-act{margin-left:0;width:100%;text-align:center;}
 }
 
 /* ── Card sections ────────────────────────────────────────────────────── */
@@ -678,29 +713,23 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     var h='<div class="ah-wrap">';
     h+='<div class="ah-hd"><div class="ah-hello">'+hello+'</div><div class="ah-sub">Your anesthesiology workspace</div></div>';
     if(pending) h+='<div class="ah-verify pending">Your clinician account is pending verification. Some tools may be unavailable until an administrator approves your account.</div>';
-    // ── INFORMATION FIRST ──
-    // TODAY — overview counts (real data)
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Today</span><a class="ah-more" href="/v2/dashboard.html">Open Dashboard →</a></div>'+
-       '<div class="ah-stats">'+statTile('ah-t-review','warn','Patients needing review')+statTile('ah-t-quest','info','Questionnaires waiting')+
-         statTile('ah-t-quests','info','Questions waiting')+statTile('ah-t-today','ok','On today’s list')+'</div></div>';
-    // NOTIFICATIONS — real, actionable items (replaces Continue working)
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Notifications</span></div><div id="ah-notif"><div class="ah-blank">Loading…</div></div></div>';
-    // RECENT ACTIVITY — the user's own real actions
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Recent activity</span></div><div id="ah-activity"></div></div>';
-    // ── ACTIONS SECOND ──
-    // QUICK ACTIONS — unique workflows only (each a distinct task/destination)
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Quick actions</span></div><div class="ah-qa">'+
-         '<a class="ah-ca" href="/v2/dashboard.html" onclick="ahLog(\'action\',\'New patient\',\'/v2/dashboard.html\')">＋ New Patient</a>'+
-         '<a class="ah-ca accent" href="/v2/engine.html" onclick="ahLog(\'workspace\',\'Live Workspace\',\'/v2/engine.html\')">⚡ Open Live Workspace</a>'+
-       '</div></div>';
-    // ── NAVIGATION / REFERENCE THIRD ──
-    // CLINICAL REFERENCES — each card expands INLINE (summary, key points, links)
+    // ── TODAY'S OVERVIEW — one grouped command-center panel (vertical rows) ──
+    h+='<div class="ah-sec"><div id="ah-ov"><div class="ah-blank">Loading your overview…</div></div></div>';
+    // ── PATIENT INBOX — the primary work area, directly below the overview ──
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Patient inbox</span></div><div id="ah-inbox"><div class="ah-blank">Loading…</div></div></div>';
+    // ── LIVE WORKSPACE — one large primary action ──
+    h+='<div class="ah-sec"><a class="lw-card" href="/v2/engine.html" onclick="ahLog(\'workspace\',\'Live Workspace\',\'/v2/engine.html\')">'+
+         '<span class="lw-ic">⚡</span><span class="lw-tx"><b>Open Live Workspace</b><span>Anesthesia workstation · drug library · scores · crisis tools</span></span><span class="lw-go">→</span></a>'+
+       '<div class="lw-sub"><a href="/v2/dashboard.html" onclick="ahLog(\'action\',\'New patient\',\'/v2/dashboard.html\')">＋ New patient</a></div></div>';
+    // ── CLINICAL REFERENCES — expandable reference library (inline expand) ──
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Clinical references</span><a class="ah-more" href="/v2/references.html">View all →</a></div>'+
        AH_REF_CARDS.map(refAcc).join('')+'</div>';
-    // RESOURCES — same inline-expand behaviour
+    // ── RESOURCES — another expandable library ──
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Resources</span><a class="ah-more" href="/v2/resources.html">Open Resources →</a></div>'+
        AH_RES_CARDS.map(resAcc).join('')+'</div>';
-    // LATEST VIDEOS — auto-updating from the official channel (see renderVideos)
+    // ── RECENT ACTIVITY — the user's own real actions ──
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Recent activity</span></div><div id="ah-activity"></div></div>';
+    // ── LATEST VIDEOS — auto-updating from the official channel (see renderVideos) ──
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest videos</span><a class="ah-more" href="/v2/videos.html">View all →</a></div><div id="ah-videos"></div></div>';
     h+=appFooter()+'</div>';
     ah.innerHTML=h;
@@ -726,14 +755,28 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       '<a href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a> &middot; <a href="/v2/videos.html">All videos →</a></div>';
   }
 
-  // NOTIFICATIONS — built only from real queried data (see loadDoctor).
-  function renderNotif(items){
-    var box=document.getElementById('ah-notif'); if(!box) return;
-    if(!items || !items.length){ box.innerHTML='<div class="ah-blank">You’re all caught up. No notifications right now.</div>'; return; }
-    box.innerHTML='<div class="ah-notif">'+items.map(function(n){
-      return '<div class="ah-nrow'+(n.warn?' warn':'')+'"><span class="nic">'+n.ic+'</span>'+
-        '<span class="ntx"><span class="ntt">'+esc(n.title)+'</span>'+(n.sub?'<span class="nsub">'+esc(n.sub)+'</span>':'')+'</span>'+
-        '<a class="nact" href="'+n.href+'" onclick="ahLog(\'action\',\''+esc(n.act)+'\',\''+n.href+'\')">'+esc(n.act)+' →</a></div>';
+  // Today's Overview — one grouped panel, vertical status rows (real counts).
+  function renderOverview(m){
+    var box=document.getElementById('ah-ov'); if(!box) return;
+    function row(cls,label,v){ return '<div class="ov-row '+cls+(v===0?' zero':'')+'"><span class="ov-dot"></span><span class="ov-l">'+label+'</span><span class="ov-v">'+v+'</span></div>'; }
+    box.innerHTML='<div class="ov-card"><div class="ov-hd"><span class="ov-t">Today’s Overview</span><a class="ah-more" href="/v2/dashboard.html">View operating list →</a></div>'+
+      '<div class="ov-rows">'+
+        row('a','Active patients',m.active)+
+        row('b','Awaiting questionnaire',m.awaitingQ)+
+        row('c','Awaiting review',m.review)+
+        row('d','Ready for scheduling',m.ready)+
+        row('e','Scheduled today',m.today)+
+      '</div></div>';
+  }
+  // Patient Inbox — the primary work area. Rows carry work-describing actions
+  // (Review questionnaire / Answer patient / Review documents), never "Open".
+  function renderInbox(items){
+    var box=document.getElementById('ah-inbox'); if(!box) return;
+    if(!items.length){ box.innerHTML='<div class="ah-blank"><div class="bt">Your inbox is clear</div>Nothing needs your attention right now.</div>'; return; }
+    box.innerHTML='<div class="inbox">'+items.map(function(n){
+      return '<div class="ib-row'+(n.warn?' warn':'')+'"><span class="ib-ic">'+n.ic+'</span>'+
+        '<span class="ib-tx"><span class="ib-nm">'+esc(n.name)+'</span><span class="ib-sub">'+esc(n.sub)+'</span></span>'+
+        '<a class="ib-act" href="'+n.href+'" onclick="ahLog(\'action\',\''+esc(n.act)+'\',\''+n.href+'\')">'+esc(n.act)+'</a></div>';
     }).join('')+'</div>';
   }
   function renderActivity(){
@@ -758,32 +801,39 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       try{ var pq=await sb.from('preop_questionnaires').select('patient_id,review_state').in('patient_id',pids); ((pq&&pq.data)||[]).forEach(function(x){ pqByPid[x.patient_id]=x.review_state; }); }catch(e){}
       try{ var qq=await sb.from('questions').select('patient_id,status').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){ var st=x.status||'new'; if(st!=='answered'&&st!=='closed') qPids[x.patient_id]=true; }); }catch(e){}
     }
+    // Documents awaiting review (bridge surgeries only), grouped per surgery.
+    var docBySurg={}, surgeryIds=Object.keys(surgById);
+    if(surgeryIds.length){ try{ var rd=await sb.from('requirement_documents').select('surgery_id,reviewed_at').in('surgery_id',surgeryIds);
+      ((rd&&rd.data)||[]).forEach(function(x){ if(!x.reviewed_at) docBySurg[x.surgery_id]=(docBySurg[x.surgery_id]||0)+1; }); }catch(e){} }
     var t=new Date(), today=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
-    var need=0, qWait=0, todayN=0, reviewNames=[];
+    var m={active:0,awaitingQ:0,review:0,ready:0,today:0}, reviewNames=[], docItems=[];
     crs.forEach(function(c){
       var sg=surgById[c.surgery_id]||{}; if(sg.archived_at) return;
       var rs=pqByPid[c.patient_id]||'not_submitted'; var stage=wsBridgeStage(rs,sg);
-      if(stage==='review'){ need++; reviewNames.push(sg.patient_name||'A patient'); }
-      if(rs==='pending') qWait++;
-      if(!sg.completed_at && sg.surgery_date && String(sg.surgery_date).slice(0,10)===today) todayN++;
+      if(stage!=='completed') m.active++;
+      if(stage==='awaiting') m.awaitingQ++;
+      if(stage==='review'){ m.review++; reviewNames.push(sg.patient_name||'A patient'); }
+      if(stage==='approved') m.ready++;
+      if(stage!=='completed' && sg.surgery_date && String(sg.surgery_date).slice(0,10)===today) m.today++;
+      var dn=docBySurg[c.surgery_id]||0; if(dn>0) docItems.push({name:sg.patient_name||'A patient',n:dn});
     });
     clinics.forEach(function(p){
       if(p.archived_at) return;
       var stage=wsClinicStage(p);
-      if(stage==='review'){ need++; reviewNames.push(p.patient_name||'A patient'); }
-      if(p.questionnaire_status==='completed' && p.consultation_status!=='reviewed' && ['ready_for_surgery','completed'].indexOf(p.patient_status)<0) qWait++;
-      if(p.patient_status!=='completed' && p.surgery_date && String(p.surgery_date).slice(0,10)===today) todayN++;
+      if(stage!=='completed') m.active++;
+      if(stage==='awaiting') m.awaitingQ++;
+      if(stage==='review'){ m.review++; reviewNames.push(p.patient_name||'A patient'); }
+      if(stage==='approved') m.ready++;
+      if(p.patient_status!=='completed' && p.surgery_date && String(p.surgery_date).slice(0,10)===today) m.today++;
     });
     var qNames=Object.keys(qPids).map(function(pid){ return (surgByPid[pid]&&surgByPid[pid].patient_name)||'A patient'; });
-    function put(id,v){ var e=document.querySelector('#'+id+' b'); if(e) e.textContent=v; var tile=document.getElementById(id); if(tile && v===0) tile.classList.add('zero'); }
-    put('ah-t-review',need); put('ah-t-quest',qWait); put('ah-t-quests',qNames.length); put('ah-t-today',todayN);
-    // Real notifications: submitted questionnaires awaiting review + unanswered questions.
-    var notifs=[];
-    reviewNames.slice(0,5).forEach(function(nm){ notifs.push({ic:'📋',warn:true,title:nm+' submitted a questionnaire',sub:'Awaiting your review',href:'/v2/dashboard.html',act:'Review'}); });
-    if(reviewNames.length>5) notifs.push({ic:'📋',warn:true,title:(reviewNames.length-5)+' more patients need review',href:'/v2/dashboard.html',act:'Open'});
-    qNames.slice(0,5).forEach(function(nm){ notifs.push({ic:'💬',title:nm+' sent a question',sub:'Awaiting your answer',href:'/v2/questions.html',act:'Answer'}); });
-    if(qNames.length>5) notifs.push({ic:'💬',title:(qNames.length-5)+' more unanswered questions',href:'/v2/questions.html',act:'Open'});
-    renderNotif(notifs);
+    renderOverview(m);
+    // Patient inbox — a patient is waiting (questions) first, then your reviews.
+    var items=[];
+    qNames.slice(0,6).forEach(function(nm){ items.push({ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/v2/questions.html'}); });
+    reviewNames.slice(0,6).forEach(function(nm){ items.push({ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted — awaiting review',act:'Review questionnaire',href:'/v2/dashboard.html'}); });
+    docItems.slice(0,6).forEach(function(d){ items.push({ic:'📎',name:d.name,sub:d.n+' document'+(d.n===1?'':'s')+' to review',act:'Review documents',href:'/v2/dashboard.html'}); });
+    renderInbox(items);
   }
 
   // ---------- PATIENT ----------
