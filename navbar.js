@@ -141,7 +141,7 @@ body{padding-top:56px;}
 .nb-foot{background:#0A1712;border-top:1px solid rgba(255,255,255,.08);
   font-family:'DM Sans',-apple-system,system-ui,sans-serif;color:rgba(255,255,255,.6);margin-top:44px;}
 .nb-foot-in{max-width:1160px;margin:0 auto;padding:30px 24px 24px;}
-.nb-foot-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:22px 20px;}
+.nb-foot-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 20px;}
 .nb-foot-h{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:11px;}
 .nb-foot-col a{display:block;font-size:13px;color:rgba(255,255,255,.62);text-decoration:none;padding:4px 0;line-height:1.4;}
 .nb-foot-col a:hover{color:#7ECFC0;}
@@ -880,12 +880,11 @@ function nbAppFooter(){
       }).join('')+'</div>';
   }
   return '<div class="nb-foot" role="contentinfo" id="nb-app-foot"><div class="nb-foot-in"><div class="nb-foot-cols">'+
-    col('Company', [['About Anestheo','/v2/about.html'],['Clinical Approach','/v2/about.html'],['Contact Us','mailto:support@anestheo.com'],['Support','mailto:support@anestheo.com']])+
-    col('Legal',   [['Privacy Policy','/v2/privacy.html'],['Terms of Service','/v2/terms.html'],['Cookie Policy','/v2/cookies.html'],['Medical Disclaimer','/v2/medical-disclaimer.html']])+
-    col('Trust',   [['Evidence Transparency','/v2/evidence-transparency.html'],['Security','/v2/security.html'],['Data Protection','/v2/data-protection.html']])+
-    col('Technical',[['Release Notes','/v2/release-notes.html'],['System Status','/v2/status.html'],['Report a Bug','mailto:support@anestheo.com?subject=Bug%20report']])+
+    col('Company', [['About','/v2/about.html'],['Support','mailto:support@anestheo.com']])+
+    col('Legal &amp; Trust', [['Privacy','/v2/privacy.html'],['Terms','/v2/terms.html'],['Medical Disclaimer','/v2/medical-disclaimer.html'],['Security','/v2/security.html']])+
+    col('Product', [['Release Notes','/v2/release-notes.html'],['Report a Bug','mailto:support@anestheo.com?subject=Bug%20report']])+
     '</div><div class="nb-foot-bot"><span class="nb-foot-brand">Anest<span>heo</span></span>'+
-    '<span class="nb-foot-copy">&copy; 2026 Anestheo &middot; For clinical professionals</span></div></div></div>';
+    '<span class="nb-foot-copy">&copy; 2026 Anestheo</span></div></div></div>';
 }
 window.nbAppFooter = nbAppFooter;
 
