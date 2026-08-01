@@ -533,7 +533,31 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 /* Row 2 — richer stage pipeline (colored count + sub-label). Scoped so Consultation Requests stays as-is. */
 #sec-patients .ws-wf[data-wf="mypatients"] .ws-stab{align-items:center;gap:10px;padding:10px 13px;}
 .ws-stab-badge{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#06140f;flex:0 0 auto;}
-.ws-stab-badge.s0{background:#FFCD66;}.ws-stab-badge.s1{background:#FF9A52;}.ws-stab-badge.s2{background:#7ECFC0;}.ws-stab-badge.s3{background:#3DDC97;}.ws-stab-badge.s4{background:rgba(255,255,255,.55);}
+.ws-stab-badge.s0{background:#FFCD66;}.ws-stab-badge.s1{background:#FF9A52;}.ws-stab-badge.s2{background:#7ECFC0;}.ws-stab-badge.s3{background:#3DDC97;}.ws-stab-badge.s4{background:rgba(255,255,255,.55);}.ws-stab-badge.s5{background:rgba(255,255,255,.28);color:#fff;}
+/* Patient archiving — secondary/overflow controls (kept away from clinical actions) */
+.wsx-arch{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.wsx-more{position:relative;}
+.wsx-morebtn{padding:8px 12px;font-size:16px;line-height:1;min-width:0;}
+.wsx-moremenu{position:absolute;top:calc(100% + 6px);right:0;z-index:40;min-width:230px;background:#132218;border:1px solid var(--border);border-radius:11px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.5);display:none;}
+.wsx-moremenu.open{display:block;}
+.wsx-moreitem{display:block;width:100%;text-align:left;background:none;border:none;color:#fff;font-family:inherit;font-size:13.5px;font-weight:600;padding:9px 10px;border-radius:8px;cursor:pointer;}
+.wsx-moreitem:hover:not(:disabled){background:rgba(126,207,192,.12);}
+.wsx-moreitem:disabled{color:rgba(255,255,255,.34);cursor:not-allowed;}
+.wsx-morehint{font-size:11.5px;color:var(--hint);padding:2px 10px 6px;line-height:1.45;}
+.wsx-morehint.block{color:#FFB98A;}
+.wsx-archchip{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;padding:4px 11px;white-space:nowrap;}
+.wsx-arch-restore,.wsx-restore{background:rgba(126,207,192,.12);border:1px solid rgba(126,207,192,.4);color:#7ECFC0;}
+.wsx-arch-restore:hover,.wsx-restore:hover{background:rgba(126,207,192,.2);}
+.ws-mp-row.arch{opacity:.86;}
+.ws-mp-row.arch .ws-mp-ava{filter:grayscale(.5);}
+.ws-btn.pc-danger{background:rgba(192,57,43,.9);border:1px solid rgba(192,57,43,.6);color:#fff;}
+.ws-btn.pc-danger:hover{background:rgba(192,57,43,1);}
+.ws-confirm-bg{position:fixed;inset:0;z-index:1200;background:rgba(6,15,11,.72);display:flex;align-items:center;justify-content:center;padding:20px;}
+.ws-confirm{background:#132218;border:1px solid var(--border);border-radius:16px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.55);}
+.ws-confirm-t{font-size:18px;font-weight:700;color:#fff;margin-bottom:10px;}
+.ws-confirm-b{font-size:13.5px;color:var(--muted);line-height:1.55;margin-bottom:20px;}
+.ws-confirm-acts{display:flex;gap:10px;justify-content:flex-end;}
+@media(max-width:560px){ .wsx-arch{margin-left:0;width:100%;justify-content:flex-end;} .ws-confirm-acts{flex-direction:column-reverse;} .ws-confirm-acts .ws-btn{width:100%;} }
 .ws-stab-tx{display:flex;flex-direction:column;gap:1px;min-width:0;text-align:left;}
 .ws-stab-nm{font-size:12.5px;font-weight:700;color:var(--muted);line-height:1.2;white-space:nowrap;}
 .ws-stab.active .ws-stab-nm{color:#fff;}
@@ -1014,14 +1038,18 @@ async function wsLoadCases(){
       procedure:c.procedure||sg.procedure_type||'', hospital:sg.hospital||'', surgeryDate:sg.surgery_date||null,
       progress:({awaiting:(qd.completion||10),review:70,approved:90,scheduled:95,completed:100})[stage]||0,
       statusText:wsStageLabel(stage), patientId:c.patient_id, surgeryId:c.surgery_id,
+      archived:!!sg.archived_at, archivedAt:sg.archived_at||null, archivedBy:sg.archived_by||null,
       updatedAt:(sg.updated_at||c.responded_at||c.requested_at||null),
       openFn:"wsOpenRecord('"+c.surgery_id+"')" });
   });
   clinics.forEach(function(p){
     var stage=wsClinicStage(p);
+    // Archiving lives on the canonical patient_surgeries mirror (surgByClinic).
+    var sgc=surgByClinic[p.id]||null;
     mp.push({ key:'c'+p.id, origin:'clinic', stage:stage, name:p.patient_name||'Patient',
       procedure:p.procedure||'', hospital:p.hospital||'', surgeryDate:p.surgery_date||null,
       progress:wsProgressPct(p), statusText:wsStageLabel(stage), clinicId:p.id, sent_at:p.sent_at,
+      surgeryId:(sgc?sgc.id:null), archived:!!(sgc&&sgc.archived_at), archivedAt:(sgc&&sgc.archived_at)||null, archivedBy:(sgc&&sgc.archived_by)||null,
       updatedAt:(p.updated_at||p.questionnaire_submitted_at||p.sent_at||p.created_at||null),
       questionnaire_status:p.questionnaire_status, openFn:"wsOpenClinicRecord('"+p.id+"')" });
   });
@@ -1307,7 +1335,8 @@ window.wsOpenTools=wsOpenTools;
 
 // Row 1 statistics (computed from the full surgical list, independent of stage/search).
 function wsRenderMpStats(){
-  var a=_wsMyPatients||[];
+  // Active patients only — archived records are excluded from the headline.
+  var a=(_wsMyPatients||[]).filter(function(p){return !p.archived;});
   var set=function(id,n){ var e=document.getElementById(id); if(e) e.textContent=n; };
   // Headline — the single source for "how many patients" + "who needs me".
   set('ws-mp-hl-total', a.length);
@@ -1330,16 +1359,22 @@ function wsMpComparator(mode){
 }
 // My Patients board — surgical-only, grouped by the 5 derived stages.
 function wsRenderMyPatients(){
-  // stage counts on the pipeline + Row 1 statistics
+  // stage counts on the pipeline (active only) + Row 1 statistics
   WS_MP_STAGES.forEach(function(st){
     var el=document.getElementById('ws-mp-'+st+'-n');
-    if(el) el.textContent=_wsMyPatients.filter(function(p){return p.stage===st;}).length||0;
+    if(el) el.textContent=_wsMyPatients.filter(function(p){return !p.archived && p.stage===st;}).length||0;
   });
+  var an=document.getElementById('ws-mp-archived-n');
+  if(an) an.textContent=_wsMyPatients.filter(function(p){return p.archived;}).length||0;
   wsRenderMpStats();
   var box=document.getElementById('ws-mp-list'); if(!box) return;
   var term=(_wsMpSearch||'').trim().toLowerCase();
+  var archView=(_wsMpStage==='archived');
   var list=_wsMyPatients.filter(function(p){
-    if(p.stage!==_wsMpStage) return false;
+    // Archived rows appear ONLY under the Archived filter; every other filter
+    // shows active patients in the matching stage.
+    if(archView){ if(!p.archived) return false; }
+    else { if(p.archived) return false; if(p.stage!==_wsMpStage) return false; }
     if(!term) return true;
     return [p.name,p.procedure,p.hospital].filter(Boolean).join(' ').toLowerCase().indexOf(term)>=0;
   }).sort(wsMpComparator(_wsMpSort));
@@ -1370,19 +1405,28 @@ function wsRenderMyPatients(){
     var origChip=p.origin==='clinic'?'<span class="ws-orig doc">Created</span>':'<span class="ws-orig pt">Requested</span>';
     var action=(p.stage==='review')?'Review &rarr;':'Open &rarr;';
     // Awaiting Questionnaire (invited patients): show send-questionnaire actions.
-    var qActions=(p.origin==='clinic'&&p.stage==='awaiting')
+    var qActions=(!p.archived && p.origin==='clinic'&&p.stage==='awaiting')
       ? '<div class="ws-q-row" onclick="event.stopPropagation()">'+wsQActions(p.clinicId, p.questionnaire_status&&p.questionnaire_status!=='not_sent')+'</div>' : '';
-    return '<div class="ws-mp-row" onclick="'+p.openFn+'">'+
-      '<div class="ws-mp-ava '+(ringMap[p.stage]||'r4')+'"><span class="av-in">'+wsEsc(initial)+'</span></div>'+
+    // Archived rows: show who/when + a Restore action; no clinical primary button.
+    var sub = p.archived
+      ? 'Archived'+(p.archivedAt?' on '+wsEsc(wsFmtDate(p.archivedAt)):'')+(p.archivedBy===window.__wsUserId?' by you':'')
+      : wsEsc(p.statusText);
+    var right = p.archived
+      ? '<button class="ws-btn ws-mp-act wsx-restore" onclick="event.stopPropagation();wsRestorePatient(\''+(p.surgeryId||'')+'\')">&#8630; Restore</button>'
+      : '<button class="ws-btn pc-green ws-mp-act" onclick="event.stopPropagation();'+p.openFn+'">'+action+'</button>';
+    var progOrArch = p.archived
+      ? '<div class="ws-mp-sub" style="margin-top:2px;color:var(--hint);">Data preserved &middot; can be restored</div>'
+      : '<div class="ws-mp-prog"><div class="ws-mp-bar"><div class="ws-mp-fill" style="width:'+pct+'%"></div></div><span class="ws-mp-pct">'+pct+'%</span></div>'+qActions;
+    return '<div class="ws-mp-row'+(p.archived?' arch':'')+'" onclick="'+(p.archived?'wsOpenRecord(\''+(p.surgeryId||'')+'\')':p.openFn)+'">'+
+      '<div class="ws-mp-ava '+(p.archived?'r4':(ringMap[p.stage]||'r4'))+'"><span class="av-in">'+wsEsc(initial)+'</span></div>'+
       '<div class="ws-mp-main"><div class="ws-mp-top">'+origChip+'<span class="ws-mp-nm">'+wsEsc(p.name)+'</span>'+(meta?'<span class="ws-mp-meta">'+meta+'</span>':'')+'</div>'+
-        '<div class="ws-mp-sub">'+wsEsc(p.statusText)+'</div>'+
-        '<div class="ws-mp-prog"><div class="ws-mp-bar"><div class="ws-mp-fill" style="width:'+pct+'%"></div></div><span class="ws-mp-pct">'+pct+'%</span></div>'+qActions+'</div>'+
-      '<div class="ws-mp-right">'+dateChip+
-        '<button class="ws-btn pc-green ws-mp-act" onclick="event.stopPropagation();'+p.openFn+'">'+action+'</button></div>'+
+        '<div class="ws-mp-sub">'+sub+'</div>'+
+        progOrArch+'</div>'+
+      '<div class="ws-mp-right">'+dateChip+right+'</div>'+
     '</div>';
   }).join('');
 }
-function wsMpEmpty(st){ return {awaiting:'No patients awaiting questionnaire.',review:'Nothing awaiting your review.',approved:'No approved patients.',scheduled:'No scheduled surgeries.',completed:'No completed patients yet.'}[st]||'No patients in this stage.'; }
+function wsMpEmpty(st){ return {awaiting:'No patients awaiting questionnaire.',review:'Nothing awaiting your review.',approved:'No approved patients.',scheduled:'No scheduled surgeries.',completed:'No completed patients yet.',archived:'No archived patients. Archive a completed or inactive patient from their record.'}[st]||'No patients in this stage.'; }
 window.wsRenderMyPatients=wsRenderMyPatients;
 // Top-level Consultation Requests badge = new requests + active + completed.
 function wsUpdateCrTotal(){
@@ -1681,7 +1725,7 @@ function wsRenderWorkspaceUnified(){
       '<span class="wsx-pill '+(cs==='consultation'?'con':'sur')+'">'+(cs==='consultation'?'&#128172; Consultation':'&#127973; Surgical')+'</span></div>'+
       nav+'<div class="wsx-railsec">Tools</div>'+toolsNav+journey+'</div>'+
     '<div class="wsx-main">'+
-      '<div class="wsx-actbar"><span class="lane">'+(cs==='consultation'?'Advice-only status':'In the pre-operative pipeline')+idchip+'</span>'+actions+'</div>'+
+      '<div class="wsx-actbar"><span class="lane">'+(cs==='consultation'?'Advice-only status':'In the pre-operative pipeline')+idchip+'</span>'+actions+wsArchiveCtlHtml(c.surgeryId||s.id, s)+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='overview'?' on':'')+'" data-tab="overview">'+pOverview+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='questionnaire'?' on':'')+'" data-tab="questionnaire">'+pQuest+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='documents'?' on':'')+'" data-tab="documents">'+pDocs+'</div>'+
@@ -1693,8 +1737,91 @@ function wsRenderWorkspaceUnified(){
   wsRenderDocs(); wsRenderRecs();
   if(cs==='surgical' && !locked){ wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); }
   else if(cs==='surgical'){ wsRenderPlanSummary(); wsRenderHistory(); }
+  var _sid=c.surgeryId||s.id;
+  if(_sid && !(s && s.archived_at)) wsRefreshArchiveElig(_sid);
 }
 window.wsWsTab=wsWsTab; window.wsRenderWorkspaceUnified=wsRenderWorkspaceUnified;
+
+// ── Patient archiving — secondary action, server-gated ──────────────────────
+// The archive control lives in an overflow menu (never beside the primary
+// clinical actions). Eligibility is decided by the server RPC, not the client;
+// archive_patient re-checks it before writing.
+function wsArchiveCtlHtml(sid, s){
+  if(!sid) return '';
+  if(s && s.archived_at){
+    var by=(s.archived_by && s.archived_by===window.__wsUserId)?' by you':'';
+    return '<div class="wsx-arch"><span class="wsx-archchip">&#128451; Archived'+by+'</span>'+
+      '<button class="ws-btn wsx-arch-restore" onclick="wsRestorePatient(\''+sid+'\')">&#8630; Restore patient</button></div>';
+  }
+  return '<div class="wsx-arch"><div class="wsx-more">'+
+      '<button class="ws-btn wsx-morebtn" onclick="wsToggleMore(event)" aria-haspopup="true" aria-label="More actions">&#8942;</button>'+
+      '<div class="wsx-moremenu" id="ws-moremenu">'+
+        '<button class="wsx-moreitem" id="ws-arch-item" onclick="wsArchiveClick(\''+sid+'\')" disabled>&#128451; Archive patient</button>'+
+        '<div class="wsx-morehint" id="ws-arch-hint">Checking eligibility&hellip;</div>'+
+      '</div>'+
+    '</div></div>';
+}
+window.wsArchiveCtlHtml=wsArchiveCtlHtml;
+function wsToggleMore(ev){ if(ev){ev.stopPropagation();} var m=document.getElementById('ws-moremenu'); if(!m) return; var open=m.classList.toggle('open'); if(open){ setTimeout(function(){ document.addEventListener('click', wsCloseMoreOnce, {once:true}); },0); } }
+function wsCloseMoreOnce(){ var m=document.getElementById('ws-moremenu'); if(m) m.classList.remove('open'); }
+window.wsToggleMore=wsToggleMore;
+async function wsRefreshArchiveElig(sid){
+  var item=document.getElementById('ws-arch-item'), hint=document.getElementById('ws-arch-hint');
+  if(!item||!hint) return;
+  try{
+    var r=await window.sb.rpc('patient_archive_eligibility',{ p_surgery_id: sid });
+    if(r&&r.error) throw r.error;
+    var e=(r&&r.data)||null;
+    if(e && e.eligible){ item.disabled=false; hint.textContent='Moves the patient to Archived. Nothing is deleted.'; hint.classList.remove('block'); }
+    else { item.disabled=true; hint.textContent=(e&&e.reason)||'This patient cannot be archived yet.'; hint.classList.add('block'); }
+  }catch(err){ item.disabled=true; hint.textContent='Could not check eligibility right now.'; hint.classList.add('block'); }
+}
+window.wsRefreshArchiveElig=wsRefreshArchiveElig;
+function wsArchiveClick(sid){
+  var item=document.getElementById('ws-arch-item'); if(item&&item.disabled) return;
+  wsCloseMoreOnce();
+  var name=(_wsCtx&&_wsCtx.name)||'this patient';
+  wsConfirmDialog('Archive '+wsEsc(name)+'?',
+    'The record moves to your Archived list and is hidden from active patients. All history &mdash; consultations, questions, questionnaire, journey, notes &mdash; is preserved, and you can restore it at any time.',
+    'Archive patient', false, async function(){
+      try{
+        var r=await window.sb.rpc('archive_patient',{ p_surgery_id: sid, p_reason: null });
+        if(r&&r.error) throw r.error;
+        wsToast('Patient archived.'); wsCloseWorkspace(); wsLoadCases();
+      }catch(err){ wsToast((err&&err.message)||'Could not archive.'); }
+    });
+}
+window.wsArchiveClick=wsArchiveClick;
+function wsRestorePatient(sid){
+  if(!sid){ wsToast('This patient has no linked record to restore.'); return; }
+  wsConfirmDialog('Restore this patient?',
+    'The patient returns to your active list in their correct current stage, derived from their existing clinical status. No clinical status is changed.',
+    'Restore patient', false, async function(){
+      try{
+        var r=await window.sb.rpc('restore_patient',{ p_surgery_id: sid });
+        if(r&&r.error) throw r.error;
+        wsToast('Patient restored.'); wsCloseWorkspace(); wsLoadCases();
+      }catch(err){ wsToast((err&&err.message)||'Could not restore.'); }
+    });
+}
+window.wsRestorePatient=wsRestorePatient;
+// Lightweight confirmation dialog (title, body-HTML, confirm label, danger?, onConfirm).
+function wsConfirmDialog(title, bodyHtml, confirmLabel, danger, onConfirm){
+  var old=document.getElementById('ws-confirm-bg'); if(old) old.remove();
+  var bg=document.createElement('div'); bg.className='ws-confirm-bg'; bg.id='ws-confirm-bg';
+  bg.innerHTML='<div class="ws-confirm"><div class="ws-confirm-t">'+wsEsc(title)+'</div>'+
+    '<div class="ws-confirm-b">'+bodyHtml+'</div>'+
+    '<div class="ws-confirm-acts">'+
+      '<button class="ws-btn" id="ws-confirm-cancel">Cancel</button>'+
+      '<button class="ws-btn '+(danger?'pc-danger':'pc-green')+'" id="ws-confirm-ok">'+wsEsc(confirmLabel)+'</button>'+
+    '</div></div>';
+  document.body.appendChild(bg);
+  function close(){ bg.remove(); }
+  bg.addEventListener('click', function(e){ if(e.target===bg) close(); });
+  document.getElementById('ws-confirm-cancel').onclick=close;
+  document.getElementById('ws-confirm-ok').onclick=function(){ close(); if(onConfirm) onConfirm(); };
+}
+window.wsConfirmDialog=wsConfirmDialog;
 function wsRenderConsultWorkspace(){
   var c=_wsCtx; if(!c) return;
   var a=(c.quest&&c.quest.answers)||{}, s=c.surgery||{};
@@ -2992,6 +3119,7 @@ document.addEventListener('DOMContentLoaded', async function(){
             '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')"><span class="ws-stab-badge s2" id="ws-mp-approved-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Approved</span><span class="ws-stab-sub">Ready for scheduling</span></span></button>' +
             '<button class="ws-stab acc-up" data-s="scheduled" onclick="wsMpStage(\'scheduled\')"><span class="ws-stab-badge s3" id="ws-mp-scheduled-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Scheduled</span><span class="ws-stab-sub">Upcoming surgery</span></span></button>' +
             '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')"><span class="ws-stab-badge s4" id="ws-mp-completed-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Completed</span><span class="ws-stab-sub">Finished</span></span></button>' +
+            '<button class="ws-stab ws-stab-arch" data-s="archived" onclick="wsMpStage(\'archived\')"><span class="ws-stab-badge s5" id="ws-mp-archived-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Archived</span><span class="ws-stab-sub">Hidden from active list</span></span></button>' +
           '</div>' +
           // Search + sort toolbar
           '<div class="ws-mp-tools">' +

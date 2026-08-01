@@ -73,6 +73,7 @@
       <div class="tabs">
         <button class="tab on" id="tab-approvals" onclick="showTab('approvals',this)">Doctor approvals</button>
         <button class="tab"    id="tab-users"     onclick="showTab('users',this)">User management</button>
+        <button class="tab"    id="tab-patients"  onclick="showTab('patients',this)">Patients</button>
         <button class="tab"    id="tab-questions" onclick="showTab('questions',this)">Submitted questions</button>
         <button class="tab"    id="tab-settings"  onclick="showTab('settings',this)">Platform settings</button>
       </div>
@@ -82,6 +83,15 @@
       </div>
       <div class="panel" id="panel-users">
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead><tbody id="tb-users"></tbody></table></div>
+      </div>
+      <div class="panel" id="panel-patients">
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="tab on" id="pf-all"      onclick="patFilter('all',this)">All</button>
+          <button class="tab"    id="pf-active"   onclick="patFilter('active',this)">Active</button>
+          <button class="tab"    id="pf-archived" onclick="patFilter('archived',this)">Archived</button>
+        </div>
+        <div style="font-size:12px;color:var(--hint);margin-bottom:10px;">Archiving is reversible. <strong style="color:rgba(255,140,120,.9)">Permanent deletion</strong> removes the patient record and its associated data and cannot be undone.</div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Assigned doctor</th><th>Procedure</th><th>State</th><th></th></tr></thead><tbody id="tb-patients"></tbody></table></div>
       </div>
       <div class="panel" id="panel-questions">
         <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Topic</th><th>Question</th><th>Email</th></tr></thead><tbody id="tb-questions"></tbody></table></div>
@@ -132,10 +142,74 @@ async function changeUserRole(id, role, el){
 }
 window.changeUserRole = changeUserRole;
 
+// ── Patients (admin): view all/active/archived, restore any, permanent delete ──
+var _profById = {}, _patients = [], _patFilter = 'all';
+
+async function loadPatients(){
+  var body = ge('tb-patients'); if(!body) return;
+  var rows = [];
+  try {
+    var r = await window.sb.from('patient_surgeries')
+      .select('id,patient_name,procedure_type,assigned_doctor_id,archived_at,archived_by,clinic_patient_id')
+      .order('archived_at', { ascending: false, nullsFirst: false });
+    rows = (r && r.data) || [];
+  } catch(e){ body.innerHTML = '<tr><td colspan="5" class="empty">Could not load patients: '+esc(e.message)+'</td></tr>'; return; }
+  _patients = rows;
+  renderPatients();
+}
+
+function patFilter(f, btn){
+  _patFilter = f;
+  ['pf-all','pf-active','pf-archived'].forEach(function(id){ var e=ge(id); if(e) e.classList.remove('on'); });
+  if(btn) btn.classList.add('on');
+  renderPatients();
+}
+window.patFilter = patFilter;
+
+function renderPatients(){
+  var body = ge('tb-patients'); if(!body) return;
+  var list = _patients.filter(function(p){
+    if(_patFilter==='active') return !p.archived_at;
+    if(_patFilter==='archived') return !!p.archived_at;
+    return true;
+  });
+  body.innerHTML = list.length ? list.map(function(p){
+    var doc = _profById[p.assigned_doctor_id];
+    var docName = doc ? (doc.full_name || doc.email || 'Doctor') : (p.assigned_doctor_id ? 'Unknown' : '—');
+    var state = p.archived_at
+      ? '<span class="badge b-pending">Archived</span>'
+      : '<span class="badge b-approved">Active</span>';
+    var restore = p.archived_at
+      ? '<button class="act act-approve" onclick="adminRestore(\''+p.id+'\')">Restore</button>' : '';
+    var del = '<button class="act act-reject" onclick="adminDelete(\''+p.id+'\',\''+esc((p.patient_name||'this patient').replace(/'/g,""))+'\')">Delete…</button>';
+    return '<tr><td><strong style="color:#fff">'+esc(p.patient_name||'—')+'</strong></td><td>'+esc(docName)+'</td><td>'+esc(p.procedure_type||'—')+'</td><td>'+state+'</td><td>'+restore+del+'</td></tr>';
+  }).join('') : '<tr><td colspan="5" class="empty">No patients</td></tr>';
+}
+
+async function adminRestore(sid){
+  try {
+    var r = await window.sb.rpc('restore_patient', { p_surgery_id: sid });
+    if(r && r.error) throw r.error;
+  } catch(e){ alert('Restore failed: ' + e.message); return; }
+  await loadPatients();
+}
+window.adminRestore = adminRestore;
+
+async function adminDelete(sid, name){
+  if(!confirm('Permanently delete '+name+' and its associated records?\n\nThis CANNOT be undone. Archiving is the reversible alternative.\n\nClick OK to permanently delete.')) return;
+  try {
+    var r = await window.sb.rpc('admin_delete_patient', { p_surgery_id: sid, p_confirm: 'DELETE' });
+    if(r && r.error) throw r.error;
+  } catch(e){ alert('Delete failed: ' + e.message); return; }
+  await loadPatients();
+}
+window.adminDelete = adminDelete;
+
 async function loadAll(){
   // Profiles
   var pr = await window.sb.from('profiles').select('*').order('created_at', { ascending: false });
   var profiles = pr.data || [];
+  _profById = {}; profiles.forEach(function(p){ _profById[p.id] = p; });
   var doctors = profiles.filter(function(p){ return p.role === 'doctor'; });
   var pending = doctors.filter(function(p){ return p.verification_status === 'pending'; });
 
@@ -165,6 +239,8 @@ async function loadAll(){
         return '<tr><td><strong style="color:#fff">'+esc(u.full_name||'\u2014')+'</strong></td><td>'+esc(u.email)+'</td><td>'+sel+'</td><td>'+b+'</td></tr>';
       }).join('')
     : '<tr><td colspan="4" class="empty">No users</td></tr>';
+
+  await loadPatients();
 
   try {
     var q = await window.sb.from('questions').select('*').order('created_at', { ascending: false });
