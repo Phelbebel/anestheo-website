@@ -137,6 +137,21 @@ body{padding-top:56px;}
   .nb-burger{display:block;}
   .nb-modal-btns{grid-template-columns:1fr;}
 }
+/* ── Shared compact application footer (authenticated pages) ─────────────── */
+.nb-foot{background:#0A1712;border-top:1px solid rgba(255,255,255,.08);
+  font-family:'DM Sans',-apple-system,system-ui,sans-serif;color:rgba(255,255,255,.6);margin-top:44px;}
+.nb-foot-in{max-width:1160px;margin:0 auto;padding:30px 24px 24px;}
+.nb-foot-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 20px;}
+.nb-foot-h{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:11px;}
+.nb-foot-col a{display:block;font-size:13px;color:rgba(255,255,255,.62);text-decoration:none;padding:4px 0;line-height:1.4;}
+.nb-foot-col a:hover{color:#7ECFC0;}
+.nb-foot-bot{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;
+  margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07);}
+.nb-foot-brand{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.01em;}
+.nb-foot-brand span{color:#2A8A74;}
+.nb-foot-copy{font-size:12px;color:rgba(255,255,255,.4);}
+@media(max-width:720px){ .nb-foot-cols{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:420px){ .nb-foot-cols{grid-template-columns:1fr;} }
 `;
 
 function injectCSS(){
@@ -852,6 +867,40 @@ window.nbSignOut = async function(){
 
 // ── INIT ──────────────────────────────────────────────────────
 var _nbInitDone = false;
+// ── Shared application footer ────────────────────────────────────────────
+// One source of truth: every authenticated page gets the SAME compact footer.
+// Rendered as a <div role="contentinfo"> (not <footer>) so pages that hide the
+// marketing <footer> for logged-in users don't accidentally hide this one.
+function nbAppFooter(){
+  function col(h, links){
+    return '<div class="nb-foot-col"><div class="nb-foot-h">'+h+'</div>'+
+      links.map(function(l){
+        var ext = /^https?:/.test(l[1]);
+        return '<a href="'+l[1]+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+l[0]+'</a>';
+      }).join('')+'</div>';
+  }
+  return '<div class="nb-foot" role="contentinfo" id="nb-app-foot"><div class="nb-foot-in"><div class="nb-foot-cols">'+
+    col('Company', [['About','/v2/about.html'],['Support','mailto:support@anestheo.com']])+
+    col('Legal &amp; Trust', [['Privacy','/v2/privacy.html'],['Terms','/v2/terms.html'],['Medical Disclaimer','/v2/medical-disclaimer.html'],['Security','/v2/security.html']])+
+    col('Product', [['Release Notes','/v2/release-notes.html'],['Report a Bug','mailto:support@anestheo.com?subject=Bug%20report']])+
+    '</div><div class="nb-foot-bot"><span class="nb-foot-brand">Anest<span>heo</span></span>'+
+    '<span class="nb-foot-copy">&copy; 2026 Anestheo</span></div></div></div>';
+}
+window.nbAppFooter = nbAppFooter;
+
+// Mount the shared footer once, on authenticated pages. Pages that render it
+// themselves (e.g. the Home shell) set body[data-app-footer="self"] to opt out.
+function nbMountFooter(){
+  if(document.body.getAttribute('data-app-footer') === 'self') return;
+  if(document.getElementById('nb-app-foot')) return;
+  var tmp = document.createElement('div');
+  tmp.innerHTML = nbAppFooter();
+  document.body.appendChild(tmp.firstChild);
+  // Replace any legacy marketing footer for signed-in users.
+  Array.prototype.forEach.call(document.querySelectorAll('.site-footer'), function(f){ f.style.display = 'none'; });
+}
+window.nbMountFooter = nbMountFooter;
+
 async function nbInit(){
   if(_nbInitDone){ console.log('nbInit already ran - skipping duplicate'); return; }
   _nbInitDone = true;
@@ -873,12 +922,14 @@ async function nbInit(){
     var session = await window.getSession();
     if(session){
       setAuth();
+      nbMountFooter();                       // shared footer on authenticated pages
       var profile = await window.getProfile(session.user.id);
       populateMenu(session.user, profile);
     }
     window.sb.auth.onAuthStateChange(async function(event, sess){
       if(event === 'SIGNED_IN'  && sess){
         setAuth();
+        nbMountFooter();
         var p = await window.getProfile(sess.user.id);
         populateMenu(sess.user, p);
       }
