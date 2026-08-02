@@ -308,7 +308,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ah-greeting .nm{background:linear-gradient(90deg,#ffffff,#BEE7DD);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .ah-hero-sub{position:relative;font-size:14.5px;color:var(--mu);margin-top:10px;}
 /* Workflow glass cards */
-.wf-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.wf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .wf-card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:12px;min-height:158px;
   border-radius:18px;padding:20px;color:#fff;text-decoration:none;
   background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));border:1px solid var(--bd);
@@ -360,6 +360,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 @media(prefers-reduced-motion:reduce){ .wf-card,.rf-card,.lw2,.wf-cta .arw,.lw2-go{transition:none;} }
 
 @media(max-width:1000px){ .rf-grid{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:900px){ .wf-grid{grid-template-columns:repeat(2,1fr);} }  /* tablet: 2 + 1 */
 @media(max-width:560px){
   .ah-vids{grid-template-columns:1fr 1fr;}
   .wf-grid{grid-template-columns:1fr;}
