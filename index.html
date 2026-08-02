@@ -14,6 +14,7 @@
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
+<script src="/v2/videos-data.js"></script>
 <style>
 /* =========================================================================
    Anestheo homepage — two-path action hero (patient-first).
@@ -357,7 +358,21 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .lw2 .lw2-tx span{display:block;font-size:12.5px;color:rgba(255,255,255,.72);margin-top:2px;}
 .lw2 .lw2-go{font-size:20px;opacity:.9;flex:0 0 auto;transition:transform .25s;}
 .lw2:hover .lw2-go{transform:translateX(3px);}
-@media(prefers-reduced-motion:reduce){ .wf-card,.rf-card,.lw2,.wf-cta .arw,.lw2-go{transition:none;} }
+/* Single Resources card (glass, restrained — replaces the five category cards) */
+.res-card{position:relative;overflow:hidden;display:flex;align-items:center;gap:15px;padding:17px 19px;border-radius:16px;color:#fff;text-decoration:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));border:1px solid var(--bd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 34px -24px rgba(0,0,0,.7);
+  transition:transform .28s cubic-bezier(.2,.7,.2,1),border-color .28s,box-shadow .28s;}
+.res-card:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 20px 46px -24px rgba(0,0,0,.85);}
+.res-card .glow{position:absolute;right:-8%;top:-60%;width:44%;height:220%;pointer-events:none;background:radial-gradient(circle,rgba(126,207,192,.09),transparent 72%);}
+.res-card .res-ic{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(126,207,192,.1);border:1px solid var(--bd);flex:0 0 auto;}
+.res-card .res-tx{flex:1;min-width:0;}
+.res-card .res-tx b{display:block;font-size:16px;font-weight:800;letter-spacing:-.01em;}
+.res-card .res-tx span{display:block;font-size:12.5px;color:var(--mu);margin-top:2px;}
+.res-card .res-go{font-size:13px;font-weight:700;color:var(--ac);flex:0 0 auto;white-space:nowrap;}
+.ah-vhead{display:flex;align-items:baseline;gap:14px;}
+.ah-vhead .ah-more+.ah-more{margin-left:0;}
+@media(prefers-reduced-motion:reduce){ .wf-card,.rf-card,.lw2,.res-card,.wf-cta .arw,.lw2-go{transition:none;} }
 
 @media(max-width:1000px){ .rf-grid{grid-template-columns:repeat(3,1fr);} }
 @media(max-width:900px){ .wf-grid{grid-template-columns:repeat(2,1fr);} }  /* tablet: 2 + 1 */
@@ -807,35 +822,29 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     // ── CLINICAL REFERENCES — responsive grid of premium cards ──
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Clinical references</span><a class="ah-more" href="/v2/references.html">View all →</a></div>'+
        '<div class="rf-grid">'+AH_REF_CARDS.map(refGridCard).join('')+'</div></div>';
-    // ── RESOURCES — responsive grid of premium cards ──
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Resources</span><a class="ah-more" href="/v2/resources.html">Open Resources →</a></div>'+
-       '<div class="rf-grid">'+AH_RES_CARDS.map(resGridCard).join('')+'</div></div>';
-    // ── RECENT ACTIVITY — the user's own real actions ──
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Recent activity</span></div><div id="ah-activity"></div></div>';
-    // ── LATEST VIDEOS — auto-updating from the official channel (see renderVideos) ──
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest videos</span><a class="ah-more" href="/v2/videos.html">View all →</a></div><div id="ah-videos"></div></div>';
+    // ── RESOURCES — ONE card (no duplicate category links; existing route) ──
+    h+='<div class="ah-sec"><a class="res-card" href="/v2/resources.html" onclick="ahLog(\'resource\',\'Resources\',\'/v2/resources.html\')">'+
+         '<span class="glow"></span><span class="res-ic">🗂️</span>'+
+         '<span class="res-tx"><b>Resources</b><span>Protocols, templates, downloads, research, and patient education.</span></span>'+
+         '<span class="res-go">Open Resources →</span></a></div>';
+    // ── LATEST VIDEOS — real videos from the official channel (shared source) ──
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest videos</span>'+
+         '<span class="ah-vhead"><a class="ah-more" href="/v2/videos.html">View all videos →</a>'+
+         '<a class="ah-more" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a></span></div>'+
+       '<div id="ah-videos"></div></div>';
     h+=appFooter()+'</div>';
     ah.innerHTML=h;
-    renderActivity();
     renderVideos();
     loadDoctor(session.user.id);
   }
 
-  // Latest videos. The channel is real (@anestheo) and auto-updates there; we do
-  // NOT hardcode video items. A public, keyless, CORS-safe browser feed for a
-  // channel is not available in this environment, so rather than fabricate
-  // thumbnails we surface the live channel honestly. Wire AH_YT_CHANNEL_ID to a
-  // UC… id later to render live uploads via the uploads-playlist embed.
-  var AH_YT_CHANNEL_ID='';   // e.g. 'UCxxxxxxxxxxxxxxxxxxxxxx' when known
+  // Latest videos — real data from the shared source of truth (videos-data.js →
+  // youtube-latest Edge Function). Up to 3 recent videos; subtle skeletons while
+  // loading; a compact channel fallback (never fabricated cards) if unavailable.
   function renderVideos(){
     var box=document.getElementById('ah-videos'); if(!box) return;
-    if(AH_YT_CHANNEL_ID){
-      var pl='UU'+AH_YT_CHANNEL_ID.slice(2);
-      box.innerHTML='<div class="ah-blank" style="padding:0;overflow:hidden;"><div style="aspect-ratio:16/9;"><iframe title="Latest Anestheo videos" style="width:100%;height:100%;border:0;border-radius:12px;" src="https://www.youtube.com/embed/videos?list='+pl+'&rel=0&modestbranding=1" allowfullscreen loading="lazy"></iframe></div></div>';
-      return;
-    }
-    box.innerHTML='<div class="ah-blank"><div class="bt">Latest videos</div>New teaching videos are published on the official Anestheo channel and update automatically there. '+
-      '<a href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a> &middot; <a href="/v2/videos.html">All videos →</a></div>';
+    if(window.AhVideos && typeof window.AhVideos.mount==='function'){ window.AhVideos.mount(box, {max:3, skeleton:3}); }
+    else { box.innerHTML='<div class="ah-blank">Latest videos are available on the Anestheo YouTube channel. <a href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a></div>'; }
   }
 
   // Today's Overview — one grouped panel, vertical status rows (real counts).

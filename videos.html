@@ -9,6 +9,7 @@
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
+<script src="/v2/videos-data.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
@@ -29,33 +30,21 @@
 
 <div class="page-wrap">
   <div class="section">
-    <div class="section-tag">Topics covered</div>
+    <div class="section-tag">Latest</div>
     <h2 class="section-title">Video library</h2>
-    <p class="section-sub">All videos are produced by a certified anesthesiologist for accuracy and clarity.</p>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-ico">&#127909;</div>
-        <div class="card-title">General anesthesia explained</div>
-        <div class="card-desc">What happens when you go under general anesthesia and what to expect waking up.</div>
-      </div>
-      <div class="card">
-        <div class="card-ico">&#127909;</div>
-        <div class="card-title">Spinal and epidural</div>
-        <div class="card-desc">Regional anesthesia options for surgery — how they work and what they feel like.</div>
-      </div>
-      <div class="card">
-        <div class="card-ico">&#127909;</div>
-        <div class="card-title">Fasting before surgery</div>
-        <div class="card-desc">Why fasting matters and exactly what the rules are before your procedure.</div>
-      </div>
-      <div class="card">
-        <div class="card-ico">&#127909;</div>
-        <div class="card-title">Post-operative nausea</div>
-        <div class="card-desc">What causes nausea after surgery and how it is prevented and treated.</div>
-      </div>
-    </div>
+    <p class="section-sub">Latest videos from the official Anestheo YouTube channel, produced by a certified anesthesiologist.</p>
+    <!-- Real videos from the shared source of truth (videos-data.js → youtube-latest). -->
+    <div id="vid-host"></div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    if(window.AhVideos && typeof window.AhVideos.mount==='function'){
+      window.AhVideos.mount(document.getElementById('vid-host'), { max:12, skeleton:6 });
+    }
+  });
+</script>
 
 <footer class="site-footer">
   <div class="footer-inner">
