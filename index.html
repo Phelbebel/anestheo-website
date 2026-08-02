@@ -345,6 +345,51 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .rf-ico{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(126,207,192,.1);border:1px solid var(--bd);}
 .rf-name{font-size:13.5px;font-weight:700;}
 .rf-sub{font-size:11px;color:var(--mu);line-height:1.3;}
+/* Selected card state (restrained) while its inline quick-view is open */
+.rf-card.active{border-color:rgba(126,207,192,.55);background:rgba(27,107,90,.12);
+  box-shadow:0 0 0 1px rgba(126,207,192,.22),0 10px 26px -18px rgba(0,0,0,.7);}
+/* Inline reference quick-view panel (content fetched from the reference pages) */
+.ref-panel{margin-top:12px;border:1px solid rgba(126,207,192,.28);border-radius:16px;background:rgba(255,255,255,.028);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 16px 40px -26px rgba(0,0,0,.8);overflow:hidden;animation:refIn .28s cubic-bezier(.2,.7,.2,1);}
+@keyframes refIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+.ref-panel-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:15px 17px 12px;border-bottom:1px solid var(--bd);}
+.ref-panel-t{font-size:17px;font-weight:800;letter-spacing:-.01em;}
+.ref-panel-s{font-size:12.5px;color:var(--mu);margin-top:3px;}
+.ref-panel-acts{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.ref-open{font-size:12.5px;font-weight:700;color:#06140f;background:var(--ac);border-radius:9px;padding:0 14px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;}
+.ref-open:hover{background:#9be0d3;}
+.ref-close{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ref-close:hover{border-color:rgba(126,207,192,.5);}
+.ref-vw{padding:15px 17px 17px;--hint:rgba(255,255,255,.34);--muted:rgba(255,255,255,.55);--border:var(--bd);--accent:var(--ac);}
+.ref-err{font-size:13px;color:var(--mu);} .ref-err a{color:var(--ac);}
+.ref-skel{padding:17px;}
+.ref-skel .h,.ref-skel .b{background:linear-gradient(100deg,rgba(255,255,255,.03) 30%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.03) 70%);background-size:220% 100%;animation:refskel 1.3s linear infinite;border-radius:8px;}
+.ref-skel .h{height:22px;width:38%;margin-bottom:14px;} .ref-skel .b{height:78px;margin-bottom:12px;}
+@keyframes refskel{to{background-position:-220% 0;}}
+@media(prefers-reduced-motion:reduce){.ref-panel{animation:none;}.ref-skel .h,.ref-skel .b{animation:none;}}
+/* Shared reference content presentation (identical across all 8 reference pages;
+   copied ONCE here, scoped to .ref-vw — clinical CONTENT is fetched, never copied) */
+.ref-vw .disclaimer{font-size:11px;color:var(--hint);margin-bottom:18px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
+.ref-vw .disclaimer strong{color:#E8A838;}
+.ref-vw .block{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:13px;padding:16px 18px;margin-bottom:12px;overflow-x:auto;}
+.ref-vw .block:last-child{margin-bottom:0;}
+.ref-vw .block-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.ref-vw .rtbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;}
+.ref-vw .rtbl th{text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;}
+.ref-vw .rtbl td{padding:9px 10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);vertical-align:top;}
+.ref-vw .rtbl tr:last-child td{border-bottom:none;}
+.ref-vw .rtbl td b{color:#fff;}
+.ref-vw .algo{counter-reset:step;}
+.ref-vw .algo-step{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.1);font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.55;}
+.ref-vw .algo-step:last-child{border-bottom:none;}
+.ref-vw .algo-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(27,107,90,.25);color:#7ECFC0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.ref-vw .algo-step b{color:#fff;}
+.ref-vw .note{font-size:13.5px;color:rgba(255,255,255,.78);line-height:1.7;padding:5px 0;}
+.ref-vw .note b{color:#fff;} .ref-vw .note a,.ref-vw a{color:#7ECFC0;}
+.ref-vw .pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:5px;background:rgba(27,107,90,.2);color:#7ECFC0;border:1px solid rgba(42,138,116,.3);margin:2px 3px 2px 0;}
+.ref-vw .pill-warn{background:rgba(232,168,56,.12);color:#E8A838;border-color:rgba(232,168,56,.3);}
+.ref-vw .pill-danger{background:rgba(192,57,43,.13);color:rgba(255,140,120,.92);border-color:rgba(192,57,43,.3);}
+@media(max-width:560px){ .ref-panel-acts{margin-left:auto;} }
 /* Elegant Live Workspace card (not a banner) */
 .lw2{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:18px;color:#fff;text-decoration:none;
   background:linear-gradient(135deg,rgba(27,107,90,.32),rgba(255,255,255,.03));border:1px solid rgba(126,207,192,.28);
@@ -769,7 +814,63 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     {ic:'🧑‍🏫',n:'Patient education',s:'Handouts to share'}
   ];
   // Premium card builders (no accordions on the home).
-  function refGridCard(r){ return '<a class="rf-card" href="'+r.h+'" onclick="ahLog(\'ref\',\''+esc(r.n)+'\',\''+r.h+'\')"><span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>'; }
+  // Card keeps its href (modified-click / keyboard / SEO), but a normal click
+  // opens the reference INLINE (ahRefOpen) instead of navigating.
+  function refGridCard(r){ return '<a class="rf-card" id="rfc-'+r.k+'" href="'+r.h+'" role="button" aria-expanded="false" onclick="return ahRefOpen(event,\''+r.k+'\')"><span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>'; }
+
+  // ── Inline Clinical Reference quick-view ────────────────────────────────
+  // Content is fetched at RUNTIME from the existing reference pages (single
+  // source of truth) and only the content region is extracted — no navbar /
+  // footer / loader shell, and no clinical content is duplicated in this file.
+  var _refMap={}; (function(){ AH_REF_CARDS.forEach(function(r){ _refMap[r.k]={h:r.h,n:r.n}; }); })();
+  var _refCache={};
+  function ahRefFetch(key){
+    if(_refCache[key]) return Promise.resolve(_refCache[key]);
+    var info=_refMap[key];
+    return fetch(info.h).then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); }).then(function(html){
+      var doc=new DOMParser().parseFromString(html,'text/html');
+      var wrap=doc.querySelector('.page-wrap'); if(!wrap) throw new Error('nocontent');
+      var title=((wrap.querySelector('.ref-h1')||{}).textContent||'').trim();
+      var sub=((wrap.querySelector('.ref-sub')||{}).textContent||'').trim();
+      ['.crumb','#ref-evidence','.ref-h1','.ref-sub'].forEach(function(sel){ var el=wrap.querySelector(sel); if(el) el.remove(); });
+      var f={title:title,sub:sub,html:wrap.innerHTML};   // same-origin trusted content
+      _refCache[key]=f; return f;
+    });
+  }
+  function ahRefScroll(panel){ try{ var rt=panel.getBoundingClientRect().top; if(rt<70||rt>window.innerHeight*0.6){ window.scrollTo({top:window.scrollY+rt-88,behavior:'smooth'}); } }catch(e){} }
+  window.ahRefOpen=function(ev,key){
+    if(ev && (ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey||ev.button===1)) return true;  // let modified clicks navigate
+    if(ev) ev.preventDefault();
+    var card=document.getElementById('rfc-'+key);
+    if(card && card.classList.contains('active')){ ahRefClose(); return false; }            // click active card again → close
+    var panel=document.getElementById('ah-ref-panel'); var info=_refMap[key]; if(!panel||!info) return false;
+    Array.prototype.forEach.call(document.querySelectorAll('#ah .rf-card.active'),function(c){ c.classList.remove('active'); c.setAttribute('aria-expanded','false'); });
+    if(card){ card.classList.add('active'); card.setAttribute('aria-expanded','true'); }
+    panel.hidden=false;
+    panel.innerHTML='<div class="ref-skel"><div class="h"></div><div class="b"></div><div class="b"></div></div>';
+    ahRefFetch(key).then(function(f){
+      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(f.title||info.n)+'</div>'+(f.sub?'<div class="ref-panel-s">'+esc(f.sub)+'</div>':'')+'</div>'+
+        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'" onclick="ahLog(\'ref\',\''+esc(info.n)+'\',\''+info.h+'\')">Open full reference ↗</a>'+
+        '<button class="ref-close" type="button" onclick="ahRefClose()" aria-label="Close reference">✕</button></div></div>'+
+        '<div class="ref-vw">'+f.html+'</div>';
+      ahRefScroll(panel);
+      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
+    }).catch(function(){
+      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(info.n)+'</div></div>'+
+        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'">Open full reference ↗</a>'+
+        '<button class="ref-close" type="button" onclick="ahRefClose()" aria-label="Close">✕</button></div></div>'+
+        '<div class="ref-vw"><p class="ref-err">Couldn’t load this reference inline. <a href="'+info.h+'">Open the full reference ↗</a></p></div>';
+      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
+    });
+    return false;
+  };
+  window.ahRefClose=function(){
+    var panel=document.getElementById('ah-ref-panel'); if(!panel) return;
+    panel.hidden=true; panel.innerHTML='';
+    var active=document.querySelector('#ah .rf-card.active');
+    if(active){ active.classList.remove('active'); active.setAttribute('aria-expanded','false'); active.focus(); }
+  };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var p=document.getElementById('ah-ref-panel'); if(p&&!p.hidden) window.ahRefClose(); } });
   function resGridCard(r){ return '<a class="rf-card" href="/v2/resources.html" onclick="ahLog(\'resource\',\''+esc(r.n)+'\',\'/v2/resources.html\')"><span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>'; }
   // A workflow glass card: premium icon, meaningful status (filled later), one action.
   function wfCard(key,cls,ico,name,href,cta){
@@ -821,7 +922,8 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
        '<div class="lw-sub"><a href="/v2/dashboard.html" onclick="ahLog(\'action\',\'New patient\',\'/v2/dashboard.html\')">＋ New patient</a></div></div>';
     // ── CLINICAL REFERENCES — responsive grid of premium cards ──
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Clinical references</span><a class="ah-more" href="/v2/references.html">View all →</a></div>'+
-       '<div class="rf-grid">'+AH_REF_CARDS.map(refGridCard).join('')+'</div></div>';
+       '<div class="rf-grid">'+AH_REF_CARDS.map(refGridCard).join('')+'</div>'+
+       '<div class="ref-panel" id="ah-ref-panel" hidden></div></div>';
     // ── RESOURCES — ONE card (no duplicate category links; existing route) ──
     h+='<div class="ah-sec"><a class="res-card" href="/v2/resources.html" onclick="ahLog(\'resource\',\'Resources\',\'/v2/resources.html\')">'+
          '<span class="glow"></span><span class="res-ic">🗂️</span>'+
