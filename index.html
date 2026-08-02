@@ -792,8 +792,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     // ── WORKFLOW CARDS — the actionable centerpiece (glass, real status) ──
     h+='<div class="ah-sec"><div class="wf-grid">'+
          wfCard('review','','🩺','Review Queue','/v2/dashboard.html','Open review queue')+
-         wfCard('quest','blue','💬','Patient Questions','/v2/questions.html','Answer questions')+
-         wfCard('consult','','🗓️','Consultation Requests','/v2/dashboard.html','Review requests')+
+         wfCard('quest','blue','💬','Patient Questions','/v2/dashboard.html','Open questions')+
          wfCard('active','green','👥','Active Patients','/v2/dashboard.html','Open patient list')+
        '</div></div>';
     // ── NEEDS YOUR ATTENTION — named items, shown only when work exists ──
@@ -877,11 +876,11 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     // Real data only. Each read degrades independently; nothing is fabricated.
     var clinics=[], crs=[], surgById={}, surgByPid={}, pqByPid={}, qPids={};
     try{ var cp=await sb.from('clinic_patients').select('*').eq('doctor_id',uid); clinics=((cp&&cp.data)||[]); }catch(e){}
-    var consultN=0;
-    try{ var cr=await sb.from('care_requests').select('patient_id,surgery_id,status,is_consultation').eq('doctor_id',uid).in('status',['requested','accepted']);
-      var crAll=((cr&&cr.data)||[]);
-      consultN=crAll.filter(function(c){return c.status==='requested';}).length;   // pending consultation requests (real)
-      crs=crAll.filter(function(c){return c.status==='accepted' && !c.is_consultation;}); }catch(e){}
+    // Accepted surgical relationships = this doctor's patients (same lane the
+    // dashboard's My Patients board uses). Pending care_requests are NOT surfaced:
+    // the data model cannot mark a pending request as a "consultation" (see report).
+    try{ var cr=await sb.from('care_requests').select('patient_id,surgery_id,status,is_consultation').eq('doctor_id',uid).in('status',['accepted']);
+      crs=((cr&&cr.data)||[]).filter(function(c){return !c.is_consultation;}); }catch(e){}
     try{ var s=await sb.from('patient_surgeries').select('id,patient_id,patient_name,surgery_date,updated_at,archived_at,completed_at').eq('assigned_doctor_id',uid);
       ((s&&s.data)||[]).forEach(function(x){ surgById[x.id]=x; if(x.patient_id) surgByPid[x.patient_id]=x; }); }catch(e){}
     var pids=crs.map(function(c){return c.patient_id;}).filter(Boolean);
@@ -919,18 +918,17 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     var qNames=Object.keys(qPids).map(function(pid){ return (surgByPid[pid]&&surgByPid[pid].patient_name)||'A patient'; });
     // Fill the workflow cards with meaningful status (never a bare statistic).
     function setSt(id,html){ var e=document.getElementById(id); if(e) e.innerHTML=html; }
-    setSt('wf-review-st',  m.review>0     ? '<b>'+m.review+'</b> awaiting your review'         : 'All caught up');
-    setSt('wf-quest-st',   qNames.length>0? '<b>'+qNames.length+'</b> unanswered'               : 'No open questions');
-    setSt('wf-consult-st', consultN>0     ? '<b>'+consultN+'</b> pending request'+(consultN>1?'s':'') : 'No new requests');
-    setSt('wf-active-st',  m.active>0      ? '<b>'+m.active+'</b> in your care'                  : 'No active patients');
+    setSt('wf-review-st',  m.review>0     ? '<b>'+m.review+'</b> awaiting your review' : 'All caught up');
+    setSt('wf-quest-st',   qNames.length>0? '<b>'+qNames.length+'</b> unanswered'       : 'No open questions');
+    setSt('wf-active-st',  m.active>0      ? '<b>'+m.active+'</b> in your care'          : 'No active patients');
     var rev=document.querySelector('.wf-review'); if(rev) rev.classList.toggle('warn', m.review>0);
-    var attn=m.review+qNames.length+consultN, hs=document.getElementById('ah-hero-sub');
+    var attn=m.review+qNames.length, hs=document.getElementById('ah-hero-sub');
     if(hs) hs.textContent = attn>0 ? (attn+' '+(attn===1?'item needs':'items need')+' your attention today.') : 'You’re all caught up — nothing needs you right now.';
     // Needs your attention — each patient appears ONCE, with their most
     // patient-facing task (a waiting question first, then review, then documents).
     var seen={}, items=[];
     function add(name,row){ if(items.length>=8 || seen[name]) return; seen[name]=1; items.push(row); }
-    qNames.forEach(function(nm){ add(nm,{ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/v2/questions.html'}); });
+    qNames.forEach(function(nm){ add(nm,{ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/v2/dashboard.html'}); });
     reviewNames.forEach(function(nm){ add(nm,{ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted — awaiting review',act:'Review questionnaire',href:'/v2/dashboard.html'}); });
     docItems.forEach(function(d){ add(d.name,{ic:'📎',name:d.name,sub:d.n+' document'+(d.n===1?'':'s')+' to review',act:'Review documents',href:'/v2/dashboard.html'}); });
     renderInbox(items);
