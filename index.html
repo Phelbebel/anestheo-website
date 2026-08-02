@@ -285,7 +285,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ib-row .ib-tx{min-width:0;flex:1;display:flex;flex-direction:column;}
 .ib-row .ib-nm{font-size:14px;font-weight:700;color:#fff;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ib-row .ib-sub{font-size:12px;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ib-row .ib-act{margin-left:auto;font-size:12.5px;font-weight:700;color:#06140f;background:var(--ac);border-radius:9px;padding:9px 14px;flex:0 0 auto;white-space:nowrap;}
+.ib-row .ib-act{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-height:44px;font-size:12.5px;font-weight:700;color:#06140f;background:var(--ac);border-radius:9px;padding:9px 16px;flex:0 0 auto;white-space:nowrap;}
 .ib-row .ib-act:hover{background:#9be0d3;}
 /* Live Workspace — one large primary action */
 .lw-card{display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:16px;background:var(--tl);border:1px solid var(--tl2);color:#fff;}
@@ -303,7 +303,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 /* Cinematic hero */
 .ah-hero{position:relative;padding:4px 0 2px;margin-bottom:26px;}
 .ah-hero .glow{position:absolute;left:-2%;top:-70px;width:min(540px,86vw);height:230px;pointer-events:none;
-  background:radial-gradient(58% 58% at 30% 45%, rgba(126,207,192,.12), transparent 72%);filter:blur(4px);}
+  background:radial-gradient(58% 58% at 30% 45%, rgba(126,207,192,.09), transparent 72%);filter:blur(4px);}
 .ah-greeting{position:relative;font-size:clamp(27px,4.6vw,40px);font-weight:800;letter-spacing:-.028em;line-height:1.03;}
 .ah-greeting .nm{background:linear-gradient(90deg,#ffffff,#BEE7DD);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .ah-hero-sub{position:relative;font-size:14.5px;color:var(--mu);margin-top:10px;}
@@ -317,40 +317,40 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
   transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s,border-color .3s;}
 .wf-card:hover{transform:translateY(-3px);border-color:rgba(126,207,192,.4);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 22px 48px -24px rgba(0,0,0,.85),0 0 0 1px rgba(126,207,192,.08);}
-.wf-card .glow{position:absolute;top:-45%;right:-25%;width:70%;height:150%;pointer-events:none;opacity:.5;
-  background:radial-gradient(circle,rgba(126,207,192,.16),transparent 68%);transition:opacity .35s;}
-.wf-card:hover .glow{opacity:1;}
+.wf-card .glow{position:absolute;top:-45%;right:-25%;width:64%;height:150%;pointer-events:none;opacity:.32;
+  background:radial-gradient(circle,rgba(126,207,192,.11),transparent 70%);transition:opacity .35s;}
+.wf-card:hover .glow{opacity:.62;}
 .wf-top{display:flex;align-items:center;gap:12px;}
 .wf-ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:21px;
-  background:rgba(126,207,192,.12);border:1px solid var(--bd);box-shadow:inset 0 0 12px rgba(126,207,192,.08);}
+  background:rgba(126,207,192,.12);border:1px solid var(--bd);box-shadow:inset 0 0 12px rgba(126,207,192,.07);}
 .wf-card.blue .wf-ico{background:rgba(91,168,255,.13);}
-.wf-card.blue .glow{background:radial-gradient(circle,rgba(91,168,255,.13),transparent 68%);}
+.wf-card.blue .glow{background:radial-gradient(circle,rgba(91,168,255,.10),transparent 70%);}
 .wf-card.green .wf-ico{background:rgba(52,211,153,.13);}
-.wf-card.green .glow{background:radial-gradient(circle,rgba(52,211,153,.12),transparent 68%);}
-.wf-card.warn .wf-ico{background:rgba(255,179,71,.14);box-shadow:inset 0 0 12px rgba(255,179,71,.1);}
-.wf-card.warn .glow{background:radial-gradient(circle,rgba(255,179,71,.15),transparent 66%);opacity:.75;}
+.wf-card.green .glow{background:radial-gradient(circle,rgba(52,211,153,.09),transparent 70%);}
+.wf-card.warn .wf-ico{background:rgba(255,179,71,.14);box-shadow:inset 0 0 12px rgba(255,179,71,.08);}
+.wf-card.warn .glow{background:radial-gradient(circle,rgba(255,179,71,.11),transparent 68%);opacity:.5;}
 .wf-name{font-size:15.5px;font-weight:700;letter-spacing:-.01em;}
 .wf-status{font-size:13.5px;color:var(--mu);line-height:1.4;}
 .wf-status b{color:#fff;font-weight:800;font-size:15px;}
 .wf-cta{margin-top:auto;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--ac);}
 .wf-cta .arw{transition:transform .25s;}
 .wf-card:hover .wf-cta .arw{transform:translateX(3px);}
-/* Reference / resource card grid (replaces the accordions) */
-.rf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-.rf-card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:15px;color:#fff;text-decoration:none;
-  background:rgba(255,255,255,.032);border:1px solid var(--bd);
+/* Reference / resource card grid (replaces the accordions) — compact, secondary */
+.rf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.rf-card{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:13px 14px;border-radius:13px;color:#fff;text-decoration:none;
+  background:rgba(255,255,255,.03);border:1px solid var(--bd);
   transition:transform .26s cubic-bezier(.2,.7,.2,1),border-color .26s,background .26s;}
-.rf-card:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.38);background:rgba(27,107,90,.1);}
-.rf-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(126,207,192,.1);border:1px solid var(--bd);}
-.rf-name{font-size:14px;font-weight:700;}
-.rf-sub{font-size:11.5px;color:var(--mu);line-height:1.35;}
+.rf-card:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.34);background:rgba(27,107,90,.09);}
+.rf-ico{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(126,207,192,.1);border:1px solid var(--bd);}
+.rf-name{font-size:13.5px;font-weight:700;}
+.rf-sub{font-size:11px;color:var(--mu);line-height:1.3;}
 /* Elegant Live Workspace card (not a banner) */
 .lw2{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:18px;color:#fff;text-decoration:none;
   background:linear-gradient(135deg,rgba(27,107,90,.32),rgba(255,255,255,.03));border:1px solid rgba(126,207,192,.28);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 40px -24px rgba(0,0,0,.8);
   transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s,border-color .3s;}
 .lw2:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 22px 50px -24px rgba(0,0,0,.9);}
-.lw2 .glow{position:absolute;right:-10%;top:-60%;width:50%;height:220%;pointer-events:none;background:radial-gradient(circle,rgba(126,207,192,.18),transparent 70%);}
+.lw2 .glow{position:absolute;right:-10%;top:-60%;width:50%;height:220%;pointer-events:none;background:radial-gradient(circle,rgba(126,207,192,.12),transparent 72%);}
 .lw2 .lw2-ic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(126,207,192,.16);border:1px solid rgba(126,207,192,.3);flex:0 0 auto;}
 .lw2 .lw2-tx{flex:1;min-width:0;}
 .lw2 .lw2-tx b{display:block;font-size:16.5px;font-weight:800;letter-spacing:-.01em;}
@@ -359,7 +359,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .lw2:hover .lw2-go{transform:translateX(3px);}
 @media(prefers-reduced-motion:reduce){ .wf-card,.rf-card,.lw2,.wf-cta .arw,.lw2-go{transition:none;} }
 
-@media(max-width:820px){ .rf-grid{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:1000px){ .rf-grid{grid-template-columns:repeat(3,1fr);} }
 @media(max-width:560px){
   .ah-vids{grid-template-columns:1fr 1fr;}
   .wf-grid{grid-template-columns:1fr;}
@@ -900,7 +900,9 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       var rs=pqByPid[c.patient_id]||'not_submitted'; var stage=wsBridgeStage(rs,sg);
       if(stage!=='completed') m.active++;
       if(stage==='awaiting') m.awaitingQ++;
-      if(stage==='review'){ m.review++; reviewNames.push(sg.patient_name||'A patient'); }
+      // Review Queue = genuinely awaiting the doctor's review (submitted, not yet
+      // decided). 'changes_requested' is waiting on the patient, so it is excluded.
+      if(rs==='pending'||rs==='in_review'){ m.review++; reviewNames.push(sg.patient_name||'A patient'); }
       if(stage==='approved') m.ready++;
       if(stage!=='completed' && sg.surgery_date && String(sg.surgery_date).slice(0,10)===today) m.today++;
       var dn=docBySurg[c.surgery_id]||0; if(dn>0) docItems.push({name:sg.patient_name||'A patient',n:dn});
@@ -924,11 +926,13 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     var rev=document.querySelector('.wf-review'); if(rev) rev.classList.toggle('warn', m.review>0);
     var attn=m.review+qNames.length+consultN, hs=document.getElementById('ah-hero-sub');
     if(hs) hs.textContent = attn>0 ? (attn+' '+(attn===1?'item needs':'items need')+' your attention today.') : 'You’re all caught up — nothing needs you right now.';
-    // Patient inbox — a patient is waiting (questions) first, then your reviews.
-    var items=[];
-    qNames.slice(0,6).forEach(function(nm){ items.push({ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/v2/questions.html'}); });
-    reviewNames.slice(0,6).forEach(function(nm){ items.push({ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted — awaiting review',act:'Review questionnaire',href:'/v2/dashboard.html'}); });
-    docItems.slice(0,6).forEach(function(d){ items.push({ic:'📎',name:d.name,sub:d.n+' document'+(d.n===1?'':'s')+' to review',act:'Review documents',href:'/v2/dashboard.html'}); });
+    // Needs your attention — each patient appears ONCE, with their most
+    // patient-facing task (a waiting question first, then review, then documents).
+    var seen={}, items=[];
+    function add(name,row){ if(items.length>=8 || seen[name]) return; seen[name]=1; items.push(row); }
+    qNames.forEach(function(nm){ add(nm,{ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/v2/questions.html'}); });
+    reviewNames.forEach(function(nm){ add(nm,{ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted — awaiting review',act:'Review questionnaire',href:'/v2/dashboard.html'}); });
+    docItems.forEach(function(d){ add(d.name,{ic:'📎',name:d.name,sub:d.n+' document'+(d.n===1?'':'s')+' to review',act:'Review documents',href:'/v2/dashboard.html'}); });
     renderInbox(items);
   }
 
