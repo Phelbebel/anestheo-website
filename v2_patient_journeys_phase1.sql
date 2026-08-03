@@ -6,9 +6,51 @@
 -- this migration is applied the UI reports honestly that the action is not
 -- enabled yet. Nothing else in the product depends on it.
 --
+-- ############################################################
+-- ##  STOP — DO NOT APPLY. Review found 3 blocking defects.  ##
+-- ############################################################
+-- Verified on PostgreSQL 16 against the production table shapes:
+--
+-- B1. patient_surgeries has  UNIQUE (patient_id)  (v2_patient_surgery_migration
+--     .sql line 19). A patient can therefore hold AT MOST ONE surgery row, so
+--     patient_start_journey() below FAILS with
+--       duplicate key value violates unique constraint
+--       "patient_surgeries_patient_id_key"
+--     the moment a patient already has any journey (archived or not).
+--     Multi-journey is IMPOSSIBLE until that constraint is replaced, and doing
+--     so also breaks patient-dashboard.html:1513, which upserts
+--     patient_surgeries with onConflict:'patient_id'.
+--     (An earlier note in this file claimed the table already supports many
+--      rows per patient. That was WRONG; corrected here.)
+--
+-- B2. The ON DELETE CASCADE foreign keys in SECTION 1 silently change the
+--     behaviour of TWO ALREADY-SHIPPED functions:
+--       * admin_delete_patient (v2_patient_archiving.sql) explicitly documents
+--         that the patient's questionnaire is "intentionally NOT destroyed".
+--         With the cascade it IS destroyed. Proven: questionnaires 1 -> 0.
+--       * claim_patient_record (v2_unified_patient_record.sql) deletes the
+--         patient's self-created shell row after re-pointing children. It does
+--         not re-point preop_questionnaires/preop_checklist (the column did not
+--         exist), so identity-claiming would DELETE the patient's questionnaire.
+--     Fix direction: use ON DELETE SET NULL, or re-point in claim_patient_record
+--     and delete explicitly inside patient_delete_journey.
+--
+-- B3. SECTION 2 (per-journey uniqueness) is commented out, so even if B1 were
+--     solved the questionnaire/checklist would remain UNIQUE(patient_id) and a
+--     second journey would reuse the first journey's rows - the exact data
+--     mixing this feature must prevent.
+--
+-- Also: this file is NOT transaction-wrapped (no BEGIN/COMMIT), so a failure
+-- part-way through leaves the schema half-migrated.
+--
+-- The Manage-Journey UI is already built and degrades honestly while these
+-- functions are absent, so nothing is broken by NOT applying this file.
+-- ############################################################
+--
 -- WHY IT IS NEEDED
--- 1. One row of patient_surgeries already = one journey, and archived_at already
---    exists, so no new journey table is required.
+-- 1. One row of patient_surgeries = one journey and archived_at already exists,
+--    so no new journey TABLE is required - but see B1: the UNIQUE(patient_id)
+--    constraint must be replaced before more than one row per patient is legal.
 -- 2. BUT archived_at is a system-managed column: guard_patient_surgeries_protected
 --    rejects any direct write from the 'authenticated' role. A patient therefore
 --    cannot archive their own journey without a SECURITY DEFINER RPC.
