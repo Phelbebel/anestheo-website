@@ -479,6 +479,49 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ref-vw .vid-card:hover{border-color:rgba(42,138,116,.4);background:rgba(27,107,90,.1);}
 .ref-vw .vid-ico{font-size:22px;margin-bottom:6px;}
 .ref-vw .vid-title{font-size:13px;font-weight:500;color:#fff;}
+/* Pre-op instructions + recovery content classes (same shared presentation) */
+.ref-vw .timeline-item{display:flex;gap:14px;padding:9px 0;border-top:1px solid rgba(27,107,90,.12);}
+.ref-vw .timeline-item:first-child{border-top:none;}
+.ref-vw .timeline-when{flex:0 0 120px;font-size:12.5px;font-weight:700;color:#7ECFC0;}
+.ref-vw .timeline-what{font-size:13.5px;color:rgba(255,255,255,.8);line-height:1.6;}
+.ref-vw .chk{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.6;padding:5px 0;}
+.ref-vw .dli{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.ref-vw .dli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:#C0392B;}
+.ref-vw .danger-block{background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.28);border-radius:13px;padding:16px 18px;margin-bottom:12px;}
+.ref-vw .danger-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,140,120,.95);margin-bottom:12px;}
+@media(max-width:560px){ .ref-vw .timeline-item{flex-direction:column;gap:2px;} .ref-vw .timeline-when{flex:none;} }
+/* Manage journey — journey list + danger zone (existing tokens only) */
+.mj-card{border:1px solid var(--bd);border-radius:16px;background:rgba(255,255,255,.028);padding:17px 19px;}
+.mj-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid rgba(27,107,90,.13);}
+.mj-row:first-of-type{border-top:none;}
+.mj-row .mj-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(126,207,192,.1);border:1px solid var(--bd);flex:0 0 auto;}
+.mj-row .mj-tx{flex:1;min-width:0;display:flex;flex-direction:column;}
+.mj-row .mj-n{font-size:14px;font-weight:700;color:#fff;}
+.mj-row .mj-s{font-size:11.5px;color:var(--mu);margin-top:2px;}
+.mj-tag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border-radius:20px;padding:3px 9px;flex:0 0 auto;}
+.mj-tag.active{color:#8FE9C4;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);}
+.mj-tag.past{color:var(--mu);background:rgba(255,255,255,.05);border:1px solid var(--bd);}
+.mj-acts{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px;}
+.mj-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:11px;font-size:13.5px;font-weight:700;
+  border:1px solid var(--bd);background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-family:inherit;}
+.mj-btn:hover{border-color:rgba(126,207,192,.45);}
+.mj-btn.primary{background:var(--tl);border-color:var(--tl2);}
+.mj-danger{margin-top:16px;padding-top:14px;border-top:1px solid rgba(192,57,43,.25);}
+.mj-danger-t{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,140,120,.9);margin-bottom:6px;}
+.mj-danger p{font-size:12.5px;color:var(--mu);line-height:1.5;margin-bottom:11px;}
+.mj-btn.danger{background:rgba(192,57,43,.14);border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95);}
+.mj-btn.danger:hover{background:rgba(192,57,43,.24);}
+.mj-note{font-size:12px;color:var(--hi);margin-top:10px;line-height:1.5;}
+/* Typed-confirmation dialog */
+.ah-dlg-bg{position:fixed;inset:0;z-index:1200;background:rgba(6,15,11,.74);display:flex;align-items:center;justify-content:center;padding:20px;}
+.ah-dlg{background:#122019;border:1px solid var(--bd);border-radius:16px;max-width:460px;width:100%;padding:22px;box-shadow:0 22px 60px rgba(0,0,0,.6);}
+.ah-dlg h3{font-size:17px;font-weight:800;color:#fff;margin-bottom:9px;}
+.ah-dlg p{font-size:13.5px;color:var(--mu);line-height:1.55;margin-bottom:14px;}
+.ah-dlg code{color:#FFB499;background:rgba(192,57,43,.12);border-radius:5px;padding:1px 6px;font-size:13px;}
+.ah-dlg input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--bd);border-radius:9px;color:#fff;font-family:inherit;font-size:14px;padding:11px 13px;margin-bottom:14px;}
+.ah-dlg input:focus{outline:none;border-color:rgba(126,207,192,.5);}
+.ah-dlg-acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+@media(max-width:560px){ .ah-dlg-acts{flex-direction:column-reverse;} .ah-dlg-acts .mj-btn{width:100%;} }
 @media(max-width:900px){ .pt-prep{grid-template-columns:repeat(2,1fr);} }
 @media(max-width:560px){
   .pt-hero{padding:26px 20px 24px;}
@@ -927,55 +970,93 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // Reference quick-view (doctor) and the Procedure guide quick-view (patient).
   // Extracts ONLY the content region of an existing page — never its shell.
   var _fragCache={};
+  // href may be a whole page ('/v2/recovery.html') or a SECTION of a page
+  // ('/v2/preop-instructions.html#fasting'). In the section form only that
+  // element is extracted, so three cards can reuse one existing page without
+  // duplicating its content.
   function ahFragFetch(href){
     if(_fragCache[href]) return Promise.resolve(_fragCache[href]);
-    return fetch(href).then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); }).then(function(html){
+    var parts=String(href).split('#'), path=parts[0], frag=parts[1]||'';
+    return fetch(path).then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); }).then(function(html){
       var doc=new DOMParser().parseFromString(html,'text/html');
       var wrap=doc.querySelector('.page-wrap'); if(!wrap) throw new Error('nocontent');
-      var title=((wrap.querySelector('.ref-h1, .proc-h1')||{}).textContent||'').trim();
-      var sub=((wrap.querySelector('.ref-sub, .proc-sub')||{}).textContent||'').trim();
-      // Drop page chrome + anything that would duplicate the panel's own actions.
-      ['.crumb','#ref-evidence','.ref-h1','.ref-sub','.proc-hero','.nav-prev','.ask-cta','footer','script']
-        .forEach(function(sel){ Array.prototype.forEach.call(wrap.querySelectorAll(sel),function(el){ el.remove(); }); });
-      var f={title:title,sub:sub,html:wrap.innerHTML};   // same-origin trusted content
+      var title='', sub='', root;
+      if(frag){
+        root=doc.getElementById(frag); if(!root) throw new Error('nofragment');
+        var t=root.querySelector('.pblock-title, .block-title');
+        if(t){ title=t.textContent.trim(); t.remove(); }   // title moves to the panel header
+      } else {
+        root=wrap;
+        title=((root.querySelector('.ref-h1, .proc-h1, .p-h1')||{}).textContent||'').trim();
+        sub  =((root.querySelector('.ref-sub, .proc-sub, .p-sub')||{}).textContent||'').trim();
+        // Drop page chrome + anything that would duplicate the panel's own actions.
+        ['.crumb','#ref-evidence','.ref-h1','.ref-sub','.p-h1','.p-sub','.proc-hero',
+         '.nav-prev','.ask-cta','.next-cta','footer','script']
+          .forEach(function(sel){ Array.prototype.forEach.call(root.querySelectorAll(sel),function(el){ el.remove(); }); });
+      }
+      var f={title:title,sub:sub,html:root.innerHTML};   // same-origin trusted content
       _fragCache[href]=f; return f;
     });
   }
-  function ahRefFetch(key){ return ahFragFetch(_refMap[key].h); }
   function ahRefScroll(panel){ try{ var rt=panel.getBoundingClientRect().top; if(rt<70||rt>window.innerHeight*0.6){ window.scrollTo({top:window.scrollY+rt-88,behavior:'smooth'}); } }catch(e){} }
-  window.ahRefOpen=function(ev,key){
-    if(ev && (ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey||ev.button===1)) return true;  // let modified clicks navigate
-    if(ev) ev.preventDefault();
-    var card=document.getElementById('rfc-'+key);
-    if(card && card.classList.contains('active')){ ahRefClose(); return false; }            // click active card again → close
-    var panel=document.getElementById('ah-ref-panel'); var info=_refMap[key]; if(!panel||!info) return false;
-    Array.prototype.forEach.call(document.querySelectorAll('#ah .rf-card.active'),function(c){ c.classList.remove('active'); c.setAttribute('aria-expanded','false'); });
-    if(card){ card.classList.add('active'); card.setAttribute('aria-expanded','true'); }
-    panel.hidden=false;
-    panel.innerHTML='<div class="ref-skel"><div class="h"></div><div class="b"></div><div class="b"></div></div>';
-    ahRefFetch(key).then(function(f){
-      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(f.title||info.n)+'</div>'+(f.sub?'<div class="ref-panel-s">'+esc(f.sub)+'</div>':'')+'</div>'+
-        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'" onclick="ahLog(\'ref\',\''+esc(info.n)+'\',\''+info.h+'\')">Open full reference ↗</a>'+
-        '<button class="ref-close" type="button" onclick="ahRefClose()" aria-label="Close reference">✕</button></div></div>'+
-        '<div class="ref-vw">'+f.html+'</div>';
-      ahRefScroll(panel);
-      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
-    }).catch(function(){
-      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(info.n)+'</div></div>'+
-        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'">Open full reference ↗</a>'+
-        '<button class="ref-close" type="button" onclick="ahRefClose()" aria-label="Close">✕</button></div></div>'+
-        '<div class="ref-vw"><p class="ref-err">Couldn’t load this reference inline. <a href="'+info.h+'">Open the full reference ↗</a></p></div>';
-      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
-    });
-    return false;
-  };
-  window.ahRefClose=function(){
-    var panel=document.getElementById('ah-ref-panel'); if(!panel) return;
-    panel.hidden=true; panel.innerHTML='';
-    var active=document.querySelector('#ah .rf-card.active');
-    if(active){ active.classList.remove('active'); active.setAttribute('aria-expanded','false'); active.focus(); }
-  };
-  document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var p=document.getElementById('ah-ref-panel'); if(p&&!p.hidden) window.ahRefClose(); } });
+
+  // ── ONE inline viewer, used by Clinical References (doctor), Procedure guides
+  // and Prepare-for-surgery (patient). cfg: {panel, prefix, map, cardSel, openLabel}
+  // Behaviour is identical everywhere: one open at a time, click-active-to-close,
+  // Close button, Escape restores focus, modified-clicks still open the page.
+  var _viewers=[];
+  function ahMakeViewer(cfg){
+    function close(){
+      var panel=document.getElementById(cfg.panel); if(!panel) return;
+      panel.hidden=true; panel.innerHTML='';
+      var a=document.querySelector('#ah '+cfg.cardSel+'.active');
+      if(a){ a.classList.remove('active'); a.setAttribute('aria-expanded','false'); a.focus(); }
+    }
+    function open(ev,key){
+      if(ev && (ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey||ev.button===1)) return true; // let modified clicks navigate
+      if(ev) ev.preventDefault();
+      var card=document.getElementById(cfg.prefix+key);
+      if(card && card.classList.contains('active')){ close(); return false; }               // active card again → close
+      var panel=document.getElementById(cfg.panel), info=cfg.map[key];
+      if(!panel||!info) return false;
+      // only one panel open across the whole page
+      _viewers.forEach(function(v){ if(v!==api) v.close(); });
+      Array.prototype.forEach.call(document.querySelectorAll('#ah '+cfg.cardSel+'.active'),function(c){
+        c.classList.remove('active'); c.setAttribute('aria-expanded','false'); });
+      if(card){ card.classList.add('active'); card.setAttribute('aria-expanded','true'); }
+      panel.hidden=false;
+      panel.innerHTML='<div class="ref-skel"><div class="h"></div><div class="b"></div><div class="b"></div></div>';
+      function head(title,sub){
+        return '<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(title)+'</div>'+
+          (sub?'<div class="ref-panel-s">'+esc(sub)+'</div>':'')+'</div>'+
+          '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'" onclick="ahLog(\''+cfg.logKind+'\',\''+esc(info.n)+'\',\''+info.h+'\')">'+cfg.openLabel+' ↗</a>'+
+          '<button class="ref-close" type="button" onclick="'+cfg.closeFn+'()" aria-label="Close">✕</button></div></div>';
+      }
+      ahFragFetch(info.h).then(function(f){
+        panel.innerHTML=head(f.title||info.n, f.sub)+'<div class="ref-vw">'+f.html+'</div>';
+        ahRefScroll(panel);
+        var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
+      }).catch(function(){
+        panel.innerHTML=head(info.n,'')+'<div class="ref-vw"><p class="ref-err">Couldn’t load this inline. '+
+          '<a href="'+info.h+'">'+cfg.openLabel+' ↗</a></p></div>';
+        var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
+      });
+      return false;
+    }
+    var api={open:open, close:close, panel:cfg.panel};
+    _viewers.push(api);
+    return api;
+  }
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape') return;
+    _viewers.forEach(function(v){ var p=document.getElementById(v.panel); if(p&&!p.hidden) v.close(); });
+  });
+  // Doctor: Clinical References viewer (unchanged behaviour, shared component).
+  var _refViewer=ahMakeViewer({panel:'ah-ref-panel', prefix:'rfc-', map:_refMap,
+    cardSel:'.rf-card', openLabel:'Open full reference', logKind:'ref', closeFn:'ahRefClose'});
+  window.ahRefOpen=function(ev,key){ return _refViewer.open(ev,key); };
+  window.ahRefClose=function(){ _refViewer.close(); };
+
   function resGridCard(r){ return '<a class="rf-card" href="/v2/resources.html" onclick="ahLog(\'resource\',\''+esc(r.n)+'\',\'/v2/resources.html\')"><span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>'; }
   // A workflow glass card: premium icon, meaningful status (filled later), one action.
   function wfCard(key,cls,ico,name,href,cta){
@@ -1169,41 +1250,132 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     return '<a class="rf-card" id="pcc-'+r.k+'" href="'+r.h+'" role="button" aria-expanded="false" onclick="return ahProcOpen(event,\''+r.k+'\')">'+
       '<span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>';
   }
-  // Inline procedure quick-view — identical mechanism to the Doctor Home
-  // Clinical Reference quick-view (shared ahFragFetch; content is fetched from
-  // the existing procedure pages, never duplicated here).
-  window.ahProcOpen=function(ev,key){
-    if(ev && (ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey||ev.button===1)) return true;
-    if(ev) ev.preventDefault();
-    var card=document.getElementById('pcc-'+key);
-    if(card && card.classList.contains('active')){ ahProcClose(); return false; }
-    var panel=document.getElementById('ah-proc-panel'), info=_procMap[key]; if(!panel||!info) return false;
-    Array.prototype.forEach.call(document.querySelectorAll('#ah .rf-card.active'),function(c){ c.classList.remove('active'); c.setAttribute('aria-expanded','false'); });
-    if(card){ card.classList.add('active'); card.setAttribute('aria-expanded','true'); }
-    panel.hidden=false;
-    panel.innerHTML='<div class="ref-skel"><div class="h"></div><div class="b"></div><div class="b"></div></div>';
-    ahFragFetch(info.h).then(function(f){
-      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(f.title||info.n)+'</div>'+(f.sub?'<div class="ref-panel-s">'+esc(f.sub)+'</div>':'')+'</div>'+
-        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'">Open full guide ↗</a>'+
-        '<button class="ref-close" type="button" onclick="ahProcClose()" aria-label="Close procedure guide">✕</button></div></div>'+
-        '<div class="ref-vw">'+f.html+'</div>';
-      ahRefScroll(panel);
-      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
-    }).catch(function(){
-      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(info.n)+'</div></div>'+
-        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'">Open full guide ↗</a>'+
-        '<button class="ref-close" type="button" onclick="ahProcClose()" aria-label="Close">✕</button></div></div>'+
-        '<div class="ref-vw"><p class="ref-err">Couldn’t load this guide inline. <a href="'+info.h+'">Open the full guide ↗</a></p></div>';
-      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
-    });
-    return false;
+  // Procedure guides + Prepare-for-surgery reuse the SAME inline viewer as the
+  // doctor Clinical References (shared ahMakeViewer/ahFragFetch). Content is
+  // fetched from the existing pages; nothing clinical is duplicated here.
+  var _procViewer=ahMakeViewer({panel:'ah-proc-panel', prefix:'pcc-', map:_procMap,
+    cardSel:'.rf-card', openLabel:'Open full guide', logKind:'proc', closeFn:'ahProcClose'});
+  window.ahProcOpen=function(ev,key){ return _procViewer.open(ev,key); };
+  window.ahProcClose=function(){ _procViewer.close(); };
+
+  // PREPARE FOR SURGERY — three cards are SECTIONS of the existing pre-op page
+  // (#fasting / #medications / #what-to-bring / #what-to-tell), one is the
+  // existing recovery page. Each opens inline; no page navigation.
+  var AH_PREP_CARDS=[
+    {k:'fasting',  ic:'&#9201;',   n:'Fasting',          s:'When to stop eating &amp; drinking', h:'/v2/preop-instructions.html#fasting'},
+    {k:'meds',     ic:'&#128138;', n:'Medications',      s:'What to continue or pause',          h:'/v2/preop-instructions.html#medications'},
+    {k:'bring',    ic:'&#129509;', n:'What to bring',    s:'Documents and essentials',           h:'/v2/preop-instructions.html#what-to-bring'},
+    {k:'tell',     ic:'&#128172;', n:'Questions to ask', s:'What to tell your anesthesiologist', h:'/v2/preop-instructions.html#what-to-tell'},
+    {k:'recovery', ic:'&#127807;', n:'Recovery',         s:'What to expect afterwards',          h:'/v2/recovery.html'}
+  ];
+  var _prepMap={}; (function(){ AH_PREP_CARDS.forEach(function(r){ _prepMap[r.k]={h:r.h,n:r.n}; }); })();
+  function prepCard(c){
+    return '<a class="pt-pcard" id="ppc-'+c.k+'" href="'+c.h+'" role="button" aria-expanded="false" onclick="return ahPrepOpen(event,\''+c.k+'\')">'+
+      '<span class="glow"></span><span class="ic">'+c.ic+'</span>'+
+      '<span class="tx"><span class="n">'+c.n+'</span><span class="s">'+c.s+'</span></span>'+
+      '<span class="go">Open <span class="arw">&rarr;</span></span></a>';
+  }
+  var _prepViewer=ahMakeViewer({panel:'ah-prep-panel', prefix:'ppc-', map:_prepMap,
+    cardSel:'.pt-pcard', openLabel:'Open full guide', logKind:'prep', closeFn:'ahPrepClose'});
+  window.ahPrepOpen=function(ev,key){ return _prepViewer.open(ev,key); };
+  window.ahPrepClose=function(){ _prepViewer.close(); };
+
+  // ── MANAGE JOURNEY ───────────────────────────────────────────────────────
+  // Architecture: one row of patient_surgeries = one surgery journey. The table
+  // already supports many rows per patient and already has archived_at, so
+  // Active + Archived #1..#n needs no new table. Archive/Delete are performed by
+  // RPCs (archived_at is a system-managed column: the DB guard trigger rejects
+  // direct client writes), which are proposed in v2_patient_journeys_phase1.sql
+  // and NOT yet deployed. Until they are, the actions report honestly.
+  var _journeys={active:null, past:[]}, _uid=null;
+  function ahJourneyRow(j, isActive){
+    var when=j.surgery_date?String(j.surgery_date).slice(0,10):'';
+    var sub=[j.procedure_type||'Surgery', when, (isActive?'':('archived '+(j.archived_at?String(j.archived_at).slice(0,10):'')))].filter(Boolean).join(' · ');
+    return '<div class="mj-row"><span class="mj-ic">'+(isActive?'&#129517;':'&#128451;')+'</span>'+
+      '<span class="mj-tx"><span class="mj-n">'+esc(j.procedure_type||'Surgery journey')+'</span>'+
+      '<span class="mj-s">'+esc(sub)+'</span></span>'+
+      '<span class="mj-tag '+(isActive?'active':'past')+'">'+(isActive?'Active':'Past')+'</span></div>';
+  }
+  function renderJourneys(){
+    var box=document.getElementById('ah-journeys'); if(!box) return;
+    var h='';
+    if(_journeys.active) h+=ahJourneyRow(_journeys.active,true);
+    else h+='<div class="pt-j-empty">You have no active surgery journey.</div>';
+    if(_journeys.past.length) h+=_journeys.past.map(function(j){ return ahJourneyRow(j,false); }).join('');
+    h+='<div class="mj-acts">';
+    if(_journeys.active) h+='<button class="mj-btn" type="button" onclick="ahJourneyArchive()">&#128451; Archive current journey</button>';
+    h+='<button class="mj-btn primary" type="button" onclick="ahJourneyStart()">＋ Start new surgery journey</button></div>';
+    if(_journeys.active){
+      h+='<div class="mj-danger"><div class="mj-danger-t">Danger zone</div>'+
+         '<p>Permanently delete this surgery journey and its related preparation data. Your account and any past surgeries are not affected. This cannot be undone — archiving keeps everything and is reversible.</p>'+
+         '<button class="mj-btn danger" type="button" onclick="ahJourneyDelete()">Delete this surgery journey</button></div>';
+    }
+    h+='<p class="mj-note">Archiving keeps every questionnaire, document and message viewable under past surgeries. Nothing is deleted.</p>';
+    box.innerHTML=h;
+  }
+  // Typed-confirmation dialog (danger actions must be deliberate).
+  function ahConfirmDialog(opts){
+    var old=document.getElementById('ah-dlg-bg'); if(old) old.remove();
+    var bg=document.createElement('div'); bg.className='ah-dlg-bg'; bg.id='ah-dlg-bg';
+    bg.innerHTML='<div class="ah-dlg" role="dialog" aria-modal="true"><h3>'+esc(opts.title)+'</h3><p>'+opts.body+'</p>'+
+      (opts.word?'<input type="text" id="ah-dlg-in" autocomplete="off" placeholder="Type '+esc(opts.word)+'">':'')+
+      '<div class="ah-dlg-acts"><button class="mj-btn" type="button" id="ah-dlg-cancel">Cancel</button>'+
+      '<button class="mj-btn '+(opts.danger?'danger':'primary')+'" type="button" id="ah-dlg-ok"'+(opts.word?' disabled':'')+'>'+esc(opts.confirmLabel)+'</button></div></div>';
+    document.body.appendChild(bg);
+    function close(){ bg.remove(); }
+    bg.addEventListener('click',function(e){ if(e.target===bg) close(); });
+    document.getElementById('ah-dlg-cancel').onclick=close;
+    var ok=document.getElementById('ah-dlg-ok');
+    if(opts.word){
+      var inp=document.getElementById('ah-dlg-in');
+      inp.addEventListener('input',function(){ ok.disabled = inp.value.trim().toUpperCase()!==opts.word.toUpperCase(); });
+      setTimeout(function(){ inp.focus(); },40);
+    }
+    ok.onclick=function(){ close(); opts.onConfirm(); };
+  }
+  function ahJourneyBusy(msg){ var b=document.getElementById('ah-journeys'); if(b) b.innerHTML='<div class="pt-j-empty">'+esc(msg)+'</div>'; }
+  function ahJourneyErr(e){
+    // Honest reporting: the archive/delete RPCs are not deployed yet.
+    var m=(e&&e.message)||'';
+    var missing=/not enabled|could not find|does not exist|schema cache|404/i.test(m);
+    renderJourneys();
+    var b=document.getElementById('ah-journeys');
+    if(b) b.insertAdjacentHTML('beforeend','<p class="mj-note" style="color:#FFB499">'+
+      (missing?'This action isn’t enabled on your account yet — the journey update is awaiting release.':esc(m||'Something went wrong.'))+'</p>');
+  }
+  window.ahJourneyArchive=function(){
+    if(!_journeys.active) return;
+    ahConfirmDialog({title:'Archive this surgery journey?',
+      body:'It moves to <b>past surgeries</b>. Your questionnaire, documents, recommendations and messages stay viewable, and nothing is deleted.',
+      confirmLabel:'Archive journey', onConfirm:function(){
+        ahJourneyBusy('Archiving…');
+        Promise.resolve(sb.rpc('patient_archive_journey',{ p_surgery_id:_journeys.active.id }))
+          .then(function(r){ if(r&&r.error) throw r.error; return loadPatient(_uid); })
+          .catch(ahJourneyErr);
+      }});
   };
-  window.ahProcClose=function(){
-    var panel=document.getElementById('ah-proc-panel'); if(!panel) return;
-    panel.hidden=true; panel.innerHTML='';
-    var a=document.querySelector('#ah .rf-card.active');
-    if(a){ a.classList.remove('active'); a.setAttribute('aria-expanded','false'); a.focus(); }
+  window.ahJourneyDelete=function(){
+    if(!_journeys.active) return;
+    ahConfirmDialog({title:'Permanently delete this journey?', danger:true, word:'DELETE',
+      body:'This removes this surgery journey and its preparation data for good. Your <b>account and past surgeries are not affected</b>. Archiving is the reversible alternative. Type <code>DELETE</code> to confirm.',
+      confirmLabel:'Delete journey', onConfirm:function(){
+        ahJourneyBusy('Deleting…');
+        Promise.resolve(sb.rpc('patient_delete_journey',{ p_surgery_id:_journeys.active.id, p_confirm:'DELETE' }))
+          .then(function(r){ if(r&&r.error) throw r.error; return loadPatient(_uid); })
+          .catch(ahJourneyErr);
+      }});
   };
+  window.ahJourneyStart=function(){
+    ahConfirmDialog({title:'Start a new surgery journey?',
+      body:'Creates a fresh journey for your next procedure. Your current journey is archived first, so preparation data never mixes between surgeries.',
+      confirmLabel:'Start new journey', onConfirm:function(){
+        ahJourneyBusy('Creating…');
+        Promise.resolve(sb.rpc('patient_start_journey',{}))
+          .then(function(r){ if(r&&r.error) throw r.error; return loadPatient(_uid); })
+          .catch(ahJourneyErr);
+      }});
+  };
+
   window.ahScrollTo=function(id){ var el=document.getElementById(id); if(!el) return false;
     try{ window.scrollTo({top:window.scrollY+el.getBoundingClientRect().top-80,behavior:'smooth'}); }catch(e){ el.scrollIntoView(); } return false; };
 
@@ -1235,23 +1407,19 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
        '<a class="ah-more" href="/v2/procedures.html">View all procedures →</a></div>'+
        '<div class="rf-grid">'+AH_PROC_CARDS.map(procGridCard).join('')+'</div>'+
        '<div class="ref-panel" id="ah-proc-panel" hidden></div></div>';
-    // 4 — PREPARE FOR SURGERY (five distinct destinations)
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Prepare for surgery</span>'+
-       '<a class="ah-more" href="/v2/preop-instructions.html">All pre-op instructions →</a></div><div class="pt-prep">'+
-       [{ic:'&#9201;',n:'Fasting',s:'When to stop eating &amp; drinking',h:'/v2/preop-instructions.html#fasting'},
-        {ic:'&#128138;',n:'Medications',s:'What to continue or pause',h:'/v2/preop-instructions.html#medications'},
-        {ic:'&#129509;',n:'What to bring',s:'Documents and essentials',h:'/v2/preop-instructions.html#what-to-bring'},
-        {ic:'&#128172;',n:'Questions to ask',s:'Prepare for your anesthesiologist',h:'/v2/ask.html'},
-        {ic:'&#127807;',n:'Recovery',s:'What to expect afterwards',h:'/v2/recovery.html'}
-       ].map(function(c){ return '<a class="pt-pcard" href="'+c.h+'"><span class="glow"></span><span class="ic">'+c.ic+'</span>'+
-          '<span class="tx"><span class="n">'+c.n+'</span><span class="s">'+c.s+'</span></span>'+
-          '<span class="go">Open <span class="arw">&rarr;</span></span></a>'; }).join('')+
-       '</div></div>';
+    // 4 — PREPARE FOR SURGERY — opens INLINE, same viewer as Clinical References
+    h+='<div class="ah-sec" id="pt-prepare"><div class="ah-sec-h"><span class="ah-sec-t">Prepare for surgery</span>'+
+       '<a class="ah-more" href="/v2/preop-instructions.html">All pre-op instructions →</a></div>'+
+       '<div class="pt-prep">'+AH_PREP_CARDS.map(prepCard).join('')+'</div>'+
+       '<div class="ref-panel" id="ah-prep-panel" hidden></div></div>';
     // 5 — ASK THE ANESTHESIOLOGIST (its own destination, never My Space)
     h+='<div class="ah-sec"><div class="pt-ask"><span class="glow"></span>'+
        '<span class="tx"><b>Questions about anesthesia?</b>'+
        '<span>Ask about general anesthesia, spinal or epidural, fasting, medications, recovery, or feeling anxious before surgery. A real anesthesiologist answers.</span></span>'+
        '<a class="pt-btn primary" href="/v2/ask.html">Ask an anesthesiologist →</a></div></div>';
+    // 5b — MANAGE JOURNEY (archive / start new / delete; real data, gated RPCs)
+    h+='<div class="ah-sec" id="pt-journeys"><div class="ah-sec-h"><span class="ah-sec-t">Manage journey</span></div>'+
+       '<div class="mj-card" id="ah-journeys"><div class="pt-j-empty">Loading your surgeries…</div></div></div>';
     // 6 — LATEST VIDEOS (shared real-video source; neutral wording)
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest anesthesia videos</span>'+
        '<span class="ah-vhead"><a class="ah-more" href="/v2/videos.html">View all videos →</a>'+
@@ -1264,9 +1432,17 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     if(authed) loadPatient(session.user.id);
   }
   async function loadPatient(uid){
+    _uid=uid;
     var quest=null, surgery=null, prepDone=null;
     try{ quest=(typeof getQuestionnaire==='function')?await getQuestionnaire(uid):((await sb.from('preop_questionnaires').select('*').eq('patient_id',uid).maybeSingle()).data); }catch(e){}
-    try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).order('surgery_date',{ascending:true,nullsFirst:false}); var rows=((r&&r.data)||[]); var act=rows.filter(function(x){return !x.archived_at&&!x.completed_at;}); surgery=act[0]||rows[0]||null; }catch(e){}
+    try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).order('surgery_date',{ascending:true,nullsFirst:false});
+      var rows=((r&&r.data)||[]); var act=rows.filter(function(x){return !x.archived_at&&!x.completed_at;});
+      surgery=act[0]||rows[0]||null;
+      // Journey management: one row = one journey (Active + Archived #1..#n).
+      _journeys.active = act[0]||null;
+      _journeys.past   = rows.filter(function(x){ return !!x.archived_at; });
+      renderJourneys();
+    }catch(e){ renderJourneys(); }
     try{ var c=(typeof getChecklist==='function')?await getChecklist(uid):((await sb.from('preop_checklist').select('*').eq('patient_id',uid).maybeSingle()).data); if(c&&c.items&&c.items.prep_guide&&c.items.prep_guide.prepare){ var pr=c.items.prep_guide.prepare; prepDone=0; for(var i=0;i<6;i++){ if(pr[i]) prepDone++; } } }catch(e){}
     // Concise existing status only — the full record stays in My Space.
     var jb=document.getElementById('ah-journey'); if(!jb) return;
