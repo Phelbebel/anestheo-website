@@ -1510,7 +1510,14 @@ async function saveSurgery(){
     origin: (_surgery && _surgery.origin) ? _surgery.origin : 'patient'
   };
   try {
-    await window.sb.from('patient_surgeries').upsert(rec, { onConflict: 'patient_id' });
+    // Journey-aware: update THIS journey by its id; create a row only when the
+    // patient has no active journey. Never upsert by patient_id — that would
+    // overwrite an archived journey now that a patient can hold several.
+    if (_surgery && _surgery.id) {
+      await window.sb.from('patient_surgeries').update(rec).eq('id', _surgery.id);
+    } else {
+      await window.sb.from('patient_surgeries').insert(rec);
+    }
   } catch(e){ console.error('save surgery:', e.message); }
   ge('m-save').disabled = false; ge('m-save').textContent = 'Save';
   closeSurgery();

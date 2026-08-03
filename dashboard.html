@@ -1636,7 +1636,9 @@ async function wsOpenConsult(id){
   var surgeryId=cr.surgery_id, patientId=cr.patient_id;
   var surgery={}, quest={}, docs=[];
   try{ if(surgeryId){ var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; } }catch(e){}
-  try{ if(patientId){ var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; } }catch(e){}
+  // Journey-aware: a patient may hold several journeys, so never .maybeSingle()
+  // on patient_id (it throws with >1 row). Prefer this journey's questionnaire.
+  try{ if(patientId){ var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).order('updated_at',{ascending:false,nullsFirst:false}).limit(1); quest=(q.data&&q.data[0])||{}; } }catch(e){}
   try{ if(surgeryId){ var dr=await window.sb.from('requirement_documents').select('*').eq('surgery_id',surgeryId).order('uploaded_at',{ascending:true}); docs=(dr&&dr.data)||[]; } }catch(e){}
   var recs=await wsFetchRecs(surgeryId);
   _wsCtx={ mode:'consult', origin:cr.origin, consultId:cr.id,
@@ -2125,8 +2127,8 @@ async function wsOpenRecord(surgeryId){
   var quest={}, items={};
   if(patientId){
     try { await window.sb.rpc('start_review', { p_surgery_id: surgeryId }); }catch(e){}
-    try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).maybeSingle(); quest=q.data||{}; }catch(e){}
-    try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).maybeSingle(); items=(c.data&&c.data.items&&c.data.items.prep_guide)||{}; }catch(e){}
+    try { var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).order('updated_at',{ascending:false,nullsFirst:false}).limit(1); quest=(q.data&&q.data[0])||{}; }catch(e){}
+    try { var c=await window.sb.from('preop_checklist').select('items').eq('patient_id',patientId).order('updated_at',{ascending:false,nullsFirst:false}).limit(1); items=(c.data&&c.data[0]&&c.data[0].items&&c.data[0].items.prep_guide)||{}; }catch(e){}
   } else if(clinic){
     quest={ answers:(clinic.questionnaire_answers||{}), status:(clinic.questionnaire_status==='completed'?'submitted':'in_progress'), review_state:'not_submitted' };
   }

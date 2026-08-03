@@ -169,39 +169,82 @@ window.sb.auth.onAuthStateChange(function(event) {
 });
 
 // ── PRE-OP QUESTIONNAIRE HELPERS ──────────────────────────────
-async function getQuestionnaire(patientId) {
+// Journey-aware. A patient may now hold several surgery journeys (one active,
+// any number archived), so questionnaires and checklists are scoped by
+// surgery_id. Signatures are unchanged, so every existing caller keeps working:
+// when no surgery is passed we resolve the patient's ACTIVE journey. Rows that
+// pre-date journey scoping (surgery_id IS NULL) are still found and are then
+// adopted into the active journey on the next save.
+//
+// The previous upsert(onConflict:'patient_id') calls are gone: that constraint
+// no longer exists, and an upsert keyed on patient_id would overwrite a
+// historical journey's row. Reads never use bare .maybeSingle() on patient_id
+// either, because that now throws when a patient has more than one row.
+
+// Resolve the patient's active journey id (null when they have none yet).
+async function getActiveSurgeryId(patientId) {
   try {
-    var r = await window.sb.from('preop_questionnaires')
-      .select('*').eq('patient_id', patientId).maybeSingle();
-    if (r.error) { console.warn('getQuestionnaire:', r.error.message); return null; }
-    return r.data || null;
-  } catch(e) { console.error('getQuestionnaire exc:', e.message); return null; }
+    var r = await window.sb.from('patient_surgeries')
+      .select('id,created_at')
+      .eq('patient_id', patientId)
+      .is('archived_at', null).is('completed_at', null)
+      .order('created_at', { ascending: false }).limit(1);
+    if (r.error || !r.data || !r.data.length) return null;
+    return r.data[0].id;
+  } catch(e) { return null; }
 }
 
-async function saveQuestionnaire(patientId, fields) {
+// Internal: newest row for this patient, preferring the given journey.
+async function _journeyRow(table, patientId, surgeryId) {
   try {
+    if (surgeryId) {
+      var s = await window.sb.from(table).select('*').eq('surgery_id', surgeryId).limit(1);
+      if (!s.error && s.data && s.data.length) return s.data[0];
+    }
+    // legacy / not-yet-scoped row for this patient
+    var r = await window.sb.from(table).select('*')
+      .eq('patient_id', patientId).is('surgery_id', null)
+      .order('updated_at', { ascending: false, nullsFirst: false }).limit(1);
+    if (!r.error && r.data && r.data.length) return r.data[0];
+    return null;
+  } catch(e) { console.error(table + ' read exc:', e.message); return null; }
+}
+
+async function getQuestionnaire(patientId, surgeryId) {
+  var sid = surgeryId || await getActiveSurgeryId(patientId);
+  return await _journeyRow('preop_questionnaires', patientId, sid);
+}
+
+// Explicit read-then-update/insert: no ambiguous upsert, never overwrites another
+// journey's row.
+async function saveQuestionnaire(patientId, fields, surgeryId) {
+  try {
+    var sid = surgeryId || await getActiveSurgeryId(patientId);
+    var existing = await _journeyRow('preop_questionnaires', patientId, sid);
     fields.patient_id = patientId;
     fields.updated_at = new Date().toISOString();
-    var r = await window.sb.from('preop_questionnaires')
-      .upsert(fields, { onConflict: 'patient_id' });
+    if (sid) fields.surgery_id = sid;
+    var r = existing
+      ? await window.sb.from('preop_questionnaires').update(fields).eq('id', existing.id)
+      : await window.sb.from('preop_questionnaires').insert(fields);
     return { error: r.error || null };
   } catch(e) { return { error: { message: e.message } }; }
 }
 
-async function getChecklist(patientId) {
-  try {
-    var r = await window.sb.from('preop_checklist')
-      .select('*').eq('patient_id', patientId).maybeSingle();
-    if (r.error) { console.warn('getChecklist:', r.error.message); return null; }
-    return r.data || null;
-  } catch(e) { console.error('getChecklist exc:', e.message); return null; }
+async function getChecklist(patientId, surgeryId) {
+  var sid = surgeryId || await getActiveSurgeryId(patientId);
+  return await _journeyRow('preop_checklist', patientId, sid);
 }
 
-async function saveChecklist(patientId, items) {
+async function saveChecklist(patientId, items, surgeryId) {
   try {
-    var r = await window.sb.from('preop_checklist')
-      .upsert({ patient_id: patientId, items: items, updated_at: new Date().toISOString() },
-              { onConflict: 'patient_id' });
+    var sid = surgeryId || await getActiveSurgeryId(patientId);
+    var existing = await _journeyRow('preop_checklist', patientId, sid);
+    var row = { patient_id: patientId, items: items, updated_at: new Date().toISOString() };
+    if (sid) row.surgery_id = sid;
+    var r = existing
+      ? await window.sb.from('preop_checklist').update(row).eq('id', existing.id)
+      : await window.sb.from('preop_checklist').insert(row);
     return { error: r.error || null };
   } catch(e) { return { error: { message: e.message } }; }
 }
@@ -224,6 +267,7 @@ window.requireRole       = requireRole;
 window.initializeAuth    = initializeAuth;
 window.saveProfile       = saveProfile;
 window.signOut           = signOut;
+window.getActiveSurgeryId = getActiveSurgeryId;
 window.getQuestionnaire  = getQuestionnaire;
 window.saveQuestionnaire = saveQuestionnaire;
 window.getChecklist      = getChecklist;

@@ -1434,7 +1434,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   async function loadPatient(uid){
     _uid=uid;
     var quest=null, surgery=null, prepDone=null;
-    try{ quest=(typeof getQuestionnaire==='function')?await getQuestionnaire(uid):((await sb.from('preop_questionnaires').select('*').eq('patient_id',uid).maybeSingle()).data); }catch(e){}
+    try{ quest=(typeof getQuestionnaire==='function')?await getQuestionnaire(uid):((await sb.from('preop_questionnaires').select('*').eq('patient_id',uid).order('updated_at',{ascending:false,nullsFirst:false}).limit(1)).data||[])[0]; }catch(e){}
     try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).order('surgery_date',{ascending:true,nullsFirst:false});
       var rows=((r&&r.data)||[]); var act=rows.filter(function(x){return !x.archived_at&&!x.completed_at;});
       surgery=act[0]||rows[0]||null;
@@ -1443,7 +1443,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       _journeys.past   = rows.filter(function(x){ return !!x.archived_at; });
       renderJourneys();
     }catch(e){ renderJourneys(); }
-    try{ var c=(typeof getChecklist==='function')?await getChecklist(uid):((await sb.from('preop_checklist').select('*').eq('patient_id',uid).maybeSingle()).data); if(c&&c.items&&c.items.prep_guide&&c.items.prep_guide.prepare){ var pr=c.items.prep_guide.prepare; prepDone=0; for(var i=0;i<6;i++){ if(pr[i]) prepDone++; } } }catch(e){}
+    try{ var c=(typeof getChecklist==='function')?await getChecklist(uid):((await sb.from('preop_checklist').select('*').eq('patient_id',uid).order('updated_at',{ascending:false,nullsFirst:false}).limit(1)).data||[])[0]; if(c&&c.items&&c.items.prep_guide&&c.items.prep_guide.prepare){ var pr=c.items.prep_guide.prepare; prepDone=0; for(var i=0;i<6;i++){ if(pr[i]) prepDone++; } } }catch(e){}
     // Concise existing status only — the full record stays in My Space.
     var jb=document.getElementById('ah-journey'); if(!jb) return;
     function chip(l,v){ return '<span class="pt-j-chip">'+esc(l)+' <b>'+esc(v)+'</b></span>'; }
