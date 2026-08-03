@@ -181,6 +181,26 @@ window.sb.auth.onAuthStateChange(function(event) {
 // historical journey's row. Reads never use bare .maybeSingle() on patient_id
 // either, because that now throws when a patient has more than one row.
 
+// ── Journey-column feature detection (deployment compatibility) ──────────────
+// The frontend ships BEFORE v2_patient_journeys_phase1.sql is applied, so the
+// surgery_id columns may not exist yet. We probe once per page-load and cache
+// the answer; every journey-aware query degrades to the legacy patient-level
+// behaviour while the column is missing. The single probe request is expected
+// to 400 on the old schema and is fully caught.
+var _journeyCols = null;                       // null = unknown, true/false = known
+function _isMissingColumn(err) {
+  if (!err) return false;
+  return err.code === '42703' || /surgery_id/.test(err.message || '');
+}
+async function supportsJourneys() {
+  if (_journeyCols !== null) return _journeyCols;
+  try {
+    var r = await window.sb.from('preop_questionnaires').select('surgery_id').limit(1);
+    _journeyCols = !(r && r.error && _isMissingColumn(r.error));
+  } catch(e) { _journeyCols = false; }
+  return _journeyCols;
+}
+
 // Resolve the patient's active journey id (null when they have none yet).
 async function getActiveSurgeryId(patientId) {
   try {
@@ -197,6 +217,12 @@ async function getActiveSurgeryId(patientId) {
 // Internal: newest row for this patient, preferring the given journey.
 async function _journeyRow(table, patientId, surgeryId) {
   try {
+    // Pre-migration: surgery_id does not exist -> legacy one-row-per-patient.
+    if (!(await supportsJourneys())) {
+      var lg = await window.sb.from(table).select('*').eq('patient_id', patientId).limit(1);
+      if (lg.error) { console.warn(table + ' legacy read:', lg.error.message); return null; }
+      return (lg.data && lg.data[0]) || null;
+    }
     if (surgeryId) {
       var s = await window.sb.from(table).select('*').eq('surgery_id', surgeryId).limit(1);
       if (!s.error && s.data && s.data.length) return s.data[0];
@@ -211,7 +237,7 @@ async function _journeyRow(table, patientId, surgeryId) {
 }
 
 async function getQuestionnaire(patientId, surgeryId) {
-  var sid = surgeryId || await getActiveSurgeryId(patientId);
+  var sid = (await supportsJourneys()) ? (surgeryId || await getActiveSurgeryId(patientId)) : null;
   return await _journeyRow('preop_questionnaires', patientId, sid);
 }
 
@@ -219,11 +245,12 @@ async function getQuestionnaire(patientId, surgeryId) {
 // journey's row.
 async function saveQuestionnaire(patientId, fields, surgeryId) {
   try {
-    var sid = surgeryId || await getActiveSurgeryId(patientId);
+    var journeys = await supportsJourneys();
+    var sid = journeys ? (surgeryId || await getActiveSurgeryId(patientId)) : null;
     var existing = await _journeyRow('preop_questionnaires', patientId, sid);
     fields.patient_id = patientId;
     fields.updated_at = new Date().toISOString();
-    if (sid) fields.surgery_id = sid;
+    if (journeys && sid) fields.surgery_id = sid;
     var r = existing
       ? await window.sb.from('preop_questionnaires').update(fields).eq('id', existing.id)
       : await window.sb.from('preop_questionnaires').insert(fields);
@@ -232,16 +259,17 @@ async function saveQuestionnaire(patientId, fields, surgeryId) {
 }
 
 async function getChecklist(patientId, surgeryId) {
-  var sid = surgeryId || await getActiveSurgeryId(patientId);
+  var sid = (await supportsJourneys()) ? (surgeryId || await getActiveSurgeryId(patientId)) : null;
   return await _journeyRow('preop_checklist', patientId, sid);
 }
 
 async function saveChecklist(patientId, items, surgeryId) {
   try {
-    var sid = surgeryId || await getActiveSurgeryId(patientId);
+    var journeys = await supportsJourneys();
+    var sid = journeys ? (surgeryId || await getActiveSurgeryId(patientId)) : null;
     var existing = await _journeyRow('preop_checklist', patientId, sid);
     var row = { patient_id: patientId, items: items, updated_at: new Date().toISOString() };
-    if (sid) row.surgery_id = sid;
+    if (journeys && sid) row.surgery_id = sid;
     var r = existing
       ? await window.sb.from('preop_checklist').update(row).eq('id', existing.id)
       : await window.sb.from('preop_checklist').insert(row);
@@ -267,6 +295,7 @@ window.requireRole       = requireRole;
 window.initializeAuth    = initializeAuth;
 window.saveProfile       = saveProfile;
 window.signOut           = signOut;
+window.supportsJourneys   = supportsJourneys;
 window.getActiveSurgeryId = getActiveSurgeryId;
 window.getQuestionnaire  = getQuestionnaire;
 window.saveQuestionnaire = saveQuestionnaire;
