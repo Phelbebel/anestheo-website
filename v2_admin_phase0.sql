@@ -1,0 +1,427 @@
+-- ============================================================
+-- Anestheo /v2 — ADMIN CENTER, PHASE 0
+-- Minimum secure backend foundation for real admin visibility & control.
+--
+-- Contents:
+--   1. is_platform_admin() / assert_admin()      — canonical server-side gate
+--   2. Admin READ-ONLY RLS policies              — fixes the profiles blocker
+--   3. admin_audit_log (+ append-only guard)     — every privileged mutation
+--   4. admin_log()                               — the only way to write audit
+--   5. admin_search()                            — bounded, injection-safe
+--
+-- Deliberately NOT included (deferred by decision): email/ESP tracking,
+-- impersonation, feature flags / maintenance mode, admin WRITE policies,
+-- and any auth.users (GoTrue) operation — see docs/ADMIN_CENTER_ARCHITECTURE.md
+-- and the admin-api interface spec in docs/ADMIN_API_INTERFACE.md.
+--
+-- SAFETY: additive, idempotent, transaction-wrapped. Drops nothing except the
+-- policies/functions it owns (all created by this file). Existing policies,
+-- tables, columns and functions are untouched. Rollback at the bottom.
+-- Run in the Supabase SQL editor. Pure ASCII.
+-- ============================================================
+
+BEGIN;
+
+-- ============================================================
+-- 1. CANONICAL ADMIN GATE
+-- ============================================================
+-- is_platform_admin(): boolean, used inside RLS policies.
+-- SECURITY DEFINER is REQUIRED here: it lets the function read public.profiles
+-- with the owner's rights, so a policy ON public.profiles that calls it does
+-- NOT re-enter profiles' own RLS (which would be infinite recursion).
+-- It discloses nothing: it only answers "is the CALLER an admin?".
+CREATE OR REPLACE FUNCTION public.is_platform_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles p
+     WHERE p.id = auth.uid()
+       AND (p.is_admin = true OR p.role = 'admin')
+  );
+$$;
+
+-- assert_admin(): raises for anyone who is not an authenticated admin.
+-- Used as the first line of every privileged RPC (same shape as the shipped
+-- admin_delete_patient guard).
+CREATE OR REPLACE FUNCTION public.assert_admin()
+RETURNS void
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
+  END IF;
+  IF NOT public.is_platform_admin() THEN
+    RAISE EXCEPTION 'Admin privilege required' USING ERRCODE = '42501';
+  END IF;
+END;
+$$;
+
+-- Explicit, least-privilege execute rights.
+REVOKE ALL ON FUNCTION public.is_platform_admin() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.assert_admin()      FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_platform_admin() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.assert_admin()      TO authenticated;
+
+-- ============================================================
+-- 2. ADMIN READ-ONLY RLS POLICIES
+-- ============================================================
+-- READ ONLY. No admin INSERT/UPDATE/DELETE policy is added anywhere: mutation
+-- stays behind explicit, audited RPCs (Phase 2+). Policies are PERMISSIVE, so
+-- each one only widens access for admins; existing patient/doctor policies are
+-- untouched and keep working exactly as before.
+--
+-- 2a. profiles — THE Phase 0 blocker. Until now RLS allowed only own-row +
+--     directory reads, so the admin pages could not see any other user.
+DROP POLICY IF EXISTS profiles_admin_read ON public.profiles;
+CREATE POLICY profiles_admin_read ON public.profiles
+  FOR SELECT TO authenticated
+  USING ( public.is_platform_admin() );
+
+-- 2b. Tables with no admin-aware policy today.
+DROP POLICY IF EXISTS preop_checklist_admin_read ON public.preop_checklist;
+CREATE POLICY preop_checklist_admin_read ON public.preop_checklist
+  FOR SELECT TO authenticated USING ( public.is_platform_admin() );
+
+DROP POLICY IF EXISTS question_replies_admin_read ON public.question_replies;
+CREATE POLICY question_replies_admin_read ON public.question_replies
+  FOR SELECT TO authenticated USING ( public.is_platform_admin() );
+
+DROP POLICY IF EXISTS preparation_plans_admin_read ON public.preparation_plans;
+CREATE POLICY preparation_plans_admin_read ON public.preparation_plans
+  FOR SELECT TO authenticated USING ( public.is_platform_admin() );
+
+DROP POLICY IF EXISTS requirement_documents_admin_read ON public.requirement_documents;
+CREATE POLICY requirement_documents_admin_read ON public.requirement_documents
+  FOR SELECT TO authenticated USING ( public.is_platform_admin() );
+
+DROP POLICY IF EXISTS patient_recommendations_admin_read ON public.patient_recommendations;
+CREATE POLICY patient_recommendations_admin_read ON public.patient_recommendations
+  FOR SELECT TO authenticated USING ( public.is_platform_admin() );
+
+DROP POLICY IF EXISTS video_progress_admin_read ON public.video_progress;
+CREATE POLICY video_progress_admin_read ON public.video_progress
+  FOR SELECT TO authenticated USING ( public.is_platform_admin() );
+
+-- 2c. Tables that ALREADY carry an admin clause keep their existing policy and
+--     are intentionally NOT modified:
+--       clinic_patients        (cp_select)
+--       patient_surgeries      (ps_select)
+--       care_requests          (cr_select)
+--       preop_questionnaires   (pq_select)
+--       questions              (q_select_own_or_staff  - staff = doctor|admin)
+--       questionnaire_templates(qt_select)
+--       patient_archive_audit  (paa_select)
+--       evidence_*             (evidence admin policies)
+
+-- ============================================================
+-- 3. ADMIN AUDIT LOG
+-- ============================================================
+-- Naming follows the shipped patient_archive_audit (actor_id / actor_role /
+-- action / reason / created_at) and generalises it to any object.
+-- target_id is a plain uuid with NO foreign key, so the audit row survives the
+-- deletion of the object it describes.
+CREATE TABLE IF NOT EXISTS public.admin_audit_log (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  actor_id       uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  actor_role     text,                       -- role at the time of the action
+  action         text NOT NULL,              -- e.g. 'doctor.verify', 'patient.reassign'
+  target_type    text,                       -- 'profile' | 'patient_surgery' | ...
+  target_id      uuid,                       -- no FK on purpose (survives delete)
+  target_label   text,                       -- human-readable at time of action
+  before_state   jsonb,                      -- minimal, non-clinical
+  after_state    jsonb,                      -- minimal, non-clinical
+  reason         text,
+  metadata       jsonb NOT NULL DEFAULT '{}'::jsonb,
+  correlation_id text                        -- request/batch correlation
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON public.admin_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_actor   ON public.admin_audit_log(actor_id);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_target  ON public.admin_audit_log(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_action  ON public.admin_audit_log(action);
+
+-- Client rights: SELECT only, and only for admins (policy below).
+-- No INSERT/UPDATE/DELETE grant => clients can never forge or erase audit rows.
+REVOKE ALL ON TABLE public.admin_audit_log FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.admin_audit_log TO authenticated;
+
+ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS admin_audit_log_admin_read ON public.admin_audit_log;
+CREATE POLICY admin_audit_log_admin_read ON public.admin_audit_log
+  FOR SELECT TO authenticated
+  USING ( public.is_platform_admin() );
+-- (no INSERT/UPDATE/DELETE policy at all: writes happen only through the
+--  SECURITY DEFINER writer below, which runs as the table owner.)
+
+-- Append-only guard. Same shape as the existing
+-- guard_patient_surgeries_protected trigger: blocks UPDATE/DELETE for the API
+-- roles even if a policy or grant were ever added by mistake.
+CREATE OR REPLACE FUNCTION public.guard_admin_audit_append_only()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF current_user IN ('authenticated','anon') THEN
+    RAISE EXCEPTION 'admin_audit_log is append-only';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_admin_audit_append_only ON public.admin_audit_log;
+CREATE TRIGGER trg_admin_audit_append_only
+  BEFORE UPDATE OR DELETE ON public.admin_audit_log
+  FOR EACH ROW EXECUTE FUNCTION public.guard_admin_audit_append_only();
+
+-- ============================================================
+-- 4. admin_log() — the only supported way to write an audit row
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.admin_log(
+  p_action         text,
+  p_target_type    text    DEFAULT NULL,
+  p_target_id      uuid    DEFAULT NULL,
+  p_target_label   text    DEFAULT NULL,
+  p_before         jsonb   DEFAULT NULL,
+  p_after          jsonb   DEFAULT NULL,
+  p_reason         text    DEFAULT NULL,
+  p_metadata       jsonb   DEFAULT '{}'::jsonb,
+  p_correlation_id text    DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE v_id uuid; v_role text;
+BEGIN
+  PERFORM public.assert_admin();                       -- admins only
+  IF p_action IS NULL OR btrim(p_action) = '' THEN
+    RAISE EXCEPTION 'admin_log: action is required';
+  END IF;
+
+  SELECT CASE WHEN p.is_admin = true THEN 'admin' ELSE COALESCE(p.role,'admin') END
+    INTO v_role FROM public.profiles p WHERE p.id = auth.uid();
+
+  INSERT INTO public.admin_audit_log
+    (actor_id, actor_role, action, target_type, target_id, target_label,
+     before_state, after_state, reason, metadata, correlation_id)
+  VALUES
+    (auth.uid(), v_role, btrim(p_action), p_target_type, p_target_id, p_target_label,
+     p_before, p_after, NULLIF(btrim(COALESCE(p_reason,'')),''),
+     COALESCE(p_metadata,'{}'::jsonb), p_correlation_id)
+  RETURNING id INTO v_id;
+
+  RETURN v_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_log(text,text,uuid,text,jsonb,jsonb,text,jsonb,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_log(text,text,uuid,text,jsonb,jsonb,text,jsonb,text) TO authenticated;
+
+-- ============================================================
+-- 5. admin_search() — global search over EXISTING data only
+-- ============================================================
+-- Safety properties:
+--   * assert_admin() first; non-admins get an exception, never rows.
+--   * No dynamic SQL. One static UNION ALL; the term is a bound parameter.
+--   * LIKE metacharacters in the term are escaped, so input cannot widen the
+--     match; ESCAPE '\' is declared explicitly.
+--   * Result count is bounded (default 20, hard max 100).
+--   * Only columns confirmed to exist are referenced. medical_license_number is
+--     NOT in any migration, so it is read defensively via to_jsonb()->>, which
+--     yields NULL when the column is absent instead of failing.
+--   * 'destination' is an EXISTING page that can display the entity today, or
+--     NULL. No routes are invented.
+DROP FUNCTION IF EXISTS public.admin_search(text, integer);
+CREATE FUNCTION public.admin_search(p_q text, p_limit integer DEFAULT 20)
+RETURNS TABLE (
+  entity_type text,
+  entity_id   uuid,
+  label       text,
+  sublabel    text,
+  status      text,
+  destination text
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_term text;
+  v_pat  text;
+  v_uuid uuid;
+  v_lim  integer := LEAST(GREATEST(COALESCE(p_limit, 20), 1), 100);
+BEGIN
+  PERFORM public.assert_admin();
+
+  v_term := btrim(COALESCE(p_q, ''));
+  IF length(v_term) < 2 THEN
+    RETURN;                                   -- too short: no rows, no error
+  END IF;
+
+  -- Escape LIKE metacharacters so the term cannot broaden the search.
+  v_pat := '%' || replace(replace(replace(v_term, '\', '\\'), '%', '\%'), '_', '\_') || '%';
+
+  -- Exact UUID lookup when the term is a well-formed uuid.
+  BEGIN
+    v_uuid := v_term::uuid;
+  EXCEPTION WHEN others THEN
+    v_uuid := NULL;
+  END;
+
+  RETURN QUERY
+  SELECT r.entity_type, r.entity_id, r.label, r.sublabel, r.status, r.destination
+  FROM (
+    -- ── profiles (doctors, patients, admins, staff) ──
+    SELECT 'profile'::text AS entity_type,
+           p.id            AS entity_id,
+           COALESCE(NULLIF(btrim(COALESCE(p.full_name,'')),''), p.email, 'User')::text AS label,
+           NULLIF(concat_ws(' - ', p.email, p.hospital, p.specialty, p.country), '')::text AS sublabel,
+           (COALESCE(p.role,'pending') || CASE
+              WHEN COALESCE(p.verification_status,'') NOT IN ('', 'not_required')
+              THEN ' / ' || p.verification_status ELSE '' END)::text AS status,
+           '/v2/admin.html'::text AS destination,
+           1 AS rank_order,
+           p.created_at AS sort_at
+      FROM public.profiles p
+     WHERE (v_uuid IS NOT NULL AND p.id = v_uuid)
+        OR p.full_name ILIKE v_pat ESCAPE '\'
+        OR p.email     ILIKE v_pat ESCAPE '\'
+        OR p.phone     ILIKE v_pat ESCAPE '\'
+        OR p.hospital  ILIKE v_pat ESCAPE '\'
+        OR p.specialty ILIKE v_pat ESCAPE '\'
+        OR p.country   ILIKE v_pat ESCAPE '\'
+        OR (to_jsonb(p) ->> 'medical_license_number') ILIKE v_pat ESCAPE '\'
+
+    UNION ALL
+    -- ── patient_surgeries (the canonical patient record) ──
+    SELECT 'patient_surgery'::text,
+           s.id,
+           COALESCE(NULLIF(btrim(COALESCE(s.patient_name,'')),''), 'Patient')::text,
+           NULLIF(concat_ws(' - ', s.procedure_type, s.hospital,
+                            to_char(s.surgery_date,'YYYY-MM-DD')), '')::text,
+           (CASE WHEN s.archived_at  IS NOT NULL THEN 'archived'
+                 WHEN s.completed_at IS NOT NULL THEN 'completed'
+                 WHEN s.ready_at     IS NOT NULL THEN 'ready'
+                 ELSE COALESCE(s.care_state,'surgical') END)::text,
+           '/v2/admin.html'::text,
+           2,
+           s.created_at
+      FROM public.patient_surgeries s
+     WHERE (v_uuid IS NOT NULL AND (s.id = v_uuid OR s.patient_id = v_uuid
+                                    OR s.assigned_doctor_id = v_uuid))
+        OR s.patient_name   ILIKE v_pat ESCAPE '\'
+        OR s.procedure_type ILIKE v_pat ESCAPE '\'
+        OR s.hospital       ILIKE v_pat ESCAPE '\'
+        OR s.contact_email  ILIKE v_pat ESCAPE '\'
+
+    UNION ALL
+    -- ── clinic_patients (doctor-invited, may have no account) ──
+    SELECT 'clinic_patient'::text,
+           c.id,
+           COALESCE(NULLIF(btrim(COALESCE(c.patient_name,'')),''), 'Patient')::text,
+           NULLIF(concat_ws(' - ', c.procedure, c.hospital, c.phone_number, c.email), '')::text,
+           COALESCE(c.patient_status,'awaiting_questionnaire')::text,
+           '/v2/dashboard.html'::text,
+           3,
+           c.created_at
+      FROM public.clinic_patients c
+     WHERE (v_uuid IS NOT NULL AND (c.id = v_uuid OR c.doctor_id = v_uuid OR c.auth_user_id = v_uuid))
+        OR c.patient_name ILIKE v_pat ESCAPE '\'
+        OR c.phone_number ILIKE v_pat ESCAPE '\'
+        OR c.email        ILIKE v_pat ESCAPE '\'
+        OR c.procedure    ILIKE v_pat ESCAPE '\'
+        OR c.hospital     ILIKE v_pat ESCAPE '\'
+
+    UNION ALL
+    -- ── care_requests (consultations / attachment requests) ──
+    SELECT 'care_request'::text,
+           r2.id,
+           COALESCE(NULLIF(btrim(COALESCE(r2.patient_name,'')),''), 'Care request')::text,
+           NULLIF(concat_ws(' - ', r2.doctor_name, r2.procedure, r2.origin_method), '')::text,
+           r2.status::text,
+           '/v2/dashboard.html'::text,
+           4,
+           r2.requested_at
+      FROM public.care_requests r2
+     WHERE (v_uuid IS NOT NULL AND (r2.id = v_uuid OR r2.patient_id = v_uuid
+                                    OR r2.doctor_id = v_uuid OR r2.surgery_id = v_uuid))
+        OR r2.patient_name ILIKE v_pat ESCAPE '\'
+        OR r2.doctor_name  ILIKE v_pat ESCAPE '\'
+        OR r2.procedure    ILIKE v_pat ESCAPE '\'
+
+    UNION ALL
+    -- ── preop_questionnaires (UUID lookup only: clinical answers are never searched) ──
+    SELECT 'questionnaire'::text,
+           q.id,
+           'Questionnaire'::text,
+           NULLIF(concat_ws(' - ', 'completion ' || COALESCE(q.completion,0)::text || '%',
+                            to_char(q.submitted_at,'YYYY-MM-DD')), '')::text,
+           COALESCE(q.review_state, COALESCE(q.status,'in_progress'))::text,
+           '/v2/dashboard.html'::text,
+           5,
+           q.created_at
+      FROM public.preop_questionnaires q
+     WHERE v_uuid IS NOT NULL AND (q.id = v_uuid OR q.patient_id = v_uuid)
+
+    UNION ALL
+    -- ── questions (subject only; the message body is never searched) ──
+    SELECT 'question'::text,
+           qq.id,
+           COALESCE(NULLIF(btrim(COALESCE(qq.subject,'')),''), 'Patient question')::text,
+           to_char(qq.created_at,'YYYY-MM-DD')::text,
+           COALESCE(qq.status,'new')::text,
+           '/v2/dashboard.html'::text,
+           6,
+           qq.created_at
+      FROM public.questions qq
+     WHERE (v_uuid IS NOT NULL AND (qq.id = v_uuid OR qq.patient_id = v_uuid))
+        OR qq.subject ILIKE v_pat ESCAPE '\'
+  ) AS r
+  ORDER BY r.rank_order, r.sort_at DESC NULLS LAST
+  LIMIT v_lim;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_search(text, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_search(text, integer) TO authenticated;
+
+COMMIT;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ============================================================
+-- ROLLBACK (run as a block to undo Phase 0 completely)
+-- ============================================================
+-- BEGIN;
+--   DROP POLICY IF EXISTS profiles_admin_read                ON public.profiles;
+--   DROP POLICY IF EXISTS preop_checklist_admin_read         ON public.preop_checklist;
+--   DROP POLICY IF EXISTS question_replies_admin_read        ON public.question_replies;
+--   DROP POLICY IF EXISTS preparation_plans_admin_read       ON public.preparation_plans;
+--   DROP POLICY IF EXISTS requirement_documents_admin_read   ON public.requirement_documents;
+--   DROP POLICY IF EXISTS patient_recommendations_admin_read ON public.patient_recommendations;
+--   DROP POLICY IF EXISTS video_progress_admin_read          ON public.video_progress;
+--   DROP POLICY IF EXISTS admin_audit_log_admin_read         ON public.admin_audit_log;
+--   DROP TRIGGER IF EXISTS trg_admin_audit_append_only       ON public.admin_audit_log;
+--   DROP FUNCTION IF EXISTS public.guard_admin_audit_append_only();
+--   DROP FUNCTION IF EXISTS public.admin_search(text, integer);
+--   DROP FUNCTION IF EXISTS public.admin_log(text,text,uuid,text,jsonb,jsonb,text,jsonb,text);
+--   -- Audit history is intentionally NOT dropped by default. To remove it too:
+--   -- DROP TABLE IF EXISTS public.admin_audit_log;
+--   DROP FUNCTION IF EXISTS public.assert_admin();
+--   DROP FUNCTION IF EXISTS public.is_platform_admin();
+-- COMMIT;
+-- NOTIFY pgrst, 'reload schema';
+-- ============================================================
