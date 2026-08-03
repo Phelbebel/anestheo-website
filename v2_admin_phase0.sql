@@ -187,6 +187,53 @@ CREATE TRIGGER trg_admin_audit_append_only
 -- ============================================================
 -- 4. admin_log() — the only supported way to write an audit row
 -- ============================================================
+-- Defence in depth for before_state / after_state: the audit log must never
+-- become a secret store or a copy of the clinical record. Values whose KEY
+-- matches the denylist are replaced with '[redacted]' (top level and nested).
+-- Callers are still expected to pass minimal diffs; this is the backstop.
+CREATE OR REPLACE FUNCTION public.admin_scrub_jsonb(p_in jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_out jsonb;
+  v_key text;
+  v_val jsonb;
+  -- secrets + bulk clinical payloads that have no place in an audit row
+  v_deny text[] := ARRAY[
+    'password','pass','pwd','token','access_token','refresh_token','jwt',
+    'secret','api_key','apikey','key','authorization','auth','service_role',
+    'anon_key','claim_token','session','cookie',
+    'answers','questionnaire_data','risk_flags','plan_content','message',
+    'notes','doctor_notes','consult_notes','reviewer_notes','items'
+  ];
+BEGIN
+  IF p_in IS NULL THEN RETURN NULL; END IF;
+  IF jsonb_typeof(p_in) = 'array' THEN
+    SELECT COALESCE(jsonb_agg(public.admin_scrub_jsonb(e)), '[]'::jsonb)
+      INTO v_out FROM jsonb_array_elements(p_in) AS e;
+    RETURN v_out;
+  END IF;
+  IF jsonb_typeof(p_in) <> 'object' THEN RETURN p_in; END IF;
+
+  v_out := '{}'::jsonb;
+  FOR v_key, v_val IN SELECT * FROM jsonb_each(p_in) LOOP
+    IF lower(v_key) = ANY (v_deny) THEN
+      v_out := v_out || jsonb_build_object(v_key, to_jsonb('[redacted]'::text));
+    ELSIF jsonb_typeof(v_val) IN ('object','array') THEN
+      v_out := v_out || jsonb_build_object(v_key, public.admin_scrub_jsonb(v_val));
+    ELSE
+      v_out := v_out || jsonb_build_object(v_key, v_val);
+    END IF;
+  END LOOP;
+  RETURN v_out;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.admin_scrub_jsonb(jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_scrub_jsonb(jsonb) TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.admin_log(
   p_action         text,
   p_target_type    text    DEFAULT NULL,
@@ -217,9 +264,11 @@ BEGIN
     (actor_id, actor_role, action, target_type, target_id, target_label,
      before_state, after_state, reason, metadata, correlation_id)
   VALUES
+    -- actor_id is ALWAYS auth.uid(): the caller can never supply an identity.
     (auth.uid(), v_role, btrim(p_action), p_target_type, p_target_id, p_target_label,
-     p_before, p_after, NULLIF(btrim(COALESCE(p_reason,'')),''),
-     COALESCE(p_metadata,'{}'::jsonb), p_correlation_id)
+     public.admin_scrub_jsonb(p_before), public.admin_scrub_jsonb(p_after),
+     NULLIF(btrim(COALESCE(p_reason,'')),''),
+     public.admin_scrub_jsonb(COALESCE(p_metadata,'{}'::jsonb)), p_correlation_id)
   RETURNING id INTO v_id;
 
   RETURN v_id;
@@ -267,8 +316,9 @@ BEGIN
   PERFORM public.assert_admin();
 
   v_term := btrim(COALESCE(p_q, ''));
-  IF length(v_term) < 2 THEN
-    RETURN;                                   -- too short: no rows, no error
+  -- Bounded input: too short is meaningless, too long is a pointless scan.
+  IF length(v_term) < 2 OR length(v_term) > 128 THEN
+    RETURN;                                   -- no rows, no error
   END IF;
 
   -- Escape LIKE metacharacters so the term cannot broaden the search.
@@ -418,6 +468,7 @@ NOTIFY pgrst, 'reload schema';
 --   DROP FUNCTION IF EXISTS public.guard_admin_audit_append_only();
 --   DROP FUNCTION IF EXISTS public.admin_search(text, integer);
 --   DROP FUNCTION IF EXISTS public.admin_log(text,text,uuid,text,jsonb,jsonb,text,jsonb,text);
+--   DROP FUNCTION IF EXISTS public.admin_scrub_jsonb(jsonb);
 --   -- Audit history is intentionally NOT dropped by default. To remove it too:
 --   -- DROP TABLE IF EXISTS public.admin_audit_log;
 --   DROP FUNCTION IF EXISTS public.assert_admin();
