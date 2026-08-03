@@ -153,10 +153,12 @@ var _session = null;
   var session = await getSession();
   if(!session){ window.location.href='/v2/index.html'; return; }
   _session = session;
-  // If they already have a role, go straight to dashboard
+  // If they already have a role, go straight to their default landing:
+  // patients → Patient Home, staff → workspace.
   var profile = await getProfile(session.user.id);
   if(profile && profile.role && profile.role !== 'pending'){
-    window.location.href='/v2/dashboard.html';
+    var isAdm = (profile.is_admin === true || profile.role === 'admin');
+    window.location.href = (!isAdm && profile.role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
   }
 })();
 
@@ -214,7 +216,8 @@ async function saveProfileAndGo(){
   var { error } = await saveProfile(_session.user.id, data);
   if(error){ btn.disabled=false; btn.textContent='Save & open dashboard →'; errEl.textContent=error.message; errEl.style.display='block'; return; }
 
-  window.location.href = '/v2/dashboard.html';
+  // Onboarding complete: patients land on the Patient Home, staff on the workspace.
+  window.location.href = (_role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
 }
 </script>
 </body>

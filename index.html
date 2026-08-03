@@ -424,16 +424,28 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .pt-j-chip b{color:#fff;font-weight:700;}
 .pt-j-empty{position:relative;font-size:13.5px;color:var(--mu);line-height:1.55;margin-bottom:15px;}
 /* Preparation cards */
-.pt-prep{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;}
-.pt-pcard{display:flex;align-items:flex-start;gap:12px;padding:15px 16px;border-radius:14px;text-decoration:none;color:#fff;
-  background:rgba(255,255,255,.03);border:1px solid var(--bd);
-  transition:transform .26s cubic-bezier(.2,.7,.2,1),border-color .26s,background .26s;}
-.pt-pcard:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.34);background:rgba(27,107,90,.09);}
-.pt-pcard .ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;
-  background:rgba(126,207,192,.1);border:1px solid var(--bd);flex:0 0 auto;}
-.pt-pcard .tx{min-width:0;display:flex;flex-direction:column;}
-.pt-pcard .n{font-size:14px;font-weight:700;line-height:1.25;}
-.pt-pcard .s{font-size:11.5px;color:var(--mu);margin-top:3px;line-height:1.35;}
+.pt-prep{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.pt-pcard{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;min-height:132px;
+  padding:17px 18px;border-radius:16px;text-decoration:none;color:#fff;
+  background:linear-gradient(180deg,rgba(255,255,255,.052),rgba(255,255,255,.018));border:1px solid var(--bd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 32px -24px rgba(0,0,0,.75);
+  transition:transform .28s cubic-bezier(.2,.7,.2,1),border-color .28s,box-shadow .28s;}
+.pt-pcard:hover{transform:translateY(-3px);border-color:rgba(126,207,192,.4);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 20px 44px -24px rgba(0,0,0,.85),0 0 0 1px rgba(126,207,192,.08);}
+.pt-pcard:active{transform:translateY(-1px);background:rgba(27,107,90,.13);}
+.pt-pcard:focus-visible{border-color:rgba(126,207,192,.6);}
+.pt-pcard .glow{position:absolute;top:-45%;right:-25%;width:64%;height:150%;pointer-events:none;opacity:.3;
+  background:radial-gradient(circle,rgba(126,207,192,.11),transparent 70%);transition:opacity .35s;}
+.pt-pcard:hover .glow{opacity:.6;}
+.pt-pcard .ic{position:relative;width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:19px;
+  background:rgba(126,207,192,.11);border:1px solid var(--bd);box-shadow:inset 0 0 12px rgba(126,207,192,.06);flex:0 0 auto;}
+.pt-pcard .tx{position:relative;min-width:0;display:flex;flex-direction:column;}
+.pt-pcard .n{font-size:14.5px;font-weight:700;line-height:1.25;letter-spacing:-.005em;}
+.pt-pcard .s{font-size:11.5px;color:var(--mu);margin-top:4px;line-height:1.4;}
+.pt-pcard .go{position:relative;margin-top:auto;display:inline-flex;align-items:center;gap:6px;
+  font-size:12.5px;font-weight:700;color:var(--ac);}
+.pt-pcard .go .arw{transition:transform .25s;}
+.pt-pcard:hover .go .arw{transform:translateX(3px);}
 /* Ask the anesthesiologist */
 .pt-ask{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   border-radius:18px;padding:20px 22px;background:linear-gradient(135deg,rgba(27,107,90,.24),rgba(255,255,255,.03));
@@ -499,8 +511,12 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .res-card .res-tx b{display:block;font-size:16px;font-weight:800;letter-spacing:-.01em;}
 .res-card .res-tx span{display:block;font-size:12.5px;color:var(--mu);margin-top:2px;}
 .res-card .res-go{font-size:13px;font-weight:700;color:var(--ac);flex:0 0 auto;white-space:nowrap;}
-.ah-vhead{display:flex;align-items:baseline;gap:14px;}
+.ah-vhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
 .ah-vhead .ah-more+.ah-more{margin-left:0;}
+/* Subscribe = external YouTube action; a quiet chip, never a fake in-app control */
+.ah-more.sub{display:inline-flex;align-items:center;border:1px solid rgba(126,207,192,.34);border-radius:20px;padding:6px 13px;color:var(--ac);}
+.ah-more.sub:hover{background:rgba(27,107,90,.14);border-color:rgba(126,207,192,.55);}
+@media(max-width:560px){ .ah-sec-h{flex-wrap:wrap;} .ah-vhead{justify-content:flex-start;width:100%;} }
 @media(prefers-reduced-motion:reduce){ .wf-card,.rf-card,.lw2,.res-card,.wf-cta .arw,.lw2-go{transition:none;} }
 
 @media(max-width:1000px){ .rf-grid{grid-template-columns:repeat(3,1fr);} }
@@ -1227,7 +1243,9 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
         {ic:'&#129509;',n:'What to bring',s:'Documents and essentials',h:'/v2/preop-instructions.html#what-to-bring'},
         {ic:'&#128172;',n:'Questions to ask',s:'Prepare for your anesthesiologist',h:'/v2/ask.html'},
         {ic:'&#127807;',n:'Recovery',s:'What to expect afterwards',h:'/v2/recovery.html'}
-       ].map(function(c){ return '<a class="pt-pcard" href="'+c.h+'"><span class="ic">'+c.ic+'</span><span class="tx"><span class="n">'+c.n+'</span><span class="s">'+c.s+'</span></span></a>'; }).join('')+
+       ].map(function(c){ return '<a class="pt-pcard" href="'+c.h+'"><span class="glow"></span><span class="ic">'+c.ic+'</span>'+
+          '<span class="tx"><span class="n">'+c.n+'</span><span class="s">'+c.s+'</span></span>'+
+          '<span class="go">Open <span class="arw">&rarr;</span></span></a>'; }).join('')+
        '</div></div>';
     // 5 — ASK THE ANESTHESIOLOGIST (its own destination, never My Space)
     h+='<div class="ah-sec"><div class="pt-ask"><span class="glow"></span>'+
@@ -1237,7 +1255,8 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     // 6 — LATEST VIDEOS (shared real-video source; neutral wording)
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest anesthesia videos</span>'+
        '<span class="ah-vhead"><a class="ah-more" href="/v2/videos.html">View all videos →</a>'+
-       '<a class="ah-more" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a></span></div>'+
+       '<a class="ah-more" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a>'+
+       '<a class="ah-more sub" href="https://www.youtube.com/@anestheo?sub_confirmation=1" target="_blank" rel="noopener">Subscribe on YouTube →</a></span></div>'+
        '<div id="ah-videos"></div></div>';
     h+=appFooter()+'</div>';
     ah.innerHTML=h;

@@ -526,7 +526,8 @@ function nbShowAuthModal(){
   setTimeout(function(){ var e = ge('nb-email'); if(e) e.focus(); }, 80);
 }
 function nbGoWorkspace(role){
-  location.href = (role === 'patient') ? '/v2/patient-dashboard.html' : '/v2/dashboard.html';
+  // Returning session: patients land on the Patient Home; staff on the workspace.
+  location.href = (role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
 }
 // The sign-in modal must ONLY appear when there is no authenticated session.
 // If a valid Supabase session already exists, reuse it and send the user to
@@ -822,9 +823,13 @@ window.nbSubmitAuth = async function(){
       console.log('ROLE:', prof.is_admin ? 'admin' : prof.role);
 
       // STEP 6 — redirect (D)
+      // Default landing by role: patients land on the Patient Home (the
+      // authenticated state of /v2/index.html); My Space stays reachable from
+      // the navbar and the Home hero. Doctors/admins are unchanged.
       if(window.resetSessionCache) window.resetSessionCache();
-      var dest = '/v2/dashboard.html';
-      console.log('REDIRECTING TO DASHBOARD —', dest);
+      var _isAdmin = prof && (prof.is_admin === true || prof.role === 'admin');
+      var dest = (!_isAdmin && prof && prof.role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
+      console.log('REDIRECTING TO —', dest);
       console.log('DIAGNOSIS: none — auth OK, redirect issued to', dest);
       console.log('========== LOGIN DIAGNOSTIC END ==========');
       window.nbCloseModal();
@@ -844,7 +849,7 @@ window.nbSubmitAuth = async function(){
 
 // Route a freshly-created user to the right place by role
 function routeByRole(role){
-  if(role === 'patient'){ window.location.href = '/v2/patients.html'; }
+  if(role === 'patient'){ window.location.href = '/v2/index.html'; }   // Patient Home
   else { window.location.href = '/v2/dashboard.html'; }  // doctor/other/admin → workspace (verification banner shows for doctors)
 }
 
