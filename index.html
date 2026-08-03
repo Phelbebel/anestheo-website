@@ -390,6 +390,89 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ref-vw .pill-warn{background:rgba(232,168,56,.12);color:#E8A838;border-color:rgba(232,168,56,.3);}
 .ref-vw .pill-danger{background:rgba(192,57,43,.13);color:rgba(255,140,120,.92);border-color:rgba(192,57,43,.3);}
 @media(max-width:560px){ .ref-panel-acts{margin-left:auto;} }
+/* ── Patient Home — calmer, reassuring; same tokens/typography ───────────── */
+.pt-hero{position:relative;overflow:hidden;border-radius:20px;padding:34px 32px 30px;margin-bottom:24px;
+  background:linear-gradient(160deg,rgba(27,107,90,.20),rgba(255,255,255,.03) 62%);border:1px solid var(--bd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 18px 46px -30px rgba(0,0,0,.8);}
+.pt-hero .glow{position:absolute;right:-6%;top:-70%;width:min(520px,60%);height:240%;pointer-events:none;
+  background:radial-gradient(circle,rgba(126,207,192,.10),transparent 70%);}
+.pt-hero h1{position:relative;font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,3.8vw,40px);
+  font-weight:700;line-height:1.16;letter-spacing:-.015em;color:#fff;}
+.pt-hero h1 .soft{display:block;color:#BEE7DD;}
+.pt-hero p{position:relative;font-size:15px;color:rgba(255,255,255,.72);line-height:1.6;margin-top:12px;max-width:52ch;}
+.pt-hero-acts{position:relative;display:flex;flex-wrap:wrap;gap:11px;margin-top:22px;}
+.pt-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:12px;
+  font-size:14.5px;font-weight:700;text-decoration:none;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:#fff;
+  transition:background .2s,border-color .2s,transform .2s;}
+.pt-btn:hover{border-color:rgba(126,207,192,.45);transform:translateY(-1px);}
+.pt-btn.primary{background:var(--tl);border-color:var(--tl2);}
+.pt-btn.primary:hover{background:var(--tl2);}
+/* Your surgery journey — one personal card */
+.pt-journey{position:relative;overflow:hidden;border-radius:18px;padding:19px 21px;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--bd);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 34px -26px rgba(0,0,0,.75);}
+.pt-journey .glow{position:absolute;right:-8%;top:-60%;width:44%;height:220%;pointer-events:none;
+  background:radial-gradient(circle,rgba(126,207,192,.09),transparent 72%);}
+.pt-j-top{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.pt-j-ic{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px;
+  background:rgba(126,207,192,.11);border:1px solid var(--bd);flex:0 0 auto;}
+.pt-j-t{font-size:16px;font-weight:800;letter-spacing:-.01em;}
+.pt-j-rows{position:relative;display:flex;flex-wrap:wrap;gap:9px;margin-bottom:15px;}
+.pt-j-chip{display:inline-flex;align-items:baseline;gap:7px;font-size:12.5px;background:rgba(255,255,255,.04);
+  border:1px solid var(--bd);border-radius:20px;padding:7px 13px;color:var(--mu);}
+.pt-j-chip b{color:#fff;font-weight:700;}
+.pt-j-empty{position:relative;font-size:13.5px;color:var(--mu);line-height:1.55;margin-bottom:15px;}
+/* Preparation cards */
+.pt-prep{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;}
+.pt-pcard{display:flex;align-items:flex-start;gap:12px;padding:15px 16px;border-radius:14px;text-decoration:none;color:#fff;
+  background:rgba(255,255,255,.03);border:1px solid var(--bd);
+  transition:transform .26s cubic-bezier(.2,.7,.2,1),border-color .26s,background .26s;}
+.pt-pcard:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.34);background:rgba(27,107,90,.09);}
+.pt-pcard .ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;
+  background:rgba(126,207,192,.1);border:1px solid var(--bd);flex:0 0 auto;}
+.pt-pcard .tx{min-width:0;display:flex;flex-direction:column;}
+.pt-pcard .n{font-size:14px;font-weight:700;line-height:1.25;}
+.pt-pcard .s{font-size:11.5px;color:var(--mu);margin-top:3px;line-height:1.35;}
+/* Ask the anesthesiologist */
+.pt-ask{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  border-radius:18px;padding:20px 22px;background:linear-gradient(135deg,rgba(27,107,90,.24),rgba(255,255,255,.03));
+  border:1px solid rgba(126,207,192,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 14px 38px -28px rgba(0,0,0,.8);}
+.pt-ask .glow{position:absolute;right:-8%;top:-60%;width:44%;height:220%;pointer-events:none;
+  background:radial-gradient(circle,rgba(126,207,192,.11),transparent 72%);}
+.pt-ask .tx{position:relative;flex:1;min-width:220px;}
+.pt-ask .tx b{display:block;font-size:16.5px;font-weight:800;letter-spacing:-.01em;}
+.pt-ask .tx span{display:block;font-size:13px;color:rgba(255,255,255,.72);margin-top:5px;line-height:1.55;}
+.pt-ask .pt-btn{position:relative;flex:0 0 auto;}
+/* Procedure quick-view panel content (styles identical across all 8 procedure
+   pages — copied ONCE, scoped; clinical CONTENT is fetched, never copied) */
+.ref-vw .pblock{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:13px;padding:16px 18px;margin-bottom:12px;overflow-x:auto;}
+.ref-vw .pblock:last-child{margin-bottom:0;}
+.ref-vw .pblock-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7ECFC0;margin-bottom:12px;display:flex;align-items:center;gap:9px;}
+.ref-vw .pblock p{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:10px;}
+.ref-vw .pblock p:last-child{margin-bottom:0;}
+.ref-vw .pli{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.ref-vw .pli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:#2A8A74;}
+.ref-vw .pli b{color:#fff;}
+.ref-vw .fast-tbl{width:100%;border-collapse:collapse;font-size:13.5px;}
+.ref-vw .fast-tbl th{text-align:left;padding:9px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;}
+.ref-vw .fast-tbl td{padding:10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);}
+.ref-vw .fast-tbl tr:last-child td{border-bottom:none;}
+.ref-vw .fast-tbl td b{color:#fff;}
+.ref-vw .faq-q{font-size:14px;font-weight:600;color:#fff;margin-top:14px;margin-bottom:5px;}
+.ref-vw .faq-q:first-child{margin-top:0;}
+.ref-vw .faq-a{font-size:13.5px;color:rgba(255,255,255,.75);line-height:1.7;}
+.ref-vw .vid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.ref-vw .vid-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px;text-decoration:none;color:inherit;display:block;}
+.ref-vw .vid-card:hover{border-color:rgba(42,138,116,.4);background:rgba(27,107,90,.1);}
+.ref-vw .vid-ico{font-size:22px;margin-bottom:6px;}
+.ref-vw .vid-title{font-size:13px;font-weight:500;color:#fff;}
+@media(max-width:900px){ .pt-prep{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:560px){
+  .pt-hero{padding:26px 20px 24px;}
+  .pt-prep{grid-template-columns:1fr;}
+  .pt-hero-acts .pt-btn{flex:1 1 100%;}
+}
+@media(prefers-reduced-motion:reduce){ .pt-btn,.pt-pcard{transition:none;} }
 /* Elegant Live Workspace card (not a banner) */
 .lw2{position:relative;overflow:hidden;display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:18px;color:#fff;text-decoration:none;
   background:linear-gradient(135deg,rgba(27,107,90,.32),rgba(255,255,255,.03));border:1px solid rgba(126,207,192,.28);
@@ -823,20 +906,25 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // source of truth) and only the content region is extracted — no navbar /
   // footer / loader shell, and no clinical content is duplicated in this file.
   var _refMap={}; (function(){ AH_REF_CARDS.forEach(function(r){ _refMap[r.k]={h:r.h,n:r.n}; }); })();
-  var _refCache={};
-  function ahRefFetch(key){
-    if(_refCache[key]) return Promise.resolve(_refCache[key]);
-    var info=_refMap[key];
-    return fetch(info.h).then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); }).then(function(html){
+  // Generic same-origin content-fragment loader, shared by the Clinical
+  // Reference quick-view (doctor) and the Procedure guide quick-view (patient).
+  // Extracts ONLY the content region of an existing page — never its shell.
+  var _fragCache={};
+  function ahFragFetch(href){
+    if(_fragCache[href]) return Promise.resolve(_fragCache[href]);
+    return fetch(href).then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); }).then(function(html){
       var doc=new DOMParser().parseFromString(html,'text/html');
       var wrap=doc.querySelector('.page-wrap'); if(!wrap) throw new Error('nocontent');
-      var title=((wrap.querySelector('.ref-h1')||{}).textContent||'').trim();
-      var sub=((wrap.querySelector('.ref-sub')||{}).textContent||'').trim();
-      ['.crumb','#ref-evidence','.ref-h1','.ref-sub'].forEach(function(sel){ var el=wrap.querySelector(sel); if(el) el.remove(); });
+      var title=((wrap.querySelector('.ref-h1, .proc-h1')||{}).textContent||'').trim();
+      var sub=((wrap.querySelector('.ref-sub, .proc-sub')||{}).textContent||'').trim();
+      // Drop page chrome + anything that would duplicate the panel's own actions.
+      ['.crumb','#ref-evidence','.ref-h1','.ref-sub','.proc-hero','.nav-prev','.ask-cta','footer','script']
+        .forEach(function(sel){ Array.prototype.forEach.call(wrap.querySelectorAll(sel),function(el){ el.remove(); }); });
       var f={title:title,sub:sub,html:wrap.innerHTML};   // same-origin trusted content
-      _refCache[key]=f; return f;
+      _fragCache[href]=f; return f;
     });
   }
+  function ahRefFetch(key){ return ahFragFetch(_refMap[key].h); }
   function ahRefScroll(panel){ try{ var rt=panel.getBoundingClientRect().top; if(rt<70||rt>window.innerHeight*0.6){ window.scrollTo({top:window.scrollY+rt-88,behavior:'smooth'}); } }catch(e){} }
   window.ahRefOpen=function(ev,key){
     if(ev && (ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey||ev.button===1)) return true;  // let modified clicks navigate
@@ -1047,35 +1135,131 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   }
 
   // ---------- PATIENT ----------
+  // Procedure guides — the existing pages/routes, with their own real icons and
+  // subtitles. Each card opens ITS OWN guide (never the shared My Space route).
+  var AH_PROC_CARDS=[
+    {k:'csection',   ic:'&#129488;',       n:'C-Section / Childbirth', s:'Cesarean delivery and labor',      h:'/v2/csection.html'},
+    {k:'orthopedic', ic:'&#129460;',       n:'Orthopedic Surgery',     s:'Joint, bone and limb procedures',  h:'/v2/orthopedic.html'},
+    {k:'dental',     ic:'&#129463;',       n:'Dental & Oral Surgery',  s:'Sedation for dental procedures',   h:'/v2/dental.html'},
+    {k:'ent',        ic:'&#128066;',       n:'ENT Surgery',            s:'Ear, nose, throat and sinus',      h:'/v2/ent.html'},
+    {k:'plastic',    ic:'&#10024;',        n:'Plastic Surgery',        s:'Reconstructive and cosmetic',      h:'/v2/plastic.html'},
+    {k:'oncogyn',    ic:'&#9792;&#65039;', n:'Oncogynecology',         s:'Gynecologic oncology surgery',     h:'/v2/oncogynecology.html'},
+    {k:'urology',    ic:'&#129752;',       n:'Urology',                s:'Kidney, bladder and urinary',      h:'/v2/urology.html'},
+    {k:'general',    ic:'&#128298;',       n:'General / Other Surgery',s:'Abdominal and general procedures', h:'/v2/general-surgery.html'}
+  ];
+  var _procMap={}; (function(){ AH_PROC_CARDS.forEach(function(r){ _procMap[r.k]={h:r.h,n:r.n}; }); })();
+  function procGridCard(r){
+    return '<a class="rf-card" id="pcc-'+r.k+'" href="'+r.h+'" role="button" aria-expanded="false" onclick="return ahProcOpen(event,\''+r.k+'\')">'+
+      '<span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>';
+  }
+  // Inline procedure quick-view — identical mechanism to the Doctor Home
+  // Clinical Reference quick-view (shared ahFragFetch; content is fetched from
+  // the existing procedure pages, never duplicated here).
+  window.ahProcOpen=function(ev,key){
+    if(ev && (ev.metaKey||ev.ctrlKey||ev.shiftKey||ev.altKey||ev.button===1)) return true;
+    if(ev) ev.preventDefault();
+    var card=document.getElementById('pcc-'+key);
+    if(card && card.classList.contains('active')){ ahProcClose(); return false; }
+    var panel=document.getElementById('ah-proc-panel'), info=_procMap[key]; if(!panel||!info) return false;
+    Array.prototype.forEach.call(document.querySelectorAll('#ah .rf-card.active'),function(c){ c.classList.remove('active'); c.setAttribute('aria-expanded','false'); });
+    if(card){ card.classList.add('active'); card.setAttribute('aria-expanded','true'); }
+    panel.hidden=false;
+    panel.innerHTML='<div class="ref-skel"><div class="h"></div><div class="b"></div><div class="b"></div></div>';
+    ahFragFetch(info.h).then(function(f){
+      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(f.title||info.n)+'</div>'+(f.sub?'<div class="ref-panel-s">'+esc(f.sub)+'</div>':'')+'</div>'+
+        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'">Open full guide ↗</a>'+
+        '<button class="ref-close" type="button" onclick="ahProcClose()" aria-label="Close procedure guide">✕</button></div></div>'+
+        '<div class="ref-vw">'+f.html+'</div>';
+      ahRefScroll(panel);
+      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
+    }).catch(function(){
+      panel.innerHTML='<div class="ref-panel-hd"><div><div class="ref-panel-t">'+esc(info.n)+'</div></div>'+
+        '<div class="ref-panel-acts"><a class="ref-open" href="'+info.h+'">Open full guide ↗</a>'+
+        '<button class="ref-close" type="button" onclick="ahProcClose()" aria-label="Close">✕</button></div></div>'+
+        '<div class="ref-vw"><p class="ref-err">Couldn’t load this guide inline. <a href="'+info.h+'">Open the full guide ↗</a></p></div>';
+      var cb=panel.querySelector('.ref-close'); if(cb) cb.focus();
+    });
+    return false;
+  };
+  window.ahProcClose=function(){
+    var panel=document.getElementById('ah-proc-panel'); if(!panel) return;
+    panel.hidden=true; panel.innerHTML='';
+    var a=document.querySelector('#ah .rf-card.active');
+    if(a){ a.classList.remove('active'); a.setAttribute('aria-expanded','false'); a.focus(); }
+  };
+  window.ahScrollTo=function(id){ var el=document.getElementById(id); if(!el) return false;
+    try{ window.scrollTo({top:window.scrollY+el.getBoundingClientRect().top-80,behavior:'smooth'}); }catch(e){ el.scrollIntoView(); } return false; };
+
   function buildPatient(ah, session, profile){
+    var MYSPACE='/v2/patient-dashboard.html';
+    var authed = !!(session && session.user);
     var first=stripDr(pickName(session, profile)).split(/\s+/)[0]||'';
     var h='<div class="ah-wrap">';
-    h+='<div class="ah-top"><div><div class="ah-hello">Welcome back'+(first?', '+esc(first):'')+'</div><div class="ah-sub">Your anesthesia preparation</div></div></div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Your journey</div><div id="ah-journey"><p class="ah-empty">Loading…</p></div></div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Continue</div><div class="ah-actions">'+acts([{label:'Continue questionnaire',href:'/v2/questionnaire.html',p:true},{label:'Open checklist',href:'/v2/patient-dashboard.html'},{label:'Messages from your doctor',href:'/v2/ask.html'}])+'</div></div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Preparation <a class="ah-more" href="/v2/patient-dashboard.html">Open checklist →</a></div><div class="ah-tools">'+tools([
-      {n:'Fasting',s:'When to stop eating & drinking',href:'/v2/patient-dashboard.html'},
-      {n:'Medicines',s:'Review your medications',href:'/v2/patient-dashboard.html'},
-      {n:'Documents',s:'What to bring',href:'/v2/patient-dashboard.html'},
-      {n:'Questions',s:'Ask your team',href:'/v2/ask.html'}
-    ])+'</div></div>';
-    h+='<div class="ah-panel"><div class="ah-panel-h">Learn</div><div class="ah-actions">'+acts([{label:'Educational videos',href:'/v2/videos.html'}])+'</div></div>';
+    // 1 — HERO (calm, reassuring)
+    h+='<div class="pt-hero"><span class="glow"></span>'+
+       '<h1>Understand your anesthesia.<span class="soft">Prepare with confidence.</span></h1>'+
+       '<p>Clear guidance for your procedure, preparation, anesthesia options, and recovery'+(first?', '+esc(first):'')+'.</p>'+
+       '<div class="pt-hero-acts">'+
+         '<a class="pt-btn primary" href="'+MYSPACE+'">Continue your surgery journey →</a>'+
+         '<a class="pt-btn" href="#pt-procedures" onclick="return ahScrollTo(\'pt-procedures\')">Choose your procedure →</a>'+
+       '</div></div>';
+    // 2 — ONE personal journey card (concise status only; never a second My Space)
+    h+='<div class="ah-sec"><div class="pt-journey"><span class="glow"></span>'+
+       '<div class="pt-j-top"><span class="pt-j-ic">&#129517;</span><span class="pt-j-t">Your surgery journey</span></div>'+
+       '<div id="ah-journey">'+(authed
+          ? '<div class="pt-j-empty">Loading your details…</div>'
+          : '<div class="pt-j-empty">Sign in to continue your surgery journey.</div>')+'</div>'+
+       '<a class="pt-btn primary" href="'+(authed?MYSPACE:'#')+'"'+(authed?'':' onclick="if(window.nbOpenModal){window.nbOpenModal();}return false;"')+'>'+
+         (authed?'Continue journey →':'Sign in →')+'</a></div></div>';
+    // 3 — CHOOSE YOUR PROCEDURE (each card opens its own existing guide inline)
+    h+='<div class="ah-sec" id="pt-procedures"><div class="ah-sec-h"><span class="ah-sec-t">Choose your procedure</span>'+
+       '<a class="ah-more" href="/v2/procedures.html">View all procedures →</a></div>'+
+       '<div class="rf-grid">'+AH_PROC_CARDS.map(procGridCard).join('')+'</div>'+
+       '<div class="ref-panel" id="ah-proc-panel" hidden></div></div>';
+    // 4 — PREPARE FOR SURGERY (five distinct destinations)
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Prepare for surgery</span>'+
+       '<a class="ah-more" href="/v2/preop-instructions.html">All pre-op instructions →</a></div><div class="pt-prep">'+
+       [{ic:'&#9201;',n:'Fasting',s:'When to stop eating &amp; drinking',h:'/v2/preop-instructions.html#fasting'},
+        {ic:'&#128138;',n:'Medications',s:'What to continue or pause',h:'/v2/preop-instructions.html#medications'},
+        {ic:'&#129509;',n:'What to bring',s:'Documents and essentials',h:'/v2/preop-instructions.html#what-to-bring'},
+        {ic:'&#128172;',n:'Questions to ask',s:'Prepare for your anesthesiologist',h:'/v2/ask.html'},
+        {ic:'&#127807;',n:'Recovery',s:'What to expect afterwards',h:'/v2/recovery.html'}
+       ].map(function(c){ return '<a class="pt-pcard" href="'+c.h+'"><span class="ic">'+c.ic+'</span><span class="tx"><span class="n">'+c.n+'</span><span class="s">'+c.s+'</span></span></a>'; }).join('')+
+       '</div></div>';
+    // 5 — ASK THE ANESTHESIOLOGIST (its own destination, never My Space)
+    h+='<div class="ah-sec"><div class="pt-ask"><span class="glow"></span>'+
+       '<span class="tx"><b>Questions about anesthesia?</b>'+
+       '<span>Ask about general anesthesia, spinal or epidural, fasting, medications, recovery, or feeling anxious before surgery. A real anesthesiologist answers.</span></span>'+
+       '<a class="pt-btn primary" href="/v2/ask.html">Ask an anesthesiologist →</a></div></div>';
+    // 6 — LATEST VIDEOS (shared real-video source; neutral wording)
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest anesthesia videos</span>'+
+       '<span class="ah-vhead"><a class="ah-more" href="/v2/videos.html">View all videos →</a>'+
+       '<a class="ah-more" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a></span></div>'+
+       '<div id="ah-videos"></div></div>';
     h+=appFooter()+'</div>';
     ah.innerHTML=h;
-    loadPatient(session.user.id);
+    renderVideos();
+    if(authed) loadPatient(session.user.id);
   }
   async function loadPatient(uid){
     var quest=null, surgery=null, prepDone=null;
     try{ quest=(typeof getQuestionnaire==='function')?await getQuestionnaire(uid):((await sb.from('preop_questionnaires').select('*').eq('patient_id',uid).maybeSingle()).data); }catch(e){}
     try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).order('surgery_date',{ascending:true,nullsFirst:false}); var rows=((r&&r.data)||[]); var act=rows.filter(function(x){return !x.archived_at&&!x.completed_at;}); surgery=act[0]||rows[0]||null; }catch(e){}
     try{ var c=(typeof getChecklist==='function')?await getChecklist(uid):((await sb.from('preop_checklist').select('*').eq('patient_id',uid).maybeSingle()).data); if(c&&c.items&&c.items.prep_guide&&c.items.prep_guide.prepare){ var pr=c.items.prep_guide.prepare; prepDone=0; for(var i=0;i<6;i++){ if(pr[i]) prepDone++; } } }catch(e){}
+    // Concise existing status only — the full record stays in My Space.
     var jb=document.getElementById('ah-journey'); if(!jb) return;
-    var parts=[];
-    if(quest){ var pct=(quest.status==='submitted')?100:(quest.completion||0); parts.push(jrow('Questionnaire', quest.status==='submitted'?'Submitted':(pct+'% complete'))); }
-    else parts.push(jrow('Questionnaire','Not started'));
-    if(prepDone!=null) parts.push(jrow('Preparation checklist', prepDone+' of 6 done'));
-    if(surgery && (surgery.procedure_type||surgery.surgery_date)){ var when=surgery.surgery_date?(' · '+esc(String(surgery.surgery_date).slice(0,10))):''; parts.push(jrow('Upcoming', esc(surgery.procedure_type||'Surgery')+when, true)); }
-    jb.innerHTML=parts.join('') || '<p class="ah-empty">Start your questionnaire to begin. <a href="/v2/questionnaire.html">Continue →</a></p>';
+    function chip(l,v){ return '<span class="pt-j-chip">'+esc(l)+' <b>'+esc(v)+'</b></span>'; }
+    var chips=[];
+    if(quest){ var pct=(quest.status==='submitted')?100:(quest.completion||0);
+      chips.push(chip('Questionnaire', quest.status==='submitted'?'Submitted':(pct+'% complete'))); }
+    else chips.push(chip('Questionnaire','Not started'));
+    if(prepDone!=null) chips.push(chip('Checklist', prepDone+' of 6 done'));
+    if(surgery && (surgery.procedure_type||surgery.surgery_date)){
+      var when=surgery.surgery_date?(' · '+String(surgery.surgery_date).slice(0,10)):'';
+      chips.push(chip('Upcoming', (surgery.procedure_type||'Surgery')+when)); }
+    jb.innerHTML = chips.length
+      ? '<div class="pt-j-rows">'+chips.join('')+'</div>'
+      : '<div class="pt-j-empty">Your surgery details will appear here once your preparation begins.</div>';
   }
 
   function renderAppHome(session, profile, role){
