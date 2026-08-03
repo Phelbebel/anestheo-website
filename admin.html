@@ -13,268 +13,1760 @@
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
 <style>
+/* ============================================================
+   ADMIN CENTER — Phase 1 (read-only platform control center)
+   Anestheo identity: dark green ground, glass surfaces, subtle glow.
+   ============================================================ */
 #loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
-.crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
-.crumb a{color:var(--accent);text-decoration:none;}
-.stat-row{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
-.stat{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:16px 20px;flex:1;min-width:120px;}
-.stat-num{font-size:26px;font-weight:700;font-family:'Playfair Display',serif;}
-.stat-lbl{font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
-.tabs{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:14px;}
-.tab{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);
-  padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s;}
-.tab.on{background:rgba(27,107,90,.2);border-color:rgba(42,138,116,.4);color:#fff;}
-.panel{display:none;} .panel.on{display:block;}
-.tbl{width:100%;border-collapse:collapse;font-size:13px;}
-.tbl th{text-align:left;padding:10px 12px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
-.tbl td{padding:11px 12px;border-bottom:1px solid rgba(27,107,90,.1);color:var(--muted);}
-.tbl tr:hover td{background:rgba(27,107,90,.05);}
-.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;}
-.b-approved{background:rgba(27,107,90,.22);color:#7ECFC0;border:1px solid rgba(42,138,116,.35);}
-.b-pending{background:rgba(232,168,56,.13);color:#E8A838;border:1px solid rgba(232,168,56,.3);}
-.b-rejected{background:rgba(192,57,43,.13);color:rgba(255,140,120,.9);border:1px solid rgba(192,57,43,.3);}
-.act{font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:5px;}
-.act-approve{background:rgba(27,107,90,.2);color:#7ECFC0;border:1px solid rgba(42,138,116,.35);}
-.act-approve:hover{background:rgba(27,107,90,.38);}
-.act-reject{background:transparent;color:rgba(255,120,100,.7);border:1px solid rgba(192,57,43,.3);}
-.act-reject:hover{background:rgba(192,57,43,.12);}
-.empty{text-align:center;color:var(--hint);padding:24px;}
-.tbl-wrap{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:6px 18px 12px;overflow-x:auto;}
-.role-sel{background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;color:#fff;padding:6px 9px;font-size:12px;font-family:inherit;outline:none;cursor:pointer;transition:border-color .2s;}
-.role-sel:focus{border-color:#2A8A74;}
-.role-sel option{background:#132218;}
-.set-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(27,107,90,.1);}
-.set-row:last-child{border-bottom:none;}
-.set-label{font-size:14px;color:#fff;}
-.set-desc{font-size:12px;color:var(--hint);margin-top:2px;}
-.set-val{font-size:13px;color:var(--accent);}
+
+.adm-skip{position:absolute;left:-9999px;top:0;background:#0C1F18;color:#7ECFC0;padding:10px 16px;border-radius:8px;z-index:200;}
+.adm-skip:focus{left:12px;top:64px;}
+
+/* ── Shell ─────────────────────────────────────────────── */
+.adm-shell{position:relative;z-index:1;display:flex;align-items:flex-start;min-height:calc(100vh - 56px);}
+.adm-rail{position:sticky;top:56px;align-self:flex-start;flex:0 0 238px;width:238px;
+  max-height:calc(100vh - 56px);overflow-y:auto;padding:22px 14px 34px;
+  border-right:1px solid var(--border);background:linear-gradient(180deg,rgba(6,14,10,.72),rgba(6,14,10,.32));}
+.adm-main{flex:1;min-width:0;padding:26px 30px 72px;}
+
+.adm-railhead{font-family:var(--serif);font-size:15px;font-weight:700;color:#fff;padding:2px 10px 4px;}
+.adm-railsub{font-size:10.5px;color:var(--hint);letter-spacing:.05em;text-transform:uppercase;padding:0 10px 16px;}
+.adm-grp{font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:rgba(126,207,192,.5);
+  padding:16px 10px 6px;}
+.adm-nav{display:block;font-size:13px;color:var(--muted);text-decoration:none;padding:7px 10px;border-radius:8px;
+  transition:background .16s,color .16s;position:relative;}
+.adm-nav:hover{background:rgba(27,107,90,.14);color:#fff;}
+.adm-nav.on{background:rgba(27,107,90,.24);color:#fff;box-shadow:inset 2px 0 0 #2A8A74;}
+.adm-nav .adm-navn{float:right;font-size:11px;color:var(--hint);font-variant-numeric:tabular-nums;}
+.adm-nav.on .adm-navn{color:var(--accent);}
+.adm-nav.locked{color:rgba(255,255,255,.3);}
+.adm-nav.locked:hover{background:rgba(255,255,255,.03);color:rgba(255,255,255,.45);}
+.adm-lockpill{float:right;font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:rgba(232,168,56,.75);border:1px solid rgba(232,168,56,.28);border-radius:4px;padding:1px 5px;margin-top:1px;}
+.adm-nav.danger{color:rgba(255,140,120,.72);}
+.adm-nav.danger:hover{background:rgba(192,57,43,.12);color:rgba(255,160,140,.95);}
+
+/* ── Header + search ───────────────────────────────────── */
+.adm-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px;}
+.adm-h1{font-family:var(--serif);font-size:27px;font-weight:700;line-height:1.15;}
+.adm-crumb{font-size:11px;color:var(--hint);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+.adm-sub{font-size:13px;color:var(--muted);margin-top:5px;max-width:640px;line-height:1.6;}
+.adm-searchwrap{position:relative;flex:0 0 320px;max-width:100%;}
+.adm-search{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;
+  color:#fff;padding:10px 12px 10px 34px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s,background .2s;}
+.adm-search:focus{border-color:#2A8A74;background:rgba(27,107,90,.12);}
+.adm-search::placeholder{color:rgba(255,255,255,.26);}
+.adm-searchico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--hint);pointer-events:none;}
+.adm-kbd{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--hint);
+  border:1px solid var(--border);border-radius:4px;padding:1px 5px;pointer-events:none;}
+
+/* ── Glass card ────────────────────────────────────────── */
+.gcard{background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.022));
+  border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px;position:relative;overflow:hidden;}
+.gcard::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 80% at 0% 0%,rgba(42,138,116,.10),transparent 60%);}
+.gcard>*{position:relative;}
+.gcard-h{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7ECFC0;margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.gcard-h .gh-note{font-weight:400;letter-spacing:0;text-transform:none;color:var(--hint);font-size:11.5px;}
+
+/* ── Stat grid ─────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;}
+.stat-c{display:block;text-decoration:none;background:rgba(255,255,255,.035);border:1px solid var(--border);
+  border-radius:11px;padding:14px 15px;transition:border-color .18s,background .18s,transform .18s;}
+.stat-c:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.13);transform:translateY(-1px);}
+.stat-c:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.stat-n{font-family:var(--serif);font-size:25px;font-weight:700;color:#fff;line-height:1;font-variant-numeric:tabular-nums;}
+.stat-l{font-size:10.5px;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-top:7px;line-height:1.4;}
+.stat-c.warn .stat-n{color:#E8A838;}
+.stat-c.na .stat-n{color:rgba(255,255,255,.22);font-size:19px;}
+.stat-c.na{cursor:default;}
+
+/* ── Tables ────────────────────────────────────────────── */
+.tbl-wrap{border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.028);overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px;}
+.tbl th{text-align:left;padding:10px 13px;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--hint);border-bottom:1px solid var(--border);font-weight:700;white-space:nowrap;
+  position:sticky;top:0;background:#0C1710;z-index:1;}
+.tbl td{padding:10px 13px;border-bottom:1px solid rgba(27,107,90,.1);color:var(--muted);vertical-align:top;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:rgba(27,107,90,.07);}
+.tbl .nm{color:#fff;font-weight:500;}
+.tbl .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--hint);}
+.tbl a.olink{color:var(--accent);text-decoration:none;font-size:11.5px;white-space:nowrap;}
+.tbl a.olink:hover{text-decoration:underline;}
+.empty{text-align:center;color:var(--hint);padding:26px 14px;font-size:12.5px;}
+
+/* ── Badges ────────────────────────────────────────────── */
+.bdg{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.03em;
+  text-transform:uppercase;white-space:nowrap;}
+.bdg-ok{background:rgba(27,107,90,.22);color:#7ECFC0;border:1px solid rgba(42,138,116,.35);}
+.bdg-warn{background:rgba(232,168,56,.13);color:#E8A838;border:1px solid rgba(232,168,56,.3);}
+.bdg-bad{background:rgba(192,57,43,.14);color:rgba(255,140,120,.95);border:1px solid rgba(192,57,43,.32);}
+.bdg-mute{background:rgba(255,255,255,.05);color:var(--hint);border:1px solid rgba(255,255,255,.1);}
+.bdg-info{background:rgba(126,207,192,.1);color:#7ECFC0;border:1px solid rgba(126,207,192,.22);}
+
+/* ── Filter chips ──────────────────────────────────────── */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.chip{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);padding:6px 13px;
+  border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block;transition:all .18s;}
+.chip:hover{border-color:rgba(42,138,116,.4);color:#fff;}
+.chip.on{background:rgba(27,107,90,.24);border-color:rgba(42,138,116,.45);color:#fff;}
+.chip:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.fsel,.finput{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:7px;color:#fff;
+  padding:6px 9px;font-size:12px;font-family:inherit;outline:none;max-width:200px;}
+.fsel:focus,.finput:focus{border-color:#2A8A74;}
+.fsel option{background:#132218;}
+
+/* ── Detail view ───────────────────────────────────────── */
+.dt-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;justify-content:space-between;margin-bottom:4px;}
+.dt-name{font-family:var(--serif);font-size:23px;font-weight:700;color:#fff;}
+.dt-meta{font-size:12.5px;color:var(--muted);margin-top:4px;}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:13px 20px;}
+.kv-k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--hint);margin-bottom:3px;}
+.kv-v{font-size:13.5px;color:#fff;word-break:break-word;}
+.kv-v.dim{color:var(--muted);}
+.kv-v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--muted);}
+.tabrow{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:16px;padding-bottom:0;}
+.tabb{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:9px 14px;
+  font-size:12.5px;cursor:pointer;font-family:inherit;transition:color .18s,border-color .18s;}
+.tabb:hover{color:#fff;}
+.tabb.on{color:#fff;border-bottom-color:#2A8A74;}
+.tabb:focus-visible{outline:2px solid #7ECFC0;outline-offset:-2px;}
+
+/* ── Notices ───────────────────────────────────────────── */
+.notice{border-radius:10px;padding:12px 15px;font-size:12.5px;line-height:1.65;margin-bottom:14px;}
+.notice b{color:#fff;}
+.n-warn{background:rgba(232,168,56,.06);border:1px solid rgba(232,168,56,.24);color:rgba(255,255,255,.72);}
+.n-info{background:rgba(126,207,192,.05);border:1px solid rgba(126,207,192,.2);color:rgba(255,255,255,.7);}
+.n-bad{background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.28);color:rgba(255,255,255,.75);}
+.notice code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#7ECFC0;}
+
+.jsonbox{background:rgba(0,0,0,.28);border:1px solid rgba(27,107,90,.16);border-radius:8px;padding:10px 12px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:rgba(255,255,255,.66);
+  white-space:pre-wrap;word-break:break-word;max-height:230px;overflow:auto;margin-top:6px;}
+.lnk{color:var(--accent);text-decoration:none;}
+.lnk:hover{text-decoration:underline;}
+.mut{color:var(--hint);}
+.rowbtn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);border-radius:7px;
+  padding:5px 11px;font-size:11.5px;font-family:inherit;cursor:pointer;transition:all .18s;}
+.rowbtn:hover{border-color:rgba(42,138,116,.45);color:#fff;}
+.rowbtn:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+
+.meterbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px;margin-top:5px;}
+.meterfill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74);border-radius:3px;}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width:1024px){
+  .adm-main{padding:22px 20px 64px;}
+  .adm-rail{flex:0 0 200px;width:200px;}
+}
+@media (max-width:860px){
+  .adm-shell{display:block;min-height:0;}
+  .adm-rail{position:static;width:auto;max-width:100%;flex:none;max-height:none;overflow-x:auto;overflow-y:hidden;
+    display:flex;align-items:center;gap:5px;white-space:nowrap;
+    padding:10px 14px;border-right:none;border-bottom:1px solid var(--border);}
+  .adm-railhead,.adm-railsub,.adm-grp{display:none;}
+  /* row-reverse: the count/lock span is first in the DOM (it is floated right on
+     desktop), so reversing keeps the label ahead of it here too. */
+  .adm-nav{display:inline-flex;flex-direction:row-reverse;align-items:center;gap:7px;
+    padding:7px 12px;font-size:12.5px;flex:0 0 auto;}
+  .adm-nav.on{box-shadow:none;}
+  .adm-nav .adm-navn,.adm-lockpill{float:none;margin:0;}
+  .adm-main{padding:20px 16px 60px;}
+  .adm-searchwrap{flex:1 1 100%;}
+  .adm-h1{font-size:23px;}
+  .adm-kbd{display:none;}
+}
+@media (max-width:520px){
+  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
+  .kv{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
 <div id="loader"><div class="spin"></div></div>
 <div id="nb-placeholder"></div>
+<a class="adm-skip" href="#adm-view">Skip to admin content</a>
 <div id="app">
-  <div class="page-wrap">
-    <div class="crumb"><a href="/v2/dashboard.html">Dashboard</a> &rsaquo; Admin Center</div>
-    <div class="section">
-      <div class="section-tag">Administration</div>
-      <h2 class="section-title">Admin Center</h2>
-
-      <div class="stat-row">
-        <div class="stat"><div class="stat-num" id="s-users">0</div><div class="stat-lbl">Users</div></div>
-        <div class="stat"><div class="stat-num" id="s-doctors">0</div><div class="stat-lbl">Doctors</div></div>
-        <div class="stat"><div class="stat-num" id="s-pending">0</div><div class="stat-lbl">Pending</div></div>
-        <div class="stat"><div class="stat-num" id="s-questions">0</div><div class="stat-lbl">Questions</div></div>
-      </div>
-
-      <div class="tabs">
-        <button class="tab on" id="tab-approvals" onclick="showTab('approvals',this)">Doctor approvals</button>
-        <button class="tab"    id="tab-users"     onclick="showTab('users',this)">User management</button>
-        <button class="tab"    id="tab-patients"  onclick="showTab('patients',this)">Patients</button>
-        <button class="tab"    id="tab-questions" onclick="showTab('questions',this)">Submitted questions</button>
-        <button class="tab"    id="tab-settings"  onclick="showTab('settings',this)">Platform settings</button>
-      </div>
-
-      <div class="panel on" id="panel-approvals">
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Hospital</th><th>Specialty</th><th>Status</th><th></th></tr></thead><tbody id="tb-approvals"></tbody></table></div>
-      </div>
-      <div class="panel" id="panel-users">
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead><tbody id="tb-users"></tbody></table></div>
-      </div>
-      <div class="panel" id="panel-patients">
-        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-          <button class="tab on" id="pf-all"      onclick="patFilter('all',this)">All</button>
-          <button class="tab"    id="pf-active"   onclick="patFilter('active',this)">Active</button>
-          <button class="tab"    id="pf-archived" onclick="patFilter('archived',this)">Archived</button>
-        </div>
-        <div style="font-size:12px;color:var(--hint);margin-bottom:10px;">Archiving is reversible. <strong style="color:rgba(255,140,120,.9)">Permanent deletion</strong> removes the patient record and its associated data and cannot be undone.</div>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Assigned doctor</th><th>Procedure</th><th>State</th><th></th></tr></thead><tbody id="tb-patients"></tbody></table></div>
-      </div>
-      <div class="panel" id="panel-questions">
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Topic</th><th>Question</th><th>Email</th></tr></thead><tbody id="tb-questions"></tbody></table></div>
-      </div>
-      <div class="panel" id="panel-settings">
-        <div class="tbl-wrap">
-          <div class="set-row"><div><div class="set-label">Platform name</div><div class="set-desc">Public-facing name</div></div><div class="set-val">Anestheo</div></div>
-          <div class="set-row"><div><div class="set-label">Support email</div><div class="set-desc">Contact for users</div></div><div class="set-val">support@anestheo.com</div></div>
-          <div class="set-row"><div><div class="set-label">Doctor verification</div><div class="set-desc">New doctors require approval</div></div><div class="set-val">Enabled</div></div>
-          <div class="set-row"><div><div class="set-label">Patient registration</div><div class="set-desc">Open self-registration</div></div><div class="set-val">Enabled</div></div>
-        </div>
-      </div>
-    </div>
+  <div class="adm-shell">
+    <aside class="adm-rail" id="adm-rail" aria-label="Admin sections"></aside>
+    <main class="adm-main" id="adm-view" tabindex="-1"></main>
   </div>
 </div>
+
 <script>
+/* ============================================================
+   Anestheo Admin Center — Phase 1
+   Read-only platform visibility. Every number, row and filter below
+   comes from a real table the admin is already permitted to read by RLS.
+   No mutation is performed anywhere in this file.
+   ============================================================ */
+(function(){
+'use strict';
+
+var AC = { db:{}, cap:{}, me:null, boot:{}, warn:[] };
+window.AC = AC;
+
+/* ── helpers ─────────────────────────────────────────── */
 function ge(id){ return document.getElementById(id); }
-function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function fdate(v){ if(!v) return '—'; try{ return new Date(v).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return '—'; } }
+function fdt(v){ if(!v) return '—'; try{ var d=new Date(v); return d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }catch(e){ return '—'; } }
+function ago(v){ if(!v) return ''; var s=(Date.now()-new Date(v).getTime())/1000; if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago'; if(s<86400) return Math.floor(s/3600)+'h ago';
+  if(s<2592000) return Math.floor(s/86400)+'d ago'; return Math.floor(s/2592000)+'mo ago'; }
+function dash(v){ return (v==null||v==='') ? '<span class="mut">—</span>' : esc(v); }
+function short(id){ return id ? String(id).slice(0,8) : '—'; }
+function pluck(o,k){ return (o&&o[k]!=null)?o[k]:null; }
+function uniq(a){ var s={},o=[]; a.forEach(function(x){ if(x!=null&&!s[x]){s[x]=1;o.push(x);} }); return o; }
+function q2s(o){ var p=[]; for(var k in o) if(o[k]!=null&&o[k]!=='') p.push(encodeURIComponent(k)+'='+encodeURIComponent(o[k])); return p.length?('?'+p.join('&')):''; }
 
-function showTab(name, btn){
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
-  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('on'); });
-  btn.classList.add('on');
-  ge('panel-' + name).classList.add('on');
+/* Canonical, repo-verified status vocabularies. Values outside these sets are
+   still rendered verbatim — we never rewrite what the database says. */
+function badgeVerify(v){
+  if(v==='approved'||v==='verified') return '<span class="bdg bdg-ok">'+esc(v)+'</span>';
+  if(v==='pending')  return '<span class="bdg bdg-warn">pending</span>';
+  if(v==='rejected') return '<span class="bdg bdg-bad">rejected</span>';
+  if(!v||v==='not_required') return '<span class="bdg bdg-mute">'+esc(v||'not set')+'</span>';
+  return '<span class="bdg bdg-mute">'+esc(v)+'</span>';
+}
+function badgeReview(v){
+  if(v==='approved') return '<span class="bdg bdg-ok">approved</span>';
+  if(v==='pending'||v==='in_review') return '<span class="bdg bdg-warn">'+esc(v)+'</span>';
+  if(v==='changes_requested') return '<span class="bdg bdg-bad">changes requested</span>';
+  return '<span class="bdg bdg-mute">'+esc(v||'not_submitted')+'</span>';
+}
+function badgeReq(v){
+  if(v==='accepted') return '<span class="bdg bdg-ok">accepted</span>';
+  if(v==='requested') return '<span class="bdg bdg-warn">requested</span>';
+  if(v==='declined'||v==='revoked') return '<span class="bdg bdg-bad">'+esc(v)+'</span>';
+  return '<span class="bdg bdg-mute">'+esc(v||'—')+'</span>';
+}
+function journeyState(s){
+  if(s.archived_at)  return {k:'archived', h:'<span class="bdg bdg-mute">archived</span>'};
+  if(s.completed_at) return {k:'completed',h:'<span class="bdg bdg-info">completed</span>'};
+  if(s.ready_at)     return {k:'ready',    h:'<span class="bdg bdg-ok">ready</span>'};
+  return {k:'active', h:'<span class="bdg bdg-ok">active</span>'};
 }
 
-async function setStatus(id, status){
-  try { await window.sb.from('profiles').update({ verification_status: status }).eq('id', id); }
-  catch(e){ console.error(e.message); }
-  loadAll();
-}
-window.setStatus = setStatus;
+/* ============================================================
+   CAPABILITY DETECTION
+   Production is not assumed to match the repository. Every module
+   probes the relation it needs and records exactly what came back,
+   so a module can be disabled honestly instead of erroring.
+   ============================================================ */
+var CAPS = [
+  { key:'profiles',  table:'profiles',   label:'Accounts & profiles', required:true,
+    cols:['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at'] },
+  { key:'surgeries', table:'patient_surgeries', label:'Surgery journeys',
+    cols:['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
+          'assigned_doctor_id','assigned_at','care_state','origin','contact_email','clinic_patient_id',
+          'archived_at','archived_by','archive_reason','restored_at','completed_at','ready_at','created_at','updated_at'] },
+  { key:'clinics',   table:'clinic_patients', label:'Clinic patients',
+    cols:['id','doctor_id','patient_name','phone_number','procedure','hospital','surgery_date',
+          'questionnaire_status','consultation_status','patient_status','created_at','updated_at'] },
+  { key:'requests',  table:'care_requests', label:'Care requests',
+    cols:['id','patient_id','doctor_id','surgery_id','origin_method','status','is_consultation',
+          'decline_reason','requested_at','responded_at'] },
+  { key:'quests',    table:'preop_questionnaires', label:'Questionnaires',
+    cols:['id','patient_id','completion','current_step','status','review_state','submitted_at',
+          'reviewed_at','reviewed_by','created_at','updated_at'] },
+  { key:'checklists',table:'preop_checklist', label:'Checklists',
+    cols:['id','patient_id','items','updated_at'] },
+  { key:'questions', table:'questions', label:'Patient questions', discover:true,
+    cols:['id','created_at','patient_id','subject','message','status','updated_at','name','topic','question','email','role'] },
+  { key:'replies',   table:'question_replies', label:'Question replies',
+    cols:['id','question_id','author_id','author_role','message','created_at'] },
+  { key:'documents', table:'requirement_documents', label:'Requirement documents',
+    cols:['id','patient_id','surgery_id','requirement_key','requirement_name','file_name','file_size',
+          'mime_type','uploaded_at','reviewed_at','reviewed_by'] },
+  { key:'audit',     table:'admin_audit_log', label:'Admin audit log', required:true,
+    cols:['id','created_at','actor_id','actor_role','action','target_type','target_id','target_label',
+          'before_state','after_state','reason','metadata','correlation_id'] },
+  { key:'parchive',  table:'patient_archive_audit', label:'Archive audit trail',
+    cols:['id','surgery_id','clinic_patient_id','patient_name','actor_id','actor_role','action','reason','created_at'] }
+];
 
-// Admin manual role change (Admin Center → Users)
-async function changeUserRole(id, role, el){
-  el.disabled = true;
-  var patch = { role: role };
-  if(role === 'doctor') patch.verification_status = 'pending';
-  else if(role === 'admin') patch.verification_status = 'not_required';
-  else patch.verification_status = 'not_required';
-  try {
-    await window.sb.from('profiles').update(patch).eq('id', id);
-    el.style.borderColor = '#2A8A74';
-    setTimeout(function(){ el.style.borderColor = ''; el.disabled = false; loadAll(); }, 600);
-  } catch(e){
-    console.error('role change:', e.message); el.disabled = false;
+function missingCol(err){ return err && (err.code === '42703' || /column .* does not exist/i.test(err.message||'')); }
+function missingRel(err){ return err && (err.code === '42P01' || /relation .* does not exist/i.test(err.message||'')); }
+
+async function probeCap(c){
+  var t0 = (window.performance&&performance.now)?performance.now():Date.now();
+  var out = { key:c.key, table:c.table, label:c.label, required:!!c.required, ok:false,
+              cols:{}, missing:[], error:null, code:null, ms:0 };
+  try{
+    if(c.discover){
+      // Shape genuinely unknown in production (the ask migration may not be applied).
+      // Learn the real column set from one row; fall back to per-column probing when empty.
+      var d = await window.sb.from(c.table).select('*').limit(1);
+      if(d.error){ out.error = d.error.message; out.code = d.error.code||null; }
+      else if(d.data && d.data.length){
+        out.ok = true;
+        Object.keys(d.data[0]).forEach(function(k){ out.cols[k] = true; });
+        c.cols.forEach(function(k){ if(!out.cols[k]){ out.cols[k]=false; out.missing.push(k); } });
+      } else { out.ok = true; await perCol(c, out); }
+    } else {
+      var r = await window.sb.from(c.table).select(c.cols.join(',')).limit(1);
+      if(!r.error){ out.ok = true; c.cols.forEach(function(k){ out.cols[k]=true; }); }
+      else if(missingCol(r.error)){ out.ok = true; await perCol(c, out); }
+      else { out.error = r.error.message; out.code = r.error.code||null; }
+    }
+  }catch(e){ out.error = e.message; }
+  out.ms = Math.round(((window.performance&&performance.now)?performance.now():Date.now()) - t0);
+  return out;
+}
+async function perCol(c, out){
+  for(var i=0;i<c.cols.length;i++){
+    var k = c.cols[i];
+    try{
+      var r = await window.sb.from(c.table).select(k).limit(1);
+      if(r.error && missingCol(r.error)){ out.cols[k]=false; out.missing.push(k); }
+      else if(r.error){ out.cols[k]=false; out.missing.push(k); }
+      else out.cols[k]=true;
+    }catch(e){ out.cols[k]=false; out.missing.push(k); }
   }
 }
-window.changeUserRole = changeUserRole;
-
-// ── Patients (admin): view all/active/archived, restore any, permanent delete ──
-var _profById = {}, _patients = [], _patFilter = 'all';
-
-async function loadPatients(){
-  var body = ge('tb-patients'); if(!body) return;
-  var rows = [];
-  try {
-    var r = await window.sb.from('patient_surgeries')
-      .select('id,patient_name,procedure_type,assigned_doctor_id,archived_at,archived_by,clinic_patient_id')
-      .order('archived_at', { ascending: false, nullsFirst: false });
-    rows = (r && r.data) || [];
-  } catch(e){ body.innerHTML = '<tr><td colspan="5" class="empty">Could not load patients: '+esc(e.message)+'</td></tr>'; return; }
-  _patients = rows;
-  renderPatients();
+function has(capKey, col){ var c = AC.cap[capKey]; return !!(c && c.ok && (col ? c.cols[col] : true)); }
+function capNote(capKey){
+  var c = AC.cap[capKey]; if(!c) return '';
+  if(!c.ok) return '<div class="notice n-bad"><b>'+esc(c.label)+' unavailable.</b> <code>'+esc(c.table)+
+    '</code> returned '+(c.code?('<code>'+esc(c.code)+'</code> ') : '')+esc(c.error||'an error')+
+    '. This module is disabled rather than showing an empty list that looks like real data.</div>';
+  if(c.missing.length) return '<div class="notice n-warn"><b>Reduced capability.</b> <code>'+esc(c.table)+
+    '</code> exists but these expected columns are absent: <code>'+esc(c.missing.join(', '))+
+    '</code>. Columns that depend on them are hidden.</div>';
+  return '';
 }
 
-function patFilter(f, btn){
-  _patFilter = f;
-  ['pf-all','pf-active','pf-archived'].forEach(function(id){ var e=ge(id); if(e) e.classList.remove('on'); });
-  if(btn) btn.classList.add('on');
-  renderPatients();
-}
-window.patFilter = patFilter;
+/* ============================================================
+   DATA LOADING — explicit column allowlists only.
+   Bulk clinical payloads (answers, questionnaire_data, risk_flags,
+   doctor_notes, plan content) are never fetched here.
+   ============================================================ */
+var CAP_ROWS = 2000;
+AC.truncated = [];
 
-function renderPatients(){
-  var body = ge('tb-patients'); if(!body) return;
-  var list = _patients.filter(function(p){
-    if(_patFilter==='active') return !p.archived_at;
-    if(_patFilter==='archived') return !!p.archived_at;
-    return true;
-  });
-  body.innerHTML = list.length ? list.map(function(p){
-    var doc = _profById[p.assigned_doctor_id];
-    var docName = doc ? (doc.full_name || doc.email || 'Doctor') : (p.assigned_doctor_id ? 'Unknown' : '—');
-    var state = p.archived_at
-      ? '<span class="badge b-pending">Archived</span>'
-      : '<span class="badge b-approved">Active</span>';
-    var restore = p.archived_at
-      ? '<button class="act act-approve" onclick="adminRestore(\''+p.id+'\')">Restore</button>' : '';
-    var del = '<button class="act act-reject" onclick="adminDelete(\''+p.id+'\',\''+esc((p.patient_name||'this patient').replace(/'/g,""))+'\')">Delete…</button>';
-    return '<tr><td><strong style="color:#fff">'+esc(p.patient_name||'—')+'</strong></td><td>'+esc(docName)+'</td><td>'+esc(p.procedure_type||'—')+'</td><td>'+state+'</td><td>'+restore+del+'</td></tr>';
-  }).join('') : '<tr><td colspan="5" class="empty">No patients</td></tr>';
+function selCols(capKey, wanted){
+  var c = AC.cap[capKey]; if(!c||!c.ok) return null;
+  var ok = wanted.filter(function(k){ return c.cols[k]; });
+  return ok.length ? ok.join(',') : null;
 }
-
-async function adminRestore(sid){
-  try {
-    var r = await window.sb.rpc('restore_patient', { p_surgery_id: sid });
-    if(r && r.error) throw r.error;
-  } catch(e){ alert('Restore failed: ' + e.message); return; }
-  await loadPatients();
+async function fetchTable(capKey, table, wanted, orderCol){
+  var cols = selCols(capKey, wanted);
+  if(!cols) return [];
+  try{
+    var qy = window.sb.from(table).select(cols).limit(CAP_ROWS);
+    if(orderCol && has(capKey, orderCol)) qy = qy.order(orderCol, { ascending:false, nullsFirst:false });
+    var r = await qy;
+    if(r.error){ AC.cap[capKey].error = r.error.message; AC.cap[capKey].ok = false; return []; }
+    var d = r.data || [];
+    if(d.length >= CAP_ROWS) AC.truncated.push(table);
+    return d;
+  }catch(e){ AC.cap[capKey].error = e.message; AC.cap[capKey].ok = false; return []; }
 }
-window.adminRestore = adminRestore;
-
-async function adminDelete(sid, name){
-  if(!confirm('Permanently delete '+name+' and its associated records?\n\nThis CANNOT be undone. Archiving is the reversible alternative.\n\nClick OK to permanently delete.')) return;
-  try {
-    var r = await window.sb.rpc('admin_delete_patient', { p_surgery_id: sid, p_confirm: 'DELETE' });
-    if(r && r.error) throw r.error;
-  } catch(e){ alert('Delete failed: ' + e.message); return; }
-  await loadPatients();
-}
-window.adminDelete = adminDelete;
 
 async function loadAll(){
-  // Profiles
-  var pr = await window.sb.from('profiles').select('*').order('created_at', { ascending: false });
-  var profiles = pr.data || [];
-  _profById = {}; profiles.forEach(function(p){ _profById[p.id] = p; });
-  var doctors = profiles.filter(function(p){ return p.role === 'doctor'; });
-  var pending = doctors.filter(function(p){ return p.verification_status === 'pending'; });
+  var jobs = [
+    fetchTable('profiles','profiles',
+      ['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at'],
+      'created_at').then(function(d){ AC.db.profiles = d; }),
+    fetchTable('surgeries','patient_surgeries',
+      ['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
+       'assigned_doctor_id','assigned_at','care_state','origin','contact_email','clinic_patient_id',
+       'archived_at','archived_by','archive_reason','restored_at','completed_at','ready_at','created_at','updated_at'],
+      'created_at').then(function(d){ AC.db.surgeries = d; }),
+    fetchTable('clinics','clinic_patients',
+      ['id','doctor_id','patient_name','phone_number','procedure','hospital','surgery_date',
+       'questionnaire_status','consultation_status','patient_status','created_at','updated_at'],
+      'created_at').then(function(d){ AC.db.clinics = d; }),
+    fetchTable('requests','care_requests',
+      ['id','patient_id','doctor_id','surgery_id','origin_method','status','is_consultation',
+       'decline_reason','requested_at','responded_at'],
+      'requested_at').then(function(d){ AC.db.requests = d; }),
+    fetchTable('quests','preop_questionnaires',
+      ['id','patient_id','completion','current_step','status','review_state','submitted_at',
+       'reviewed_at','reviewed_by','created_at','updated_at'],
+      'updated_at').then(function(d){ AC.db.quests = d; }),
+    fetchTable('checklists','preop_checklist',
+      ['id','patient_id','items','updated_at'],'updated_at').then(function(d){ AC.db.checklists = d; }),
+    fetchTable('questions','questions',
+      ['id','created_at','patient_id','subject','status','updated_at','name','topic','question','email','role'],
+      'created_at').then(function(d){ AC.db.questions = d; }),
+    fetchTable('documents','requirement_documents',
+      ['id','patient_id','surgery_id','requirement_key','requirement_name','file_name','file_size',
+       'mime_type','uploaded_at','reviewed_at','reviewed_by'],'uploaded_at').then(function(d){ AC.db.documents = d; }),
+    fetchTable('audit','admin_audit_log',
+      ['id','created_at','actor_id','actor_role','action','target_type','target_id','target_label',
+       'before_state','after_state','reason','metadata','correlation_id'],'created_at').then(function(d){ AC.db.audit = d; }),
+    fetchTable('parchive','patient_archive_audit',
+      ['id','surgery_id','clinic_patient_id','patient_name','actor_id','actor_role','action','reason','created_at'],
+      'created_at').then(function(d){ AC.db.parchive = d; })
+  ];
+  await Promise.all(jobs);
 
-  ge('s-users').textContent   = profiles.length;
-  ge('s-doctors').textContent = doctors.length;
-  ge('s-pending').textContent = pending.length;
+  AC.profById = {};
+  (AC.db.profiles||[]).forEach(function(p){ AC.profById[p.id] = p; });
+  AC.surgById = {};
+  (AC.db.surgeries||[]).forEach(function(s){ AC.surgById[s.id] = s; });
+  buildWarnings();
+}
 
-  ge('tb-approvals').innerHTML = pending.length
-    ? pending.map(function(p){
-        return '<tr><td><strong style="color:#fff">'+esc(p.full_name)+'</strong></td><td>'+esc(p.email)+'</td><td>'+esc(p.hospital)+'</td><td>'+esc(p.specialty)+'</td><td><span class="badge b-pending">Pending</span></td>'+
-          '<td><button class="act act-approve" onclick="setStatus(\''+p.id+'\',\'approved\')">Approve</button>'+
-          '<button class="act act-reject" onclick="setStatus(\''+p.id+'\',\'rejected\')">Reject</button></td></tr>';
-      }).join('')
-    : '<tr><td colspan="6" class="empty">No pending approvals</td></tr>';
+function isDoctor(p){ return p.role === 'doctor'; }
+function isPatientRole(p){ return p.role === 'patient'; }
+function isAdminRole(p){ return p.is_admin === true || p.role === 'admin'; }
+function pname(p){ return p ? (p.full_name || p.email || 'User') : null; }
+function docName(id){ var p = AC.profById[id]; return p ? pname(p) : (id ? 'Unknown ('+short(id)+')' : null); }
 
-  ge('tb-users').innerHTML = profiles.length
-    ? profiles.map(function(u){
-        var b = u.verification_status==='approved'?'<span class="badge b-approved">Approved</span>':
-                u.verification_status==='pending'?'<span class="badge b-pending">Pending</span>':
-                u.verification_status==='rejected'?'<span class="badge b-rejected">Rejected</span>':
-                '<span style="color:var(--hint)">\u2014</span>';
-        var cur = u.is_admin ? 'admin' : (u.role || '');
-        var opts = ['patient','doctor','nurse','student','other','admin'].map(function(r){
-          return '<option value="'+r+'"'+(cur===r?' selected':'')+'>'+r+'</option>';
-        }).join('');
-        var sel = '<select class="role-sel" onchange="changeUserRole(\''+u.id+'\',this.value,this)">'+opts+'</select>';
-        return '<tr><td><strong style="color:#fff">'+esc(u.full_name||'\u2014')+'</strong></td><td>'+esc(u.email)+'</td><td>'+sel+'</td><td>'+b+'</td></tr>';
-      }).join('')
-    : '<tr><td colspan="4" class="empty">No users</td></tr>';
-
-  await loadPatients();
-
-  try {
-    var q = await window.sb.from('questions').select('*').order('created_at', { ascending: false });
-    var qs = q.data || [];
-    ge('s-questions').textContent = qs.length;
-    ge('tb-questions').innerHTML = qs.length
-      ? qs.map(function(x){ return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.topic)+'</td><td>'+esc(x.question)+'</td><td>'+esc(x.email||'\u2014')+'</td></tr>'; }).join('')
-      : '<tr><td colspan="4" class="empty">No questions yet</td></tr>';
-  } catch(e){
-    ge('tb-questions').innerHTML = '<tr><td colspan="4" class="empty">Questions table not available</td></tr>';
+/* ── real, derived warnings (never decorative) ────────── */
+function buildWarnings(){
+  var w = [];
+  CAPS.forEach(function(c){
+    var s = AC.cap[c.key];
+    if(s && !s.ok) w.push({ sev:'bad', t:c.label+' unavailable',
+      d:'<code>'+esc(c.table)+'</code>: '+esc(s.error||'unknown error'), go:'#/capabilities' });
+    else if(s && s.missing.length) w.push({ sev:'warn', t:c.label+' partially available',
+      d:'Missing columns: <code>'+esc(s.missing.join(', '))+'</code>', go:'#/capabilities' });
+  });
+  AC.truncated.forEach(function(t){
+    w.push({ sev:'warn', t:'Row cap reached on '+t,
+      d:'Loaded the first '+CAP_ROWS+' rows. Counts on this page are lower bounds for this table.', go:'#/capabilities' });
+  });
+  if(has('profiles')){
+    var pend = (AC.db.profiles||[]).filter(function(p){ return p.role==='pending' || !p.role; });
+    if(pend.length) w.push({ sev:'warn', t:pend.length+' account'+(pend.length>1?'s':'')+' with no role assigned',
+      d:'These signed up but never completed role selection.', go:'#/accounts'+q2s({f:'pending'}) });
+    var dv = (AC.db.profiles||[]).filter(function(p){ return isDoctor(p) && p.verification_status==='pending'; });
+    if(dv.length) w.push({ sev:'warn', t:dv.length+' doctor'+(dv.length>1?'s':'')+' awaiting verification',
+      d:'No verification decision has been recorded.', go:'#/doctors'+q2s({f:'pending'}) });
   }
+  if(has('surgeries')){
+    var un = (AC.db.surgeries||[]).filter(function(s){ return !s.archived_at && !s.completed_at && !s.assigned_doctor_id; });
+    if(un.length) w.push({ sev:'warn', t:un.length+' active journey'+(un.length>1?'s':'')+' with no assigned doctor',
+      d:'<code>assigned_doctor_id</code> is null on these rows.', go:'#/journeys'+q2s({f:'unassigned'}) });
+  }
+  if(has('quests','review_state')){
+    var stale = (AC.db.quests||[]).filter(function(q){
+      if(q.review_state!=='pending' && q.review_state!=='in_review') return false;
+      var t = q.submitted_at || q.updated_at; if(!t) return false;
+      return (Date.now()-new Date(t).getTime()) > 7*86400000;
+    });
+    if(stale.length) w.push({ sev:'warn', t:stale.length+' questionnaire'+(stale.length>1?'s':'')+' awaiting review for over 7 days',
+      d:'Measured from <code>submitted_at</code> (or <code>updated_at</code>).', go:'#/questionnaires'+q2s({f:'review'}) });
+  }
+  if(questionsRlsAmbiguous()) w.push({ sev:'warn', t:'questions returned no rows',
+    d:'A count of zero cannot distinguish an empty table from RLS refusing the read.', go:'#/questions' });
+  AC.warn = w;
+}
+
+/* The one relation whose admin read access is genuinely unproven in production.
+   The admin-aware policy q_select_own_or_staff is created by v2_ask_migration.sql,
+   which was never applied (that is why question_replies is absent). Admin Phase 0
+   deliberately added no policy to questions. So an empty result here is ambiguous
+   and must not be presented as "there are no questions". */
+function questionsRlsAmbiguous(){
+  return has('questions') && !((AC.db.questions||[]).length);
+}
+function questionsRlsNotice(){
+  if(!questionsRlsAmbiguous()) return '';
+  return '<div class="notice n-warn"><b>Zero rows &mdash; and that is ambiguous.</b> '+
+    '<code>questions</code> is readable (no error), but it returned nothing. That means either the table is genuinely '+
+    'empty <i>or</i> row-level security is refusing this admin the read. The admin-aware policy '+
+    '<code>q_select_own_or_staff</code> is created by <code>v2_ask_migration.sql</code>, which was never applied in '+
+    'production &mdash; that is the same migration that would have created <code>question_replies</code>. '+
+    'Admin Phase 0 added no policy to <code>questions</code> either. '+
+    'Resolving this needs one explicit admin SELECT policy in the Phase 2 SQL; until then this module cannot claim '+
+    'the inbox is empty.</div>';
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+var NAV = [
+  { grp:null, items:[ {id:'overview', label:'Overview', href:'#/overview'} ] },
+  { grp:'People', items:[
+      {id:'doctors',  label:'Doctors',  href:'#/doctors',  count:function(){ return has('profiles') ? (AC.db.profiles||[]).filter(isDoctor).length : null; } },
+      {id:'patients', label:'Patients', href:'#/patients', count:function(){ return has('profiles') ? (AC.db.profiles||[]).filter(isPatientRole).length : null; } },
+      {id:'accounts', label:'Accounts', href:'#/accounts', count:function(){ return has('profiles') ? (AC.db.profiles||[]).length : null; } }
+  ]},
+  { grp:'Clinical', items:[
+      {id:'journeys',       label:'Surgery journeys', href:'#/journeys',       cap:'surgeries',  count:function(){ return (AC.db.surgeries||[]).length; } },
+      {id:'questionnaires', label:'Questionnaires',   href:'#/questionnaires', cap:'quests',     count:function(){ return (AC.db.quests||[]).length; } },
+      {id:'checklists',     label:'Checklists',       href:'#/checklists',     cap:'checklists', count:function(){ return (AC.db.checklists||[]).length; } },
+      {id:'questions',      label:'Questions',        href:'#/questions',      cap:'questions',  count:function(){ return (AC.db.questions||[]).length; } },
+      {id:'care-requests',  label:'Care requests',    href:'#/care-requests',  cap:'requests',   count:function(){ return (AC.db.requests||[]).length; } }
+  ]},
+  { grp:'Content', items:[ {id:'content', label:'Content inventory', href:'#/content'} ]},
+  { grp:'Operations', items:[
+      {id:'audit',        label:'Audit log',            href:'#/audit', cap:'audit', count:function(){ return (AC.db.audit||[]).length; } },
+      {id:'status',       label:'System status',        href:'#/status'},
+      {id:'capabilities', label:'Database capabilities',href:'#/capabilities'}
+  ]},
+  { grp:null, items:[
+      {id:'settings', label:'Settings', href:'#/settings'},
+      {id:'danger',   label:'Danger Zone', href:'#/danger', danger:true, lock:'Phase 4'}
+  ]}
+];
+
+function renderRail(active){
+  var h = '<div class="adm-railhead">Admin Center</div><div class="adm-railsub">Phase 1 &middot; read-only</div>';
+  NAV.forEach(function(g){
+    if(g.grp) h += '<div class="adm-grp">'+esc(g.grp)+'</div>';
+    g.items.forEach(function(it){
+      var cls = 'adm-nav' + (it.id===active?' on':'') + (it.danger?' danger':'') + (it.lock?' locked':'');
+      var right = '';
+      if(it.lock) right = '<span class="adm-lockpill">'+esc(it.lock)+'</span>';
+      else if(it.cap && !has(it.cap)) right = '<span class="adm-lockpill">n/a</span>';
+      else if(it.count){ var n = it.count(); if(n!=null) right = '<span class="adm-navn">'+n+'</span>'; }
+      h += '<a class="'+cls+'" href="'+it.href+'">'+right+esc(it.label)+'</a>';
+    });
+  });
+  ge('adm-rail').innerHTML = h;
+}
+
+/* ============================================================
+   PAGE CHROME
+   ============================================================ */
+function head(crumb, title, sub){
+  return '<div class="adm-top"><div style="min-width:0;">'+
+    '<div class="adm-crumb">'+crumb+'</div>'+
+    '<h1 class="adm-h1">'+esc(title)+'</h1>'+
+    (sub?'<p class="adm-sub">'+sub+'</p>':'')+
+    '</div><div class="adm-searchwrap">'+
+      '<span class="adm-searchico">&#9906;</span>'+
+      '<input id="adm-q" class="adm-search" type="search" autocomplete="off" spellcheck="false" '+
+        'placeholder="Search people, journeys, requests…" aria-label="Global admin search">'+
+      '<span class="adm-kbd">/</span>'+
+    '</div></div>';
+}
+function wireSearch(){
+  var el = ge('adm-q'); if(!el) return;
+  var t = null;
+  el.addEventListener('input', function(){
+    clearTimeout(t); var v = el.value;
+    t = setTimeout(function(){
+      if(v.trim().length >= 2) go('#/search'+q2s({q:v.trim()}), true);
+      else if(v.trim().length === 0 && (location.hash||'').indexOf('#/search')===0) go('#/overview', true);
+    }, 260);
+  });
+  el.addEventListener('keydown', function(e){ if(e.key==='Enter'){ clearTimeout(t);
+    if(el.value.trim().length>=2) go('#/search'+q2s({q:el.value.trim()}), true); } });
+}
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+function statCard(n, label, href, opts){
+  opts = opts||{};
+  if(n == null) return '<div class="stat-c na" title="'+esc(opts.why||'Not available')+'">'+
+    '<div class="stat-n">n/a</div><div class="stat-l">'+esc(label)+'</div></div>';
+  return '<a class="stat-c'+(opts.warn&&n>0?' warn':'')+'" href="'+href+'">'+
+    '<div class="stat-n">'+n+'</div><div class="stat-l">'+esc(label)+'</div></a>';
+}
+
+function vOverview(){
+  var P = AC.db.profiles||[], S = AC.db.surgeries||[], Q = AC.db.quests||[],
+      R = AC.db.requests||[], QS = AC.db.questions||[], A = AC.db.audit||[];
+  var pOK = has('profiles'), sOK = has('surgeries'), qOK = has('quests'),
+      rOK = has('requests'), xOK = has('questions'), aOK = has('audit');
+
+  var doctors  = P.filter(isDoctor);
+  var verified = doctors.filter(function(p){ return p.verification_status==='approved'||p.verification_status==='verified'; });
+  var pending  = doctors.filter(function(p){ return p.verification_status==='pending'; });
+  var patients = P.filter(isPatientRole);
+  var active   = S.filter(function(s){ return !s.archived_at && !s.completed_at; });
+  var archived = S.filter(function(s){ return !!s.archived_at; });
+  var inReview = Q.filter(function(q){ return q.review_state==='pending'||q.review_state==='in_review'; });
+
+  // Open questions: only computable when a status column actually exists.
+  var openQ = null, openQLabel = 'Open patient questions', openQWhy = '';
+  if(questionsRlsAmbiguous()){ openQ = null; openQLabel = 'Patient questions';
+    openQWhy = 'questions returned 0 rows — cannot tell an empty table from an RLS denial'; }
+  else if(xOK && has('questions','status')) openQ = QS.filter(function(q){ return q.status!=='answered' && q.status!=='closed'; }).length;
+  else if(xOK){ openQ = QS.length; openQLabel = 'Submitted questions'; }
+  else openQWhy = AC.cap.questions ? (AC.cap.questions.error||'unavailable') : 'unavailable';
+
+  var midnight = new Date(); midnight.setHours(0,0,0,0);
+  var today = aOK ? A.filter(function(r){ return new Date(r.created_at) >= midnight; }).length : null;
+
+  var h = head('Anestheo platform', 'Control center',
+    'Every figure below is a live count from a table this account is permitted to read. Selecting one opens the exact filtered list it was computed from.');
+
+  h += '<div class="gcard"><div class="gcard-h">Overview'+
+       '<span class="gh-note">'+(AC.boot.loadedAt?('data loaded '+ago(AC.boot.loadedAt)):'')+
+       ' &middot; <a class="lnk" href="#/capabilities">'+CAPS.filter(function(c){return has(c.key);}).length+'/'+CAPS.length+' modules available</a></span></div>'+
+    '<div class="stat-grid">'+
+      statCard(pOK?P.length:null,        'Total accounts',        '#/accounts') +
+      statCard(pOK?doctors.length:null,  'Doctors',               '#/doctors') +
+      statCard(pOK?verified.length:null, 'Verified doctors',      '#/doctors'+q2s({f:'verified'})) +
+      statCard(pOK?pending.length:null,  'Pending verification',  '#/doctors'+q2s({f:'pending'}), {warn:true}) +
+      statCard(pOK?patients.length:null, 'Patients',              '#/patients') +
+      statCard(sOK?active.length:null,   'Active journeys',       '#/journeys'+q2s({f:'active'})) +
+      statCard(sOK?archived.length:null, 'Archived journeys',     '#/journeys'+q2s({f:'archived'})) +
+      statCard(qOK?inReview.length:null, 'Questionnaires awaiting review', '#/questionnaires'+q2s({f:'review'}), {warn:true}) +
+      statCard(openQ, openQLabel, '#/questions', {why:openQWhy}) +
+      statCard(rOK?R.length:null,        'Care requests',         '#/care-requests') +
+      statCard(today, 'Audit events today', '#/audit'+q2s({d:'today'}), {why:'admin_audit_log unavailable'}) +
+    '</div></div>';
+
+  // System warnings — derived facts only
+  h += '<div class="gcard"><div class="gcard-h">System warnings<span class="gh-note">'+
+       (AC.warn.length? (AC.warn.length+' active') : 'none detected')+'</span></div>';
+  if(!AC.warn.length){
+    h += '<p class="mut" style="font-size:12.5px;">No warnings. This reflects the checks listed under '+
+      '<a class="lnk" href="#/status">System status</a> only — it is not a claim that every service is healthy.</p>';
+  } else {
+    h += AC.warn.map(function(w){
+      return '<div class="notice '+(w.sev==='bad'?'n-bad':'n-warn')+'" style="margin-bottom:9px;">'+
+        '<b>'+esc(w.t)+'</b> &mdash; '+w.d+' <a class="lnk" href="'+w.go+'">Open</a></div>';
+    }).join('');
+  }
+  h += '</div>';
+
+  // Pending approvals + recent accounts
+  h += '<div class="gcard"><div class="gcard-h">Pending doctor verification'+
+       '<span class="gh-note"><a class="lnk" href="#/doctors'+q2s({f:'pending'})+'">View all</a></span></div>';
+  if(!pOK) h += capNote('profiles');
+  else h += tblDoctors(pending.slice(0,8), true);
+  h += '</div>';
+
+  h += '<div class="gcard"><div class="gcard-h">Recently registered accounts'+
+       '<span class="gh-note"><a class="lnk" href="#/accounts">View all</a></span></div>';
+  if(!pOK) h += capNote('profiles');
+  else {
+    var recent = P.slice().sort(function(a,b){ return new Date(b.created_at||0)-new Date(a.created_at||0); }).slice(0,8);
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Verification</th><th>Registered</th><th></th></tr></thead><tbody>'+
+      (recent.length ? recent.map(function(p){
+        return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
+          '<td>'+dash(isAdminRole(p)?'admin':p.role)+'</td><td>'+badgeVerify(p.verification_status)+'</td>'+
+          '<td>'+esc(fdate(p.created_at))+'</td>'+
+          '<td><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a></td></tr>';
+      }).join('') : '<tr><td colspan="6" class="empty">No accounts</td></tr>')+
+      '</tbody></table></div>';
+  }
+  h += '</div>';
+
+  // Recent privileged actions
+  h += '<div class="gcard"><div class="gcard-h">Recent privileged actions'+
+       '<span class="gh-note"><a class="lnk" href="#/audit">Open audit log</a></span></div>';
+  if(!has('audit')) h += capNote('audit');
+  else if(!A.length) h += '<p class="mut" style="font-size:12.5px;">No admin actions have been recorded yet. '+
+    'Phase 1 is read-only, so this stays empty until the Phase 2 mutation RPCs are applied.</p>';
+  else h += tblAudit(A.slice(0,8), false);
+  h += '</div>';
+  return h;
+}
+
+/* ── Doctors ─────────────────────────────────────────── */
+function profileHref(p){
+  if(isDoctor(p)) return '#/doctor/'+p.id;
+  return '#/patient/'+p.id;
+}
+function tblDoctors(list, compact){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No doctors match this filter</td></tr></tbody></table></div>';
+  var lic = has('profiles','medical_license_number');
+  var hd = '<tr><th>Name</th><th>Email</th><th>Hospital</th><th>Specialty</th>'+
+    (compact?'':'<th>Country</th>'+(lic?'<th>License</th>':'')) +
+    '<th>Verification</th>'+(compact?'':'<th>Journeys</th><th>Clinic pts</th><th>Created</th>')+'<th></th></tr>';
+  var rows = list.map(function(p){
+    var jn = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===p.id; }).length;
+    var cn = (AC.db.clinics||[]).filter(function(c){ return c.doctor_id===p.id; }).length;
+    return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
+      '<td>'+dash(p.hospital)+'</td><td>'+dash(p.specialty)+'</td>'+
+      (compact?'':'<td>'+dash(p.country)+'</td>'+(lic?'<td>'+dash(p.medical_license_number)+'</td>':'')) +
+      '<td>'+badgeVerify(p.verification_status)+'</td>'+
+      (compact?'':'<td>'+(has('surgeries')?jn:'<span class="mut">n/a</span>')+'</td>'+
+                  '<td>'+(has('clinics')?cn:'<span class="mut">n/a</span>')+'</td>'+
+                  '<td>'+esc(fdate(p.created_at))+'</td>')+
+      '<td><a class="olink" href="#/doctor/'+p.id+'">Open &rsaquo;</a></td></tr>';
+  }).join('');
+  return '<div class="tbl-wrap"><table class="tbl"><thead>'+hd+'</thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function vDoctors(qs){
+  if(!has('profiles')) return head('People','Doctors','') + capNote('profiles');
+  var all = (AC.db.profiles||[]).filter(isDoctor);
+  var f = qs.f || 'all', country = qs.c || '', hosp = qs.h || '', spec = qs.s || '';
+  var list = all.filter(function(p){
+    if(f==='pending'  && p.verification_status!=='pending') return false;
+    if(f==='verified' && !(p.verification_status==='approved'||p.verification_status==='verified')) return false;
+    if(f==='rejected' && p.verification_status!=='rejected') return false;
+    if(country && p.country!==country) return false;
+    if(hosp && p.hospital!==hosp) return false;
+    if(spec && p.specialty!==spec) return false;
+    return true;
+  });
+  function opts(field, cur){
+    var vals = uniq(all.map(function(p){ return p[field]; }).filter(Boolean)).sort();
+    return '<option value="">All '+field+'s</option>' + vals.map(function(v){
+      return '<option value="'+esc(v)+'"'+(cur===v?' selected':'')+'>'+esc(v)+'</option>'; }).join('');
+  }
+  var base = function(o){ var m={f:f,c:country,h:hosp,s:spec}; for(var k in o) m[k]=o[k]; return '#/doctors'+q2s(m); };
+
+  var h = head('People','Doctors','Every column is a real <code>profiles</code> field. Counts of linked work are computed from '+
+    '<code>patient_surgeries.assigned_doctor_id</code> and <code>clinic_patients.doctor_id</code>.');
+  h += capNote('profiles');
+  h += '<div class="chips">'+
+    ['all','pending','verified','rejected'].map(function(k){
+      return '<a class="chip'+(f===k?' on':'')+'" href="'+base({f:k})+'">'+
+        (k==='all'?'All ('+all.length+')':k.charAt(0).toUpperCase()+k.slice(1))+'</a>'; }).join('')+
+    '<select class="fsel" onchange="AC.nav(this.value)">'+
+      '<option value="'+base({c:''})+'">All countries</option>'+
+      uniq(all.map(function(p){return p.country;}).filter(Boolean)).sort().map(function(v){
+        return '<option value="'+esc(base({c:v}))+'"'+(country===v?' selected':'')+'>'+esc(v)+'</option>'; }).join('')+
+    '</select>'+
+    '<select class="fsel" onchange="AC.nav(this.value)">'+
+      '<option value="'+base({h:''})+'">All hospitals</option>'+
+      uniq(all.map(function(p){return p.hospital;}).filter(Boolean)).sort().map(function(v){
+        return '<option value="'+esc(base({h:v}))+'"'+(hosp===v?' selected':'')+'>'+esc(v)+'</option>'; }).join('')+
+    '</select>'+
+    '<select class="fsel" onchange="AC.nav(this.value)">'+
+      '<option value="'+base({s:''})+'">All specialties</option>'+
+      uniq(all.map(function(p){return p.specialty;}).filter(Boolean)).sort().map(function(v){
+        return '<option value="'+esc(base({s:v}))+'"'+(spec===v?' selected':'')+'>'+esc(v)+'</option>'; }).join('')+
+    '</select>'+
+    '<span class="mut" style="font-size:12px;">'+list.length+' shown</span>'+
+    '</div>';
+  h += tblDoctors(list, false);
+  return h;
+}
+
+function vDoctor(id, qs){
+  var p = AC.profById[id];
+  if(!p) return head('People','Doctor not found','') +
+    '<div class="notice n-bad">No <code>profiles</code> row with id <code>'+esc(id)+'</code> is readable. '+
+    '<a class="lnk" href="#/doctors">Back to doctors</a></div>';
+  var tab = qs.t || 'overview';
+  var journeys = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===id; });
+  var clinics  = (AC.db.clinics||[]).filter(function(c){ return c.doctor_id===id; });
+  var reqs     = (AC.db.requests||[]).filter(function(r){ return r.doctor_id===id; });
+  var reviewed = (AC.db.quests||[]).filter(function(q){ return q.reviewed_by===id; });
+  var docsRev  = (AC.db.documents||[]).filter(function(d){ return d.reviewed_by===id; });
+  var arch     = (AC.db.parchive||[]).filter(function(a){ return a.actor_id===id; });
+  var aud      = (AC.db.audit||[]).filter(function(a){ return a.target_id===id || a.actor_id===id; });
+
+  var h = head('<a class="lnk" href="#/doctors">Doctors</a> &rsaquo; profile', pname(p), '');
+  h += '<div class="gcard"><div class="dt-head"><div><div class="dt-name">'+esc(pname(p))+'</div>'+
+    '<div class="dt-meta">'+esc(p.specialty||'Specialty not set')+
+    (p.hospital?(' &middot; '+esc(p.hospital)):'')+(p.country?(' &middot; '+esc(p.country)):'')+'</div></div>'+
+    '<div>'+badgeVerify(p.verification_status)+'</div></div></div>';
+
+  h += '<div class="tabrow">'+
+    [['overview','Overview'],['patients','Patients ('+(journeys.length+clinics.length)+')'],
+     ['activity','Activity'],['audit','Audit ('+aud.length+')']].map(function(t){
+      return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/doctor/'+id+q2s({t:t[0]})+'">'+t[1]+'</a>'; }).join('')+
+    '</div>';
+
+  if(tab==='overview'){
+    h += '<div class="gcard"><div class="gcard-h">Profile</div><div class="kv">'+
+      kv('Full name', p.full_name) + kv('Email', p.email) + kv('Phone', p.phone) +
+      kv('Country', p.country) + kv('Hospital', p.hospital) + kv('Specialty', p.specialty) +
+      kv('Role', isAdminRole(p)?'admin':p.role) +
+      kv('License number', has('profiles','medical_license_number') ? p.medical_license_number : null,
+         has('profiles','medical_license_number') ? null : 'Column not present in this database') +
+      kv('Verification status', p.verification_status) +
+      kvMono('Account ID', p.id) + kv('Created', fdt(p.created_at)) + kv('Profile updated', fdt(p.updated_at)) +
+      '</div></div>';
+    h += '<div class="notice n-warn"><b>Verification decisions are not available in Phase 1.</b> '+
+      'The <code>profiles</code> table has no admin UPDATE policy, so a direct update from the browser would '+
+      'silently affect zero rows and appear to succeed. Verify / reject / role change require the audited '+
+      '<code>admin_verify_doctor()</code>, <code>admin_reject_doctor()</code> and <code>admin_change_role()</code> '+
+      'RPCs listed for Phase 2.</div>';
+  }
+
+  if(tab==='patients'){
+    h += '<div class="gcard"><div class="gcard-h">Assigned surgery journeys<span class="gh-note">'+journeys.length+'</span></div>'+
+      (has('surgeries') ? tblJourneys(journeys) : capNote('surgeries')) + '</div>';
+    h += '<div class="gcard"><div class="gcard-h">Clinic patients<span class="gh-note">'+clinics.length+'</span></div>'+
+      (has('clinics') ? tblClinics(clinics) : capNote('clinics')) + '</div>';
+    h += '<div class="gcard"><div class="gcard-h">Care requests directed to this doctor<span class="gh-note">'+reqs.length+'</span></div>'+
+      (has('requests') ? tblRequests(reqs) : capNote('requests')) + '</div>';
+  }
+
+  if(tab==='activity'){
+    h += '<div class="notice n-info">Only activity that is provable from a stored column is shown. '+
+      'There is no per-user event stream in the schema, so this is not a login or page-view history.</div>';
+    h += '<div class="gcard"><div class="gcard-h">Questionnaires reviewed by this doctor<span class="gh-note">'+
+      (has('quests','reviewed_by')?reviewed.length:'n/a')+'</span></div>'+
+      (has('quests','reviewed_by')
+        ? (reviewed.length ? tblQuests(reviewed) : '<p class="mut" style="font-size:12.5px;">None recorded.</p>')
+        : '<p class="mut" style="font-size:12.5px;"><code>preop_questionnaires.reviewed_by</code> is not available.</p>')+'</div>';
+    h += '<div class="gcard"><div class="gcard-h">Documents marked reviewed<span class="gh-note">'+
+      (has('documents','reviewed_by')?docsRev.length:'n/a')+'</span></div>'+
+      (has('documents','reviewed_by')
+        ? (docsRev.length ? tblDocs(docsRev) : '<p class="mut" style="font-size:12.5px;">None recorded.</p>')
+        : capNote('documents'))+'</div>';
+    h += '<div class="gcard"><div class="gcard-h">Archive / restore actions performed<span class="gh-note">'+
+      (has('parchive')?arch.length:'n/a')+'</span></div>'+
+      (has('parchive')
+        ? (arch.length ? tblArchiveAudit(arch) : '<p class="mut" style="font-size:12.5px;">None recorded.</p>')
+        : capNote('parchive'))+'</div>';
+    var responded = reqs.filter(function(r){ return r.responded_at; });
+    h += '<div class="gcard"><div class="gcard-h">Care requests answered<span class="gh-note">'+
+      (has('requests')?responded.length+' of '+reqs.length:'n/a')+'</span></div>'+
+      (has('requests') ? tblRequests(responded) : capNote('requests'))+'</div>';
+  }
+
+  if(tab==='audit'){
+    h += '<div class="gcard"><div class="gcard-h">Administrative actions involving this account</div>'+
+      (has('audit') ? (aud.length ? tblAudit(aud, true)
+        : '<p class="mut" style="font-size:12.5px;">No audit rows reference this account.</p>') : capNote('audit'))+'</div>';
+  }
+  return h;
+}
+function kv(k,v,note){
+  return '<div><div class="kv-k">'+esc(k)+'</div><div class="kv-v'+(v?'':' dim')+'">'+
+    (v?esc(v):'<span class="mut">'+esc(note||'not set')+'</span>')+'</div></div>';
+}
+function kvMono(k,v){
+  return '<div><div class="kv-k">'+esc(k)+'</div><div class="kv-v mono">'+esc(v||'—')+'</div></div>';
+}
+
+/* ── Patients ────────────────────────────────────────── */
+function tblPatients(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No patients match this filter</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th>'+
+    '<th>Active procedure</th><th>Assigned doctor</th><th>Journey</th><th>Questionnaire</th><th>Registered</th><th></th></tr></thead><tbody>'+
+    list.map(function(r){
+      var p = r.p, s = r.journey, q = r.quest;
+      var st = s ? journeyState(s) : null;
+      return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
+        '<td>'+(s?dash(s.procedure_type):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+(s&&s.assigned_doctor_id?esc(docName(s.assigned_doctor_id)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+(st?st.h:'<span class="bdg bdg-mute">none</span>')+'</td>'+
+        '<td>'+(q?badgeReview(q.review_state)+' <span class="mut">'+(q.completion!=null?q.completion+'%':'')+'</span>'
+                 :'<span class="bdg bdg-mute">none</span>')+'</td>'+
+        '<td>'+esc(fdate(p.created_at))+'</td>'+
+        '<td><a class="olink" href="#/patient/'+p.id+'">Open &rsaquo;</a></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+function patientRows(){
+  var P = (AC.db.profiles||[]).filter(isPatientRole);
+  return P.map(function(p){
+    var mine = (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===p.id; });
+    var live = mine.filter(function(s){ return !s.archived_at && !s.completed_at; });
+    var journey = live[0] || mine[0] || null;
+    var quest = (AC.db.quests||[]).filter(function(q){ return q.patient_id===p.id; })[0] || null;
+    return { p:p, journey:journey, quest:quest, journeys:mine };
+  });
+}
+
+function vPatients(qs){
+  if(!has('profiles')) return head('People','Patients','') + capNote('profiles');
+  var rows = patientRows(), f = qs.f || 'all';
+  var list = rows.filter(function(r){
+    if(f==='active')    return r.journeys.some(function(s){ return !s.archived_at && !s.completed_at; });
+    if(f==='archived')  return r.journeys.length && r.journeys.every(function(s){ return !!s.archived_at; });
+    if(f==='nojourney') return r.journeys.length === 0;
+    if(f==='review')    return r.quest && (r.quest.review_state==='pending'||r.quest.review_state==='in_review');
+    return true;
+  });
+  var h = head('People','Patients','Patients are <code>profiles</code> rows with role <code>patient</code>. '+
+    'Journey, doctor and questionnaire columns are joined from <code>patient_surgeries</code> and '+
+    '<code>preop_questionnaires</code> by <code>patient_id</code>.');
+  h += capNote('profiles') + (has('surgeries')?'':capNote('surgeries'));
+  h += '<div class="chips">'+
+    [['all','All'],['active','With an active journey'],['archived','Only archived'],
+     ['nojourney','No journey yet'],['review','Awaiting questionnaire review']].map(function(k){
+      return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/patients'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
+    '<span class="mut" style="font-size:12px;">'+list.length+' of '+rows.length+'</span></div>';
+  h += tblPatients(list);
+
+  var orphan = (AC.db.surgeries||[]).filter(function(s){ return !s.patient_id; });
+  if(orphan.length){
+    h += '<div class="gcard"><div class="gcard-h">Journeys with no linked account<span class="gh-note">'+
+      orphan.length+' &middot; clinic-created, not yet claimed</span></div>'+ tblJourneys(orphan) +'</div>';
+  }
+  return h;
+}
+
+function vPatient(id, qs){
+  var p = AC.profById[id];
+  if(!p) return head('People','Patient not found','') +
+    '<div class="notice n-bad">No readable <code>profiles</code> row with id <code>'+esc(id)+'</code>. '+
+    '<a class="lnk" href="#/patients">Back to patients</a></div>';
+  var tab = qs.t || 'overview';
+  var journeys = (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===id; });
+  var live = journeys.filter(function(s){ return !s.archived_at && !s.completed_at; });
+  var quests = (AC.db.quests||[]).filter(function(q){ return q.patient_id===id; });
+  var chk = (AC.db.checklists||[]).filter(function(c){ return c.patient_id===id; });
+  var qsn = has('questions','patient_id') ? (AC.db.questions||[]).filter(function(q){ return q.patient_id===id; }) : [];
+  var docs = (AC.db.documents||[]).filter(function(d){ return d.patient_id===id; });
+  var reqs = (AC.db.requests||[]).filter(function(r){ return r.patient_id===id; });
+  var aud = (AC.db.audit||[]).filter(function(a){ return a.target_id===id; });
+  var parch = (AC.db.parchive||[]).filter(function(a){
+    return journeys.some(function(s){ return s.id===a.surgery_id; }); });
+
+  var cur = live[0] || journeys[0] || null;
+  var h = head('<a class="lnk" href="#/patients">Patients</a> &rsaquo; profile', pname(p), '');
+  h += '<div class="gcard"><div class="dt-head"><div><div class="dt-name">'+esc(pname(p))+'</div>'+
+    '<div class="dt-meta">'+(cur?esc(cur.procedure_type||'Procedure not set'):'No journey')+
+    (cur&&cur.hospital?(' &middot; '+esc(cur.hospital)):'')+'</div></div><div>'+
+    (cur?journeyState(cur).h:'<span class="bdg bdg-mute">no journey</span>')+'</div></div></div>';
+
+  h += '<div class="tabrow">'+
+    [['overview','Overview'],['journeys','Journeys ('+journeys.length+')'],
+     ['quest','Questionnaires ('+quests.length+')'],['checklist','Checklists ('+chk.length+')'],
+     ['questions','Questions ('+qsn.length+')'],['documents','Documents ('+docs.length+')'],
+     ['audit','Audit ('+(aud.length+parch.length)+')']].map(function(t){
+      return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/patient/'+id+q2s({t:t[0]})+'">'+t[1]+'</a>'; }).join('')+'</div>';
+
+  if(tab==='overview'){
+    h += '<div class="gcard"><div class="gcard-h">Profile &amp; contact</div><div class="kv">'+
+      kv('Full name', p.full_name)+kv('Email', p.email)+kv('Phone', p.phone)+kv('Country', p.country)+
+      kv('Role', p.role)+kvMono('Account ID', p.id)+kv('Registered', fdt(p.created_at))+
+      kv('Profile updated', fdt(p.updated_at))+'</div></div>';
+    h += '<div class="gcard"><div class="gcard-h">Current journey</div>'+
+      (cur ? '<div class="kv">'+kv('Procedure', cur.procedure_type)+kv('Hospital', cur.hospital)+
+        kv('Surgery date', cur.surgery_date?fdate(cur.surgery_date):null)+kv('Surgeon', cur.surgeon)+
+        kv('Anesthesia type', cur.anesthesia_type)+
+        kv('Assigned doctor', cur.assigned_doctor_id?docName(cur.assigned_doctor_id):null, 'unassigned')+
+        kv('Care state', cur.care_state)+kv('Origin', cur.origin)+
+        kvMono('Journey ID', cur.id)+kv('Created', fdt(cur.created_at))+'</div>'+
+        '<p style="margin-top:12px;"><a class="lnk" href="#/journey/'+cur.id+'">Open full journey &rsaquo;</a></p>'
+        : '<p class="mut" style="font-size:12.5px;">This account has no <code>patient_surgeries</code> row.</p>')+
+      '</div>';
+    if(reqs.length){
+      h += '<div class="gcard"><div class="gcard-h">Care requests<span class="gh-note">'+reqs.length+'</span></div>'+
+        tblRequests(reqs)+'</div>';
+    }
+  }
+  if(tab==='journeys'){
+    h += has('surgeries') ? ('<div class="gcard"><div class="gcard-h">All journeys<span class="gh-note">'+
+      live.length+' active &middot; '+journeys.filter(function(s){return !!s.archived_at;}).length+' archived &middot; '+
+      journeys.filter(function(s){return !!s.completed_at;}).length+' completed</span></div>'+
+      tblJourneys(journeys)+'</div>') : capNote('surgeries');
+  }
+  if(tab==='quest'){
+    h += '<div class="notice n-info">Review state, completion and timestamps only. Questionnaire answers are '+
+      'clinical content and are not surfaced in the Admin Center.</div>';
+    h += has('quests') ? tblQuests(quests) : capNote('quests');
+  }
+  if(tab==='checklist'){
+    h += has('checklists') ? tblChecklists(chk) : capNote('checklists');
+  }
+  if(tab==='questions'){
+    if(!has('questions')) h += capNote('questions');
+    else if(!has('questions','patient_id')) h += '<div class="notice n-warn"><b>Questions cannot be linked to this patient.</b> '+
+      'The live <code>questions</code> table has no <code>patient_id</code> column, so per-patient attribution is not possible. '+
+      '<a class="lnk" href="#/questions">Open all questions</a></div>';
+    else h += tblQuestions(qsn);
+  }
+  if(tab==='documents'){
+    h += '<div class="notice n-info">Metadata only. File contents live in Supabase Storage and are not fetched here.</div>';
+    h += has('documents') ? tblDocs(docs) : capNote('documents');
+  }
+  if(tab==='audit'){
+    h += '<div class="gcard"><div class="gcard-h">Admin audit entries<span class="gh-note">'+aud.length+'</span></div>'+
+      (has('audit') ? (aud.length?tblAudit(aud,true):'<p class="mut" style="font-size:12.5px;">None.</p>') : capNote('audit'))+'</div>';
+    h += '<div class="gcard"><div class="gcard-h">Archive / restore history<span class="gh-note">'+parch.length+'</span></div>'+
+      (has('parchive') ? (parch.length?tblArchiveAudit(parch):'<p class="mut" style="font-size:12.5px;">None.</p>') : capNote('parchive'))+'</div>';
+  }
+  return h;
+}
+
+/* ── Journeys ────────────────────────────────────────── */
+function tblJourneys(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No journeys</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Procedure</th><th>Hospital</th>'+
+    '<th>Surgery date</th><th>Doctor</th><th>Care state</th><th>Origin</th><th>State</th><th>Created</th><th></th></tr></thead><tbody>'+
+    list.map(function(s){
+      return '<tr><td class="nm">'+dash(s.patient_name || (s.patient_id?pname(AC.profById[s.patient_id]):null))+'</td>'+
+        '<td>'+dash(s.procedure_type)+'</td><td>'+dash(s.hospital)+'</td>'+
+        '<td>'+esc(fdate(s.surgery_date))+'</td>'+
+        '<td>'+(s.assigned_doctor_id?esc(docName(s.assigned_doctor_id)):'<span class="mut">unassigned</span>')+'</td>'+
+        '<td>'+dash(s.care_state)+'</td><td>'+dash(s.origin)+'</td>'+
+        '<td>'+journeyState(s).h+'</td><td>'+esc(fdate(s.created_at))+'</td>'+
+        '<td><a class="olink" href="#/journey/'+s.id+'">Open &rsaquo;</a></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function vJourneys(qs){
+  if(!has('surgeries')) return head('Clinical','Surgery journeys','') + capNote('surgeries');
+  var all = AC.db.surgeries||[], f = qs.f||'all';
+  var list = all.filter(function(s){
+    var st = journeyState(s).k;
+    if(f==='active')     return st==='active'||st==='ready';
+    if(f==='archived')   return st==='archived';
+    if(f==='completed')  return st==='completed';
+    if(f==='unassigned') return !s.archived_at && !s.completed_at && !s.assigned_doctor_id;
+    if(f==='unclaimed')  return !s.patient_id;
+    return true;
+  });
+  var h = head('Clinical','Surgery journeys','One row per <code>patient_surgeries</code> record. '+
+    'State is derived from <code>archived_at</code>, <code>completed_at</code> and <code>ready_at</code> — no status is invented.');
+  h += '<div class="chips">'+
+    [['all','All'],['active','Active'],['completed','Completed'],['archived','Archived'],
+     ['unassigned','No doctor assigned'],['unclaimed','No linked account']].map(function(k){
+      return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/journeys'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
+    '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
+  h += tblJourneys(list);
+  return h;
+}
+function vJourney(id){
+  var s = AC.surgById[id];
+  if(!s) return head('Clinical','Journey not found','') +
+    '<div class="notice n-bad">No readable <code>patient_surgeries</code> row with id <code>'+esc(id)+'</code>.</div>';
+  var q = (AC.db.quests||[]).filter(function(x){ return x.patient_id===s.patient_id; });
+  var docs = (AC.db.documents||[]).filter(function(d){ return d.surgery_id===id; });
+  var reqs = (AC.db.requests||[]).filter(function(r){ return r.surgery_id===id; });
+  var parch = (AC.db.parchive||[]).filter(function(a){ return a.surgery_id===id; });
+  var h = head('<a class="lnk" href="#/journeys">Surgery journeys</a> &rsaquo; detail',
+    s.patient_name || 'Journey', '');
+  h += '<div class="gcard"><div class="gcard-h">Journey record<span class="gh-note">'+journeyState(s).h+'</span></div><div class="kv">'+
+    kv('Patient name', s.patient_name)+
+    kv('Linked account', s.patient_id?pname(AC.profById[s.patient_id]):null, 'not claimed')+
+    kv('Procedure', s.procedure_type)+kv('Hospital', s.hospital)+kv('Surgeon', s.surgeon)+
+    kv('Anesthesia type', s.anesthesia_type)+kv('Surgery date', s.surgery_date?fdate(s.surgery_date):null)+
+    kv('Assigned doctor', s.assigned_doctor_id?docName(s.assigned_doctor_id):null,'unassigned')+
+    kv('Assigned at', s.assigned_at?fdt(s.assigned_at):null)+
+    kv('Care state', s.care_state)+kv('Origin', s.origin)+kv('Contact email', s.contact_email)+
+    kv('Ready at', s.ready_at?fdt(s.ready_at):null)+kv('Completed at', s.completed_at?fdt(s.completed_at):null)+
+    kv('Archived at', s.archived_at?fdt(s.archived_at):null)+
+    kv('Archived by', s.archived_by?docName(s.archived_by):null)+
+    kv('Archive reason', s.archive_reason)+kv('Restored at', s.restored_at?fdt(s.restored_at):null)+
+    kvMono('Journey ID', s.id)+kvMono('Clinic patient ID', s.clinic_patient_id||'—')+
+    kv('Created', fdt(s.created_at))+kv('Updated', fdt(s.updated_at))+'</div>';
+  if(s.patient_id) h += '<p style="margin-top:12px;"><a class="lnk" href="#/patient/'+s.patient_id+'">Open patient 360 &rsaquo;</a></p>';
+  h += '</div>';
+  if(q.length)     h += '<div class="gcard"><div class="gcard-h">Questionnaires for this patient</div>'+tblQuests(q)+'</div>';
+  if(reqs.length)  h += '<div class="gcard"><div class="gcard-h">Care requests</div>'+tblRequests(reqs)+'</div>';
+  if(docs.length)  h += '<div class="gcard"><div class="gcard-h">Documents (metadata)</div>'+tblDocs(docs)+'</div>';
+  if(parch.length) h += '<div class="gcard"><div class="gcard-h">Archive history</div>'+tblArchiveAudit(parch)+'</div>';
+  return h;
+}
+
+/* ── Clinic patients ─────────────────────────────────── */
+function tblClinics(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No clinic patients</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Phone</th><th>Procedure</th><th>Hospital</th>'+
+    '<th>Surgery date</th><th>Questionnaire</th><th>Consultation</th><th>Status</th><th>Doctor</th><th>Created</th></tr></thead><tbody>'+
+    list.map(function(c){
+      return '<tr><td class="nm">'+dash(c.patient_name)+'</td><td>'+dash(c.phone_number)+'</td>'+
+        '<td>'+dash(c.procedure)+'</td><td>'+dash(c.hospital)+'</td><td>'+esc(fdate(c.surgery_date))+'</td>'+
+        '<td><span class="bdg bdg-mute">'+esc(c.questionnaire_status||'—')+'</span></td>'+
+        '<td><span class="bdg bdg-mute">'+esc(c.consultation_status||'—')+'</span></td>'+
+        '<td><span class="bdg bdg-info">'+esc(c.patient_status||'—')+'</span></td>'+
+        '<td>'+(c.doctor_id?esc(docName(c.doctor_id)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+esc(fdate(c.created_at))+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+/* ── Questionnaires ──────────────────────────────────── */
+function tblQuests(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No questionnaires</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Completion</th><th>Status</th>'+
+    '<th>Review state</th><th>Submitted</th><th>Reviewed</th><th>Reviewer</th><th>Updated</th><th></th></tr></thead><tbody>'+
+    list.map(function(q){
+      var p = AC.profById[q.patient_id];
+      var c = q.completion!=null ? q.completion : null;
+      return '<tr><td class="nm">'+(p?esc(pname(p)):'<span class="mono">'+short(q.patient_id)+'</span>')+'</td>'+
+        '<td>'+(c!=null?(c+'%<div class="meterbar"><div class="meterfill" style="width:'+Math.max(0,Math.min(100,c))+'%"></div></div>'):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+dash(q.status)+'</td><td>'+badgeReview(q.review_state)+'</td>'+
+        '<td>'+esc(fdate(q.submitted_at))+'</td><td>'+esc(fdate(q.reviewed_at))+'</td>'+
+        '<td>'+(q.reviewed_by?esc(docName(q.reviewed_by)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+esc(fdate(q.updated_at))+'</td>'+
+        '<td>'+(p?'<a class="olink" href="#/patient/'+q.patient_id+q2s({t:'quest'})+'">Open &rsaquo;</a>':'')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function vQuests(qs){
+  if(!has('quests')) return head('Clinical','Questionnaires','') + capNote('quests');
+  var all = AC.db.quests||[], f = qs.f||'all';
+  var list = all.filter(function(q){
+    if(f==='review')    return q.review_state==='pending'||q.review_state==='in_review';
+    if(f==='approved')  return q.review_state==='approved';
+    if(f==='changes')   return q.review_state==='changes_requested';
+    if(f==='draft')     return !q.review_state || q.review_state==='not_submitted';
+    return true;
+  });
+  var h = head('Clinical','Questionnaires','Review workflow metadata only. Answers, '+
+    '<code>questionnaire_data</code> and <code>risk_flags</code> are never requested by this page.');
+  h += '<div class="chips">'+
+    [['all','All'],['review','Awaiting review'],['changes','Changes requested'],
+     ['approved','Approved'],['draft','Not submitted']].map(function(k){
+      return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/questionnaires'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
+    '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
+  h += tblQuests(list);
+  return h;
+}
+
+/* ── Checklists ──────────────────────────────────────── */
+function chkProgress(items){
+  if(!items || typeof items !== 'object') return null;
+  var done = 0, total = 0;
+  Object.keys(items).forEach(function(k){
+    var v = items[k];
+    if(Array.isArray(v)) v.forEach(function(x){ total++; if(x===true) done++; });
+    else if(typeof v === 'boolean'){ total++; if(v) done++; }
+  });
+  return total ? { done:done, total:total, pct:Math.round(done/total*100) } : null;
+}
+function tblChecklists(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No checklists</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Progress</th><th>Items</th><th>Updated</th><th></th></tr></thead><tbody>'+
+    list.map(function(c){
+      var p = AC.profById[c.patient_id], pr = chkProgress(c.items);
+      return '<tr><td class="nm">'+(p?esc(pname(p)):'<span class="mono">'+short(c.patient_id)+'</span>')+'</td>'+
+        '<td>'+(pr?(pr.pct+'%<div class="meterbar"><div class="meterfill" style="width:'+pr.pct+'%"></div></div>'):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+(pr?(pr.done+' of '+pr.total):'<span class="mut">no boolean items</span>')+'</td>'+
+        '<td>'+esc(fdate(c.updated_at))+'</td>'+
+        '<td>'+(p?'<a class="olink" href="#/patient/'+c.patient_id+q2s({t:'checklist'})+'">Open &rsaquo;</a>':'')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function vChecklists(){
+  if(!has('checklists')) return head('Clinical','Checklists','') + capNote('checklists');
+  var all = AC.db.checklists||[];
+  return head('Clinical','Checklists','Progress is counted from the boolean entries inside '+
+    '<code>preop_checklist.items</code>. Checklist content itself is not displayed.') +
+    '<div class="chips"><span class="mut" style="font-size:12px;">'+all.length+' checklist rows</span></div>' +
+    tblChecklists(all);
+}
+
+/* ── Questions (schema-adaptive) ─────────────────────── */
+function tblQuestions(list){
+  var c = AC.cap.questions || {cols:{}};
+  var portal = !!c.cols.subject, legacy = !!c.cols.question;
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No questions</td></tr></tbody></table></div>';
+  var cols = [];
+  if(portal) cols.push(['subject','Subject']);
+  if(legacy){ if(c.cols.name) cols.push(['name','Name']); if(c.cols.topic) cols.push(['topic','Topic']); cols.push(['question','Question']); }
+  if(c.cols.email) cols.push(['email','Email']);
+  if(c.cols.patient_id) cols.push(['__patient','Patient account']);
+  if(c.cols.status) cols.push(['status','Status']);
+  cols.push(['created_at','Received']);
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+    cols.map(function(x){ return '<th>'+esc(x[1])+'</th>'; }).join('')+'</tr></thead><tbody>'+
+    list.map(function(q){
+      return '<tr>'+cols.map(function(x){
+        var k = x[0];
+        if(k==='__patient'){ var p = AC.profById[q.patient_id];
+          return '<td>'+(p?'<a class="olink" href="#/patient/'+q.patient_id+'">'+esc(pname(p))+'</a>':'<span class="mut">—</span>')+'</td>'; }
+        if(k==='status')     return '<td><span class="bdg bdg-mute">'+esc(q.status||'—')+'</span></td>';
+        if(k==='created_at') return '<td>'+esc(fdate(q.created_at))+'</td>';
+        var v = q[k]==null?'':String(q[k]);
+        if(v.length>110) v = v.slice(0,110)+'…';
+        return '<td'+(k==='subject'||k==='name'?' class="nm"':'')+'>'+dash(v)+'</td>';
+      }).join('')+'</tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function vQuestions(qs){
+  var h = head('Clinical','Questions','');
+  if(!has('questions')) return h + capNote('questions');
+  var c = AC.cap.questions, all = AC.db.questions||[];
+  var portal = !!c.cols.subject && !!c.cols.patient_id && !!c.cols.status;
+  h += '<div class="notice '+(portal?'n-info':'n-warn')+'"><b>Live schema: '+
+    (portal?'portal questions table':'legacy contact-form table')+'.</b> '+
+    'Detected columns: <code>'+esc(Object.keys(c.cols).filter(function(k){return c.cols[k];}).join(', ')||'none')+'</code>.'+
+    (portal ? '' : ' Status, per-patient attribution and threaded replies are not available because '+
+      '<code>questions</code> does not carry <code>status</code> / <code>patient_id</code> / a '+
+      '<code>question_replies</code> table. The table below shows exactly the fields that do exist.')+
+    '</div>';
+  h += questionsRlsNotice();
+  if(!has('replies')) h += '<div class="notice n-warn"><b>Replies unavailable.</b> <code>question_replies</code>: '+
+    esc((AC.cap.replies&&AC.cap.replies.error)||'not present')+'. Threaded conversation cannot be shown.</div>';
+
+  var f = qs.f||'all', list = all;
+  if(c.cols.status){
+    list = all.filter(function(q){
+      if(f==='open')     return q.status!=='answered' && q.status!=='closed';
+      if(f==='answered') return q.status==='answered';
+      if(f==='closed')   return q.status==='closed';
+      return true;
+    });
+    h += '<div class="chips">'+[['all','All'],['open','Open'],['answered','Answered'],['closed','Closed']].map(function(k){
+      return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/questions'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
+      '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
+  } else {
+    h += '<div class="chips"><span class="mut" style="font-size:12px;">'+all.length+' submissions &middot; '+
+      'no status column, so no status filter is offered</span></div>';
+  }
+  h += tblQuestions(list);
+  return h;
+}
+
+/* ── Care requests ───────────────────────────────────── */
+function tblRequests(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No care requests</td></tr></tbody></table></div>';
+  var ic = has('requests','is_consultation');
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Doctor</th><th>Origin</th>'+
+    (ic?'<th>Lane</th>':'')+'<th>Status</th><th>Requested</th><th>Responded</th><th>Decline reason</th><th></th></tr></thead><tbody>'+
+    list.map(function(r){
+      var pp = AC.profById[r.patient_id];
+      return '<tr><td class="nm">'+(pp?'<a class="olink" href="#/patient/'+r.patient_id+'">'+esc(pname(pp))+'</a>'
+             :'<span class="mono">'+short(r.patient_id)+'</span>')+'</td>'+
+        '<td>'+(r.doctor_id?'<a class="olink" href="#/doctor/'+r.doctor_id+'">'+esc(docName(r.doctor_id))+'</a>':'<span class="mut">—</span>')+'</td>'+
+        '<td>'+dash(r.origin_method)+'</td>'+
+        (ic?('<td>'+(r.is_consultation?'<span class="bdg bdg-info">consultation</span>':'<span class="bdg bdg-mute">surgical</span>')+'</td>'):'')+
+        '<td>'+badgeReq(r.status)+'</td><td>'+esc(fdate(r.requested_at))+'</td>'+
+        '<td>'+esc(fdate(r.responded_at))+'</td><td>'+dash(r.decline_reason)+'</td>'+
+        '<td>'+(r.surgery_id?'<a class="olink" href="#/journey/'+r.surgery_id+'">Journey &rsaquo;</a>':'')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function vRequests(qs){
+  if(!has('requests')) return head('Clinical','Care requests','') + capNote('requests');
+  var all = AC.db.requests||[], f = qs.f||'all';
+  var list = all.filter(function(r){ return f==='all' ? true : r.status===f; });
+  var h = head('Clinical','Care requests','Shown exactly as stored. <code>status</code> is the real '+
+    '<code>care_requests.status</code> value; the surgical / consultation lane comes from '+
+    '<code>is_consultation</code> and is only shown when that column exists. No request is relabelled.');
+  var statuses = uniq(all.map(function(r){ return r.status; }).filter(Boolean)).sort();
+  h += '<div class="chips">'+
+    ['all'].concat(statuses).map(function(k){
+      var n = k==='all'?all.length:all.filter(function(r){return r.status===k;}).length;
+      return '<a class="chip'+(f===k?' on':'')+'" href="#/care-requests'+q2s({f:k})+'">'+esc(k)+' ('+n+')</a>'; }).join('')+
+    '</div>';
+  h += tblRequests(list);
+  return h;
+}
+
+/* ── Documents / archive audit ───────────────────────── */
+function fsize(n){ if(n==null) return '—'; if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(0)+' KB'; return (n/1048576).toFixed(1)+' MB'; }
+function tblDocs(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No documents</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Requirement</th><th>File name</th><th>Type</th>'+
+    '<th>Size</th><th>Uploaded</th><th>Reviewed</th><th>Reviewer</th></tr></thead><tbody>'+
+    list.map(function(d){
+      return '<tr><td class="nm">'+dash(d.requirement_name||d.requirement_key)+'</td><td>'+dash(d.file_name)+'</td>'+
+        '<td>'+dash(d.mime_type)+'</td><td>'+esc(fsize(d.file_size))+'</td>'+
+        '<td>'+esc(fdate(d.uploaded_at))+'</td><td>'+esc(fdate(d.reviewed_at))+'</td>'+
+        '<td>'+(d.reviewed_by?esc(docName(d.reviewed_by)):'<span class="mut">—</span>')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function tblArchiveAudit(list){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No archive history</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Action</th><th>Patient</th>'+
+    '<th>Actor</th><th>Role</th><th>Reason</th></tr></thead><tbody>'+
+    list.map(function(a){
+      var b = a.action==='delete'?'bdg-bad':(a.action==='archive'?'bdg-warn':'bdg-ok');
+      return '<tr><td>'+esc(fdt(a.created_at))+'</td><td><span class="bdg '+b+'">'+esc(a.action)+'</span></td>'+
+        '<td class="nm">'+dash(a.patient_name)+'</td>'+
+        '<td>'+(a.actor_id?esc(docName(a.actor_id)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+dash(a.actor_role)+'</td><td>'+dash(a.reason)+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+/* ── Accounts (profiles-level; auth.users is Phase 3) ── */
+function vAccounts(qs){
+  if(!has('profiles')) return head('People','Accounts','') + capNote('profiles');
+  var all = AC.db.profiles||[], f = qs.f||'all';
+  var list = all.filter(function(p){
+    if(f==='pending')  return p.role==='pending' || !p.role;
+    if(f==='admin')    return isAdminRole(p);
+    if(f==='doctor')   return isDoctor(p);
+    if(f==='patient')  return isPatientRole(p);
+    if(f==='other')    return !isAdminRole(p) && !isDoctor(p) && !isPatientRole(p) && p.role && p.role!=='pending';
+    return true;
+  });
+  var h = head('People','Accounts','Every <code>profiles</code> row. This is the application profile, not the '+
+    'authentication record — <code>auth.users</code> cannot be read from the browser at all.');
+  h += '<div class="notice n-warn"><b>Authentication accounts are Phase 3.</b> Ban / re-enable, session revocation, '+
+    'password-reset and auth deletion all require the <code>admin-api</code> Edge Function holding the service-role '+
+    'key server-side. That function is specified in <code>docs/ADMIN_API_INTERFACE.md</code> and is not deployed yet, '+
+    'so no auth-level state is shown here rather than guessed.</div>';
+  var roles = [['all','All'],['doctor','Doctors'],['patient','Patients'],['admin','Admins'],
+               ['pending','No role yet'],['other','Other roles']];
+  h += '<div class="chips">'+roles.map(function(k){
+      var n = k[0]==='all'?all.length:all.filter(function(p){
+        if(k[0]==='pending') return p.role==='pending'||!p.role;
+        if(k[0]==='admin')   return isAdminRole(p);
+        if(k[0]==='doctor')  return isDoctor(p);
+        if(k[0]==='patient') return isPatientRole(p);
+        return !isAdminRole(p)&&!isDoctor(p)&&!isPatientRole(p)&&p.role&&p.role!=='pending';
+      }).length;
+      return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/accounts'+q2s({f:k[0]})+'">'+esc(k[1])+' ('+n+')</a>'; }).join('')+'</div>';
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th>'+
+    '<th>Verification</th><th>Country</th><th>Registered</th><th>Account ID</th><th></th></tr></thead><tbody>'+
+    (list.length ? list.map(function(p){
+      return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
+        '<td>'+(isAdminRole(p)?'<span class="bdg bdg-info">admin</span>':dash(p.role))+'</td>'+
+        '<td>'+badgeVerify(p.verification_status)+'</td><td>'+dash(p.country)+'</td>'+
+        '<td>'+esc(fdate(p.created_at))+'</td><td class="mono">'+esc(short(p.id))+'</td>'+
+        '<td><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a></td></tr>';
+    }).join('') : '<tr><td colspan="9" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
+  return h;
+}
+
+/* ── Global search (admin_search RPC) ────────────────── */
+var SEARCH_ROUTE = {
+  profile: function(id){ var p = AC.profById[id]; return p ? profileHref(p) : '#/accounts'; },
+  patient_surgery: function(id){ return '#/journey/'+id; },
+  clinic_patient:  function(id){ return '#/journeys'+q2s({f:'all'}); },
+  care_request:    function(id){ return '#/care-requests'; },
+  questionnaire:   function(id){ return '#/questionnaires'; },
+  question:        function(id){ return '#/questions'; }
+};
+async function vSearch(qs){
+  var term = qs.q||'';
+  var h = head('Search','Global search','Backed by the <code>admin_search()</code> RPC. '+
+    'Only the entity types that the live function actually compiled are returned — nothing is added client-side.');
+  h += '<div id="sr"><p class="mut" style="font-size:12.5px;">Searching…</p></div>';
+  setTimeout(async function(){
+    var box = ge('sr'); if(!box) return;
+    if(term.length < 2){ box.innerHTML = '<div class="notice n-info">Enter at least 2 characters.</div>'; return; }
+    var r;
+    try { r = await window.sb.rpc('admin_search', { p_q: term, p_limit: 50 }); }
+    catch(e){ r = { error:{ message:e.message } }; }
+    if(r.error){
+      box.innerHTML = '<div class="notice n-bad"><b>Search unavailable.</b> <code>admin_search()</code> returned: '+
+        esc(r.error.message)+'</div>'; return;
+    }
+    var rows = r.data||[];
+    if(!rows.length){ box.innerHTML = '<div class="notice n-info">No matches for <b>'+esc(term)+'</b>.</div>'; return; }
+    var types = {};
+    rows.forEach(function(x){ types[x.entity_type] = (types[x.entity_type]||0)+1; });
+    box.innerHTML = '<div class="chips">'+Object.keys(types).map(function(t){
+        return '<span class="chip on">'+esc(t)+' ('+types[t]+')</span>'; }).join('')+
+      '<span class="mut" style="font-size:12px;">'+rows.length+' result'+(rows.length>1?'s':'')+' for &ldquo;'+esc(term)+'&rdquo;</span></div>'+
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Type</th><th>Result</th><th>Detail</th><th>Status</th><th></th></tr></thead><tbody>'+
+      rows.map(function(x){
+        var route = SEARCH_ROUTE[x.entity_type];
+        var href = route ? route(x.entity_id) : (x.destination||'');
+        return '<tr><td><span class="bdg bdg-info">'+esc(x.entity_type)+'</span></td>'+
+          '<td class="nm">'+dash(x.label)+'</td><td>'+dash(x.sublabel)+'</td>'+
+          '<td><span class="bdg bdg-mute">'+esc(x.status||'—')+'</span></td>'+
+          '<td>'+(href?'<a class="olink" href="'+esc(href)+'">Open &rsaquo;</a>':'')+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+  }, 0);
+  return h;
+}
+
+/* ── Audit log ───────────────────────────────────────── */
+function jsonBox(label, v){
+  if(v==null) return '';
+  var s; try{ s = JSON.stringify(v, null, 2); }catch(e){ s = String(v); }
+  if(s==='null'||s==='{}') return '';
+  return '<div class="kv-k" style="margin-top:8px;">'+esc(label)+'</div><div class="jsonbox">'+esc(s)+'</div>';
+}
+function tblAudit(list, detail){
+  if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No audit entries</td></tr></tbody></table></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Actor</th><th>Action</th>'+
+    '<th>Target type</th><th>Target</th><th>Reason</th>'+(detail?'<th>Correlation</th>':'')+'</tr></thead><tbody>'+
+    list.map(function(a){
+      var actor = a.actor_id ? (AC.profById[a.actor_id] ? pname(AC.profById[a.actor_id]) : short(a.actor_id)) : '—';
+      var tgt = a.target_label || (a.target_id?short(a.target_id):'—');
+      var tgtHref = '';
+      if(a.target_type==='profile' && a.target_id && AC.profById[a.target_id]) tgtHref = profileHref(AC.profById[a.target_id]);
+      else if(a.target_type==='patient_surgery' && a.target_id) tgtHref = '#/journey/'+a.target_id;
+      var main = '<tr><td>'+esc(fdt(a.created_at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(a.created_at))+'</div></td>'+
+        '<td class="nm">'+esc(actor)+'<div class="mut" style="font-size:10.5px;">'+esc(a.actor_role||'')+'</div></td>'+
+        '<td><span class="bdg bdg-info">'+esc(a.action)+'</span></td>'+
+        '<td>'+dash(a.target_type)+'</td>'+
+        '<td>'+(tgtHref?('<a class="olink" href="'+tgtHref+'">'+esc(tgt)+'</a>'):esc(tgt))+'</td>'+
+        '<td>'+dash(a.reason)+'</td>'+(detail?('<td class="mono">'+esc(a.correlation_id||'—')+'</td>'):'')+'</tr>';
+      if(detail){
+        var extra = jsonBox('Before', a.before_state)+jsonBox('After', a.after_state)+jsonBox('Metadata', a.metadata);
+        if(extra) main += '<tr><td colspan="7" style="padding-top:0;">'+extra+'</td></tr>';
+      }
+      return main;
+    }).join('')+'</tbody></table></div>';
+}
+function vAudit(qs){
+  var h = head('Operations','Audit log','Every row written by <code>admin_log()</code>. '+
+    'The table is append-only at the database level and is strictly read-only here — there is no edit or delete control.');
+  if(!has('audit')) return h + capNote('audit');
+  var all = AC.db.audit||[];
+  var fa = qs.actor||'', fac = qs.a||'', ft = qs.tt||'', fd = qs.d||'', fid = qs.id||'';
+  var list = all.filter(function(r){
+    if(fa && r.actor_id !== fa) return false;
+    if(fac && r.action !== fac) return false;
+    if(ft && r.target_type !== ft) return false;
+    if(fid && String(r.target_id||'').indexOf(fid) < 0) return false;
+    if(fd){
+      var d = new Date(r.created_at), n = new Date();
+      if(fd==='today'){ var m = new Date(); m.setHours(0,0,0,0); if(d < m) return false; }
+      if(fd==='7d'  && (n-d) > 7*86400000)  return false;
+      if(fd==='30d' && (n-d) > 30*86400000) return false;
+    }
+    return true;
+  });
+  var base = function(o){ var m={actor:fa,a:fac,tt:ft,d:fd,id:fid}; for(var k in o) m[k]=o[k]; return '#/audit'+q2s(m); };
+  function sel(cur, field, label, values){
+    return '<select class="fsel" onchange="AC.nav(this.value)"><option value="'+base((function(){var x={};x[field]='';return x;})())+'">'+esc(label)+'</option>'+
+      values.map(function(v){ var o={}; o[field]=v[0];
+        return '<option value="'+esc(base(o))+'"'+(cur===v[0]?' selected':'')+'>'+esc(v[1])+'</option>'; }).join('')+'</select>';
+  }
+  h += '<div class="chips">'+
+    sel(fa,'actor','All actors', uniq(all.map(function(r){return r.actor_id;}).filter(Boolean)).map(function(id){
+      return [id, AC.profById[id]?pname(AC.profById[id]):short(id)]; }))+
+    sel(fac,'a','All actions', uniq(all.map(function(r){return r.action;}).filter(Boolean)).sort().map(function(v){return [v,v];}))+
+    sel(ft,'tt','All target types', uniq(all.map(function(r){return r.target_type;}).filter(Boolean)).sort().map(function(v){return [v,v];}))+
+    sel(fd,'d','Any date', [['today','Today'],['7d','Last 7 days'],['30d','Last 30 days']])+
+    '<input class="finput" id="aud-id" placeholder="Target ID contains…" value="'+esc(fid)+'" '+
+      'onchange="AC.nav(\''+base({id:'__V__'}).replace('__V__','\'+encodeURIComponent(this.value)+\'')+'\')">'+
+    '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
+  if(!all.length) h += '<div class="notice n-info">No admin actions recorded yet. Phase 1 performs no mutations, '+
+    'so the first entries will appear once the Phase 2 RPCs are applied and used.</div>';
+  h += tblAudit(list, true);
+  return h;
+}
+
+/* ── Content inventory (static, honest) ──────────────── */
+var CONTENT = [
+  { g:'Procedure guides', items:[
+    ['Orthopedic surgery','/v2/orthopedic.html'],['General surgery','/v2/general-surgery.html'],
+    ['Obstetric anesthesia','/v2/obstetric.html'],['C-section','/v2/csection.html'],
+    ['Oncogynecology','/v2/oncogynecology.html'],['Pediatric','/v2/pediatric.html'],
+    ['ENT','/v2/ent.html'],['Urology','/v2/urology.html'],['Dental','/v2/dental.html'],
+    ['Plastic surgery','/v2/plastic.html'],['ICU','/v2/icu.html'],['Recovery','/v2/recovery.html'],
+    ['Procedures index','/v2/procedures.html'] ]},
+  { g:'Clinical references', items:[
+    ['Airway','/v2/airway.html'],['Difficult airway','/v2/difficult-airway.html'],
+    ['Regional anesthesia','/v2/regional.html'],['Anaphylaxis','/v2/anaphylaxis.html'],
+    ['Anticoagulation','/v2/anticoagulation.html'],['Scores','/v2/scores.html'],
+    ['References index','/v2/references.html'],['Evidence transparency','/v2/evidence-transparency.html'] ]},
+  { g:'Patient education', items:[
+    ['For patients','/v2/patients.html'],['Pre-op instructions','/v2/preop-instructions.html'],
+    ['Videos','/v2/videos.html'],['Resources','/v2/resources.html'],['Ask','/v2/ask.html'] ]},
+  { g:'Legal & trust', items:[
+    ['Privacy','/v2/privacy.html'],['Terms','/v2/terms.html'],
+    ['Medical disclaimer','/v2/medical-disclaimer.html'],['Security','/v2/security.html'],
+    ['Cookies','/v2/cookies.html'],['Data protection','/v2/data-protection.html'],
+    ['Release notes','/v2/release-notes.html'],['About','/v2/about.html'] ]}
+];
+function vContent(){
+  var h = head('Content','Content inventory','Procedure guides, references, patient education and legal pages are '+
+    'hand-authored static HTML in the repository. They are <b>not</b> database rows, so there is nothing to edit here.');
+  h += '<div class="notice n-warn"><b>This is an inventory, not a CMS.</b> Every page below is a file in the repo, '+
+    'deployed with the site. Editing requires a code change and a deploy. Building real content management would need: '+
+    'a <code>content_pages</code> table (slug, title, body, status, version, published_at, author), an admin editor with '+
+    'preview and draft/publish states, a migration that imports the existing HTML, and a renderer that serves from the '+
+    'database instead of the static file. None of that exists today and none of it is faked here.</div>';
+  var total = CONTENT.reduce(function(n,g){ return n+g.items.length; },0);
+  h += '<div class="chips"><span class="mut" style="font-size:12px;">'+total+' pages across '+CONTENT.length+' groups &middot; '+
+    'availability and last-modified are measured live with a HEAD request</span>'+
+    '<button class="rowbtn" onclick="AC.probeContent()">Check all pages</button></div>';
+  CONTENT.forEach(function(g){
+    h += '<div class="gcard"><div class="gcard-h">'+esc(g.g)+'<span class="gh-note">'+g.items.length+' pages</span></div>'+
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Title</th><th>Route</th><th>Availability</th><th>Last modified</th><th></th></tr></thead><tbody>'+
+      g.items.map(function(it){
+        var id = 'ct-'+it[1].replace(/[^a-z0-9]/gi,'');
+        return '<tr><td class="nm">'+esc(it[0])+'</td><td class="mono">'+esc(it[1])+'</td>'+
+          '<td id="'+id+'-s"><span class="mut">not checked</span></td>'+
+          '<td id="'+id+'-m"><span class="mut">—</span></td>'+
+          '<td><a class="olink" href="'+esc(it[1])+'" target="_blank" rel="noopener">View &#8599;</a></td></tr>';
+      }).join('')+'</tbody></table></div></div>';
+  });
+  // Videos: real feed, not a static list
+  h += '<div class="gcard"><div class="gcard-h">Videos<span class="gh-note">served by the existing '+
+    '<code>youtube-latest</code> Edge Function</span></div><div id="ct-vids"><p class="mut" style="font-size:12.5px;">Loading feed…</p></div></div>';
+  setTimeout(loadContentVideos, 0);
+  return h;
+}
+AC.probeContent = function(){
+  CONTENT.forEach(function(g){ g.items.forEach(function(it){
+    var id = 'ct-'+it[1].replace(/[^a-z0-9]/gi,'');
+    var s = ge(id+'-s'), m = ge(id+'-m'); if(!s) return;
+    s.innerHTML = '<span class="mut">checking…</span>';
+    fetch(it[1], { method:'HEAD' }).then(function(r){
+      s.innerHTML = r.ok ? '<span class="bdg bdg-ok">'+r.status+' ok</span>'
+                         : '<span class="bdg bdg-bad">'+r.status+'</span>';
+      var lm = r.headers.get('last-modified');
+      if(m) m.innerHTML = lm ? esc(fdt(lm)) : '<span class="mut">not reported by server</span>';
+    }).catch(function(e){
+      s.innerHTML = '<span class="bdg bdg-bad">unreachable</span>';
+      if(m) m.innerHTML = '<span class="mut">'+esc(e.message)+'</span>';
+    });
+  }); });
+};
+function loadContentVideos(){
+  var box = ge('ct-vids'); if(!box) return;
+  if(!window.AhVideos){ box.innerHTML = '<p class="mut" style="font-size:12.5px;">videos-data.js is not loaded on this page.</p>'; return; }
+  window.AhVideos.load(12).then(function(v){
+    if(!v || !v.length){ box.innerHTML = '<div class="notice n-warn"><b>Video feed unavailable.</b> The '+
+      '<code>youtube-latest</code> Edge Function returned no data. The channel link is '+
+      '<a class="lnk" href="'+esc(window.AhVideos.channelUrl())+'" target="_blank" rel="noopener">'+
+      esc(window.AhVideos.CHANNEL)+'</a>.</div>'; return; }
+    box.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Title</th><th>Published</th><th>Video ID</th><th></th></tr></thead><tbody>'+
+      v.map(function(x){
+        return '<tr><td class="nm">'+esc(x.title||'Untitled')+'</td><td>'+esc(window.AhVideos.fmtDate(x.published||x.publishedAt))+'</td>'+
+          '<td class="mono">'+esc(x.id)+'</td>'+
+          '<td><a class="olink" href="'+esc(window.AhVideos.watchUrl(x.id))+'" target="_blank" rel="noopener">Watch &#8599;</a></td></tr>';
+      }).join('')+'</tbody></table></div>';
+  }).catch(function(e){
+    box.innerHTML = '<div class="notice n-bad">Video feed error: '+esc(e.message)+'</div>';
+  });
+}
+
+/* ── System status (measured only) ───────────────────── */
+function vStatus(){
+  var h = head('Operations','System status','Nothing here is asserted. Each row is a measurement taken in your browser '+
+    'just now, with the raw result shown. Anything not measured is labelled as not measured.');
+  h += '<div class="gcard"><div class="gcard-h">Live checks<span class="gh-note">'+
+    '<button class="rowbtn" onclick="AC.runStatus()">Re-run</button></span></div>'+
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Check</th><th>Method</th><th>Result</th><th>Latency</th></tr></thead>'+
+    '<tbody id="st-rows"><tr><td colspan="4" class="empty">Running…</td></tr></tbody></table></div></div>';
+  h += '<div class="gcard"><div class="gcard-h">Not measured</div>'+
+    '<p class="mut" style="font-size:12.5px;line-height:1.7;">The browser cannot observe these, so no claim is made about them: '+
+    'database CPU/connections, Storage bucket health, email deliverability, Edge Function cold-start rates, '+
+    'backup status, or RLS policy correctness for roles other than the one you are signed in as.</p></div>';
+  setTimeout(AC.runStatus, 0);
+  return h;
+}
+AC.runStatus = async function(){
+  var box = ge('st-rows'); if(!box) return;
+  box.innerHTML = '<tr><td colspan="4" class="empty">Running…</td></tr>';
+  var rows = [];
+  function t(){ return (window.performance&&performance.now)?performance.now():Date.now(); }
+  // 1. session
+  var t0=t(), sess=null;
+  try{ sess = await window.getSession(); }catch(e){}
+  rows.push(['Authenticated session','supabase.auth.getSession()',
+    sess ? '<span class="bdg bdg-ok">active</span> <span class="mut">expires '+esc(fdt(sess.expires_at?sess.expires_at*1000:null))+'</span>'
+         : '<span class="bdg bdg-bad">none</span>', Math.round(t()-t0)+' ms']);
+  // 2. admin predicate
+  t0=t(); var pa;
+  try{ pa = await window.sb.rpc('is_platform_admin'); }catch(e){ pa={error:{message:e.message}}; }
+  rows.push(['Server-side admin predicate','rpc is_platform_admin()',
+    pa.error ? '<span class="bdg bdg-bad">'+esc(pa.error.message)+'</span>'
+             : (pa.data===true?'<span class="bdg bdg-ok">true</span>':'<span class="bdg bdg-bad">false</span>'),
+    Math.round(t()-t0)+' ms']);
+  // 3. REST round trip
+  t0=t(); var rr;
+  try{ rr = await window.sb.from('profiles').select('id').limit(1); }catch(e){ rr={error:{message:e.message}}; }
+  rows.push(['PostgREST round trip','select id from profiles limit 1',
+    rr.error?'<span class="bdg bdg-bad">'+esc(rr.error.message)+'</span>':'<span class="bdg bdg-ok">ok</span>',
+    Math.round(t()-t0)+' ms']);
+  // 4. audit read
+  t0=t(); var ar;
+  try{ ar = await window.sb.from('admin_audit_log').select('id').limit(1); }catch(e){ ar={error:{message:e.message}}; }
+  rows.push(['Audit log readable','select id from admin_audit_log limit 1',
+    ar.error?'<span class="bdg bdg-bad">'+esc(ar.error.message)+'</span>':'<span class="bdg bdg-ok">ok</span>',
+    Math.round(t()-t0)+' ms']);
+  // 5. search rpc
+  t0=t(); var sr;
+  try{ sr = await window.sb.rpc('admin_search', { p_q:'zz', p_limit:1 }); }catch(e){ sr={error:{message:e.message}}; }
+  rows.push(['Global search RPC','rpc admin_search(\'zz\',1)',
+    sr.error?'<span class="bdg bdg-bad">'+esc(sr.error.message)+'</span>':'<span class="bdg bdg-ok">ok</span>',
+    Math.round(t()-t0)+' ms']);
+  // 6. admin-api edge function (Phase 3) — measured, not assumed
+  t0=t();
+  var fnState = '<span class="bdg bdg-mute">not deployed</span>';
+  try{
+    var fr = await fetch((window.SUPA_URL||'')+'/functions/v1/admin-api', { method:'OPTIONS' });
+    fnState = fr.ok ? '<span class="bdg bdg-ok">responds ('+fr.status+')</span>'
+                    : '<span class="bdg bdg-mute">'+fr.status+' — not deployed</span>';
+  }catch(e){ fnState = '<span class="bdg bdg-mute">unreachable — not deployed</span>'; }
+  rows.push(['admin-api Edge Function','OPTIONS /functions/v1/admin-api', fnState, Math.round(t()-t0)+' ms']);
+
+  box.innerHTML = rows.map(function(r){
+    return '<tr><td class="nm">'+esc(r[0])+'</td><td class="mono">'+esc(r[1])+'</td><td>'+r[2]+'</td><td>'+esc(r[3])+'</td></tr>';
+  }).join('');
+};
+
+/* ── Database capabilities ───────────────────────────── */
+function vCaps(){
+  var h = head('Operations','Database capabilities','Result of the probe this page runs at load. '+
+    'A module is only enabled when the relation and the columns it needs are actually present.');
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Module</th><th>Relation</th><th>Readable</th>'+
+    '<th>Missing columns</th><th>Probe</th><th>Detail</th></tr></thead><tbody>'+
+    CAPS.map(function(c){
+      var s = AC.cap[c.key]||{};
+      return '<tr><td class="nm">'+esc(c.label)+(c.required?' <span class="bdg bdg-info">required</span>':'')+'</td>'+
+        '<td class="mono">public.'+esc(c.table)+'</td>'+
+        '<td>'+(s.ok?'<span class="bdg bdg-ok">yes</span>':'<span class="bdg bdg-bad">no</span>')+'</td>'+
+        '<td>'+(s.missing&&s.missing.length?'<span class="bdg bdg-warn">'+esc(s.missing.join(', '))+'</span>':'<span class="mut">none</span>')+'</td>'+
+        '<td>'+esc((s.ms||0)+' ms')+'</td>'+
+        '<td>'+(s.error?('<span class="mut">'+esc((s.code?s.code+': ':'')+s.error)+'</span>'):'<span class="mut">—</span>')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  if(AC.truncated.length) h += '<div class="notice n-warn"><b>Row cap reached.</b> These tables returned the full '+
+    CAP_ROWS+'-row page: <code>'+esc(AC.truncated.join(', '))+'</code>. Counts derived from them are lower bounds. '+
+    'Server-side aggregation is needed before the data outgrows a single page.</div>';
+  return h;
+}
+
+/* ── Settings / Danger Zone ──────────────────────────── */
+function vSettings(){
+  var p = AC.me||{};
+  var h = head('Settings','Settings','What this administrator account is, and where configuration actually lives.');
+  h += '<div class="gcard"><div class="gcard-h">Signed-in administrator</div><div class="kv">'+
+    kv('Name', p.full_name)+kv('Email', p.email)+kv('Role', isAdminRole(p)?'admin':p.role)+
+    kv('is_admin flag', p.is_admin===true?'true':'false')+kvMono('Account ID', p.id)+
+    '</div></div>';
+  h += '<div class="gcard"><div class="gcard-h">Environment</div><div class="kv">'+
+    kvMono('Supabase project URL', window.SUPA_URL||'—')+
+    kv('Client key type', 'anon (publishable)')+
+    kv('Service-role key in frontend', 'none — never shipped to the browser')+
+    kv('Admin gate', 'is_platform_admin() / assert_admin()')+
+    '</div></div>';
+  h += '<div class="notice n-info"><b>There is no platform-settings table.</b> Values such as support address, '+
+    'verification requirements and registration rules are currently constants in the application code and in Supabase '+
+    'project configuration, not database rows. A settings screen that appeared to change them would be decorative, so '+
+    'none is offered. A real one needs a <code>platform_settings</code> table plus an audited '+
+    '<code>admin_update_setting()</code> RPC.</div>';
+  return h;
+}
+function vDanger(){
+  var h = head('Danger Zone','Danger Zone','Destructive operations are deliberately not available in Phase 1.');
+  h += '<div class="notice n-bad"><b>Locked until the read-only Admin Center is reviewed and approved.</b> '+
+    'Phase 1 performs no writes of any kind. Permanent deletion, account disabling and forced logout arrive in later '+
+    'phases, each with an impact preview, a required reason, server-validated typed confirmation and an audit entry.</div>';
+  h += '<div class="gcard"><div class="gcard-h">What was deliberately removed</div>'+
+    '<p style="font-size:12.5px;color:var(--muted);line-height:1.75;">The previous Admin Center exposed a patient '+
+    '<b>Delete</b> button behind a single browser <code>confirm()</code>, calling <code>admin_delete_patient()</code> '+
+    'with a hardcoded confirmation string. It also offered doctor approve / reject and a role dropdown that wrote '+
+    'directly to <code>profiles</code> — writes that silently affect zero rows, because <code>profiles</code> has '+
+    'no admin UPDATE policy. Both have been removed rather than left looking functional.</p></div>';
+  h += '<div class="gcard"><div class="gcard-h">Backend still required</div>'+
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Operation</th><th>Needs</th><th>Phase</th></tr></thead><tbody>'+
+    [['Verify / reject doctor','admin_verify_doctor(), admin_reject_doctor()','2'],
+     ['Edit safe profile fields','admin_update_profile_fields() with a column allowlist','2'],
+     ['Change role','admin_change_role() with allowed transitions','2'],
+     ['Assign / reassign doctor','admin_assign_doctor()','2'],
+     ['Archive / restore journey','admin_archive_journey(), admin_restore_journey()','2'],
+     ['Disable / re-enable account','admin-api Edge Function (service-role, server-side)','3'],
+     ['Revoke sessions / force logout','admin-api Edge Function','3'],
+     ['Password reset','admin-api Edge Function','3'],
+     ['Delete auth account','admin-api Edge Function + admin_delete_profile_data()','3'],
+     ['Delete a journey','admin_delete_journey() with server-validated confirmation','4'],
+     ['Reassign all patients before deletion','admin_reassign_doctor_patients()','4']
+    ].map(function(r){ return '<tr><td class="nm">'+esc(r[0])+'</td><td class="mono">'+esc(r[1])+'</td>'+
+      '<td><span class="bdg bdg-warn">Phase '+esc(r[2])+'</span></td></tr>'; }).join('')+
+    '</tbody></table></div></div>';
+  return h;
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function parseHash(){
+  var raw = (location.hash||'').replace(/^#\/?/, '');
+  var qi = raw.indexOf('?'), qs = {};
+  if(qi >= 0){
+    raw.slice(qi+1).split('&').forEach(function(kv){
+      if(!kv) return; var i = kv.indexOf('=');
+      var k = decodeURIComponent(i<0?kv:kv.slice(0,i));
+      var v = i<0?'':decodeURIComponent(kv.slice(i+1).replace(/\+/g,' '));
+      qs[k]=v;
+    });
+    raw = raw.slice(0, qi);
+  }
+  var parts = raw.split('/').filter(Boolean);
+  return { section: parts[0]||'overview', id: parts[1]||null, qs: qs };
+}
+var RAIL_FOR = { doctor:'doctors', patient:'patients', journey:'journeys', search:'overview' };
+
+async function render(){
+  var r = parseHash();
+  renderRail(RAIL_FOR[r.section] || r.section);
+  var view = ge('adm-view');
+  var html;
+  switch(r.section){
+    case 'overview':       html = vOverview(); break;
+    case 'doctors':        html = vDoctors(r.qs); break;
+    case 'doctor':         html = vDoctor(r.id, r.qs); break;
+    case 'patients':       html = vPatients(r.qs); break;
+    case 'patient':        html = vPatient(r.id, r.qs); break;
+    case 'accounts':       html = vAccounts(r.qs); break;
+    case 'journeys':       html = vJourneys(r.qs); break;
+    case 'journey':        html = vJourney(r.id); break;
+    case 'questionnaires': html = vQuests(r.qs); break;
+    case 'checklists':     html = vChecklists(); break;
+    case 'questions':      html = vQuestions(r.qs); break;
+    case 'care-requests':  html = vRequests(r.qs); break;
+    case 'content':        html = vContent(); break;
+    case 'audit':          html = vAudit(r.qs); break;
+    case 'status':         html = vStatus(); break;
+    case 'capabilities':   html = vCaps(); break;
+    case 'settings':       html = vSettings(); break;
+    case 'danger':         html = vDanger(); break;
+    case 'search':         html = await vSearch(r.qs); break;
+    default:
+      html = head('Admin','Section not found','') +
+        '<div class="notice n-bad">No admin section named <code>'+esc(r.section)+'</code>. '+
+        '<a class="lnk" href="#/overview">Back to overview</a></div>';
+  }
+  view.innerHTML = html;
+  wireSearch();
+  if(r.section==='search' && r.qs.q){ var s = ge('adm-q'); if(s){ s.value = r.qs.q; } }
+  window.scrollTo(0,0);
+}
+function go(hash, replace){
+  if(replace && location.hash !== hash) history.replaceState(null,'',hash);
+  else if(!replace) location.hash = hash;
+  if(replace) render();
+}
+AC.nav = function(h){ if(h) location.hash = h; };
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function fail(msg, detail){
+  var l = ge('loader');
+  l.innerHTML = '<div style="text-align:center;padding:30px;max-width:460px;">'+
+    '<p style="color:rgba(255,160,140,.92);font-size:14px;font-family:DM Sans,sans-serif;">'+esc(msg)+'</p>'+
+    (detail?'<p style="color:rgba(255,255,255,.4);font-size:12px;margin-top:8px;font-family:DM Sans,sans-serif;">'+esc(detail)+'</p>':'')+
+    '<p style="margin-top:16px;"><a href="/v2/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to dashboard</a></p></div>';
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
   var safety = setTimeout(function(){
     var l = ge('loader');
-    if(l && l.style.display !== 'none'){
-      l.innerHTML = '<div style="text-align:center;padding:30px;font-family:sans-serif;"><p style="color:rgba(255,160,140,.9);font-size:14px;">Taking longer than expected.</p><p style="margin-top:12px;"><a href="/v2/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to dashboard</a></p></div>';
-    }
-  }, 8000);
-  try {
+    if(l && l.style.display !== 'none') fail('Taking longer than expected.', 'The Admin Center could not finish loading.');
+  }, 20000);
+  try{
+    // 1. UX guard (frontend only — never the security boundary)
     var auth = await window.requireRole('admin');
     if(!auth){ clearTimeout(safety); return; }
+    AC.me = auth.profile || {};
+
+    // 2. Canonical server-side gate. RLS is the real boundary; this makes the
+    //    server's own answer explicit instead of trusting the local profile row.
+    var gate;
+    try { gate = await window.sb.rpc('is_platform_admin'); }
+    catch(e){ gate = { error:{ message:e.message } }; }
+    if(gate.error){ clearTimeout(safety);
+      return fail('Admin gate unavailable.', 'is_platform_admin(): '+gate.error.message); }
+    if(gate.data !== true){ clearTimeout(safety);
+      return fail('Admin privileges required.', 'The server does not recognise this account as a platform administrator.'); }
+
+    // 3. Probe, then load
+    var probes = await Promise.all(CAPS.map(probeCap));
+    probes.forEach(function(p){ AC.cap[p.key] = p; });
+    var req = probes.filter(function(p){ return p.required && !p.ok; });
+    if(req.length){ clearTimeout(safety);
+      return fail('Required data is not readable.', req.map(function(p){ return p.table+': '+(p.error||'unknown'); }).join(' | ')); }
+
     await loadAll();
+    AC.boot.loadedAt = new Date().toISOString();
+
+    if(!location.hash || location.hash === '#') location.hash = '#/overview';
+    await render();
+    window.addEventListener('hashchange', function(){ render(); });
+
     clearTimeout(safety);
     ge('loader').style.display = 'none';
     ge('app').style.display = 'block';
-    console.log('ADMIN CENTER READY');
-  } catch(e){
+    console.log('ADMIN CENTER READY — modules '+
+      CAPS.filter(function(c){ return has(c.key); }).length+'/'+CAPS.length+
+      ', profiles '+(AC.db.profiles||[]).length+
+      ', journeys '+(AC.db.surgeries||[]).length+
+      ', audit '+(AC.db.audit||[]).length);
+  }catch(e){
     clearTimeout(safety);
     console.error('ADMIN ERROR:', e.message);
-    ge('loader').innerHTML = '<div style="text-align:center;padding:30px;font-family:sans-serif;"><p style="color:rgba(255,160,140,.9);font-size:14px;">Could not load Admin Center.</p><p style="color:rgba(255,255,255,.4);font-size:12px;margin-top:6px;">'+e.message+'</p><p style="margin-top:14px;"><a href="/v2/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to dashboard</a></p></div>';
+    fail('Could not load Admin Center.', e.message);
   }
 });
+
+/* keyboard: "/" focuses search, Escape leaves a detail view */
+document.addEventListener('keydown', function(e){
+  if(e.key === '/' && document.activeElement && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){
+    var s = ge('adm-q'); if(s){ e.preventDefault(); s.focus(); s.select(); }
+  }
+  if(e.key === 'Escape'){
+    var r = parseHash();
+    if(r.section==='doctor')  location.hash = '#/doctors';
+    else if(r.section==='patient') location.hash = '#/patients';
+    else if(r.section==='journey') location.hash = '#/journeys';
+  }
+});
+
+})();
 </script>
+<script src="/v2/videos-data.js"></script>
 </body>
 </html>
