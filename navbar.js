@@ -730,7 +730,8 @@ window.nbSubmitAuth = async function(){
       if(rs.data.user && rs.data.session){
         // Active session — persist role to profiles now, then route.
         try {
-          await window.saveProfile(rs.data.user.id, { role: _regRole, verification_status: verif });
+          // Role is privileged: the server sets it (and decides verification).
+          await window.setOwnRole(_regRole);
         } catch(e){ console.warn('profile role save deferred:', e.message); }
         window.nbCloseModal();
         routeByRole(_regRole);

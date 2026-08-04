@@ -106,13 +106,63 @@ async function requireRole(allowed, opts) {
   return null;
 }
 
-// ── saveProfile ───────────────────────────────────────────────
+// ── Protected profile fields ──────────────────────────────────
+// role / is_admin / verification_status are privileged. The database is the
+// real boundary (trg_guard_profiles_self_update rejects them for the API
+// roles); stripping them here is defence in depth, and it keeps a stale
+// payload from failing an otherwise-valid profile save.
+var PROTECTED_PROFILE_FIELDS = ['role', 'is_admin', 'verification_status'];
+
 async function saveProfile(userId, data) {
   try {
+    var stripped = [];
+    PROTECTED_PROFILE_FIELDS.forEach(function(k){
+      if (Object.prototype.hasOwnProperty.call(data, k)) { delete data[k]; stripped.push(k); }
+    });
+    if (stripped.length) {
+      console.warn('saveProfile: ignoring protected field(s) ' + stripped.join(', ') +
+        ' — role changes go through setOwnRole(); verification is an admin action.');
+    }
     data.id         = userId;
     data.updated_at = new Date().toISOString();
     var r = await window.sb.from('profiles').upsert(data);
     return { error: r.error || null };
+  } catch(e) {
+    return { error: { message: e.message } };
+  }
+}
+
+// ── setOwnRole ────────────────────────────────────────────────
+// The ONE legitimate self-service role write. The server decides
+// verification_status and refuses 'admin'; the caller supplies only the role.
+// Falls back to the legacy direct write while v2_security_hardening.sql has not
+// been applied yet, so onboarding keeps working across the deploy boundary.
+var _roleRpc = null;                       // null unknown, true present, false absent
+function _fnMissing(err) {
+  if (!err) return false;
+  return err.code === '42883' || err.code === 'PGRST202' ||
+         /function .* does not exist|could not find the function|schema cache/i.test(err.message || '');
+}
+async function setOwnRole(role) {
+  if (_roleRpc !== false) {
+    try {
+      var r = await window.sb.rpc('set_own_role', { p_role: role });
+      if (!r.error) { _roleRpc = true; return { error: null }; }
+      if (!_fnMissing(r.error)) { _roleRpc = true; return { error: r.error }; }
+      _roleRpc = false;                    // not deployed yet
+    } catch(e) { _roleRpc = false; }
+  }
+  // Pre-migration path only. Once the hardening migration is applied the RPC
+  // exists and this branch is never reached; if it somehow is, the trigger
+  // rejects it rather than letting a privileged field through.
+  try {
+    var s = await getSession();
+    if (!s) return { error: { message: 'Not signed in' } };
+    var verif = (role === 'doctor') ? 'pending' : 'not_required';
+    var u = await window.sb.from('profiles')
+      .update({ role: role, verification_status: verif, updated_at: new Date().toISOString() })
+      .eq('id', s.user.id);
+    return { error: u.error || null };
   } catch(e) {
     return { error: { message: e.message } };
   }
@@ -294,6 +344,7 @@ window.requireAuth       = requireAuth;
 window.requireRole       = requireRole;
 window.initializeAuth    = initializeAuth;
 window.saveProfile       = saveProfile;
+window.setOwnRole        = setOwnRole;
 window.signOut           = signOut;
 window.supportsJourneys   = supportsJourneys;
 window.getActiveSurgeryId = getActiveSurgeryId;

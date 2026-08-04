@@ -1287,7 +1287,13 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // RPCs (archived_at is a system-managed column: the DB guard trigger rejects
   // direct client writes), which are proposed in v2_patient_journeys_phase1.sql
   // and NOT yet deployed. Until they are, the actions report honestly.
-  var _journeys={active:null, past:[]}, _uid=null;
+  // caps: null = not determined yet, true = journey RPCs are live, false = not yet.
+  // Journey management (archive / start new / delete) ships in the same database
+  // migration as the surgery_id columns, so auth.js's cached supportsJourneys()
+  // probe answers "do the RPCs exist?" without a second request. Until it says
+  // yes, the actions are not rendered at all — a control that is guaranteed to
+  // fail should not be clickable.
+  var _journeys={active:null, past:[], caps:null}, _uid=null;
   function ahJourneyRow(j, isActive){
     var when=j.surgery_date?String(j.surgery_date).slice(0,10):'';
     var sub=[j.procedure_type||'Surgery', when, (isActive?'':('archived '+(j.archived_at?String(j.archived_at).slice(0,10):'')))].filter(Boolean).join(' · ');
@@ -1302,15 +1308,20 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     if(_journeys.active) h+=ahJourneyRow(_journeys.active,true);
     else h+='<div class="pt-j-empty">You have no active surgery journey.</div>';
     if(_journeys.past.length) h+=_journeys.past.map(function(j){ return ahJourneyRow(j,false); }).join('');
-    h+='<div class="mj-acts">';
-    if(_journeys.active) h+='<button class="mj-btn" type="button" onclick="ahJourneyArchive()">&#128451; Archive current journey</button>';
-    h+='<button class="mj-btn primary" type="button" onclick="ahJourneyStart()">＋ Start new surgery journey</button></div>';
-    if(_journeys.active){
-      h+='<div class="mj-danger"><div class="mj-danger-t">Danger zone</div>'+
-         '<p>Permanently delete this surgery journey and its related preparation data. Your account and any past surgeries are not affected. This cannot be undone — archiving keeps everything and is reversible.</p>'+
-         '<button class="mj-btn danger" type="button" onclick="ahJourneyDelete()">Delete this surgery journey</button></div>';
+    if(_journeys.caps===true){
+      h+='<div class="mj-acts">';
+      if(_journeys.active) h+='<button class="mj-btn" type="button" onclick="ahJourneyArchive()">&#128451; Archive current journey</button>';
+      h+='<button class="mj-btn primary" type="button" onclick="ahJourneyStart()">＋ Start new surgery journey</button></div>';
+      if(_journeys.active){
+        h+='<div class="mj-danger"><div class="mj-danger-t">Danger zone</div>'+
+           '<p>Permanently delete this surgery journey and its related preparation data. Your account and any past surgeries are not affected. This cannot be undone — archiving keeps everything and is reversible.</p>'+
+           '<button class="mj-btn danger" type="button" onclick="ahJourneyDelete()">Delete this surgery journey</button></div>';
+      }
+      h+='<p class="mj-note">Archiving keeps every questionnaire, document and message viewable under past surgeries. Nothing is deleted.</p>';
+    } else if(_journeys.caps===false){
+      // Backend not deployed yet: summary and history stay, actions do not appear.
+      h+='<p class="mj-note">Journey management will become available after the platform update.</p>';
     }
-    h+='<p class="mj-note">Archiving keeps every questionnaire, document and message viewable under past surgeries. Nothing is deleted.</p>';
     box.innerHTML=h;
   }
   // Typed-confirmation dialog (danger actions must be deliberate).
@@ -1434,6 +1445,10 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   async function loadPatient(uid){
     _uid=uid;
     var quest=null, surgery=null, prepDone=null;
+    // Resolve journey capability once, from the cached probe auth.js already ran.
+    try{ _journeys.caps = (typeof window.supportsJourneys==='function')
+      ? (await window.supportsJourneys()) === true : false; }
+    catch(e){ _journeys.caps=false; }
     try{ quest=(typeof getQuestionnaire==='function')?await getQuestionnaire(uid):((await sb.from('preop_questionnaires').select('*').eq('patient_id',uid).order('updated_at',{ascending:false,nullsFirst:false}).limit(1)).data||[])[0]; }catch(e){}
     try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).order('surgery_date',{ascending:true,nullsFirst:false});
       var rows=((r&&r.data)||[]); var act=rows.filter(function(x){return !x.archived_at&&!x.completed_at;});

@@ -245,14 +245,17 @@ async function submitRoleChange(){
   btn.disabled = true; btn.textContent = 'Submitting…';
   try {
     if(target === 'doctor'){
-      // Doctor requires verification → set role doctor + pending; appears in Admin Center → Doctor Approvals.
-      await window.saveProfile(_userId, { role: 'doctor', verification_status: 'pending' });
+      // Doctor requires verification. The server sets the role AND forces
+      // verification_status='pending' — the browser never supplies either.
+      var rd = await window.setOwnRole('doctor');
+      if(rd && rd.error) throw rd.error;
       _curRole = 'doctor'; _curVerif = 'pending';
       document.getElementById('role-label').textContent = 'Anesthesiologist (verification pending)';
       rcMsg('&#10003; Request submitted. A doctor account requires verification — an administrator will review it.', true);
     } else {
       // Patient ↔ Nurse/Student/Other change immediately.
-      await window.saveProfile(_userId, { role: target, verification_status: 'not_required' });
+      var rt = await window.setOwnRole(target);
+      if(rt && rt.error) throw rt.error;
       _curRole = target; _curVerif = 'not_required';
       var rl = { patient:'Patient', other:'Nurse / Student / Other' };
       document.getElementById('role-label').textContent = rl[target] || target;

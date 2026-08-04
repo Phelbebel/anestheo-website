@@ -2993,8 +2993,8 @@ document.addEventListener('DOMContentLoaded', async function(){
       var metaRole = user.user_metadata && user.user_metadata.role;
       if(metaRole){
         console.log('Applying signup role from metadata:', metaRole);
-        var metaVerif = (metaRole === 'doctor') ? 'pending' : 'not_required';
-        try { await window.saveProfile(user.id, { role: metaRole, verification_status: metaVerif }); } catch(e){}
+        // Role is privileged: applied through the audited server function.
+        try { await window.setOwnRole(metaRole); } catch(e){}
         profile = await window.getProfile(user.id);
         hasRole = profile && profile.role && profile.role !== '' && profile.role !== 'pending';
       }

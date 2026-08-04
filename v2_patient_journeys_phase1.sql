@@ -33,7 +33,48 @@
 --    index.html              Manage Journey calls the RPCs below.
 -- ------------------------------------------------------------
 
+-- ------------------------------------------------------------
+-- QUESTIONS IS OPTIONAL AND ITS SHAPE IS NOT ASSUMED
+-- Production may still carry the ORIGINAL contact-form `questions` table
+-- (name / role / topic / question / email). v2_ask_migration.sql, which adds
+-- patient_id / subject / status and creates question_replies, was never
+-- applied - that is exactly why question_replies is absent. Journey-scoping a
+-- table with no patient_id is meaningless, so every questions statement below
+-- is guarded and skipped with a NOTICE. Questionnaires, checklists and
+-- journeys are unaffected and still complete. This migration never creates or
+-- transforms the questions table.
+-- ------------------------------------------------------------
+
 BEGIN;
+
+-- Capability helper (temp schema only; disappears with the session).
+CREATE OR REPLACE FUNCTION pg_temp.pj_has(p_rel text, p_cols text[] DEFAULT '{}')
+RETURNS boolean LANGUAGE sql STABLE AS $pj$
+  SELECT to_regclass(p_rel) IS NOT NULL
+     AND NOT EXISTS (
+           SELECT 1 FROM unnest(COALESCE(p_cols,'{}'::text[])) AS c(name)
+            WHERE NOT EXISTS (SELECT 1 FROM pg_attribute a
+                               WHERE a.attrelid = to_regclass(p_rel)
+                                 AND a.attname  = c.name
+                                 AND a.attnum > 0 AND NOT a.attisdropped));
+$pj$;
+
+DO $pjpre$
+BEGIN
+  RAISE NOTICE '--- Journeys preflight ------------------------------------';
+  RAISE NOTICE 'preop_questionnaires present : %', pg_temp.pj_has('public.preop_questionnaires', ARRAY['patient_id']);
+  RAISE NOTICE 'preop_checklist present      : %', pg_temp.pj_has('public.preop_checklist', ARRAY['patient_id']);
+  RAISE NOTICE 'questions table present      : %', (to_regclass('public.questions') IS NOT NULL);
+  RAISE NOTICE 'questions.patient_id present : %  <- decides journey-scoping for questions',
+    pg_temp.pj_has('public.questions', ARRAY['patient_id']);
+  RAISE NOTICE '----------------------------------------------------------';
+  IF NOT pg_temp.pj_has('public.preop_questionnaires', ARRAY['patient_id'])
+     OR NOT pg_temp.pj_has('public.preop_checklist', ARRAY['patient_id'])
+     OR NOT pg_temp.pj_has('public.patient_surgeries', ARRAY['id','patient_id','archived_at','completed_at']) THEN
+    RAISE EXCEPTION 'ABORT: a mandatory relation/column for journey scoping is missing. No changes were made.';
+  END IF;
+END
+$pjpre$;
 
 -- ============================================================
 -- STAGE 1 — ADDITIVE: nullable journey keys. No behaviour change yet.
@@ -45,12 +86,28 @@ ALTER TABLE public.preop_questionnaires
   ADD COLUMN IF NOT EXISTS surgery_id uuid REFERENCES public.patient_surgeries(id) ON DELETE SET NULL;
 ALTER TABLE public.preop_checklist
   ADD COLUMN IF NOT EXISTS surgery_id uuid REFERENCES public.patient_surgeries(id) ON DELETE SET NULL;
-ALTER TABLE public.questions
-  ADD COLUMN IF NOT EXISTS surgery_id uuid REFERENCES public.patient_surgeries(id) ON DELETE SET NULL;
+-- questions: column, FK and index only when the table can actually carry a
+-- journey (i.e. it has patient_id). Otherwise skipped entirely.
+DO $q1$
+BEGIN
+  IF pg_temp.pj_has('public.questions', ARRAY['patient_id']) THEN
+    EXECUTE 'ALTER TABLE public.questions
+               ADD COLUMN IF NOT EXISTS surgery_id uuid
+               REFERENCES public.patient_surgeries(id) ON DELETE SET NULL';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_questions_surgery ON public.questions(surgery_id)';
+    RAISE NOTICE 'STAGE 1: questions.surgery_id added (+ FK, + index).';
+  ELSIF to_regclass('public.questions') IS NULL THEN
+    RAISE NOTICE 'STAGE 1: SKIPPED - public.questions does not exist.';
+  ELSE
+    RAISE NOTICE 'STAGE 1: SKIPPED - public.questions has no patient_id (legacy contact-form table). '
+                 'No column, FK or index was added. Apply v2_ask_migration.sql first if you want '
+                 'questions journey-scoped.';
+  END IF;
+END
+$q1$;
 
 CREATE INDEX IF NOT EXISTS idx_preop_q_surgery   ON public.preop_questionnaires(surgery_id);
 CREATE INDEX IF NOT EXISTS idx_preop_chk_surgery ON public.preop_checklist(surgery_id);
-CREATE INDEX IF NOT EXISTS idx_questions_surgery ON public.questions(surgery_id);
 
 -- ============================================================
 -- STAGE 2 — BACKFILL (deterministic)
@@ -74,10 +131,20 @@ UPDATE public.preop_checklist c
 -- patient may ask general questions that outlive any single surgery. We only
 -- attach the ones that clearly belong to the patient's single existing journey,
 -- so history is preserved without forcing a journey on general questions.
-UPDATE public.questions qq
-   SET surgery_id = s.id
-  FROM public.patient_surgeries s
- WHERE qq.surgery_id IS NULL AND s.patient_id = qq.patient_id;
+DO $q2$
+BEGIN
+  IF pg_temp.pj_has('public.questions', ARRAY['patient_id','surgery_id']) THEN
+    EXECUTE '
+      UPDATE public.questions qq
+         SET surgery_id = s.id
+        FROM public.patient_surgeries s
+       WHERE qq.surgery_id IS NULL AND s.patient_id = qq.patient_id';
+    RAISE NOTICE 'STAGE 2: questions backfilled.';
+  ELSE
+    RAISE NOTICE 'STAGE 2: SKIPPED questions backfill - not journey-scoped on this database.';
+  END IF;
+END
+$q2$;
 
 -- ============================================================
 -- STAGE 3 — VALIDATE BEFORE ANY CONSTRAINT CHANGE. Abort if unsafe.
@@ -107,10 +174,15 @@ BEGIN
       v_dup_q, v_dup_c, v_dup_act;
   END IF;
 
-  RAISE NOTICE 'Backfill validation passed. Legacy rows without a journey: questionnaires=%, checklists=%, questions=%',
+  RAISE NOTICE 'Backfill validation passed. Legacy rows without a journey: questionnaires=%, checklists=%',
     (SELECT count(*) FROM public.preop_questionnaires WHERE surgery_id IS NULL),
-    (SELECT count(*) FROM public.preop_checklist      WHERE surgery_id IS NULL),
-    (SELECT count(*) FROM public.questions            WHERE surgery_id IS NULL);
+    (SELECT count(*) FROM public.preop_checklist      WHERE surgery_id IS NULL);
+  IF pg_temp.pj_has('public.questions', ARRAY['surgery_id']) THEN
+    EXECUTE 'SELECT count(*) FROM public.questions WHERE surgery_id IS NULL' INTO v_dup_q;
+    RAISE NOTICE 'Legacy questions without a journey: %', v_dup_q;
+  ELSE
+    RAISE NOTICE 'questions: not journey-scoped on this database (nothing to validate).';
+  END IF;
 END $$;
 
 -- ============================================================
@@ -263,7 +335,16 @@ BEGIN
   DELETE FROM public.patient_recommendations WHERE surgery_id = p_surgery_id;
   DELETE FROM public.care_requests          WHERE surgery_id = p_surgery_id;
   -- General questions are preserved and simply detached from the journey.
-  UPDATE public.questions SET surgery_id = NULL WHERE surgery_id = p_surgery_id;
+  -- Runtime-guarded: on a database whose questions table is not journey-scoped
+  -- there is nothing to detach, and this function must not raise 42703.
+  -- The check is at runtime, so the statement starts working by itself if
+  -- v2_ask_migration.sql is applied later.
+  IF EXISTS (SELECT 1 FROM pg_attribute
+              WHERE attrelid = to_regclass('public.questions')
+                AND attname = 'surgery_id' AND attnum > 0 AND NOT attisdropped) THEN
+    EXECUTE 'UPDATE public.questions SET surgery_id = NULL WHERE surgery_id = $1'
+      USING p_surgery_id;
+  END IF;
 
   DELETE FROM public.patient_surgeries WHERE id = p_surgery_id AND patient_id = v_uid;
 
@@ -304,7 +385,13 @@ BEGIN
     -- journey instead of letting them be orphaned by the shell delete.
     UPDATE public.preop_questionnaires    SET surgery_id = p_surgery WHERE surgery_id = v_existing;
     UPDATE public.preop_checklist         SET surgery_id = p_surgery WHERE surgery_id = v_existing;
-    UPDATE public.questions               SET surgery_id = p_surgery WHERE surgery_id = v_existing;
+    -- Runtime-guarded for the same reason as patient_delete_journey.
+    IF EXISTS (SELECT 1 FROM pg_attribute
+                WHERE attrelid = to_regclass('public.questions')
+                  AND attname = 'surgery_id' AND attnum > 0 AND NOT attisdropped) THEN
+      EXECUTE 'UPDATE public.questions SET surgery_id = $1 WHERE surgery_id = $2'
+        USING p_surgery, v_existing;
+    END IF;
     DELETE FROM public.patient_surgeries WHERE id = v_existing;
     UPDATE public.patient_surgeries SET patient_id = v_uid WHERE id = p_surgery;
     RETURN jsonb_build_object('linked', p_surgery, 'merged', true);
@@ -388,7 +475,13 @@ NOTIFY pgrst, 'reload schema';
 --   -- surgery_id columns are additive; keep them (harmless) or drop:
 --   -- ALTER TABLE public.preop_questionnaires DROP COLUMN IF EXISTS surgery_id;
 --   -- ALTER TABLE public.preop_checklist      DROP COLUMN IF EXISTS surgery_id;
---   -- ALTER TABLE public.questions            DROP COLUMN IF EXISTS surgery_id;
+--   -- questions is optional: DROP COLUMN IF EXISTS still raises 42P01 when the
+--   -- TABLE is absent, so guard it the same way the migration does.
+--   -- DO $rq$ BEGIN
+--   --   IF to_regclass('public.questions') IS NOT NULL THEN
+--   --     EXECUTE 'ALTER TABLE public.questions DROP COLUMN IF EXISTS surgery_id';
+--   --   END IF;
+--   -- END $rq$;
 --   -- claim_patient_record: re-apply the version from v2_unified_patient_record.sql
 -- COMMIT;
 -- NOTIFY pgrst, 'reload schema';

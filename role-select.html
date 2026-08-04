@@ -199,13 +199,20 @@ async function saveProfileAndGo(){
 
   btn.disabled = true; btn.textContent = 'Saving…';
 
+  // Two writes, deliberately separate: the ROLE is privileged and is set by the
+  // server (which also decides verification_status), while the rest are ordinary
+  // self-editable profile fields.
+  var roleRes = await window.setOwnRole(_role === 'other' ? 'other' : _role);
+  if(roleRes && roleRes.error){
+    btn.disabled=false; btn.textContent='Save & open dashboard →';
+    errEl.textContent=roleRes.error.message; errEl.style.display='block'; return;
+  }
+
   var data = {
     id:        _session.user.id,
     email:     _session.user.email,
     full_name: (first + ' ' + last).trim(),
-    role:      _role === 'other' ? 'other' : _role,
-    country:   document.getElementById('pf-country').value || null,
-    verification_status: _role === 'doctor' ? 'pending' : 'not_required'
+    country:   document.getElementById('pf-country').value || null
   };
   if(_role === 'doctor'){
     data.hospital               = document.getElementById('pf-hospital').value.trim();
