@@ -2963,25 +2963,6 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     var user    = auth.user;
     var profile = auth.profile;
-    console.log('USER ID:', user.id);
-    console.log('PROFILE LOOKUP COMPLETE:', profile);
-
-    // ── TEMPORARY AUTH DEBUG PANEL (remove before launch) ──
-    try {
-      var sessChk = await window.sb.auth.getSession();
-      var hasSession = !!(sessChk.data && sessChk.data.session);
-      var dbg = document.createElement('div');
-      dbg.id = 'auth-debug';
-      dbg.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:99999;background:#0C1F18;border:1px solid #2A8A74;border-radius:8px;padding:10px 13px;font:12px/1.6 monospace;color:#7ECFC0;max-width:320px;box-shadow:0 8px 24px rgba(0,0,0,.5);';
-      dbg.innerHTML =
-        '<div style="color:#fff;font-weight:700;margin-bottom:4px;">AUTH DEBUG</div>' +
-        'user id: ' + (user.id || '—') + '<br>' +
-        'session exists: ' + hasSession + '<br>' +
-        'role: ' + (profile ? (profile.is_admin ? 'admin' : profile.role) : 'NULL') + '<br>' +
-        'profile found: ' + (!!profile) +
-        '<div style="margin-top:6px;"><button onclick="this.parentNode.parentNode.remove()" style="background:none;border:1px solid #2A8A74;color:#7ECFC0;border-radius:5px;padding:3px 8px;cursor:pointer;font:11px monospace;">close</button></div>';
-      document.body.appendChild(dbg);
-    } catch(e){ console.warn('debug panel:', e.message); }
 
     // Onboarding ONLY for users with no role at all.
     // Admins, and anyone with an existing role, skip onboarding entirely.
