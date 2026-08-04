@@ -132,8 +132,77 @@ body{padding-top:56px;}
 #nb-role-pill{display:flex;align-items:center;justify-content:space-between;background:rgba(27,107,90,.12);
   border:1px solid rgba(42,138,116,.3);border-radius:9px;padding:9px 13px;margin-bottom:14px;font-size:13px;color:#7ECFC0;}
 #nb-role-pill button{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;}
+/* ── Role-aware workspace switcher (staff only) ─────────────────────────────
+   One home for workspace destinations, so no destination is listed twice.
+   Doctor : Dashboard | Live Tools
+   Admin  : Admin Center | Doctor Workspace | Live Tools                      */
+.nb-ws{display:none;align-items:center;gap:3px;flex-shrink:0;margin-left:6px;
+  padding:3px;border:1px solid rgba(27,107,90,.3);border-radius:9px;background:rgba(255,255,255,.03);}
+.nb-ws.on{display:flex;}
+.nb-ws-seg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none;
+  color:rgba(255,255,255,.56);font-size:13px;font-weight:500;padding:6px 12px;border-radius:7px;
+  border:1px solid transparent;transition:color .18s,background .18s,border-color .18s;}
+.nb-ws-seg:hover{color:#fff;background:rgba(255,255,255,.06);}
+.nb-ws-seg:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.nb-ws-seg .nb-ws-ico{font-size:13px;line-height:1;opacity:.9;}
+/* Active workspace — restrained, no glow competition with Live Tools. */
+.nb-ws-seg.on{color:#fff;background:rgba(27,107,90,.26);border-color:rgba(42,138,116,.5);
+  box-shadow:inset 0 0 0 1px rgba(126,207,192,.12);}
+
+/* Live Tools — the one elevated entry. Teal only; red and amber stay reserved
+   for real risk states elsewhere in the product. */
+.nb-ws-seg.live{color:#9FE0D2;border-color:rgba(42,138,116,.45);
+  background:linear-gradient(180deg,rgba(27,107,90,.20),rgba(27,107,90,.08));
+  box-shadow:0 0 0 1px rgba(42,138,116,.18), 0 2px 10px -4px rgba(42,138,116,.55);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='58' height='18' viewBox='0 0 58 18'%3E%3Cpolyline points='0,9 11,9 15,3.5 19,14.5 23,9 33,9 37,6 41,12 45,9 58,9' fill='none' stroke='%237ECFC0' stroke-width='1.1' stroke-linejoin='round' stroke-linecap='round' opacity='.5'/%3E%3C/svg%3E"),
+    linear-gradient(180deg,rgba(27,107,90,.20),rgba(27,107,90,.08));
+  background-repeat:no-repeat,no-repeat;
+  background-position:right 8px center,0 0;
+  background-size:auto 14px,auto;
+  padding-right:56px;}
+.nb-ws-seg.live:hover{color:#CFF3EA;border-color:rgba(42,138,116,.7);
+  box-shadow:0 0 0 1px rgba(42,138,116,.3), 0 3px 14px -4px rgba(42,138,116,.8);}
+.nb-ws-seg.live.on{color:#fff;border-color:rgba(126,207,192,.6);
+  background-color:rgba(27,107,90,.3);
+  box-shadow:inset 0 0 0 1px rgba(126,207,192,.18), 0 0 16px -5px rgba(42,138,116,.9);}
+/* Subtle depth pulse on the glow only — never a status claim, never flashing. */
+@media(prefers-reduced-motion:no-preference){
+  .nb-ws-seg.live{animation:nbLivePulse 3.6s ease-in-out infinite;}
+  @keyframes nbLivePulse{
+    0%,100%{box-shadow:0 0 0 1px rgba(42,138,116,.18), 0 2px 10px -4px rgba(42,138,116,.45);}
+    50%    {box-shadow:0 0 0 1px rgba(42,138,116,.28), 0 2px 14px -4px rgba(42,138,116,.75);}
+  }
+}
+@media(prefers-reduced-motion:reduce){ .nb-ws-seg.live{animation:none;} }
+
+/* Mobile workspace switcher — same destinations, stacked, 44px targets. */
+/* Inset to line up with the 24px text inset of .nb-mob-link below it. */
+.nb-mob-ws{display:none;flex-direction:column;gap:6px;margin:0 16px 12px;}
+.nb-mob-ws.on{display:flex;}
+.nb-mob-ws-h{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(126,207,192,.55);padding:2px 2px 4px;}
+.nb-mob-ws a{display:flex;align-items:center;gap:9px;min-height:44px;padding:11px 13px;
+  border:1px solid rgba(27,107,90,.3);border-radius:9px;background:rgba(255,255,255,.03);
+  color:rgba(255,255,255,.72);text-decoration:none;font-size:14px;}
+.nb-mob-ws a.on{color:#fff;background:rgba(27,107,90,.26);border-color:rgba(42,138,116,.5);}
+.nb-mob-ws a.live{color:#9FE0D2;border-color:rgba(42,138,116,.45);
+  background:linear-gradient(180deg,rgba(27,107,90,.20),rgba(27,107,90,.08));
+  box-shadow:0 0 0 1px rgba(42,138,116,.16), 0 2px 10px -4px rgba(42,138,116,.5);}
+.nb-mob-ws a.live.on{color:#fff;border-color:rgba(126,207,192,.55);}
+
+@media(max-width:960px){
+  .nb-ws-seg{font-size:12.5px;padding:6px 10px;}
+  .nb-ws-seg.live{padding-right:46px;background-size:auto 12px;}
+}
+/* Touch devices above the burger breakpoint (iPad landscape and portrait) keep
+   the inline switcher, so its segments need real touch targets. */
+@media(pointer:coarse){
+  .nb-ws-seg{min-height:44px;padding-top:0;padding-bottom:0;}
+}
 @media(max-width:740px){
   .nb-nav-links{display:none;}
+  .nb-ws{display:none !important;}   /* moves into the burger menu */
   .nb-burger{display:block;}
   .nb-modal-btns{grid-template-columns:1fr;}
 }
@@ -193,8 +262,15 @@ function buildHTML(page){
           '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
           '<a href="/v2/patients.html"' + activeCls('/v2/patients.html', p) + '>For Patients</a>' +
           '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
-          '<a href="/v2/dashboard.html"' + activeCls('/v2/dashboard.html', p) + '>Dashboard</a>' +
         '</div>' +
+        // Admin content navigation. Workspaces live in the switcher below, so
+        // Admin Center / Doctor Workspace / Live Tools appear exactly once.
+        '<div class="nb-nav-links" id="nb-nav-admin" style="display:none">' +
+          '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
+          '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
+        '</div>' +
+        // Role-aware workspace switcher (staff only; filled by populateMenu).
+        '<div class="nb-ws" id="nb-ws" role="navigation" aria-label="Workspace"></div>' +
         '<div class="nb-right">' +
           '<div class="nb-search-wrap" id="nb-search-wrap" style="display:none">' +
             '<input type="text" class="nb-search" id="nb-search" placeholder="Search tools &amp; references…" autocomplete="off" ' +
@@ -231,6 +307,8 @@ function buildHTML(page){
       '</div>' +
     '</nav>' +
     '<div class="nb-mob" id="nb-mob">' +
+      // Compact role-aware workspace switcher, first in the sheet (staff only).
+      '<div class="nb-mob-ws" id="nb-mob-ws" role="navigation" aria-label="Workspace"></div>' +
       // Public mobile nav — guests & doctors (unchanged).
       '<div id="nb-mob-public">' +
         '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
@@ -252,6 +330,11 @@ function buildHTML(page){
       '<div id="nb-mob-doctor-nav" style="display:none">' +
         '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
         '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
+        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
+      '</div>' +
+      // Admin mobile content nav.
+      '<div id="nb-mob-admin-nav" style="display:none">' +
+        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
         '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
       '</div>' +
       '<div class="nb-mob-sep"></div>' +
@@ -342,6 +425,52 @@ function setGuest(){
   if(mobPublic) mobPublic.style.display = '';
   if(mobPatient) mobPatient.style.display = 'none';
   if(mobDoctor) mobDoctor.style.display = 'none';
+  var navAdmin = ge('nb-nav-admin'); if(navAdmin) navAdmin.style.display = 'none';
+  var mobAdmin = ge('nb-mob-admin-nav'); if(mobAdmin) mobAdmin.style.display = 'none';
+  renderWorkspaceSwitcher(null);          // no workspace switcher for guests
+}
+
+// ── Workspace switcher ────────────────────────────────────────
+// Every destination is an existing route. Nothing here is invented.
+//   /v2/admin.html      Admin Center        (admins only)
+//   /v2/dashboard.html  Doctor Workspace    (staff)
+//   /v2/engine.html     Live Tools          (staff)
+var NB_WORKSPACES = {
+  doctor: [
+    { href:'/v2/dashboard.html', label:'Dashboard',  ico:'🩺' },
+    { href:'/v2/engine.html',    label:'Live Tools', ico:'⚡', live:true }
+  ],
+  admin: [
+    { href:'/v2/admin.html',     label:'Admin Center',     ico:'🛡' },
+    { href:'/v2/dashboard.html', label:'Doctor Workspace', ico:'🩺' },
+    { href:'/v2/engine.html',    label:'Live Tools',       ico:'⚡', live:true }
+  ]
+};
+function nbCurrentPage(){ return (location.pathname.split('/').pop() || 'index.html'); }
+
+function renderWorkspaceSwitcher(role){
+  var items = NB_WORKSPACES[role] || null;
+  var desk = ge('nb-ws'), mob = ge('nb-mob-ws');
+  if(!items){
+    if(desk){ desk.classList.remove('on'); desk.innerHTML = ''; }
+    if(mob){ mob.classList.remove('on'); mob.innerHTML = ''; }
+    return;
+  }
+  var page = nbCurrentPage();
+  function seg(it, mobile){
+    var isOn = (it.href.split('/').pop() === page);
+    var cls  = (mobile ? '' : 'nb-ws-seg') + (it.live ? ' live' : '') + (isOn ? ' on' : '');
+    return '<a href="' + it.href + '" class="' + cls.trim() + '"' +
+      (isOn ? ' aria-current="page"' : '') + '>' +
+      '<span class="nb-ws-ico" aria-hidden="true">' + it.ico + '</span>' +
+      '<span>' + it.label + '</span></a>';
+  }
+  if(desk){ desk.innerHTML = items.map(function(i){ return seg(i, false); }).join(''); desk.classList.add('on'); }
+  if(mob){
+    mob.innerHTML = '<div class="nb-mob-ws-h">Workspace</div>' +
+      items.map(function(i){ return seg(i, true); }).join('');
+    mob.classList.add('on');
+  }
 }
 
 function setAuth(){
@@ -388,23 +517,33 @@ function populateMenu(user, profile){
   var isStaff = (role !== 'patient');
   var isPatient = !isStaff;
   var isDoctor = (role === 'doctor');
-  // Dropdown: staff get the Doctor Workspace entry + a "My Patient Journey"
-  // switch (same account, no logout); patients get My Space.
-  var ws  = ge('nb-menu-workspace'); if(ws)  ws.style.display  = isStaff ? 'flex' : 'none';
+  var isAdminRole = (role === 'admin');
+  // Which workspace set this account gets. Only doctors and admins have one;
+  // "other" staff (nurse/student) keep the public nav and no switcher.
+  var wsRole = isAdminRole ? 'admin' : (isDoctor ? 'doctor' : null);
+
+  // Dropdown: staff get a "My Patient Journey" switch (same account, no logout);
+  // patients get My Space. The Doctor Workspace entry is now owned by the
+  // workspace switcher, so it is hidden for anyone who has one — a destination
+  // must not appear in two navigation surfaces.
+  var ws  = ge('nb-menu-workspace'); if(ws)  ws.style.display  = (isStaff && !wsRole) ? 'flex' : 'none';
   var mj  = ge('nb-menu-myjourney'); if(mj)  mj.style.display  = isStaff ? 'flex' : 'none';
   var pt  = ge('nb-menu-patient');   if(pt)  pt.style.display  = isStaff ? 'none' : 'flex';
-  // Role-aware primary navigation: patients get the patient nav, doctors get a
-  // simplified doctor nav (no "Ask Anesthesiologist"), everyone else (guests,
-  // admins, other staff) keeps the public nav.
-  var isPublicNav = !isPatient && !isDoctor;
+  // Role-aware primary navigation: patients get the patient nav, doctors and
+  // admins get their own content nav, everyone else keeps the public nav.
+  var isPublicNav = !isPatient && !isDoctor && !isAdminRole;
   var navPublic  = ge('nb-nav-links');   if(navPublic)  navPublic.style.display  = isPublicNav ? '' : 'none';
   var navDoctor  = ge('nb-nav-doctor');  if(navDoctor)  navDoctor.style.display  = isDoctor ? '' : 'none';
+  var navAdmin   = ge('nb-nav-admin');   if(navAdmin)   navAdmin.style.display   = isAdminRole ? '' : 'none';
   var navPatient = ge('nb-nav-patient'); if(navPatient) navPatient.style.display = isPatient ? '' : 'none';
   var mobPublic  = ge('nb-mob-public');      if(mobPublic)  mobPublic.style.display  = isPublicNav ? 'block' : 'none';
   var mobDoctor  = ge('nb-mob-doctor-nav');  if(mobDoctor)  mobDoctor.style.display  = isDoctor ? 'block' : 'none';
+  var mobAdmin   = ge('nb-mob-admin-nav');   if(mobAdmin)   mobAdmin.style.display   = isAdminRole ? 'block' : 'none';
   var mobPatient = ge('nb-mob-patient-nav'); if(mobPatient) mobPatient.style.display = isPatient ? 'block' : 'none';
-  var mobWs  = ge('nb-mob-workspace'); if(mobWs)  mobWs.style.display  = isPatient ? 'none' : 'block';
+  // Same rule on mobile: the switcher owns Dashboard for doctors and admins.
+  var mobWs  = ge('nb-mob-workspace'); if(mobWs)  mobWs.style.display  = (isStaff && !wsRole) ? 'block' : 'none';
   var mobSet = ge('nb-mob-settings');  if(mobSet) mobSet.style.display = isPatient ? 'none' : 'block';
+  renderWorkspaceSwitcher(wsRole);
   // Global search for staff only
   var search = ge('nb-search-wrap'); if(search) search.style.display = isStaff ? 'block' : 'none';
 }
