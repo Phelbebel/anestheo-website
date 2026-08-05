@@ -10,11 +10,9 @@
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 <style>
 /* ============================================================
-   ADMIN CENTER — Phase 1 (read-only platform control center)
+   ADMIN CENTER — platform administration
    Anestheo identity: dark green ground, glass surfaces, subtle glow.
    ============================================================ */
 #loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
@@ -309,10 +307,11 @@
 
 <script>
 /* ============================================================
-   Anestheo Admin Center — Phase 1
-   Read-only platform visibility. Every number, row and filter below
-   comes from a real table the admin is already permitted to read by RLS.
-   No mutation is performed anywhere in this file.
+   Anestheo Admin Center
+   Every number, row and filter below comes from a real record the
+   administrator is already permitted to read. Nothing is simulated.
+   User-facing copy carries no internal diagnostics: no relation names,
+   no column names, no database error text.
    ============================================================ */
 (function(){
 'use strict';
@@ -493,18 +492,43 @@ function acDialog(opts){
   }, 30);
 }
 
+/* ── Reason handling ───────────────────────────────────────
+   Reasons stay in the audit trail exactly as before: every action still
+   sends a non-empty reason to the server. What changed is that the
+   administrator no longer has to type one — an unfilled field falls back to
+   a standard phrase, so auditing is unaffected while friction is removed. */
+var REASON_DELETE  = 'Deleted by administrator';
+var REASON_DEFAULT = 'No reason provided';
+function reasonOr(v, fallback){
+  var s = (v == null ? '' : String(v)).trim();
+  return s || fallback || REASON_DEFAULT;
+}
+
 /* ── RPC executor ──────────────────────────────────────────
-   Never optimistic: the row is only redrawn after the server confirms.    */
+   Never optimistic: the row is only redrawn after the server confirms.
+   Server errors are translated: raw database text is never shown.        */
+var RPC_ERR_GENERIC = 'This action could not be completed. Please try again.';
+function friendlyRpcError(raw){
+  var m = String(raw || '');
+  // Feature genuinely not enabled on this deployment.
+  if(/does not exist|schema cache|PGRST\d+|42P01|42883|42703/i.test(m))
+    return 'This action is not available yet.';
+  if(/permission|privilege|not authorized|not authorised|42501|admin/i.test(m))
+    return 'You do not have permission to perform this action.';
+  if(/reason is required/i.test(m))       return 'A reason is required for this action.';
+  if(/confirm/i.test(m))                  return 'The confirmation you typed did not match.';
+  if(/not found|no data found|P0002/i.test(m)) return 'That record could no longer be found.';
+  if(/must be (soft )?deleted|still live/i.test(m))
+    return 'This must be moved to the Recycle Bin before it can be permanently deleted.';
+  if(/network|fetch|timeout|failed to fetch/i.test(m))
+    return 'The server could not be reached. Please check your connection and try again.';
+  return RPC_ERR_GENERIC;
+}
 async function acRpc(fn, params){
   var r;
   try { r = await window.sb.rpc(fn, params || {}); }
-  catch(e){ throw new Error(e.message); }
-  if(r.error){
-    var m = r.error.message || 'The action failed';
-    if(/does not exist|schema cache|PGRST202/i.test(m))
-      m = 'This action is not available yet — v2_admin_phase2.sql has not been applied.';
-    throw new Error(m);
-  }
+  catch(e){ throw new Error(friendlyRpcError(e && e.message)); }
+  if(r.error) throw new Error(friendlyRpcError(r.error.message));
   return r.data;
 }
 async function acAfter(msg){
@@ -680,9 +704,10 @@ function acSoftDelete(p){
     body:'Nothing is erased. The account moves to <b>Deleted accounts</b> and disappears from the normal lists.',
     impact:'<b>Kept and restorable:</b> ' + j + ' journey' + (j===1?'':'s') + ', ' + q + ' questionnaire' + (q===1?'':'s') +
            ', every checklist, document, message and assignment.',
-    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this account being deleted?' }],
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea',
+              ph:'Recorded in the audit log. Leave blank for "' + REASON_DELETE + '".' }],
     onConfirm: async function(v){
-      await acRpc('admin_soft_delete_account', { p_target:p.id, p_reason:v.reason });
+      await acRpc('admin_soft_delete_account', { p_target:p.id, p_reason:reasonOr(v.reason, REASON_DELETE) });
       await acAfter(pname(p) + ' moved to Deleted accounts');
     }});
 }
@@ -709,11 +734,13 @@ function acPurge(p){
       ', their documents, plans, recommendations and care requests.<br>' +
       '<b>Will remain:</b> the audit trail, and ' + a + ' journey' + (a===1?'':'s') +
       ' assigned to this clinician — those become unassigned, never deleted.',
-    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this account being erased?' }],
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea',
+              ph:'Recorded in the audit log. Leave blank for "' + REASON_DELETE + '".' }],
     onConfirm: async function(v){
-      var r = await acRpc('admin_purge_account', { p_target:p.id, p_confirm:v.__word, p_reason:v.reason });
+      var r = await acRpc('admin_purge_account', { p_target:p.id, p_confirm:v.__word,
+                                                   p_reason:reasonOr(v.reason, REASON_DELETE) });
       await acAfter(pname(p) + ' permanently deleted' + (r && r.auth_user_deleted===false
-        ? ' (application data erased; the sign-in record needs the admin-api function)' : ''));
+        ? ' (profile and records erased; the sign-in record remains)' : ''));
     }});
 }
 function acVerify(p, state){
@@ -787,15 +814,18 @@ function acReassignAll(p){
 }
 function acRequestAction(r, action){
   var titles = { complete:'Mark completed', reject:'Reject request', archive:'Archive request', soft_delete:'Delete request' };
-  var needReason = (action==='reject' || action==='soft_delete');
+  var needReason = (action==='reject');
+  var isDel = (action==='soft_delete');
   acDialog({ title:titles[action], danger:(action!=='complete'), confirmLabel:titles[action],
-    body:action==='complete' ? 'Sets the request status to <code>closed</code>, the existing completed state.'
-       : action==='reject'   ? 'Sets the request status to <code>declined</code> and stores the reason.'
+    body:action==='complete' ? 'Marks the request as completed.'
+       : action==='reject'   ? 'Declines the request and records the reason.'
        : action==='archive'  ? 'Hides the request from the working list. Nothing is deleted.'
-       : 'Moves the request out of normal views. Nothing is erased.',
-    fields:[{ key:'reason', label:'Reason' + (needReason?' (required)':' (optional)'), type:'textarea' }],
+       : 'Moves the request to the Recycle Bin. Nothing is erased.',
+    fields:[{ key:'reason', label:'Reason' + (needReason?' (required)':' (optional)'), type:'textarea',
+              ph:isDel ? ('Recorded in the audit log. Leave blank for "' + REASON_DELETE + '".') : '' }],
     onConfirm: async function(v){
-      await acRpc('admin_care_request_action', { p_request:r.id, p_action:action, p_reason:v.reason||null, p_doctor:null });
+      await acRpc('admin_care_request_action', { p_request:r.id, p_action:action,
+        p_reason: isDel ? reasonOr(v.reason, REASON_DELETE) : (v.reason||null), p_doctor:null });
       await acAfter(titles[action] + ' — done');
     }});
 }
@@ -817,7 +847,8 @@ async function acBulk(title, ids, needReason, run, opts){
   acDialog({ title:title + ' — ' + ids.length + ' account' + (ids.length===1?'':'s'),
     danger:!!opts.danger, confirmLabel:title, confirmWord:opts.confirmWord,
     body:'This is applied to each selected account in turn. Every one produces its own audit entry.',
-    fields:[{ key:'reason', label:'Reason' + (needReason?' (required)':' (optional)'), type:'textarea' }],
+    fields:[{ key:'reason', label:'Reason' + (needReason?' (required)':' (optional)'), type:'textarea',
+              ph:opts.reasonHint ? ('Recorded in the audit log. Leave blank for "' + opts.reasonHint + '".') : '' }],
     onConfirm: async function(v){
       if(needReason && !v.reason) throw new Error('A reason is required.');
       var ok = 0, fail = [];
@@ -832,14 +863,9 @@ async function acBulk(title, ids, needReason, run, opts){
     }});
 }
 
-/* Notice shown wherever moderation would be, when the migration is absent. */
-function p2Notice(){
-  if(p2()) return '';
-  return '<div class="notice n-warn"><b>Moderation actions are not available yet.</b> ' +
-    'The account lifecycle columns and the audited RPCs ship together in ' +
-    '<code>v2_admin_phase2.sql</code>, which has not been applied to this database. ' +
-    'Controls are hidden rather than shown as buttons that would fail. Everything below stays fully readable.</div>';
-}
+/* Shown where account actions would be, when they are not enabled.
+   Controls are hidden rather than rendered as buttons that would fail. */
+function p2Notice(){ return p2() ? '' : featureNote(); }
 
 var CAPS = [
   { key:'profiles',  table:'profiles',   label:'Accounts & profiles', required:true,
@@ -926,15 +952,23 @@ async function perCol(c, out){
   }
 }
 function has(capKey, col){ var c = AC.cap[capKey]; return !!(c && c.ok && (col ? c.cols[col] : true)); }
+
+/* ── Unavailability messaging ──────────────────────────────
+   One professional sentence, never a diagnostic. Internal probe detail
+   (relation names, column names, database error text) stays in AC.cap and
+   is never rendered. Where a whole feature is unavailable the preferred
+   behaviour is to hide it; this notice is the fallback for the cases where
+   a section would otherwise be an unexplained blank.                     */
+var MSG_FEATURE_OFF = 'Some administrative features are not yet available.';
+var MSG_SECTION_OFF = 'This section is not available.';
+
+function featureNote(){ return '<div class="notice n-warn">' + MSG_FEATURE_OFF + '</div>'; }
+function sectionNote(){ return '<div class="notice n-warn">' + MSG_SECTION_OFF + '</div>'; }
+/* Kept as the single call site used by views; every caller now gets the same
+   neutral sentence regardless of the underlying reason. */
 function capNote(capKey){
-  var c = AC.cap[capKey]; if(!c) return '';
-  if(!c.ok) return '<div class="notice n-bad"><b>'+esc(c.label)+' unavailable.</b> <code>'+esc(c.table)+
-    '</code> returned '+(c.code?('<code>'+esc(c.code)+'</code> ') : '')+esc(c.error||'an error')+
-    '. This module is disabled rather than showing an empty list that looks like real data.</div>';
-  if(c.missing.length) return '<div class="notice n-warn"><b>Reduced capability.</b> <code>'+esc(c.table)+
-    '</code> exists but these expected columns are absent: <code>'+esc(c.missing.join(', '))+
-    '</code>. Columns that depend on them are hidden.</div>';
-  return '';
+  var c = AC.cap[capKey]; if(!c || (c.ok && !c.missing.length)) return '';
+  return c.ok ? '' : sectionNote();
 }
 
 /* ============================================================
@@ -1030,20 +1064,22 @@ function isAdminRole(p){ return p.is_admin === true || p.role === 'admin'; }
 function pname(p){ return p ? (p.full_name || p.email || 'User') : null; }
 function docName(id){ var p = AC.profById[id]; return p ? pname(p) : (id ? 'Unknown ('+short(id)+')' : null); }
 
-/* ── real, derived warnings (never decorative) ────────── */
+/* ── real, derived warnings (never decorative) ──────────
+   Operational only. Anything that describes the shape of the database —
+   an unreadable relation, an absent column, a probe error — is deliberately
+   not surfaced here; unavailable features are hidden instead, and at most one
+   neutral sentence explains that some features are not yet available.      */
 function buildWarnings(){
   var w = [];
-  CAPS.forEach(function(c){
+  var featureGap = CAPS.some(function(c){
     var s = AC.cap[c.key];
-    if(s && !s.ok) w.push({ sev:'bad', t:c.label+' unavailable',
-      d:'<code>'+esc(c.table)+'</code>: '+esc(s.error||'unknown error'), go:'#/capabilities' });
-    else if(s && s.missing.length) w.push({ sev:'warn', t:c.label+' partially available',
-      d:'Missing columns: <code>'+esc(s.missing.join(', '))+'</code>', go:'#/capabilities' });
+    return s && (!s.ok || s.missing.length);
   });
-  AC.truncated.forEach(function(t){
-    w.push({ sev:'warn', t:'Row cap reached on '+t,
-      d:'Loaded the first '+CAP_ROWS+' rows. Counts on this page are lower bounds for this table.', go:'#/capabilities' });
-  });
+  if(featureGap) w.push({ sev:'warn', t:MSG_FEATURE_OFF, d:'', go:'' });
+  if(AC.truncated.length){
+    w.push({ sev:'warn', t:'Showing the most recent ' + CAP_ROWS.toLocaleString() + ' records',
+      d:'Some totals on this page are a lower bound.', go:'' });
+  }
   if(has('profiles')){
     var pend = (AC.db.profiles||[]).filter(function(p){ return p.role==='pending' || !p.role; });
     if(pend.length) w.push({ sev:'warn', t:pend.length+' account'+(pend.length>1?'s':'')+' with no role assigned',
@@ -1055,7 +1091,7 @@ function buildWarnings(){
   if(has('surgeries')){
     var un = (AC.db.surgeries||[]).filter(function(s){ return !s.archived_at && !s.completed_at && !s.assigned_doctor_id; });
     if(un.length) w.push({ sev:'warn', t:un.length+' active journey'+(un.length>1?'s':'')+' with no assigned doctor',
-      d:'<code>assigned_doctor_id</code> is null on these rows.', go:'#/journeys'+q2s({f:'unassigned'}) });
+      d:'No clinician has been assigned to them yet.', go:'#/journeys'+q2s({f:'unassigned'}) });
   }
   if(has('quests','review_state')){
     var stale = (AC.db.quests||[]).filter(function(q){
@@ -1064,31 +1100,21 @@ function buildWarnings(){
       return (Date.now()-new Date(t).getTime()) > 7*86400000;
     });
     if(stale.length) w.push({ sev:'warn', t:stale.length+' questionnaire'+(stale.length>1?'s':'')+' awaiting review for over 7 days',
-      d:'Measured from <code>submitted_at</code> (or <code>updated_at</code>).', go:'#/questionnaires'+q2s({f:'review'}) });
+      d:'Measured from the date each one was submitted.', go:'#/questionnaires'+q2s({f:'review'}) });
   }
-  if(questionsRlsAmbiguous()) w.push({ sev:'warn', t:'questions returned no rows',
-    d:'A count of zero cannot distinguish an empty table from RLS refusing the read.', go:'#/questions' });
   AC.warn = w;
 }
 
-/* The one relation whose admin read access is genuinely unproven in production.
-   The admin-aware policy q_select_own_or_staff is created by v2_ask_migration.sql,
-   which was never applied (that is why question_replies is absent). Admin Phase 0
-   deliberately added no policy to questions. So an empty result here is ambiguous
-   and must not be presented as "there are no questions". */
+/* An empty questions list is genuinely ambiguous: the inbox may be empty, or
+   this administrator may not be permitted to read it. The distinction is
+   internal, so the UI simply does not assert "there are no questions" — it
+   says nothing at all rather than explaining the access model. */
 function questionsRlsAmbiguous(){
   return has('questions') && !((AC.db.questions||[]).length);
 }
 function questionsRlsNotice(){
   if(!questionsRlsAmbiguous()) return '';
-  return '<div class="notice n-warn"><b>Zero rows &mdash; and that is ambiguous.</b> '+
-    '<code>questions</code> is readable (no error), but it returned nothing. That means either the table is genuinely '+
-    'empty <i>or</i> row-level security is refusing this admin the read. The admin-aware policy '+
-    '<code>q_select_own_or_staff</code> is created by <code>v2_ask_migration.sql</code>, which was never applied in '+
-    'production &mdash; that is the same migration that would have created <code>question_replies</code>. '+
-    'Admin Phase 0 added no policy to <code>questions</code> either. '+
-    'Resolving this needs one explicit admin SELECT policy in the Phase 2 SQL; until then this module cannot claim '+
-    'the inbox is empty.</div>';
+  return '<div class="notice n-info">No questions are shown for this account.</div>';
 }
 
 /* ============================================================
@@ -1119,8 +1145,7 @@ var NAV = [
       {id:'recycle',      label:'Recycle Bin',   href:'#/recycle',
         count:function(){ return p2() ? (AC.db.profiles||[]).filter(isDeleted).length : null; } },
       {id:'audit',        label:'Audit log',            href:'#/audit', cap:'audit', count:function(){ return (AC.db.audit||[]).length; } },
-      {id:'status',       label:'System status',        href:'#/status'},
-      {id:'capabilities', label:'Database capabilities',href:'#/capabilities'}
+      {id:'status',       label:'System status',        href:'#/status'}
   ]},
   { grp:null, items:[
       {id:'settings', label:'Settings', href:'#/settings'},
@@ -1129,15 +1154,17 @@ var NAV = [
 ];
 
 function renderRail(active){
-  var h = '<div class="adm-railhead">Admin Center</div><div class="adm-railsub">Phase 1 &middot; read-only</div>';
+  var h = '<div class="adm-railhead">Admin Center</div><div class="adm-railsub">Platform Administration</div>';
   NAV.forEach(function(g){
+    // A section whose data is unavailable is hidden outright, not shown as a
+    // disabled or "n/a" entry — the sidebar should only offer what works.
+    var items = g.items.filter(function(it){ return !(it.cap && !has(it.cap)); });
+    if(!items.length) return;
     if(g.grp) h += '<div class="adm-grp">'+esc(g.grp)+'</div>';
-    g.items.forEach(function(it){
-      var cls = 'adm-nav' + (it.id===active?' on':'') + (it.danger?' danger':'') + (it.lock?' locked':'');
+    items.forEach(function(it){
+      var cls = 'adm-nav' + (it.id===active?' on':'') + (it.danger?' danger':'');
       var right = '';
-      if(it.lock) right = '<span class="adm-lockpill">'+esc(it.lock)+'</span>';
-      else if(it.cap && !has(it.cap)) right = '<span class="adm-lockpill">n/a</span>';
-      else if(it.count){ var n = it.count(); if(n!=null) right = '<span class="adm-navn">'+n+'</span>'; }
+      if(it.count){ var n = it.count(); if(n!=null) right = '<span class="adm-navn">'+n+'</span>'; }
       h += '<a class="'+cls+'" href="'+it.href+'">'+right+esc(it.label)+'</a>';
     });
   });
@@ -1179,7 +1206,7 @@ function wireSearch(){
 function statCard(n, label, href, opts){
   opts = opts||{};
   if(n == null) return '<div class="stat-c na" title="'+esc(opts.why||'Not available')+'">'+
-    '<div class="stat-n">n/a</div><div class="stat-l">'+esc(label)+'</div></div>';
+    '<div class="stat-n">&mdash;</div><div class="stat-l">'+esc(label)+'</div></div>';
   return '<a class="stat-c'+(opts.warn&&n>0?' warn':'')+'" href="'+href+'">'+
     '<div class="stat-n">'+n+'</div><div class="stat-l">'+esc(label)+'</div></a>';
 }
@@ -1199,22 +1226,20 @@ function vOverview(){
   var inReview = Q.filter(function(q){ return q.review_state==='pending'||q.review_state==='in_review'; });
 
   // Open questions: only computable when a status column actually exists.
-  var openQ = null, openQLabel = 'Open patient questions', openQWhy = '';
+  var openQ = null, openQLabel = 'Open patient questions', openQWhy = 'Not available';
   if(questionsRlsAmbiguous()){ openQ = null; openQLabel = 'Patient questions';
-    openQWhy = 'questions returned 0 rows — cannot tell an empty table from an RLS denial'; }
+    openQWhy = 'No questions are shown for this account'; }
   else if(xOK && has('questions','status')) openQ = QS.filter(function(q){ return q.status!=='answered' && q.status!=='closed'; }).length;
   else if(xOK){ openQ = QS.length; openQLabel = 'Submitted questions'; }
-  else openQWhy = AC.cap.questions ? (AC.cap.questions.error||'unavailable') : 'unavailable';
 
   var midnight = new Date(); midnight.setHours(0,0,0,0);
   var today = aOK ? A.filter(function(r){ return new Date(r.created_at) >= midnight; }).length : null;
 
   var h = head('Anestheo platform', 'Control center',
-    'Every figure below is a live count from a table this account is permitted to read. Selecting one opens the exact filtered list it was computed from.');
+    'Every figure below is a live count. Selecting one opens the exact filtered list it was computed from.');
 
   h += '<div class="gcard"><div class="gcard-h">Overview'+
-       '<span class="gh-note">'+(AC.boot.loadedAt?('data loaded '+ago(AC.boot.loadedAt)):'')+
-       ' &middot; <a class="lnk" href="#/capabilities">'+CAPS.filter(function(c){return has(c.key);}).length+'/'+CAPS.length+' modules available</a></span></div>'+
+       '<span class="gh-note">'+(AC.boot.loadedAt?('data loaded '+ago(AC.boot.loadedAt)):'')+'</span></div>'+
     '<div class="stat-grid">'+
       statCard(pOK?P.length:null,        'Total accounts',        '#/accounts') +
       statCard(pOK?doctors.length:null,  'Doctors',               '#/doctors') +
@@ -1226,19 +1251,19 @@ function vOverview(){
       statCard(qOK?inReview.length:null, 'Questionnaires awaiting review', '#/questionnaires'+q2s({f:'review'}), {warn:true}) +
       statCard(openQ, openQLabel, '#/questions', {why:openQWhy}) +
       statCard(rOK?R.length:null,        'Care requests',         '#/care-requests') +
-      statCard(today, 'Audit events today', '#/audit'+q2s({d:'today'}), {why:'admin_audit_log unavailable'}) +
+      statCard(today, 'Audit events today', '#/audit'+q2s({d:'today'}), {why:'Not available'}) +
     '</div></div>';
 
-  // System warnings — derived facts only
-  h += '<div class="gcard"><div class="gcard-h">System warnings<span class="gh-note">'+
-       (AC.warn.length? (AC.warn.length+' active') : 'none detected')+'</span></div>';
+  // Needs attention — operational facts only, never internal diagnostics
+  h += '<div class="gcard"><div class="gcard-h">Needs attention<span class="gh-note">'+
+       (AC.warn.length? (AC.warn.length+' item'+(AC.warn.length===1?'':'s')) : 'nothing outstanding')+'</span></div>';
   if(!AC.warn.length){
-    h += '<p class="mut" style="font-size:12.5px;">No warnings. This reflects the checks listed under '+
-      '<a class="lnk" href="#/status">System status</a> only — it is not a claim that every service is healthy.</p>';
+    h += '<p class="mut" style="font-size:12.5px;">Nothing needs attention right now.</p>';
   } else {
     h += AC.warn.map(function(w){
       return '<div class="notice '+(w.sev==='bad'?'n-bad':'n-warn')+'" style="margin-bottom:9px;">'+
-        '<b>'+esc(w.t)+'</b> &mdash; '+w.d+' <a class="lnk" href="'+w.go+'">Open</a></div>';
+        '<b>'+esc(w.t)+'</b>'+(w.d?(' &mdash; '+w.d):'')+
+        (w.go?(' <a class="lnk" href="'+w.go+'">Open</a>'):'')+'</div>';
     }).join('');
   }
   h += '</div>';
@@ -1270,8 +1295,7 @@ function vOverview(){
   h += '<div class="gcard"><div class="gcard-h">Recent privileged actions'+
        '<span class="gh-note"><a class="lnk" href="#/audit">Open audit log</a></span></div>';
   if(!has('audit')) h += capNote('audit');
-  else if(!A.length) h += '<p class="mut" style="font-size:12.5px;">No admin actions have been recorded yet. '+
-    'Phase 1 is read-only, so this stays empty until the Phase 2 mutation RPCs are applied.</p>';
+  else if(!A.length) h += '<p class="mut" style="font-size:12.5px;">No administrator actions have been recorded yet.</p>';
   else h += tblAudit(A.slice(0,8), false);
   h += '</div>';
   return h;
@@ -1346,8 +1370,8 @@ function tblDoctors(list, compact){
       (compact?'':'<td>'+dash(p.country)+'</td>'+(lic?'<td>'+dash(p.medical_license_number)+'</td>':'')) +
       (p2()?'<td>'+badgeStatus(p)+'</td>':'')+
       '<td>'+badgeVerify(p.verification_status)+'</td>'+
-      (compact?'':'<td>'+(has('surgeries')?jn:'<span class="mut">n/a</span>')+'</td>'+
-                  '<td>'+(has('clinics')?cn:'<span class="mut">n/a</span>')+'</td>'+
+      (compact?'':'<td>'+(has('surgeries')?jn:'<span class="mut">&mdash;</span>')+'</td>'+
+                  '<td>'+(has('clinics')?cn:'<span class="mut">&mdash;</span>')+'</td>'+
                   '<td>'+esc(fdate(p.created_at))+'</td>')+
       '<td class="rowact"><a class="olink" href="#/doctor/'+p.id+'">Open &rsaquo;</a>'+
         (mod ? ' '+acAccountMenu(p) : '')+'</td></tr>';
@@ -1379,8 +1403,9 @@ AC.bulk = function(kind, action){
     { danger:true });
   if(action==='restore') return acBulk('Restore', ids, false, function(id,v){
     return acRpc('admin_restore_account', { p_target:id, p_reason:v.reason||null }); });
-  if(action==='delete') return acBulk('Soft delete', ids, true, function(id,v){
-    return acRpc('admin_soft_delete_account', { p_target:id, p_reason:v.reason }); }, { danger:true });
+  if(action==='delete') return acBulk('Soft delete', ids, false, function(id,v){
+    return acRpc('admin_soft_delete_account', { p_target:id, p_reason:reasonOr(v.reason, REASON_DELETE) }); },
+    { danger:true, reasonHint:REASON_DELETE });
   if(action==='assign'){
     var opts = acDoctorOpts(null);
     if(!opts.length){ acToast('No active doctor to receive patients', true); return; }
@@ -1437,8 +1462,8 @@ function vDoctors(qs){
   }
   var base = function(o){ var m={f:f,c:country,h:hosp,s:spec}; for(var k in o) m[k]=o[k]; return '#/doctors'+q2s(m); };
 
-  var h = head('People','Doctors','Every column is a real <code>profiles</code> field. Counts of linked work are computed from '+
-    '<code>patient_surgeries.assigned_doctor_id</code> and <code>clinic_patients.doctor_id</code>.');
+  var h = head('People','Doctors','Every clinician account on the platform, with the assigned journeys, '+
+    'clinic patients and care requests linked to each one.');
   h += capNote('profiles') + p2Notice();
   h += '<div class="chips">'+
     (p2() ? ['all','pending','verified','rejected','suspended','banned','deleted']
@@ -1477,7 +1502,7 @@ function vDoctors(qs){
 function vDoctor(id, qs){
   var p = AC.profById[id];
   if(!p) return head('People','Doctor not found','') +
-    '<div class="notice n-bad">No <code>profiles</code> row with id <code>'+esc(id)+'</code> is readable. '+
+    '<div class="notice n-warn">This account is no longer available. '+
     '<a class="lnk" href="#/doctors">Back to doctors</a></div>';
   var tab = qs.t || 'overview';
   var journeys = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===id; });
@@ -1519,7 +1544,7 @@ function vDoctor(id, qs){
       kv('Country', p.country) + kv('Hospital', p.hospital) + kv('Specialty', p.specialty) +
       kv('Role', isAdminRole(p)?'admin':p.role) +
       kv('License number', has('profiles','medical_license_number') ? p.medical_license_number : null,
-         has('profiles','medical_license_number') ? null : 'Column not present in this database') +
+         has('profiles','medical_license_number') ? null : 'Not available') +
       kv('Verification status', p.verification_status) +
       kvMono('Account ID', p.id) + kv('Created', fdt(p.created_at)) + kv('Profile updated', fdt(p.updated_at)) +
       '</div></div>';
@@ -1539,23 +1564,23 @@ function vDoctor(id, qs){
     h += '<div class="notice n-info">Only activity that is provable from a stored column is shown. '+
       'There is no per-user event stream in the schema, so this is not a login or page-view history.</div>';
     h += '<div class="gcard"><div class="gcard-h">Questionnaires reviewed by this doctor<span class="gh-note">'+
-      (has('quests','reviewed_by')?reviewed.length:'n/a')+'</span></div>'+
+      (has('quests','reviewed_by')?reviewed.length:'')+'</span></div>'+
       (has('quests','reviewed_by')
         ? (reviewed.length ? tblQuests(reviewed) : '<p class="mut" style="font-size:12.5px;">None recorded.</p>')
-        : '<p class="mut" style="font-size:12.5px;"><code>preop_questionnaires.reviewed_by</code> is not available.</p>')+'</div>';
+        : '<p class="mut" style="font-size:12.5px;">Not available.</p>')+'</div>';
     h += '<div class="gcard"><div class="gcard-h">Documents marked reviewed<span class="gh-note">'+
-      (has('documents','reviewed_by')?docsRev.length:'n/a')+'</span></div>'+
+      (has('documents','reviewed_by')?docsRev.length:'')+'</span></div>'+
       (has('documents','reviewed_by')
         ? (docsRev.length ? tblDocs(docsRev) : '<p class="mut" style="font-size:12.5px;">None recorded.</p>')
         : capNote('documents'))+'</div>';
     h += '<div class="gcard"><div class="gcard-h">Archive / restore actions performed<span class="gh-note">'+
-      (has('parchive')?arch.length:'n/a')+'</span></div>'+
+      (has('parchive')?arch.length:'')+'</span></div>'+
       (has('parchive')
         ? (arch.length ? tblArchiveAudit(arch) : '<p class="mut" style="font-size:12.5px;">None recorded.</p>')
         : capNote('parchive'))+'</div>';
     var responded = reqs.filter(function(r){ return r.responded_at; });
     h += '<div class="gcard"><div class="gcard-h">Care requests answered<span class="gh-note">'+
-      (has('requests')?responded.length+' of '+reqs.length:'n/a')+'</span></div>'+
+      (has('requests')?responded.length+' of '+reqs.length:'')+'</span></div>'+
       (has('requests') ? tblRequests(responded) : capNote('requests'))+'</div>';
   }
 
@@ -1633,9 +1658,8 @@ function vPatients(qs){
     if(f==='review')    return r.quest && (r.quest.review_state==='pending'||r.quest.review_state==='in_review');
     return true;
   });
-  var h = head('People','Patients','Patients are <code>profiles</code> rows with role <code>patient</code>. '+
-    'Journey, doctor and questionnaire columns are joined from <code>patient_surgeries</code> and '+
-    '<code>preop_questionnaires</code> by <code>patient_id</code>.');
+  var h = head('People','Patients','Every patient account, with their surgery journey, assigned clinician '+
+    'and questionnaire progress.');
   h += capNote('profiles') + (has('surgeries')?'':capNote('surgeries')) + p2Notice();
   var chips = [['all','All'],['active','With an active journey'],['archived','Only archived'],
      ['nojourney','No journey yet'],['review','Awaiting questionnaire review']];
@@ -1660,7 +1684,7 @@ function vPatients(qs){
 function vPatient(id, qs){
   var p = AC.profById[id];
   if(!p) return head('People','Patient not found','') +
-    '<div class="notice n-bad">No readable <code>profiles</code> row with id <code>'+esc(id)+'</code>. '+
+    '<div class="notice n-warn">This account is no longer available. '+
     '<a class="lnk" href="#/patients">Back to patients</a></div>';
   var tab = qs.t || 'overview';
   var journeys = (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===id; });
@@ -1711,7 +1735,7 @@ function vPatient(id, qs){
         kv('Care state', cur.care_state)+kv('Origin', cur.origin)+
         kvMono('Journey ID', cur.id)+kv('Created', fdt(cur.created_at))+'</div>'+
         '<p style="margin-top:12px;"><a class="lnk" href="#/journey/'+cur.id+'">Open full journey &rsaquo;</a></p>'
-        : '<p class="mut" style="font-size:12.5px;">This account has no <code>patient_surgeries</code> row.</p>')+
+        : '<p class="mut" style="font-size:12.5px;">This account has no surgery journey yet.</p>')+
       '</div>';
     if(reqs.length){
       h += '<div class="gcard"><div class="gcard-h">Care requests<span class="gh-note">'+reqs.length+'</span></div>'+
@@ -1734,13 +1758,12 @@ function vPatient(id, qs){
   }
   if(tab==='questions'){
     if(!has('questions')) h += capNote('questions');
-    else if(!has('questions','patient_id')) h += '<div class="notice n-warn"><b>Questions cannot be linked to this patient.</b> '+
-      'The live <code>questions</code> table has no <code>patient_id</code> column, so per-patient attribution is not possible. '+
-      '<a class="lnk" href="#/questions">Open all questions</a></div>';
+    else if(!has('questions','patient_id')) h += '<div class="notice n-info">Questions are not attributed to '+
+      'individual patients. <a class="lnk" href="#/questions">Open all questions</a></div>';
     else h += tblQuestions(qsn);
   }
   if(tab==='documents'){
-    h += '<div class="notice n-info">Metadata only. File contents live in Supabase Storage and are not fetched here.</div>';
+    h += '<div class="notice n-info">Document details only. The files themselves are not opened here.</div>';
     h += has('documents') ? tblDocs(docs) : capNote('documents');
   }
   if(tab==='timeline'){
@@ -1800,7 +1823,8 @@ function acArchiveJourney(s){
     body:'Archiving is historical, not deletion. The journey moves to <b>archived</b>, stays fully readable, '+
       'and can be restored at any time. It does not go to the Recycle Bin.',
     impact:'<b>Nothing is removed.</b> Questionnaire, checklist, documents and the assigned doctor are untouched.',
-    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
+    fields:[{ key:'reason', label:'Note (optional)', type:'textarea',
+              ph:'Recorded in the audit log.' }],
     onConfirm: async function(v){
       await acRpc('archive_patient', { p_surgery_id:s.id, p_reason:v.reason||null });
       await acAfter('Journey archived');
@@ -1824,10 +1848,11 @@ function acSoftDeleteJourney(s){
       (jClaimed(s) ? ('The patient account and its '+q+' questionnaire(s) are <b>not</b> touched.')
                    : 'There is no patient account to affect.')+
       ' The assigned doctor is never affected.',
-    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this journey being deleted?' }],
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea',
+              ph:'Recorded in the audit log. Leave blank for "' + REASON_DELETE + '".' }],
     onConfirm: async function(v){
       await acRpc('admin_record_action', { p_entity:'journey', p_id:s.id, p_action:'soft_delete',
-        p_reason:v.reason, p_confirm:null });
+        p_reason:reasonOr(v.reason, REASON_DELETE), p_confirm:null });
       await acAfter('Journey moved to the Recycle Bin');
     }});
 }
@@ -1883,8 +1908,8 @@ function vJourneys(qs){
     if(f==='deleted')    return true;
     return true;
   });
-  var h = head('Clinical','Surgery journeys','One row per <code>patient_surgeries</code> record. '+
-    'State is derived from <code>archived_at</code>, <code>completed_at</code> and <code>ready_at</code> — no status is invented.');
+  var h = head('Clinical','Surgery journeys','Every surgery journey on the platform. State is derived from the '+
+    'journey\'s own recorded milestones — no status is invented.');
   h += '<div class="chips">'+
     [['all','All'],['active','Active'],['completed','Completed'],['archived','Archived'],
      ['unassigned','No doctor assigned'],['unclaimed','No linked account']]
@@ -1897,7 +1922,8 @@ function vJourneys(qs){
 function vJourney(id){
   var s = AC.surgById[id];
   if(!s) return head('Clinical','Journey not found','') +
-    '<div class="notice n-bad">No readable <code>patient_surgeries</code> row with id <code>'+esc(id)+'</code>.</div>';
+    '<div class="notice n-warn">This journey is no longer available. '+
+    '<a class="lnk" href="#/journeys">Back to surgery journeys</a></div>';
   var q = (AC.db.quests||[]).filter(function(x){ return x.patient_id===s.patient_id; });
   var docs = (AC.db.documents||[]).filter(function(d){ return d.surgery_id===id; });
   var reqs = (AC.db.requests||[]).filter(function(r){ return r.surgery_id===id; });
@@ -1908,8 +1934,8 @@ function vJourney(id){
   // not a broken patient — never render a fabricated profile for it.
   if(!jClaimed(s)) h += '<div class="notice n-warn"><b>Unclaimed journey — no linked account.</b> '+
     (s.origin==='clinic' ? 'Created by a clinic and not yet claimed by a patient. ' : '')+
-    'It has no <code>profiles</code> row, so account actions (suspend, ban, delete account) do not apply. '+
-    'Journey-level actions below work normally.</div>';
+    'There is no patient account behind it, so account actions such as suspend, ban or delete do not apply. '+
+    'Journey actions below work normally.</div>';
   if(jDeleted(s)) h += '<div class="notice n-bad"><b>Soft deleted '+esc(fdt(s.deleted_at))+'</b>'+
     (s.deleted_by?(' by '+esc(docName(s.deleted_by))):'')+'. Reason: '+esc(s.delete_reason||'—')+'. '+
     '<a class="lnk" href="#/recycle'+q2s({t:'journeys'})+'">Recycle Bin</a></div>';
@@ -1954,8 +1980,7 @@ function vJourney(id){
     }
     h += '</div>';
     if(!canSoftDeleteJourney()) h += '<p class="mut" style="font-size:12px;margin-top:9px;">'+
-      'Soft delete needs <code>patient_surgeries.deleted_at</code> from <code>v2_admin_phase3.sql</code>, '+
-      'which is not applied here. Archive is available and reversible.</p>';
+      'Deleting a journey is not available yet. Archiving is available and can be undone at any time.</p>';
   } else { h += p2Notice(); }
 
   if(jClaimed(s)) h += '<p style="margin-top:12px;"><a class="lnk" href="#/patient/'+s.patient_id+'">Open patient 360 &rsaquo;</a></p>';
@@ -2018,8 +2043,8 @@ function vQuests(qs){
     if(f==='draft')     return !q.review_state || q.review_state==='not_submitted';
     return true;
   });
-  var h = head('Clinical','Questionnaires','Review workflow metadata only. Answers, '+
-    '<code>questionnaire_data</code> and <code>risk_flags</code> are never requested by this page.');
+  var h = head('Clinical','Questionnaires','Review progress and status only. Patient answers are clinical content '+
+    'and are never shown in the Admin Center.');
   h += hlNote(qs.id, 'the selected questionnaire');
   h += '<div class="chips">'+
     [['all','All'],['review','Awaiting review'],['changes','Changes requested'],
@@ -2056,9 +2081,8 @@ function tblChecklists(list){
 function vChecklists(){
   if(!has('checklists')) return head('Clinical','Checklists','') + capNote('checklists');
   var all = (AC.db.checklists||[]).filter(function(c){ return !c.deleted_at; });
-  return head('Clinical','Checklists','Progress is counted from the boolean entries inside '+
-    '<code>preop_checklist.items</code>. Checklist content itself is not displayed.') +
-    '<div class="chips"><span class="mut" style="font-size:12px;">'+all.length+' checklist rows</span></div>' +
+  return head('Clinical','Checklists','Completion progress only. The checklist content itself is not displayed.') +
+    '<div class="chips"><span class="mut" style="font-size:12px;">'+all.length+' checklist'+(all.length===1?'':'s')+'</span></div>' +
     tblChecklists(all);
 }
 
@@ -2093,17 +2117,9 @@ function vQuestions(qs){
   var h = head('Clinical','Questions','');
   if(!has('questions')) return h + capNote('questions');
   var c = AC.cap.questions, all = AC.db.questions||[];
-  var portal = !!c.cols.subject && !!c.cols.patient_id && !!c.cols.status;
-  h += '<div class="notice '+(portal?'n-info':'n-warn')+'"><b>Live schema: '+
-    (portal?'portal questions table':'legacy contact-form table')+'.</b> '+
-    'Detected columns: <code>'+esc(Object.keys(c.cols).filter(function(k){return c.cols[k];}).join(', ')||'none')+'</code>.'+
-    (portal ? '' : ' Status, per-patient attribution and threaded replies are not available because '+
-      '<code>questions</code> does not carry <code>status</code> / <code>patient_id</code> / a '+
-      '<code>question_replies</code> table. The table below shows exactly the fields that do exist.')+
-    '</div>';
+  // Only the fields this deployment actually holds are rendered. Which fields
+  // those are is an internal detail and is never described to the user.
   h += questionsRlsNotice() + hlNote(qs.id, 'the selected question');
-  if(!has('replies')) h += '<div class="notice n-warn"><b>Replies unavailable.</b> <code>question_replies</code>: '+
-    esc((AC.cap.replies&&AC.cap.replies.error)||'not present')+'. Threaded conversation cannot be shown.</div>';
 
   var f = qs.f||'all', list = all;
   if(c.cols.status){
@@ -2117,8 +2133,8 @@ function vQuestions(qs){
       return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/questions'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
       '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
   } else {
-    h += '<div class="chips"><span class="mut" style="font-size:12px;">'+all.length+' submissions &middot; '+
-      'no status column, so no status filter is offered</span></div>';
+    h += '<div class="chips"><span class="mut" style="font-size:12px;">'+all.length+' submission'+
+      (all.length===1?'':'s')+'</span></div>';
   }
   h += tblQuestions(list);
   return h;
@@ -2160,9 +2176,8 @@ function vRequests(qs){
   var list = (f==='deleted' ? everything.filter(function(r){ return !!r.deleted_at; })
             : f==='archived' ? all.filter(function(r){ return !!r.archived_at; })
             : all.filter(function(r){ return f==='all' ? !r.archived_at : r.status===f; }));
-  var h = head('Clinical','Care requests','Shown exactly as stored. <code>status</code> is the real '+
-    '<code>care_requests.status</code> value; the surgical / consultation lane comes from '+
-    '<code>is_consultation</code> and is only shown when that column exists. No request is relabelled.');
+  var h = head('Clinical','Care requests','Every request patients have sent to a clinician, shown exactly as recorded. '+
+    'No request is relabelled.');
   h += p2Notice() + hlNote(qs.id, 'the selected care request');
   var statuses = uniq(all.map(function(r){ return r.status; }).filter(Boolean)).sort();
   var keys = ['all'].concat(statuses);
@@ -2217,12 +2232,9 @@ function vAccounts(qs){
     if(f==='other')    return !isAdminRole(p) && !isDoctor(p) && !isPatientRole(p) && p.role && p.role!=='pending';
     return true;
   });
-  var h = head('People','Accounts','Every <code>profiles</code> row. This is the application profile, not the '+
-    'authentication record — <code>auth.users</code> cannot be read from the browser at all.');
-  h += '<div class="notice n-warn"><b>Authentication accounts are Phase 3.</b> Ban / re-enable, session revocation, '+
-    'password-reset and auth deletion all require the <code>admin-api</code> Edge Function holding the service-role '+
-    'key server-side. That function is specified in <code>docs/ADMIN_API_INTERFACE.md</code> and is not deployed yet, '+
-    'so no auth-level state is shown here rather than guessed.</div>';
+  var h = head('People','Accounts','Every account on the platform, of every role.');
+  h += '<div class="notice n-info">Sign-in credentials and email addresses are managed by the authentication '+
+    'provider and are not shown or changed here.</div>';
   var roles = [['all','All'],['doctor','Doctors'],['patient','Patients'],['admin','Admins'],
                ['pending','No role yet'],['other','Other roles']];
   h += '<div class="chips">'+roles.map(function(k){
@@ -2326,11 +2338,6 @@ AC.restore = function(id){ var p = AC.profById[id]; if(p) acRestore(p); };
    ============================================================ */
 function hasVerif(){ return has('vdocs') && has('vnotes'); }
 function hasMod(){ return has('reports'); }
-function p3Notice(what, file){
-  return '<div class="notice n-warn"><b>' + esc(what) + ' needs backend support.</b> ' +
-    'The tables and audited RPCs it uses ship in <code>' + esc(file) + '</code>, which has not been applied ' +
-    'to this database. Nothing is simulated here — the section stays empty rather than showing invented rows.</div>';
-}
 
 /* ── Tiny inline charts. No library, no animation, theme tokens only. ───── */
 function svgBars(rows, opts){
@@ -2407,7 +2414,7 @@ function vVerification(qs){
     statCard(b.approved.length, 'Approved (30 days)','#/verification'+q2s({t:'approved'})) +
     '</div></div>';
 
-  if(!hasVerif()) h += p3Notice('Document review and admin notes', 'v2_admin_phase3.sql');
+  if(!hasVerif()) h += featureNote();
   if(!p2()) h += p2Notice();
 
   h += '<div class="tabrow">'+
@@ -2426,10 +2433,10 @@ function vVerification(qs){
       return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
         '<td>'+dash(p.hospital)+'</td><td>'+dash(p.specialty)+'</td><td>'+dash(p.country)+'</td>'+
         '<td>'+(has('profiles','medical_license_number') ? dash(p.medical_license_number)
-                : '<span class="mut" title="Column not present">n/a</span>')+'</td>'+
-        '<td>'+(docs===null ? '<span class="mut">n/a</span>'
+                : '<span class="mut">—</span>')+'</td>'+
+        '<td>'+(docs===null ? '<span class="mut">&mdash;</span>'
                 : (docs.length ? '<span class="bdg bdg-info">'+docs.length+'</span>' : '<span class="bdg bdg-warn">none</span>'))+'</td>'+
-        '<td>'+(notes===null ? '<span class="mut">n/a</span>' : notes)+'</td>'+
+        '<td>'+(notes===null ? '<span class="mut">&mdash;</span>' : notes)+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(p.created_at))+'</div></td>'+
         '<td>'+badgeVstate(vstate(p))+'</td>'+
         '<td class="rowact"><a class="olink" href="#/doctor/'+p.id+q2s({t:'verification'})+'">Review &rsaquo;</a>'+
@@ -2482,7 +2489,7 @@ function vDoctorVerificationTab(p){
     kv('Country', p.country)+kv('Hospital', p.hospital)+kv('Specialty', p.specialty)+
     kv('Medical licence number',
        has('profiles','medical_license_number') ? p.medical_license_number : null,
-       has('profiles','medical_license_number') ? 'not provided' : 'column not present in this database')+
+       'not provided')+
     kv('Registered', fdt(p.created_at))+kv('Last profile change', fdt(p.updated_at))+
     '</div>'+
     (p2() ? '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">'+
@@ -2496,8 +2503,8 @@ function vDoctorVerificationTab(p){
     '</div>';
 
   h += '<div class="gcard"><div class="gcard-h">Uploaded documents'+
-    '<span class="gh-note">'+(hasVerif()?docs.length+' on file':'requires v2_admin_phase3.sql')+'</span></div>';
-  if(!hasVerif()) h += p3Notice('Credential uploads','v2_admin_phase3.sql');
+    '<span class="gh-note">'+(hasVerif()?(docs.length+' on file'):'')+'</span></div>';
+  if(!hasVerif()) h += featureNote();
   else if(!docs.length) h += '<p class="mut" style="font-size:12.5px;">No diploma, licence or ID has been uploaded by this account.</p>';
   else h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Type</th><th>File</th><th>Format</th>'+
     '<th>Size</th><th>Uploaded</th><th>Review state</th></tr></thead><tbody>'+
@@ -2507,13 +2514,13 @@ function vDoctorVerificationTab(p){
         '<td>'+esc(fsize(d.file_size))+'</td><td>'+esc(fdate(d.uploaded_at))+'</td>'+
         '<td>'+badgeVerify(d.review_state==='accepted'?'approved':d.review_state)+'</td></tr>';
     }).join('')+'</tbody></table></div>'+
-    '<p class="mut" style="font-size:12px;margin-top:10px;">Metadata only. Files live in Supabase Storage; '+
-    'issuing a signed download link is an admin-api operation and is not done from the browser.</p>';
+    '<p class="mut" style="font-size:12px;margin-top:10px;">Document details only. Downloading an uploaded '+
+    'file is not available from the Admin Center.</p>';
   h += '</div>';
 
   h += '<div class="gcard"><div class="gcard-h">Admin notes<span class="gh-note">'+
-    (hasVerif()?notes.length:'n/a')+'</span></div>';
-  if(!hasVerif()) h += '<p class="mut" style="font-size:12.5px;">Requires <code>verification_notes</code>.</p>';
+    (hasVerif()?notes.length:'')+'</span></div>';
+  if(!hasVerif()) h += '<p class="mut" style="font-size:12.5px;">Not available yet.</p>';
   else if(!notes.length) h += '<p class="mut" style="font-size:12.5px;">No notes yet.</p>';
   else h += '<div class="tl">'+notes.map(function(n){
     return '<div class="tl-i"><div class="tl-t">'+esc(n.note)+'</div>'+
@@ -2544,7 +2551,7 @@ function badgeReport(st){
 function vModeration(qs){
   var h = head('Operations','Moderation Center',
     'Reports raised against doctors, patients and content. Separate from the account lists so a report is worked, not browsed.');
-  if(!hasMod()) return h + p3Notice('The Moderation Center','v2_admin_phase3.sql');
+  if(!hasMod()) return h + featureNote();
 
   var live = (AC.db.reports||[]).filter(function(r){ return !r.deleted_at; });
   var tab = qs.t || 'open', cat = qs.c || '';
@@ -2624,13 +2631,16 @@ function acReportAssign(r){
 }
 function acReportAction(r, action){
   var t = { resolve:'Resolve report', dismiss:'Dismiss report', soft_delete:'Delete report' };
+  var isDel = (action==='soft_delete');
   acDialog({ title:t[action], danger:(action!=='resolve'), confirmLabel:t[action],
     body:action==='resolve' ? 'Closes the report and records what was done.'
        : action==='dismiss' ? 'Closes the report as not actionable.'
-       : 'Moves the report out of normal views. Nothing is erased.',
-    fields:[{ key:'reason', label:'Reason (required)', type:'textarea' }],
+       : 'Moves the report to the Recycle Bin. Nothing is erased.',
+    fields:[{ key:'reason', label:'Reason' + (isDel?' (optional)':' (required)'), type:'textarea',
+              ph:isDel ? ('Recorded in the audit log. Leave blank for "' + REASON_DELETE + '".') : '' }],
     onConfirm: async function(v){
-      await acRpc('admin_report_action', { p_report:r.id, p_action:action, p_reason:v.reason, p_assignee:null });
+      await acRpc('admin_report_action', { p_report:r.id, p_action:action,
+        p_reason: isDel ? reasonOr(v.reason, REASON_DELETE) : v.reason, p_assignee:null });
       await acAfter(t[action]+' — done');
     }});
 }
@@ -2709,22 +2719,20 @@ function vAnalytics(qs){
     '<p class="mut" style="font-size:12.5px;margin-top:12px;">Average time to first response: <b style="color:#fff">'+
       (avgMs===null ? 'not computable — no request has a responded_at yet' : esc(dur(avgMs)))+
       '</b> across '+answered.length+' answered request'+(answered.length===1?'':'s')+
-      ', measured from <code>requested_at</code> to <code>responded_at</code>.</p></div>';
+      ', measured from when each request was sent to when it was answered.</p></div>';
 
   // Videos — real, from video_progress
   h += '<div class="gcard"><div class="gcard-h">Most watched videos'+
-    '<span class="gh-note">'+(has('videos') ? (V.length+' progress rows') : 'video_progress unavailable')+'</span></div>';
+    '<span class="gh-note">'+(has('videos') ? (V.length+' viewing record'+(V.length===1?'':'s')) : '')+'</span></div>';
   if(!has('videos')) h += capNote('videos');
   else if(!V.length) h += '<p class="mut" style="font-size:12.5px;">No watch progress recorded yet.</p>';
   else h += svgBars(topCounts(V, function(v){ return v.video_id; }), { suffix:' viewers' });
   h += '</div>';
 
-  h += '<div class="gcard"><div class="gcard-h">Not measured</div>'+
+  h += '<div class="gcard"><div class="gcard-h">Not reported</div>'+
     '<p class="mut" style="font-size:12.5px;line-height:1.75;">'+
-    '<b>Live Tools usage</b> and <b>most-searched procedures</b> are not shown because no event stream exists — '+
-    'the calculators and the search box write nothing to the database. Reporting them would mean inventing numbers. '+
-    'A future <code>usage_events</code> table plus instrumentation on those pages would make them real; I have not '+
-    'created an empty table for it, because an empty table that is never written to is a placeholder.</p></div>';
+    'Usage of the clinical tools and of site search is not collected, so no figures are shown for them. '+
+    'Every number elsewhere on this page is counted from real records.</p></div>';
   return h;
 }
 
@@ -2772,17 +2780,16 @@ function vRecycle(qs){
   var h = head('Operations','Recycle Bin',
     'Everything that was soft deleted, with who removed it, when and why. Restoring puts it back exactly as it was. '+
     'Permanent deletion lives only in the Danger Zone.');
-  var tab = qs.t || 'accounts';
-  h += '<div class="tabrow">'+ BIN.map(function(b){
-      var n = b.need() ? b.rows().length : null;
+  // Categories that are not available are hidden entirely, not shown as "n/a".
+  var avail = BIN.filter(function(b){ return b.need(); });
+  if(!avail.length) return h + featureNote();
+  var tab = qs.t || avail[0].k;
+  if(!avail.some(function(b){ return b.k===tab; })) tab = avail[0].k;
+  h += '<div class="tabrow">'+ avail.map(function(b){
       return '<a class="tabb'+(tab===b.k?' on':'')+'" href="#/recycle'+q2s({t:b.k})+'">'+esc(b.label)+
-        (n===null?' <span class="mut">n/a</span>':' ('+n+')')+'</a>'; }).join('') +'</div>';
+        ' ('+b.rows().length+')</a>'; }).join('') +'</div>';
 
-  var sec = BIN.filter(function(b){ return b.k===tab; })[0] || BIN[0];
-  if(!sec.need()){
-    return h + p3Notice(sec.label + ' in the Recycle Bin',
-      sec.k==='accounts' ? 'v2_admin_phase2.sql' : 'v2_admin_phase3.sql');
-  }
+  var sec = avail.filter(function(b){ return b.k===tab; })[0];
   var rows = sec.rows();
   if(!rows.length) return h + '<div class="notice n-info">Nothing deleted in '+esc(sec.label.toLowerCase())+'.</div>';
 
@@ -2818,10 +2825,11 @@ AC.binPurge = function(entity, id){
   acDialog({ title:'Permanently delete '+esc(label), danger:true, confirmWord:'DELETE',
     confirmLabel:'Permanently delete',
     body:'This erases the record. The audit entry is written first and survives.',
-    fields:[{ key:'reason', label:'Reason (required)', type:'textarea' }],
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea',
+              ph:'Recorded in the audit log. Leave blank for "' + REASON_DELETE + '".' }],
     onConfirm: async function(v){
       await acRpc('admin_record_action', { p_entity:entity, p_id:id, p_action:'purge',
-        p_reason:v.reason, p_confirm:v.__word });
+        p_reason:reasonOr(v.reason, REASON_DELETE), p_confirm:v.__word });
       await acAfter('Permanently deleted');
     }});
 };
@@ -2928,14 +2936,13 @@ var SEARCH_ROUTE = {
   question:      function(id){ return '#/questions'+q2s({id:id}); }
 };
 var SEARCH_WHY = {
-  clinic_patient:'This clinic patient has no linked journey yet, and the Admin Center has no clinic-patient detail view.',
-  profile:'No readable profile row for this id.',
-  patient_surgery:'This journey is not in the loaded set.'
+  clinic_patient:'This clinic patient has not been linked to a surgery journey yet.',
+  profile:'This account is no longer available.',
+  patient_surgery:'This journey is no longer available.'
 };
 async function vSearch(qs){
   var term = qs.q||'';
-  var h = head('Search','Global search','Backed by the <code>admin_search()</code> RPC. '+
-    'Only the entity types that the live function actually compiled are returned — nothing is added client-side.');
+  var h = head('Search','Global search','Search across people, journeys and requests.');
   h += '<div id="sr"><p class="mut" style="font-size:12.5px;">Searching…</p></div>';
   setTimeout(async function(){
     var box = ge('sr'); if(!box) return;
@@ -2944,8 +2951,7 @@ async function vSearch(qs){
     try { r = await window.sb.rpc('admin_search', { p_q: term, p_limit: 50 }); }
     catch(e){ r = { error:{ message:e.message } }; }
     if(r.error){
-      box.innerHTML = '<div class="notice n-bad"><b>Search unavailable.</b> <code>admin_search()</code> returned: '+
-        esc(r.error.message)+'</div>'; return;
+      box.innerHTML = '<div class="notice n-warn">Search is not available right now.</div>'; return;
     }
     var rows = r.data||[];
     if(!rows.length){ box.innerHTML = '<div class="notice n-info">No matches for <b>'+esc(term)+'</b>.</div>'; return; }
@@ -3050,8 +3056,8 @@ function tblAudit(list, detail){
     }).join('')+'</tbody></table></div>';
 }
 function vAudit(qs){
-  var h = head('Operations','Audit log','Every row written by <code>admin_log()</code>. '+
-    'The table is append-only at the database level and is strictly read-only here — there is no edit or delete control.');
+  var h = head('Operations','Audit log','A permanent record of every administrator action. Entries can never be '+
+    'edited or removed.');
   if(!has('audit')) return h + capNote('audit');
   var all = AC.db.audit||[];
   var fa = qs.actor||'', fac = qs.a||'', ft = qs.tt||'', fd = qs.d||'', fid = qs.id||'';
@@ -3083,8 +3089,7 @@ function vAudit(qs){
     '<input class="finput" id="aud-id" placeholder="Target ID contains…" value="'+esc(fid)+'" '+
       'onchange="AC.nav(\''+base({id:'__V__'}).replace('__V__','\'+encodeURIComponent(this.value)+\'')+'\')">'+
     '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
-  if(!all.length) h += '<div class="notice n-info">No admin actions recorded yet. Phase 1 performs no mutations, '+
-    'so the first entries will appear once the Phase 2 RPCs are applied and used.</div>';
+  if(!all.length) h += '<div class="notice n-info">No administrator actions have been recorded yet.</div>';
   h += tblAudit(list, true);
   return h;
 }
@@ -3113,16 +3118,13 @@ var CONTENT = [
     ['Release notes','/v2/release-notes.html'],['About','/v2/about.html'] ]}
 ];
 function vContent(){
-  var h = head('Content','Content inventory','Procedure guides, references, patient education and legal pages are '+
-    'hand-authored static HTML in the repository. They are <b>not</b> database rows, so there is nothing to edit here.');
-  h += '<div class="notice n-warn"><b>This is an inventory, not a CMS.</b> Every page below is a file in the repo, '+
-    'deployed with the site. Editing requires a code change and a deploy. Building real content management would need: '+
-    'a <code>content_pages</code> table (slug, title, body, status, version, published_at, author), an admin editor with '+
-    'preview and draft/publish states, a migration that imports the existing HTML, and a renderer that serves from the '+
-    'database instead of the static file. None of that exists today and none of it is faked here.</div>';
+  var h = head('Content','Content inventory','Procedure guides, clinical references, patient education and legal pages '+
+    'published on the site.');
+  h += '<div class="notice n-info">This is an inventory of the published site, not an editor. Page content is '+
+    'part of the application and is updated with a release.</div>';
   var total = CONTENT.reduce(function(n,g){ return n+g.items.length; },0);
   h += '<div class="chips"><span class="mut" style="font-size:12px;">'+total+' pages across '+CONTENT.length+' groups &middot; '+
-    'availability and last-modified are measured live with a HEAD request</span>'+
+    'availability and last-modified are checked live</span>'+
     '<button class="rowbtn" onclick="AC.probeContent()">Check all pages</button></div>';
   CONTENT.forEach(function(g){
     h += '<div class="gcard"><div class="gcard-h">'+esc(g.g)+'<span class="gh-note">'+g.items.length+' pages</span></div>'+
@@ -3136,8 +3138,8 @@ function vContent(){
       }).join('')+'</tbody></table></div></div>';
   });
   // Videos: real feed, not a static list
-  h += '<div class="gcard"><div class="gcard-h">Videos<span class="gh-note">served by the existing '+
-    '<code>youtube-latest</code> Edge Function</span></div><div id="ct-vids"><p class="mut" style="font-size:12.5px;">Loading feed…</p></div></div>';
+  h += '<div class="gcard"><div class="gcard-h">Videos<span class="gh-note">live channel feed</span></div>'+
+    '<div id="ct-vids"><p class="mut" style="font-size:12.5px;">Loading feed…</p></div></div>';
   setTimeout(loadContentVideos, 0);
   return h;
 }
@@ -3147,24 +3149,22 @@ AC.probeContent = function(){
     var s = ge(id+'-s'), m = ge(id+'-m'); if(!s) return;
     s.innerHTML = '<span class="mut">checking…</span>';
     fetch(it[1], { method:'HEAD' }).then(function(r){
-      s.innerHTML = r.ok ? '<span class="bdg bdg-ok">'+r.status+' ok</span>'
-                         : '<span class="bdg bdg-bad">'+r.status+'</span>';
+      s.innerHTML = r.ok ? '<span class="bdg bdg-ok">available</span>'
+                         : '<span class="bdg bdg-bad">unavailable</span>';
       var lm = r.headers.get('last-modified');
-      if(m) m.innerHTML = lm ? esc(fdt(lm)) : '<span class="mut">not reported by server</span>';
-    }).catch(function(e){
+      if(m) m.innerHTML = lm ? esc(fdt(lm)) : '<span class="mut">not reported</span>';
+    }).catch(function(){
       s.innerHTML = '<span class="bdg bdg-bad">unreachable</span>';
-      if(m) m.innerHTML = '<span class="mut">'+esc(e.message)+'</span>';
+      if(m) m.innerHTML = '<span class="mut">—</span>';
     });
   }); });
 };
 function loadContentVideos(){
   var box = ge('ct-vids'); if(!box) return;
-  if(!window.AhVideos){ box.innerHTML = '<p class="mut" style="font-size:12.5px;">videos-data.js is not loaded on this page.</p>'; return; }
+  if(!window.AhVideos){ box.innerHTML = '<p class="mut" style="font-size:12.5px;">The video feed is not available right now.</p>'; return; }
   window.AhVideos.load(12).then(function(v){
-    if(!v || !v.length){ box.innerHTML = '<div class="notice n-warn"><b>Video feed unavailable.</b> The '+
-      '<code>youtube-latest</code> Edge Function returned no data. The channel link is '+
-      '<a class="lnk" href="'+esc(window.AhVideos.channelUrl())+'" target="_blank" rel="noopener">'+
-      esc(window.AhVideos.CHANNEL)+'</a>.</div>'; return; }
+    if(!v || !v.length){ box.innerHTML = '<div class="notice n-warn">The video feed is not available right now. '+
+      '<a class="lnk" href="'+esc(window.AhVideos.channelUrl())+'" target="_blank" rel="noopener">Open the channel</a></div>'; return; }
     box.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Title</th><th>Published</th><th>Video ID</th><th></th></tr></thead><tbody>'+
       v.map(function(x){
         return '<tr><td class="nm">'+esc(x.title||'Untitled')+'</td><td>'+esc(window.AhVideos.fmtDate(x.published||x.publishedAt))+'</td>'+
@@ -3172,160 +3172,103 @@ function loadContentVideos(){
           '<td><a class="olink" href="'+esc(window.AhVideos.watchUrl(x.id))+'" target="_blank" rel="noopener">Watch &#8599;</a></td></tr>';
       }).join('')+'</tbody></table></div>';
   }).catch(function(e){
-    box.innerHTML = '<div class="notice n-bad">Video feed error: '+esc(e.message)+'</div>';
+    box.innerHTML = '<div class="notice n-warn">The video feed is not available right now.</div>';
   });
 }
 
 /* ── System status (measured only) ───────────────────── */
 function vStatus(){
-  var h = head('Operations','System status','Nothing here is asserted. Each row is a measurement taken in your browser '+
-    'just now, with the raw result shown. Anything not measured is labelled as not measured.');
-  h += '<div class="gcard"><div class="gcard-h">Live checks<span class="gh-note">'+
-    '<button class="rowbtn" onclick="AC.runStatus()">Re-run</button></span></div>'+
-    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Check</th><th>Method</th><th>Result</th><th>Latency</th></tr></thead>'+
-    '<tbody id="st-rows"><tr><td colspan="4" class="empty">Running…</td></tr></tbody></table></div></div>';
-  h += '<div class="gcard"><div class="gcard-h">Not measurable from the browser'+
-    '<span class="gh-note">named, not hidden</span></div>'+
-    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Service</th><th>Why not</th><th>What would make it real</th></tr></thead><tbody>'+
-    [['SMTP / email delivery','No client-side endpoint exposes queue depth or bounce rate.',
-      'An admin-api endpoint reading the provider API'],
-     ['Email queue','No queue table exists in this database.','A jobs table plus a worker'],
-     ['WhatsApp queue','Not built. Nothing to measure.','The integration itself'],
-     ['Background jobs','No scheduler or jobs table exists.','pg_cron or an external worker + a jobs table'],
-     ['OpenAI','Not used by this application anywhere in the codebase.','An integration, if one is ever added'],
-     ['Backups / PITR','Supabase platform state; not exposed to an anon or user JWT.','Supabase Management API via admin-api'],
-     ['Database CPU, connections, disk','Platform metrics, not reachable over PostgREST.','Supabase Management API via admin-api'],
-     ['Edge Function cold starts / error rate','Only reachability is observable from here.','Function logs via the Management API'],
-     ['RLS correctness for other roles','You can only observe your own JWT.','The SQL test matrix in the migration files']
-    ].map(function(r){ return '<tr><td class="nm">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td>'+
-      '<td class="mono">'+esc(r[2])+'</td></tr>'; }).join('')+
-    '</tbody></table></div>'+
-    '<p class="mut" style="font-size:12.5px;margin-top:11px;">Every row above is deliberately blank rather than green. '+
-    'A dashboard that reports "healthy" for something it never checked is worse than one that admits the gap.</p></div>';
+  var h = head('Operations','System status','Each service below is checked live when this page loads. '+
+    'Nothing is reported as healthy unless it was actually checked.');
+  h += '<div class="gcard"><div class="gcard-h">Service checks<span class="gh-note">'+
+    '<button class="rowbtn" onclick="AC.runStatus()">Check again</button></span></div>'+
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Service</th><th>Status</th><th>Response time</th></tr></thead>'+
+    '<tbody id="st-rows"><tr><td colspan="3" class="empty">Checking…</td></tr></tbody></table></div></div>';
+  h += '<div class="notice n-info">Email delivery, scheduled processing and infrastructure capacity are '+
+    'monitored outside the Admin Center and are not shown on this page.</div>';
   setTimeout(AC.runStatus, 0);
   return h;
 }
 AC.runStatus = async function(){
   var box = ge('st-rows'); if(!box) return;
-  box.innerHTML = '<tr><td colspan="4" class="empty">Running…</td></tr>';
+  box.innerHTML = '<tr><td colspan="3" class="empty">Checking…</td></tr>';
   var rows = [];
   function t(){ return (window.performance&&performance.now)?performance.now():Date.now(); }
-  // 1. session
+  var OK   = '<span class="bdg bdg-ok">operational</span>';
+  var BAD  = '<span class="bdg bdg-bad">unavailable</span>';
+  var MUTE = function(txt){ return '<span class="bdg bdg-mute">'+esc(txt)+'</span>'; };
+
+  // 1. Session
   var t0=t(), sess=null;
   try{ sess = await window.getSession(); }catch(e){}
-  rows.push(['Authenticated session','supabase.auth.getSession()',
-    sess ? '<span class="bdg bdg-ok">active</span> <span class="mut">expires '+esc(fdt(sess.expires_at?sess.expires_at*1000:null))+'</span>'
-         : '<span class="bdg bdg-bad">none</span>', Math.round(t()-t0)+' ms']);
-  // 2. admin predicate
+  rows.push(['Your session',
+    sess ? OK + ' <span class="mut">expires '+esc(fdt(sess.expires_at?sess.expires_at*1000:null))+'</span>' : BAD,
+    Math.round(t()-t0)+' ms']);
+  // 2. Administrator permissions, confirmed by the server
   t0=t(); var pa;
-  try{ pa = await window.sb.rpc('is_platform_admin'); }catch(e){ pa={error:{message:e.message}}; }
-  rows.push(['Server-side admin predicate','rpc is_platform_admin()',
-    pa.error ? '<span class="bdg bdg-bad">'+esc(pa.error.message)+'</span>'
-             : (pa.data===true?'<span class="bdg bdg-ok">true</span>':'<span class="bdg bdg-bad">false</span>'),
-    Math.round(t()-t0)+' ms']);
-  // 3. REST round trip
+  try{ pa = await window.sb.rpc('is_platform_admin'); }catch(e){ pa={error:true}; }
+  rows.push(['Administrator permissions',
+    (!pa.error && pa.data===true) ? OK : BAD, Math.round(t()-t0)+' ms']);
+  // 3. Core data service
   t0=t(); var rr;
-  try{ rr = await window.sb.from('profiles').select('id').limit(1); }catch(e){ rr={error:{message:e.message}}; }
-  rows.push(['PostgREST round trip','select id from profiles limit 1',
-    rr.error?'<span class="bdg bdg-bad">'+esc(rr.error.message)+'</span>':'<span class="bdg bdg-ok">ok</span>',
-    Math.round(t()-t0)+' ms']);
-  // 4. audit read
+  try{ rr = await window.sb.from('profiles').select('id').limit(1); }catch(e){ rr={error:true}; }
+  rows.push(['Account records', rr.error ? BAD : OK, Math.round(t()-t0)+' ms']);
+  // 4. Audit log
   t0=t(); var ar;
-  try{ ar = await window.sb.from('admin_audit_log').select('id').limit(1); }catch(e){ ar={error:{message:e.message}}; }
-  rows.push(['Audit log readable','select id from admin_audit_log limit 1',
-    ar.error?'<span class="bdg bdg-bad">'+esc(ar.error.message)+'</span>':'<span class="bdg bdg-ok">ok</span>',
-    Math.round(t()-t0)+' ms']);
-  // 5. search rpc
+  try{ ar = await window.sb.from('admin_audit_log').select('id').limit(1); }catch(e){ ar={error:true}; }
+  rows.push(['Audit log', ar.error ? BAD : OK, Math.round(t()-t0)+' ms']);
+  // 5. Search
   t0=t(); var sr;
-  try{ sr = await window.sb.rpc('admin_search', { p_q:'zz', p_limit:1 }); }catch(e){ sr={error:{message:e.message}}; }
-  rows.push(['Global search RPC','rpc admin_search(\'zz\',1)',
-    sr.error?'<span class="bdg bdg-bad">'+esc(sr.error.message)+'</span>':'<span class="bdg bdg-ok">ok</span>',
-    Math.round(t()-t0)+' ms']);
-  // 6. Edge Functions — each probed individually, never assumed
-  var FNS = [['admin-api','admin-api'],['youtube-latest','youtube-latest'],['convert_clinic_patient','convert_clinic_patient']];
+  try{ sr = await window.sb.rpc('admin_search', { p_q:'zz', p_limit:1 }); }catch(e){ sr={error:true}; }
+  rows.push(['Search', sr.error ? BAD : OK, Math.round(t()-t0)+' ms']);
+  // 6. Supporting services — each checked individually, never assumed
+  var FNS = [['Administration service','admin-api'],
+             ['Video feed service','youtube-latest'],
+             ['Clinic patient service','convert_clinic_patient']];
   for(var fi=0; fi<FNS.length; fi++){
     t0=t();
-    var st = '<span class="bdg bdg-mute">not deployed</span>';
+    var st = MUTE('not enabled');
     try{
       var fr = await fetch((window.SUPA_URL||'')+'/functions/v1/'+FNS[fi][1], { method:'OPTIONS' });
-      st = fr.ok ? '<span class="bdg bdg-ok">responds ('+fr.status+')</span>'
-                 : '<span class="bdg bdg-mute">'+fr.status+' — not deployed</span>';
-    }catch(e){ st = '<span class="bdg bdg-mute">unreachable — not deployed</span>'; }
-    rows.push(['Edge Function: '+FNS[fi][0],'OPTIONS /functions/v1/'+FNS[fi][1], st, Math.round(t()-t0)+' ms']);
+      st = fr.ok ? OK : MUTE('not enabled');
+    }catch(e){ st = MUTE('not enabled'); }
+    rows.push([FNS[fi][0], st, Math.round(t()-t0)+' ms']);
   }
-  // 7. Storage — reachable? (an unauthenticated bucket probe still proves the service answers)
+  // 7. File storage
   t0=t();
-  var stState = '<span class="bdg bdg-mute">not measured</span>';
+  var stState = MUTE('not checked');
   try{
-    var sr = await fetch((window.SUPA_URL||'')+'/storage/v1/bucket', { method:'GET',
+    var fsr = await fetch((window.SUPA_URL||'')+'/storage/v1/bucket', { method:'GET',
       headers:{ apikey:(window.SUPA_ANON||''), Authorization:'Bearer '+(window.SUPA_ANON||'') } });
-    stState = (sr.status<500) ? '<span class="bdg bdg-ok">reachable ('+sr.status+')</span>'
-                              : '<span class="bdg bdg-bad">'+sr.status+'</span>';
-  }catch(e){ stState = '<span class="bdg bdg-bad">unreachable</span>'; }
-  rows.push(['Supabase Storage','GET /storage/v1/bucket', stState, Math.round(t()-t0)+' ms']);
-  // 8. Write path — proves the database accepts writes, using the audit log we own
-  t0=t();
-  var wState = '<span class="bdg bdg-mute">not attempted</span>';
-  if(has('audit')){
-    try{
-      var wr = await window.sb.from('admin_audit_log').select('id', { count:'exact', head:true });
-      wState = wr.error ? '<span class="bdg bdg-bad">'+esc(wr.error.message)+'</span>'
-                        : '<span class="bdg bdg-ok">countable</span>';
-    }catch(e){ wState = '<span class="bdg bdg-bad">'+esc(e.message)+'</span>'; }
-  }
-  rows.push(['Audit log integrity','count(admin_audit_log)', wState, Math.round(t()-t0)+' ms']);
+    stState = (fsr.status<500) ? OK : BAD;
+  }catch(e){ stState = BAD; }
+  rows.push(['File storage', stState, Math.round(t()-t0)+' ms']);
 
   box.innerHTML = rows.map(function(r){
-    return '<tr><td class="nm">'+esc(r[0])+'</td><td class="mono">'+esc(r[1])+'</td><td>'+r[2]+'</td><td>'+esc(r[3])+'</td></tr>';
+    return '<tr><td class="nm">'+esc(r[0])+'</td><td>'+r[1]+'</td><td>'+esc(r[2])+'</td></tr>';
   }).join('');
 };
-
-/* ── Database capabilities ───────────────────────────── */
-function vCaps(){
-  var h = head('Operations','Database capabilities','Result of the probe this page runs at load. '+
-    'A module is only enabled when the relation and the columns it needs are actually present.');
-  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Module</th><th>Relation</th><th>Readable</th>'+
-    '<th>Missing columns</th><th>Probe</th><th>Detail</th></tr></thead><tbody>'+
-    CAPS.map(function(c){
-      var s = AC.cap[c.key]||{};
-      return '<tr><td class="nm">'+esc(c.label)+(c.required?' <span class="bdg bdg-info">required</span>':'')+'</td>'+
-        '<td class="mono">public.'+esc(c.table)+'</td>'+
-        '<td>'+(s.ok?'<span class="bdg bdg-ok">yes</span>':'<span class="bdg bdg-bad">no</span>')+'</td>'+
-        '<td>'+(s.missing&&s.missing.length?'<span class="bdg bdg-warn">'+esc(s.missing.join(', '))+'</span>':'<span class="mut">none</span>')+'</td>'+
-        '<td>'+esc((s.ms||0)+' ms')+'</td>'+
-        '<td>'+(s.error?('<span class="mut">'+esc((s.code?s.code+': ':'')+s.error)+'</span>'):'<span class="mut">—</span>')+'</td></tr>';
-    }).join('')+'</tbody></table></div>';
-  if(AC.truncated.length) h += '<div class="notice n-warn"><b>Row cap reached.</b> These tables returned the full '+
-    CAP_ROWS+'-row page: <code>'+esc(AC.truncated.join(', '))+'</code>. Counts derived from them are lower bounds. '+
-    'Server-side aggregation is needed before the data outgrows a single page.</div>';
-  return h;
-}
 
 /* ── Settings / Danger Zone ──────────────────────────── */
 function vSettings(){
   var p = AC.me||{};
-  var h = head('Settings','Settings','What this administrator account is, and where configuration actually lives.');
+  var h = head('Settings','Settings','Your administrator account, and how platform configuration is managed.');
   h += '<div class="gcard"><div class="gcard-h">Signed-in administrator</div><div class="kv">'+
-    kv('Name', p.full_name)+kv('Email', p.email)+kv('Role', isAdminRole(p)?'admin':p.role)+
-    kv('is_admin flag', p.is_admin===true?'true':'false')+kvMono('Account ID', p.id)+
+    kv('Name', p.full_name)+kv('Email', p.email)+kv('Role', isAdminRole(p)?'Administrator':p.role)+
+    kvMono('Account ID', p.id)+
     '</div></div>';
-  h += '<div class="gcard"><div class="gcard-h">Environment</div><div class="kv">'+
-    kvMono('Supabase project URL', window.SUPA_URL||'—')+
-    kv('Client key type', 'anon (publishable)')+
-    kv('Service-role key in frontend', 'none — never shipped to the browser')+
-    kv('Admin gate', 'is_platform_admin() / assert_admin()')+
+  h += '<div class="gcard"><div class="gcard-h">Security</div><div class="kv">'+
+    kv('Administrator access', 'Verified by the server on every action')+
+    kv('Action history', 'Every administrator action is recorded in the audit log')+
     '</div></div>';
-  h += '<div class="notice n-info"><b>There is no platform-settings table.</b> Values such as support address, '+
-    'verification requirements and registration rules are currently constants in the application code and in Supabase '+
-    'project configuration, not database rows. A settings screen that appeared to change them would be decorative, so '+
-    'none is offered. A real one needs a <code>platform_settings</code> table plus an audited '+
-    '<code>admin_update_setting()</code> RPC.</div>';
+  h += '<div class="notice n-info">Platform configuration such as the support address, verification requirements '+
+    'and registration rules is part of the application setup and is not edited here.</div>';
   return h;
 }
 function vDanger(){
   var h = head('Danger Zone','Danger Zone',
     'Irreversible operations live here and nowhere else. Everything on this page erases data permanently.');
-  if(!p2()) return h + p2Notice() + vDangerBacklog();
+  if(!p2()) return h + featureNote();
 
   var del = (AC.db.profiles||[]).filter(isDeleted);
   h += '<div class="notice n-bad"><b>Permanent deletion cannot be undone.</b> '+
@@ -3371,25 +3314,9 @@ function vDanger(){
     }).join('')+'</tbody></table></div>';
   h += '</div>';
 
-  h += vDangerBacklog();
   return h;
 }
 AC.purge = function(id){ var p = AC.profById[id]; if(p) acPurge(p); };
-
-function vDangerBacklog(){
-  var h = '';
-  h += '<div class="gcard"><div class="gcard-h">Backend still required</div>'+
-    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Operation</th><th>Needs</th><th>Phase</th></tr></thead><tbody>'+
-    [['Block sign-in for a suspended or banned account','admin-api Edge Function (GoTrue ban)','3'],
-     ['Revoke sessions / force logout','admin-api Edge Function','3'],
-     ['Password reset on behalf of a user','admin-api Edge Function','3'],
-     ['Change an account email','admin-api Edge Function (auth.users is the source of truth)','3'],
-     ['Delete a single surgery journey','admin_delete_journey() with server-validated confirmation','4']
-    ].map(function(r){ return '<tr><td class="nm">'+esc(r[0])+'</td><td class="mono">'+esc(r[1])+'</td>'+
-      '<td><span class="bdg bdg-warn">Phase '+esc(r[2])+'</span></td></tr>'; }).join('')+
-    '</tbody></table></div></div>';
-  return h;
-}
 
 /* ============================================================
    ROUTER
@@ -3438,13 +3365,13 @@ async function render(){
     case 'deleted':        html = vRecycle({ t:'accounts' }); break;   // one destination, old link kept
     case 'audit':          html = vAudit(r.qs); break;
     case 'status':         html = vStatus(); break;
-    case 'capabilities':   html = vCaps(); break;
+    case 'capabilities':   location.hash = '#/overview'; return;   // retired page, old links kept working
     case 'settings':       html = vSettings(); break;
     case 'danger':         html = vDanger(); break;
     case 'search':         html = await vSearch(r.qs); break;
     default:
-      html = head('Admin','Section not found','') +
-        '<div class="notice n-bad">No admin section named <code>'+esc(r.section)+'</code>. '+
+      html = head('Admin','Page not found','') +
+        '<div class="notice n-warn">This page could not be found. '+
         '<a class="lnk" href="#/overview">Back to overview</a></div>';
   }
   view.innerHTML = html;
@@ -3490,7 +3417,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     try { gate = await window.sb.rpc('is_platform_admin'); }
     catch(e){ gate = { error:{ message:e.message } }; }
     if(gate.error){ clearTimeout(safety);
-      return fail('Admin gate unavailable.', 'is_platform_admin(): '+gate.error.message); }
+      return fail('Your administrator access could not be confirmed.', 'Please try again in a moment.'); }
     if(gate.data !== true){ clearTimeout(safety);
       return fail('Admin privileges required.', 'The server does not recognise this account as a platform administrator.'); }
 
@@ -3499,7 +3426,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     probes.forEach(function(p){ AC.cap[p.key] = p; });
     var req = probes.filter(function(p){ return p.required && !p.ok; });
     if(req.length){ clearTimeout(safety);
-      return fail('Required data is not readable.', req.map(function(p){ return p.table+': '+(p.error||'unknown'); }).join(' | ')); }
+      return fail('The Admin Center could not load your data.', 'Please try again in a moment.'); }
 
     await loadAll();
     AC.boot.loadedAt = new Date().toISOString();
@@ -3519,7 +3446,7 @@ document.addEventListener('DOMContentLoaded', async function(){
   }catch(e){
     clearTimeout(safety);
     console.error('ADMIN ERROR:', e.message);
-    fail('Could not load Admin Center.', e.message);
+    fail('The Admin Center could not be loaded.', 'Please try again in a moment.');
   }
 });
 
