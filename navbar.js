@@ -77,9 +77,21 @@ var CSS = `
 .nb-burger{display:none;background:none;border:none;color:#fff;font-size:20px;
   cursor:pointer;padding:4px 8px;margin-left:8px;line-height:1;}
 body{padding-top:56px;}
+body.nb-lock{position:fixed;width:100%;overflow:hidden;}
+
+/* ── Mobile application shell ───────────────────────────────────────────────
+   A drawer, not a hamburger list: WORKSPACES / NAVIGATION / ACCOUNT, with a
+   real backdrop, its own scroll, and safe-area padding.                      */
+.nb-mob-bg{display:none;position:fixed;top:56px;left:0;right:0;bottom:0;z-index:898;
+  background:rgba(3,8,6,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+.nb-mob-bg.open{display:block;}
 .nb-mob{display:none;position:fixed;top:56px;left:0;right:0;z-index:899;
-  background:rgba(6,14,10,.99);border-bottom:1px solid rgba(27,107,90,.22);
-  flex-direction:column;padding:10px 0 16px;}
+  background:#07120F;border-bottom:1px solid rgba(27,107,90,.28);
+  border-radius:0 0 16px 16px;box-shadow:0 18px 40px -18px rgba(0,0,0,.9);
+  flex-direction:column;padding:14px 0 max(18px,env(safe-area-inset-bottom));
+  max-height:calc(100vh - 56px);overflow-y:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;}
+@supports(height:100dvh){ .nb-mob{max-height:calc(100dvh - 56px);} }
 .nb-mob.open{display:flex;}
 .nb-mob-link,.nb-mob button{display:block;padding:12px 24px;font-size:15px;
   color:rgba(255,255,255,.6);text-decoration:none;transition:color .18s;
@@ -87,6 +99,60 @@ body{padding-top:56px;}
   font-family:inherit;cursor:pointer;}
 .nb-mob-link:hover,.nb-mob button:hover{color:#fff;}
 .nb-mob-sep{height:1px;background:rgba(27,107,90,.18);margin:8px 0;}
+
+/* Section labels — three clearly separated groups. */
+.nb-mob-h{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:rgba(126,207,192,.5);padding:0 22px 8px;}
+.nb-mob-grp{padding-bottom:6px;}
+.nb-mob-grp + .nb-mob-grp{margin-top:18px;padding-top:16px;border-top:1px solid rgba(27,107,90,.16);}
+
+/* Workspace cards — mode selector, not navigation rows. */
+.nb-mob-ws{display:none;flex-direction:column;gap:9px;padding:0 16px;}
+.nb-mob-ws.on{display:flex;}
+.nb-mob-card{display:grid;grid-template-columns:38px 1fr;align-items:center;gap:12px;
+  min-height:56px;padding:11px 14px;border-radius:13px;text-decoration:none;
+  border:1px solid rgba(27,107,90,.28);background:rgba(255,255,255,.035);
+  position:relative;overflow:hidden;transition:border-color .18s,background .18s;}
+.nb-mob-card:active{background:rgba(27,107,90,.16);}
+.nb-mob-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:17px;line-height:1;
+  background:rgba(27,107,90,.18);border:1px solid rgba(27,107,90,.26);}
+.nb-mob-tx{min-width:0;}
+.nb-mob-lb{display:block;font-size:15px;font-weight:600;color:rgba(255,255,255,.9);line-height:1.25;}
+.nb-mob-ds{display:block;font-size:12px;color:rgba(255,255,255,.42);line-height:1.4;margin-top:2px;}
+/* Active workspace — border + background + icon emphasis + accent bar. */
+.nb-mob-card.on{border-color:rgba(42,138,116,.6);background:rgba(27,107,90,.22);}
+.nb-mob-card.on::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;
+  border-radius:0 3px 3px 0;background:#2A8A74;}
+.nb-mob-card.on .nb-mob-ico{background:rgba(42,138,116,.34);border-color:rgba(126,207,192,.4);}
+.nb-mob-card.on .nb-mob-lb{color:#fff;}
+
+/* Live Tools — the one elevated card. Teal only. */
+.nb-mob-card.live{border-color:rgba(42,138,116,.5);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='30' viewBox='0 0 120 30'%3E%3Cpolyline points='0,15 22,15 30,6 38,24 46,15 68,15 76,11 84,19 92,15 120,15' fill='none' stroke='%237ECFC0' stroke-width='1.4' stroke-linejoin='round' stroke-linecap='round' opacity='.34'/%3E%3C/svg%3E") right -6px center/auto 26px no-repeat,
+    linear-gradient(180deg,rgba(27,107,90,.24),rgba(27,107,90,.09));
+  box-shadow:0 0 0 1px rgba(42,138,116,.16), 0 6px 18px -10px rgba(42,138,116,.75);}
+.nb-mob-card.live .nb-mob-lb{color:#CFF3EA;}
+.nb-mob-card.live .nb-mob-ico{background:rgba(42,138,116,.3);border-color:rgba(126,207,192,.34);}
+.nb-mob-card.live.on{border-color:rgba(126,207,192,.65);}
+.nb-mob-card.live.on .nb-mob-lb{color:#fff;}
+@media(prefers-reduced-motion:no-preference){
+  .nb-mob-card.live{animation:nbLivePulseM 4s ease-in-out infinite;}
+  @keyframes nbLivePulseM{
+    0%,100%{box-shadow:0 0 0 1px rgba(42,138,116,.16), 0 6px 18px -10px rgba(42,138,116,.55);}
+    50%    {box-shadow:0 0 0 1px rgba(42,138,116,.26), 0 6px 22px -10px rgba(42,138,116,.9);}
+  }
+}
+@media(prefers-reduced-motion:reduce){ .nb-mob-card.live{animation:none;} }
+
+/* Secondary navigation + account rows: comfortable, uniform rhythm. */
+.nb-mob-grp .nb-mob-link{min-height:48px;display:flex;align-items:center;padding:0 24px;
+  font-size:15px;border-radius:0;}
+.nb-mob-acct .nb-mob-link{color:rgba(255,255,255,.7);}
+.nb-mob-signout{min-height:48px;display:flex;align-items:center;padding:0 24px;
+  color:rgba(255,120,100,.85)!important;font-size:15px;}
+.nb-mob-signout:hover{color:rgba(255,150,130,1)!important;}
 .nb-modal-bg{display:none;position:fixed;inset:0;z-index:1000;
   background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:20px;}
 .nb-modal-bg.open{display:flex;}
@@ -202,9 +268,18 @@ body{padding-top:56px;}
 }
 @media(max-width:740px){
   .nb-nav-links{display:none;}
-  .nb-ws{display:none !important;}   /* moves into the burger menu */
+  .nb-ws{display:none !important;}   /* moves into the drawer */
   .nb-burger{display:block;}
   .nb-modal-btns{grid-template-columns:1fr;}
+  /* Phone header stays: logo + avatar + one menu button. The staff search box
+     is the control that crowded it; it remains on iPad and desktop. */
+  #nb-search-wrap{display:none !important;}
+}
+/* Landscape phones: keep the drawer usable when height is scarce. */
+@media(max-width:900px) and (max-height:460px){
+  .nb-mob{max-height:calc(100vh - 56px);}
+  .nb-mob-card{min-height:50px;}
+  .nb-mob-ds{display:none;}
 }
 /* ── Shared compact application footer (authenticated pages) ─────────────── */
 .nb-foot{background:#0A1712;border-top:1px solid rgba(255,255,255,.08);
@@ -303,13 +378,21 @@ function buildHTML(page){
             '</div>' +
           '</div>' +
         '</div>' +
-        '<button class="nb-burger" id="nb-burger" onclick="window.nbToggleMob()" aria-label="Menu">&#9776;</button>' +
+        '<button class="nb-burger" id="nb-burger" onclick="window.nbToggleMob()" aria-label="Menu" ' +
+          'aria-expanded="false" aria-controls="nb-mob" aria-haspopup="dialog">&#9776;</button>' +
       '</div>' +
     '</nav>' +
-    '<div class="nb-mob" id="nb-mob">' +
-      // Compact role-aware workspace switcher, first in the sheet (staff only).
-      '<div class="nb-mob-ws" id="nb-mob-ws" role="navigation" aria-label="Workspace"></div>' +
-      // Public mobile nav — guests & doctors (unchanged).
+    '<div class="nb-mob-bg" id="nb-mob-bg" onclick="window.nbCloseMob()"></div>' +
+    '<div class="nb-mob" id="nb-mob" role="dialog" aria-modal="true" aria-label="Menu">' +
+      // 1. WORKSPACES — the mode selector, first and visually dominant.
+      '<div class="nb-mob-grp" id="nb-mob-wsgrp" style="display:none">' +
+        '<div class="nb-mob-h">Workspaces</div>' +
+        '<div class="nb-mob-ws" id="nb-mob-ws" role="navigation" aria-label="Workspace"></div>' +
+      '</div>' +
+      // 2. NAVIGATION — ordinary content links, never workspaces.
+      '<div class="nb-mob-grp" id="nb-mob-navgrp">' +
+      '<div class="nb-mob-h">Navigation</div>' +
+      // Public mobile nav — guests (unchanged).
       '<div id="nb-mob-public">' +
         '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
         '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
@@ -337,12 +420,16 @@ function buildHTML(page){
         '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
         '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
       '</div>' +
-      '<div class="nb-mob-sep"></div>' +
-      '<div id="nb-mob-guest"><button class="nb-btn" style="width:100%" onclick="window.nbOpenModal();window.nbCloseMob()">Login</button></div>' +
-      '<div id="nb-mob-auth" style="display:none">' +
-        '<a href="/v2/dashboard.html" class="nb-mob-link" id="nb-mob-workspace">Dashboard</a>' +
-        '<a href="/v2/settings.html" class="nb-mob-link" id="nb-mob-settings">Settings</a>' +
-        '<button class="nb-mob-link" style="background:none;border:none;text-align:left;cursor:pointer;font-family:inherit;color:rgba(255,100,80,.7)" onclick="window.nbSignOut()">Sign out</button>' +
+      '</div>' +                                   // end NAVIGATION group
+      // 3. ACCOUNT — always last, always separated from content links.
+      '<div class="nb-mob-grp nb-mob-acct" id="nb-mob-acctgrp">' +
+        '<div class="nb-mob-h">Account</div>' +
+        '<div id="nb-mob-guest"><div style="padding:0 16px;"><button class="nb-btn" style="width:100%;min-height:48px" onclick="window.nbOpenModal();window.nbCloseMob()">Login</button></div></div>' +
+        '<div id="nb-mob-auth" style="display:none">' +
+          '<a href="/v2/dashboard.html" class="nb-mob-link" id="nb-mob-workspace">Dashboard</a>' +
+          '<a href="/v2/settings.html" class="nb-mob-link" id="nb-mob-settings">Profile &amp; settings</a>' +
+          '<button class="nb-mob-link nb-mob-signout" onclick="window.nbSignOut()">Sign out</button>' +
+        '</div>' +
       '</div>' +
     '</div>' +
     '<div class="nb-modal-bg" id="nb-modal" onclick="if(event.target===this)window.nbCloseModal()">' +
@@ -437,40 +524,58 @@ function setGuest(){
 //   /v2/engine.html     Live Tools          (staff)
 var NB_WORKSPACES = {
   doctor: [
-    { href:'/v2/dashboard.html', label:'Dashboard',  ico:'🩺' },
-    { href:'/v2/engine.html',    label:'Live Tools', ico:'⚡', live:true }
+    { href:'/v2/dashboard.html', label:'Dashboard',  ico:'🩺',
+      desc:'Patients, reviews and clinical work' },
+    { href:'/v2/engine.html',    label:'Live Tools', ico:'⚡', live:true,
+      desc:'Drugs, calculators and crisis tools' }
   ],
   admin: [
-    { href:'/v2/admin.html',     label:'Admin Center',     ico:'🛡' },
-    { href:'/v2/dashboard.html', label:'Doctor Workspace', ico:'🩺' },
-    { href:'/v2/engine.html',    label:'Live Tools',       ico:'⚡', live:true }
+    { href:'/v2/admin.html',     label:'Admin Center',     ico:'🛡',
+      desc:'Platform operations and oversight' },
+    { href:'/v2/dashboard.html', label:'Doctor Workspace', ico:'🩺',
+      desc:'Clinical patient management' },
+    { href:'/v2/engine.html',    label:'Live Tools',       ico:'⚡', live:true,
+      desc:'Clinical tools and crisis workstation' }
   ]
 };
 function nbCurrentPage(){ return (location.pathname.split('/').pop() || 'index.html'); }
 
 function renderWorkspaceSwitcher(role){
   var items = NB_WORKSPACES[role] || null;
-  var desk = ge('nb-ws'), mob = ge('nb-mob-ws');
+  var desk = ge('nb-ws'), mob = ge('nb-mob-ws'), grp = ge('nb-mob-wsgrp');
   if(!items){
     if(desk){ desk.classList.remove('on'); desk.innerHTML = ''; }
     if(mob){ mob.classList.remove('on'); mob.innerHTML = ''; }
+    if(grp) grp.style.display = 'none';
     return;
   }
   var page = nbCurrentPage();
-  function seg(it, mobile){
-    var isOn = (it.href.split('/').pop() === page);
-    var cls  = (mobile ? '' : 'nb-ws-seg') + (it.live ? ' live' : '') + (isOn ? ' on' : '');
-    return '<a href="' + it.href + '" class="' + cls.trim() + '"' +
-      (isOn ? ' aria-current="page"' : '') + '>' +
-      '<span class="nb-ws-ico" aria-hidden="true">' + it.ico + '</span>' +
-      '<span>' + it.label + '</span></a>';
+  function isActive(it){ return it.href.split('/').pop() === page; }
+
+  // Desktop / iPad: the approved inline segmented switcher. Unchanged.
+  if(desk){
+    desk.innerHTML = items.map(function(it){
+      var on = isActive(it);
+      return '<a href="' + it.href + '" class="nb-ws-seg' + (it.live?' live':'') + (on?' on':'') + '"' +
+        (on ? ' aria-current="page"' : '') + '>' +
+        '<span class="nb-ws-ico" aria-hidden="true">' + it.ico + '</span>' +
+        '<span>' + it.label + '</span></a>';
+    }).join('');
+    desk.classList.add('on');
   }
-  if(desk){ desk.innerHTML = items.map(function(i){ return seg(i, false); }).join(''); desk.classList.add('on'); }
+  // Phone: full-width workspace cards with icon, label and a short description.
   if(mob){
-    mob.innerHTML = '<div class="nb-mob-ws-h">Workspace</div>' +
-      items.map(function(i){ return seg(i, true); }).join('');
+    mob.innerHTML = items.map(function(it){
+      var on = isActive(it);
+      return '<a href="' + it.href + '" class="nb-mob-card' + (it.live?' live':'') + (on?' on':'') + '"' +
+        (on ? ' aria-current="page"' : '') + '>' +
+        '<span class="nb-mob-ico" aria-hidden="true">' + it.ico + '</span>' +
+        '<span class="nb-mob-tx"><span class="nb-mob-lb">' + it.label + '</span>' +
+        '<span class="nb-mob-ds">' + it.desc + '</span></span></a>';
+    }).join('');
     mob.classList.add('on');
   }
+  if(grp) grp.style.display = '';
 }
 
 function setAuth(){
@@ -803,21 +908,65 @@ window.nbToggleMode = function(){
   applyMode();
 };
 
+// ── Mobile drawer ─────────────────────────────────────────────
+// Backdrop, scroll lock that preserves position, focus trap, Escape to close
+// and focus restored to the menu button.
+var _nbMobScrollY = 0;
+function nbMobFocusables(){
+  var m = ge('nb-mob'); if(!m) return [];
+  return Array.prototype.filter.call(
+    m.querySelectorAll('a[href],button:not([disabled])'),
+    function(el){ return el.offsetParent !== null; });
+}
+function nbMobTrap(e){
+  if(e.key !== 'Tab') return;
+  var f = nbMobFocusables(); if(!f.length) return;
+  var first = f[0], last = f[f.length - 1];
+  if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+}
+window.nbOpenMob = function(){
+  var m = ge('nb-mob'), bg = ge('nb-mob-bg'), btn = ge('nb-burger');
+  if(!m || m.classList.contains('open')) return;
+  _nbMobScrollY = window.scrollY || window.pageYOffset || 0;
+  m.classList.add('open');
+  if(bg) bg.classList.add('open');
+  if(btn) btn.setAttribute('aria-expanded', 'true');
+  document.body.style.top = (-_nbMobScrollY) + 'px';
+  document.body.classList.add('nb-lock');           // no background interaction
+  document.addEventListener('keydown', nbMobTrap, true);
+  var f = nbMobFocusables();
+  if(f.length) setTimeout(function(){ f[0].focus(); }, 30);
+};
+window.nbCloseMob = function(){
+  var m = ge('nb-mob'), bg = ge('nb-mob-bg'), btn = ge('nb-burger');
+  if(!m || !m.classList.contains('open')) return;
+  m.classList.remove('open');
+  if(bg) bg.classList.remove('open');
+  if(btn) btn.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('keydown', nbMobTrap, true);
+  document.body.classList.remove('nb-lock');
+  document.body.style.top = '';
+  window.scrollTo(0, _nbMobScrollY);                // restore scroll position
+  if(btn) btn.focus();                              // restore focus
+};
 window.nbToggleMob = function(){
   var m = ge('nb-mob');
-  if(m) m.classList.toggle('open');
+  if(m && m.classList.contains('open')) window.nbCloseMob();
+  else window.nbOpenMob();
 };
-
-window.nbCloseMob = function(){
+// Selecting a destination closes the drawer (and unlocks scroll before nav).
+document.addEventListener('click', function(e){
   var m = ge('nb-mob');
-  if(m) m.classList.remove('open');
-};
+  if(!m || !m.classList.contains('open')) return;
+  if(e.target.closest && e.target.closest('#nb-mob a')) window.nbCloseMob();
+});
 
 document.addEventListener('click', function(e){
   var mob  = ge('nb-mob');
   if(mob && mob.classList.contains('open') && !e.target.closest('#nb-nav') && !e.target.closest('#nb-mob')){
-    mob.classList.remove('open');
-  }
+    window.nbCloseMob();          // must go through the closer: unlocks scroll,
+  }                               // hides the backdrop and restores focus
   var menu = ge('nb-menu');
   if(menu && menu.classList.contains('open') && !e.target.closest('#nb-avatar-wrap')){
     menu.classList.remove('open');
@@ -1087,6 +1236,11 @@ async function nbInit(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){ nbInit(); });
-document.addEventListener('keydown', function(e){ if(e.key === 'Escape') window.nbCloseModal(); });
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape') return;
+  var m = ge('nb-mob');
+  if(m && m.classList.contains('open')){ window.nbCloseMob(); return; }
+  window.nbCloseModal();
+});
 
 })();
