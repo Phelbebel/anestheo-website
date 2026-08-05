@@ -159,6 +159,87 @@
 .meterbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;min-width:64px;margin-top:5px;}
 .meterfill{height:100%;background:linear-gradient(90deg,#1B6B5A,#2A8A74);border-radius:3px;}
 
+/* ── Phase 2: moderation controls (same tokens, no new palette) ────────── */
+.selcol{width:34px;}
+.selbox{width:16px;height:16px;accent-color:#2A8A74;cursor:pointer;vertical-align:middle;}
+.rowact{position:relative;text-align:right;white-space:nowrap;}
+.dots{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);
+  border-radius:7px;padding:3px 9px;font-size:14px;line-height:1.2;cursor:pointer;font-family:inherit;}
+.dots:hover{border-color:rgba(42,138,116,.45);color:#fff;}
+.dots:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.menu{position:absolute;right:0;top:100%;z-index:60;min-width:212px;text-align:left;
+  background:#0C1710;border:1px solid var(--border);border-radius:11px;padding:5px;
+  box-shadow:0 14px 34px -12px rgba(0,0,0,.9);}
+.menu button{display:block;width:100%;text-align:left;background:none;border:none;
+  color:var(--muted);font-family:inherit;font-size:12.5px;padding:8px 11px;border-radius:7px;cursor:pointer;}
+.menu button:hover{background:rgba(27,107,90,.18);color:#fff;}
+.menu button:focus-visible{outline:2px solid #7ECFC0;outline-offset:-2px;}
+.menu button.danger{color:rgba(255,140,120,.9);}
+.menu button.danger:hover{background:rgba(192,57,43,.14);color:rgba(255,170,150,1);}
+.menu button[disabled]{color:rgba(255,255,255,.22);cursor:not-allowed;}
+.menu button[disabled]:hover{background:none;color:rgba(255,255,255,.22);}
+.menu-sep{height:1px;background:rgba(27,107,90,.2);margin:5px 4px;}
+.menu-h{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(126,207,192,.45);padding:7px 11px 4px;}
+
+/* Bulk-selection bar */
+.selbar{display:none;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;
+  border:1px solid rgba(42,138,116,.4);background:rgba(27,107,90,.16);border-radius:11px;}
+.selbar.on{display:flex;}
+.selbar-n{font-size:12.5px;color:#fff;font-weight:600;}
+
+/* Confirmation dialog — reuses the card surface, adds nothing decorative. */
+.dlg-bg{position:fixed;inset:0;z-index:1200;background:rgba(3,8,6,.72);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;padding:18px;}
+.dlg{width:100%;max-width:460px;max-height:calc(100vh - 40px);overflow-y:auto;
+  background:#0B1613;border:1px solid var(--border);border-radius:15px;padding:22px 22px 18px;
+  box-shadow:0 26px 60px -20px rgba(0,0,0,.95);}
+.dlg.danger{border-color:rgba(192,57,43,.42);}
+.dlg h3{font-family:var(--serif);font-size:19px;color:#fff;margin-bottom:7px;}
+.dlg p{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:12px;}
+.dlg label{display:block;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--hint);margin:12px 0 5px;}
+.dlg input,.dlg select,.dlg textarea{width:100%;background:rgba(255,255,255,.05);
+  border:1px solid var(--border);border-radius:8px;color:#fff;padding:9px 11px;
+  font-size:13.5px;font-family:inherit;outline:none;}
+.dlg input:focus,.dlg select:focus,.dlg textarea:focus{border-color:#2A8A74;}
+.dlg select option{background:#132218;}
+.dlg textarea{min-height:64px;resize:vertical;}
+.dlg-impact{background:rgba(0,0,0,.26);border:1px solid rgba(27,107,90,.18);border-radius:9px;
+  padding:11px 13px;font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:6px;}
+.dlg-impact b{color:#fff;}
+.dlg-warn{background:rgba(192,57,43,.09);border:1px solid rgba(192,57,43,.32);border-radius:9px;
+  padding:10px 13px;font-size:12.5px;color:rgba(255,190,178,.95);line-height:1.6;margin-top:12px;}
+.dlg-acts{display:flex;gap:9px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap;}
+.dbtn{min-height:40px;padding:0 16px;border-radius:9px;font-size:13px;font-family:inherit;
+  cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);}
+.dbtn:hover{color:#fff;border-color:rgba(42,138,116,.45);}
+.dbtn.go{background:rgba(27,107,90,.32);border-color:rgba(42,138,116,.55);color:#fff;}
+.dbtn.go:hover{background:rgba(27,107,90,.5);}
+.dbtn.bad{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.45);color:rgba(255,175,158,1);}
+.dbtn.bad:hover{background:rgba(192,57,43,.34);}
+.dbtn[disabled]{opacity:.4;cursor:not-allowed;}
+.dbtn:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.dlg-err{font-size:12.5px;color:rgba(255,150,130,.95);margin-top:10px;line-height:1.5;}
+
+/* Toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:1300;
+  background:#0C1F18;border:1px solid rgba(42,138,116,.45);border-radius:10px;
+  padding:11px 17px;font-size:13px;color:#fff;box-shadow:0 14px 34px -12px rgba(0,0,0,.9);max-width:92vw;}
+.toast.bad{border-color:rgba(192,57,43,.5);color:rgba(255,185,170,1);}
+
+/* Activity timeline */
+.tl{border-left:1px solid rgba(27,107,90,.3);margin-left:6px;padding-left:16px;}
+.tl-i{position:relative;padding:9px 0 11px;}
+.tl-i::before{content:'';position:absolute;left:-21px;top:14px;width:8px;height:8px;border-radius:50%;
+  background:#2A8A74;border:2px solid #0C1710;}
+.tl-i.bad::before{background:#C0392B;}
+.tl-i.warn::before{background:#E8A838;}
+.tl-t{font-size:13px;color:#fff;}
+.tl-m{font-size:11.5px;color:var(--hint);margin-top:2px;}
+.tl-r{font-size:12px;color:var(--muted);margin-top:3px;font-style:italic;}
+
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width:1024px){
   .adm-main{padding:22px 20px 64px;}
@@ -184,6 +265,20 @@
 @media (max-width:520px){
   .stat-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
   .kv{grid-template-columns:1fr;}
+}
+@media (pointer:coarse){
+  /* Touch devices at any width get real targets, not just phones. */
+  .menu button{min-height:44px;display:flex;align-items:center;}
+  .dots{min-height:44px;min-width:44px;}
+  .selbox{width:22px;height:22px;}
+  .dbtn{min-height:44px;}
+}
+@media (max-width:860px){
+  .menu button{padding:11px 13px;font-size:13.5px;}
+  .dots{padding:7px 12px;}
+  .dlg{max-width:100%;padding:18px 16px 16px;}
+  .dlg-acts .dbtn{flex:1 1 auto;}
+  .selbar{position:sticky;top:56px;z-index:40;}
 }
 </style>
 </head>
@@ -260,9 +355,483 @@ function journeyState(s){
    probes the relation it needs and records exactly what came back,
    so a module can be disabled honestly instead of erroring.
    ============================================================ */
+/* ============================================================
+   PHASE 2 — ACCOUNT LIFECYCLE AND MODERATION
+   Active -> Suspended -> Banned -> Soft deleted -> Permanently deleted.
+   Every action is an audited SECURITY DEFINER RPC. The lifecycle columns and
+   the RPCs ship in one migration, so the column probe is an exact proxy for
+   "are the RPCs live?" - the same pattern the journey controls use. Until it
+   answers yes, no moderation control is rendered at all.
+   ============================================================ */
+function p2(){ return has('profiles','account_status') && has('profiles','deleted_at'); }
+function accStatus(p){ return (p && p.account_status) || 'active'; }
+function isDeleted(p){ return !!(p && p.deleted_at); }
+function isLive(p){ return !isDeleted(p); }
+function banExpired(p){ return !!(p && p.ban_expires_at && new Date(p.ban_expires_at) <= new Date()); }
+
+/* One badge for the lifecycle, one for the doctor credential. They are
+   different things and are never merged. */
+function badgeStatus(p){
+  var s = accStatus(p);
+  if(isDeleted(p))     return '<span class="bdg bdg-bad">deleted</span>';
+  if(s === 'banned')   return banExpired(p)
+      ? '<span class="bdg bdg-warn">ban expired</span>'
+      : '<span class="bdg bdg-bad">banned</span>';
+  if(s === 'suspended')return '<span class="bdg bdg-warn">suspended</span>';
+  return '<span class="bdg bdg-ok">active</span>';
+}
+
+/* ── Toast ─────────────────────────────────────────────── */
+function acToast(msg, bad){
+  var t = document.createElement('div');
+  t.className = 'toast' + (bad ? ' bad' : '');
+  t.setAttribute('role','status');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, bad ? 6000 : 3200);
+}
+
+/* ── Confirmation dialog ───────────────────────────────────
+   opts: title, body(html), impact(html), fields[], danger, confirmWord,
+         confirmLabel, onConfirm(values) -> Promise
+   Reason is a first-class field; destructive actions add a typed word that the
+   server validates again. Focus is trapped, Escape cancels.               */
+var _dlgLast = null;
+function acDialog(opts){
+  // Capture the return target BEFORE the menu is torn down, otherwise focus
+  // would be handed back to a detached node and land on <body>.
+  var back = (_menuTrigger && document.contains(_menuTrigger)) ? _menuTrigger : document.activeElement;
+  acCloseMenu();
+  var old = document.getElementById('ac-dlg'); if(old) old.remove();
+  _dlgLast = back;
+  var f = opts.fields || [];
+  var bg = document.createElement('div');
+  bg.className = 'dlg-bg'; bg.id = 'ac-dlg';
+  bg.innerHTML =
+    '<div class="dlg' + (opts.danger ? ' danger' : '') + '" role="dialog" aria-modal="true" aria-labelledby="ac-dlg-t">' +
+      '<h3 id="ac-dlg-t">' + esc(opts.title) + '</h3>' +
+      (opts.body ? '<p>' + opts.body + '</p>' : '') +
+      (opts.impact ? '<div class="dlg-impact">' + opts.impact + '</div>' : '') +
+      f.map(function(x, i){
+        var id = 'ac-f' + i;
+        if(x.type === 'select')
+          return '<label for="' + id + '">' + esc(x.label) + '</label><select id="' + id + '" data-k="' + esc(x.key) + '">' +
+            (x.options||[]).map(function(o){ return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+        if(x.type === 'textarea')
+          return '<label for="' + id + '">' + esc(x.label) + '</label><textarea id="' + id + '" data-k="' + esc(x.key) + '" placeholder="' + esc(x.ph||'') + '"></textarea>';
+        return '<label for="' + id + '">' + esc(x.label) + '</label><input id="' + id + '" data-k="' + esc(x.key) + '" type="' + esc(x.type||'text') + '" placeholder="' + esc(x.ph||'') + '">';
+      }).join('') +
+      (opts.confirmWord
+        ? '<div class="dlg-warn"><b>This action cannot be undone.</b><br>Type <b>' + esc(opts.confirmWord) + '</b> to confirm.</div>' +
+          '<label for="ac-word">Confirmation</label><input id="ac-word" type="text" autocomplete="off" spellcheck="false" placeholder="' + esc(opts.confirmWord) + '">'
+        : '') +
+      '<div class="dlg-err" id="ac-err" style="display:none"></div>' +
+      '<div class="dlg-acts">' +
+        '<button class="dbtn" id="ac-cancel" type="button">Cancel</button>' +
+        '<button class="dbtn ' + (opts.danger ? 'bad' : 'go') + '" id="ac-go" type="button"' +
+          (opts.confirmWord ? ' disabled' : '') + '>' + esc(opts.confirmLabel || 'Confirm') + '</button>' +
+      '</div></div>';
+  document.body.appendChild(bg);
+
+  var go = ge('ac-go'), word = ge('ac-word'), err = ge('ac-err');
+  function close(){
+    document.removeEventListener('keydown', key, true);
+    bg.remove();
+    if(_dlgLast && _dlgLast.focus && document.contains(_dlgLast)) _dlgLast.focus();
+    else { var f0 = document.querySelector('#adm-view .dots, #adm-view a'); if(f0) f0.focus(); }
+  }
+  function key(e){
+    if(e.key === 'Escape'){ e.preventDefault(); close(); return; }
+    if(e.key !== 'Tab') return;
+    var els = Array.prototype.filter.call(bg.querySelectorAll('button,input,select,textarea'),
+      function(el){ return !el.disabled && el.offsetParent !== null; });
+    if(!els.length) return;
+    var a = els[0], z = els[els.length-1];
+    if(e.shiftKey && document.activeElement === a){ e.preventDefault(); z.focus(); }
+    else if(!e.shiftKey && document.activeElement === z){ e.preventDefault(); a.focus(); }
+  }
+  document.addEventListener('keydown', key, true);
+  bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
+  ge('ac-cancel').onclick = close;
+  if(word) word.addEventListener('input', function(){
+    go.disabled = word.value.trim().toUpperCase() !== opts.confirmWord.toUpperCase();
+  });
+  go.onclick = async function(){
+    var vals = {};
+    Array.prototype.forEach.call(bg.querySelectorAll('[data-k]'), function(el){
+      vals[el.getAttribute('data-k')] = (el.value || '').trim();
+    });
+    if(opts.confirmWord) vals.__word = (word.value || '').trim();
+    go.disabled = true; go.textContent = 'Working…';
+    err.style.display = 'none';
+    try {
+      await opts.onConfirm(vals);
+      close();
+    } catch(e){
+      err.textContent = (e && e.message) ? e.message : String(e);
+      err.style.display = 'block';
+      go.disabled = false; go.textContent = opts.confirmLabel || 'Confirm';
+    }
+  };
+  setTimeout(function(){
+    var first = bg.querySelector('input,select,textarea,button');
+    if(first) first.focus();
+  }, 30);
+}
+
+/* ── RPC executor ──────────────────────────────────────────
+   Never optimistic: the row is only redrawn after the server confirms.    */
+async function acRpc(fn, params){
+  var r;
+  try { r = await window.sb.rpc(fn, params || {}); }
+  catch(e){ throw new Error(e.message); }
+  if(r.error){
+    var m = r.error.message || 'The action failed';
+    if(/does not exist|schema cache|PGRST202/i.test(m))
+      m = 'This action is not available yet — v2_admin_phase2.sql has not been applied.';
+    throw new Error(m);
+  }
+  return r.data;
+}
+async function acAfter(msg){
+  await loadAll();                 // re-read from the server, then repaint
+  acSelClear();
+  await render();
+  acToast(msg);
+}
+
+/* ── Row action menu ───────────────────────────────────── */
+var _menuOpen = null, _menuTrigger = null;
+function acCloseMenu(){
+  if(_menuOpen && _menuOpen.parentNode) _menuOpen.parentNode.removeChild(_menuOpen);
+  _menuOpen = null;
+}
+document.addEventListener('click', function(e){
+  if(_menuOpen && !e.target.closest('.menu') && !e.target.closest('.dots')) acCloseMenu();
+});
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') acCloseMenu(); });
+
+/* items: [{label, fn, danger, disabled, head}] — `head` renders a group label */
+var _menuReg = {};
+function acMenuBtn(regKey){
+  return '<button class="dots" type="button" aria-haspopup="menu" aria-label="Actions" ' +
+    'onclick="AC.menu(this,\'' + regKey + '\')">&#8943;</button>';
+}
+var AC_MENU_SEQ = 0;
+function acRegister(items){
+  var k = 'm' + (++AC_MENU_SEQ);
+  _menuReg[k] = items;
+  return k;
+}
+AC.menu = function(btn, key){
+  var items = _menuReg[key] || [];
+  _menuTrigger = btn;                       // where focus returns to
+  if(_menuOpen && _menuOpen.dataset.k === key){ acCloseMenu(); return; }
+  acCloseMenu();
+  var m = document.createElement('div');
+  m.className = 'menu'; m.dataset.k = key; m.setAttribute('role','menu');
+  m.innerHTML = items.map(function(it, i){
+    if(it.head) return '<div class="menu-h">' + esc(it.head) + '</div>';
+    if(it.sep)  return '<div class="menu-sep"></div>';
+    return '<button role="menuitem" type="button" data-i="' + i + '"' +
+      (it.danger ? ' class="danger"' : '') + (it.disabled ? ' disabled' : '') + '>' + esc(it.label) + '</button>';
+  }).join('');
+  btn.parentNode.appendChild(m);
+  m.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-i]'); if(!b) return;
+    var it = items[+b.getAttribute('data-i')];
+    acCloseMenu();
+    if(it && it.fn) it.fn();
+  });
+  _menuOpen = m;
+  var first = m.querySelector('button:not([disabled])'); if(first) first.focus();
+};
+
+/* ── Bulk selection ────────────────────────────────────── */
+AC.sel = { kind:null, ids:{} };
+function acSelClear(){ AC.sel = { kind:null, ids:{} }; }
+function acSelCount(){ return Object.keys(AC.sel.ids).length; }
+AC.selToggle = function(kind, id, on){
+  if(AC.sel.kind !== kind){ AC.sel = { kind:kind, ids:{} }; }
+  if(on) AC.sel.ids[id] = true; else delete AC.sel.ids[id];
+  acSelPaint();
+};
+AC.selAll = function(kind, on){
+  var boxes = document.querySelectorAll('.selbox[data-id]');
+  if(AC.sel.kind !== kind) AC.sel = { kind:kind, ids:{} };
+  Array.prototype.forEach.call(boxes, function(b){
+    if(b.id === 'sel-all') return;
+    b.checked = on;
+    var id = b.getAttribute('data-id');
+    if(on) AC.sel.ids[id] = true; else delete AC.sel.ids[id];
+  });
+  acSelPaint();
+};
+function acSelPaint(){
+  var bar = ge('ac-selbar'); if(!bar) return;
+  var n = acSelCount();
+  bar.classList.toggle('on', n > 0);
+  var lbl = ge('ac-seln'); if(lbl) lbl.textContent = n + ' selected';
+}
+function acSelIds(){ return Object.keys(AC.sel.ids); }
+
+/* CSV export — only the columns already on screen. No clinical payloads. */
+function acCsv(rows, cols, name){
+  var esc2 = function(v){ v = (v==null?'':String(v)); return '"' + v.replace(/"/g,'""') + '"'; };
+  var out = cols.map(function(c){ return esc2(c[0]); }).join(',') + '\n' +
+    rows.map(function(r){ return cols.map(function(c){ return esc2(c[1](r)); }).join(','); }).join('\n');
+  var blob = new Blob([out], { type:'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name + '-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  acToast('Exported ' + rows.length + ' row' + (rows.length===1?'':'s'));
+}
+
+/* ── Activity timeline — built only from stored facts ──── */
+function acTimeline(p){
+  var ev = [];
+  function add(ts, txt, kind, reason){ if(ts) ev.push({ ts:ts, t:txt, k:kind||'', r:reason||null }); }
+  add(p.created_at, 'Account created', '');
+  if(p.role === 'doctor'){
+    if(p.verification_status === 'approved' || p.verification_status === 'verified')
+      add(p.updated_at, 'Verification: ' + p.verification_status, '');
+  }
+  add(p.suspended_at, 'Suspended', 'warn', p.suspend_reason);
+  add(p.banned_at, 'Banned' + (p.ban_expires_at ? (' until ' + fdate(p.ban_expires_at)) : ''), 'bad', p.ban_reason);
+  add(p.deleted_at, 'Soft deleted', 'bad', p.delete_reason);
+  (AC.db.audit||[]).forEach(function(a){
+    if(a.target_id !== p.id) return;
+    ev.push({ ts:a.created_at, t:a.action, k:/delete|ban|reject/.test(a.action)?'bad':(/suspend/.test(a.action)?'warn':''),
+              r:a.reason, actor:a.actor_id });
+  });
+  (AC.db.parchive||[]).forEach(function(a){
+    if(!(AC.db.surgeries||[]).some(function(s){ return s.id===a.surgery_id && s.patient_id===p.id; })) return;
+    ev.push({ ts:a.created_at, t:'Journey ' + a.action, k:a.action==='delete'?'bad':'warn', r:a.reason, actor:a.actor_id });
+  });
+  ev.sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+  if(!ev.length) return '<p class="mut" style="font-size:12.5px;">No recorded history.</p>';
+  return '<div class="tl">' + ev.map(function(e){
+    return '<div class="tl-i ' + e.k + '"><div class="tl-t">' + esc(e.t) + '</div>' +
+      '<div class="tl-m">' + esc(fdt(e.ts)) + ' &middot; ' + esc(ago(e.ts)) +
+      (e.actor ? (' &middot; ' + esc(docName(e.actor))) : '') + '</div>' +
+      (e.r ? '<div class="tl-r">&ldquo;' + esc(e.r) + '&rdquo;</div>' : '') + '</div>';
+  }).join('') + '</div>';
+}
+
+/* ── Action definitions ────────────────────────────────── */
+function acActiveDoctors(){
+  return (AC.db.profiles||[]).filter(function(x){
+    return x.role==='doctor' && isLive(x) && accStatus(x)==='active'; });
+}
+function acDoctorOpts(exclude){
+  return acActiveDoctors().filter(function(d){ return d.id !== exclude; })
+    .map(function(d){ return [d.id, pname(d) + (d.hospital ? (' — ' + d.hospital) : '')]; });
+}
+
+function acSuspend(p){
+  acDialog({ title:'Suspend ' + pname(p), confirmLabel:'Suspend account',
+    body:'The account keeps every record. It cannot act on clinical data while suspended and can be restored at any time.',
+    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this account being suspended?' }],
+    onConfirm: async function(v){
+      await acRpc('admin_set_account_status', { p_target:p.id, p_status:'suspended', p_reason:v.reason });
+      await acAfter(pname(p) + ' suspended');
+    }});
+}
+function acBan(p){
+  acDialog({ title:'Ban ' + pname(p), danger:true, confirmLabel:'Ban account',
+    body:'A ban blocks the account and records who did it and why. Leave the expiry empty for an indefinite ban.',
+    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this account being banned?' },
+            { key:'expires', label:'Expires (optional)', type:'date' }],
+    onConfirm: async function(v){
+      await acRpc('admin_set_account_status', { p_target:p.id, p_status:'banned', p_reason:v.reason,
+        p_expires: v.expires ? new Date(v.expires + 'T23:59:59').toISOString() : null });
+      await acAfter(pname(p) + ' banned');
+    }});
+}
+function acReactivate(p){
+  acDialog({ title:'Reactivate ' + pname(p), confirmLabel:'Reactivate',
+    body:'The suspension or ban is lifted and the account returns to normal use.',
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_set_account_status', { p_target:p.id, p_status:'active', p_reason:v.reason||null });
+      await acAfter(pname(p) + ' reactivated');
+    }});
+}
+function acSoftDelete(p){
+  var j = (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===p.id || s.assigned_doctor_id===p.id; }).length;
+  var q = (AC.db.quests||[]).filter(function(x){ return x.patient_id===p.id; }).length;
+  acDialog({ title:'Delete ' + pname(p), danger:true, confirmLabel:'Move to Deleted accounts',
+    body:'Nothing is erased. The account moves to <b>Deleted accounts</b> and disappears from the normal lists.',
+    impact:'<b>Kept and restorable:</b> ' + j + ' journey' + (j===1?'':'s') + ', ' + q + ' questionnaire' + (q===1?'':'s') +
+           ', every checklist, document, message and assignment.',
+    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this account being deleted?' }],
+    onConfirm: async function(v){
+      await acRpc('admin_soft_delete_account', { p_target:p.id, p_reason:v.reason });
+      await acAfter(pname(p) + ' moved to Deleted accounts');
+    }});
+}
+function acRestore(p){
+  acDialog({ title:'Restore ' + pname(p), confirmLabel:'Restore account',
+    body:'The account returns to active with every relationship intact.',
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      var r = await acRpc('admin_restore_account', { p_target:p.id, p_reason:v.reason||null });
+      await acAfter(pname(p) + ' restored — ' + ((r&&r.journeys)||0) + ' journeys, ' +
+        ((r&&r.questionnaires)||0) + ' questionnaires reattached');
+    }});
+}
+function acPurge(p){
+  var j = (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===p.id; }).length;
+  var q = (AC.db.quests||[]).filter(function(x){ return x.patient_id===p.id; }).length;
+  var c = (AC.db.checklists||[]).filter(function(x){ return x.patient_id===p.id; }).length;
+  var a = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===p.id; }).length;
+  acDialog({ title:'Permanently delete ' + pname(p), danger:true, confirmWord:'DELETE',
+    confirmLabel:'Permanently delete',
+    body:'This erases the account and the records it owns. The audit entry is written first and survives.',
+    impact:'<b>Will be erased:</b> the profile and identity, ' + j + ' journey' + (j===1?'':'s') + ', ' +
+      q + ' questionnaire' + (q===1?'':'s') + ', ' + c + ' checklist' + (c===1?'':'s') +
+      ', their documents, plans, recommendations and care requests.<br>' +
+      '<b>Will remain:</b> the audit trail, and ' + a + ' journey' + (a===1?'':'s') +
+      ' assigned to this clinician — those become unassigned, never deleted.',
+    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this account being erased?' }],
+    onConfirm: async function(v){
+      var r = await acRpc('admin_purge_account', { p_target:p.id, p_confirm:v.__word, p_reason:v.reason });
+      await acAfter(pname(p) + ' permanently deleted' + (r && r.auth_user_deleted===false
+        ? ' (application data erased; the sign-in record needs the admin-api function)' : ''));
+    }});
+}
+function acVerify(p, state){
+  var label = state==='approved' ? 'Verify' : (state==='pending' ? 'Remove verification' : 'Reject verification');
+  acDialog({ title:label + ' — ' + pname(p),
+    confirmLabel:label, danger:(state==='rejected'),
+    body:state==='approved'
+      ? 'Marks this clinician as verified. They appear in the patient directory once they opt in.'
+      : (state==='pending' ? 'Returns the account to pending. They are removed from the directory until re-verified.'
+                           : 'Records a rejected verification.'),
+    fields:[{ key:'reason', label:'Reason' + (state==='approved'?' (optional)':' (required)'), type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_set_verification', { p_target:p.id, p_state:state, p_reason:v.reason||null });
+      await acAfter(pname(p) + ': ' + label.toLowerCase());
+    }});
+}
+function acEdit(p){
+  acDialog({ title:'Edit ' + pname(p), confirmLabel:'Save changes',
+    body:'Only safe profile fields can be edited here. Role, verification and account status have their own audited actions; email belongs to the sign-in record.',
+    fields:[{ key:'full_name', label:'Full name', type:'text', ph:p.full_name||'' },
+            { key:'phone', label:'Phone', type:'text', ph:p.phone||'' },
+            { key:'country', label:'Country', type:'text', ph:p.country||'' },
+            { key:'hospital', label:'Hospital', type:'text', ph:p.hospital||'' },
+            { key:'specialty', label:'Specialty', type:'text', ph:p.specialty||'' },
+            { key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      var f = {}; ['full_name','phone','country','hospital','specialty'].forEach(function(k){
+        if(v[k]) f[k] = v[k]; });
+      if(!Object.keys(f).length) throw new Error('Change at least one field.');
+      await acRpc('admin_update_profile_fields', { p_target:p.id, p_fields:f, p_reason:v.reason||null });
+      await acAfter(pname(p) + ' updated');
+    }});
+}
+function acRole(p){
+  acDialog({ title:'Change role — ' + pname(p), confirmLabel:'Change role',
+    body:'Choosing doctor sends the account back into verification. Administrator cannot be granted here.',
+    fields:[{ key:'role', label:'New role', type:'select', options:[
+                ['patient','Patient'],['doctor','Doctor'],['nurse','Nurse'],['student','Student'],['other','Other']] },
+            { key:'reason', label:'Reason (required)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_change_role', { p_target:p.id, p_role:v.role, p_reason:v.reason });
+      await acAfter(pname(p) + ' role changed to ' + v.role);
+    }});
+}
+function acAssignJourney(s){
+  var opts = acDoctorOpts(null);
+  if(!opts.length) { acToast('No active doctor accounts to assign to', true); return; }
+  acDialog({ title:(s.assigned_doctor_id ? 'Reassign' : 'Assign') + ' — ' + (s.patient_name || 'journey'),
+    confirmLabel:(s.assigned_doctor_id ? 'Reassign' : 'Assign'),
+    body:s.assigned_doctor_id ? ('Currently with <b>' + esc(docName(s.assigned_doctor_id)) + '</b>.') : 'This journey has no assigned doctor.',
+    fields:[{ key:'doctor', label:'Doctor', type:'select', options:opts },
+            { key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_assign_doctor', { p_surgery:s.id, p_doctor:v.doctor, p_reason:v.reason||null });
+      await acAfter('Journey assigned');
+    }});
+}
+function acReassignAll(p){
+  var opts = acDoctorOpts(p.id);
+  var n = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===p.id && !s.archived_at; }).length;
+  if(!opts.length){ acToast('No other active doctor to receive these patients', true); return; }
+  acDialog({ title:'Reassign patients from ' + pname(p), confirmLabel:'Reassign ' + n + ' journey' + (n===1?'':'s'),
+    body:'Moves every active journey to another clinician. Archived journeys keep their history.',
+    impact:'<b>' + n + '</b> active journey' + (n===1?'':'s') + ' will move.',
+    fields:[{ key:'to', label:'Receiving doctor', type:'select', options:opts },
+            { key:'reason', label:'Reason (required)', type:'textarea' }],
+    onConfirm: async function(v){
+      var r = await acRpc('admin_reassign_doctor_patients', { p_from:p.id, p_to:v.to, p_reason:v.reason });
+      await acAfter(((r&&r.journeys_moved)||0) + ' journey(s) reassigned');
+    }});
+}
+function acRequestAction(r, action){
+  var titles = { complete:'Mark completed', reject:'Reject request', archive:'Archive request', soft_delete:'Delete request' };
+  var needReason = (action==='reject' || action==='soft_delete');
+  acDialog({ title:titles[action], danger:(action!=='complete'), confirmLabel:titles[action],
+    body:action==='complete' ? 'Sets the request status to <code>closed</code>, the existing completed state.'
+       : action==='reject'   ? 'Sets the request status to <code>declined</code> and stores the reason.'
+       : action==='archive'  ? 'Hides the request from the working list. Nothing is deleted.'
+       : 'Moves the request out of normal views. Nothing is erased.',
+    fields:[{ key:'reason', label:'Reason' + (needReason?' (required)':' (optional)'), type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_care_request_action', { p_request:r.id, p_action:action, p_reason:v.reason||null, p_doctor:null });
+      await acAfter(titles[action] + ' — done');
+    }});
+}
+function acRequestAssign(r){
+  var opts = acDoctorOpts(null);
+  if(!opts.length){ acToast('No active doctor accounts', true); return; }
+  acDialog({ title:'Assign doctor to request', confirmLabel:'Assign',
+    fields:[{ key:'doctor', label:'Doctor', type:'select', options:opts },
+            { key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_care_request_action', { p_request:r.id, p_action:'assign', p_reason:v.reason||null, p_doctor:v.doctor });
+      await acAfter('Request assigned');
+    }});
+}
+
+/* ── Bulk runner ──────────────────────────────────────── */
+async function acBulk(title, ids, needReason, run, opts){
+  opts = opts || {};
+  acDialog({ title:title + ' — ' + ids.length + ' account' + (ids.length===1?'':'s'),
+    danger:!!opts.danger, confirmLabel:title, confirmWord:opts.confirmWord,
+    body:'This is applied to each selected account in turn. Every one produces its own audit entry.',
+    fields:[{ key:'reason', label:'Reason' + (needReason?' (required)':' (optional)'), type:'textarea' }],
+    onConfirm: async function(v){
+      if(needReason && !v.reason) throw new Error('A reason is required.');
+      var ok = 0, fail = [];
+      for(var i=0;i<ids.length;i++){
+        try { await run(ids[i], v); ok++; }
+        catch(e){ fail.push((AC.profById[ids[i]] ? pname(AC.profById[ids[i]]) : short(ids[i])) + ': ' + e.message); }
+      }
+      await loadAll(); acSelClear(); await render();
+      if(fail.length) acToast(ok + ' succeeded, ' + fail.length + ' failed — ' + fail[0], true);
+      else acToast(ok + ' account' + (ok===1?'':'s') + ' updated');
+      if(fail.length) throw new Error(fail.join(' | '));
+    }});
+}
+
+/* Notice shown wherever moderation would be, when the migration is absent. */
+function p2Notice(){
+  if(p2()) return '';
+  return '<div class="notice n-warn"><b>Moderation actions are not available yet.</b> ' +
+    'The account lifecycle columns and the audited RPCs ship together in ' +
+    '<code>v2_admin_phase2.sql</code>, which has not been applied to this database. ' +
+    'Controls are hidden rather than shown as buttons that would fail. Everything below stays fully readable.</div>';
+}
+
 var CAPS = [
   { key:'profiles',  table:'profiles',   label:'Accounts & profiles', required:true,
-    cols:['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at'] },
+    cols:['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at',
+          'account_status','suspended_at','suspended_by','suspend_reason','banned_at','banned_by','ban_reason','ban_expires_at',
+          'deleted_at','deleted_by','delete_reason'] },
   { key:'surgeries', table:'patient_surgeries', label:'Surgery journeys',
     cols:['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
           'assigned_doctor_id','assigned_at','care_state','origin','contact_email','clinic_patient_id',
@@ -272,7 +841,7 @@ var CAPS = [
           'questionnaire_status','consultation_status','patient_status','created_at','updated_at'] },
   { key:'requests',  table:'care_requests', label:'Care requests',
     cols:['id','patient_id','doctor_id','surgery_id','origin_method','status','is_consultation',
-          'decline_reason','requested_at','responded_at'] },
+          'decline_reason','requested_at','responded_at','archived_at','archived_by','deleted_at','deleted_by','delete_reason'] },
   { key:'quests',    table:'preop_questionnaires', label:'Questionnaires',
     cols:['id','patient_id','completion','current_step','status','review_state','submitted_at',
           'reviewed_at','reviewed_by','created_at','updated_at'] },
@@ -373,7 +942,9 @@ async function fetchTable(capKey, table, wanted, orderCol){
 async function loadAll(){
   var jobs = [
     fetchTable('profiles','profiles',
-      ['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at'],
+      ['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at',
+       'account_status','suspended_at','suspended_by','suspend_reason','banned_at','banned_by','ban_reason','ban_expires_at',
+       'deleted_at','deleted_by','delete_reason'],
       'created_at').then(function(d){ AC.db.profiles = d; }),
     fetchTable('surgeries','patient_surgeries',
       ['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
@@ -386,7 +957,7 @@ async function loadAll(){
       'created_at').then(function(d){ AC.db.clinics = d; }),
     fetchTable('requests','care_requests',
       ['id','patient_id','doctor_id','surgery_id','origin_method','status','is_consultation',
-       'decline_reason','requested_at','responded_at'],
+       'decline_reason','requested_at','responded_at','archived_at','archived_by','deleted_at','deleted_by','delete_reason'],
       'requested_at').then(function(d){ AC.db.requests = d; }),
     fetchTable('quests','preop_questionnaires',
       ['id','patient_id','completion','current_step','status','review_state','submitted_at',
@@ -502,13 +1073,15 @@ var NAV = [
   ]},
   { grp:'Content', items:[ {id:'content', label:'Content inventory', href:'#/content'} ]},
   { grp:'Operations', items:[
+      {id:'deleted',      label:'Deleted accounts',     href:'#/deleted',
+        count:function(){ return p2() ? (AC.db.profiles||[]).filter(isDeleted).length : null; } },
       {id:'audit',        label:'Audit log',            href:'#/audit', cap:'audit', count:function(){ return (AC.db.audit||[]).length; } },
       {id:'status',       label:'System status',        href:'#/status'},
       {id:'capabilities', label:'Database capabilities',href:'#/capabilities'}
   ]},
   { grp:null, items:[
       {id:'settings', label:'Settings', href:'#/settings'},
-      {id:'danger',   label:'Danger Zone', href:'#/danger', danger:true, lock:'Phase 4'}
+      {id:'danger',   label:'Danger Zone', href:'#/danger', danger:true}
   ]}
 ];
 
@@ -666,35 +1239,149 @@ function profileHref(p){
   if(isDoctor(p)) return '#/doctor/'+p.id;
   return '#/patient/'+p.id;
 }
+/* Row action menu for an account. Only rendered when the Phase 2 migration is
+   live; every entry maps to one audited RPC. */
+function acAccountMenu(p){
+  var st = accStatus(p), del = isDeleted(p), doc = (p.role === 'doctor');
+  var items = [{ head:'Account' },
+    { label:'Open profile', fn:function(){ location.hash = (doc?'#/doctor/':'#/patient/') + p.id; } }];
+  if(!del){
+    items.push({ label:'Edit safe fields', fn:function(){ acEdit(p); } });
+    items.push({ label:'Change role', fn:function(){ acRole(p); } });
+    if(doc){
+      items.push({ sep:true }, { head:'Verification' });
+      items.push({ label:'Verify', disabled:(p.verification_status==='approved'), fn:function(){ acVerify(p,'approved'); } });
+      items.push({ label:'Remove verification', disabled:(p.verification_status!=='approved'), fn:function(){ acVerify(p,'pending'); } });
+      items.push({ label:'Reject verification', danger:true, fn:function(){ acVerify(p,'rejected'); } });
+      items.push({ sep:true }, { head:'Patients' });
+      items.push({ label:'Reassign patients', fn:function(){ acReassignAll(p); } });
+    } else {
+      items.push({ sep:true }, { head:'Clinical' });
+      items.push({ label:'View journeys',       fn:function(){ location.hash = '#/patient/'+p.id+'?t=journeys'; } });
+      items.push({ label:'View questionnaires', fn:function(){ location.hash = '#/patient/'+p.id+'?t=quest'; } });
+      items.push({ label:'View checklist',      fn:function(){ location.hash = '#/patient/'+p.id+'?t=checklist'; } });
+      items.push({ label:'Assign / reassign doctor', fn:function(){
+        var mine = (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===p.id && !s.archived_at; });
+        if(!mine.length){ acToast('This patient has no active journey to assign', true); return; }
+        acAssignJourney(mine[0]);
+      }});
+    }
+    items.push({ sep:true }, { head:'Lifecycle' });
+    if(st === 'active'){
+      items.push({ label:'Suspend', fn:function(){ acSuspend(p); } });
+      items.push({ label:'Ban', danger:true, fn:function(){ acBan(p); } });
+    } else {
+      items.push({ label:'Reactivate', fn:function(){ acReactivate(p); } });
+      if(st === 'suspended') items.push({ label:'Ban', danger:true, fn:function(){ acBan(p); } });
+    }
+    items.push({ label:'Soft delete', danger:true, fn:function(){ acSoftDelete(p); } });
+  } else {
+    items.push({ sep:true }, { head:'Deleted' });
+    items.push({ label:'Restore', fn:function(){ acRestore(p); } });
+    items.push({ label:'Permanent delete — Danger Zone', danger:true,
+                 fn:function(){ location.hash = '#/danger'; } });
+  }
+  return acMenuBtn(acRegister(items));
+}
+
 function tblDoctors(list, compact){
   if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No doctors match this filter</td></tr></tbody></table></div>';
   var lic = has('profiles','medical_license_number');
-  var hd = '<tr><th>Name</th><th>Email</th><th>Hospital</th><th>Specialty</th>'+
+  var mod = p2() && !compact;
+  var hd = '<tr>'+(mod?'<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'doctor\',this.checked)"></th>':'')+
+    '<th>Name</th><th>Email</th><th>Hospital</th><th>Specialty</th>'+
     (compact?'':'<th>Country</th>'+(lic?'<th>License</th>':'')) +
-    '<th>Verification</th>'+(compact?'':'<th>Journeys</th><th>Clinic pts</th><th>Created</th>')+'<th></th></tr>';
+    (p2()?'<th>Status</th>':'')+'<th>Verification</th>'+
+    (compact?'':'<th>Journeys</th><th>Clinic pts</th><th>Created</th>')+'<th></th></tr>';
   var rows = list.map(function(p){
     var jn = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===p.id; }).length;
     var cn = (AC.db.clinics||[]).filter(function(c){ return c.doctor_id===p.id; }).length;
-    return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
+    return '<tr>'+
+      (mod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+p.id+'" aria-label="Select '+esc(pname(p))+'" onchange="AC.selToggle(\'doctor\',\''+p.id+'\',this.checked)"></td>':'')+
+      '<td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
       '<td>'+dash(p.hospital)+'</td><td>'+dash(p.specialty)+'</td>'+
       (compact?'':'<td>'+dash(p.country)+'</td>'+(lic?'<td>'+dash(p.medical_license_number)+'</td>':'')) +
+      (p2()?'<td>'+badgeStatus(p)+'</td>':'')+
       '<td>'+badgeVerify(p.verification_status)+'</td>'+
       (compact?'':'<td>'+(has('surgeries')?jn:'<span class="mut">n/a</span>')+'</td>'+
                   '<td>'+(has('clinics')?cn:'<span class="mut">n/a</span>')+'</td>'+
                   '<td>'+esc(fdate(p.created_at))+'</td>')+
-      '<td><a class="olink" href="#/doctor/'+p.id+'">Open &rsaquo;</a></td></tr>';
+      '<td class="rowact"><a class="olink" href="#/doctor/'+p.id+'">Open &rsaquo;</a>'+
+        (mod ? ' '+acAccountMenu(p) : '')+'</td></tr>';
   }).join('');
   return '<div class="tbl-wrap"><table class="tbl"><thead>'+hd+'</thead><tbody>'+rows+'</tbody></table></div>';
 }
 
+/* Shared bulk bar. `kind` scopes the selection so a stale selection from
+   another list can never be acted on. */
+function selBar(kind, rows, csvCols, csvName){
+  if(!p2()) return '';
+  return '<div class="selbar" id="ac-selbar"><span class="selbar-n" id="ac-seln">0 selected</span>'+
+    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'suspend\')">Suspend</button>'+
+    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'ban\')">Ban</button>'+
+    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'restore\')">Restore</button>'+
+    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'delete\')">Soft delete</button>'+
+    (kind==='doctor'?'<button class="rowbtn" onclick="AC.bulk(\'doctor\',\'assign\')">Reassign patients</button>':'')+
+    '<button class="rowbtn" onclick="AC.exportSel(\''+csvName+'\')">Export CSV</button>'+
+    '<button class="rowbtn" onclick="AC.selAll(\''+kind+'\',false);document.querySelectorAll(\'.selbox\').forEach(function(b){b.checked=false;})">Clear</button>'+
+    '</div>';
+}
+AC.bulk = function(kind, action){
+  var ids = acSelIds();
+  if(!ids.length){ acToast('Select at least one row first', true); return; }
+  if(action==='suspend') return acBulk('Suspend', ids, true, function(id,v){
+    return acRpc('admin_set_account_status', { p_target:id, p_status:'suspended', p_reason:v.reason }); });
+  if(action==='ban') return acBulk('Ban', ids, true, function(id,v){
+    return acRpc('admin_set_account_status', { p_target:id, p_status:'banned', p_reason:v.reason, p_expires:null }); },
+    { danger:true });
+  if(action==='restore') return acBulk('Restore', ids, false, function(id,v){
+    return acRpc('admin_restore_account', { p_target:id, p_reason:v.reason||null }); });
+  if(action==='delete') return acBulk('Soft delete', ids, true, function(id,v){
+    return acRpc('admin_soft_delete_account', { p_target:id, p_reason:v.reason }); }, { danger:true });
+  if(action==='assign'){
+    var opts = acDoctorOpts(null);
+    if(!opts.length){ acToast('No active doctor to receive patients', true); return; }
+    acDialog({ title:'Reassign patients from '+ids.length+' doctor'+(ids.length===1?'':'s'),
+      confirmLabel:'Reassign', fields:[{key:'to',label:'Receiving doctor',type:'select',options:opts},
+        {key:'reason',label:'Reason (required)',type:'textarea'}],
+      onConfirm: async function(v){
+        if(!v.reason) throw new Error('A reason is required.');
+        var moved = 0;
+        for(var i=0;i<ids.length;i++){
+          if(ids[i]===v.to) continue;
+          var r = await acRpc('admin_reassign_doctor_patients', { p_from:ids[i], p_to:v.to, p_reason:v.reason });
+          moved += (r && r.journeys_moved) || 0;
+        }
+        await acAfter(moved + ' journey(s) reassigned');
+      }});
+  }
+};
+AC.exportSel = function(name){
+  var ids = acSelIds();
+  var rows = (AC.db.profiles||[]).filter(function(p){ return ids.indexOf(p.id) >= 0; });
+  if(!rows.length){ acToast('Select at least one row first', true); return; }
+  acCsv(rows, [
+    ['Name', function(r){ return r.full_name; }], ['Email', function(r){ return r.email; }],
+    ['Role', function(r){ return r.role; }], ['Status', function(r){ return accStatus(r); }],
+    ['Verification', function(r){ return r.verification_status; }],
+    ['Country', function(r){ return r.country; }], ['Hospital', function(r){ return r.hospital; }],
+    ['Specialty', function(r){ return r.specialty; }],
+    ['Created', function(r){ return r.created_at; }], ['Account ID', function(r){ return r.id; }]
+  ], name);
+};
+
 function vDoctors(qs){
   if(!has('profiles')) return head('People','Doctors','') + capNote('profiles');
-  var all = (AC.db.profiles||[]).filter(isDoctor);
+  var everyone = (AC.db.profiles||[]).filter(isDoctor);
   var f = qs.f || 'all', country = qs.c || '', hosp = qs.h || '', spec = qs.s || '';
-  var list = all.filter(function(p){
+  // Deleted accounts leave the normal list entirely; they live in Deleted accounts.
+  var all = everyone.filter(isLive);
+  var list = (f==='deleted' ? everyone.filter(isDeleted) : all).filter(function(p){
     if(f==='pending'  && p.verification_status!=='pending') return false;
     if(f==='verified' && !(p.verification_status==='approved'||p.verification_status==='verified')) return false;
     if(f==='rejected' && p.verification_status!=='rejected') return false;
+    if(f==='suspended'&& accStatus(p)!=='suspended') return false;
+    if(f==='banned'   && accStatus(p)!=='banned') return false;
     if(country && p.country!==country) return false;
     if(hosp && p.hospital!==hosp) return false;
     if(spec && p.specialty!==spec) return false;
@@ -709,11 +1396,19 @@ function vDoctors(qs){
 
   var h = head('People','Doctors','Every column is a real <code>profiles</code> field. Counts of linked work are computed from '+
     '<code>patient_surgeries.assigned_doctor_id</code> and <code>clinic_patients.doctor_id</code>.');
-  h += capNote('profiles');
+  h += capNote('profiles') + p2Notice();
   h += '<div class="chips">'+
-    ['all','pending','verified','rejected'].map(function(k){
+    (p2() ? ['all','pending','verified','rejected','suspended','banned','deleted']
+          : ['all','pending','verified','rejected']).map(function(k){
+      var n = k==='all' ? all.length
+            : k==='deleted' ? everyone.filter(isDeleted).length
+            : k==='suspended' ? all.filter(function(x){return accStatus(x)==='suspended';}).length
+            : k==='banned' ? all.filter(function(x){return accStatus(x)==='banned';}).length
+            : all.filter(function(x){ return k==='verified'
+                ? (x.verification_status==='approved'||x.verification_status==='verified')
+                : x.verification_status===k; }).length;
       return '<a class="chip'+(f===k?' on':'')+'" href="'+base({f:k})+'">'+
-        (k==='all'?'All ('+all.length+')':k.charAt(0).toUpperCase()+k.slice(1))+'</a>'; }).join('')+
+        (k.charAt(0).toUpperCase()+k.slice(1))+' ('+n+')</a>'; }).join('')+
     '<select class="fsel" onchange="AC.nav(this.value)">'+
       '<option value="'+base({c:''})+'">All countries</option>'+
       uniq(all.map(function(p){return p.country;}).filter(Boolean)).sort().map(function(v){
@@ -731,6 +1426,7 @@ function vDoctors(qs){
     '</select>'+
     '<span class="mut" style="font-size:12px;">'+list.length+' shown</span>'+
     '</div>';
+  h += selBar('doctor', list, null, 'doctors');
   h += tblDoctors(list, false);
   return h;
 }
@@ -753,11 +1449,23 @@ function vDoctor(id, qs){
   h += '<div class="gcard"><div class="dt-head"><div><div class="dt-name">'+esc(pname(p))+'</div>'+
     '<div class="dt-meta">'+esc(p.specialty||'Specialty not set')+
     (p.hospital?(' &middot; '+esc(p.hospital)):'')+(p.country?(' &middot; '+esc(p.country)):'')+'</div></div>'+
-    '<div>'+badgeVerify(p.verification_status)+'</div></div></div>';
+    '<div style="display:flex;align-items:center;gap:8px;">'+
+      (p2()?badgeStatus(p)+' ':'')+badgeVerify(p.verification_status)+
+      (p2()?' '+acAccountMenu(p):'')+'</div></div>'+
+    (p2()&&accStatus(p)!=='active'&&!isDeleted(p)
+      ? '<div class="notice n-warn" style="margin:14px 0 0;"><b>Account is '+esc(accStatus(p))+'.</b> '+
+        esc(p.suspend_reason||p.ban_reason||'')+
+        (p.ban_expires_at?(' Ban expires '+esc(fdt(p.ban_expires_at))+'.'):'')+
+        ' Set by '+esc(docName(p.suspended_by||p.banned_by))+'.</div>' : '')+
+    (isDeleted(p)
+      ? '<div class="notice n-bad" style="margin:14px 0 0;"><b>Soft deleted '+esc(fdt(p.deleted_at))+'</b> by '+
+        esc(docName(p.deleted_by))+'. Reason: '+esc(p.delete_reason||'—')+'. '+
+        '<a class="lnk" href="#/deleted">Deleted accounts</a></div>' : '')+
+    '</div>';
 
   h += '<div class="tabrow">'+
     [['overview','Overview'],['patients','Patients ('+(journeys.length+clinics.length)+')'],
-     ['activity','Activity'],['audit','Audit ('+aud.length+')']].map(function(t){
+     ['activity','Activity'],['timeline','Timeline'],['audit','Audit ('+aud.length+')']].map(function(t){
       return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/doctor/'+id+q2s({t:t[0]})+'">'+t[1]+'</a>'; }).join('')+
     '</div>';
 
@@ -771,11 +1479,7 @@ function vDoctor(id, qs){
       kv('Verification status', p.verification_status) +
       kvMono('Account ID', p.id) + kv('Created', fdt(p.created_at)) + kv('Profile updated', fdt(p.updated_at)) +
       '</div></div>';
-    h += '<div class="notice n-warn"><b>Verification decisions are not available in Phase 1.</b> '+
-      'The <code>profiles</code> table has no admin UPDATE policy, so a direct update from the browser would '+
-      'silently affect zero rows and appear to succeed. Verify / reject / role change require the audited '+
-      '<code>admin_verify_doctor()</code>, <code>admin_reject_doctor()</code> and <code>admin_change_role()</code> '+
-      'RPCs listed for Phase 2.</div>';
+    h += p2Notice();
   }
 
   if(tab==='patients'){
@@ -811,6 +1515,10 @@ function vDoctor(id, qs){
       (has('requests') ? tblRequests(responded) : capNote('requests'))+'</div>';
   }
 
+  if(tab==='timeline'){
+    h += '<div class="gcard"><div class="gcard-h">Activity timeline<span class="gh-note">newest first</span></div>'+
+      acTimeline(p)+'</div>';
+  }
   if(tab==='audit'){
     h += '<div class="gcard"><div class="gcard-h">Administrative actions involving this account</div>'+
       (has('audit') ? (aud.length ? tblAudit(aud, true)
@@ -829,24 +1537,33 @@ function kvMono(k,v){
 /* ── Patients ────────────────────────────────────────── */
 function tblPatients(list){
   if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No patients match this filter</td></tr></tbody></table></div>';
-  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th>'+
+  var mod = p2();
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+    (mod?'<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'patient\',this.checked)"></th>':'')+
+    '<th>Name</th><th>Email</th><th>Phone</th>'+
+    (mod?'<th>Status</th>':'')+
     '<th>Active procedure</th><th>Assigned doctor</th><th>Journey</th><th>Questionnaire</th><th>Registered</th><th></th></tr></thead><tbody>'+
     list.map(function(r){
       var p = r.p, s = r.journey, q = r.quest;
       var st = s ? journeyState(s) : null;
-      return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
+      return '<tr>'+
+        (mod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+p.id+'" aria-label="Select '+esc(pname(p))+'" onchange="AC.selToggle(\'patient\',\''+p.id+'\',this.checked)"></td>':'')+
+        '<td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
+        (mod?'<td>'+badgeStatus(p)+'</td>':'')+
         '<td>'+(s?dash(s.procedure_type):'<span class="mut">—</span>')+'</td>'+
         '<td>'+(s&&s.assigned_doctor_id?esc(docName(s.assigned_doctor_id)):'<span class="mut">—</span>')+'</td>'+
         '<td>'+(st?st.h:'<span class="bdg bdg-mute">none</span>')+'</td>'+
         '<td>'+(q?badgeReview(q.review_state)+' <span class="mut">'+(q.completion!=null?q.completion+'%':'')+'</span>'
                  :'<span class="bdg bdg-mute">none</span>')+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'</td>'+
-        '<td><a class="olink" href="#/patient/'+p.id+'">Open &rsaquo;</a></td></tr>';
+        '<td class="rowact"><a class="olink" href="#/patient/'+p.id+'">Open &rsaquo;</a>'+
+          (mod ? ' '+acAccountMenu(p) : '')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
 
-function patientRows(){
-  var P = (AC.db.profiles||[]).filter(isPatientRole);
+function patientRows(includeDeleted){
+  var P = (AC.db.profiles||[]).filter(function(p){
+    return isPatientRole(p) && (includeDeleted ? true : isLive(p)); });
   return P.map(function(p){
     var mine = (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===p.id; });
     var live = mine.filter(function(s){ return !s.archived_at && !s.completed_at; });
@@ -858,8 +1575,13 @@ function patientRows(){
 
 function vPatients(qs){
   if(!has('profiles')) return head('People','Patients','') + capNote('profiles');
-  var rows = patientRows(), f = qs.f || 'all';
+  var f = qs.f || 'all';
+  var rows = patientRows(f === 'deleted');
   var list = rows.filter(function(r){
+    if(f==='deleted')   return isDeleted(r.p);
+    if(f==='suspended') return accStatus(r.p)==='suspended';
+    if(f==='banned')    return accStatus(r.p)==='banned';
+    if(f==='activeacct')return accStatus(r.p)==='active';
     if(f==='active')    return r.journeys.some(function(s){ return !s.archived_at && !s.completed_at; });
     if(f==='archived')  return r.journeys.length && r.journeys.every(function(s){ return !!s.archived_at; });
     if(f==='nojourney') return r.journeys.length === 0;
@@ -869,12 +1591,17 @@ function vPatients(qs){
   var h = head('People','Patients','Patients are <code>profiles</code> rows with role <code>patient</code>. '+
     'Journey, doctor and questionnaire columns are joined from <code>patient_surgeries</code> and '+
     '<code>preop_questionnaires</code> by <code>patient_id</code>.');
-  h += capNote('profiles') + (has('surgeries')?'':capNote('surgeries'));
+  h += capNote('profiles') + (has('surgeries')?'':capNote('surgeries')) + p2Notice();
+  var chips = [['all','All'],['active','With an active journey'],['archived','Only archived'],
+     ['nojourney','No journey yet'],['review','Awaiting questionnaire review']];
+  if(p2()) chips = [['all','All'],['activeacct','Active'],['suspended','Suspended'],['banned','Banned'],
+     ['deleted','Deleted'],['active','With an active journey'],['nojourney','No journey yet'],
+     ['review','Awaiting review']];
   h += '<div class="chips">'+
-    [['all','All'],['active','With an active journey'],['archived','Only archived'],
-     ['nojourney','No journey yet'],['review','Awaiting questionnaire review']].map(function(k){
+    chips.map(function(k){
       return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/patients'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
     '<span class="mut" style="font-size:12px;">'+list.length+' of '+rows.length+'</span></div>';
+  h += selBar('patient', list, null, 'patients');
   h += tblPatients(list);
 
   var orphan = (AC.db.surgeries||[]).filter(function(s){ return !s.patient_id; });
@@ -906,14 +1633,24 @@ function vPatient(id, qs){
   var h = head('<a class="lnk" href="#/patients">Patients</a> &rsaquo; profile', pname(p), '');
   h += '<div class="gcard"><div class="dt-head"><div><div class="dt-name">'+esc(pname(p))+'</div>'+
     '<div class="dt-meta">'+(cur?esc(cur.procedure_type||'Procedure not set'):'No journey')+
-    (cur&&cur.hospital?(' &middot; '+esc(cur.hospital)):'')+'</div></div><div>'+
-    (cur?journeyState(cur).h:'<span class="bdg bdg-mute">no journey</span>')+'</div></div></div>';
+    (cur&&cur.hospital?(' &middot; '+esc(cur.hospital)):'')+'</div></div>'+
+    '<div style="display:flex;align-items:center;gap:8px;">'+
+      (p2()?badgeStatus(p)+' ':'')+
+      (cur?journeyState(cur).h:'<span class="bdg bdg-mute">no journey</span>')+
+      (p2()?' '+acAccountMenu(p):'')+'</div></div>'+
+    (p2()&&accStatus(p)!=='active'&&!isDeleted(p)
+      ? '<div class="notice n-warn" style="margin:14px 0 0;"><b>Account is '+esc(accStatus(p))+'.</b> '+
+        esc(p.suspend_reason||p.ban_reason||'')+'</div>' : '')+
+    (isDeleted(p)
+      ? '<div class="notice n-bad" style="margin:14px 0 0;"><b>Soft deleted '+esc(fdt(p.deleted_at))+'</b> by '+
+        esc(docName(p.deleted_by))+'. Reason: '+esc(p.delete_reason||'—')+'.</div>' : '')+
+    '</div>';
 
   h += '<div class="tabrow">'+
     [['overview','Overview'],['journeys','Journeys ('+journeys.length+')'],
      ['quest','Questionnaires ('+quests.length+')'],['checklist','Checklists ('+chk.length+')'],
      ['questions','Questions ('+qsn.length+')'],['documents','Documents ('+docs.length+')'],
-     ['audit','Audit ('+(aud.length+parch.length)+')']].map(function(t){
+     ['timeline','Timeline'],['audit','Audit ('+(aud.length+parch.length)+')']].map(function(t){
       return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/patient/'+id+q2s({t:t[0]})+'">'+t[1]+'</a>'; }).join('')+'</div>';
 
   if(tab==='overview'){
@@ -961,6 +1698,10 @@ function vPatient(id, qs){
     h += '<div class="notice n-info">Metadata only. File contents live in Supabase Storage and are not fetched here.</div>';
     h += has('documents') ? tblDocs(docs) : capNote('documents');
   }
+  if(tab==='timeline'){
+    h += '<div class="gcard"><div class="gcard-h">Activity timeline<span class="gh-note">newest first</span></div>'+
+      acTimeline(p)+'</div>';
+  }
   if(tab==='audit'){
     h += '<div class="gcard"><div class="gcard-h">Admin audit entries<span class="gh-note">'+aud.length+'</span></div>'+
       (has('audit') ? (aud.length?tblAudit(aud,true):'<p class="mut" style="font-size:12.5px;">None.</p>') : capNote('audit'))+'</div>';
@@ -982,7 +1723,12 @@ function tblJourneys(list){
         '<td>'+(s.assigned_doctor_id?esc(docName(s.assigned_doctor_id)):'<span class="mut">unassigned</span>')+'</td>'+
         '<td>'+dash(s.care_state)+'</td><td>'+dash(s.origin)+'</td>'+
         '<td>'+journeyState(s).h+'</td><td>'+esc(fdate(s.created_at))+'</td>'+
-        '<td><a class="olink" href="#/journey/'+s.id+'">Open &rsaquo;</a></td></tr>';
+        '<td class="rowact"><a class="olink" href="#/journey/'+s.id+'">Open &rsaquo;</a>'+
+          (p2() ? ' '+acMenuBtn(acRegister([
+            { head:'Journey' },
+            { label:(s.assigned_doctor_id?'Reassign doctor':'Assign doctor'), fn:function(){ acAssignJourney(s); } },
+            { label:'Open patient', disabled:!s.patient_id, fn:function(){ location.hash='#/patient/'+s.patient_id; } }
+          ])) : '')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
 function vJourneys(qs){
@@ -1203,20 +1949,40 @@ function tblRequests(list){
         (ic?('<td>'+(r.is_consultation?'<span class="bdg bdg-info">consultation</span>':'<span class="bdg bdg-mute">surgical</span>')+'</td>'):'')+
         '<td>'+badgeReq(r.status)+'</td><td>'+esc(fdate(r.requested_at))+'</td>'+
         '<td>'+esc(fdate(r.responded_at))+'</td><td>'+dash(r.decline_reason)+'</td>'+
-        '<td>'+(r.surgery_id?'<a class="olink" href="#/journey/'+r.surgery_id+'">Journey &rsaquo;</a>':'')+'</td></tr>';
+        '<td class="rowact">'+(r.surgery_id?'<a class="olink" href="#/journey/'+r.surgery_id+'">Journey &rsaquo;</a>':'')+
+          (p2() ? ' '+acMenuBtn(acRegister([
+            { head:'Request' },
+            { label:'Open journey', disabled:!r.surgery_id, fn:function(){ location.hash='#/journey/'+r.surgery_id; } },
+            { label:'Assign doctor', fn:function(){ acRequestAssign(r); } },
+            { sep:true },
+            { label:'Mark completed', disabled:(r.status==='closed'), fn:function(){ acRequestAction(r,'complete'); } },
+            { label:'Reject', danger:true, disabled:(r.status==='declined'), fn:function(){ acRequestAction(r,'reject'); } },
+            { label:'Archive', disabled:!!r.archived_at, fn:function(){ acRequestAction(r,'archive'); } },
+            { label:'Soft delete', danger:true, fn:function(){ acRequestAction(r,'soft_delete'); } }
+          ])) : '')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
 function vRequests(qs){
   if(!has('requests')) return head('Clinical','Care requests','') + capNote('requests');
-  var all = AC.db.requests||[], f = qs.f||'all';
-  var list = all.filter(function(r){ return f==='all' ? true : r.status===f; });
+  var everything = AC.db.requests||[];
+  var f = qs.f||'all';
+  var all = everything.filter(function(r){ return !r.deleted_at; });
+  var list = (f==='deleted' ? everything.filter(function(r){ return !!r.deleted_at; })
+            : f==='archived' ? all.filter(function(r){ return !!r.archived_at; })
+            : all.filter(function(r){ return f==='all' ? !r.archived_at : r.status===f; }));
   var h = head('Clinical','Care requests','Shown exactly as stored. <code>status</code> is the real '+
     '<code>care_requests.status</code> value; the surgical / consultation lane comes from '+
     '<code>is_consultation</code> and is only shown when that column exists. No request is relabelled.');
+  h += p2Notice();
   var statuses = uniq(all.map(function(r){ return r.status; }).filter(Boolean)).sort();
+  var keys = ['all'].concat(statuses);
+  if(p2()) keys = keys.concat(['archived','deleted']);
   h += '<div class="chips">'+
-    ['all'].concat(statuses).map(function(k){
-      var n = k==='all'?all.length:all.filter(function(r){return r.status===k;}).length;
+    keys.map(function(k){
+      var n = k==='all' ? all.filter(function(r){return !r.archived_at;}).length
+            : k==='archived' ? all.filter(function(r){return !!r.archived_at;}).length
+            : k==='deleted' ? everything.filter(function(r){return !!r.deleted_at;}).length
+            : all.filter(function(r){return r.status===k;}).length;
       return '<a class="chip'+(f===k?' on':'')+'" href="#/care-requests'+q2s({f:k})+'">'+esc(k)+' ('+n+')</a>'; }).join('')+
     '</div>';
   h += tblRequests(list);
@@ -1279,16 +2045,66 @@ function vAccounts(qs){
       }).length;
       return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/accounts'+q2s({f:k[0]})+'">'+esc(k[1])+' ('+n+')</a>'; }).join('')+'</div>';
   h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th>'+
+    (p2()?'<th>Status</th>':'')+
     '<th>Verification</th><th>Country</th><th>Registered</th><th>Account ID</th><th></th></tr></thead><tbody>'+
     (list.length ? list.map(function(p){
       return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
         '<td>'+(isAdminRole(p)?'<span class="bdg bdg-info">admin</span>':dash(p.role))+'</td>'+
+        (p2()?'<td>'+badgeStatus(p)+'</td>':'')+
         '<td>'+badgeVerify(p.verification_status)+'</td><td>'+dash(p.country)+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'</td><td class="mono">'+esc(short(p.id))+'</td>'+
         '<td><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a></td></tr>';
-    }).join('') : '<tr><td colspan="9" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
+    }).join('') : '<tr><td colspan="10" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
   return h;
 }
+
+/* ── Deleted accounts ──────────────────────────────────
+   Soft-deleted profiles live only here. Restore is the primary action;
+   permanent deletion is a link into the Danger Zone, never a button here. */
+function vDeleted(qs){
+  var h = head('Operations','Deleted accounts',
+    'Soft-deleted accounts keep every journey, questionnaire, checklist, document and assignment. '+
+    'Restoring one brings all of it back.');
+  if(!has('profiles')) return h + capNote('profiles');
+  if(!p2()) return h + p2Notice();
+
+  var all = (AC.db.profiles||[]).filter(isDeleted);
+  var tab = qs.t || 'all';
+  var list = all.filter(function(p){
+    if(tab==='doctors')  return p.role==='doctor';
+    if(tab==='patients') return p.role==='patient';
+    if(tab==='staff')    return p.role!=='doctor' && p.role!=='patient';
+    return true;
+  });
+  h += '<div class="tabrow">'+
+    [['all','All ('+all.length+')'],
+     ['doctors','Doctors ('+all.filter(function(p){return p.role==='doctor';}).length+')'],
+     ['patients','Patients ('+all.filter(function(p){return p.role==='patient';}).length+')'],
+     ['staff','Staff ('+all.filter(function(p){return p.role!=='doctor'&&p.role!=='patient';}).length+')']]
+    .map(function(t){ return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/deleted'+q2s({t:t[0]})+'">'+esc(t[1])+'</a>'; }).join('')+
+    '</div>';
+
+  if(!list.length) return h + '<div class="notice n-info">No deleted accounts in this view.</div>';
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th>'+
+    '<th>Deleted</th><th>Deleted by</th><th>Reason</th><th></th></tr></thead><tbody>'+
+    list.map(function(p){
+      return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
+        '<td>'+dash(p.role)+'</td><td>'+esc(fdt(p.deleted_at))+
+          '<div class="mut" style="font-size:10.5px;">'+esc(ago(p.deleted_at))+'</div></td>'+
+        '<td>'+(p.deleted_by?esc(docName(p.deleted_by)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+dash(p.delete_reason)+'</td>'+
+        '<td class="rowact"><button class="rowbtn" onclick="AC.restore(\''+p.id+'\')">Restore</button> '+
+          acMenuBtn(acRegister([
+            { head:'Deleted account' },
+            { label:'Open profile', fn:function(){ location.hash = (p.role==='doctor'?'#/doctor/':'#/patient/')+p.id; } },
+            { label:'Restore', fn:function(){ acRestore(p); } },
+            { sep:true },
+            { label:'Permanent delete — Danger Zone', danger:true, fn:function(){ location.hash='#/danger'; } }
+          ]))+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  return h;
+}
+AC.restore = function(id){ var p = AC.profById[id]; if(p) acRestore(p); };
 
 /* ── Global search (admin_search RPC) ────────────────── */
 var SEARCH_ROUTE = {
@@ -1600,29 +2416,49 @@ function vSettings(){
   return h;
 }
 function vDanger(){
-  var h = head('Danger Zone','Danger Zone','Destructive operations are deliberately not available in Phase 1.');
-  h += '<div class="notice n-bad"><b>Locked until the read-only Admin Center is reviewed and approved.</b> '+
-    'Phase 1 performs no writes of any kind. Permanent deletion, account disabling and forced logout arrive in later '+
-    'phases, each with an impact preview, a required reason, server-validated typed confirmation and an audit entry.</div>';
-  h += '<div class="gcard"><div class="gcard-h">What was deliberately removed</div>'+
-    '<p style="font-size:12.5px;color:var(--muted);line-height:1.75;">The previous Admin Center exposed a patient '+
-    '<b>Delete</b> button behind a single browser <code>confirm()</code>, calling <code>admin_delete_patient()</code> '+
-    'with a hardcoded confirmation string. It also offered doctor approve / reject and a role dropdown that wrote '+
-    'directly to <code>profiles</code> — writes that silently affect zero rows, because <code>profiles</code> has '+
-    'no admin UPDATE policy. Both have been removed rather than left looking functional.</p></div>';
+  var h = head('Danger Zone','Danger Zone',
+    'Irreversible operations live here and nowhere else. Everything on this page erases data permanently.');
+  if(!p2()) return h + p2Notice() + vDangerBacklog();
+
+  var del = (AC.db.profiles||[]).filter(isDeleted);
+  h += '<div class="notice n-bad"><b>Permanent deletion cannot be undone.</b> '+
+    'An account must be soft deleted first — the server refuses to purge anything that is still live. '+
+    'The audit entry is written before the data is destroyed, so the record survives.</div>';
+  h += '<div class="gcard"><div class="gcard-h">Permanently delete an account'+
+    '<span class="gh-note">'+del.length+' soft-deleted account'+(del.length===1?'':'s')+'</span></div>';
+  if(!del.length){
+    h += '<p class="mut" style="font-size:12.5px;">Nothing is eligible. Soft delete an account first from '+
+      '<a class="lnk" href="#/doctors">Doctors</a> or <a class="lnk" href="#/patients">Patients</a>; '+
+      'it then appears in <a class="lnk" href="#/deleted">Deleted accounts</a> and here.</p>';
+  } else {
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th>'+
+      '<th>Deleted</th><th>Reason</th><th>Owns</th><th></th></tr></thead><tbody>'+
+      del.map(function(p){
+        var j = (AC.db.surgeries||[]).filter(function(x){ return x.patient_id===p.id; }).length;
+        var q = (AC.db.quests||[]).filter(function(x){ return x.patient_id===p.id; }).length;
+        return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
+          '<td>'+dash(p.role)+'</td><td>'+esc(fdate(p.deleted_at))+'</td>'+
+          '<td>'+dash(p.delete_reason)+'</td>'+
+          '<td>'+j+' journey'+(j===1?'':'s')+', '+q+' questionnaire'+(q===1?'':'s')+'</td>'+
+          '<td class="rowact"><button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
+            'onclick="AC.purge(\''+p.id+'\')">Permanently delete…</button></td></tr>';
+      }).join('')+'</tbody></table></div>';
+  }
+  h += '</div>';
+  h += vDangerBacklog();
+  return h;
+}
+AC.purge = function(id){ var p = AC.profById[id]; if(p) acPurge(p); };
+
+function vDangerBacklog(){
+  var h = '';
   h += '<div class="gcard"><div class="gcard-h">Backend still required</div>'+
     '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Operation</th><th>Needs</th><th>Phase</th></tr></thead><tbody>'+
-    [['Verify / reject doctor','admin_verify_doctor(), admin_reject_doctor()','2'],
-     ['Edit safe profile fields','admin_update_profile_fields() with a column allowlist','2'],
-     ['Change role','admin_change_role() with allowed transitions','2'],
-     ['Assign / reassign doctor','admin_assign_doctor()','2'],
-     ['Archive / restore journey','admin_archive_journey(), admin_restore_journey()','2'],
-     ['Disable / re-enable account','admin-api Edge Function (service-role, server-side)','3'],
+    [['Block sign-in for a suspended or banned account','admin-api Edge Function (GoTrue ban)','3'],
      ['Revoke sessions / force logout','admin-api Edge Function','3'],
-     ['Password reset','admin-api Edge Function','3'],
-     ['Delete auth account','admin-api Edge Function + admin_delete_profile_data()','3'],
-     ['Delete a journey','admin_delete_journey() with server-validated confirmation','4'],
-     ['Reassign all patients before deletion','admin_reassign_doctor_patients()','4']
+     ['Password reset on behalf of a user','admin-api Edge Function','3'],
+     ['Change an account email','admin-api Edge Function (auth.users is the source of truth)','3'],
+     ['Delete a single surgery journey','admin_delete_journey() with server-validated confirmation','4']
     ].map(function(r){ return '<tr><td class="nm">'+esc(r[0])+'</td><td class="mono">'+esc(r[1])+'</td>'+
       '<td><span class="bdg bdg-warn">Phase '+esc(r[2])+'</span></td></tr>'; }).join('')+
     '</tbody></table></div></div>';
@@ -1668,6 +2504,7 @@ async function render(){
     case 'questions':      html = vQuestions(r.qs); break;
     case 'care-requests':  html = vRequests(r.qs); break;
     case 'content':        html = vContent(); break;
+    case 'deleted':        html = vDeleted(r.qs); break;
     case 'audit':          html = vAudit(r.qs); break;
     case 'status':         html = vStatus(); break;
     case 'capabilities':   html = vCaps(); break;
@@ -1680,6 +2517,8 @@ async function render(){
         '<a class="lnk" href="#/overview">Back to overview</a></div>';
   }
   view.innerHTML = html;
+  acCloseMenu();
+  acSelPaint();
   wireSearch();
   if(r.section==='search' && r.qs.q){ var s = ge('adm-q'); if(s){ s.value = r.qs.q; } }
   window.scrollTo(0,0);
