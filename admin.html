@@ -240,6 +240,10 @@
 .tl-m{font-size:11.5px;color:var(--hint);margin-top:2px;}
 .tl-r{font-size:12px;color:var(--muted);margin-top:3px;font-style:italic;}
 
+.tbl tr.hl td{background:rgba(27,107,90,.24)!important;box-shadow:inset 3px 0 0 #2A8A74;}
+.hlnote{font-size:12.5px;color:var(--muted);margin-bottom:10px;}
+.hlnote b{color:#fff;}
+
 /* Charts — flat, no animation, existing tokens only. */
 .anz{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
 .chart{display:flex;flex-direction:column;gap:7px;}
@@ -845,7 +849,8 @@ var CAPS = [
   { key:'surgeries', table:'patient_surgeries', label:'Surgery journeys',
     cols:['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
           'assigned_doctor_id','assigned_at','care_state','origin','contact_email','clinic_patient_id',
-          'archived_at','archived_by','archive_reason','restored_at','completed_at','ready_at','created_at','updated_at'] },
+          'archived_at','archived_by','archive_reason','restored_at','completed_at','ready_at','created_at','updated_at',
+          'deleted_at','deleted_by','delete_reason'] },
   { key:'clinics',   table:'clinic_patients', label:'Clinic patients',
     cols:['id','doctor_id','patient_name','phone_number','procedure','hospital','surgery_date',
           'questionnaire_status','consultation_status','patient_status','created_at','updated_at'] },
@@ -854,11 +859,12 @@ var CAPS = [
           'decline_reason','requested_at','responded_at','archived_at','archived_by','deleted_at','deleted_by','delete_reason'] },
   { key:'quests',    table:'preop_questionnaires', label:'Questionnaires',
     cols:['id','patient_id','completion','current_step','status','review_state','submitted_at',
-          'reviewed_at','reviewed_by','created_at','updated_at'] },
+          'reviewed_at','reviewed_by','created_at','updated_at','deleted_at','deleted_by','delete_reason'] },
   { key:'checklists',table:'preop_checklist', label:'Checklists',
-    cols:['id','patient_id','items','updated_at'] },
+    cols:['id','patient_id','items','updated_at','deleted_at','deleted_by','delete_reason'] },
   { key:'questions', table:'questions', label:'Patient questions', discover:true,
-    cols:['id','created_at','patient_id','subject','message','status','updated_at','name','topic','question','email','role'] },
+    cols:['id','created_at','patient_id','subject','message','status','updated_at','name','topic','question','email','role',
+          'deleted_at','deleted_by','delete_reason'] },
   { key:'replies',   table:'question_replies', label:'Question replies',
     cols:['id','question_id','author_id','author_role','message','created_at'] },
   { key:'documents', table:'requirement_documents', label:'Requirement documents',
@@ -968,7 +974,8 @@ async function loadAll(){
     fetchTable('surgeries','patient_surgeries',
       ['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
        'assigned_doctor_id','assigned_at','care_state','origin','contact_email','clinic_patient_id',
-       'archived_at','archived_by','archive_reason','restored_at','completed_at','ready_at','created_at','updated_at'],
+       'archived_at','archived_by','archive_reason','restored_at','completed_at','ready_at','created_at','updated_at',
+       'deleted_at','deleted_by','delete_reason'],
       'created_at').then(function(d){ AC.db.surgeries = d; }),
     fetchTable('clinics','clinic_patients',
       ['id','doctor_id','patient_name','phone_number','procedure','hospital','surgery_date',
@@ -980,12 +987,13 @@ async function loadAll(){
       'requested_at').then(function(d){ AC.db.requests = d; }),
     fetchTable('quests','preop_questionnaires',
       ['id','patient_id','completion','current_step','status','review_state','submitted_at',
-       'reviewed_at','reviewed_by','created_at','updated_at'],
+       'reviewed_at','reviewed_by','created_at','updated_at','deleted_at','deleted_by','delete_reason'],
       'updated_at').then(function(d){ AC.db.quests = d; }),
     fetchTable('checklists','preop_checklist',
-      ['id','patient_id','items','updated_at'],'updated_at').then(function(d){ AC.db.checklists = d; }),
+      ['id','patient_id','items','updated_at','deleted_at','deleted_by','delete_reason'],'updated_at').then(function(d){ AC.db.checklists = d; }),
     fetchTable('questions','questions',
-      ['id','created_at','patient_id','subject','status','updated_at','name','topic','question','email','role'],
+      ['id','created_at','patient_id','subject','status','updated_at','name','topic','question','email','role',
+       'deleted_at','deleted_by','delete_reason'],
       'created_at').then(function(d){ AC.db.questions = d; }),
     fetchTable('documents','requirement_documents',
       ['id','patient_id','surgery_id','requirement_key','requirement_name','file_name','file_size',
@@ -1641,7 +1649,7 @@ function vPatients(qs){
   h += selBar('patient', list, null, 'patients');
   h += tblPatients(list);
 
-  var orphan = (AC.db.surgeries||[]).filter(function(s){ return !s.patient_id; });
+  var orphan = (AC.db.surgeries||[]).filter(function(s){ return !s.patient_id && !jDeleted(s); });
   if(orphan.length){
     h += '<div class="gcard"><div class="gcard-h">Journeys with no linked account<span class="gh-note">'+
       orphan.length+' &middot; clinic-created, not yet claimed</span></div>'+ tblJourneys(orphan) +'</div>';
@@ -1749,42 +1757,138 @@ function vPatient(id, qs){
 }
 
 /* ── Journeys ────────────────────────────────────────── */
+/* A journey is a record in its own right. Every action below targets
+   patient_surgeries.id — never patient_id, which is legitimately NULL for a
+   clinic-created journey that has not been claimed.
+     archive / restore  -> archive_patient() / restore_patient()  (shipped, admin-capable)
+     soft delete / restore / purge -> admin_record_action('journey', ...)  (phase 3)
+     assign / reassign  -> admin_assign_doctor()                  (phase 2)
+   No new RPC was required. */
+function jClaimed(s){ return !!(s && s.patient_id); }
+function jDeleted(s){ return !!(s && s.deleted_at); }
+function jArchived(s){ return !!(s && s.archived_at); }
+function canSoftDeleteJourney(){ return has('surgeries','deleted_at'); }
+
+function acJourneyMenu(s){
+  var items = [{ head:'Journey' },
+    { label:'Open journey', fn:function(){ location.hash = '#/journey/'+s.id; } }];
+  // Account actions only exist when an account actually exists.
+  if(jClaimed(s)) items.push({ label:'Open patient account', fn:function(){ location.hash = '#/patient/'+s.patient_id; } });
+  if(s.assigned_doctor_id) items.push({ label:'Open assigned doctor', fn:function(){ location.hash = '#/doctor/'+s.assigned_doctor_id; } });
+
+  if(jDeleted(s)){
+    items.push({ sep:true }, { head:'Deleted' });
+    items.push({ label:'Restore from Recycle Bin', fn:function(){ acJourneyUndelete(s); } });
+    items.push({ label:'Permanently delete', danger:true, disabled:!canSoftDeleteJourney(),
+                 fn:function(){ AC.binPurge('journey', s.id); } });
+    return acMenuBtn(acRegister(items));
+  }
+  items.push({ sep:true }, { head:'Assignment' });
+  items.push({ label:(s.assigned_doctor_id ? 'Change doctor' : 'Assign doctor'), fn:function(){ acAssignJourney(s); } });
+  items.push({ sep:true }, { head:'Lifecycle' });
+  if(jArchived(s)) items.push({ label:'Restore from archive', fn:function(){ acRestoreJourney(s); } });
+  else             items.push({ label:'Archive journey', fn:function(){ acArchiveJourney(s); } });
+  items.push({ label:'Soft delete', danger:true, disabled:!canSoftDeleteJourney(),
+               fn:function(){ acSoftDeleteJourney(s); } });
+  return acMenuBtn(acRegister(items));
+}
+
+function jLabel(s){ return s.patient_name || (s.patient_id ? pname(AC.profById[s.patient_id]) : null) || 'Journey'; }
+
+function acArchiveJourney(s){
+  acDialog({ title:'Archive journey — '+jLabel(s), confirmLabel:'Archive journey',
+    body:'Archiving is historical, not deletion. The journey moves to <b>archived</b>, stays fully readable, '+
+      'and can be restored at any time. It does not go to the Recycle Bin.',
+    impact:'<b>Nothing is removed.</b> Questionnaire, checklist, documents and the assigned doctor are untouched.',
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('archive_patient', { p_surgery_id:s.id, p_reason:v.reason||null });
+      await acAfter('Journey archived');
+    }});
+}
+function acRestoreJourney(s){
+  acDialog({ title:'Restore from archive — '+jLabel(s), confirmLabel:'Restore journey',
+    body:'The journey returns to its active state, derived from its own clinical columns.',
+    onConfirm: async function(){
+      await acRpc('restore_patient', { p_surgery_id:s.id });
+      await acAfter('Journey restored from archive');
+    }});
+}
+function acSoftDeleteJourney(s){
+  var q = (AC.db.quests||[]).filter(function(x){ return s.patient_id && x.patient_id===s.patient_id; }).length;
+  var d = (AC.db.documents||[]).filter(function(x){ return x.surgery_id===s.id; }).length;
+  var r = (AC.db.requests||[]).filter(function(x){ return x.surgery_id===s.id; }).length;
+  acDialog({ title:'Delete journey — '+jLabel(s), danger:true, confirmLabel:'Move to Recycle Bin',
+    body:'This soft-deletes <b>only this journey</b>. Nothing is erased and it can be restored.',
+    impact:'<b>This journey only.</b> '+d+' document(s) and '+r+' care request(s) stay attached to it. '+
+      (jClaimed(s) ? ('The patient account and its '+q+' questionnaire(s) are <b>not</b> touched.')
+                   : 'There is no patient account to affect.')+
+      ' The assigned doctor is never affected.',
+    fields:[{ key:'reason', label:'Reason (required)', type:'textarea', ph:'Why is this journey being deleted?' }],
+    onConfirm: async function(v){
+      await acRpc('admin_record_action', { p_entity:'journey', p_id:s.id, p_action:'soft_delete',
+        p_reason:v.reason, p_confirm:null });
+      await acAfter('Journey moved to the Recycle Bin');
+    }});
+}
+function acJourneyUndelete(s){
+  acDialog({ title:'Restore journey — '+jLabel(s), confirmLabel:'Restore',
+    body:'The journey returns to its normal list with every relationship intact. '+
+      (jClaimed(s) ? '' : 'It has no linked account, so it returns to <b>Journeys with no linked account</b>.'),
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_record_action', { p_entity:'journey', p_id:s.id, p_action:'restore',
+        p_reason:v.reason||null, p_confirm:null });
+      await acAfter('Journey restored');
+    }});
+}
+AC.jAct = function(id, what){
+  var s = AC.surgById[id]; if(!s) return;
+  if(what==='assign')   return acAssignJourney(s);
+  if(what==='archive')  return acArchiveJourney(s);
+  if(what==='unarch')   return acRestoreJourney(s);
+  if(what==='delete')   return acSoftDeleteJourney(s);
+  if(what==='undelete') return acJourneyUndelete(s);
+  if(what==='purge')    return AC.binPurge('journey', s.id);
+};
+
 function tblJourneys(list){
   if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No journeys</td></tr></tbody></table></div>';
-  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Procedure</th><th>Hospital</th>'+
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Account</th><th>Procedure</th><th>Hospital</th>'+
     '<th>Surgery date</th><th>Doctor</th><th>Care state</th><th>Origin</th><th>State</th><th>Created</th><th></th></tr></thead><tbody>'+
     list.map(function(s){
       return '<tr><td class="nm">'+dash(s.patient_name || (s.patient_id?pname(AC.profById[s.patient_id]):null))+'</td>'+
+        '<td>'+(jClaimed(s)?'<span class="bdg bdg-ok">claimed</span>':'<span class="bdg bdg-warn">unclaimed</span>')+'</td>'+
         '<td>'+dash(s.procedure_type)+'</td><td>'+dash(s.hospital)+'</td>'+
         '<td>'+esc(fdate(s.surgery_date))+'</td>'+
         '<td>'+(s.assigned_doctor_id?esc(docName(s.assigned_doctor_id)):'<span class="mut">unassigned</span>')+'</td>'+
         '<td>'+dash(s.care_state)+'</td><td>'+dash(s.origin)+'</td>'+
-        '<td>'+journeyState(s).h+'</td><td>'+esc(fdate(s.created_at))+'</td>'+
+        '<td>'+(jDeleted(s)?'<span class="bdg bdg-bad">deleted</span>':journeyState(s).h)+'</td>'+
+        '<td>'+esc(fdate(s.created_at))+'</td>'+
         '<td class="rowact"><a class="olink" href="#/journey/'+s.id+'">Open &rsaquo;</a>'+
-          (p2() ? ' '+acMenuBtn(acRegister([
-            { head:'Journey' },
-            { label:(s.assigned_doctor_id?'Reassign doctor':'Assign doctor'), fn:function(){ acAssignJourney(s); } },
-            { label:'Open patient', disabled:!s.patient_id, fn:function(){ location.hash='#/patient/'+s.patient_id; } }
-          ])) : '')+'</td></tr>';
+          (p2() ? ' '+acJourneyMenu(s) : '')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
 }
 function vJourneys(qs){
   if(!has('surgeries')) return head('Clinical','Surgery journeys','') + capNote('surgeries');
-  var all = AC.db.surgeries||[], f = qs.f||'all';
-  var list = all.filter(function(s){
+  var everything = AC.db.surgeries||[], f = qs.f||'all';
+  var all = everything.filter(function(s){ return !jDeleted(s); });
+  var list = (f==='deleted' ? everything.filter(jDeleted) : all).filter(function(s){
     var st = journeyState(s).k;
     if(f==='active')     return st==='active'||st==='ready';
     if(f==='archived')   return st==='archived';
     if(f==='completed')  return st==='completed';
     if(f==='unassigned') return !s.archived_at && !s.completed_at && !s.assigned_doctor_id;
     if(f==='unclaimed')  return !s.patient_id;
+    if(f==='deleted')    return true;
     return true;
   });
   var h = head('Clinical','Surgery journeys','One row per <code>patient_surgeries</code> record. '+
     'State is derived from <code>archived_at</code>, <code>completed_at</code> and <code>ready_at</code> — no status is invented.');
   h += '<div class="chips">'+
     [['all','All'],['active','Active'],['completed','Completed'],['archived','Archived'],
-     ['unassigned','No doctor assigned'],['unclaimed','No linked account']].map(function(k){
+     ['unassigned','No doctor assigned'],['unclaimed','No linked account']]
+    .concat(canSoftDeleteJourney() ? [['deleted','Deleted']] : []).map(function(k){
       return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/journeys'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
     '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
   h += tblJourneys(list);
@@ -1799,8 +1903,25 @@ function vJourney(id){
   var reqs = (AC.db.requests||[]).filter(function(r){ return r.surgery_id===id; });
   var parch = (AC.db.parchive||[]).filter(function(a){ return a.surgery_id===id; });
   var h = head('<a class="lnk" href="#/journeys">Surgery journeys</a> &rsaquo; detail',
-    s.patient_name || 'Journey', '');
-  h += '<div class="gcard"><div class="gcard-h">Journey record<span class="gh-note">'+journeyState(s).h+'</span></div><div class="kv">'+
+    jLabel(s), '');
+  // Honest state banners. A journey with no account is a first-class record,
+  // not a broken patient — never render a fabricated profile for it.
+  if(!jClaimed(s)) h += '<div class="notice n-warn"><b>Unclaimed journey — no linked account.</b> '+
+    (s.origin==='clinic' ? 'Created by a clinic and not yet claimed by a patient. ' : '')+
+    'It has no <code>profiles</code> row, so account actions (suspend, ban, delete account) do not apply. '+
+    'Journey-level actions below work normally.</div>';
+  if(jDeleted(s)) h += '<div class="notice n-bad"><b>Soft deleted '+esc(fdt(s.deleted_at))+'</b>'+
+    (s.deleted_by?(' by '+esc(docName(s.deleted_by))):'')+'. Reason: '+esc(s.delete_reason||'—')+'. '+
+    '<a class="lnk" href="#/recycle'+q2s({t:'journeys'})+'">Recycle Bin</a></div>';
+  else if(jArchived(s)) h += '<div class="notice n-warn"><b>Archived '+esc(fdt(s.archived_at))+'</b>'+
+    (s.archived_by?(' by '+esc(docName(s.archived_by))):'')+
+    (s.archive_reason?('. Reason: '+esc(s.archive_reason)):'')+
+    '. Archiving is reversible and is not deletion.</div>';
+
+  h += '<div class="gcard"><div class="gcard-h">Journey record<span class="gh-note">'+
+    (jDeleted(s)?'<span class="bdg bdg-bad">deleted</span>':journeyState(s).h)+' '+
+    (jClaimed(s)?'<span class="bdg bdg-ok">claimed</span>':'<span class="bdg bdg-warn">unclaimed</span>')+
+    '</span></div><div class="kv">'+
     kv('Patient name', s.patient_name)+
     kv('Linked account', s.patient_id?pname(AC.profById[s.patient_id]):null, 'not claimed')+
     kv('Procedure', s.procedure_type)+kv('Hospital', s.hospital)+kv('Surgeon', s.surgeon)+
@@ -1813,9 +1934,40 @@ function vJourney(id){
     kv('Archived by', s.archived_by?docName(s.archived_by):null)+
     kv('Archive reason', s.archive_reason)+kv('Restored at', s.restored_at?fdt(s.restored_at):null)+
     kvMono('Journey ID', s.id)+kvMono('Clinic patient ID', s.clinic_patient_id||'—')+
-    kv('Created', fdt(s.created_at))+kv('Updated', fdt(s.updated_at))+'</div>';
-  if(s.patient_id) h += '<p style="margin-top:12px;"><a class="lnk" href="#/patient/'+s.patient_id+'">Open patient 360 &rsaquo;</a></p>';
+    kv('Created', fdt(s.created_at))+kv('Updated', fdt(s.updated_at))+
+    (jDeleted(s) ? kv('Deleted at', fdt(s.deleted_at))+kv('Delete reason', s.delete_reason) : '')+
+    '</div>';
+
+  // Action bar — the record must be manageable from the record itself.
+  if(p2()){
+    var btn = function(label, act, danger, off){
+      return '<button class="rowbtn"'+(danger?' style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)"':'')+
+        (off?' disabled':' onclick="AC.jAct(\''+s.id+'\',\''+act+'\')"')+'>'+esc(label)+'</button>'; };
+    h += '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">';
+    if(jDeleted(s)){
+      h += btn('Restore from Recycle Bin','undelete') +
+           btn('Permanently delete…','purge',true,!canSoftDeleteJourney());
+    } else {
+      h += btn(s.assigned_doctor_id?'Change doctor':'Assign doctor','assign') +
+           (jArchived(s) ? btn('Restore from archive','unarch') : btn('Archive journey','archive')) +
+           btn('Soft delete','delete',true,!canSoftDeleteJourney());
+    }
+    h += '</div>';
+    if(!canSoftDeleteJourney()) h += '<p class="mut" style="font-size:12px;margin-top:9px;">'+
+      'Soft delete needs <code>patient_surgeries.deleted_at</code> from <code>v2_admin_phase3.sql</code>, '+
+      'which is not applied here. Archive is available and reversible.</p>';
+  } else { h += p2Notice(); }
+
+  if(jClaimed(s)) h += '<p style="margin-top:12px;"><a class="lnk" href="#/patient/'+s.patient_id+'">Open patient 360 &rsaquo;</a></p>';
+  else h += '<p class="mut" style="font-size:12.5px;margin-top:12px;">No patient account is linked, so there is no patient 360 to open.</p>';
   h += '</div>';
+  var cp = s.clinic_patient_id ? (AC.db.clinics||[]).filter(function(c){ return c.id===s.clinic_patient_id; })[0] : null;
+  if(cp) h += '<div class="gcard"><div class="gcard-h">Linked clinic patient<span class="gh-note">'+
+    esc(cp.patient_status||'')+'</span></div><div class="kv">'+
+    kv('Name', cp.patient_name)+kv('Phone', cp.phone_number)+kv('Email', cp.email)+
+    kv('Procedure', cp.procedure)+kv('Hospital', cp.hospital)+
+    kv('Questionnaire', cp.questionnaire_status)+kv('Consultation', cp.consultation_status)+
+    kvMono('Clinic patient ID', cp.id)+'</div></div>';
   if(q.length)     h += '<div class="gcard"><div class="gcard-h">Questionnaires for this patient</div>'+tblQuests(q)+'</div>';
   if(reqs.length)  h += '<div class="gcard"><div class="gcard-h">Care requests</div>'+tblRequests(reqs)+'</div>';
   if(docs.length)  h += '<div class="gcard"><div class="gcard-h">Documents (metadata)</div>'+tblDocs(docs)+'</div>';
@@ -1847,7 +1999,7 @@ function tblQuests(list){
     list.map(function(q){
       var p = AC.profById[q.patient_id];
       var c = q.completion!=null ? q.completion : null;
-      return '<tr><td class="nm">'+(p?esc(pname(p)):'<span class="mono">'+short(q.patient_id)+'</span>')+'</td>'+
+      return '<tr'+hlRow(q.id)+'><td class="nm">'+(p?esc(pname(p)):'<span class="mono">'+short(q.patient_id)+'</span>')+'</td>'+
         '<td>'+(c!=null?(c+'%<div class="meterbar"><div class="meterfill" style="width:'+Math.max(0,Math.min(100,c))+'%"></div></div>'):'<span class="mut">—</span>')+'</td>'+
         '<td>'+dash(q.status)+'</td><td>'+badgeReview(q.review_state)+'</td>'+
         '<td>'+esc(fdate(q.submitted_at))+'</td><td>'+esc(fdate(q.reviewed_at))+'</td>'+
@@ -1858,7 +2010,7 @@ function tblQuests(list){
 }
 function vQuests(qs){
   if(!has('quests')) return head('Clinical','Questionnaires','') + capNote('quests');
-  var all = AC.db.quests||[], f = qs.f||'all';
+  var all = (AC.db.quests||[]).filter(function(q){ return !q.deleted_at; }), f = qs.f||'all';
   var list = all.filter(function(q){
     if(f==='review')    return q.review_state==='pending'||q.review_state==='in_review';
     if(f==='approved')  return q.review_state==='approved';
@@ -1868,6 +2020,7 @@ function vQuests(qs){
   });
   var h = head('Clinical','Questionnaires','Review workflow metadata only. Answers, '+
     '<code>questionnaire_data</code> and <code>risk_flags</code> are never requested by this page.');
+  h += hlNote(qs.id, 'the selected questionnaire');
   h += '<div class="chips">'+
     [['all','All'],['review','Awaiting review'],['changes','Changes requested'],
      ['approved','Approved'],['draft','Not submitted']].map(function(k){
@@ -1902,7 +2055,7 @@ function tblChecklists(list){
 }
 function vChecklists(){
   if(!has('checklists')) return head('Clinical','Checklists','') + capNote('checklists');
-  var all = AC.db.checklists||[];
+  var all = (AC.db.checklists||[]).filter(function(c){ return !c.deleted_at; });
   return head('Clinical','Checklists','Progress is counted from the boolean entries inside '+
     '<code>preop_checklist.items</code>. Checklist content itself is not displayed.') +
     '<div class="chips"><span class="mut" style="font-size:12px;">'+all.length+' checklist rows</span></div>' +
@@ -1924,7 +2077,7 @@ function tblQuestions(list){
   return '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
     cols.map(function(x){ return '<th>'+esc(x[1])+'</th>'; }).join('')+'</tr></thead><tbody>'+
     list.map(function(q){
-      return '<tr>'+cols.map(function(x){
+      return '<tr'+hlRow(q.id)+'>'+cols.map(function(x){
         var k = x[0];
         if(k==='__patient'){ var p = AC.profById[q.patient_id];
           return '<td>'+(p?'<a class="olink" href="#/patient/'+q.patient_id+'">'+esc(pname(p))+'</a>':'<span class="mut">—</span>')+'</td>'; }
@@ -1948,7 +2101,7 @@ function vQuestions(qs){
       '<code>questions</code> does not carry <code>status</code> / <code>patient_id</code> / a '+
       '<code>question_replies</code> table. The table below shows exactly the fields that do exist.')+
     '</div>';
-  h += questionsRlsNotice();
+  h += questionsRlsNotice() + hlNote(qs.id, 'the selected question');
   if(!has('replies')) h += '<div class="notice n-warn"><b>Replies unavailable.</b> <code>question_replies</code>: '+
     esc((AC.cap.replies&&AC.cap.replies.error)||'not present')+'. Threaded conversation cannot be shown.</div>';
 
@@ -1979,7 +2132,7 @@ function tblRequests(list){
     (ic?'<th>Lane</th>':'')+'<th>Status</th><th>Requested</th><th>Responded</th><th>Decline reason</th><th></th></tr></thead><tbody>'+
     list.map(function(r){
       var pp = AC.profById[r.patient_id];
-      return '<tr><td class="nm">'+(pp?'<a class="olink" href="#/patient/'+r.patient_id+'">'+esc(pname(pp))+'</a>'
+      return '<tr'+hlRow(r.id)+'><td class="nm">'+(pp?'<a class="olink" href="#/patient/'+r.patient_id+'">'+esc(pname(pp))+'</a>'
              :'<span class="mono">'+short(r.patient_id)+'</span>')+'</td>'+
         '<td>'+(r.doctor_id?'<a class="olink" href="#/doctor/'+r.doctor_id+'">'+esc(docName(r.doctor_id))+'</a>':'<span class="mut">—</span>')+'</td>'+
         '<td>'+dash(r.origin_method)+'</td>'+
@@ -2010,7 +2163,7 @@ function vRequests(qs){
   var h = head('Clinical','Care requests','Shown exactly as stored. <code>status</code> is the real '+
     '<code>care_requests.status</code> value; the surgical / consultation lane comes from '+
     '<code>is_consultation</code> and is only shown when that column exists. No request is relabelled.');
-  h += p2Notice();
+  h += p2Notice() + hlNote(qs.id, 'the selected care request');
   var statuses = uniq(all.map(function(r){ return r.status; }).filter(Boolean)).sort();
   var keys = ['all'].concat(statuses);
   if(p2()) keys = keys.concat(['archived','deleted']);
@@ -2093,6 +2246,27 @@ function vAccounts(qs){
         '<td><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a></td></tr>';
     }).join('') : '<tr><td colspan="10" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
   return h;
+}
+
+/* When a section is opened with ?id=<uuid>, mark and scroll to that exact row
+   so "Open" genuinely selects the record instead of dumping the admin in a list. */
+function hlRow(id){ return id ? ' data-rid="'+esc(id)+'"' : ''; }
+function hlNote(id, label){
+  if(!id) return '';
+  return '<div class="hlnote"><b>Showing '+esc(label)+'</b> selected from search. '+
+    '<a class="lnk" href="#" onclick="AC.clearHl(event)">Clear selection</a></div>';
+}
+AC.clearHl = function(e){
+  if(e) e.preventDefault();
+  var r = parseHash(); var q = {}; for(var k in r.qs) if(k!=='id') q[k]=r.qs[k];
+  location.hash = '#/'+r.section+q2s(q);
+};
+function applyHl(){
+  var r = parseHash(); var id = r.qs && r.qs.id; if(!id) return;
+  var el = document.querySelector('#adm-view [data-rid="'+(window.CSS&&CSS.escape?CSS.escape(id):id)+'"]');
+  if(!el) return;
+  el.classList.add('hl');
+  try { el.scrollIntoView({ block:'center' }); } catch(e) { el.scrollIntoView(); }
 }
 
 /* ── Deleted accounts ──────────────────────────────────
@@ -2564,8 +2738,11 @@ var BIN = [
                why:p.delete_reason, entity:'account', href:(p.role==='doctor'?'#/doctor/':'#/patient/')+p.id }; }); } },
   { k:'journeys',  label:'Journeys',   need:function(){ return has('surgeries','deleted_at'); },
     rows:function(){ return (AC.db.surgeries||[]).filter(function(s){ return s.deleted_at; }).map(function(s){
-      return { id:s.id, label:s.patient_name||'Journey', sub:s.procedure_type, kind:'journey',
-               at:s.deleted_at, by:s.deleted_by, why:s.delete_reason, entity:'journey', href:'#/journey/'+s.id }; }); } },
+      return { id:s.id, label:(s.patient_name||'Journey')+(s.patient_id?'':' — unclaimed'),
+               sub:[s.procedure_type, s.assigned_doctor_id?('Dr '+docName(s.assigned_doctor_id)):'no doctor']
+                     .filter(Boolean).join(' · '),
+               kind:'journey', at:s.deleted_at, by:s.deleted_by, why:s.delete_reason,
+               entity:'journey', href:'#/journey/'+s.id }; }); } },
   { k:'requests',  label:'Consultation requests', need:function(){ return has('requests','deleted_at'); },
     rows:function(){ return (AC.db.requests||[]).filter(function(r){ return r.deleted_at; }).map(function(r){
       var p=AC.profById[r.patient_id];
@@ -2619,7 +2796,8 @@ function vRecycle(qs){
         '<td>'+(r.by?esc(docName(r.by)):'<span class="mut">—</span>')+'</td>'+
         '<td>'+dash(r.why)+'</td>'+
         '<td class="rowact"><button class="rowbtn" onclick="AC.binRestore(\''+esc(r.entity)+'\',\''+r.id+'\')">Restore</button>'+
-          ' <a class="olink" href="#/danger">Permanent delete &rsaquo;</a></td></tr>';
+          ' <button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
+          'onclick="AC.binPurge(\''+esc(r.entity)+'\',\''+r.id+'\')">Permanently delete&hellip;</button></td></tr>';
     }).join('')+'</tbody></table></div>';
   return h;
 }
@@ -2733,13 +2911,26 @@ function vActivity(qs){
 }
 
 /* ── Global search (admin_search RPC) ────────────────── */
+/* Entity -> exact destination. A route is only offered when it can select the
+   record itself; anything that would merely dump the admin into a directory
+   returns null, and the UI renders a disabled control with the reason instead
+   of a link that looks actionable and is not. */
 var SEARCH_ROUTE = {
-  profile: function(id){ var p = AC.profById[id]; return p ? profileHref(p) : '#/accounts'; },
-  patient_surgery: function(id){ return '#/journey/'+id; },
-  clinic_patient:  function(id){ return '#/journeys'+q2s({f:'all'}); },
-  care_request:    function(id){ return '#/care-requests'; },
-  questionnaire:   function(id){ return '#/questionnaires'; },
-  question:        function(id){ return '#/questions'; }
+  profile: function(id){ var p = AC.profById[id]; return p ? profileHref(p) : null; },
+  patient_surgery: function(id){ return AC.surgById[id] ? ('#/journey/'+id) : null; },
+  clinic_patient: function(id){
+    // No clinic-patient detail view exists. Open its journey when one is linked.
+    var s = (AC.db.surgeries||[]).filter(function(x){ return x.clinic_patient_id===id; })[0];
+    return s ? ('#/journey/'+s.id) : null;
+  },
+  care_request:  function(id){ return '#/care-requests'+q2s({id:id}); },
+  questionnaire: function(id){ return '#/questionnaires'+q2s({id:id}); },
+  question:      function(id){ return '#/questions'+q2s({id:id}); }
+};
+var SEARCH_WHY = {
+  clinic_patient:'This clinic patient has no linked journey yet, and the Admin Center has no clinic-patient detail view.',
+  profile:'No readable profile row for this id.',
+  patient_surgery:'This journey is not in the loaded set.'
 };
 async function vSearch(qs){
   var term = qs.q||'';
@@ -2770,7 +2961,9 @@ async function vSearch(qs){
         return '<tr><td><span class="bdg bdg-info">'+esc(x.entity_type)+'</span></td>'+
           '<td class="nm">'+dash(x.label)+'</td><td>'+dash(x.sublabel)+'</td>'+
           '<td><span class="bdg bdg-mute">'+esc(x.status||'—')+'</span></td>'+
-          '<td>'+(href?'<a class="olink" href="'+esc(href)+'">Open &rsaquo;</a>':'')+'</td></tr>'+
+          '<td>'+(href ? '<a class="olink" href="'+esc(href)+'">Open &rsaquo;</a>'
+                       : '<span class="mut" title="'+esc(SEARCH_WHY[x.entity_type]||'No detail view exists for this record type.')+
+                         '" style="font-size:11.5px;">No detail view</span>')+'</td></tr>'+
           searchFacetRow(x);
       }).join('')+'</tbody></table></div>';
   }, 0);
@@ -3257,6 +3450,7 @@ async function render(){
   view.innerHTML = html;
   acCloseMenu();
   acSelPaint();
+  applyHl();
   wireSearch();
   if(r.section==='search' && r.qs.q){ var s = ge('adm-q'); if(s){ s.value = r.qs.q; } }
   window.scrollTo(0,0);
