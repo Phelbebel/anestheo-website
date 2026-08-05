@@ -240,6 +240,16 @@
 .tl-m{font-size:11.5px;color:var(--hint);margin-top:2px;}
 .tl-r{font-size:12px;color:var(--muted);margin-top:3px;font-style:italic;}
 
+/* Charts — flat, no animation, existing tokens only. */
+.anz{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.chart{display:flex;flex-direction:column;gap:7px;}
+.chart-row{display:grid;grid-template-columns:minmax(0,1fr) 2fr auto;align-items:center;gap:10px;}
+.chart-lb{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chart-track{height:8px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;}
+.chart-fill{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#1B6B5A,#2A8A74);}
+.chart-v{font-size:12px;color:#fff;font-variant-numeric:tabular-nums;min-width:34px;text-align:right;}
+.spark{width:100%;height:auto;display:block;}
+
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width:1024px){
   .adm-main{padding:22px 20px 64px;}
@@ -831,7 +841,7 @@ var CAPS = [
   { key:'profiles',  table:'profiles',   label:'Accounts & profiles', required:true,
     cols:['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at',
           'account_status','suspended_at','suspended_by','suspend_reason','banned_at','banned_by','ban_reason','ban_expires_at',
-          'deleted_at','deleted_by','delete_reason'] },
+          'deleted_at','deleted_by','delete_reason','medical_license_number'] },
   { key:'surgeries', table:'patient_surgeries', label:'Surgery journeys',
     cols:['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
           'assigned_doctor_id','assigned_at','care_state','origin','contact_email','clinic_patient_id',
@@ -857,6 +867,15 @@ var CAPS = [
   { key:'audit',     table:'admin_audit_log', label:'Admin audit log', required:true,
     cols:['id','created_at','actor_id','actor_role','action','target_type','target_id','target_label',
           'before_state','after_state','reason','metadata','correlation_id'] },
+  { key:'vdocs',     table:'doctor_verification_documents', label:'Verification documents',
+    cols:['id','doctor_id','doc_type','file_name','storage_path','mime_type','file_size',
+          'uploaded_at','reviewed_at','reviewed_by','review_state','deleted_at'] },
+  { key:'vnotes',    table:'verification_notes', label:'Verification notes',
+    cols:['id','doctor_id','author_id','note','created_at'] },
+  { key:'reports',   table:'moderation_reports', label:'Moderation reports',
+    cols:['id','reporter_id','target_type','target_id','target_label','category','reason','evidence',
+          'status','assigned_to','assigned_at','resolved_at','resolved_by','resolution_note',
+          'created_at','deleted_at','deleted_by','delete_reason'] },
   { key:'parchive',  table:'patient_archive_audit', label:'Archive audit trail',
     cols:['id','surgery_id','clinic_patient_id','patient_name','actor_id','actor_role','action','reason','created_at'] }
 ];
@@ -944,7 +963,7 @@ async function loadAll(){
     fetchTable('profiles','profiles',
       ['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at',
        'account_status','suspended_at','suspended_by','suspend_reason','banned_at','banned_by','ban_reason','ban_expires_at',
-       'deleted_at','deleted_by','delete_reason'],
+       'deleted_at','deleted_by','delete_reason','medical_license_number'],
       'created_at').then(function(d){ AC.db.profiles = d; }),
     fetchTable('surgeries','patient_surgeries',
       ['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
@@ -974,6 +993,16 @@ async function loadAll(){
     fetchTable('audit','admin_audit_log',
       ['id','created_at','actor_id','actor_role','action','target_type','target_id','target_label',
        'before_state','after_state','reason','metadata','correlation_id'],'created_at').then(function(d){ AC.db.audit = d; }),
+    fetchTable('vdocs','doctor_verification_documents',
+      ['id','doctor_id','doc_type','file_name','storage_path','mime_type','file_size',
+       'uploaded_at','reviewed_at','reviewed_by','review_state','deleted_at'],
+      'uploaded_at').then(function(d){ AC.db.vdocs = d; }),
+    fetchTable('vnotes','verification_notes',
+      ['id','doctor_id','author_id','note','created_at'],'created_at').then(function(d){ AC.db.vnotes = d; }),
+    fetchTable('reports','moderation_reports',
+      ['id','reporter_id','target_type','target_id','target_label','category','reason','evidence',
+       'status','assigned_to','assigned_at','resolved_at','resolved_by','resolution_note',
+       'created_at','deleted_at','deleted_by','delete_reason'],'created_at').then(function(d){ AC.db.reports = d; }),
     fetchTable('parchive','patient_archive_audit',
       ['id','surgery_id','clinic_patient_id','patient_name','actor_id','actor_role','action','reason','created_at'],
       'created_at').then(function(d){ AC.db.parchive = d; })
@@ -1073,7 +1102,13 @@ var NAV = [
   ]},
   { grp:'Content', items:[ {id:'content', label:'Content inventory', href:'#/content'} ]},
   { grp:'Operations', items:[
-      {id:'deleted',      label:'Deleted accounts',     href:'#/deleted',
+      {id:'verification', label:'Verification',  href:'#/verification',
+        count:function(){ return has('profiles') ? vQueueBuckets().pending.length + vQueueBuckets().changes.length : null; } },
+      {id:'moderation',   label:'Moderation',    href:'#/moderation', cap:'reports',
+        count:function(){ return hasMod() ? (AC.db.reports||[]).filter(function(r){ return !r.deleted_at && r.status==='open'; }).length : null; } },
+      {id:'analytics',    label:'Analytics',     href:'#/analytics' },
+      {id:'activity',     label:'Activity',      href:'#/activity' },
+      {id:'recycle',      label:'Recycle Bin',   href:'#/recycle',
         count:function(){ return p2() ? (AC.db.profiles||[]).filter(isDeleted).length : null; } },
       {id:'audit',        label:'Audit log',            href:'#/audit', cap:'audit', count:function(){ return (AC.db.audit||[]).length; } },
       {id:'status',       label:'System status',        href:'#/status'},
@@ -1464,7 +1499,8 @@ function vDoctor(id, qs){
     '</div>';
 
   h += '<div class="tabrow">'+
-    [['overview','Overview'],['patients','Patients ('+(journeys.length+clinics.length)+')'],
+    [['overview','Overview'],['verification','Verification'],
+     ['patients','Patients ('+(journeys.length+clinics.length)+')'],
      ['activity','Activity'],['timeline','Timeline'],['audit','Audit ('+aud.length+')']].map(function(t){
       return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/doctor/'+id+q2s({t:t[0]})+'">'+t[1]+'</a>'; }).join('')+
     '</div>';
@@ -1515,6 +1551,7 @@ function vDoctor(id, qs){
       (has('requests') ? tblRequests(responded) : capNote('requests'))+'</div>';
   }
 
+  if(tab==='verification'){ h += vDoctorVerificationTab(p); }
   if(tab==='timeline'){
     h += '<div class="gcard"><div class="gcard-h">Activity timeline<span class="gh-note">newest first</span></div>'+
       acTimeline(p)+'</div>';
@@ -2106,6 +2143,595 @@ function vDeleted(qs){
 }
 AC.restore = function(id){ var p = AC.profById[id]; if(p) acRestore(p); };
 
+
+/* ============================================================
+   PHASE 3 — VERIFICATION, MODERATION, ANALYTICS, ACTIVITY, RECYCLE BIN
+   Analytics, System Health, the Activity Center and Search read data that
+   already exists. Verification and Moderation need v2_admin_phase3.sql; both
+   degrade to an honest notice until it is applied.
+   ============================================================ */
+function hasVerif(){ return has('vdocs') && has('vnotes'); }
+function hasMod(){ return has('reports'); }
+function p3Notice(what, file){
+  return '<div class="notice n-warn"><b>' + esc(what) + ' needs backend support.</b> ' +
+    'The tables and audited RPCs it uses ship in <code>' + esc(file) + '</code>, which has not been applied ' +
+    'to this database. Nothing is simulated here — the section stays empty rather than showing invented rows.</div>';
+}
+
+/* ── Tiny inline charts. No library, no animation, theme tokens only. ───── */
+function svgBars(rows, opts){
+  opts = opts || {};
+  if(!rows.length) return '<p class="mut" style="font-size:12.5px;">No data.</p>';
+  var max = Math.max.apply(null, rows.map(function(r){ return r[1]; })) || 1;
+  return '<div class="chart">' + rows.map(function(r){
+    var pct = Math.round(r[1] / max * 100);
+    return '<div class="chart-row"><span class="chart-lb" title="' + esc(r[0]) + '">' + esc(r[0]) + '</span>' +
+      '<span class="chart-track"><span class="chart-fill" style="width:' + pct + '%"></span></span>' +
+      '<span class="chart-v">' + r[1] + (opts.suffix || '') + '</span></div>';
+  }).join('') + '</div>';
+}
+function svgLine(points, label){
+  if(points.length < 2) return '<p class="mut" style="font-size:12.5px;">Not enough data points yet.</p>';
+  var W = 640, H = 132, pad = 26;
+  var max = Math.max.apply(null, points.map(function(p){ return p[1]; })) || 1;
+  var step = (W - pad * 2) / (points.length - 1);
+  var xy = points.map(function(p, i){
+    return [pad + i * step, H - pad - (p[1] / max) * (H - pad * 2)];
+  });
+  var d = xy.map(function(c, i){ return (i ? 'L' : 'M') + c[0].toFixed(1) + ',' + c[1].toFixed(1); }).join(' ');
+  var area = d + ' L' + xy[xy.length-1][0].toFixed(1) + ',' + (H-pad) + ' L' + pad + ',' + (H-pad) + ' Z';
+  return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + '">' +
+    '<path d="' + area + '" fill="rgba(42,138,116,.16)"/>' +
+    '<path d="' + d + '" fill="none" stroke="#2A8A74" stroke-width="2" stroke-linejoin="round"/>' +
+    xy.map(function(c){ return '<circle cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="2.5" fill="#7ECFC0"/>'; }).join('') +
+    '<text x="' + pad + '" y="' + (H - 6) + '" fill="rgba(255,255,255,.3)" font-size="10">' + esc(points[0][0]) + '</text>' +
+    '<text x="' + (W - pad) + '" y="' + (H - 6) + '" fill="rgba(255,255,255,.3)" font-size="10" text-anchor="end">' +
+      esc(points[points.length-1][0]) + '</text>' +
+    '<text x="' + pad + '" y="14" fill="rgba(255,255,255,.3)" font-size="10">peak ' + max + '</text></svg>';
+}
+function topCounts(list, fn, n){
+  var m = {};
+  list.forEach(function(x){ var k = fn(x); if(k) m[k] = (m[k]||0) + 1; });
+  return Object.keys(m).map(function(k){ return [k, m[k]]; })
+    .sort(function(a,b){ return b[1]-a[1]; }).slice(0, n || 8);
+}
+
+/* ============================================================
+   PHASE A — VERIFICATION CENTER
+   ============================================================ */
+function vstate(p){ return p.verification_status || 'not_required'; }
+function badgeVstate(v){
+  if(v==='approved'||v==='verified') return '<span class="bdg bdg-ok">'+esc(v)+'</span>';
+  if(v==='pending') return '<span class="bdg bdg-warn">pending</span>';
+  if(v==='changes_requested') return '<span class="bdg bdg-warn">changes requested</span>';
+  if(v==='verification_suspended') return '<span class="bdg bdg-warn">verification suspended</span>';
+  if(v==='rejected') return '<span class="bdg bdg-bad">rejected</span>';
+  return '<span class="bdg bdg-mute">'+esc(v)+'</span>';
+}
+function vQueueBuckets(){
+  var d = (AC.db.profiles||[]).filter(function(p){ return isDoctor(p) && isLive(p); });
+  var recent = Date.now() - 30*86400000;
+  return {
+    pending:  d.filter(function(p){ return vstate(p)==='pending'; }),
+    changes:  d.filter(function(p){ return vstate(p)==='changes_requested' || vstate(p)==='verification_suspended'; }),
+    rejected: d.filter(function(p){ return vstate(p)==='rejected'; }),
+    approved: d.filter(function(p){ return (vstate(p)==='approved'||vstate(p)==='verified') &&
+                new Date(p.updated_at||p.created_at) >= recent; })
+  };
+}
+function vVerification(qs){
+  var h = head('Operations','Verification Center',
+    'A queue, not a filter. Every doctor waiting on a decision, with the evidence and the history behind it.');
+  if(!has('profiles')) return h + capNote('profiles');
+  var b = vQueueBuckets(), tab = qs.t || 'pending';
+  var list = b[tab] || b.pending;
+
+  h += '<div class="gcard"><div class="gcard-h">Queue</div><div class="stat-grid">'+
+    statCard(b.pending.length,  'Pending review',    '#/verification'+q2s({t:'pending'}),  {warn:true}) +
+    statCard(b.changes.length,  'Changes requested', '#/verification'+q2s({t:'changes'}),  {warn:true}) +
+    statCard(b.rejected.length, 'Rejected',          '#/verification'+q2s({t:'rejected'})) +
+    statCard(b.approved.length, 'Approved (30 days)','#/verification'+q2s({t:'approved'})) +
+    '</div></div>';
+
+  if(!hasVerif()) h += p3Notice('Document review and admin notes', 'v2_admin_phase3.sql');
+  if(!p2()) h += p2Notice();
+
+  h += '<div class="tabrow">'+
+    [['pending','Pending ('+b.pending.length+')'],['changes','Changes requested ('+b.changes.length+')'],
+     ['rejected','Rejected ('+b.rejected.length+')'],['approved','Recently approved ('+b.approved.length+')']]
+    .map(function(t){ return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/verification'+q2s({t:t[0]})+'">'+esc(t[1])+'</a>'; }).join('')+
+    '</div>';
+
+  if(!list.length) return h + '<div class="notice n-info">Nothing in this queue.</div>';
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Doctor</th><th>Email</th><th>Hospital</th>'+
+    '<th>Specialty</th><th>Country</th><th>Licence no.</th><th>Documents</th><th>Notes</th>'+
+    '<th>Registered</th><th>State</th><th></th></tr></thead><tbody>'+
+    list.map(function(p){
+      var docs = hasVerif() ? (AC.db.vdocs||[]).filter(function(d){ return d.doctor_id===p.id && !d.deleted_at; }) : null;
+      var notes = hasVerif() ? (AC.db.vnotes||[]).filter(function(n){ return n.doctor_id===p.id; }).length : null;
+      return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
+        '<td>'+dash(p.hospital)+'</td><td>'+dash(p.specialty)+'</td><td>'+dash(p.country)+'</td>'+
+        '<td>'+(has('profiles','medical_license_number') ? dash(p.medical_license_number)
+                : '<span class="mut" title="Column not present">n/a</span>')+'</td>'+
+        '<td>'+(docs===null ? '<span class="mut">n/a</span>'
+                : (docs.length ? '<span class="bdg bdg-info">'+docs.length+'</span>' : '<span class="bdg bdg-warn">none</span>'))+'</td>'+
+        '<td>'+(notes===null ? '<span class="mut">n/a</span>' : notes)+'</td>'+
+        '<td>'+esc(fdate(p.created_at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(p.created_at))+'</div></td>'+
+        '<td>'+badgeVstate(vstate(p))+'</td>'+
+        '<td class="rowact"><a class="olink" href="#/doctor/'+p.id+q2s({t:'verification'})+'">Review &rsaquo;</a>'+
+          (p2() ? ' '+acVerifMenu(p) : '')+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  return h;
+}
+function acVerifMenu(p){
+  return acMenuBtn(acRegister([
+    { head:'Verification decision' },
+    { label:'Approve', disabled:(vstate(p)==='approved'), fn:function(){ acVerify(p,'approved'); } },
+    { label:'Request additional documents', disabled:!hasVerif(), fn:function(){ acRequestDocs(p); } },
+    { label:'Suspend verification', fn:function(){ acVerify(p,'verification_suspended'); } },
+    { label:'Reject', danger:true, fn:function(){ acVerify(p,'rejected'); } },
+    { sep:true },
+    { label:'Add admin note', disabled:!hasVerif(), fn:function(){ acAddNote(p); } },
+    { label:'Open full profile', fn:function(){ location.hash = '#/doctor/'+p.id; } }
+  ]));
+}
+function acRequestDocs(p){
+  acDialog({ title:'Request documents — '+pname(p), confirmLabel:'Request documents',
+    body:'Moves the account to <b>changes requested</b> and records exactly what was asked for.',
+    fields:[{ key:'types', label:'Documents', type:'select', options:[
+                ['diploma','Diploma'],['license','Medical licence'],['passport_id','Passport / ID'],['other','Other']] },
+            { key:'reason', label:'What is needed and why (required)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_request_documents', { p_doctor:p.id, p_types:[v.types], p_reason:v.reason });
+      await acAfter('Documents requested from '+pname(p));
+    }});
+}
+function acAddNote(p){
+  acDialog({ title:'Admin note — '+pname(p), confirmLabel:'Save note',
+    body:'Internal note on this verification. Visible to administrators only.',
+    fields:[{ key:'note', label:'Note (required)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_add_verification_note', { p_doctor:p.id, p_note:v.note });
+      await acAfter('Note saved');
+    }});
+}
+function vDoctorVerificationTab(p){
+  var h = '';
+  var docs  = hasVerif() ? (AC.db.vdocs||[]).filter(function(d){ return d.doctor_id===p.id && !d.deleted_at; }) : [];
+  var notes = hasVerif() ? (AC.db.vnotes||[]).filter(function(n){ return n.doctor_id===p.id; })
+                .sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); }) : [];
+  var hist  = (AC.db.audit||[]).filter(function(a){ return a.target_id===p.id && /verif|doctor\./.test(a.action); });
+
+  h += '<div class="gcard"><div class="gcard-h">Identity &amp; credentials'+
+    '<span class="gh-note">'+badgeVstate(vstate(p))+'</span></div><div class="kv">'+
+    kv('Full name', p.full_name)+kv('Email', p.email)+kv('Phone', p.phone)+
+    kv('Country', p.country)+kv('Hospital', p.hospital)+kv('Specialty', p.specialty)+
+    kv('Medical licence number',
+       has('profiles','medical_license_number') ? p.medical_license_number : null,
+       has('profiles','medical_license_number') ? 'not provided' : 'column not present in this database')+
+    kv('Registered', fdt(p.created_at))+kv('Last profile change', fdt(p.updated_at))+
+    '</div>'+
+    (p2() ? '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">'+
+      '<button class="rowbtn" onclick="AC.vAct(\''+p.id+'\',\'approved\')">Approve</button>'+
+      '<button class="rowbtn" onclick="AC.vDocs(\''+p.id+'\')"'+(hasVerif()?'':' disabled')+'>Request documents</button>'+
+      '<button class="rowbtn" onclick="AC.vAct(\''+p.id+'\',\'verification_suspended\')">Suspend verification</button>'+
+      '<button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
+        'onclick="AC.vAct(\''+p.id+'\',\'rejected\')">Reject</button>'+
+      '<button class="rowbtn" onclick="AC.vNote(\''+p.id+'\')"'+(hasVerif()?'':' disabled')+'>Add note</button>'+
+      '</div>' : p2Notice())+
+    '</div>';
+
+  h += '<div class="gcard"><div class="gcard-h">Uploaded documents'+
+    '<span class="gh-note">'+(hasVerif()?docs.length+' on file':'requires v2_admin_phase3.sql')+'</span></div>';
+  if(!hasVerif()) h += p3Notice('Credential uploads','v2_admin_phase3.sql');
+  else if(!docs.length) h += '<p class="mut" style="font-size:12.5px;">No diploma, licence or ID has been uploaded by this account.</p>';
+  else h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Type</th><th>File</th><th>Format</th>'+
+    '<th>Size</th><th>Uploaded</th><th>Review state</th></tr></thead><tbody>'+
+    docs.map(function(d){
+      return '<tr><td class="nm">'+esc(({diploma:'Diploma',license:'Medical licence',passport_id:'Passport / ID',other:'Other'})[d.doc_type]||d.doc_type)+'</td>'+
+        '<td>'+dash(d.file_name)+'</td><td>'+dash(d.mime_type)+'</td>'+
+        '<td>'+esc(fsize(d.file_size))+'</td><td>'+esc(fdate(d.uploaded_at))+'</td>'+
+        '<td>'+badgeVerify(d.review_state==='accepted'?'approved':d.review_state)+'</td></tr>';
+    }).join('')+'</tbody></table></div>'+
+    '<p class="mut" style="font-size:12px;margin-top:10px;">Metadata only. Files live in Supabase Storage; '+
+    'issuing a signed download link is an admin-api operation and is not done from the browser.</p>';
+  h += '</div>';
+
+  h += '<div class="gcard"><div class="gcard-h">Admin notes<span class="gh-note">'+
+    (hasVerif()?notes.length:'n/a')+'</span></div>';
+  if(!hasVerif()) h += '<p class="mut" style="font-size:12.5px;">Requires <code>verification_notes</code>.</p>';
+  else if(!notes.length) h += '<p class="mut" style="font-size:12.5px;">No notes yet.</p>';
+  else h += '<div class="tl">'+notes.map(function(n){
+    return '<div class="tl-i"><div class="tl-t">'+esc(n.note)+'</div>'+
+      '<div class="tl-m">'+esc(fdt(n.created_at))+' &middot; '+esc(docName(n.author_id))+'</div></div>'; }).join('')+'</div>';
+  h += '</div>';
+
+  h += '<div class="gcard"><div class="gcard-h">Previous verification history<span class="gh-note">'+hist.length+'</span></div>'+
+    (hist.length ? tblAudit(hist, true)
+      : '<p class="mut" style="font-size:12.5px;">No verification decision has been recorded for this account.</p>')+'</div>';
+  return h;
+}
+AC.vAct  = function(id, state){ var p = AC.profById[id]; if(p) acVerify(p, state); };
+AC.vDocs = function(id){ var p = AC.profById[id]; if(p) acRequestDocs(p); };
+AC.vNote = function(id){ var p = AC.profById[id]; if(p) acAddNote(p); };
+
+/* ============================================================
+   PHASE B — MODERATION CENTER
+   ============================================================ */
+var MOD_CATS = { spam:'Spam', abuse:'Abuse', fake_account:'Fake account',
+  duplicate_account:'Duplicate account', suspicious_behaviour:'Suspicious behaviour', other:'Other' };
+function badgeReport(st){
+  if(st==='open')      return '<span class="bdg bdg-warn">open</span>';
+  if(st==='assigned')  return '<span class="bdg bdg-info">assigned</span>';
+  if(st==='resolved')  return '<span class="bdg bdg-ok">resolved</span>';
+  if(st==='dismissed') return '<span class="bdg bdg-mute">dismissed</span>';
+  return '<span class="bdg bdg-mute">'+esc(st||'—')+'</span>';
+}
+function vModeration(qs){
+  var h = head('Operations','Moderation Center',
+    'Reports raised against doctors, patients and content. Separate from the account lists so a report is worked, not browsed.');
+  if(!hasMod()) return h + p3Notice('The Moderation Center','v2_admin_phase3.sql');
+
+  var live = (AC.db.reports||[]).filter(function(r){ return !r.deleted_at; });
+  var tab = qs.t || 'open', cat = qs.c || '';
+  var list = live.filter(function(r){
+    if(tab==='open')      return r.status==='open';
+    if(tab==='assigned')  return r.status==='assigned';
+    if(tab==='resolved')  return r.status==='resolved'||r.status==='dismissed';
+    if(tab==='doctors')   return r.target_type==='doctor';
+    if(tab==='patients')  return r.target_type==='patient';
+    if(tab==='content')   return r.target_type==='content'||r.target_type==='question'||r.target_type==='care_request';
+    return true;
+  }).filter(function(r){ return cat ? r.category===cat : true; });
+
+  h += '<div class="gcard"><div class="gcard-h">Queue</div><div class="stat-grid">'+
+    statCard(live.filter(function(r){return r.status==='open';}).length, 'Open reports', '#/moderation'+q2s({t:'open'}), {warn:true}) +
+    statCard(live.filter(function(r){return r.status==='assigned';}).length, 'Assigned', '#/moderation'+q2s({t:'assigned'})) +
+    statCard(live.filter(function(r){return r.target_type==='doctor';}).length, 'Reported doctors', '#/moderation'+q2s({t:'doctors'})) +
+    statCard(live.filter(function(r){return r.target_type==='patient';}).length, 'Reported patients', '#/moderation'+q2s({t:'patients'})) +
+    statCard(live.filter(function(r){return r.target_type!=='doctor'&&r.target_type!=='patient';}).length,
+             'Reported content', '#/moderation'+q2s({t:'content'})) +
+    '</div></div>';
+
+  h += '<div class="tabrow">'+
+    [['open','Open'],['assigned','Assigned'],['resolved','Closed'],
+     ['doctors','Doctors'],['patients','Patients'],['content','Content'],['all','All']]
+    .map(function(t){ return '<a class="tabb'+(tab===t[0]?' on':'')+'" href="#/moderation'+q2s({t:t[0],c:cat})+'">'+esc(t[1])+'</a>'; }).join('')+
+    '</div>';
+  h += '<div class="chips">'+['',''].slice(0,1).concat(Object.keys(MOD_CATS)).map(function(k){
+      var n = k ? live.filter(function(r){return r.category===k;}).length : live.length;
+      return '<a class="chip'+(cat===k?' on':'')+'" href="#/moderation'+q2s({t:tab,c:k})+'">'+
+        esc(k?MOD_CATS[k]:'All categories')+' ('+n+')</a>'; }).join('')+'</div>';
+
+  if(!list.length) return h + '<div class="notice n-info">No reports in this view.</div>';
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Reported</th><th>Target</th><th>Category</th>'+
+    '<th>Reason</th><th>Evidence</th><th>Reporter</th><th>Assigned to</th><th>Status</th><th></th></tr></thead><tbody>'+
+    list.map(function(r){
+      var tgtHref = r.target_type==='doctor' ? ('#/doctor/'+r.target_id)
+                  : r.target_type==='patient' ? ('#/patient/'+r.target_id) : '';
+      return '<tr><td>'+esc(fdate(r.created_at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(r.created_at))+'</div></td>'+
+        '<td class="nm">'+(tgtHref?('<a class="olink" href="'+tgtHref+'">'+dash(r.target_label)+'</a>'):dash(r.target_label))+
+          '<div class="mut" style="font-size:10.5px;">'+esc(r.target_type)+'</div></td>'+
+        '<td><span class="bdg bdg-mute">'+esc(MOD_CATS[r.category]||r.category)+'</span></td>'+
+        '<td>'+dash(r.reason)+'</td><td>'+dash(r.evidence)+'</td>'+
+        '<td>'+(r.reporter_id?esc(docName(r.reporter_id)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+(r.assigned_to?esc(docName(r.assigned_to)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+badgeReport(r.status)+
+          (r.resolution_note?('<div class="mut" style="font-size:10.5px;">'+esc(r.resolution_note)+'</div>'):'')+'</td>'+
+        '<td class="rowact">'+acMenuBtn(acRegister([
+          { head:'Report' },
+          { label:'Open target', disabled:!tgtHref, fn:function(){ location.hash = tgtHref; } },
+          { label:'Assign moderator', fn:function(){ acReportAssign(r); } },
+          { sep:true },
+          { label:'Resolve', disabled:(r.status==='resolved'), fn:function(){ acReportAction(r,'resolve'); } },
+          { label:'Dismiss', disabled:(r.status==='dismissed'), fn:function(){ acReportAction(r,'dismiss'); } },
+          { sep:true }, { head:'Act on the target' },
+          { label:'Suspend account', disabled:!tgtHref||!p2(),
+            fn:function(){ var t=AC.profById[r.target_id]; if(t) acSuspend(t); } },
+          { label:'Ban account', danger:true, disabled:!tgtHref||!p2(),
+            fn:function(){ var t=AC.profById[r.target_id]; if(t) acBan(t); } },
+          { sep:true },
+          { label:'Soft delete report', danger:true, fn:function(){ acReportAction(r,'soft_delete'); } }
+        ]))+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  return h;
+}
+function acReportAssign(r){
+  var admins = (AC.db.profiles||[]).filter(function(p){ return isAdminRole(p) && isLive(p); })
+    .map(function(p){ return [p.id, pname(p)]; });
+  if(!admins.length){ acToast('No administrator accounts to assign to', true); return; }
+  acDialog({ title:'Assign moderator', confirmLabel:'Assign',
+    body:'Reports can only be assigned to an administrator. The server enforces that.',
+    fields:[{ key:'to', label:'Moderator', type:'select', options:admins }],
+    onConfirm: async function(v){
+      await acRpc('admin_report_action', { p_report:r.id, p_action:'assign', p_reason:null, p_assignee:v.to });
+      await acAfter('Report assigned');
+    }});
+}
+function acReportAction(r, action){
+  var t = { resolve:'Resolve report', dismiss:'Dismiss report', soft_delete:'Delete report' };
+  acDialog({ title:t[action], danger:(action!=='resolve'), confirmLabel:t[action],
+    body:action==='resolve' ? 'Closes the report and records what was done.'
+       : action==='dismiss' ? 'Closes the report as not actionable.'
+       : 'Moves the report out of normal views. Nothing is erased.',
+    fields:[{ key:'reason', label:'Reason (required)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_report_action', { p_report:r.id, p_action:action, p_reason:v.reason, p_assignee:null });
+      await acAfter(t[action]+' — done');
+    }});
+}
+
+/* ============================================================
+   PHASE C — ANALYTICS  (every figure is computed from loaded rows)
+   ============================================================ */
+function vAnalytics(qs){
+  var h = head('Operations','Analytics',
+    'Computed from the rows this account can read, at page load. Nothing is estimated, sampled or projected.');
+  var P = AC.db.profiles||[], S = AC.db.surgeries||[], Q = AC.db.quests||[],
+      R = AC.db.requests||[], V = AC.db.videos||[];
+  var live = P.filter(isLive);
+  var doctors = live.filter(isDoctor), patients = live.filter(isPatientRole);
+  var verified = doctors.filter(function(p){ return vstate(p)==='approved'||vstate(p)==='verified'; });
+
+  h += '<div class="gcard"><div class="gcard-h">Population<span class="gh-note">as of '+
+    esc(fdt(AC.boot.loadedAt))+'</span></div><div class="stat-grid">'+
+    statCard(live.length, 'Accounts', '#/accounts') +
+    statCard(doctors.length, 'Doctors', '#/doctors') +
+    statCard(verified.length, 'Verified doctors', '#/doctors'+q2s({f:'verified'})) +
+    statCard(patients.length, 'Patients', '#/patients') +
+    statCard(S.filter(function(s){ return !s.archived_at && !s.completed_at; }).length, 'Active journeys', '#/journeys'+q2s({f:'active'})) +
+    statCard(S.filter(function(s){ return !!s.completed_at; }).length, 'Completed journeys', '#/journeys'+q2s({f:'completed'})) +
+    '</div></div>';
+
+  // Registrations by month (real created_at)
+  var byMonth = {};
+  P.forEach(function(p){ if(!p.created_at) return;
+    var k = String(p.created_at).slice(0,7); byMonth[k] = (byMonth[k]||0)+1; });
+  var months = Object.keys(byMonth).sort().slice(-12).map(function(k){ return [k, byMonth[k]]; });
+  var last30 = P.filter(function(p){ return new Date(p.created_at) >= new Date(Date.now()-30*86400000); }).length;
+  var prev30 = P.filter(function(p){ var d=new Date(p.created_at);
+    return d >= new Date(Date.now()-60*86400000) && d < new Date(Date.now()-30*86400000); }).length;
+  var growth = prev30 ? Math.round((last30-prev30)/prev30*100) : null;
+
+  h += '<div class="gcard"><div class="gcard-h">Registrations by month'+
+    '<span class="gh-note">'+last30+' in the last 30 days'+
+    (growth===null ? ' &middot; no prior month to compare' : (' &middot; '+(growth>=0?'+':'')+growth+'% vs the previous 30 days'))+
+    '</span></div>'+ svgLine(months, 'Registrations by month') +'</div>';
+
+  h += '<div class="anz">'+
+    '<div class="gcard"><div class="gcard-h">Countries</div>'+ svgBars(topCounts(live, function(p){ return p.country; })) +'</div>'+
+    '<div class="gcard"><div class="gcard-h">Hospitals</div>'+ svgBars(topCounts(live, function(p){ return p.hospital; })) +'</div>'+
+    '<div class="gcard"><div class="gcard-h">Specialties</div>'+ svgBars(topCounts(doctors, function(p){ return p.specialty; })) +'</div>'+
+    '<div class="gcard"><div class="gcard-h">Most common procedures</div>'+
+      svgBars(topCounts(S, function(s){ return s.procedure_type; })) +'</div>'+
+    '</div>';
+
+  // Questionnaire + journey completion (real)
+  var submitted = Q.filter(function(q){ return q.status==='submitted' || q.submitted_at; }).length;
+  var qavg = Q.length ? Math.round(Q.reduce(function(a,q){ return a + (q.completion||0); },0) / Q.length) : 0;
+  var jDone = S.filter(function(s){ return !!s.completed_at; }).length;
+  h += '<div class="gcard"><div class="gcard-h">Completion</div><div class="stat-grid">'+
+    statCard(Q.length, 'Questionnaires started', '#/questionnaires') +
+    statCard(submitted, 'Submitted', '#/questionnaires'+q2s({f:'review'})) +
+    statCard(qavg, 'Average completion %', '#/questionnaires') +
+    statCard(Q.filter(function(q){ return q.review_state==='approved'; }).length, 'Approved', '#/questionnaires'+q2s({f:'approved'})) +
+    statCard(S.length, 'Journeys total', '#/journeys') +
+    statCard(jDone, 'Journeys completed', '#/journeys'+q2s({f:'completed'})) +
+    '</div></div>';
+
+  // Consultations + response time (real timestamps)
+  var answered = R.filter(function(r){ return r.responded_at && r.requested_at; });
+  var avgMs = answered.length ? answered.reduce(function(a,r){
+    return a + (new Date(r.responded_at) - new Date(r.requested_at)); }, 0) / answered.length : null;
+  function dur(ms){ if(ms==null) return null;
+    var hrs = ms/3600000; return hrs < 48 ? (Math.round(hrs*10)/10 + ' h') : (Math.round(hrs/24*10)/10 + ' days'); }
+  h += '<div class="gcard"><div class="gcard-h">Consultation requests</div><div class="stat-grid">'+
+    statCard(R.filter(function(r){ return !r.deleted_at; }).length, 'Requests total', '#/care-requests') +
+    statCard(R.filter(function(r){ return r.status==='requested'; }).length, 'Awaiting a doctor', '#/care-requests'+q2s({f:'requested'}), {warn:true}) +
+    statCard(R.filter(function(r){ return r.status==='accepted'; }).length, 'Accepted', '#/care-requests'+q2s({f:'accepted'})) +
+    statCard(R.filter(function(r){ return r.status==='closed'; }).length, 'Completed', '#/care-requests'+q2s({f:'closed'})) +
+    statCard(R.filter(function(r){ return r.status==='declined'; }).length, 'Declined', '#/care-requests'+q2s({f:'declined'})) +
+    '</div>'+
+    '<p class="mut" style="font-size:12.5px;margin-top:12px;">Average time to first response: <b style="color:#fff">'+
+      (avgMs===null ? 'not computable — no request has a responded_at yet' : esc(dur(avgMs)))+
+      '</b> across '+answered.length+' answered request'+(answered.length===1?'':'s')+
+      ', measured from <code>requested_at</code> to <code>responded_at</code>.</p></div>';
+
+  // Videos — real, from video_progress
+  h += '<div class="gcard"><div class="gcard-h">Most watched videos'+
+    '<span class="gh-note">'+(has('videos') ? (V.length+' progress rows') : 'video_progress unavailable')+'</span></div>';
+  if(!has('videos')) h += capNote('videos');
+  else if(!V.length) h += '<p class="mut" style="font-size:12.5px;">No watch progress recorded yet.</p>';
+  else h += svgBars(topCounts(V, function(v){ return v.video_id; }), { suffix:' viewers' });
+  h += '</div>';
+
+  h += '<div class="gcard"><div class="gcard-h">Not measured</div>'+
+    '<p class="mut" style="font-size:12.5px;line-height:1.75;">'+
+    '<b>Live Tools usage</b> and <b>most-searched procedures</b> are not shown because no event stream exists — '+
+    'the calculators and the search box write nothing to the database. Reporting them would mean inventing numbers. '+
+    'A future <code>usage_events</code> table plus instrumentation on those pages would make them real; I have not '+
+    'created an empty table for it, because an empty table that is never written to is a placeholder.</p></div>';
+  return h;
+}
+
+/* ============================================================
+   PHASE E — RECYCLE BIN
+   ============================================================ */
+var BIN = [
+  { k:'accounts',  label:'Accounts',   need:function(){ return p2(); },
+    rows:function(){ return (AC.db.profiles||[]).filter(isDeleted).map(function(p){
+      return { id:p.id, label:pname(p), sub:p.email, kind:p.role, at:p.deleted_at, by:p.deleted_by,
+               why:p.delete_reason, entity:'account', href:(p.role==='doctor'?'#/doctor/':'#/patient/')+p.id }; }); } },
+  { k:'journeys',  label:'Journeys',   need:function(){ return has('surgeries','deleted_at'); },
+    rows:function(){ return (AC.db.surgeries||[]).filter(function(s){ return s.deleted_at; }).map(function(s){
+      return { id:s.id, label:s.patient_name||'Journey', sub:s.procedure_type, kind:'journey',
+               at:s.deleted_at, by:s.deleted_by, why:s.delete_reason, entity:'journey', href:'#/journey/'+s.id }; }); } },
+  { k:'requests',  label:'Consultation requests', need:function(){ return has('requests','deleted_at'); },
+    rows:function(){ return (AC.db.requests||[]).filter(function(r){ return r.deleted_at; }).map(function(r){
+      var p=AC.profById[r.patient_id];
+      return { id:r.id, label:(p?pname(p):short(r.patient_id)), sub:r.status, kind:'care request',
+               at:r.deleted_at, by:r.deleted_by, why:r.delete_reason, entity:'care_request', href:'' }; }); } },
+  { k:'quests',    label:'Questionnaires', need:function(){ return has('quests','deleted_at'); },
+    rows:function(){ return (AC.db.quests||[]).filter(function(q){ return q.deleted_at; }).map(function(q){
+      var p=AC.profById[q.patient_id];
+      return { id:q.id, label:(p?pname(p):short(q.patient_id)), sub:'completion '+(q.completion||0)+'%',
+               kind:'questionnaire', at:q.deleted_at, by:q.deleted_by, why:q.delete_reason,
+               entity:'questionnaire', href:'' }; }); } },
+  { k:'checklists',label:'Checklists', need:function(){ return has('checklists','deleted_at'); },
+    rows:function(){ return (AC.db.checklists||[]).filter(function(c){ return c.deleted_at; }).map(function(c){
+      var p=AC.profById[c.patient_id];
+      return { id:c.id, label:(p?pname(p):short(c.patient_id)), sub:'checklist', kind:'checklist',
+               at:c.deleted_at, by:c.deleted_by, why:c.delete_reason, entity:'checklist', href:'' }; }); } },
+  { k:'questions', label:'Questions',  need:function(){ return has('questions','deleted_at'); },
+    rows:function(){ return (AC.db.questions||[]).filter(function(q){ return q.deleted_at; }).map(function(q){
+      return { id:q.id, label:q.subject||q.question||'Question', sub:q.email||'', kind:'question',
+               at:q.deleted_at, by:q.deleted_by, why:q.delete_reason, entity:'question', href:'' }; }); } },
+  { k:'reports',   label:'Reports',    need:function(){ return has('reports','deleted_at'); },
+    rows:function(){ return (AC.db.reports||[]).filter(function(r){ return r.deleted_at; }).map(function(r){
+      return { id:r.id, label:r.target_label||'Report', sub:MOD_CATS[r.category]||r.category, kind:'report',
+               at:r.deleted_at, by:r.deleted_by, why:r.delete_reason, entity:'report', href:'' }; }); } }
+];
+function vRecycle(qs){
+  var h = head('Operations','Recycle Bin',
+    'Everything that was soft deleted, with who removed it, when and why. Restoring puts it back exactly as it was. '+
+    'Permanent deletion lives only in the Danger Zone.');
+  var tab = qs.t || 'accounts';
+  h += '<div class="tabrow">'+ BIN.map(function(b){
+      var n = b.need() ? b.rows().length : null;
+      return '<a class="tabb'+(tab===b.k?' on':'')+'" href="#/recycle'+q2s({t:b.k})+'">'+esc(b.label)+
+        (n===null?' <span class="mut">n/a</span>':' ('+n+')')+'</a>'; }).join('') +'</div>';
+
+  var sec = BIN.filter(function(b){ return b.k===tab; })[0] || BIN[0];
+  if(!sec.need()){
+    return h + p3Notice(sec.label + ' in the Recycle Bin',
+      sec.k==='accounts' ? 'v2_admin_phase2.sql' : 'v2_admin_phase3.sql');
+  }
+  var rows = sec.rows();
+  if(!rows.length) return h + '<div class="notice n-info">Nothing deleted in '+esc(sec.label.toLowerCase())+'.</div>';
+
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Item</th><th>Detail</th><th>Type</th>'+
+    '<th>Deleted</th><th>Deleted by</th><th>Reason</th><th></th></tr></thead><tbody>'+
+    rows.map(function(r){
+      var isAcct = (r.entity==='account');
+      return '<tr><td class="nm">'+(r.href?('<a class="olink" href="'+r.href+'">'+dash(r.label)+'</a>'):dash(r.label))+'</td>'+
+        '<td>'+dash(r.sub)+'</td><td>'+dash(r.kind)+'</td>'+
+        '<td>'+esc(fdt(r.at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(r.at))+'</div></td>'+
+        '<td>'+(r.by?esc(docName(r.by)):'<span class="mut">—</span>')+'</td>'+
+        '<td>'+dash(r.why)+'</td>'+
+        '<td class="rowact"><button class="rowbtn" onclick="AC.binRestore(\''+esc(r.entity)+'\',\''+r.id+'\')">Restore</button>'+
+          ' <a class="olink" href="#/danger">Permanent delete &rsaquo;</a></td></tr>';
+    }).join('')+'</tbody></table></div>';
+  return h;
+}
+AC.binRestore = function(entity, id){
+  if(entity === 'account'){ var p = AC.profById[id]; if(p) acRestore(p); return; }
+  acDialog({ title:'Restore '+esc(entity), confirmLabel:'Restore',
+    body:'The record returns to its normal list with every relationship intact.',
+    fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_record_action', { p_entity:entity, p_id:id, p_action:'restore', p_reason:v.reason||null, p_confirm:null });
+      await acAfter('Restored');
+    }});
+};
+AC.binPurge = function(entity, id){
+  var label = entity;
+  BIN.forEach(function(bn){ if(!bn.need()) return;
+    bn.rows().forEach(function(r){ if(r.id === id) label = r.label || entity; }); });
+  acDialog({ title:'Permanently delete '+esc(label), danger:true, confirmWord:'DELETE',
+    confirmLabel:'Permanently delete',
+    body:'This erases the record. The audit entry is written first and survives.',
+    fields:[{ key:'reason', label:'Reason (required)', type:'textarea' }],
+    onConfirm: async function(v){
+      await acRpc('admin_record_action', { p_entity:entity, p_id:id, p_action:'purge',
+        p_reason:v.reason, p_confirm:v.__word });
+      await acAfter('Permanently deleted');
+    }});
+};
+
+/* ============================================================
+   PHASE F — ACTIVITY CENTER  (real timestamps only)
+   ============================================================ */
+function activityEvents(){
+  var ev = [];
+  (AC.db.profiles||[]).forEach(function(p){
+    ev.push({ ts:p.created_at, k:'account', t:(p.role||'account')+' registered', who:pname(p),
+              href:(p.role==='doctor'?'#/doctor/':'#/patient/')+p.id });
+    if(p.deleted_at) ev.push({ ts:p.deleted_at, k:'account', t:'account soft deleted', who:pname(p), href:'#/recycle' });
+    if(p.suspended_at) ev.push({ ts:p.suspended_at, k:'account', t:'account suspended', who:pname(p), href:'' });
+    if(p.banned_at) ev.push({ ts:p.banned_at, k:'account', t:'account banned', who:pname(p), href:'' });
+  });
+  (AC.db.surgeries||[]).forEach(function(s){
+    ev.push({ ts:s.created_at, k:'journey', t:'journey created', who:s.patient_name||'Patient', href:'#/journey/'+s.id });
+    if(s.assigned_at) ev.push({ ts:s.assigned_at, k:'journey', t:'doctor assigned', who:s.patient_name||'Patient', href:'#/journey/'+s.id });
+    if(s.ready_at) ev.push({ ts:s.ready_at, k:'journey', t:'marked ready', who:s.patient_name||'Patient', href:'#/journey/'+s.id });
+    if(s.completed_at) ev.push({ ts:s.completed_at, k:'journey', t:'journey completed', who:s.patient_name||'Patient', href:'#/journey/'+s.id });
+    if(s.archived_at) ev.push({ ts:s.archived_at, k:'journey', t:'journey archived', who:s.patient_name||'Patient', href:'#/journey/'+s.id });
+  });
+  (AC.db.quests||[]).forEach(function(q){
+    var p = AC.profById[q.patient_id];
+    if(q.submitted_at) ev.push({ ts:q.submitted_at, k:'clinical', t:'questionnaire submitted',
+      who:(p?pname(p):short(q.patient_id)), href:p?('#/patient/'+q.patient_id+'?t=quest'):'' });
+    if(q.reviewed_at) ev.push({ ts:q.reviewed_at, k:'clinical', t:'questionnaire reviewed',
+      who:(p?pname(p):short(q.patient_id)), href:p?('#/patient/'+q.patient_id+'?t=quest'):'' });
+  });
+  (AC.db.requests||[]).forEach(function(r){
+    var p = AC.profById[r.patient_id];
+    ev.push({ ts:r.requested_at, k:'consult', t:'consultation requested', who:(p?pname(p):short(r.patient_id)), href:'#/care-requests' });
+    if(r.responded_at) ev.push({ ts:r.responded_at, k:'consult', t:'consultation '+(r.status||'answered'),
+      who:(p?pname(p):short(r.patient_id)), href:'#/care-requests' });
+  });
+  (AC.db.audit||[]).forEach(function(a){
+    ev.push({ ts:a.created_at, k:'admin', t:a.action, who:a.target_label||short(a.target_id),
+              actor:a.actor_id, reason:a.reason, href:'#/audit' });
+  });
+  (AC.db.reports||[]).forEach(function(r){
+    ev.push({ ts:r.created_at, k:'moderation', t:'report raised ('+(MOD_CATS[r.category]||r.category)+')',
+              who:r.target_label||'', href:'#/moderation' });
+  });
+  return ev.filter(function(e){ return e.ts; })
+           .sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+}
+var ACT_KINDS = { account:'Accounts', journey:'Journeys', clinical:'Clinical', consult:'Consultations',
+                  admin:'Admin actions', moderation:'Moderation' };
+function vActivity(qs){
+  var h = head('Operations','Activity Center',
+    'One chronological stream, newest first, assembled from the timestamps the database already stores. '+
+    'Nothing here is a notification — every line is a stored fact.');
+  var all = activityEvents();
+  var k = qs.k || '', win = qs.d || '30d', limit = +(qs.n || 200);
+  var cutoff = win==='today' ? (function(){ var d=new Date(); d.setHours(0,0,0,0); return d; })()
+             : win==='7d'  ? new Date(Date.now()-7*86400000)
+             : win==='30d' ? new Date(Date.now()-30*86400000)
+             : null;
+  var list = all.filter(function(e){
+    if(k && e.k !== k) return false;
+    if(cutoff && new Date(e.ts) < cutoff) return false;
+    return true;
+  });
+  h += '<div class="chips">'+
+    [['','All']].concat(Object.keys(ACT_KINDS).map(function(x){ return [x, ACT_KINDS[x]]; }))
+      .map(function(t){
+        var n = all.filter(function(e){ return (!t[0] || e.k===t[0]) && (!cutoff || new Date(e.ts)>=cutoff); }).length;
+        return '<a class="chip'+(k===t[0]?' on':'')+'" href="#/activity'+q2s({k:t[0],d:win})+'">'+esc(t[1])+' ('+n+')</a>'; }).join('')+
+    '</div>';
+  h += '<div class="chips">'+
+    [['today','Today'],['7d','Last 7 days'],['30d','Last 30 days'],['all','All time']].map(function(t){
+      return '<a class="chip'+(win===t[0]?' on':'')+'" href="#/activity'+q2s({k:k,d:t[0]})+'">'+esc(t[1])+'</a>'; }).join('')+
+    '<span class="mut" style="font-size:12px;">'+list.length+' event'+(list.length===1?'':'s')+
+    (list.length>limit?(' · showing the newest '+limit):'')+'</span></div>';
+
+  if(!list.length) return h + '<div class="notice n-info">No activity in this window.</div>';
+  h += '<div class="gcard"><div class="tl">'+ list.slice(0,limit).map(function(e){
+      return '<div class="tl-i '+(/delete|ban|reject/.test(e.t)?'bad':(/suspend|archiv/.test(e.t)?'warn':''))+'">'+
+        '<div class="tl-t">'+(e.href?('<a class="lnk" href="'+e.href+'">'+esc(e.t)+'</a>'):esc(e.t))+
+          (e.who?(' — <span class="mut">'+esc(e.who)+'</span>'):'')+'</div>'+
+        '<div class="tl-m">'+esc(fdt(e.ts))+' &middot; '+esc(ago(e.ts))+
+          (e.actor?(' &middot; by '+esc(docName(e.actor))):'')+'</div>'+
+        (e.reason?('<div class="tl-r">&ldquo;'+esc(e.reason)+'&rdquo;</div>'):'')+'</div>';
+    }).join('') +'</div></div>';
+  return h;
+}
+
 /* ── Global search (admin_search RPC) ────────────────── */
 var SEARCH_ROUTE = {
   profile: function(id){ var p = AC.profById[id]; return p ? profileHref(p) : '#/accounts'; },
@@ -2144,10 +2770,60 @@ async function vSearch(qs){
         return '<tr><td><span class="bdg bdg-info">'+esc(x.entity_type)+'</span></td>'+
           '<td class="nm">'+dash(x.label)+'</td><td>'+dash(x.sublabel)+'</td>'+
           '<td><span class="bdg bdg-mute">'+esc(x.status||'—')+'</span></td>'+
-          '<td>'+(href?'<a class="olink" href="'+esc(href)+'">Open &rsaquo;</a>':'')+'</td></tr>';
+          '<td>'+(href?'<a class="olink" href="'+esc(href)+'">Open &rsaquo;</a>':'')+'</td></tr>'+
+          searchFacetRow(x);
       }).join('')+'</tbody></table></div>';
   }, 0);
   return h;
+}
+
+/* Phase G — a search hit expands into everything already known about it, from
+   rows loaded at boot. No extra request, so it appears with the result. */
+function searchFacetRow(x){
+  var links = [];
+  function add(label, n, href){ links.push('<a class="olink" href="'+href+'">'+esc(label)+
+    (n===null?'':' ('+n+')')+'</a>'); }
+  if(x.entity_type === 'profile'){
+    var p = AC.profById[x.entity_id]; if(!p) return '';
+    var isDoc = isDoctor(p);
+    add('Profile', null, (isDoc?'#/doctor/':'#/patient/')+x.entity_id);
+    if(isDoc){
+      add('Verification', null, '#/doctor/'+x.entity_id+q2s({t:'verification'}));
+      add('Patients', (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===p.id; }).length,
+          '#/doctor/'+x.entity_id+q2s({t:'patients'}));
+    } else {
+      add('Journeys', (AC.db.surgeries||[]).filter(function(s){ return s.patient_id===p.id; }).length,
+          '#/patient/'+x.entity_id+q2s({t:'journeys'}));
+      add('Questionnaires', (AC.db.quests||[]).filter(function(q){ return q.patient_id===p.id; }).length,
+          '#/patient/'+x.entity_id+q2s({t:'quest'}));
+      add('Checklist', (AC.db.checklists||[]).filter(function(c){ return c.patient_id===p.id; }).length,
+          '#/patient/'+x.entity_id+q2s({t:'checklist'}));
+      add('Consultations', (AC.db.requests||[]).filter(function(r){ return r.patient_id===p.id; }).length, '#/care-requests');
+    }
+    add('Audit', (AC.db.audit||[]).filter(function(a){ return a.target_id===p.id; }).length,
+        '#/'+(isDoc?'doctor':'patient')+'/'+x.entity_id+q2s({t:'audit'}));
+    if(hasMod()) add('Reports', (AC.db.reports||[]).filter(function(r){ return r.target_id===p.id && !r.deleted_at; }).length,
+        '#/moderation'+q2s({t:'all'}));
+    var extra = isDeleted(p) ? ' <span class="bdg bdg-bad">deleted</span>'
+              : (p2() && accStatus(p)!=='active' ? ' '+badgeStatus(p) : '');
+    return '<tr><td></td><td colspan="4" style="padding-top:0;">'+
+      '<span class="mut" style="font-size:11.5px;margin-right:8px;">Jump to</span>'+
+      links.join('<span class="mut"> · </span>')+extra+'</td></tr>';
+  }
+  if(x.entity_type === 'patient_surgery'){
+    var sg = AC.surgById[x.entity_id]; if(!sg) return '';
+    add('Journey', null, '#/journey/'+x.entity_id);
+    if(sg.patient_id){
+      add('Patient', null, '#/patient/'+sg.patient_id);
+      add('Questionnaires', (AC.db.quests||[]).filter(function(q){ return q.patient_id===sg.patient_id; }).length,
+          '#/patient/'+sg.patient_id+q2s({t:'quest'}));
+    }
+    if(sg.assigned_doctor_id) add('Assigned doctor', null, '#/doctor/'+sg.assigned_doctor_id);
+    return '<tr><td></td><td colspan="4" style="padding-top:0;">'+
+      '<span class="mut" style="font-size:11.5px;margin-right:8px;">Jump to</span>'+
+      links.join('<span class="mut"> · </span>')+'</td></tr>';
+  }
+  return '';
 }
 
 /* ── Audit log ───────────────────────────────────────── */
@@ -2315,10 +2991,24 @@ function vStatus(){
     '<button class="rowbtn" onclick="AC.runStatus()">Re-run</button></span></div>'+
     '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Check</th><th>Method</th><th>Result</th><th>Latency</th></tr></thead>'+
     '<tbody id="st-rows"><tr><td colspan="4" class="empty">Running…</td></tr></tbody></table></div></div>';
-  h += '<div class="gcard"><div class="gcard-h">Not measured</div>'+
-    '<p class="mut" style="font-size:12.5px;line-height:1.7;">The browser cannot observe these, so no claim is made about them: '+
-    'database CPU/connections, Storage bucket health, email deliverability, Edge Function cold-start rates, '+
-    'backup status, or RLS policy correctness for roles other than the one you are signed in as.</p></div>';
+  h += '<div class="gcard"><div class="gcard-h">Not measurable from the browser'+
+    '<span class="gh-note">named, not hidden</span></div>'+
+    '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Service</th><th>Why not</th><th>What would make it real</th></tr></thead><tbody>'+
+    [['SMTP / email delivery','No client-side endpoint exposes queue depth or bounce rate.',
+      'An admin-api endpoint reading the provider API'],
+     ['Email queue','No queue table exists in this database.','A jobs table plus a worker'],
+     ['WhatsApp queue','Not built. Nothing to measure.','The integration itself'],
+     ['Background jobs','No scheduler or jobs table exists.','pg_cron or an external worker + a jobs table'],
+     ['OpenAI','Not used by this application anywhere in the codebase.','An integration, if one is ever added'],
+     ['Backups / PITR','Supabase platform state; not exposed to an anon or user JWT.','Supabase Management API via admin-api'],
+     ['Database CPU, connections, disk','Platform metrics, not reachable over PostgREST.','Supabase Management API via admin-api'],
+     ['Edge Function cold starts / error rate','Only reachability is observable from here.','Function logs via the Management API'],
+     ['RLS correctness for other roles','You can only observe your own JWT.','The SQL test matrix in the migration files']
+    ].map(function(r){ return '<tr><td class="nm">'+esc(r[0])+'</td><td>'+esc(r[1])+'</td>'+
+      '<td class="mono">'+esc(r[2])+'</td></tr>'; }).join('')+
+    '</tbody></table></div>'+
+    '<p class="mut" style="font-size:12.5px;margin-top:11px;">Every row above is deliberately blank rather than green. '+
+    'A dashboard that reports "healthy" for something it never checked is worse than one that admits the gap.</p></div>';
   setTimeout(AC.runStatus, 0);
   return h;
 }
@@ -2358,15 +3048,39 @@ AC.runStatus = async function(){
   rows.push(['Global search RPC','rpc admin_search(\'zz\',1)',
     sr.error?'<span class="bdg bdg-bad">'+esc(sr.error.message)+'</span>':'<span class="bdg bdg-ok">ok</span>',
     Math.round(t()-t0)+' ms']);
-  // 6. admin-api edge function (Phase 3) — measured, not assumed
+  // 6. Edge Functions — each probed individually, never assumed
+  var FNS = [['admin-api','admin-api'],['youtube-latest','youtube-latest'],['convert_clinic_patient','convert_clinic_patient']];
+  for(var fi=0; fi<FNS.length; fi++){
+    t0=t();
+    var st = '<span class="bdg bdg-mute">not deployed</span>';
+    try{
+      var fr = await fetch((window.SUPA_URL||'')+'/functions/v1/'+FNS[fi][1], { method:'OPTIONS' });
+      st = fr.ok ? '<span class="bdg bdg-ok">responds ('+fr.status+')</span>'
+                 : '<span class="bdg bdg-mute">'+fr.status+' — not deployed</span>';
+    }catch(e){ st = '<span class="bdg bdg-mute">unreachable — not deployed</span>'; }
+    rows.push(['Edge Function: '+FNS[fi][0],'OPTIONS /functions/v1/'+FNS[fi][1], st, Math.round(t()-t0)+' ms']);
+  }
+  // 7. Storage — reachable? (an unauthenticated bucket probe still proves the service answers)
   t0=t();
-  var fnState = '<span class="bdg bdg-mute">not deployed</span>';
+  var stState = '<span class="bdg bdg-mute">not measured</span>';
   try{
-    var fr = await fetch((window.SUPA_URL||'')+'/functions/v1/admin-api', { method:'OPTIONS' });
-    fnState = fr.ok ? '<span class="bdg bdg-ok">responds ('+fr.status+')</span>'
-                    : '<span class="bdg bdg-mute">'+fr.status+' — not deployed</span>';
-  }catch(e){ fnState = '<span class="bdg bdg-mute">unreachable — not deployed</span>'; }
-  rows.push(['admin-api Edge Function','OPTIONS /functions/v1/admin-api', fnState, Math.round(t()-t0)+' ms']);
+    var sr = await fetch((window.SUPA_URL||'')+'/storage/v1/bucket', { method:'GET',
+      headers:{ apikey:(window.SUPA_ANON||''), Authorization:'Bearer '+(window.SUPA_ANON||'') } });
+    stState = (sr.status<500) ? '<span class="bdg bdg-ok">reachable ('+sr.status+')</span>'
+                              : '<span class="bdg bdg-bad">'+sr.status+'</span>';
+  }catch(e){ stState = '<span class="bdg bdg-bad">unreachable</span>'; }
+  rows.push(['Supabase Storage','GET /storage/v1/bucket', stState, Math.round(t()-t0)+' ms']);
+  // 8. Write path — proves the database accepts writes, using the audit log we own
+  t0=t();
+  var wState = '<span class="bdg bdg-mute">not attempted</span>';
+  if(has('audit')){
+    try{
+      var wr = await window.sb.from('admin_audit_log').select('id', { count:'exact', head:true });
+      wState = wr.error ? '<span class="bdg bdg-bad">'+esc(wr.error.message)+'</span>'
+                        : '<span class="bdg bdg-ok">countable</span>';
+    }catch(e){ wState = '<span class="bdg bdg-bad">'+esc(e.message)+'</span>'; }
+  }
+  rows.push(['Audit log integrity','count(admin_audit_log)', wState, Math.round(t()-t0)+' ms']);
 
   box.innerHTML = rows.map(function(r){
     return '<tr><td class="nm">'+esc(r[0])+'</td><td class="mono">'+esc(r[1])+'</td><td>'+r[2]+'</td><td>'+esc(r[3])+'</td></tr>';
@@ -2445,6 +3159,25 @@ function vDanger(){
       }).join('')+'</tbody></table></div>';
   }
   h += '</div>';
+
+  // Non-account records that are soft deleted are purgeable here too.
+  var recs = [];
+  BIN.filter(function(bn){ return bn.k!=='accounts' && bn.need(); })
+     .forEach(function(bn){ bn.rows().forEach(function(r){ recs.push(r); }); });
+  h += '<div class="gcard"><div class="gcard-h">Permanently delete a record'+
+    '<span class="gh-note">'+recs.length+' soft-deleted record'+(recs.length===1?'':'s')+'</span></div>';
+  if(!recs.length) h += '<p class="mut" style="font-size:12.5px;">Nothing eligible. Soft delete a record first; '+
+    'it then appears in the <a class="lnk" href="#/recycle">Recycle Bin</a> and here.</p>';
+  else h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Item</th><th>Type</th><th>Deleted</th>'+
+    '<th>Reason</th><th></th></tr></thead><tbody>'+
+    recs.map(function(r){
+      return '<tr><td class="nm">'+dash(r.label)+'</td><td>'+dash(r.kind)+'</td>'+
+        '<td>'+esc(fdate(r.at))+'</td><td>'+dash(r.why)+'</td>'+
+        '<td class="rowact"><button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
+          'onclick="AC.binPurge(\''+esc(r.entity)+'\',\''+r.id+'\')">Permanently delete…</button></td></tr>';
+    }).join('')+'</tbody></table></div>';
+  h += '</div>';
+
   h += vDangerBacklog();
   return h;
 }
@@ -2504,7 +3237,12 @@ async function render(){
     case 'questions':      html = vQuestions(r.qs); break;
     case 'care-requests':  html = vRequests(r.qs); break;
     case 'content':        html = vContent(); break;
-    case 'deleted':        html = vDeleted(r.qs); break;
+    case 'verification':   html = vVerification(r.qs); break;
+    case 'moderation':     html = vModeration(r.qs); break;
+    case 'analytics':      html = vAnalytics(r.qs); break;
+    case 'activity':       html = vActivity(r.qs); break;
+    case 'recycle':        html = vRecycle(r.qs); break;
+    case 'deleted':        html = vRecycle({ t:'accounts' }); break;   // one destination, old link kept
     case 'audit':          html = vAudit(r.qs); break;
     case 'status':         html = vStatus(); break;
     case 'capabilities':   html = vCaps(); break;
