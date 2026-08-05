@@ -206,32 +206,79 @@ $ft$;
 END
 $dt$;
 
--- Banned / suspended / deleted clinicians disappear from the patient-facing
--- directory. Guarded: only touched if the RPC actually exists.
+-- Suspended, banned and soft-deleted clinicians disappear from the
+-- patient-facing directory.
+--
+-- CONTRACT: the existing function returns TABLE (id uuid, name text,
+-- specialty text, clinic text) and patient-dashboard.html reads exactly
+-- d.id / d.name / d.specialty / d.clinic. CREATE OR REPLACE cannot change a
+-- return type, so the signature and the output column NAMES are reproduced
+-- byte-for-byte from v2_bridge_directory_rpcs.sql. Only the WHERE clause
+-- gains the lifecycle predicate.
+--
+-- DELIBERATELY NOT CHANGED: the canonical function does not filter on
+-- verification_status, so unverified doctors who opted into the directory are
+-- listed today. Adding that filter here would be a silent patient-facing
+-- product change riding inside an account-lifecycle migration. It is left
+-- exactly as it is and raised separately as a product decision.
+--
+-- Also preserved: admins who opted in (role='doctor' OR is_admin=true), the
+-- display_name/clinic_name COALESCE fallbacks, and the absence of ORDER BY.
 DO $dir$
+DECLARE
+  v_ret text;
+  v_expected constant text := 'TABLE(id uuid, name text, specialty text, clinic text)';
+  v_name_expr text;
+  v_clinic_expr text;
 BEGIN
-  IF to_regproc('public.get_clinician_directory') IS NOT NULL
-     AND pg_temp.p2_has('public.profiles', ARRAY['accepting_patients']) THEN
-    EXECUTE $q$
-      CREATE OR REPLACE FUNCTION public.get_clinician_directory()
-      RETURNS TABLE (id uuid, full_name text, specialty text, hospital text, country text)
-      LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp
-      AS $fn$
-        SELECT p.id, p.full_name, p.specialty, p.hospital, p.country
-          FROM public.profiles p
-         WHERE p.accepting_patients = true
-           AND COALESCE(p.role,'') = 'doctor'
-           AND COALESCE(p.verification_status,'') IN ('approved','verified')
-           AND p.deleted_at IS NULL
-           AND COALESCE(p.account_status,'active') = 'active'
-         ORDER BY p.full_name
-      $fn$; $q$;
-    REVOKE ALL ON FUNCTION public.get_clinician_directory() FROM PUBLIC, anon;
-    GRANT EXECUTE ON FUNCTION public.get_clinician_directory() TO authenticated;
-    RAISE NOTICE 'get_clinician_directory() now excludes suspended/banned/deleted clinicians.';
-  ELSE
-    RAISE NOTICE 'get_clinician_directory() not rebuilt (absent, or profiles.accepting_patients missing).';
+  IF to_regproc('public.get_clinician_directory') IS NULL THEN
+    RAISE NOTICE 'get_clinician_directory() absent - nothing to rebuild.';
+    RETURN;
   END IF;
+  IF NOT pg_temp.p2_has('public.profiles', ARRAY['accepting_patients']) THEN
+    RAISE NOTICE 'get_clinician_directory() not rebuilt (profiles.accepting_patients missing).';
+    RETURN;
+  END IF;
+
+  -- Refuse to touch a function whose contract is not the one we know. Skipping
+  -- is always safer than aborting the whole migration on a signature surprise.
+  SELECT pg_get_function_result(p.oid) INTO v_ret
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'get_clinician_directory';
+  IF v_ret IS DISTINCT FROM v_expected THEN
+    RAISE NOTICE 'get_clinician_directory() NOT rebuilt - unexpected return type %. '
+                 'Lifecycle filtering for the directory was skipped; review manually.', v_ret;
+    RETURN;
+  END IF;
+
+  -- Reproduce the canonical projection, degrading only if a column is absent.
+  v_name_expr := CASE WHEN pg_temp.p2_has('public.profiles', ARRAY['display_name'])
+                      THEN $x$COALESCE(NULLIF(p.display_name,''), p.full_name, 'Clinician')$x$
+                      ELSE $x$COALESCE(p.full_name, 'Clinician')$x$ END;
+  v_clinic_expr := CASE WHEN pg_temp.p2_has('public.profiles', ARRAY['clinic_name'])
+                        THEN $x$COALESCE(NULLIF(p.clinic_name,''), p.hospital)$x$
+                        ELSE $x$p.hospital$x$ END;
+
+  EXECUTE
+    'CREATE OR REPLACE FUNCTION public.get_clinician_directory()' ||
+    ' RETURNS TABLE (id uuid, name text, specialty text, clinic text)' ||
+    ' LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp' ||
+    ' AS $fn$' ||
+    '   SELECT p.id,' ||
+    '          ' || v_name_expr || ' AS name,' ||
+    '          p.specialty,' ||
+    '          ' || v_clinic_expr || ' AS clinic' ||
+    '     FROM public.profiles p' ||
+    '    WHERE p.accepting_patients = true' ||
+    '      AND (p.role = ''doctor'' OR p.is_admin = true)' ||
+    '      AND p.deleted_at IS NULL' ||
+    '      AND COALESCE(p.account_status, ''active'') = ''active''' ||
+    ' $fn$;';
+
+  REVOKE ALL ON FUNCTION public.get_clinician_directory() FROM PUBLIC, anon;
+  GRANT EXECUTE ON FUNCTION public.get_clinician_directory() TO authenticated;
+  RAISE NOTICE 'get_clinician_directory() rebuilt: same 4-column contract, now excludes '
+               'suspended/banned/deleted clinicians. Verification filtering deliberately unchanged.';
 END
 $dir$;
 
