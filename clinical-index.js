@@ -61,7 +61,11 @@ function renderDose(d, wt){
 /* The supporting line: indication, the per-kg basis, then preparation.
    Weight basis (TBW / IBW / ABW) is always printed — never implied.        */
 function supportLine(item, dose, wt){
+  /* Route leads the supporting line. It is an existing structured field that
+     was previously suppressed when it equalled 'IV'; a clinician scanning for
+     route needs it at the same position on every row. No value changes. */
   var bits = [];
+  if (dose.route) bits.push('<b class="rt">' + dose.route + '</b>');
   if (dose.label) bits.push(dose.label);
   if (dose.basisWeight){
     var lo = dose.low != null ? (dose.low+'–'+dose.high) : String(dose.value);
@@ -71,7 +75,6 @@ function supportLine(item, dose, wt){
     bits.push(dose.basis);
   }
   if (dose.max) bits.push('maximum ' + dose.max);
-  if (dose.route && dose.route !== 'IV') bits.push(dose.route);
   return bits.filter(Boolean).join(' · ');
 }
 

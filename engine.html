@@ -409,7 +409,14 @@ body.embed .eng-wrap{max-width:100%;}
 #output .panel:not(.crisis-panel) .panel-chev:hover{color:var(--ink-2);}
 /* no dead space at the foot of a pane */
 #output .panel:not(.crisis-panel) .panel-body{padding:0;}
-#output .panel:not(.crisis-panel) .panel-body>*:last-child{margin-bottom:var(--s2);}
+/* No dead space at the foot of a pane: the last element's own padding closes
+   the module. Measured 9px x 12 modules before this. */
+#output .panel:not(.crisis-panel) .panel-body>*:last-child{margin-bottom:0;}
+#output .panel:not(.crisis-panel) .panel-body>.foot:last-child{padding-bottom:10px;}
+#output .panel:not(.crisis-panel) .panel-body>.grp:last-child>.rw:last-child,
+#output .panel:not(.crisis-panel) .panel-body>.rw:last-child{padding-bottom:10px;}
+#output .panel:not(.crisis-panel) .panel-body>.alert:last-child,
+#output .panel:not(.crisis-panel) .panel-body>.note:last-child{padding-bottom:10px;}
 
 /* ── THE ROW ────────────────────────────────────────────────────────────
    name (dominant) ................................ dose (strongest number)
@@ -433,6 +440,11 @@ body.embed .eng-wrap{max-width:100%;}
 #output .rw-s{flex:1 0 100%;font-size:13px;font-weight:400;color:var(--ink-3);
   line-height:1.45;letter-spacing:0;}
 #output .rw-s b{color:var(--ink-2);font-weight:600;}
+/* Route: a fixed-position token at the head of every supporting line, so a
+   clinician scanning for route lands in the same place on every row. */
+#output .rw-s b.rt{
+  color:var(--ink-2);font-weight:700;font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;}
 /* tier-1 caution: its own line, same muted weight — present, not shouting */
 #output .rw-c{color:var(--ink-3);opacity:.82;}
 #output .rw-s em{font-style:normal;color:var(--ink-2);font-weight:600;}
