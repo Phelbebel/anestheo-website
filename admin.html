@@ -186,6 +186,11 @@
 .selbar{display:none;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;
   border:1px solid rgba(42,138,116,.4);background:rgba(27,107,90,.16);border-radius:11px;}
 .selbar.on{display:flex;}
+.rowbtn.danger{border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95);}
+.rowbtn.danger:hover{background:rgba(192,57,43,.14);}
+/* Bulk actions are the densest control cluster here — give them a real target. */
+.selbar .rowbtn{min-height:32px;padding:7px 12px;display:inline-flex;align-items:center;}
+@media(pointer:coarse){ .selbar .rowbtn{min-height:44px;padding:11px 14px;} }
 .selbar-n{font-size:12.5px;color:#fff;font-weight:600;}
 
 /* Confirmation dialog — reuses the card surface, adds nothing decorative. */
@@ -612,6 +617,13 @@ function acSelPaint(){
   var n = acSelCount();
   bar.classList.toggle('on', n > 0);
   var lbl = ge('ac-seln'); if(lbl) lbl.textContent = n + ' selected';
+  /* re-check the boxes that survived a repaint, and keep select-all honest */
+  var boxes = document.querySelectorAll('.selbox[data-id]');
+  Array.prototype.forEach.call(boxes, function(b){
+    b.checked = !!AC.sel.ids[b.getAttribute('data-id')];
+  });
+  var all = ge('sel-all');
+  if(all) all.checked = boxes.length > 0 && n >= boxes.length;
 }
 function acSelIds(){ return Object.keys(AC.sel.ids); }
 
@@ -1381,63 +1393,236 @@ function tblDoctors(list, compact){
   return '<div class="tbl-wrap"><table class="tbl"><thead>'+hd+'</thead><tbody>'+rows+'</tbody></table></div>';
 }
 
-/* Shared bulk bar. `kind` scopes the selection so a stale selection from
-   another list can never be acted on. */
+/* ══════════════════════════════════════════════════════════════════════════
+   BULK CONTROL
+   --------------------------------------------------------------------------
+   One registry drives selection and the action bar for every list. A table can
+   only offer an action that a real audited RPC backs — nothing is exposed
+   because it would be convenient.
+
+   Every mutation goes through an existing audited SECURITY DEFINER function,
+   one call per target, so each target gets its own audit row. There is no
+   direct table write and no unaudited path. The batch is capped and reports
+   partial failure per target rather than silently swallowing it.
+   ══════════════════════════════════════════════════════════════════════════ */
+var BULK_CAP = 200;
+
+/* rows() resolves the selected ids to records so impact can be counted. */
+var BULK = {
+  doctor: { noun:'doctor', rows:function(ids){ return prof(ids); },
+    acts:['verify','unverify','reject','suspend','ban','restore','delete','assign','export'] },
+  patient:{ noun:'patient', rows:function(ids){ return prof(ids); },
+    acts:['suspend','ban','restore','delete','export'] },
+  account:{ noun:'account', rows:function(ids){ return prof(ids); },
+    acts:['suspend','ban','restore','delete','export'] },
+  journey:{ noun:'journey', rows:function(ids){ return (AC.db.surgeries||[]).filter(function(x){ return ids.indexOf(x.id)>=0; }); },
+    acts:['jarchive','junarchive','jassign','jdelete','export'] },
+  request:{ noun:'care request', rows:function(ids){ return (AC.db.requests||[]).filter(function(x){ return ids.indexOf(x.id)>=0; }); },
+    acts:['rcomplete','rreject','rarchive','rdelete','export'] },
+  report: { noun:'report', rows:function(ids){ return (AC.db.reports||[]).filter(function(x){ return ids.indexOf(x.id)>=0; }); },
+    acts:['presolve','pdismiss','pdelete','export'] },
+  bin:    { noun:'item', rows:function(ids){ return binRows().filter(function(x){ return ids.indexOf(x.id)>=0; }); },
+    acts:['binrestore'] },
+  purge:  { noun:'account', rows:function(ids){ return prof(ids); }, acts:['purge'] }
+};
+function prof(ids){ return (AC.db.profiles||[]).filter(function(p){ return ids.indexOf(p.id)>=0; }); }
+function binRows(){ var out=[]; BIN.forEach(function(b){ if(b.need()) b.rows().forEach(function(r){ out.push(r); }); }); return out; }
+
+/* Impact helpers — what the administrator is about to affect. */
+function impAccounts(rows){
+  var ids = rows.map(function(p){ return p.id; });
+  var j = (AC.db.surgeries||[]).filter(function(s){ return ids.indexOf(s.patient_id)>=0; }).length;
+  var a = (AC.db.surgeries||[]).filter(function(s){ return ids.indexOf(s.assigned_doctor_id)>=0; }).length;
+  var q = (AC.db.quests||[]).filter(function(x){ return ids.indexOf(x.patient_id)>=0; }).length;
+  return rows.length+' account'+(rows.length===1?'':'s')+' &middot; '+j+' journey'+(j===1?'':'s')+
+         ' &middot; '+q+' questionnaire'+(q===1?'':'s')+
+         (a?(' &middot; '+a+' journey'+(a===1?'':'s')+' assigned to these clinicians'):'');
+}
+function impPlain(noun){ return function(rows){ return rows.length+' '+noun+(rows.length===1?'':'s'); }; }
+
+/* Every action names the audited function it calls. */
+var BULK_ACTS = {
+  verify:   { label:'Verify',   imp:impPlain('doctor'), reason:false,
+              run:function(id,v){ return acRpc('admin_set_verification',{p_target:id,p_state:'approved',p_reason:v.reason||null}); } },
+  unverify: { label:'Remove verification', imp:impPlain('doctor'), reason:true,
+              run:function(id,v){ return acRpc('admin_set_verification',{p_target:id,p_state:'pending',p_reason:v.reason}); } },
+  reject:   { label:'Reject verification', imp:impPlain('doctor'), reason:true, danger:true,
+              run:function(id,v){ return acRpc('admin_set_verification',{p_target:id,p_state:'rejected',p_reason:v.reason}); } },
+  suspend:  { label:'Suspend',  imp:impAccounts, reason:true,
+              run:function(id,v){ return acRpc('admin_set_account_status',{p_target:id,p_status:'suspended',p_reason:v.reason}); } },
+  ban:      { label:'Ban',      imp:impAccounts, reason:true, danger:true,
+              run:function(id,v){ return acRpc('admin_set_account_status',{p_target:id,p_status:'banned',p_reason:v.reason,p_expires:null}); } },
+  restore:  { label:'Restore',  imp:impAccounts, reason:false,
+              run:function(id,v){ return acRpc('admin_restore_account',{p_target:id,p_reason:v.reason||null}); } },
+  delete:   { label:'Soft delete', imp:impAccounts, reason:false, danger:true, hint:REASON_DELETE,
+              run:function(id,v){ return acRpc('admin_soft_delete_account',{p_target:id,p_reason:reasonOr(v.reason,REASON_DELETE)}); } },
+  jarchive: { label:'Archive',  imp:impPlain('journey'), reason:false,
+              run:function(id,v){ return acRpc('archive_patient',{p_surgery_id:id,p_reason:v.reason||null}); } },
+  junarchive:{ label:'Restore from archive', imp:impPlain('journey'), reason:false,
+              run:function(id){ return acRpc('restore_patient',{p_surgery_id:id}); } },
+  jdelete:  { label:'Soft delete', imp:impPlain('journey'), reason:false, danger:true, hint:REASON_DELETE,
+              run:function(id,v){ return acRpc('admin_record_action',{p_entity:'journey',p_id:id,p_action:'soft_delete',
+                                    p_reason:reasonOr(v.reason,REASON_DELETE),p_confirm:null}); } },
+  rcomplete:{ label:'Mark completed', imp:impPlain('care request'), reason:false,
+              run:function(id,v){ return acRpc('admin_care_request_action',{p_request:id,p_action:'complete',p_reason:v.reason||null,p_doctor:null}); } },
+  rreject:  { label:'Reject',   imp:impPlain('care request'), reason:true, danger:true,
+              run:function(id,v){ return acRpc('admin_care_request_action',{p_request:id,p_action:'reject',p_reason:v.reason,p_doctor:null}); } },
+  rarchive: { label:'Archive',  imp:impPlain('care request'), reason:false,
+              run:function(id,v){ return acRpc('admin_care_request_action',{p_request:id,p_action:'archive',p_reason:v.reason||null,p_doctor:null}); } },
+  rdelete:  { label:'Soft delete', imp:impPlain('care request'), reason:false, danger:true, hint:REASON_DELETE,
+              run:function(id,v){ return acRpc('admin_care_request_action',{p_request:id,p_action:'soft_delete',
+                                    p_reason:reasonOr(v.reason,REASON_DELETE),p_doctor:null}); } },
+  presolve: { label:'Resolve',  imp:impPlain('report'), reason:true,
+              run:function(id,v){ return acRpc('admin_report_action',{p_report:id,p_action:'resolve',p_reason:v.reason,p_assignee:null}); } },
+  pdismiss: { label:'Dismiss',  imp:impPlain('report'), reason:true,
+              run:function(id,v){ return acRpc('admin_report_action',{p_report:id,p_action:'dismiss',p_reason:v.reason,p_assignee:null}); } },
+  pdelete:  { label:'Soft delete', imp:impPlain('report'), reason:false, danger:true, hint:REASON_DELETE,
+              run:function(id,v){ return acRpc('admin_report_action',{p_report:id,p_action:'soft_delete',
+                                    p_reason:reasonOr(v.reason,REASON_DELETE),p_assignee:null}); } },
+  binrestore:{ label:'Restore', imp:impPlain('item'), reason:false,
+              run:function(id,v,row){ return row && row.entity==='account'
+                  ? acRpc('admin_restore_account',{p_target:id,p_reason:v.reason||null})
+                  : acRpc('admin_record_action',{p_entity:(row?row.entity:'journey'),p_id:id,p_action:'restore',
+                          p_reason:v.reason||null,p_confirm:null}); } },
+  /* Permanent deletion is never casual: the server refuses anything that is
+     not already soft deleted, a typed word is required, and every target gets
+     its own audit row written before the data is destroyed. */
+  purge:    { label:'Permanently delete', imp:impAccounts, reason:false, danger:true,
+              confirmWord:'DELETE', hint:REASON_DELETE, irreversible:true,
+              run:function(id,v){ return acRpc('admin_purge_account',{p_target:id,p_confirm:v.__word,
+                                    p_reason:reasonOr(v.reason,REASON_DELETE)}); } }
+};
+
+/* The bar renders only the actions its list declares. */
 function selBar(kind, rows, csvCols, csvName){
-  if(!p2()) return '';
-  return '<div class="selbar" id="ac-selbar"><span class="selbar-n" id="ac-seln">0 selected</span>'+
-    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'suspend\')">Suspend</button>'+
-    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'ban\')">Ban</button>'+
-    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'restore\')">Restore</button>'+
-    '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'delete\')">Soft delete</button>'+
-    (kind==='doctor'?'<button class="rowbtn" onclick="AC.bulk(\'doctor\',\'assign\')">Reassign patients</button>':'')+
-    '<button class="rowbtn" onclick="AC.exportSel(\''+csvName+'\')">Export CSV</button>'+
+  var cfg = BULK[kind]; if(!cfg || !p2()) return '';
+  var btns = cfg.acts.map(function(k){
+    if(k==='export') return '<button class="rowbtn" onclick="AC.exportSel(\''+(csvName||kind)+'\')">Export CSV</button>';
+    if(k==='assign') return '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'assign\')">Reassign patients</button>';
+    if(k==='jassign') return '<button class="rowbtn" onclick="AC.bulk(\''+kind+'\',\'jassign\')">Assign doctor</button>';
+    var a = BULK_ACTS[k]; if(!a) return '';
+    return '<button class="rowbtn'+(a.danger?' danger':'')+'" onclick="AC.bulk(\''+kind+'\',\''+k+'\')">'+esc(a.label)+'</button>';
+  }).join('');
+  return '<div class="selbar" id="ac-selbar"><span class="selbar-n" id="ac-seln">0 selected</span>'+btns+
     '<button class="rowbtn" onclick="AC.selAll(\''+kind+'\',false);document.querySelectorAll(\'.selbox\').forEach(function(b){b.checked=false;})">Clear</button>'+
     '</div>';
 }
-AC.bulk = function(kind, action){
+
+/* One runner for every bulk action: impact preview, optional typed word,
+   capped sequential audited calls, per-target partial-failure report. */
+function acBulkRun(kind, actKey){
+  var cfg = BULK[kind], act = BULK_ACTS[actKey];
+  if(!cfg || !act) return;
   var ids = acSelIds();
   if(!ids.length){ acToast('Select at least one row first', true); return; }
-  if(action==='suspend') return acBulk('Suspend', ids, true, function(id,v){
-    return acRpc('admin_set_account_status', { p_target:id, p_status:'suspended', p_reason:v.reason }); });
-  if(action==='ban') return acBulk('Ban', ids, true, function(id,v){
-    return acRpc('admin_set_account_status', { p_target:id, p_status:'banned', p_reason:v.reason, p_expires:null }); },
-    { danger:true });
-  if(action==='restore') return acBulk('Restore', ids, false, function(id,v){
-    return acRpc('admin_restore_account', { p_target:id, p_reason:v.reason||null }); });
-  if(action==='delete') return acBulk('Soft delete', ids, false, function(id,v){
-    return acRpc('admin_soft_delete_account', { p_target:id, p_reason:reasonOr(v.reason, REASON_DELETE) }); },
-    { danger:true, reasonHint:REASON_DELETE });
-  if(action==='assign'){
-    var opts = acDoctorOpts(null);
-    if(!opts.length){ acToast('No active doctor to receive patients', true); return; }
-    acDialog({ title:'Reassign patients from '+ids.length+' doctor'+(ids.length===1?'':'s'),
-      confirmLabel:'Reassign', fields:[{key:'to',label:'Receiving doctor',type:'select',options:opts},
-        {key:'reason',label:'Reason (required)',type:'textarea'}],
-      onConfirm: async function(v){
-        if(!v.reason) throw new Error('A reason is required.');
-        var moved = 0;
-        for(var i=0;i<ids.length;i++){
-          if(ids[i]===v.to) continue;
-          var r = await acRpc('admin_reassign_doctor_patients', { p_from:ids[i], p_to:v.to, p_reason:v.reason });
-          moved += (r && r.journeys_moved) || 0;
-        }
-        await acAfter(moved + ' journey(s) reassigned');
-      }});
-  }
+  if(AC.sel.kind !== kind){ acToast('That selection belongs to another list', true); return; }
+  if(ids.length > BULK_CAP){
+    acToast('Select at most '+BULK_CAP+' rows for one bulk action', true); return; }
+  var rows = cfg.rows(ids);
+  var byId = {}; rows.forEach(function(r){ byId[r.id] = r; });
+
+  acDialog({
+    title: act.label + ' — ' + ids.length + ' ' + cfg.noun + (ids.length===1?'':'s'),
+    danger: !!act.danger,
+    confirmLabel: act.label,
+    confirmWord: act.confirmWord,
+    body: act.irreversible
+      ? 'This erases the selected accounts and the records they own. The audit entry for each one is written before its data is destroyed.'
+      : 'Applied to each selected ' + cfg.noun + ' in turn. Every one produces its own audit entry.',
+    impact: '<b>Will be affected:</b> ' + act.imp(rows),
+    fields: [{ key:'reason', label:'Reason' + (act.reason?' (required)':' (optional)'), type:'textarea',
+               ph: act.hint ? ('Recorded in the audit log. Leave blank for "'+act.hint+'".') : '' }],
+    onConfirm: async function(v){
+      if(act.reason && !v.reason) throw new Error('A reason is required.');
+      var ok = 0, fail = [];
+      for(var i=0;i<ids.length;i++){
+        try { await act.run(ids[i], v, byId[ids[i]]); ok++; }
+        catch(e){ fail.push({ id:ids[i], label:bulkLabel(kind, byId[ids[i]], ids[i]), msg:e.message }); }
+      }
+      await loadAll(); acSelClear(); await render();
+      if(!fail.length){ acToast(ok + ' ' + cfg.noun + (ok===1?'':'s') + ' updated'); return; }
+      /* Partial failure is reported per target, never hidden behind a count. */
+      acToast(ok + ' succeeded, ' + fail.length + ' failed', true);
+      acDialog({ title:'Partial failure', confirmLabel:'Close',
+        body: ok + ' of ' + ids.length + ' succeeded. The rest were not changed:',
+        impact: fail.slice(0,25).map(function(f){
+                  return '<div>' + esc(f.label) + ' &mdash; ' + esc(f.msg) + '</div>'; }).join('') +
+                (fail.length>25 ? ('<div>&hellip; and '+(fail.length-25)+' more</div>') : ''),
+        onConfirm: async function(){} });
+    }});
+}
+function bulkLabel(kind, row, id){
+  if(!row) return short(id);
+  if(kind==='doctor'||kind==='patient'||kind==='account'||kind==='purge') return pname(row);
+  if(kind==='journey') return row.patient_name || short(id);
+  if(kind==='bin') return row.label || short(id);
+  return short(id);
+}
+
+AC.bulk = function(kind, action){
+  if(action==='assign' || action==='jassign') return acBulkAssign(kind, action);
+  return acBulkRun(kind, action);
 };
-AC.exportSel = function(name){
+
+/* Assignment needs a target doctor, so it has its own dialog. */
+function acBulkAssign(kind, action){
   var ids = acSelIds();
-  var rows = (AC.db.profiles||[]).filter(function(p){ return ids.indexOf(p.id) >= 0; });
+  if(!ids.length){ acToast('Select at least one row first', true); return; }
+  var opts = acDoctorOpts(null);
+  if(!opts.length){ acToast('No active doctor account to assign to', true); return; }
+  var journeys = (action==='jassign');
+  acDialog({
+    title:(journeys ? 'Assign doctor — ' : 'Reassign patients from ') + ids.length +
+          (journeys ? (' journey'+(ids.length===1?'':'s')) : (' doctor'+(ids.length===1?'':'s'))),
+    confirmLabel:'Assign',
+    impact: journeys ? ('<b>Will be reassigned:</b> ' + ids.length + ' journey' + (ids.length===1?'':'s'))
+                     : ('<b>Will move:</b> every active journey held by ' + ids.length + ' clinician' + (ids.length===1?'':'s')),
+    fields:[{ key:'to', label:(journeys?'Doctor':'Receiving doctor'), type:'select', options:opts },
+            { key:'reason', label:'Reason'+(journeys?' (optional)':' (required)'), type:'textarea' }],
+    onConfirm: async function(v){
+      if(!journeys && !v.reason) throw new Error('A reason is required.');
+      var ok=0, moved=0, fail=[];
+      for(var i=0;i<ids.length;i++){
+        if(!journeys && ids[i]===v.to) continue;          // never reassign a doctor to themselves
+        try{
+          if(journeys){ await acRpc('admin_assign_doctor',{p_surgery:ids[i],p_doctor:v.to,p_reason:v.reason||null}); ok++; }
+          else { var r = await acRpc('admin_reassign_doctor_patients',{p_from:ids[i],p_to:v.to,p_reason:v.reason});
+                 moved += (r&&r.journeys_moved)||0; ok++; }
+        }catch(e){ fail.push({ label:short(ids[i]), msg:e.message }); }
+      }
+      await loadAll(); acSelClear(); await render();
+      if(fail.length){ acToast(ok+' succeeded, '+fail.length+' failed — '+fail[0].msg, true); }
+      else acToast(journeys ? (ok+' journey'+(ok===1?'':'s')+' assigned') : (moved+' journey(s) reassigned'));
+    }});
+}
+
+/* CSV export — only the columns already on screen, per entity type. */
+AC.exportSel = function(name){
+  var ids = acSelIds(), kind = AC.sel.kind;
+  var cfg = BULK[kind]; if(!cfg){ acToast('Nothing to export', true); return; }
+  var rows = cfg.rows(ids);
   if(!rows.length){ acToast('Select at least one row first', true); return; }
-  acCsv(rows, [
-    ['Name', function(r){ return r.full_name; }], ['Email', function(r){ return r.email; }],
-    ['Role', function(r){ return r.role; }], ['Status', function(r){ return accStatus(r); }],
-    ['Verification', function(r){ return r.verification_status; }],
-    ['Country', function(r){ return r.country; }], ['Hospital', function(r){ return r.hospital; }],
-    ['Specialty', function(r){ return r.specialty; }],
-    ['Created', function(r){ return r.created_at; }], ['Account ID', function(r){ return r.id; }]
-  ], name);
+  var COLS = {
+    profile: [['Name',function(r){return r.full_name;}],['Email',function(r){return r.email;}],
+      ['Role',function(r){return r.role;}],['Status',function(r){return accStatus(r);}],
+      ['Verification',function(r){return r.verification_status;}],['Country',function(r){return r.country;}],
+      ['Hospital',function(r){return r.hospital;}],['Specialty',function(r){return r.specialty;}],
+      ['Created',function(r){return r.created_at;}],['Account ID',function(r){return r.id;}]],
+    journey: [['Patient',function(r){return r.patient_name;}],['Procedure',function(r){return r.procedure_type;}],
+      ['Hospital',function(r){return r.hospital;}],['Surgery date',function(r){return r.surgery_date;}],
+      ['Doctor',function(r){return r.assigned_doctor_id?docName(r.assigned_doctor_id):'';}],
+      ['Care state',function(r){return r.care_state;}],['Created',function(r){return r.created_at;}],
+      ['Journey ID',function(r){return r.id;}]],
+    request: [['Patient',function(r){return r.patient_id?pname(AC.profById[r.patient_id]):'';}],
+      ['Status',function(r){return r.status;}],['Requested',function(r){return r.requested_at;}],
+      ['Responded',function(r){return r.responded_at;}],['Request ID',function(r){return r.id;}]],
+    report:  [['Target',function(r){return r.target_label;}],['Category',function(r){return r.category;}],
+      ['Status',function(r){return r.status;}],['Created',function(r){return r.created_at;}],
+      ['Report ID',function(r){return r.id;}]]
+  };
+  var shape = (kind==='journey') ? 'journey' : (kind==='request') ? 'request'
+            : (kind==='report') ? 'report' : 'profile';
+  acCsv(rows, COLS[shape], name);
 };
 
 function vDoctors(qs){
@@ -1879,12 +2064,17 @@ AC.jAct = function(id, what){
   if(what==='purge')    return AC.binPurge('journey', s.id);
 };
 
-function tblJourneys(list){
+function tblJourneys(list, sel){
   if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No journeys</td></tr></tbody></table></div>';
-  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Account</th><th>Procedure</th><th>Hospital</th>'+
+  var mod = p2() && sel;
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+    (mod?'<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'journey\',this.checked)"></th>':'')+
+    '<th>Patient</th><th>Account</th><th>Procedure</th><th>Hospital</th>'+
     '<th>Surgery date</th><th>Doctor</th><th>Care state</th><th>Origin</th><th>State</th><th>Created</th><th></th></tr></thead><tbody>'+
     list.map(function(s){
-      return '<tr><td class="nm">'+dash(s.patient_name || (s.patient_id?pname(AC.profById[s.patient_id]):null))+'</td>'+
+      return '<tr>'+
+        (mod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+s.id+'" aria-label="Select journey" onchange="AC.selToggle(\'journey\',\''+s.id+'\',this.checked)"></td>':'')+
+        '<td class="nm">'+dash(s.patient_name || (s.patient_id?pname(AC.profById[s.patient_id]):null))+'</td>'+
         '<td>'+(jClaimed(s)?'<span class="bdg bdg-ok">claimed</span>':'<span class="bdg bdg-warn">unclaimed</span>')+'</td>'+
         '<td>'+dash(s.procedure_type)+'</td><td>'+dash(s.hospital)+'</td>'+
         '<td>'+esc(fdate(s.surgery_date))+'</td>'+
@@ -1918,7 +2108,7 @@ function vJourneys(qs){
     .concat(canSoftDeleteJourney() ? [['deleted','Deleted']] : []).map(function(k){
       return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/journeys'+q2s({f:k[0]})+'">'+esc(k[1])+'</a>'; }).join('')+
     '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
-  h += tblJourneys(list);
+  h += selBar('journey', list, null, 'journeys') + tblJourneys(list, true);
   return h;
 }
 function vJourney(id){
@@ -2143,14 +2333,19 @@ function vQuestions(qs){
 }
 
 /* ── Care requests ───────────────────────────────────── */
-function tblRequests(list){
+function tblRequests(list, sel){
+  var mod = p2() && sel;
   if(!list.length) return '<div class="tbl-wrap"><table class="tbl"><tbody><tr><td class="empty">No care requests</td></tr></tbody></table></div>';
   var ic = has('requests','is_consultation');
-  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Doctor</th><th>Origin</th>'+
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+    (mod?'<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'request\',this.checked)"></th>':'')+
+    '<th>Patient</th><th>Doctor</th><th>Origin</th>'+
     (ic?'<th>Lane</th>':'')+'<th>Status</th><th>Requested</th><th>Responded</th><th>Decline reason</th><th></th></tr></thead><tbody>'+
     list.map(function(r){
       var pp = AC.profById[r.patient_id];
-      return '<tr'+hlRow(r.id)+'><td class="nm">'+(pp?'<a class="olink" href="#/patient/'+r.patient_id+'">'+esc(pname(pp))+'</a>'
+      return '<tr'+hlRow(r.id)+'>'+
+        (mod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+r.id+'" aria-label="Select care request" onchange="AC.selToggle(\'request\',\''+r.id+'\',this.checked)"></td>':'')+
+        '<td class="nm">'+(pp?'<a class="olink" href="#/patient/'+r.patient_id+'">'+esc(pname(pp))+'</a>'
              :'<span class="mono">'+short(r.patient_id)+'</span>')+'</td>'+
         '<td>'+(r.doctor_id?'<a class="olink" href="#/doctor/'+r.doctor_id+'">'+esc(docName(r.doctor_id))+'</a>':'<span class="mut">—</span>')+'</td>'+
         '<td>'+dash(r.origin_method)+'</td>'+
@@ -2192,7 +2387,7 @@ function vRequests(qs){
             : all.filter(function(r){return r.status===k;}).length;
       return '<a class="chip'+(f===k?' on':'')+'" href="#/care-requests'+q2s({f:k})+'">'+esc(k)+' ('+n+')</a>'; }).join('')+
     '</div>';
-  h += tblRequests(list);
+  h += selBar('request', list, null, 'care-requests') + tblRequests(list, true);
   return h;
 }
 
@@ -2248,17 +2443,23 @@ function vAccounts(qs){
         return !isAdminRole(p)&&!isDoctor(p)&&!isPatientRole(p)&&p.role&&p.role!=='pending';
       }).length;
       return '<a class="chip'+(f===k[0]?' on':'')+'" href="#/accounts'+q2s({f:k[0]})+'">'+esc(k[1])+' ('+n+')</a>'; }).join('')+'</div>';
-  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th>'+
+  var amod = p2();
+  h += selBar('account', list, null, 'accounts');
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+    (amod?'<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'account\',this.checked)"></th>':'')+
+    '<th>Name</th><th>Email</th><th>Phone</th><th>Role</th>'+
     (p2()?'<th>Status</th>':'')+
     '<th>Verification</th><th>Country</th><th>Registered</th><th>Account ID</th><th></th></tr></thead><tbody>'+
     (list.length ? list.map(function(p){
-      return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
+      return '<tr>'+
+        (amod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+p.id+'" aria-label="Select '+esc(pname(p))+'" onchange="AC.selToggle(\'account\',\''+p.id+'\',this.checked)"></td>':'')+
+        '<td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
         '<td>'+(isAdminRole(p)?'<span class="bdg bdg-info">admin</span>':dash(p.role))+'</td>'+
         (p2()?'<td>'+badgeStatus(p)+'</td>':'')+
         '<td>'+badgeVerify(p.verification_status)+'</td><td>'+dash(p.country)+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'</td><td class="mono">'+esc(short(p.id))+'</td>'+
         '<td><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a></td></tr>';
-    }).join('') : '<tr><td colspan="10" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
+    }).join('') : '<tr><td colspan="'+(amod?11:10)+'" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
   return h;
 }
 
@@ -2587,12 +2788,18 @@ function vModeration(qs){
         esc(k?MOD_CATS[k]:'All categories')+' ('+n+')</a>'; }).join('')+'</div>';
 
   if(!list.length) return h + '<div class="notice n-info">No reports in this view.</div>';
-  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Reported</th><th>Target</th><th>Category</th>'+
+  var pmod = p2() && hasMod();
+  h += selBar('report', list, null, 'reports');
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+    (pmod?'<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'report\',this.checked)"></th>':'')+
+    '<th>Reported</th><th>Target</th><th>Category</th>'+
     '<th>Reason</th><th>Evidence</th><th>Reporter</th><th>Assigned to</th><th>Status</th><th></th></tr></thead><tbody>'+
     list.map(function(r){
       var tgtHref = r.target_type==='doctor' ? ('#/doctor/'+r.target_id)
                   : r.target_type==='patient' ? ('#/patient/'+r.target_id) : '';
-      return '<tr><td>'+esc(fdate(r.created_at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(r.created_at))+'</div></td>'+
+      return '<tr>'+
+        (pmod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+r.id+'" aria-label="Select report" onchange="AC.selToggle(\'report\',\''+r.id+'\',this.checked)"></td>':'')+
+        '<td>'+esc(fdate(r.created_at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(r.created_at))+'</div></td>'+
         '<td class="nm">'+(tgtHref?('<a class="olink" href="'+tgtHref+'">'+dash(r.target_label)+'</a>'):dash(r.target_label))+
           '<div class="mut" style="font-size:10.5px;">'+esc(r.target_type)+'</div></td>'+
         '<td><span class="bdg bdg-mute">'+esc(MOD_CATS[r.category]||r.category)+'</span></td>'+
@@ -2795,11 +3002,20 @@ function vRecycle(qs){
   var rows = sec.rows();
   if(!rows.length) return h + '<div class="notice n-info">Nothing deleted in '+esc(sec.label.toLowerCase())+'.</div>';
 
-  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Item</th><th>Detail</th><th>Type</th>'+
+  /* Bulk here is restore only — a reversible action. Permanent deletion is not
+     offered in bulk from the Recycle Bin; it lives in the Danger Zone behind a
+     typed confirmation. */
+  var bmod = p2();
+  h += selBar('bin', rows, null, 'recycle-bin');
+  h += '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+    (bmod?'<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'bin\',this.checked)"></th>':'')+
+    '<th>Item</th><th>Detail</th><th>Type</th>'+
     '<th>Deleted</th><th>Deleted by</th><th>Reason</th><th></th></tr></thead><tbody>'+
     rows.map(function(r){
       var isAcct = (r.entity==='account');
-      return '<tr><td class="nm">'+(r.href?('<a class="olink" href="'+r.href+'">'+dash(r.label)+'</a>'):dash(r.label))+'</td>'+
+      return '<tr>'+
+        (bmod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+r.id+'" aria-label="Select '+esc(r.label||'item')+'" onchange="AC.selToggle(\'bin\',\''+r.id+'\',this.checked)"></td>':'')+
+        '<td class="nm">'+(r.href?('<a class="olink" href="'+r.href+'">'+dash(r.label)+'</a>'):dash(r.label))+'</td>'+
         '<td>'+dash(r.sub)+'</td><td>'+dash(r.kind)+'</td>'+
         '<td>'+esc(fdt(r.at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(r.at))+'</div></td>'+
         '<td>'+(r.by?esc(docName(r.by)):'<span class="mut">—</span>')+'</td>'+
@@ -3092,9 +3308,44 @@ function vAudit(qs){
       'onchange="AC.nav(\''+base({id:'__V__'}).replace('__V__','\'+encodeURIComponent(this.value)+\'')+'\')">'+
     '<span class="mut" style="font-size:12px;">'+list.length+' of '+all.length+'</span></div>';
   if(!all.length) h += '<div class="notice n-info">No administrator actions have been recorded yet.</div>';
+  /* The audit log is append-only and read-only. The only bulk affordance is
+     export; no mutation is offered because none exists or should. */
+  h += '<div class="selbar" id="ac-selbar"><span class="selbar-n" id="ac-seln">0 selected</span>'+
+    '<button class="rowbtn" onclick="AC.exportAudit()">Export CSV</button></div>';
+  h += '<div class="chips"><button class="rowbtn" onclick="AC.exportAudit()">Export '+list.length+
+       ' filtered row'+(list.length===1?'':'s')+' to CSV</button></div>';
   h += tblAudit(list, true);
   return h;
 }
+/* Exports exactly the rows the current filter shows. Read-only, no mutation. */
+AC.exportAudit = function(){
+  var r = parseHash(), qs = r.qs || {};
+  var all = AC.db.audit||[];
+  var list = all.filter(function(x){
+    if(qs.actor && x.actor_id !== qs.actor) return false;
+    if(qs.a && x.action !== qs.a) return false;
+    if(qs.tt && x.target_type !== qs.tt) return false;
+    if(qs.id && String(x.target_id||'').indexOf(qs.id) < 0) return false;
+    if(qs.d){
+      var d = new Date(x.created_at), n = new Date();
+      if(qs.d==='today'){ var m = new Date(); m.setHours(0,0,0,0); if(d < m) return false; }
+      if(qs.d==='7d'  && (n-d) > 7*86400000)  return false;
+      if(qs.d==='30d' && (n-d) > 30*86400000) return false;
+    }
+    return true;
+  });
+  if(!list.length){ acToast('No rows to export', true); return; }
+  acCsv(list, [
+    ['When', function(x){ return x.created_at; }],
+    ['Actor', function(x){ return AC.profById[x.actor_id] ? pname(AC.profById[x.actor_id]) : x.actor_id; }],
+    ['Actor role', function(x){ return x.actor_role; }],
+    ['Action', function(x){ return x.action; }],
+    ['Target type', function(x){ return x.target_type; }],
+    ['Target', function(x){ return x.target_label; }],
+    ['Reason', function(x){ return x.reason; }],
+    ['Correlation', function(x){ return x.correlation_id; }]
+  ], 'audit-log');
+};
 
 /* ── Content inventory (static, honest) ──────────────── */
 var CONTENT = [
@@ -3283,12 +3534,21 @@ function vDanger(){
       '<a class="lnk" href="#/doctors">Doctors</a> or <a class="lnk" href="#/patients">Patients</a>; '+
       'it then appears in <a class="lnk" href="#/deleted">Deleted accounts</a> and here.</p>';
   } else {
-    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th>'+
+    /* Bulk permanent deletion is offered only here, only over accounts that are
+       ALREADY soft deleted, and only behind a typed confirmation. The server
+       refuses to purge anything still live, validates the confirmation word
+       again, and writes an audit row per target before destroying data. */
+    h += selBar('purge', del, null, 'permanent-deletion');
+    h += '<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
+      '<th class="selcol"><input type="checkbox" class="selbox" id="sel-all" aria-label="Select all" onchange="AC.selAll(\'purge\',this.checked)"></th>'+
+      '<th>Name</th><th>Email</th><th>Role</th>'+
       '<th>Deleted</th><th>Reason</th><th>Owns</th><th></th></tr></thead><tbody>'+
       del.map(function(p){
         var j = (AC.db.surgeries||[]).filter(function(x){ return x.patient_id===p.id; }).length;
         var q = (AC.db.quests||[]).filter(function(x){ return x.patient_id===p.id; }).length;
-        return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
+        return '<tr>'+
+          '<td class="selcol"><input type="checkbox" class="selbox" data-id="'+p.id+'" aria-label="Select '+esc(pname(p))+'" onchange="AC.selToggle(\'purge\',\''+p.id+'\',this.checked)"></td>'+
+          '<td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
           '<td>'+dash(p.role)+'</td><td>'+esc(fdate(p.deleted_at))+'</td>'+
           '<td>'+dash(p.delete_reason)+'</td>'+
           '<td>'+j+' journey'+(j===1?'':'s')+', '+q+' questionnaire'+(q===1?'':'s')+'</td>'+
@@ -3340,8 +3600,13 @@ function parseHash(){
 }
 var RAIL_FOR = { doctor:'doctors', patient:'patients', journey:'journeys', search:'overview' };
 
+var _lastSection = null;
 async function render(){
   var r = parseHash();
+  /* Selection is scoped to one list. Leaving that list drops it, so a stale
+     selection can never be acted on somewhere else. */
+  if(_lastSection !== null && _lastSection !== r.section) acSelClear();
+  _lastSection = r.section;
   renderRail(RAIL_FOR[r.section] || r.section);
   var view = ge('adm-view');
   var html;
