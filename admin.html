@@ -2532,7 +2532,6 @@ function vDeleted(qs){
 }
 AC.restore = function(id){ var p = AC.profById[id]; if(p) acRestore(p); };
 
-
 /* ============================================================
    PHASE 3 — VERIFICATION, MODERATION, ANALYTICS, ACTIVITY, RECYCLE BIN
    Analytics, System Health, the Activity Center and Search read data that
@@ -3705,11 +3704,6 @@ document.addEventListener('DOMContentLoaded', async function(){
     clearTimeout(safety);
     ge('loader').style.display = 'none';
     ge('app').style.display = 'block';
-    console.log('ADMIN CENTER READY — modules '+
-      CAPS.filter(function(c){ return has(c.key); }).length+'/'+CAPS.length+
-      ', profiles '+(AC.db.profiles||[]).length+
-      ', journeys '+(AC.db.surgeries||[]).length+
-      ', audit '+(AC.db.audit||[]).length);
   }catch(e){
     clearTimeout(safety);
     console.error('ADMIN ERROR:', e.message);

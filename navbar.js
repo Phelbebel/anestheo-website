@@ -1,6 +1,5 @@
 // navbar.js — /v2 shared navbar
 // Requires: /v2/supabase.js then /v2/auth.js loaded first
-console.log('NAVBAR JS LOADED');
 
 (function(){
 
@@ -1025,11 +1024,8 @@ window.nbSubmitAuth = async function(){
   var email = (emailEl && emailEl.value || '').trim().toLowerCase();
   var pass  = (passEl  && passEl.value  || '').trim();
 
-  console.log('AUTH mode:', _authMode, '| email value:', JSON.stringify(email), '| field found:', !!emailEl);
-
   // Correct email check: non-space local part, @, then a domain with a dot.
   var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  console.log('AUTH validation — emailOk:', emailOk, '| passLen:', pass.length);
 
   if(!emailOk){
     showMsg('err', 'Enter a valid email address.'); return;
@@ -1039,7 +1035,6 @@ window.nbSubmitAuth = async function(){
   } else {
     if(!pass){ showMsg('err', 'Enter your password.'); return; }
   }
-  console.log('AUTH validation passed — calling Supabase', _authMode === 'register' ? 'signUp' : 'signInWithPassword');
 
   setBtns(true);
   ge('nb-submit-btn').textContent = (_authMode === 'register') ? 'Creating\u2026' : 'Signing in\u2026';
@@ -1052,7 +1047,6 @@ window.nbSubmitAuth = async function(){
         email: email, password: pass,
         options: { data: { role: _regRole, verification_status: verif } }
       });
-      console.log('AUTH signUp result — data:', rs.data, '| error:', rs.error, '| role:', _regRole);
       setBtns(false);
       if(rs.error){ showMsg('err', rs.error.message); return; }
 
@@ -1071,108 +1065,74 @@ window.nbSubmitAuth = async function(){
         showMsg('ok', '&#10003; Check <strong>' + email + '</strong> to confirm your account.');
       }
     } else {
-      // ════════════════════════════════════════════════════════
-      //  LOGIN DIAGNOSTIC — prints exactly one verdict: A–F
-      // ════════════════════════════════════════════════════════
-      console.log('========== LOGIN DIAGNOSTIC START ==========');
-      console.log('STEP 1 — calling signInWithPassword for', email);
-
+      // ── Sign in ─────────────────────────────────────────────
       var ri;
       try {
         ri = await window.sb.auth.signInWithPassword({ email: email, password: pass });
       } catch(connErr){
-        console.error('DIAGNOSIS: F) Supabase connection error —', connErr.message);
+        console.error('Sign-in could not reach the server.');
         setBtns(false);
         showMsg('err', 'Connection error reaching the server. Check your network and try again.');
         return;
       }
-      console.log('STEP 1 RESULT — data:', ri.data, '| error:', ri.error);
 
-      // STEP 2 — error branches (A / B / F)
+      // STEP 2 — error branches
       if(ri.error){
         var m = ri.error.message || '';
-        console.log('STEP 2 — error message:', m, '| status:', ri.error.status);
         setBtns(false);
         if(/email not confirmed/i.test(m)){
-          console.log('DIAGNOSIS: B) Email not confirmed');
           showMsg('err', 'Please confirm your email before signing in. Check your inbox for the confirmation link.');
         } else if(/invalid login credentials/i.test(m) || /invalid/i.test(m)){
-          console.log('DIAGNOSIS: A) Invalid credentials');
           showMsg('err', 'Invalid login credentials. Check your email and password.');
         } else if(/network|fetch|failed to fetch/i.test(m)){
-          console.log('DIAGNOSIS: F) Supabase connection error');
           showMsg('err', m);
         } else {
-          console.log('DIAGNOSIS: (error) —', m);
           showMsg('err', m);
         }
-        console.log('========== LOGIN DIAGNOSTIC END ==========');
         return;
       }
 
-      console.log('LOGIN SUCCESS');
-
-      // STEP 3 — verify session is saved (E)
+      // STEP 3 — verify session is saved
       var sessRes = await window.sb.auth.getSession();
       var session = sessRes.data && sessRes.data.session;
-      console.log('STEP 3 — getSession():', sessRes.data);
-      console.log('STEP 3 — session exists:', !!session);
       if(!session){
-        console.log('DIAGNOSIS: E) Session not being saved (signIn returned a user but getSession() is empty)');
         setBtns(false);
         showMsg('err', 'Login succeeded but the session was not saved. Storage may be blocked in this browser context.');
-        console.log('========== LOGIN DIAGNOSTIC END ==========');
         return;
       }
-      console.log('STEP 3 — user.id:', session.user.id, '| email:', session.user.email);
 
-      // STEP 4 — profile lookup (C)
-      console.log('STEP 4 — querying profiles for', session.user.id);
-      var prof = null, profErr = null;
+      // STEP 4 — profile lookup
+      var prof = null;
       try {
         var pr = await window.sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-        prof = pr.data; profErr = pr.error;
-        console.log('STEP 4 — profiles query result — data:', pr.data, '| error:', pr.error);
-      } catch(e){ profErr = e; console.log('STEP 4 — profiles query threw:', e.message); }
+        prof = pr.data;
+      } catch(e){ prof = null; }
 
       // STEP 5 — auto-create profile if missing, do not fail login
       if(!prof){
-        console.log('STEP 5 — profile missing, auto-creating…');
         try {
           prof = await window.ensureProfile(session.user);
-          console.log('STEP 5 — after ensureProfile — profile:', prof);
-        } catch(e){ console.log('STEP 5 — ensureProfile failed:', e.message); }
+        } catch(e){ prof = null; }
         if(!prof){
-          console.log('DIAGNOSIS: C) User authenticated but profile missing (auto-create failed — check profiles RLS insert policy)');
           setBtns(false);
           showMsg('err', 'Signed in, but your profile could not be created. Please contact support.');
-          console.log('========== LOGIN DIAGNOSTIC END ==========');
           return;
         }
       }
-      console.log('ROLE:', prof.is_admin ? 'admin' : prof.role);
 
-      // STEP 6 — redirect (D)
+      // STEP 6 — redirect
       // Default landing by role: patients land on the Patient Home (the
       // authenticated state of /v2/index.html); My Space stays reachable from
       // the navbar and the Home hero. Doctors/admins are unchanged.
       if(window.resetSessionCache) window.resetSessionCache();
       var _isAdmin = prof && (prof.is_admin === true || prof.role === 'admin');
       var dest = (!_isAdmin && prof && prof.role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
-      console.log('REDIRECTING TO —', dest);
-      console.log('DIAGNOSIS: none — auth OK, redirect issued to', dest);
-      console.log('========== LOGIN DIAGNOSTIC END ==========');
       window.nbCloseModal();
       window.location.href = dest;
-      // If the page does not change after this line, the verdict is:
-      // D) User authenticated but redirect broken
-      setTimeout(function(){
-        console.log('DIAGNOSIS CHECK: if you still see this page, verdict = D) redirect broken. Destination was', dest);
-      }, 1500);
     }
   } catch(e){
     setBtns(false);
-    console.error('AUTH exception:', e);
+    console.error('Sign-in failed unexpectedly.');
     showMsg('err', e && e.message ? e.message : 'Network error. Please try again.');
   }
 };
@@ -1237,7 +1197,7 @@ function nbMountFooter(){
 window.nbMountFooter = nbMountFooter;
 
 async function nbInit(){
-  if(_nbInitDone){ console.log('nbInit already ran - skipping duplicate'); return; }
+  if(_nbInitDone){ return; }
   _nbInitDone = true;
   injectCSS();
   var page = location.pathname.split('/').pop() || 'index.html';
@@ -1270,7 +1230,6 @@ async function nbInit(){
       }
       if(event === 'SIGNED_OUT'){ setGuest(); }
     });
-    console.log('NAVBAR READY');
   } catch(e){
     console.error('navbar init error:', e.message);
   }

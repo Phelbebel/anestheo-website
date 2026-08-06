@@ -553,7 +553,6 @@ document.addEventListener('DOMContentLoaded', async function(){
     var auth = await window.requireRole('staff'); if(!auth) return;
     buildNav(); buildContent();
     ge('loader').style.display='none'; ge('app').style.display='block';
-    console.log('SCORES READY');
   } catch(e){
     console.error('SCORES ERROR:', e.message);
     ge('loader').innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: '+e.message+'</p>';

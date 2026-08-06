@@ -630,7 +630,6 @@ body.embed .eng-wrap{max-width:100%;}
       rgba(255,255,255,.10) 2px 7px);
 }
 
-
 /* the badge sits at the head of the supporting line, so drug names stay
    aligned on one left edge while the colour still leads peripherally */
 #output .rw-s{display:flex;flex-wrap:wrap;align-items:center;column-gap:0;row-gap:3px;}
@@ -658,7 +657,6 @@ body.embed .eng-wrap{max-width:100%;}
 #output .warn-chip,#output .foot{font-weight:400;}
 #output .rw-w,#output .alert{font-weight:600;}
 #output .panel:not(.crisis-panel) .panel-tag{font-weight:500;}
-
 
 /* ══════════════════════════════════════════════════════════════════════════
    THE WORKSPACE SHELL — the same language above the panes
@@ -2140,7 +2138,6 @@ document.addEventListener('DOMContentLoaded',async function(){
       ge('app').style.display='block';
       if(restoreInputs()) compute();   // only ever from real saved/incoming data
       setupWorkspace();
-      console.log('ENGINE READY (embedded)');
       return;
     }
     var auth=await window.requireRole('staff'); if(!auth)return;
@@ -2149,7 +2146,6 @@ document.addEventListener('DOMContentLoaded',async function(){
     if(restoreInputs()) compute();   // only ever from real saved/incoming data
     setupWorkspace();
     if(window.ClinicalSearch) window.ClinicalSearch.enabled = true;
-    console.log('ENGINE READY');
   }catch(e){
     console.error('ENGINE ERROR:',e.message);
     ge('loader').innerHTML='<p style="color:rgba(255,160,140,.9);padding:24px;font-family:sans-serif;">Error: '+e.message+'</p>';
@@ -2182,7 +2178,6 @@ function cwClearDerived(){
   var ds=ge('acc-derived-sub'); if(ds) ds.textContent='Not entered';
   var ls=ge('acc-lab-sub'); if(ls){ var lsum=cwLabSummary(); ls.textContent=lsum||'Not entered'; }
 }
-
 
 
 /* ════════ Clinical anchors ═══════════════════════════════════════════════

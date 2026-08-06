@@ -351,8 +351,6 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 
 
 
-
-
 /* ── Phase 1: Action Center + Active Cases ── */
 .ws-need-badge{margin-left:auto;align-self:center;font-size:12px;font-weight:700;color:#ff9b86;background:rgba(192,57,43,.16);border:1px solid rgba(192,57,43,.4);border-radius:20px;padding:4px 12px;}
 .ac-head,.acs-head{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
@@ -824,8 +822,6 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-wkframe{width:100%;height:calc(100vh - 150px);min-height:680px;border:none;display:block;background:#0A1A15;position:relative;z-index:1;}
 @media(max-width:760px){.ws-wkframe{height:calc(100vh - 120px);min-height:560px;}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </head>
 <body>
 
@@ -2636,13 +2632,8 @@ async function wsSavePatient(thenSend){
 
   try {
     var r = await window.sb.from('clinic_patients').insert(rec).select().maybeSingle();
-    console.log('CLINIC INSERT RESULT — data:', r.data, '| error:', r.error);
     if(r.error){
-      console.error('CLINIC INSERT ERROR OBJECT:', r.error);
-      console.error('  message:', r.error.message);
-      console.error('  details:', r.error.details);
-      console.error('  hint:', r.error.hint);
-      console.error('  code:', r.error.code);
+      console.error('Creating the clinic patient failed.');
       // TEMP: surface the real error to the screen (revert to generic before launch)
       wsToast('Insert error: ' + r.error.message + (r.error.details ? ' — ' + r.error.details : ''));
       btn.disabled = false; btn.textContent = orig;
@@ -2665,7 +2656,7 @@ async function wsSavePatient(thenSend){
     if(thenSend && r.data){ wsSend(r.data.id); }
     else { wsToast('Patient saved'); }
   } catch(e){
-    console.error('CLINIC INSERT EXCEPTION:', e);
+    console.error('Creating the clinic patient failed unexpectedly.');
     wsToast('Insert exception: ' + (e && e.message ? e.message : e));
   }
   btn.disabled = false; btn.textContent = orig;
@@ -2764,7 +2755,6 @@ async function wsSend(id){ return wsSendWhatsApp(id); }
 async function wsSendSmsViaBackend(phone, message){
   // TODO: call your Edge Function, e.g.:
   // return window.sb.functions.invoke('send-sms', { body: { to: phone, message: message } });
-  console.log('SMS hook (not yet wired):', phone);
 }
 
 // ── WORKFLOW ADVANCE ──
@@ -3000,7 +2990,6 @@ window.wsAskFilter=wsAskFilter; window.wsApprove=wsApprove; window.wsSetRole=wsS
 
 document.addEventListener('DOMContentLoaded', async function(){
   try {
-    console.log('LOGIN START — dashboard init');
 
     var auth = await window.requireRole('staff');   // staff-only; patients → My Space
     if (!auth) { _dashDone = true; clearTimeout(_dashWatchdog); return; } // redirected (login or My Space)
@@ -3017,14 +3006,12 @@ document.addEventListener('DOMContentLoaded', async function(){
       // First, try to apply the role chosen at signup (stored in user metadata).
       var metaRole = user.user_metadata && user.user_metadata.role;
       if(metaRole){
-        console.log('Applying signup role from metadata:', metaRole);
         // Role is privileged: applied through the audited server function.
         try { await window.setOwnRole(metaRole); } catch(e){}
         profile = await window.getProfile(user.id);
         hasRole = profile && profile.role && profile.role !== '' && profile.role !== 'pending';
       }
       if(!hasRole){
-        console.log('ROLE: none — REDIRECT: role-select.html');
         _dashDone = true; clearTimeout(_dashWatchdog);
         window.location.href = '/v2/role-select.html';
         return;
@@ -3033,11 +3020,9 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     // Step 5: build and render
     var role  = isAdmin ? 'admin' : profile.role;
-    console.log('ROLE detected:', role);
 
     // Patients land on the For Patients portal (dashboard is one tool inside it)
     if(role === 'patient'){
-      console.log('REDIRECT: /v2/patients.html (patient portal)');
       _dashDone = true; clearTimeout(_dashWatchdog);
       window.location.replace('/v2/patients.html');
       return;
@@ -3185,7 +3170,6 @@ document.addEventListener('DOMContentLoaded', async function(){
         '</div>' +
       '</div>';
 
-
     // SECTION 3 — Clinical References (inline directory)
     var refItems = [
       ['Airway','/v2/airway.html','&#128168;'],['Anticoagulation','/v2/anticoagulation.html','&#129656;'],
@@ -3272,11 +3256,9 @@ document.addEventListener('DOMContentLoaded', async function(){
     document.getElementById('app').style.display    = 'block';
 
     var dest = (role === 'admin') ? 'Admin Workspace' : (role === 'doctor' ? 'Doctor Workspace' : 'Workspace');
-    console.log('REDIRECT target:', dest, '| REDIRECT executed: rendered in place');
-    console.log('DASHBOARD READY - role:', role);
 
   } catch(err){
-    console.error('DASHBOARD ERROR:', err.message, err.stack);
+    console.error('DASHBOARD ERROR:', err.message);
     dashFail(err.message);
   }
 });

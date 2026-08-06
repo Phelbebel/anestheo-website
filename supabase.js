@@ -18,7 +18,6 @@ window.sb = window.supabase.createClient(SUPA_URL, SUPA_ANON, {
 try {
   window.localStorage.setItem('anestheo-probe', '1');
   window.localStorage.removeItem('anestheo-probe');
-  console.log('STORAGE OK — localStorage writable');
 } catch(e) {
   console.error('STORAGE BLOCKED — localStorage not writable:', e.message,
     '\\nSessions cannot persist in this context (private mode / blocked cookies / storage partitioning).');

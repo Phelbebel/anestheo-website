@@ -1989,7 +1989,6 @@ var _pdWatchdog = setTimeout(function(){
 
 document.addEventListener('DOMContentLoaded', async function(){
   try {
-    console.log('MY SPACE START');
     var auth = await window.requireAuth();
     if(!auth){ _pdDone = true; clearTimeout(_pdWatchdog); return; }
     _uid = auth.user.id;
@@ -2075,7 +2074,6 @@ document.addEventListener('DOMContentLoaded', async function(){
     _pdDone = true; clearTimeout(_pdWatchdog);
     ge('loader').style.display = 'none';
     ge('app').style.display = 'block';
-    console.log('MY SPACE READY');
   } catch(e){
     _pdDone = true; clearTimeout(_pdWatchdog);
     console.error('MY SPACE ERROR:', e.message);

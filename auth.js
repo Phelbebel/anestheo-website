@@ -1,6 +1,5 @@
 // auth.js — /v2 shared auth helpers
 // Load order: CDN → supabase.js → auth.js → navbar.js → page script
-console.log('AUTH JS LOADED');
 
 // ── TIMEOUT GUARD ─────────────────────────────────────────────
 // Wrap any promise so it can never hang forever. Rejects after `ms`.
@@ -30,7 +29,6 @@ function getSession() {
 // ── getProfile ────────────────────────────────────────────────
 async function getProfile(userId) {
   try {
-    console.log('PROFILE LOOKUP START:', userId);
     var r = await withTimeout(
       window.sb
         .from('profiles')
@@ -40,7 +38,6 @@ async function getProfile(userId) {
       8000, 'getProfile'
     );
     if (r.error) { console.warn('getProfile error:', r.error.message); return null; }
-    console.log('PROFILE LOOKUP COMPLETE:', r.data ? r.data.role : 'no row');
     return r.data || null;
   } catch(e) {
     console.error('getProfile exception:', e.message);
@@ -55,19 +52,16 @@ async function requireAuth(opts) {
   opts = opts || {};
   var session = await getSession();
   if (!session) {
-    if (opts.noRedirect) { console.log('NO SESSION — caller handling'); return null; }
-    console.log('NO SESSION — redirecting to index');
+    if (opts.noRedirect) { return null; }
     window.location.href = '/v2/index.html';
     return null;
   }
   var user    = session.user;
-  console.log('AUTH SUCCESS', user.id);
   var profile = await getProfile(user.id);
   if (!profile) {
     // Never fail a protected page just because the profile row is missing.
     profile = await ensureProfile(user);
   }
-  console.log('PROFILE', profile);
   return { session: session, user: user, profile: profile };
 }
 
@@ -101,7 +95,6 @@ async function requireRole(allowed, opts) {
   // member lacking a finer role (e.g. a doctor on an admin page) goes to the
   // staff dashboard. replace() so Back doesn't return to the blocked page.
   var dest = opts.deny || (isStaff ? '/v2/dashboard.html' : '/v2/patient-dashboard.html');
-  console.log('ROLE GUARD: role "' + role + '" not permitted here — redirecting to ' + dest);
   window.location.replace(dest);
   return null;
 }
@@ -177,7 +170,6 @@ async function ensureProfile(user) {
   var profile = await getProfile(user.id);
   if (profile) return profile;
 
-  console.log('PROFILE MISSING — auto-creating for', user.id);
   var meta = user.user_metadata || {};
   var row = {
     id: user.id,

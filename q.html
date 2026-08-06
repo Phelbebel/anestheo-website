@@ -487,37 +487,27 @@ document.addEventListener('DOMContentLoaded', async function(){
 
   // Questions are defined IN THIS PAGE (the QUESTIONS array), not loaded
   // from a database template. Log the engine state for the audit.
-  console.log('QUESTIONNAIRE ENGINE — source: in-page QUESTIONS array (no DB template yet)');
-  console.log('Template selected:', '(none — code-defined engine)');
-  console.log('Question count (defined):', QUESTIONS.length);
 
   if(_preview){
     renderForm({ patient_name:'', procedure:'Your procedure', hospital:'', surgery_date:null });
-    console.log('Questions loaded (preview):', visibleQuestions().length);
     var b = ge('submit-btn'); if(b){ b.textContent='Preview only'; b.disabled=true; b.style.opacity='.6'; }
     return;
   }
   if(!_token){ renderError('No questionnaire link was provided.'); return; }
   try {
     var r = await window.sb.rpc('get_clinic_patient_by_token', { p_token: _token });
-    console.log('TOKEN LOOKUP — data:', r.data, '| error:', r.error);
     if(r.error) throw new Error(r.error.message);
     var p = (r.data && r.data[0]) ? r.data[0] : null;
     if(!p){ renderError('We could not find your questionnaire. Please contact your clinic for a new link.'); return; }
     if(p.questionnaire_status === 'completed'){ renderDone(p.questionnaire_answers || {}); return; }
     renderForm(p);
     var loaded = visibleQuestions().length;
-    console.log('Patient token:', _token);
-    console.log('Patient ID:', p.id || '(not returned)');
-    console.log('Template ID:', '(none — code-defined engine)');
-    console.log('Template Name:', '(none)');
-    console.log('Question Count:', loaded);
     // Safety net: the page must NEVER be blank.
     if(loaded === 0 || !ge('q-form') || !ge('q-form').innerHTML.trim()){
       renderError('Questionnaire configuration missing. Please contact your clinic.');
     }
   } catch(e){
-    console.error('QUESTIONNAIRE LOAD ERROR:', e);
+    console.error('The questionnaire could not be loaded.');
     renderError('Questionnaire configuration missing — ' + (e && e.message ? e.message : 'unknown error') + '. Please contact your clinic.');
   }
 });
