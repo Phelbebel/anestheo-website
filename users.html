@@ -61,9 +61,9 @@ async function load(){
   var r=await window.sb.from("profiles").select("*").order("created_at",{ascending:false});
   var users=r.data||[];
   var rows=users.length?users.map(function(u){
-    var b=u.verification_status==="approved"?"<span class=\\"badge b-approved\\">Approved</span>":u.verification_status==="pending"?"<span class=\\"badge b-pending\\">Pending</span>":u.verification_status==="rejected"?"<span class=\\"badge b-rejected\\">Rejected</span>":"<span style=\\"color:var(--hint)\\">\u2014</span>";
-    return "<tr><td><strong style=\\"color:#fff\\">"+esc(u.full_name||"\u2014")+"</strong></td><td>"+esc(u.email)+"</td><td>"+esc(u.role)+"</td><td>"+b+"</td></tr>";
-  }).join(""):"<tr><td colspan=\\"4\\" class=\\"empty\\">No users</td></tr>";
+    var b=u.verification_status==="approved"?"<span class=\"badge b-approved\">Approved</span>":u.verification_status==="pending"?"<span class=\"badge b-pending\">Pending</span>":u.verification_status==="rejected"?"<span class=\"badge b-rejected\">Rejected</span>":"<span style=\"color:var(--hint)\">\u2014</span>";
+    return "<tr><td><strong style=\"color:#fff\">"+esc(u.full_name||"\u2014")+"</strong></td><td>"+esc(u.email)+"</td><td>"+esc(u.role)+"</td><td>"+b+"</td></tr>";
+  }).join(""):"<tr><td colspan=\"4\" class=\"empty\">No users</td></tr>";
   document.getElementById("tb").innerHTML=rows;
   } catch(e){ document.getElementById("tb").innerHTML='<tr><td colspan="6" class="empty">Could not load data: '+e.message+'</td></tr>'; }
 }

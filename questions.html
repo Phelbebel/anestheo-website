@@ -62,9 +62,9 @@ async function load(){
     var qs=r.data||[];
     var rows=qs.length?qs.map(function(x){
       return "<tr><td>"+esc(x.name)+"</td><td>"+esc(x.topic)+"</td><td>"+esc(x.question)+"</td><td>"+esc(x.email||"\u2014")+"</td></tr>";
-    }).join(""):"<tr><td colspan=\\"4\\" class=\\"empty\\">No questions yet</td></tr>";
+    }).join(""):"<tr><td colspan=\"4\" class=\"empty\">No questions yet</td></tr>";
     document.getElementById("tb").innerHTML=rows;
-  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan=\\"4\\" class=\\"empty\\">Questions table not available</td></tr>"; }
+  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan=\"4\" class=\"empty\">Questions table not available</td></tr>"; }
 }
 document.addEventListener("DOMContentLoaded",async function(){
   // Safety: never let the spinner persist beyond 8s

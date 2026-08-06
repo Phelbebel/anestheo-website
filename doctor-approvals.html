@@ -64,8 +64,8 @@ async function load(){
   var docs=r.data||[];
   var pending=docs.filter(function(d){return d.verification_status==="pending";});
   var rows=pending.length?pending.map(function(p){
-    return "<tr><td><strong style=\\"color:#fff\\">"+esc(p.full_name)+"</strong></td><td>"+esc(p.email)+"</td><td>"+esc(p.hospital)+"</td><td>"+esc(p.specialty)+"</td><td><span class=\\"badge b-pending\\">Pending</span></td><td><button class=\\"act act-approve\\" onclick=\\"setStatus(\x27"+p.id+"\x27,\x27approved\x27)\\">Approve</button><button class=\\"act act-reject\\" onclick=\\"setStatus(\x27"+p.id+"\x27,\x27rejected\x27)\\">Reject</button></td></tr>";
-  }).join(""):"<tr><td colspan=\\"6\\" class=\\"empty\\">No pending approvals</td></tr>";
+    return "<tr><td><strong style=\"color:#fff\">"+esc(p.full_name)+"</strong></td><td>"+esc(p.email)+"</td><td>"+esc(p.hospital)+"</td><td>"+esc(p.specialty)+"</td><td><span class=\"badge b-pending\">Pending</span></td><td><button class=\"act act-approve\" onclick=\"setStatus(\x27"+p.id+"\x27,\x27approved\x27)\">Approve</button><button class=\"act act-reject\" onclick=\"setStatus(\x27"+p.id+"\x27,\x27rejected\x27)\">Reject</button></td></tr>";
+  }).join(""):"<tr><td colspan=\"6\" class=\"empty\">No pending approvals</td></tr>";
   document.getElementById("tb").innerHTML=rows;
   } catch(e){ document.getElementById("tb").innerHTML='<tr><td colspan="6" class="empty">Could not load data: '+e.message+'</td></tr>'; }
 }
