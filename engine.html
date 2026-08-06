@@ -318,6 +318,243 @@ body.embed .eng-wrap{padding-top:14px;}
 .eng-wrap .crisis-dose b,.eng-wrap .crisis-sec-t,.eng-wrap .crisis-emg-t,.eng-wrap .crisis-num,
 .eng-wrap .lt-head,.eng-wrap .lt-time,.eng-wrap .pacu-mod-head,.eng-wrap .panel-title,
 .eng-wrap .cw-acc-sub,.eng-wrap .inp label{font-weight:800;}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WORKSTATION DESIGN SYSTEM v2
+   One spacing scale, one type scale, one grid. Loaded last so it is the
+   single source of truth for the modules below the input area.
+   The Crisis Center is deliberately excluded: every .crisis-* rule above is
+   left untouched and nothing here targets .crisis-panel or its children.
+   ══════════════════════════════════════════════════════════════════════════ */
+.eng-wrap{
+  /* spacing scale — 4 / 8 / 12 / 16 / 24 */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px;
+  /* surface + line tokens */
+  --mod-bg:linear-gradient(158deg,rgba(255,255,255,.055),rgba(255,255,255,.014));
+  --mod-br:rgba(255,255,255,.09);
+  --rule:rgba(126,207,192,.13);
+  --rule-strong:rgba(126,207,192,.26);
+  --ink:#ffffff;
+  --ink-2:#dceee8;
+  --ink-3:#9db3ac;
+  --accent:#7ECFC0;
+  max-width:1360px;
+}
+body.embed .eng-wrap{max-width:100%;}
+
+/* ── GRID ────────────────────────────────────────────────────────────────
+   12 columns with explicit spans, not masonry. Dense packing lets a compact
+   module backfill a hole rather than leaving the row half empty.          */
+#output .panels{
+  display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
+  grid-auto-flow:row;gap:var(--s4);align-items:start;
+}
+#output .panel.sp3{grid-column:span 3;}
+#output .panel.sp4{grid-column:span 4;}
+#output .panel.sp6{grid-column:span 6;}
+#output .panel.sp12,#output .panel.full{grid-column:1 / -1;}
+/* the resize control now means "make this full width", which is the only
+   resize that keeps the row rhythm intact */
+#output .panel.wide{grid-column:1 / -1;}
+
+@media(max-width:1279px){
+  #output .panels{grid-template-columns:repeat(4,minmax(0,1fr));}
+  #output .panel.sp3,#output .panel.sp4,#output .panel.sp6{grid-column:span 2;}
+  #output .panel.sp12,#output .panel.full,#output .panel.wide{grid-column:1 / -1;}
+}
+@media(max-width:900px){
+  #output .panels{grid-template-columns:1fr;gap:var(--s3);}
+  #output .panel.sp3,#output .panel.sp4,#output .panel.sp6,
+  #output .panel.sp12,#output .panel.full,#output .panel.wide{grid-column:1 / -1;}
+}
+
+/* ── MODULE SHELL ───────────────────────────────────────────────────── */
+#output .panel{
+  background:var(--mod-bg);border:1px solid var(--mod-br);border-radius:16px;
+  box-shadow:0 10px 26px rgba(0,0,0,.24);
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+#output .panel:hover{transform:none;box-shadow:0 14px 34px rgba(0,0,0,.3);border-color:rgba(126,207,192,.34);}
+#output .panel-head{
+  padding:var(--s4) var(--s6);gap:var(--s3);
+  border-bottom:1px solid var(--rule);align-items:center;
+}
+#output .panel-title{
+  font-size:22px;font-weight:700;line-height:1.14;letter-spacing:-.015em;color:var(--ink);
+}
+#output .panel.compact .panel-title{font-size:17px;}
+#output .panel.compact .panel-tag{display:none;}
+#output .panel-title{min-width:0;}
+#output .panel-ico{font-size:19px;flex:0 0 auto;}
+#output .panel-tag{
+  font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--accent);background:rgba(126,207,192,.09);border:1px solid rgba(126,207,192,.22);
+  padding:4px 9px;border-radius:6px;margin-left:auto;flex:0 0 auto;
+}
+#output .panel-grip,#output .panel-resize,#output .panel-chev{flex:0 0 auto;}
+#output .panel-body{padding:var(--s6);}
+#output .panel.compact .panel-body{padding:20px;}
+
+/* ── TYPE SCALE ─────────────────────────────────────────────────────────
+   section heading 14/700 · drug name 18/700 · value 20/700 ·
+   label 14/500 · note 13/400 · warning 14/700                            */
+
+/* group heading + separator: replaces long prose runs with scannable blocks */
+#output .grp{margin-top:var(--s4);padding-top:var(--s4);border-top:1px solid var(--rule);}
+#output .grp:first-child{margin-top:0;padding-top:0;border-top:none;}
+#output .grp-h{
+  font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:var(--s3);line-height:1;
+}
+#output .grp-h em{font-style:normal;font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--ink-3);margin-left:var(--s2);font-size:12.5px;}
+
+/* label → value row. One grid, so every value in a module lands on one edge. */
+#output .kv{
+  display:flex;flex-wrap:wrap;align-items:baseline;
+  gap:var(--s1) var(--s4);padding:var(--s3) 0;border-bottom:1px solid var(--rule);
+}
+#output .kv-l{flex:1 1 auto;}
+#output .kv-v{flex:0 0 auto;margin-left:auto;}
+#output .kv:last-child{border-bottom:none;}
+#output .kv-l{font-size:14px;font-weight:500;color:var(--ink-2);line-height:1.35;min-width:0;}
+#output .kv-l i{display:block;font-style:normal;font-size:13px;font-weight:400;color:var(--ink-3);margin-top:var(--s1);line-height:1.4;}
+#output .kv-v{
+  font-size:20px;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums;text-align:right;line-height:1.15;min-width:0;
+}
+#output .kv-v small,#output .kv-v u{
+  font-size:12px;font-weight:600;color:var(--accent);margin-left:5px;text-decoration:none;
+  font-variant-numeric:normal;
+}
+/* long-text "value" (a phrase, not a number) — wraps under the label instead
+   of colliding with it, which is what the old single-row layout did */
+#output .kv.txt{display:block;}
+#output .kv.txt .kv-l{display:block;margin-bottom:var(--s1);}
+#output .kv.txt .kv-v{font-size:16px;text-align:left;white-space:normal;line-height:1.4;}
+
+/* ── DRUG / DEVICE CARD — a mini dashboard, not a text box ───────────────
+   row 1  name (left)            dose (right, dominant)
+   row 2  indication
+   row 3  preparation
+   row 4  warning                                                          */
+#output .rxlist{display:grid;gap:var(--s3);}
+#output .rxlist.two{grid-template-columns:repeat(2,minmax(0,1fr));}
+#output .rx{
+  background:rgba(0,0,0,.2);border:1px solid rgba(126,207,192,.14);border-radius:11px;
+  padding:var(--s3) var(--s4);display:grid;gap:var(--s2);
+}
+/* name left, dose right — and when a long name and a long unit cannot share a
+   line, the dose wraps to its own right-aligned line instead of overlapping. */
+#output .rx-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s1) var(--s4);}
+#output .rx-name{font-size:18px;font-weight:700;color:var(--ink);line-height:1.2;letter-spacing:-.01em;
+  flex:1 1 auto;min-width:0;}
+#output .rx-val{
+  font-size:20px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;
+  white-space:nowrap;text-align:right;line-height:1.1;flex:0 0 auto;margin-left:auto;
+}
+#output .rx-val u{font-size:12px;font-weight:600;color:var(--accent);margin-left:4px;text-decoration:none;font-variant-numeric:normal;}
+#output .rx-ind{font-size:14px;font-weight:500;color:var(--ink-2);line-height:1.4;}
+#output .rx-prep{font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.45;}
+#output .rx-prep b{color:var(--accent);font-weight:600;}
+#output .rx-warn{
+  font-size:14px;font-weight:700;color:#F3C46B;line-height:1.4;
+  padding-top:var(--s2);border-top:1px solid rgba(232,168,56,.2);
+}
+#output .rx-warn.hi{color:#FF9B86;border-top-color:rgba(192,57,43,.28);}
+
+/* ── KPI STRIP — the numbers the eye should hit first ──────────────────── */
+#output .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:var(--s2);margin-bottom:var(--s4);}
+#output .kpi{background:rgba(0,0,0,.24);border:1px solid rgba(126,207,192,.13);border-radius:10px;padding:var(--s3) var(--s2);text-align:center;min-width:0;}
+#output .kpi i{display:block;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;line-height:1.25;}
+#output .kpi b{display:block;font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.05;letter-spacing:-.02em;}
+#output .kpi b span{font-size:11px;font-weight:600;color:var(--accent);margin-left:3px;font-variant-numeric:normal;}
+#output .panel.compact .kpi b{font-size:20px;}
+
+/* ── NOTES, WARNINGS, LISTS ───────────────────────────────────────────── */
+#output .note{font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.6;padding:var(--s2) 0;}
+#output .note b{color:var(--ink-2);font-weight:700;}
+#output .note a{color:var(--accent);}
+#output .note+.note{border-top:1px solid rgba(126,207,192,.07);}
+#output .alert{
+  font-size:14px;font-weight:700;line-height:1.45;color:#F3C46B;
+  background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.26);
+  border-radius:9px;padding:var(--s3) var(--s4);margin-top:var(--s3);
+}
+#output .alert.hi{color:#FF9B86;background:rgba(192,57,43,.09);border-color:rgba(192,57,43,.34);}
+#output .alert b{color:inherit;}
+#output .bul{display:grid;gap:var(--s2);}
+#output .bul li{list-style:none;font-size:14px;font-weight:500;color:var(--ink-2);line-height:1.45;padding-left:16px;position:relative;}
+#output .bul li:before{content:'';position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--accent);}
+#output ul.bul{margin:0;padding:0;}
+/* two-column pro / con */
+#output .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4);}
+#output .duo-h{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:var(--s2);}
+#output .duo-h.up{color:#7FE0B4;} #output .duo-h.dn{color:#F0A98C;}
+@media(max-width:640px){#output .duo{grid-template-columns:1fr;} #output .rxlist.two{grid-template-columns:1fr;}}
+
+/* chips (indications, quick facts) */
+#output .chipset{display:flex;flex-wrap:wrap;gap:var(--s2);}
+#output .chipset span{
+  font-size:13px;font-weight:600;color:var(--ink-2);background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:6px 10px;line-height:1.2;
+}
+#output .warn-chip{font-size:14px;font-weight:700;border-radius:8px;padding:7px 11px;margin:0 var(--s2) var(--s2) 0;}
+
+/* ── REFERENCE TAB STRIP (Airway Tubes, TCI/Sedation) ──────────────────
+   Own classes on purpose — the Crisis Center keeps .crisis-tab untouched. */
+#output .ref-catrow{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s3);}
+#output .ref-cat{
+  font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  background:none;border:1px solid rgba(255,255,255,.12);color:var(--ink-3);
+  border-radius:7px;padding:7px 12px;cursor:pointer;font-family:inherit;min-height:36px;
+}
+#output .ref-cat.on{border-color:rgba(126,207,192,.55);color:#eafff8;background:rgba(126,207,192,.12);}
+#output .ref-tabs{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s4);}
+#output .ref-tab{
+  font-size:14px;font-weight:600;background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.11);color:var(--ink-2);border-radius:8px;
+  padding:9px 13px;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:38px;
+  transition:border-color .15s,background .15s;
+}
+#output .ref-tab:hover{background:rgba(255,255,255,.08);}
+#output .ref-tab.on{background:rgba(126,207,192,.16);border-color:rgba(126,207,192,.5);color:#fff;font-weight:700;}
+#output .ref-head{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:var(--s4);
+  padding-bottom:var(--s3);border-bottom:1px solid var(--rule-strong);margin-bottom:var(--s4);
+}
+#output .ref-name{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.015em;line-height:1.15;}
+#output .ref-name i{display:block;font-style:normal;font-size:14px;font-weight:500;color:var(--ink-3);margin-top:5px;letter-spacing:0;}
+#output .ref-key{font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;line-height:1.1;}
+#output .ref-key u{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);text-decoration:none;margin-top:5px;font-variant-numeric:normal;}
+/* two-column detail body on wide modules; single column when narrow */
+#output .ref-cols{columns:2;column-gap:32px;column-fill:balance;}
+#output .ref-cols>div{break-inside:auto;}
+#output .ref-cols .grp{break-inside:avoid;}
+@media(max-width:1023px){#output .ref-cols{columns:1;}}
+
+/* ── FOOTNOTE ─────────────────────────────────────────────────────────── */
+#output .foot{
+  font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.6;
+  margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--rule);
+}
+#output .foot a{color:var(--accent);}
+
+/* the readability sweep above forces weight 800 on several classes; the scale
+   defined here is deliberate, so restate the weights that matter */
+#output .kv-l,#output .rx-ind{font-weight:500;}
+#output .note,#output .rx-prep{font-weight:400;}
+#output .kv-v,#output .rx-val,#output .rx-name,#output .grp-h,#output .kpi b,
+#output .ref-name,#output .ref-key,#output .panel-title{font-weight:700;}
+#output .rx-warn,#output .alert,#output .warn-chip{font-weight:700;}
+
+@media(max-width:640px){
+  #output .panel-body{padding:18px;}
+  #output .panel-head{padding:var(--s3) 18px;}
+  #output .panel-title{font-size:19px;}
+  #output .panel.compact .panel-title{font-size:16px;}
+  #output .kpi b{font-size:21px;}
+  #output .rx-val,#output .kv-v{font-size:18px;}
+}
 </style>
 </head>
 <body>
@@ -534,7 +771,7 @@ function compute(){
   var h421; if(wt<=10)h421=wt*4; else if(wt<=20)h421=40+(wt-10)*2; else h421=60+(wt-20)*1;
 
   // ── AIRWAY (combined recommendations) ──
-  var airwayRows='', pedsNote='', emAirway='';
+  var airwayRows='', pedsNote='', emAirwayRow='';
   if(isPeds && wbAir){
     // ── A1b/A1c: NEONATAL / INFANT AIRWAY PACKAGE (weight-based; age formulas
     // are suppressed below 1 year because age/4+4 is invalid at neonatal ages) ──
@@ -551,9 +788,12 @@ function compute(){
       metric('Maintenance (4-2-1)', r0(h421),'mL/hr',true)+
       metric('Oral airway (Guedel)', opaPeds(age),'')+
       metric('Nasopharyngeal', npaPeds(age),'');
-    pedsNote='<div class="peds-note"><b>'+(isNeo?'Neonate':'Infant')+' airway package &middot; weight-based ('+r1(wt)+' kg):</b> age formulas suppressed below 1 year. ETT uncuffed by weight; depth &asymp; 3 &times; ETT size; cuffed &asymp; 0.5 mm smaller.</div>'+
-      '<div class="peds-note">EBV '+ebvPerKg+' mL/kg = '+r0(ebv)+' mL &middot; fluid bolus 10–20 mL/kg = '+r0(wt*10)+'–'+r0(wt*20)+' mL &middot; use glucose-containing maintenance in neonates/infants.</div>';
-    emAirway='<div class="helper"><b>Emergency airway (neonate/infant):</b> small reserve — desaturates fast; pre-oxygenate, gentle mask ventilation, uncuffed or low-pressure cuffed tube, confirm with EtCO₂. Call for senior/PICU help early.</div>';
+    pedsNote=metric((isNeo?'Neonate':'Infant')+' package','Weight-based ('+r1(wt)+' kg) — age formulas suppressed below 1 year','')+
+      metric('Uncuffed ETT','By weight; cuffed &asymp; 0.5 mm smaller','')+
+      metric('Depth','&asymp; 3 &times; ETT size','')+
+      metric('Fluid bolus',r0(wt*10)+'–'+r0(wt*20),'mL')+
+      metric('Maintenance','Glucose-containing in neonates / infants','');
+    emAirwayRow=metric('CICO / rescue','Small reserve — desaturates fast. Pre-oxygenate, gentle mask ventilation, uncuffed or low-pressure cuffed tube, confirm with EtCO₂. Call senior / PICU early.','');
   } else if(isPeds){
     var ettU=(age/4)+4, ettC=(age/4)+3.5, depth=(age/2)+12;
     var pBlade = age<0.5?'Miller 0':(age<2?'Miller 1':(age<6?'Miller / Mac 1–2':'Mac 2'));
@@ -566,8 +806,12 @@ function compute(){
       metric('Blade',pBlade,'')+
       metric('Oral airway (Guedel)',opaPeds(age),'')+
       metric('Nasopharyngeal',npaPeds(age),'');
-    pedsNote='<div class="peds-note">Pediatric formulas: uncuffed ETT age/4 + 4, cuffed age/4 + 3.5, depth age/2 + 12.</div>';
-    emAirway='<div class="helper"><b>Emergency airway:</b> call for help early; optimize oxygenation. CICO &lt; ~8 y → needle cricothyroidotomy + oxygenation; older children → scalpel technique by expert.</div>';
+    pedsNote=metric('Uncuffed ETT','age / 4 + 4','mm ID')+
+      metric('Cuffed ETT','age / 4 + 3.5','mm ID')+
+      metric('Depth at lips','age / 2 + 12','cm');
+    emAirwayRow=metric('CICO &lt; ~8 y','Needle cricothyroidotomy + oxygenation','')+
+      metric('CICO older child','Scalpel technique by an expert','')+
+      metric('Always','Call for help early; optimise oxygenation','');
   } else {
     var mac = (ht && ht>=175) ? '4 (3 standard)' : '3 (4 if large / tall)';
     airwayRows=
@@ -580,95 +824,180 @@ function compute(){
       metric('Miller blade','3 (2 alternative)','')+
       metric('Oral airway (Guedel)',sex==='M'?'Size 4 (90 mm)':'Size 3 (80 mm)','')+
       metric('Nasopharyngeal',sex==='M'?'7.0 – 7.5 mm':'6.0 – 6.5 mm','');
-    emAirway='<div class="helper"><b>Emergency airway (CICO):</b> scalpel–bougie–tube cricothyroidotomy (6.0 mm); confirm with capnography. See <a href="/v2/difficult-airway.html" style="color:#7ECFC0;">algorithm</a>.</div>';
+    emAirwayRow=metric('CICO — front of neck','Scalpel–bougie–tube cricothyroidotomy','6.0 mm')+
+      metric('Confirmation','Capnography is mandatory','');
   }
-  // airway assessment helpers (educational scoring guides)
-  var airwayHelpers=
-    '<div class="helper"><b>Mallampati:</b> I–IV by visible structures (soft palate, fauces, uvula, pillars). III–IV suggests harder laryngoscopy.</div>' +
-    '<div class="helper"><b>LEMON:</b> Look externally · Evaluate 3-3-2 · Mallampati · Obstruction · Neck mobility.</div>' +
-    '<div class="helper"><b>MACOCHA:</b> Mallampati III/IV, Apnea/OSA, Cervical limit, Opening &lt;3cm, Coma, Hypoxemia, Non-anesthetist. Higher = harder ICU intubation.</div>';
 
   // ── VENTILATION ──
   var rr=isPeds?20:12;
   var tv6=pbw*6, tv7=pbw*7, tv8=pbw*8, tv9=pbw*9, tv10=pbw*10;
   var mvLo=(tv6*rr)/1000, mvHi=(tv8*rr)/1000;
-  var ventRows=
-    m2('Predicted body weight','Sex + height based (ARDSNet)',r1(pbw),'kg')+
-    m2('Tidal volume','Target 6–8 mL/kg PBW',r0(tv6)+'–'+r0(tv8),'mL')+
-    metric('TV 6 ml/kg PBW',r0(tv6),'mL')+metric('TV 7 ml/kg PBW',r0(tv7),'mL')+
-    metric('TV 8 ml/kg PBW',r0(tv8),'mL')+metric('TV 9 ml/kg PBW',r0(tv9),'mL')+
-    metric('TV 10 ml/kg PBW',r0(tv10),'mL')+
-    m2('Minute ventilation','TV × RR ('+rr+'/min) estimate',r1(mvLo)+'–'+r1(mvHi),'L/min');
+  // PBW / TV / MV feed the Ventilation module's KPI strip and groups below.
   var pedsVent = isPeds ?
     (metric('TV 6 ml/kg (actual wt)',r0(wt*6),'mL',true)+
      metric('TV 7 ml/kg (actual wt)',r0(wt*7),'mL')+
      metric('TV 8 ml/kg (actual wt)',r0(wt*8),'mL',true)+
-     '<div class="helper"><b>Pediatric ventilation:</b> TV 6–8 mL/kg, RR by age (neonate 30–40, infant 25–30, child 20–25/min), PEEP ~5, low peak pressures; expect a leak with uncuffed tubes.</div>') : '';
-  var pressureGuide =
-    '<div class="helper"><b>Peak pressure:</b> reference target &lt; 35–40 cmH₂O.</div>'+
-    '<div class="helper"><b>Plateau pressure:</b> reference target ≤ 30 cmH₂O.</div>'+
-    '<div class="helper"><b>Driving pressure:</b> Pplat − PEEP, reference target ≤ 15 cmH₂O.</div>'+
-    '<div class="helper"><b>Protective ventilation:</b> TV 6–8 mL/kg PBW, PEEP ≥ 5, recruit as needed, lowest tolerated FiO₂. ARDS: TV 6 mL/kg ('+r0(tv6)+' mL), higher PEEP, permissive hypercapnia, prone if P/F &lt; 150.</div>'+
-    '<div class="helper" style="opacity:.75">Reference values only — not mandatory recommendations; titrate to the patient.</div>';
-  // Combined Airway & Ventilation card body
-  // Compact at-a-glance key values (airway + ventilation together)
-  function av(l,v){ return '<div class="av-cell"><i>'+l+'</i><b>'+v+'</b></div>'; }
+     note('RR by age: neonate 30–40 &middot; infant 25–30 &middot; child 20–25 /min. PEEP ~5, low peak pressures; expect a leak with uncuffed tubes.')) : '';
+  // ── AIRWAY (large module) — the numbers first, then the detail, then the
+  //    assessment tools. Prose is compressed into one-line groups.
   var ettKey = isPeds ? (wbAir ? r1(neoETT(wt)) : r1((age/4)+3.5)) : (sex==='M'?'8.0':'7.0');
   var depthKey = isPeds ? (wbAir ? r1(neoETT(wt)*3) : r1((age/2)+12)) : (sex==='M'?'22–24':'20–22');
   var macKey = isPeds ? (wbAir ? (wt<3?'Mil 0':'Mil 1') : (age<0.5?'Mil 0':age<2?'Mil 1':age<6?'1–2':'Mac 2')) : ((ht&&ht>=175)?'Mac 4':'Mac 3');
-  var avKey='<div class="av-grid">'+
-    av('ETT',ettKey)+av('Depth',depthKey+' cm')+av('LMA',lmaForWeight(wt))+
-    av('i-gel',(igelForWeight(wt)+'').split(' ')[0])+av('Blade',macKey)+
-    av('PBW',r0(pbw)+' kg')+av('TV 6–8',r0(tv6)+'–'+r0(tv8))+av('MV',r1(mvLo)+'–'+r1(mvHi)+' L')+
-  '</div>';
-  var avBody =
-    avKey+
-    '<div class="av-sub">Airway detail</div>'+airwayRows+pedsNote+
-    '<div class="av-sub">Ventilation (TV by ml/kg)</div>'+ventRows+pedsVent+
-    '<div class="av-sub">Pressure guidance</div>'+pressureGuide+
-    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+emAirway+airwayHelpers+'</div>';
+  var airwayBody =
+    kpis([ kpi('ETT', ettKey, 'mm'), kpi('Depth', depthKey, 'cm'),
+           kpi('LMA', lmaForWeight(wt)), kpi('i-gel', (igelForWeight(wt)+'').split(' ')[0]),
+           kpi('Blade', macKey) ]) +
+    grp('Tube &amp; device sizing', airwayRows) +
+    (pedsNote ? grp('Paediatric formulas', pedsNote) : '') +
+    grp('Difficult airway assessment',
+      metric('Mallampati','III–IV → harder laryngoscopy','')+
+      metric('LEMON','Look · 3-3-2 · Mallampati · Obstruction · Neck','')+
+      metric('MACOCHA','Mallampati III/IV · apnoea · cervical · &lt;3 cm · coma · hypoxaemia','')) +
+    grp('Emergency', emAirwayRow) +
+    foot('Full tube reference in the <b>Airway Tubes</b> module below &middot; ' +
+         '<a href="/v2/difficult-airway.html">difficult airway algorithm</a>.');
 
-  // DRUGS — reference ranges
-  function dcard(name, sub, dose, unit){ return '<div class="drug-card"><div class="dc-name">'+name+'</div><div class="dc-sub">'+sub+'</div><div class="dc-dose">'+dose+'<span>'+(unit||'')+'</span></div></div>'; }
-  var drugRows='<div class="drug-grid">'+
-    dcard('Propofol','Induction · 1.5–2.5 mg/kg TBW',r0(wt*1.5)+'–'+r0(wt*2.5),'mg')+
-    dcard('Fentanyl','Analgesia · 1–3 mcg/kg TBW',r0(wt*1)+'–'+r0(wt*3),'mcg')+
-    dcard('Rocuronium','Intubation · 0.6–1.2 mg/kg TBW',r0(wt*0.6)+'–'+r0(wt*1.2),'mg')+
-    dcard('Suxamethonium','RSI · 1–1.5 mg/kg TBW',r0(wt*1)+'–'+r0(wt*1.5),'mg')+
-    dcard('Sugammadex','Routine reversal · 2–4 mg/kg TBW',r0(wt*2)+'–'+r0(wt*4),'mg')+
-    dcard('Sugammadex','Immediate reversal · 16 mg/kg TBW',r0(wt*16),'mg')+
-    dcard('Ketamine','Induction · 1–2 mg/kg TBW',r0(wt*1)+'–'+r0(wt*2),'mg')+
-    dcard('Midazolam','Premed · 0.02–0.04 mg/kg TBW',r1(wt*0.02)+'–'+r1(wt*0.04),'mg')+
-    dcard('Morphine','Analgesia · 0.05–0.1 mg/kg TBW',r1(wt*0.05)+'–'+r1(wt*0.1),'mg')+
-    dcard('Neostigmine','Reversal · 0.04–0.05 mg/kg (max 5)',r1(wt*0.04)+'–'+r1(Math.min(wt*0.05,5)),'mg')+
-    dcard('Remifentanil','Infusion · 0.05–0.2 mcg/kg/min','0.05–0.2','mcg/kg/min')+
-    dcard('Dexmedetomidine','Sedation · 0.2–0.7 mcg/kg/h','0.2–0.7','mcg/kg/h')+
-  '</div>';
+  // ── VENTILATION (compact module) — PBW-driven, targets as one table
+  var ventBody =
+    kpis([ kpi('PBW', r0(pbw), 'kg'), kpi('TV 6–8', r0(tv6)+'–'+r0(tv8), 'mL'),
+           kpi('MV', r1(mvLo)+'–'+r1(mvHi), 'L/min'), kpi('RR', rr, '/min') ]) +
+    grp('Tidal volume by mL/kg PBW',
+      metric('6 mL/kg',r0(tv6),'mL')+metric('7 mL/kg',r0(tv7),'mL')+
+      metric('8 mL/kg',r0(tv8),'mL')+metric('9 mL/kg',r0(tv9),'mL')+
+      metric('10 mL/kg',r0(tv10),'mL')) +
+    (pedsVent ? grp('Paediatric (actual weight)', pedsVent) : '') +
+    grp('Pressure targets',
+      metric('Peak','&lt; 35–40','cmH₂O')+
+      metric('Plateau','≤ 30','cmH₂O')+
+      metric('Driving (Pplat − PEEP)','≤ 15','cmH₂O')+
+      metric('PEEP (routine)','≥ 5','cmH₂O')) +
+    grp('Protective ventilation',
+      bul(['TV 6–8 mL/kg PBW ('+r0(tv6)+'–'+r0(tv8)+' mL), lowest tolerated FiO₂',
+           'ARDS: TV 6 mL/kg ('+r0(tv6)+' mL), higher PEEP, permissive hypercapnia',
+           'Prone if P/F &lt; 150; recruit as needed'])) +
+    foot('Reference targets, not mandatory settings — titrate to the patient.');
+
+  // ── DRUG REFERENCES — grouped INDUCTION / RELAXANT / ANALGESIA / REVERSAL.
+  //    Each card is a mini dashboard: name | dose, then indication, then how it
+  //    is prepared, then the one warning that matters.
+  var hasWt = !!(wt && wt>0);
+  function vol(mgLo,mgHi,conc){                       // mg range -> mL at a concentration
+    if(!hasWt) return '';
+    var a=mgLo/conc, b=mgHi/conc;
+    return (Math.round(a*10)/10)+(mgHi!==mgLo?('–'+(Math.round(b*10)/10)):'')+' mL';
+  }
+  var drugRows =
+    grp('Induction', rxList([
+      rx({ name:'Propofol', val:hasWt?(r0(wt*1.5)+'–'+r0(wt*2.5)):'1.5–2.5', unit:hasWt?'mg':'mg/kg',
+           ind:'Induction &middot; 1.5–2.5 mg/kg TBW',
+           prep:'<b>1% = 10 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*1.5,wt*2.5,10)):''),
+           warn:'Reduce 30–50% in the elderly, hypovolaemia and ASA III–IV.' }),
+      rx({ name:'Ketamine', val:hasWt?(r0(wt*1)+'–'+r0(wt*2)):'1–2', unit:hasWt?'mg':'mg/kg',
+           ind:'Induction &middot; 1–2 mg/kg TBW',
+           prep:'<b>10 / 50 mg/mL</b> &middot; haemodynamically stable choice',
+           warn:'Emergence phenomena; avoid in uncontrolled hypertension and raised ICP.' }),
+      rx({ name:'Midazolam', val:hasWt?(r1(wt*0.02)+'–'+r1(wt*0.04)):'0.02–0.04', unit:hasWt?'mg':'mg/kg',
+           ind:'Premedication &middot; 0.02–0.04 mg/kg TBW',
+           prep:'<b>1 / 5 mg/mL</b> &middot; dilute to 1 mg/mL for titration',
+           warn:'Additive respiratory depression with opioids; halve in the elderly.' })
+    ], true)) +
+    grp('Neuromuscular blockade', rxList([
+      rx({ name:'Rocuronium', val:hasWt?(r0(wt*0.6)+'–'+r0(wt*1.2)):'0.6–1.2', unit:hasWt?'mg':'mg/kg',
+           ind:'Intubation &middot; 0.6–1.2 mg/kg TBW',
+           prep:'<b>10 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*0.6,wt*1.2,10)):'')+' &middot; 1.2 mg/kg for RSI',
+           warn:'Only after confirming you can ventilate — unless sugammadex is drawn up.' }),
+      rx({ name:'Suxamethonium', val:hasWt?(r0(wt*1)+'–'+r0(wt*1.5)):'1–1.5', unit:hasWt?'mg':'mg/kg',
+           ind:'RSI &middot; 1–1.5 mg/kg TBW',
+           prep:'<b>50 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*1,wt*1.5,50)):''),
+           warn:'Contraindicated in hyperkalaemia, burns &gt;24 h, denervation, MH susceptibility.', hi:true })
+    ], true)) +
+    grp('Analgesia', rxList([
+      rx({ name:'Fentanyl', val:hasWt?(r0(wt*1)+'–'+r0(wt*3)):'1–3', unit:hasWt?'mcg':'mcg/kg',
+           ind:'Peri-induction analgesia &middot; 1–3 mcg/kg TBW',
+           prep:'<b>50 mcg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*1,wt*3,50)):''),
+           warn:'Chest-wall rigidity with rapid large boluses.' }),
+      rx({ name:'Morphine', val:hasWt?(r1(wt*0.05)+'–'+r1(wt*0.1)):'0.05–0.1', unit:hasWt?'mg':'mg/kg',
+           ind:'Postoperative analgesia &middot; 0.05–0.1 mg/kg TBW',
+           prep:'<b>10 mg/mL</b> &middot; dilute to 1 mg/mL and titrate',
+           warn:'Accumulates in renal impairment — reduce or choose an alternative.' }),
+      rx({ name:'Remifentanil', val:'0.05–0.2', unit:'mcg/kg/min',
+           ind:'Infusion &middot; TIVA analgesic component',
+           prep:'<b>50 mcg/mL</b> (2 mg / 40 mL)',
+           warn:'No residual analgesia — establish multimodal cover before stopping.' }),
+      rx({ name:'Dexmedetomidine', val:'0.2–0.7', unit:'mcg/kg/h',
+           ind:'Sedation &middot; largely preserved respiration',
+           prep:'<b>4 mcg/mL</b> (200 mcg / 50 mL)',
+           warn:'Bradycardia and hypotension, worse with a loading dose.' })
+    ], true)) +
+    grp('Reversal', rxList([
+      rx({ name:'Sugammadex', val:hasWt?(r0(wt*2)+'–'+r0(wt*4)):'2–4', unit:hasWt?'mg':'mg/kg',
+           ind:'Routine reversal &middot; 2–4 mg/kg TBW',
+           prep:'<b>100 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*2,wt*4,100)):'')+' &middot; 2 mg/kg at TOF 2, 4 mg/kg at PTC 1–2' }),
+      rx({ name:'Sugammadex', val:hasWt?r0(wt*16):'16', unit:hasWt?'mg':'mg/kg',
+           ind:'Immediate reversal &middot; 16 mg/kg TBW',
+           prep:'<b>100 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*16,wt*16,100)):'')+' &middot; the CICO rescue dose',
+           warn:'Rocuronium will not work again for ~24 h — plan the alternative first.', hi:true }),
+      rx({ name:'Neostigmine', val:hasWt?(r1(wt*0.04)+'–'+r1(Math.min(wt*0.05,5))):'0.04–0.05', unit:hasWt?'mg':'mg/kg',
+           ind:'Reversal &middot; 0.04–0.05 mg/kg, max 5 mg',
+           prep:'<b>2.5 mg/mL</b> &middot; always with glycopyrrolate 0.2 mg per 1 mg',
+           warn:'Ineffective at deep block; give only once TOF count &ge; 2.' })
+    ], true)) +
+    foot('Doses shown are standard reference ranges'+(hasWt?(' calculated for '+r0(wt)+' kg'):'')+
+         '. Verify against your local formulary and the product label.');
 
   // TIVA / TCI
-  var tivaRows=
-    metric('Propofol Ce (induction)','4 – 6','mcg/mL',true)+
-    metric('Propofol Ce (maintenance)','2.5 – 4','mcg/mL',true)+
-    metric('Remifentanil Ce','2 – 6','ng/mL',true)+
-    metric('Manual infusion (10-8-6)','10\u21928\u21926','mg/kg/h');
-  var tivaHelpers=
-    '<div class="helper"><b>Marsh model:</b> weight-based pharmacokinetics; uses total body weight. Plasma-targeted.</div>'+
-    '<div class="helper"><b>Schnider model:</b> uses age, height, LBM; effect-site targeting. Lower induction doses in elderly.</div>'+
-    '<div class="helper"><b>Effect-site targets:</b> induction propofol Ce 4–6 mcg/mL; maintenance 2.5–4; reduce with opioid synergy and age.</div>';
+  var tivaRows =
+    kpis([ kpi('Induction Ce','4–6','mcg/mL'), kpi('Maintenance Ce','2.5–4','mcg/mL'),
+           kpi('Remi Ce','2–6','ng/mL') ]) +
+    grp('Propofol targets',
+      metric('Induction (Ce)','4 – 6','mcg/mL')+
+      metric('Maintenance (Ce)','2.5 – 4','mcg/mL')+
+      metric('Manual infusion','10 → 8 → 6','mg/kg/h')) +
+    grp('Models',
+      m2('Marsh','Plasma target &middot; total body weight, no age term','TBW','')+
+      m2('Schnider','Effect-site target &middot; age, height, lean body mass','Ce','')+
+      m2('Minto (remifentanil)','Effect-site &middot; age and lean body mass','Ce','')) +
+    alert_('Reduce targets with opioid synergy and with age. TIVA with a relaxant needs depth-of-anaesthesia monitoring.');
+  var tivaHelpers='';
 
   // VASOPRESSORS / INOTROPES
-  var pressorRows=
-    m2('Noradrenaline','1st-line vasopressor · titrate to MAP','0.01–0.5','mcg/kg/min')+
-    m2('Adrenaline','Inotrope + vasopressor · anaphylaxis/arrest','0.01–0.5','mcg/kg/min')+
-    m2('Phenylephrine','Bolus · pure α, reflex bradycardia','50–100','mcg')+
-    m2('Phenylephrine','Infusion · maintain SVR (e.g. spinal)','0.1–0.5','mcg/kg/min')+
-    m2('Ephedrine','Bolus · mixed α/β, use if bradycardic','5–10','mg')+
-    m2('Dobutamine','Inotrope · low cardiac output','2–20','mcg/kg/min')+
-    m2('Vasopressin','Adjunct · catecholamine-resistant shock','0.01–0.04','units/min');
-  var pressorHelpers=
-    '<div class="helper"><b>Prep — noradrenaline:</b> commonly 4 mg/50 mL (80 mcg/mL) or 8 mg/50 mL.</div>'+
-    '<div class="helper"><b>Prep — phenylephrine:</b> 10 mg/100 mL (100 mcg/mL) for bolus; 100 mcg/mL infusion.</div>'+
-    '<div class="helper"><b>Prep — adrenaline:</b> 1 mg/50 mL (20 mcg/mL); ephedrine 30 mg/10 mL (3 mg/mL).</div>';
+  var pressorRows =
+    grp('Infusions', rxList([
+      rx({ name:'Noradrenaline', val:'0.01–0.5', unit:'mcg/kg/min',
+           ind:'First-line vasopressor &middot; titrate to MAP',
+           prep:'<b>4 mg / 50 mL = 80 mcg/mL</b> (or 8 mg / 50 mL)'+
+                (wt?(' &middot; '+(Math.round(wt*0.05/80*60*10)/10)+' mL/h at 0.05 mcg/kg/min'):''),
+           warn:'Central access preferred; extravasation causes tissue necrosis.' }),
+      rx({ name:'Adrenaline', val:'0.01–0.5', unit:'mcg/kg/min',
+           ind:'Inotrope + vasopressor &middot; anaphylaxis, arrest, low output',
+           prep:'<b>1 mg / 50 mL = 20 mcg/mL</b>',
+           warn:'Tachyarrhythmia, hyperglycaemia, lactate rise.' }),
+      rx({ name:'Phenylephrine', val:'0.1–0.5', unit:'mcg/kg/min',
+           ind:'Infusion &middot; maintain SVR after spinal',
+           prep:'<b>100 mcg/mL</b> (10 mg / 100 mL)' }),
+      rx({ name:'Dobutamine', val:'2–20', unit:'mcg/kg/min',
+           ind:'Inotrope &middot; low cardiac output',
+           prep:'<b>250 mg / 50 mL = 5 mg/mL</b>',
+           warn:'Vasodilates — may drop MAP; not a vasopressor.' }),
+      rx({ name:'Vasopressin', val:'0.01–0.04', unit:'units/min',
+           ind:'Adjunct &middot; catecholamine-resistant shock',
+           prep:'<b>20 units / 50 mL = 0.4 units/mL</b>' })
+    ])) +
+    grp('Boluses', rxList([
+      rx({ name:'Phenylephrine', val:'50–100', unit:'mcg',
+           ind:'Pure &alpha; &middot; use when the heart rate is adequate or high',
+           prep:'<b>100 mcg/mL</b> &middot; 0.5–1 mL',
+           warn:'Reflex bradycardia — have an antimuscarinic ready.' }),
+      rx({ name:'Ephedrine', val:'5–10', unit:'mg',
+           ind:'Mixed &alpha;/&beta; &middot; use when bradycardic',
+           prep:'<b>30 mg / 10 mL = 3 mg/mL</b>',
+           warn:'Tachyphylaxis after repeated doses — switch to an infusion.' }),
+      rx({ name:'Metaraminol', val:'0.5–1', unit:'mg',
+           ind:'Predominantly &alpha; &middot; longer acting than phenylephrine',
+           prep:'<b>0.5 mg/mL</b> (10 mg / 20 mL)' })
+    ])) +
+    foot('Concentrations are common preparations, not the only ones — always read the syringe label.');
+  var pressorHelpers='';
 
   // BLOOD VOLUME / MABL  (EBV by weight; ebvPerKg/ebv/mablH* hoisted above so the
   // neonatal airway package and this panel share one source — neonate 90, infant 80.)
@@ -677,27 +1006,41 @@ function compute(){
     metric('EBV per kg', ebvPerKg, 'mL/kg')+
     metric('MABL (Hct 40\u219230)', r0(mablH30), 'mL', true)+
     metric('MABL (Hct 40\u219225)', r0(mablH25), 'mL', true);
-  var bloodHelpers=
-    '<div class="helper"><b>Transfusion trigger:</b> commonly Hb 7 g/dL; 8 g/dL with cardiac disease; clinical context governs.</div>'+
-    '<div class="helper">MABL assumes starting Hct ~40%; recalculate with the patient\u2019s actual Hct.</div>';
+  var bloodHelpers =
+    metric('Transfusion trigger','Hb 7 g/dL &middot; 8 g/dL with cardiac disease','')+
+    metric('MABL assumption','Starting Hct ~40% — recalculate with the actual Hct','');
 
   // NEURAXIAL
-  var neuraxialRows=
-    m2('CS spinal','Hyperbaric bupivacaine 0.5% (9–11 mg)','1.8–2.2','mL')+
-    m2('Spinal additives','Intrathecal · fentanyl + preservative-free morphine','15 + 100','mcg')+
-    m2('Labor epidural','Low-dose LA + lipophilic opioid','0.0625–0.125','% bupiv')+
-    m2('Epidural infusion','Maintenance rate','6–12','mL/h')+
-    m2('Epidural top-up (CS)','Surgical block · lidocaine 2% + epi/bicarb','15–20','mL');
-  var neuraxialHelpers=
-    '<div class="helper"><b>Spinal:</b> hyperbaric bupivacaine 0.5%; dose by height/procedure. Onset 5\u201310 min.</div>'+
-    '<div class="helper"><b>Labor:</b> low-dose LA + lipophilic opioid; PCEA or programmed intermittent bolus.</div>';
+  var neuraxialRows =
+    grp('Spinal',
+      m2('Caesarean section','Hyperbaric bupivacaine 0.5% &middot; 9–11 mg','1.8–2.2','mL')+
+      m2('Intrathecal additives','Fentanyl + preservative-free morphine','15 + 100','mcg')+
+      metric('Onset','5–10','min')) +
+    grp('Epidural',
+      m2('Labour mix','Low-dose LA + lipophilic opioid','0.0625–0.125','% bupiv')+
+      m2('Maintenance','PCEA or programmed intermittent bolus','6–12','mL/h')+
+      m2('Top-up for CS','Lidocaine 2% + adrenaline / bicarbonate','15–20','mL')) +
+    grp('Safety',
+      metric('Platelets','&ge; 80 generally acceptable; &lt; 50 contraindicated','')+
+      metric('INR','&le; 1.4 before neuraxial','')+
+      metric('If it goes wrong','LAST &rarr; Crisis Center &middot; lipid emulsion','')) +
+    alert_('Block volumes must be counted against the local anaesthetic maximum below — regional blocks and infiltration share the same ceiling.');
+  var neuraxialHelpers='';
 
   // LOCAL ANESTHETIC LIMITS (max single dose) — weight source: TBW (lean in obese)
-  var laRows=
-    m2('Lidocaine','Max · 4.5 mg/kg (7 mg/kg w/ epi) TBW',r0(wt*4.5)+' / '+r0(wt*7),'mg')+
-    m2('Bupivacaine','Max · 2 mg/kg (3 mg/kg w/ epi) TBW',r0(wt*2)+' / '+r0(wt*3),'mg')+
-    m2('Ropivacaine','Max · 3 mg/kg TBW',r0(wt*3),'mg')+
-    m2('Lidocaine 1%','Volume at 4.5 mg/kg max',r1((wt*4.5)/10),'mL');
+  var laRows =
+    grp('Maximum single dose <em>plain / with adrenaline</em>',
+      m2('Lidocaine','4.5 mg/kg &middot; 7 mg/kg with adrenaline',r0(wt*4.5)+' / '+r0(wt*7),'mg')+
+      m2('Bupivacaine','2 mg/kg &middot; 3 mg/kg with adrenaline',r0(wt*2)+' / '+r0(wt*3),'mg')+
+      m2('Levobupivacaine','2 mg/kg',r0(wt*2),'mg')+
+      m2('Ropivacaine','3 mg/kg',r0(wt*3),'mg')) +
+    grp('Volume at maximum dose',
+      metric('Lidocaine 1% (10 mg/mL)',r1((wt*4.5)/10),'mL')+
+      metric('Lidocaine 2% (20 mg/mL)',r1((wt*4.5)/20),'mL')+
+      metric('Bupivacaine 0.5% (5 mg/mL)',r1((wt*2)/5),'mL')+
+      metric('Ropivacaine 0.75% (7.5 mg/mL)',r1((wt*3)/7.5),'mL')) +
+    alert_('Calculated on total body weight. Use lean weight in obesity, reduce in the elderly, in hepatic or cardiac impairment and in pregnancy. Exceeding these doses risks LAST.', true) +
+    '<div data-evidence-slot="la"></div>';
 
   // FLUIDS  (peds 4-2-1 h421 hoisted above; shared with the neonatal package)
   var fluidRows;
@@ -742,77 +1085,95 @@ function compute(){
   if(age>50&&!asa) warns.push(['Consider RCRI / functional capacity (METs) for cardiac risk','']);
   var riskHtml = warns.length
     ? warns.map(function(wn){ return '<span class="warn-chip'+(wn[1]==='hi'?' hi':'')+'">'+(wn[1]==='hi'?'&#9888; ':'')+wn[0]+'</span>'; }).join('')
-    : '<div class="helper">No automated risk flags from entered data. Enter ASA and procedure for more.</div>';
-  riskHtml += '<div class="helper" style="margin-top:8px">Risk screens to consider: <b>STOP-BANG, RCRI, ARISCAT, Apfel, Frailty (CFS), Mini-Cog, 4AT</b> — full calculators in <a href="/v2/scores.html" style="color:#7ECFC0;">Clinical Scores</a>.</div>';
+    : note('No risk flags from the data entered. Add ASA and procedure for more.');
+  riskHtml += note('Screens to consider: <b>STOP-BANG · RCRI · ARISCAT · Apfel · Frailty (CFS) · Mini-Cog · 4AT</b>.');
 
   // Massive hemorrhage
   var hemHtml =
-    metric('Activate MTP','1:1:1 RBC : FFP : platelets','',true)+
-    metric('Tranexamic acid','1 g over 10 min, then 1 g/8 h','',true)+
-    metric('Calcium (ionized <1.1)','CaCl₂ '+r0(wt*10)+' mg or 1 g','',true)+
-    metric('Fibrinogen target','>1.5–2 g/L (cryo / concentrate)','',true)+
-    metric('Platelet target','>50 (>100 if CNS/diffuse)','×10³',true)+
-    '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+
-    '<div class="helper"><b>ROTEM/TEG:</b> CT/R prolonged → FFP; low A5/A10 (FIBTEM) → fibrinogen/cryo; low EXTEM amplitude → platelets; LI30 low / ML high → fibrinolysis → TXA.</div>'+
-    '<div class="helper"><b>Goals:</b> keep ionized Ca²⁺ &gt;1.1, temp &gt;36°C, pH &gt;7.2, avoid dilution. Recheck gas/coags frequently.</div>'+
-    '</div>';
+    rxList([
+      rx({ name:'Activate MTP', val:'1 : 1 : 1', ind:'RBC : FFP : platelets' }),
+      rx({ name:'Tranexamic acid', val:'1', unit:'g', ind:'Over 10 min, then 1 g over 8 h' }),
+      rx({ name:'Calcium', val:r0(wt*10), unit:'mg', ind:'CaCl₂ when ionised Ca²⁺ &lt; 1.1 (or 1 g)' }),
+      rx({ name:'Fibrinogen', val:'&gt;1.5–2', unit:'g/L', ind:'Target &middot; cryoprecipitate or concentrate' }),
+      rx({ name:'Platelets', val:'&gt;50', unit:'×10³', ind:'Target &middot; &gt;100 if CNS or diffuse bleeding' })
+    ], true) +
+    grp('Viscoelastic testing <em>ROTEM / TEG</em>',
+      metric('CT / R prolonged','FFP','')+
+      metric('Low A5 / A10 (FIBTEM)','Fibrinogen or cryoprecipitate','')+
+      metric('Low EXTEM amplitude','Platelets','')+
+      metric('LI30 low / ML high','Fibrinolysis &rarr; tranexamic acid','')) +
+    alert_('Keep ionised Ca²⁺ &gt; 1.1, temperature &gt; 36 °C and pH &gt; 7.2. Avoid dilution; recheck gas and coagulation frequently.');
 
   // Obstetric quick reference (conditional)
   var obHtml = isOb ?
-    (metric('CS spinal — heavy bupiv 0.5%','1.8 – 2.2 mL (9–11 mg)','',true)+
-     metric('Spinal additives','fentanyl 15 mcg + morphine 100 mcg','')+
-     metric('Phenylephrine (1st-line)','25–50 mcg bolus / 25–50 mcg/min','',true)+
-     metric('Ephedrine (if bradycardic)','5–10 mg','',true)+
-     metric('Oxytocin (slow)','3–5 units slow IV, then infusion','',true)+
-     metric('Carbetocin','100 mcg IV','',true)+
-     '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+
-     '<div class="helper"><b>Preeclampsia:</b> BP control (labetalol/hydralazine), MgSO₄ 4 g load + 1 g/h; check platelets/coags before neuraxial.</div>'+
-     '<div class="helper"><b>Mg toxicity:</b> loss of reflexes (~4 mmol/L) → resp depression → arrest. Treat: stop Mg, calcium gluconate 1 g IV.</div>'+
-     '<div class="helper"><b>PPH:</b> uterotonics (oxytocin→ergometrine→carboprost→misoprostol), TXA 1 g, bimanual, escalate; <a href="/v2/obstetric.html" style="color:#7ECFC0;">full reference</a>.</div>'+
-     '</div>') : '';
+    (grp('Caesarean section',
+      m2('Spinal','Heavy bupivacaine 0.5% &middot; 9–11 mg','1.8–2.2','mL')+
+      m2('Additives','Fentanyl + preservative-free morphine','15 + 100','mcg')+
+      m2('Phenylephrine','First-line &middot; bolus or infusion','25–50','mcg')+
+      m2('Ephedrine','Only if bradycardic','5–10','mg')) +
+     grp('Uterotonics',
+      m2('Oxytocin','Slow IV, then infusion','3–5','units')+
+      m2('Carbetocin','Single IV dose','100','mcg')+
+      m2('Escalation','Ergometrine → carboprost → misoprostol','','')+
+      m2('Tranexamic acid','Postpartum haemorrhage','1','g')) +
+     grp('Pre-eclampsia',
+      m2('BP control','Labetalol or hydralazine','','')+
+      m2('MgSO₄','Loading dose then 1 g/h','4','g')+
+      m2('Before neuraxial','Check platelets and coagulation','','')) +
+     alert_('<b>Magnesium toxicity:</b> loss of reflexes (~4 mmol/L) → respiratory depression → arrest. Stop magnesium and give calcium gluconate 1 g IV.', true) +
+     foot('Full reference: <a href="/v2/obstetric.html">obstetric anaesthesia</a>.')) : '';
 
   // Pediatric quick reference (conditional)
   var pedHtml = isPeds ?
-    (metric('ETT uncuffed',r1(wbAir?neoETT(wt):(age/4)+4),'mm ID')+
-     metric('ETT cuffed',r1(wbAir?neoETT(wt)-0.5:(age/4)+3.5),'mm ID')+
-     metric('ETT depth (lips)',r1(wbAir?neoETT(wt)*3:(age/2)+12),'cm')+
-     metric('Suggested LMA',lmaForWeight(wt),'')+
-     metric('Laryngoscope',wbAir?(wt<3?'Miller 0':'Miller 1'):(age<1?'Miller 0–1':(age<4?'Mac/Miller 1':(age<8?'Mac 2':'Mac 2–3'))),'')+
-     '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+
-     '<div class="helper"><b>Emergency drugs:</b> Adrenaline 10 mcg/kg ('+r0(wt*10)+' mcg) · Atropine 20 mcg/kg ('+r0(wt*20)+' mcg, min 100) · Succinylcholine 2 mg/kg ('+r0(wt*2)+' mg) · Defib 4 J/kg ('+r0(wt*4)+' J).</div>'+
-     '<div class="helper"><b>Fluids:</b> bolus 10–20 mL/kg ('+r0(wt*10)+'–'+r0(wt*20)+' mL). Glucose-containing maintenance in neonates/infants.</div>'+
-     '</div>') : '';
+    (kpis([ kpi('ETT', r1(wbAir?neoETT(wt):(age/4)+4), 'mm'),
+            kpi('Depth', r1(wbAir?neoETT(wt)*3:(age/2)+12), 'cm'),
+            kpi('LMA', lmaForWeight(wt)),
+            kpi('Defib', r0(wt*4), 'J') ]) +
+     grp('Airway',
+      metric('ETT uncuffed',r1(wbAir?neoETT(wt):(age/4)+4),'mm ID')+
+      metric('ETT cuffed',r1(wbAir?neoETT(wt)-0.5:(age/4)+3.5),'mm ID')+
+      metric('Depth at lips',r1(wbAir?neoETT(wt)*3:(age/2)+12),'cm')+
+      metric('Laryngoscope',wbAir?(wt<3?'Miller 0':'Miller 1'):(age<1?'Miller 0–1':(age<4?'Mac / Miller 1':(age<8?'Mac 2':'Mac 2–3'))),'')) +
+     grp('Emergency drugs',
+      m2('Adrenaline','10 mcg/kg',r0(wt*10),'mcg')+
+      m2('Atropine','20 mcg/kg, minimum 100 mcg',r0(wt*20),'mcg')+
+      m2('Suxamethonium','2 mg/kg',r0(wt*2),'mg')+
+      m2('Defibrillation','4 J/kg',r0(wt*4),'J')) +
+     grp('Fluids',
+      m2('Bolus','10–20 mL/kg',r0(wt*10)+'–'+r0(wt*20),'mL')+
+      m2('Maintenance','Glucose-containing in neonates and infants',r0(h421),'mL/hr')) +
+     alert_('Children desaturate fast — pre-oxygenate, keep suction and airway rescue ready.')) : '';
 
   // Lab interpreter (conditional on any lab entered)
   var hb=num('i-hb'), plt=num('i-plt'), inr=num('i-inr'), cr=num('i-cr'), na=num('i-na');
   var labRows='', anyLab=(hb!=null||plt!=null||inr!=null||cr!=null||na!=null);
-  function li(t){ return '<div class="lab-imp">'+t+'</div>'; }
+  function li(t){ var i=t.indexOf('</b>');
+    return metric(t.slice(3,i).replace(/:$/,''), t.slice(i+4).trim(), ''); }
   if(hb!=null){ labRows+=li('<b>Hb '+hb+':</b> '+(hb<7?'Below transfusion trigger — strongly consider RBC (clinical context).':hb<8?'Low — transfuse if cardiac disease/ongoing loss.':hb<10?'Mild anemia — optimize, minimize blood loss.':'Adequate.')); }
   if(plt!=null){ labRows+=li('<b>Platelets '+plt+':</b> '+(plt<50?'Neuraxial contraindicated; transfuse for surgery/bleeding.':plt<80?'Caution for neuraxial; case-by-case.':plt<100?'Generally acceptable; avoid if other coagulopathy.':'Neuraxial block generally acceptable.')); }
   if(inr!=null){ labRows+=li('<b>INR '+inr+':</b> '+(inr>1.5?'Coagulopathy — neuraxial contraindicated; correct (vit K/FFP/PCC); review anticoagulation.':inr>1.4?'Borderline — caution; correct before neuraxial.':'Within acceptable range for neuraxial.')); }
   if(cr!=null){ labRows+=li('<b>Creatinine '+cr+':</b> '+(cr>2?'Significant renal impairment — AKI precautions, avoid nephrotoxins, dose-adjust (e.g. avoid/reduce morphine, gabapentinoids), careful contrast/NSAIDs.':cr>1.3?'Mild impairment — review renally-cleared drugs, maintain perfusion.':'Normal renal function.')); }
   if(na!=null){ labRows+=li('<b>Sodium '+na+':</b> '+(na<125?'Severe hyponatremia — correct cautiously (osmotic demyelination risk); delay elective surgery.':na<135?'Hyponatremia — identify cause, caution with hypotonic fluids.':na>145?'Hypernatremia — assess volume/free-water deficit.':'Normal.')); }
-  if(anyLab) labRows+='<div class="helper" style="margin-top:6px">Implications are general guidance — integrate with the full clinical picture and current guidelines.</div>';
+  if(anyLab) labRows+=note('General guidance — integrate with the full clinical picture and current guidelines.');
 
   // Merged Fluids & Blood (fluids + blood volume/MABL + massive hemorrhage)
   var fluidsBloodBody =
-    '<div class="av-sub">Fluids</div>'+fluidRows+
-    '<div class="av-sub">Blood volume / MABL</div>'+bloodRows+
-    '<div style="margin-top:6px">'+bloodHelpers+'</div>'+
-    '<div class="av-sub">Massive hemorrhage</div>'+hemHtml;
+    kpis([ kpi('EBV', r0(ebv), 'mL'), kpi('Per kg', ebvPerKg, 'mL/kg'),
+           kpi('MABL →30', r0(mablH30), 'mL'), kpi('MABL →25', r0(mablH25), 'mL') ]) +
+    grp('Maintenance fluids', fluidRows) +
+    grp('Blood volume &amp; allowable loss', bloodRows + bloodHelpers) +
+    grp('Massive haemorrhage', hemHtml);
 
   // Risk Scores module (warnings snapshot + conditional labs/peds/ob + score references)
   var riskScoresBody =
-    '<div class="av-sub">Risk snapshot</div>'+riskHtml+
-    (anyLab? '<div class="av-sub">Lab interpreter</div>'+labRows : '')+
-    (isPeds? '<div class="av-sub">Pediatric quick reference</div>'+pedHtml : '')+
-    (isOb? '<div class="av-sub">Obstetric quick reference</div>'+obHtml : '')+
-    '<div class="av-sub">Score references</div>'+
-    '<div class="helper"><b>ASA:</b> '+(asa?('Class '+asa):'Not set')+' — physical status I (healthy) to V (moribund).</div>'+
-    '<div class="helper"><b>STOP-BANG:</b> Snore, Tired, Observed apnea, Pressure, BMI&gt;35, Age&gt;50, Neck&gt;40cm, Male. ≥3 = OSA risk.</div>'+
-    '<div class="helper"><b>Apfel PONV:</b> Female, non-smoker, PONV/motion history, postop opioids (0–4).</div>'+
-    '<div class="helper"><b>RCRI:</b> High-risk surgery, IHD, CHF, CVD, insulin, creatinine&gt;177.</div>'+
-    '<div class="helper">Full interactive calculators in <a href="/v2/scores.html" style="color:#7ECFC0;">Clinical Scores</a>.</div>';
+    grp('Risk snapshot', riskHtml) +
+    (anyLab? grp('Laboratory interpretation', labRows) : '') +
+    grp('Score references',
+      m2('ASA','Physical status I (healthy) to V (moribund)',(asa?('Class '+asa):'—'),'')+
+      m2('STOP-BANG','Snore · Tired · Observed apnoea · Pressure · BMI &gt;35 · Age &gt;50 · Neck &gt;40 cm · Male','&ge;3','risk')+
+      m2('Apfel PONV','Female · non-smoker · PONV or motion history · postop opioids','0–4','')+
+      m2('RCRI','High-risk surgery · IHD · CHF · CVD · insulin · creatinine &gt;177','','')) +
+    foot('Full interactive calculators in <a href="/v2/scores.html">Clinical Scores</a>.');
 
   // Crisis Center card — inline protocols. One click on a protocol expands it
   // right here on the same page (no button, no modal, no navigation).
@@ -827,37 +1188,155 @@ function compute(){
 
   // ── TCI / Sedation reference panel (educational, not decision support) ──
   var sedBody =
-    '<div class="helper">Tap a drug / mode &mdash; reference target ranges &amp; cautions. Educational reference only.</div>'+
-    '<div class="crisis-wt-inline">'+(w0?('Weight-based examples for <b>'+w0+' kg</b>'):'Enter weight for weight-based examples &mdash; otherwise per-kg ranges are shown.')+'</div>'+
-    '<div class="crisis-tabs" id="sed-tabs-inline">'+
-      SED.map(function(s,i){ return '<button class="crisis-tab'+(i===_sedIdx?' on':'')+'" onclick="sedInline('+i+')">'+s[0]+'</button>'; }).join('')+
+    tivaRows +
+    note(w0 ? ('Weight-based examples for <b>'+w0+' kg</b>.') : 'Enter a weight for weight-based examples — otherwise per-kg ranges are shown.')+
+    '<div class="ref-tabs" id="sed-tabs-inline">'+
+      SED.map(function(s,i){ return '<button type="button" class="ref-tab'+(i===_sedIdx?' on':'')+'" onclick="sedInline('+i+')">'+s[0]+'</button>'; }).join('')+
     '</div>'+
-    '<div class="crisis-body" id="sed-inline-body"></div>';
+    '<div id="sed-inline-body"></div>';
 
+  // ── Airway Tubes (large reference module) ──────────────────────────────
+  var tubeSuggest = kpis([
+    kpi('ETT', ettKey, 'mm'), kpi('Depth', depthKey, 'cm'),
+    kpi('LMA', lmaForWeight(wt)), kpi('i-gel', (igelForWeight(wt)+'').split(' ')[0]),
+    kpi('DLT', isPeds ? '—' : (sex==='M' ? '39–41' : '35–37'), isPeds?'':'Fr')
+  ]);
+  var tubesBody =
+    tubeSuggest +
+    note('Sizes above are this patient\u2019s suggested devices. Select a tube below for the full reference.') +
+    '<div id="tube-tabs-host"></div><div id="tube-inline-body"></div>';
+
+  // ── Monitoring & access (compact) ─────────────────────────────────────
+  var monBody =
+    grp('Standard monitoring',
+      metric('Always','ECG · SpO₂ · NIBP · capnography','')+
+      metric('Temperature','Any anaesthetic over 30 min','')+
+      metric('Neuromuscular','Whenever a relaxant is given','')+
+      metric('Agent / FiO₂','With alarms enabled','')) +
+    grp('Arterial line',
+      metric('Adult cannula','20','G')+
+      metric('Small adult / child','22','G')+
+      metric('Sites','Radial · brachial · femoral · dorsalis pedis','')+
+      metric('Transducer','Level at the phlebostatic axis','')) +
+    grp('Central venous',
+      metric('Adult catheter','7 Fr triple lumen','')+
+      metric('Right IJ depth','15 – 16','cm')+
+      metric('Left IJ depth','18 – 20','cm')+
+      metric('Subclavian depth','16 – 18','cm')+
+      metric('Tip position','Cavo-atrial junction','')) +
+    grp('Depth of anaesthesia',
+      metric('Processed EEG target','40 – 60','')+
+      metric('Strongly advised','TIVA with a neuromuscular blocker','')) +
+    alert_('Use ultrasound for arterial and central venous access. Confirm venous placement before dilating.');
+
+  // ── Regional blocks & ultrasound (compact) ────────────────────────────
+  var blockBody =
+    grp('Probe selection',
+      m2('Linear 6–13 MHz','Superficial, less than ~4 cm','Superficial','')+
+      m2('Curvilinear 2–5 MHz','Deep — neuraxial, infraclavicular, TAP in obesity','Deep','')) +
+    grp('Common blocks <em>depth · volume</em>',
+      m2('Interscalene','1 – 3 cm','10–15','mL')+
+      m2('Supraclavicular','1 – 2 cm','15–20','mL')+
+      m2('Infraclavicular','3 – 5 cm','20–30','mL')+
+      m2('Axillary','1 – 3 cm','20–30','mL')+
+      m2('Erector spinae','3 – 5 cm','20','mL/side')+
+      m2('Serratus anterior','2 – 4 cm','20–30','mL')+
+      m2('TAP','2 – 4 cm','15–20','mL/side')+
+      m2('Rectus sheath','1 – 3 cm','10–20','mL/side')+
+      m2('Femoral','2 – 4 cm','15–20','mL')+
+      m2('Adductor canal','2 – 4 cm','10–15','mL')+
+      m2('Popliteal sciatic','3 – 5 cm','20–30','mL')) +
+    grp('Safety',
+      metric('Aspirate','Every 5 mL','')+
+      metric('Total dose','Must stay inside the local anaesthetic maximum','')+
+      metric('If LAST occurs','Crisis Center → lipid emulsion','')) +
+    alert_('Bilateral and multi-level blocks add up fast. Sum every millilitre against the maximum dose in the Regional module before you start.', true);
+
+  // ── MODULE LAYOUT ─────────────────────────────────────────────────────
+  // A deliberate 12-column rhythm, not masonry. Large modules hold fixed
+  // positions; compact modules backfill so no row is left half empty.
+  //   row 1  Airway (6)            | Drug references (6)
+  //   row 2  Airway Tubes (12)
+  //   row 3  Vasopressors (4)      | Regional (4)          | TIVA / TCI (4)
+  //   row 4  Fluids & Blood (6)    | Risk & scores (6)
+  //   row 5  Ventilation (4)       | Monitoring (4)        | Blocks (4)
+  //   row 6  conditional Obstetric (4) / Paediatric (4)
+  //   row 7  TCI / Sedation (12)
+  //   row 8  Crisis Center (12)  — unchanged
   out.innerHTML='<div class="panels">'+
-    panel('&#129728;','Airway &amp; Ventilation',isPeds?'Pediatric':'Adult',avBody)+
-    panel('&#128138;','Drug references','Ranges',drugRows)+
-    panel('&#128138;','TIVA / TCI','Propofol',tivaRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+tivaHelpers+'</div>')+
-    panel('&#128138;','TCI / Sedation','Reference',sedBody,'sed-panel full')+
-    panel('&#128137;','Local anesthetic limits','Max dose',laRows)+
-    panel('&#129504;','Neuraxial','Reference',neuraxialRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+neuraxialHelpers+'</div>')+
-    panel('&#128137;','Vasopressors / Inotropes','Infusions',pressorRows+'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(27,107,90,.1)">'+pressorHelpers+'</div>')+
-    panel('&#129656;','Fluids &amp; Blood',isPeds?'Pediatric':'Adult',fluidsBloodBody)+
-    panel('&#128202;','Risk scores','Auto',riskScoresBody)+
+    panel('&#128138;','Drug references','Weight-based',drugRows,'sp6')+
+    panel('&#129504;','Regional','Neuraxial &amp; LA',neuraxialRows+laRows,'sp6')+
+    panel('&#128736;','Airway tubes','Reference',tubesBody,'sp12')+
+    panel('&#128137;','Vasopressors','Infusions &amp; boluses',pressorRows,'sp4')+
+    panel('&#129656;','Fluids &amp; blood',isPeds?'Paediatric':'Adult',fluidsBloodBody,'sp4')+
+    panel('&#128246;','Blocks &amp; ultrasound','Quick reference',blockBody,'sp4')+
+    panel('&#129728;','Airway',isPeds?'Paediatric':'Adult',airwayBody,'sp6')+
+    panel('&#128225;','Monitoring &amp; access','Standards',monBody,'sp6')+
+    panel('&#127788;','Ventilation','PBW-based',ventBody,'sp6 compact')+
+    panel('&#128202;','Risk &amp; scores','Auto',riskScoresBody,'sp6')+
+    (isOb  ? panel('&#128118;','Obstetric','Reference',obHtml,'sp6 compact') : '')+
+    (isPeds? panel('&#129490;','Paediatric','Weight-based',pedHtml,'sp6 compact') : '')+
+    panel('&#128138;','TIVA / TCI &amp; sedation','Reference',sedBody,'sed-panel sp12')+
     panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
+  balanceRows();              // no row may end with an empty column
   crisisInline(_crisisIdx);   // expand the current protocol inline (no click needed)
   sedInline(_sedIdx);         // expand the current TCI / Sedation reference inline
+  tubeInline(_tubeIdx);       // expand the current airway-tube reference inline
   if(window.innerWidth<=900) collapseForMobile();
 }
 
+/* ── Row / card builders (design system v2) ────────────────────────────────
+   Everything a module renders goes through one of these, so spacing, weight
+   and the right-hand value edge are identical in every card.               */
+
+/* A "value" that is a phrase rather than a number must not be squeezed onto
+   the same line as its label — that is what produced the collisions in the
+   massive-haemorrhage and fibrinogen rows. */
+function isPhrase(v){ var t=String(v==null?'':v).replace(/<[^>]+>/g,''); return t.length>16 || /\s(or|then|over|per|and)\s/i.test(t); }
+
+/* label → value */
 function metric(label,value,unit,range){
-  var cls=range?'metric-value metric-range':'metric-value';
-  return '<div class="metric"><span class="metric-label">'+label+'</span><span class="'+cls+'">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
+  var txt = isPhrase(value) && !unit;
+  return '<div class="kv'+(txt?' txt':'')+'"><span class="kv-l">'+label+'</span>'+
+         '<span class="kv-v">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
 }
+/* label + sub-label → value */
 function m2(label,sub,value,unit){
-  return '<div class="metric m2"><div class="m2-l"><span class="metric-label">'+label+'</span>'+(sub?'<span class="m2-sub">'+sub+'</span>':'')+'</div><span class="metric-value metric-range">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
+  var txt = isPhrase(value) && !unit;
+  return '<div class="kv'+(txt?' txt':'')+'"><span class="kv-l">'+label+
+         (sub?'<i>'+sub+'</i>':'')+'</span>'+
+         '<span class="kv-v">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
 }
+/* group: uppercase heading + separator; the unit of scanning */
+function grp(head,body,note){
+  return '<div class="grp"><div class="grp-h">'+head+(note?'<em>'+note+'</em>':'')+'</div>'+body+'</div>';
+}
+/* the engineered drug / device card:  name | dose / indication / prep / warning */
+function rx(o){
+  return '<div class="rx">'+
+    '<div class="rx-top"><span class="rx-name">'+o.name+'</span>'+
+      (o.val?'<span class="rx-val">'+o.val+(o.unit?'<u>'+o.unit+'</u>':'')+'</span>':'')+'</div>'+
+    (o.ind ?'<div class="rx-ind">'+o.ind+'</div>':'')+
+    (o.prep?'<div class="rx-prep">'+o.prep+'</div>':'')+
+    (o.warn?'<div class="rx-warn'+(o.hi?' hi':'')+'">'+o.warn+'</div>':'')+
+  '</div>';
+}
+function rxList(cards,two){ return '<div class="rxlist'+(two?' two':'')+'">'+cards.join('')+'</div>'; }
+/* the numbers the eye should hit first */
+function kpi(label,value,unit){
+  return '<div class="kpi"><i>'+label+'</i><b>'+value+(unit?'<span>'+unit+'</span>':'')+'</b></div>';
+}
+function kpis(cells){ return '<div class="kpis">'+cells.join('')+'</div>'; }
+function note(t){ return '<div class="note">'+t+'</div>'; }
+function alert_(t,hi){ return '<div class="alert'+(hi?' hi':'')+'">'+t+'</div>'; }
+function bul(items){ return '<ul class="bul">'+items.map(function(i){ return '<li>'+i+'</li>'; }).join('')+'</ul>'; }
+function duo(upH,up,dnH,dn){
+  return '<div class="duo"><div><div class="duo-h up">'+upH+'</div>'+bul(up)+'</div>'+
+         '<div><div class="duo-h dn">'+dnH+'</div>'+bul(dn)+'</div></div>';
+}
+function chipset(items){ return '<div class="chipset">'+items.map(function(i){ return '<span>'+i+'</span>'; }).join('')+'</div>'; }
+function foot(t){ return '<div class="foot">'+t+'</div>'; }
 function panelKey(title){ return (title||'').replace(/<[^>]+>/g,'').replace(/&[^;]+;/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase(); }
 function panel(ico,title,tag,body,cls){
   var pk=panelKey(title);
@@ -870,6 +1349,47 @@ function panel(ico,title,tag,body,cls){
       '<span class="panel-chev">&#9660;</span>'+
     '</div><div class="panel-body">'+body+'</div></div>';
 }
+/* ── Row balancing ────────────────────────────────────────────────────────
+   Explicit spans give the grid its rhythm; this makes sure the rhythm never
+   costs an empty slot. Modules are laid out in order, and whenever a row
+   cannot be filled the last module in it stretches across what is left.
+   Runs after every rebuild and on resize.                                  */
+function balanceRows(){
+  var w=document.querySelector('#output .panels'); if(!w) return;
+  var cols=(getComputedStyle(w).gridTemplateColumns||'').split(' ').filter(Boolean).length;
+  var ps=[].slice.call(w.querySelectorAll('.panel'));
+  ps.forEach(function(p){ p.style.gridColumn=''; });
+  if(cols<2) return;                                  // single column: nothing to balance
+  function baseSpan(p){
+    // `grid-column: span 4` resolves to start "span 4" / end "auto", so both
+    // ends must be inspected before falling back to the class.
+    var cs=getComputedStyle(p);
+    var m=/span\s+(\d+)/.exec(cs.gridColumnStart||'') || /span\s+(\d+)/.exec(cs.gridColumnEnd||'');
+    if(m) return parseInt(m[1],10);
+    if((cs.gridColumnStart==='1'&&cs.gridColumnEnd==='-1')) return cols;
+    if(p.classList.contains('sp12')||p.classList.contains('full')||p.classList.contains('wide')) return cols;
+    return Math.round(cols/2);
+  }
+  var row=[], used=0;
+  function flush(){
+    if(row.length && used<cols){
+      var last=row[row.length-1];
+      last.el.style.gridColumn='span '+(last.sp+(cols-used));
+    }
+    row=[]; used=0;
+  }
+  ps.forEach(function(p){
+    var sp=Math.max(1,Math.min(baseSpan(p),cols));
+    if(used+sp>cols) flush();
+    row.push({el:p,sp:sp}); used+=sp;
+    if(used>=cols) flush();
+  });
+  flush();
+}
+window.balanceRows=balanceRows;
+(function(){ var t=null;
+  window.addEventListener('resize',function(){ clearTimeout(t); t=setTimeout(balanceRows,150); });
+})();
 function togglePanel(btn){
   var p=btn.parentNode, willOpen=p.classList.contains('collapsed');
   if(window.innerWidth<=900 && willOpen){
@@ -879,8 +1399,11 @@ function togglePanel(btn){
   if(window.wsSaveCollapsed) wsSaveCollapsed();
 }
 function panelResize(el){
-  var p=el.closest('.panel'); if(!p || p.classList.contains('full')) return;
+  // .wide = expand this module to the full row. Modules that already span the
+  // full row have nothing to expand.
+  var p=el.closest('.panel'); if(!p || p.classList.contains('full') || p.classList.contains('sp12')) return;
   p.classList.toggle('wide');
+  if(window.balanceRows) window.balanceRows();
   if(window.wsSaveWide) wsSaveWide();
 }
 window.panelResize=panelResize;
@@ -1021,21 +1544,355 @@ var SED = [
     {h:'Key cautions', list:['Limited airway access inside the magnet','Temperature changes (especially children)','Contrast reactions; claustrophobia; movement','Plan for scan duration and emergence outside the bore']}
   ]};}]
 ];
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AIRWAY TUBES — structured device reference
+   One schema for every device, so the same field is always in the same place:
+   sizing → depth → diameters → cuff → indications → pros/cons →
+   contraindications → warnings → mistakes → pearls.
+   Fields that do not apply to a device are simply omitted (no empty rows).
+   ══════════════════════════════════════════════════════════════════════════ */
+var TUBE_CATS = [
+  ['ett','Tracheal tubes'],
+  ['spec','Specialty tubes'],
+  ['lung','Lung isolation'],
+  ['sga','Supraglottic'],
+  ['trach','Tracheostomy']
+];
+var TUBES = [
+{ cat:'ett', tab:'Cuffed ETT', name:'Standard cuffed tracheal tube',
+  sub:'High-volume low-pressure cuff · the default adult airway',
+  key:'8.0', keyU:'mm ID (male)',
+  sizing:[['Adult male','8.0 (7.5–8.5)','mm ID'],['Adult female','7.0 (7.0–7.5)','mm ID'],
+          ['Paediatric (cuffed)','age / 4 + 3.5','mm ID'],
+          ['Choose larger when','Bronchoscopy, ICU ventilation, high resistance expected','']],
+  depth:[['Male','22 – 24','cm at lips'],['Female','20 – 22','cm at lips'],
+         ['Child','age / 2 + 12','cm'],['Nasal route','add ~3 cm to the oral depth','']],
+  diam:[['Outer diameter','ID + ~3.5 mm (8.0 ID ≈ 10.9 mm OD)',''],
+        ['Cricoid is the limit','In adults the glottis; in small children the subglottis','']],
+  cuff:[['Pressure','20 – 30','cmH₂O'],['Measure with','A manometer, not by pilot-balloon feel','']],
+  cuffnote:'Tracheal capillary perfusion pressure is around 30 cmH₂O — sustained cuff pressure above that risks mucosal ischaemia. Nitrous oxide diffuses into the cuff and raises pressure over time.',
+  ind:['Routine general anaesthesia with a secured airway','Aspiration risk / full stomach','Prone, shared-airway or long cases','Any case needing high airway pressures'],
+  pro:['Definitive airway protection','Reliable positive-pressure ventilation','Allows suctioning and bronchoscopy'],
+  con:['Requires laryngoscopy and usually a relaxant','Sore throat and airway trauma','More haemodynamic response than a supraglottic device'],
+  warn:['Confirm with continuous capnography — no other sign is sufficient.','Right endobronchial intubation is the commonest depth error; check bilateral air entry after every position change.'],
+  mist:['Fixing at a "standard" depth without auscultating','Over-inflating the cuff until the leak stops, then never measuring it','Using cuff pressure to compensate for a tube that is too small'],
+  pearl:['Depth ≈ 3 × the tube size in children.','If the leak needs a high cuff pressure to stop, the tube is probably too small — change it rather than inflate further.','Re-check cuff pressure after N₂O has been running and after any head reposition.'] },
+
+{ cat:'ett', tab:'Uncuffed paediatric', name:'Uncuffed paediatric tracheal tube',
+  sub:'Traditional choice in small children · leak is the safety valve',
+  key:'age/4+4', keyU:'mm ID',
+  sizing:[['Formula','age / 4 + 4','mm ID'],['Neonate (term)','3.0 – 3.5','mm ID'],
+          ['Infant 6–12 mo','3.5 – 4.0','mm ID'],['Have ready','Half a size above and below','']],
+  depth:[['Formula','3 × tube size','cm at lips'],['Neonate','7 – 9','cm'],['Weight rule','6 + weight in kg (neonate)','cm']],
+  diam:[['Outer diameter','ID + ~1 mm at these sizes','']],
+  cuff:[['Leak test','Audible leak at 20 – 25','cmH₂O']],
+  cuffnote:'No cuff means the tube itself must seal against the subglottis. A leak below 15 cmH₂O will not ventilate reliably; no leak at 30 cmH₂O means the tube is too tight and risks subglottic oedema.',
+  ind:['Neonates and small infants where a cuff is not required','Short procedures with low airway pressures','When the smallest possible outer diameter matters'],
+  pro:['Largest internal diameter for a given outer diameter — lowest resistance','No cuff pressure to monitor','Cheaper and widely available'],
+  con:['Unpredictable leak — hard to ventilate lungs with poor compliance','Theatre pollution and imprecise tidal volumes','Often needs a tube change to get the fit right','No aspiration protection'],
+  warn:['A tube that passes with no leak at all is too big — subglottic oedema and post-extubation stridor follow.'],
+  mist:['Accepting a large leak and simply turning up the flows','Not preparing the half-size above and below before induction'],
+  pearl:['Modern low-pressure microcuff tubes have largely replaced uncuffed tubes even in neonates — cuffed sizing is age/4 + 3.5 and cuff pressure stays ≤ 20 cmH₂O.','Check the leak again after position change; head flexion advances the tube.'] },
+
+{ cat:'ett', tab:'Parker Flex-Tip', name:'Parker Flex-Tip tube',
+  sub:'Curved, flexible, centred distal tip',
+  key:'Same', keyU:'sizing as standard',
+  sizing:[['Sizes','Identical to a standard cuffed tube','']],
+  depth:[['Depth','Identical to a standard cuffed tube','']],
+  ind:['Railroading over a bougie, fibrescope or airway exchange catheter','Videolaryngoscopy where the tube hangs up at the arytenoid','Nasal intubation'],
+  pro:['Tapered posterior-facing tip reduces hang-up on the right arytenoid and the tracheal rings','Higher first-pass success over a fibrescope','Less airway trauma during railroading'],
+  con:['More expensive','No benefit for a straightforward direct laryngoscopy'],
+  warn:['It reduces hang-up — it does not remove it. If the tube will not pass, rotate 90° anticlockwise and re-advance rather than forcing it.'],
+  mist:['Forcing the tube when it catches instead of rotating it'],
+  pearl:['The classic rescue for any tube hanging up on a fibrescope: withdraw 1 cm, rotate 90° anticlockwise, advance gently.'] },
+
+{ cat:'spec', tab:'Oral RAE', name:'Oral RAE (preformed) tube',
+  sub:'South-facing bend at the teeth · keeps the circuit off the surgical field',
+  key:'South', keyU:'facing bend',
+  sizing:[['Adult male','8.0','mm ID'],['Adult female','7.0','mm ID'],
+          ['Paediatric','As for a standard cuffed tube','']],
+  depth:[['Fixed by design','The bend seats at the teeth — depth is set by the tube size, not by you',''],
+         ['Consequence','A large tube sits deeper; a small tube sits shallower','']],
+  diam:[['Outer diameter','As a standard tube of the same ID','']],
+  cuff:[['Pressure','20 – 30','cmH₂O']],
+  ind:['ENT and dental surgery','Ophthalmic surgery','Head and neck procedures where the circuit must leave the face free'],
+  pro:['Circuit routed away from the surgical field','Less likely to be dislodged by the surgeon','Preformed curve reduces kinking at the lips'],
+  con:['Depth is not freely adjustable','Cannot easily pass a suction catheter around the bend','If it is too deep it must be exchanged, not withdrawn'],
+  warn:['Because the bend fixes the depth, an oral RAE is the classic cause of unintentional endobronchial intubation in short patients — always auscultate both lungs after positioning.','A tube that sits too shallow in a tall patient can be pulled out by head extension.'],
+  mist:['Assuming the preformed depth is correct without confirming','Choosing the tube size for the airway without considering the resulting depth'],
+  pearl:['If the depth is wrong, the correct answer is a different size or a standard tube — not taping an RAE at the wrong point on the bend.'] },
+
+{ cat:'spec', tab:'Nasal RAE', name:'Nasal RAE (preformed) tube',
+  sub:'North-facing bend · frees the mouth entirely',
+  key:'North', keyU:'facing bend',
+  sizing:[['Adult male','6.5 – 7.0','mm ID'],['Adult female','6.0 – 6.5','mm ID'],
+          ['Rule','Half to one full size smaller than the oral tube','']],
+  depth:[['Nasal route','Roughly 3 cm deeper than the oral depth',''],
+         ['Adult male','~26 – 28','cm at nostril'],['Adult female','~24 – 26','cm at nostril']],
+  cuff:[['Pressure','20 – 30','cmH₂O']],
+  ind:['Oral and maxillofacial surgery','Dental surgery and shared-airway dental work','Intraoral procedures needing complete oral access','Mandibular or orthognathic surgery'],
+  pro:['The mouth is completely free for the surgeon','Very secure once taped to the forehead','Tolerated well if it must stay in postoperatively'],
+  con:['Epistaxis is common','Smaller internal diameter — higher resistance','Turbinate or adenoid trauma','Bacteraemia risk'],
+  contra:['Base-of-skull fracture or suspected cribriform plate injury','Significant coagulopathy or therapeutic anticoagulation','Nasal polyps, severe septal deviation, choanal atresia','Active sinus infection'],
+  warn:['Never force a nasal tube against resistance — redirect or change nostril. Forcing causes turbinate avulsion and heavy bleeding.','Base-of-skull fracture is an absolute contraindication: intracranial placement has been reported.'],
+  mist:['Skipping the vasoconstrictor and the warming step','Choosing the same size as the oral tube','Not checking nostril patency before induction'],
+  pearl:['Warm the tube in saline first — a softened tube deforms around the turbinates instead of shearing them.','Vasoconstrict, lubricate generously, advance along the floor of the nose perpendicular to the face, not upwards.'] },
+
+{ cat:'spec', tab:'Reinforced', name:'Reinforced / flexometallic (armoured) tube',
+  sub:'Wire-reinforced wall · resists kinking in any position',
+  key:'Kink', keyU:'resistant',
+  sizing:[['Sizes','As a standard cuffed tube','',],['Note','The wire wall makes the OD slightly larger for a given ID','']],
+  depth:[['Depth','As a standard tube — but it must be taped meticulously','']],
+  cuff:[['Pressure','20 – 30','cmH₂O']],
+  ind:['Prone positioning','Extreme head and neck flexion or rotation — posterior fossa, cervical spine','Head and neck surgery where the tube is repeatedly moved','Placement through a tracheostomy stoma'],
+  pro:['Will not kink with flexion, rotation or external pressure','Ideal wherever the tube leaves the anaesthetist’s reach'],
+  con:['Softer and floppier — usually needs a stylet or bougie to place','Cannot be shortened or cut','Not laser resistant','Some are not MRI compatible — check the label'],
+  warn:['If a patient bites a reinforced tube the wire deforms permanently and the lumen stays occluded even after the bite is released. <b>A bite block is mandatory</b> — the tube must be replaced if it happens.','"Armoured" is a synonym for reinforced, not a different device — it offers no laser protection.'],
+  mist:['Omitting the bite block for an awake extubation','Attempting to place it without a stylet','Assuming it is laser safe because it contains metal'],
+  pearl:['Keep a standard tube and an exchange catheter immediately available in prone cases.','Confirm MRI compatibility explicitly rather than assuming.'] },
+
+{ cat:'spec', tab:'Laser tube', name:'Laser-resistant tube',
+  sub:'Metal or foil-wrapped shaft · double saline-filled cuff',
+  key:'≤0.30', keyU:'FiO₂ target',
+  sizing:[['Typical adult','5.0 – 6.0','mm ID'],
+          ['Rule','Choose the smallest tube that allows adequate ventilation','']],
+  depth:[['Depth','As a standard tube; the cuff must sit clearly below the operative field','']],
+  cuff:[['Filling','Saline, not air',''],['Tint','Methylene blue added to the saline',''],
+        ['Cuffs','Two, inflated separately','']],
+  cuffnote:'The cuff is filled with saline so that a laser strike vents fluid instead of gas: the saline quenches the ignition and the blue dye makes the breach immediately obvious. Two cuffs mean the lower one still seals if the upper is hit.',
+  ind:['CO₂ or Nd:YAG laser airway surgery','Laryngeal papilloma, vocal cord lesions, subglottic stenosis','Any ENT procedure where the laser will be used near the tube'],
+  laser:[['FiO₂','≤ 0.30 — the lowest that maintains saturation',''],
+         ['Diluent','Air or helium; helium raises the ignition threshold',''],
+         ['Never use','Nitrous oxide — it supports combustion like oxygen',''],
+         ['Cuff protection','Saline-soaked pledgets packed above the cuff',''],
+         ['Before firing','Confirm FiO₂ has fallen at the patient end, not just on the dial',''],
+         ['Laser off','Whenever the tube is moved, exchanged or the field is unprotected','']],
+  fire:['Stop the laser and disconnect the circuit — remove the oxygen supply.','Remove the burning tube.','Flood the airway with saline.','Ventilate by mask on air, then re-intubate.','Rigid bronchoscopy to assess the damage; consider steroids, antibiotics and ICU.'],
+  pro:['Resists ignition at clinical laser energies','Blue-tinted cuff leak is unmistakable','Purpose-built for shared-airway laser work'],
+  con:['Small internal diameter — high resistance, difficult suctioning','Rigid and expensive','Bulky outer diameter for its lumen'],
+  warn:['No tube is laser <i>proof</i>. Every laser tube has a rated laser type, power and duration — read the label; a tube resistant to CO₂ may not resist Nd:YAG.','An airway fire is a three-second emergency. Rehearse the drill before the list, not during it.'],
+  mist:['Filling the cuff with air out of habit','Leaving FiO₂ at 1.0 "just until the surgeon starts"','Using a standard or reinforced tube because a laser tube was unavailable'],
+  pearl:['Announce the FiO₂ out loud to the surgeon before every laser activation.','Keep a bowl of saline and a spare standard tube on the trolley for the whole case.'] },
+
+{ cat:'spec', tab:'Microlaryngeal (MLT)', name:'Microlaryngeal tube (MLT)',
+  sub:'Small lumen, adult length, adult-sized cuff',
+  key:'4.0–6.0', keyU:'mm ID',
+  sizing:[['Range','4.0 – 6.0','mm ID'],['Common adult choice','5.0','mm ID']],
+  depth:[['Depth','Full adult length — 22–24 cm male, 20–22 cm female','']],
+  diam:[['Design point','Paediatric internal diameter on an adult-length shaft','']],
+  cuff:[['Pressure','20 – 30','cmH₂O'],['Cuff','Adult sized — it seals an adult trachea','']],
+  ind:['Microlaryngeal and vocal cord surgery','Subglottic or tracheal stenosis','Any case where the surgeon needs the glottis unobstructed'],
+  pro:['Gives the surgeon a clear view of the cords','Adult cuff seals properly, unlike a paediatric tube of the same ID','Correct length — no risk of a short tube backing out'],
+  con:['Very high resistance — significant work of breathing','Suctioning is difficult','Not suitable for prolonged spontaneous ventilation'],
+  warn:['Despite the paediatric internal diameter this is <b>not</b> a paediatric tube — the length and cuff are adult.','Plan controlled ventilation. Leaving a patient to breathe spontaneously through a 5.0 mm adult-length tube causes exhausting work of breathing.'],
+  mist:['Grabbing an MLT for a small adult when a standard tube would do','Allowing spontaneous ventilation at the end of the case','Expecting normal peak pressures — they will be high by design'],
+  pearl:['Expect high peak pressures and interpret them as tube resistance, not lung pathology — watch the plateau pressure instead.'] },
+
+{ cat:'lung', tab:'DLT — Left', name:'Left double-lumen tube',
+  sub:'The default for one-lung ventilation',
+  key:'39', keyU:'Fr (male)',
+  sizing:[['Adult male','39 – 41','Fr'],['Adult female','35 – 37','Fr'],
+          ['Small adult / short female','32 – 35','Fr'],
+          ['Guide','Height correlates better than weight; sizing by CT bronchial diameter is most accurate','']],
+  depth:[['Estimate','12 + height (cm) / 10','cm at teeth'],
+         ['170 cm patient','≈ 29','cm'],['180 cm patient','≈ 30','cm'],
+         ['Adjust','Confirm every estimate with bronchoscopy','']],
+  cuff:[['Tracheal cuff','20 – 30','cmH₂O'],['Bronchial cuff','Smallest volume that stops the leak — usually 1–3 mL','']],
+  cuffnote:'The bronchial cuff sits in a small airway. Over-inflation causes mucosal ischaemia and can herniate over the carina, obstructing the other lung. Inflate it only while checking the seal, and deflate it whenever two-lung ventilation resumes.',
+  ind:['Thoracic surgery requiring lung isolation','Video-assisted thoracoscopic surgery','Protecting one lung from contamination (abscess, haemorrhage)','Differential ventilation (bronchopleural fistula, unilateral disease)'],
+  whyleft:'The left main bronchus is around 5 cm long before the upper lobe takes off, giving a wide margin for error. The right main bronchus is only 1.5–2.5 cm long and the right upper lobe orifice sits within it — so a left tube is used for nearly everything, including right-sided surgery.',
+  bronch:[['Step 1','From the tracheal lumen: carina in view, blue bronchial cuff just visible in the left main bronchus',''],
+          ['Step 2','From the tracheal lumen: the right main bronchus is clear and unobstructed',''],
+          ['Step 3','From the bronchial lumen: the left upper and lower lobe orifices are both patent',''],
+          ['Repeat','After turning the patient into the lateral position — the tube moves','']],
+  trouble:[['High pressure, poor isolation','Tube too shallow — bronchial cuff in the trachea. Advance.',''],
+           ['Left upper lobe collapsed','Tube too deep — the bronchial lumen has passed the upper lobe orifice. Withdraw.',''],
+           ['No isolation at all','Tube in the wrong bronchus, or the bronchial cuff is under-inflated',''],
+           ['Deteriorating position mid-case','Surgical traction on the hilum — recheck with the fibrescope','']],
+  pro:['Both lungs independently accessible','Can suction and apply CPAP to the non-ventilated lung','Rapid switching between one- and two-lung ventilation'],
+  con:['Bulky and traumatic to place','Malposition is common and needs bronchoscopy to detect','Must be exchanged for a single-lumen tube if the patient stays ventilated'],
+  contra:['Difficult airway where a single-lumen tube was hard to place','Left main bronchus tumour, stricture or disruption — use a right DLT or a bronchial blocker','Full stomach with a difficult airway — consider a blocker instead'],
+  warn:['Verify position by fibreoptic bronchoscopy, not by auscultation alone. Auscultation misses a substantial proportion of malpositions.','Re-verify after every position change. Turning to the lateral position moves the tube by around 1 cm.'],
+  mist:['Advancing blindly until resistance is felt','Over-inflating the bronchial cuff to fix a leak that is really a depth problem','Leaving the bronchial cuff inflated during two-lung ventilation'],
+  pearl:['Hypoxia during one-lung ventilation: check the tube position first, then apply CPAP 5 cmH₂O to the non-dependent lung, then PEEP to the dependent lung, then ask the surgeon to clamp the pulmonary artery.','Deflate the bronchial cuff the moment two-lung ventilation resumes.'] },
+
+{ cat:'lung', tab:'DLT — Right', name:'Right double-lumen tube',
+  sub:'Only when the left main bronchus cannot be used',
+  key:'RUL', keyU:'slot alignment',
+  sizing:[['Adult male','39 – 41','Fr'],['Adult female','35 – 37','Fr']],
+  depth:[['Estimate','Similar to a left DLT, then confirm bronchoscopically','']],
+  cuff:[['Tracheal cuff','20 – 30','cmH₂O'],['Bronchial cuff','Minimum sealing volume','']],
+  ind:['Left pneumonectomy','Left main bronchus tumour, stenosis or disruption','Left sleeve resection or left-sided bronchial surgery','Left lung transplantation'],
+  whyright:'The right main bronchus is only 1.5–2.5 cm long and the right upper lobe orifice opens within it. A right DLT therefore carries a dedicated slot (Murphy eye) in the bronchial cuff that must line up exactly with the right upper lobe. Any small movement de-aligns it and collapses the upper lobe — which is why a left tube is preferred whenever the left bronchus is available.',
+  bronch:[['Step 1','From the bronchial lumen: the right upper lobe orifice must be visible through the ventilation slot',''],
+          ['Step 2','From the tracheal lumen: bronchial cuff just below the carina in the right main bronchus',''],
+          ['Step 3','From the tracheal lumen: the left main bronchus is clear',''],
+          ['Repeat','After every position change, and if saturations fall','']],
+  trouble:[['Right upper lobe collapse','The slot has moved off the orifice — realign under direct vision',''],
+           ['Poor isolation','Short right main bronchus — the cuff has slipped back into the trachea','']],
+  pro:['Allows lung isolation when the left bronchus is unusable'],
+  con:['High malposition rate','Right upper lobe collapse is common','Requires continuous bronchoscopic vigilance'],
+  warn:['A right DLT is a second choice. If a left DLT cannot be used, a bronchial blocker is often the safer alternative.'],
+  mist:['Using a right DLT for right-sided surgery — a left tube is correct for almost all right-sided cases','Assuming the alignment holds after repositioning'],
+  pearl:['If the right upper lobe keeps collapsing, switch to a bronchial blocker rather than fighting the tube.'] },
+
+{ cat:'sga', tab:'LMA Classic', name:'LMA Classic',
+  sub:'First-generation supraglottic airway · no gastric access',
+  key:'4', keyU:'typical adult',
+  sizing:[['30 – 50 kg','3',''],['50 – 70 kg','4',''],['70 – 100 kg','5',''],['&gt; 100 kg','6','']],
+  cuff:[['Maximum pressure','60','cmH₂O'],['Size 3 volume','≤ 20','mL'],['Size 4 volume','≤ 30','mL'],['Size 5 volume','≤ 40','mL']],
+  cuffnote:'Inflate to a seal, then measure. Over-inflation raises pharyngeal mucosal pressure, worsens the seal and causes sore throat, dysphagia and nerve injury.',
+  ind:['Short elective procedures in a fasted patient','Spontaneous ventilation with low airway pressures','Rescue ventilation in a difficult airway (DAS Plan B)'],
+  pro:['Rapid, atraumatic insertion without a relaxant','Less airway stimulation than intubation','Reusable'],
+  con:['No gastric drain — first generation','Low seal pressure (~20 cmH₂O)','Not for high airway pressures or prolonged ventilation'],
+  contra:['High aspiration risk — non-fasted, symptomatic reflux, bowel obstruction','Poor lung compliance or high airway pressures','Prone or shared-airway surgery where access is lost','Morbid obesity with high pressures'],
+  warn:['A first-generation device gives no aspiration protection. If aspiration risk is anything other than low, use a second-generation device or intubate.'],
+  mist:['Inflating to the maximum volume "to be safe" — this reduces the seal','Persisting with a leaking LMA instead of changing size or device'],
+  pearl:['If the seal is poor, first check the depth and head position, then consider one size up — not more air.'] },
+
+{ cat:'sga', tab:'LMA Supreme', name:'LMA Supreme',
+  sub:'Second generation · gastric drain, built-in bite block, single use',
+  key:'24–28', keyU:'cmH₂O seal',
+  sizing:[['30 – 50 kg','3',''],['50 – 70 kg','4',''],['70 – 100 kg','5','']],
+  cuff:[['Maximum pressure','60','cmH₂O'],['Seal achieved','24 – 28','cmH₂O']],
+  ind:['Elective surgery where a gastric drain is wanted','Laparoscopic and positive-pressure cases within the seal limit','Difficult airway rescue — a second-generation Plan B device'],
+  pro:['Gastric drain tube allows a suction catheter to pass','Higher seal than the Classic','Integrated bite block','Preformed curve — no finger insertion needed'],
+  con:['Single use','Still not equivalent to a cuffed tracheal tube for aspiration risk'],
+  contra:['High aspiration risk','Airway pressures needed above the achievable seal','Limited mouth opening'],
+  warn:['A gastric drain lowers but does not abolish aspiration risk. It is not a substitute for a tracheal tube in a full stomach.'],
+  mist:['Not passing the gastric tube when one is indicated','Assuming "second generation" means aspiration proof'],
+  pearl:['Passing a suction catheter down the drain and getting no resistance is good evidence the device is correctly seated.'] },
+
+{ cat:'sga', tab:'LMA ProSeal', name:'LMA ProSeal',
+  sub:'Second generation · highest cuff seal, reusable',
+  key:'~30', keyU:'cmH₂O seal',
+  sizing:[['30 – 50 kg','3',''],['50 – 70 kg','4',''],['70 – 100 kg','5','']],
+  cuff:[['Maximum pressure','60','cmH₂O'],['Seal achieved','Up to ~30','cmH₂O']],
+  ind:['Positive-pressure ventilation through a supraglottic airway','Laparoscopic surgery within the seal limit','Cases where a gastric drain and a high seal are both wanted'],
+  pro:['Highest seal of the LMA family','Dual-cuff design and a drain tube','Reusable','Insertion aided by an introducer or a gum-elastic bougie'],
+  con:['Insertion is more difficult than the Supreme','Reprocessing required','Bulkier'],
+  contra:['High aspiration risk','Airway pressures above the achievable seal'],
+  warn:['The higher seal tempts higher pressures — the aspiration risk profile is unchanged.'],
+  mist:['Blind insertion without the introducer, which often folds the tip'],
+  pearl:['Bougie-guided insertion (bougie into the oesophagus first, ProSeal railroaded over it) is a reliable rescue when blind insertion fails.'] },
+
+{ cat:'sga', tab:'i-gel', name:'i-gel',
+  sub:'Non-inflatable thermoplastic elastomer cuff · gastric channel',
+  key:'4', keyU:'50–90 kg',
+  sizing:[['30 – 60 kg','3',''],['50 – 90 kg','4',''],['&gt; 90 kg','5',''],
+          ['Paediatric','1 to 2.5 by weight','']],
+  cuff:[['Cuff','None to inflate — it moulds with body heat',''],['Seal achieved','24 – 30','cmH₂O']],
+  cuffnote:'There is no cuff pressure to monitor, which removes over-inflation injury entirely. The trade-off is that a poor fit cannot be corrected by adding volume — the answer is repositioning or a different size.',
+  ind:['Rapid airway rescue and resuscitation','Elective surgery in fasted patients','Prehospital and emergency airway management','Difficult airway Plan B'],
+  pro:['Fastest insertion of the common supraglottic devices','No cuff to inflate or monitor','Gastric channel and integrated bite block','Low risk of mucosal compression injury'],
+  con:['Fit is size-dependent — no fine adjustment','Seal can fall as the device warms and settles','Single use'],
+  contra:['High aspiration risk','Trismus or limited mouth opening','Airway pressures above the achievable seal'],
+  warn:['Give the device 60–90 seconds to warm and seat before judging the seal — an early leak often disappears.'],
+  mist:['Adding sizes rather than checking depth and head position','Discarding it as failed within the first few breaths'],
+  pearl:['Correct seating is usually confirmed by the incisors sitting on the bite block and a gastric tube passing freely.'] },
+
+{ cat:'sga', tab:'LTS / LTS-D', name:'Laryngeal tube (LTS / LTS-D)',
+  sub:'Two cuffs, one inflation line · oesophageal drain on the LTS-D',
+  key:'4', keyU:'155–180 cm',
+  sizing:[['&lt; 122 cm','3 (yellow)',''],['122 – 155 cm','3','' ],['155 – 180 cm','4 (red)',''],['&gt; 180 cm','5 (purple)','']],
+  cuff:[['Pressure','60 – 70','cmH₂O'],['Inflation','Both cuffs from a single pilot line','']],
+  cuffnote:'The pharyngeal and oesophageal cuffs share one inflation line. Pressure is higher than an LMA by design; use a manometer, because cuff over-pressure here compresses pharyngeal mucosa and, at extremes, impairs carotid flow.',
+  ind:['Rescue and emergency airway management','Prehospital and resuscitation use','Difficult airway when laryngoscopy has failed'],
+  pro:['Blind insertion, very rapid','Effective seal for resuscitation','LTS-D adds a gastric drain'],
+  con:['Higher cuff pressures than an LMA','Less suited to long elective cases','Sizing is by patient height, which is easy to get wrong in an emergency'],
+  contra:['Intact gag reflex','Caustic ingestion or known oesophageal disease','Prolonged elective use'],
+  warn:['Size by height, not by weight or by eye. An oversized laryngeal tube obstructs; an undersized one leaks.'],
+  mist:['Skipping the manometer because it is an emergency','Inflating until the leak stops regardless of pressure'],
+  pearl:['If ventilation is poor after insertion, withdraw 1–2 cm before adding cuff volume — the tip is often too deep.'] },
+
+{ cat:'trach', tab:'Tracheostomy', name:'Tracheostomy tube',
+  sub:'Cuffed, uncuffed, fenestrated and adjustable-flange variants',
+  key:'8.0', keyU:'mm ID (male)',
+  sizing:[['Adult male','8.0 – 9.0','mm ID'],['Adult female','7.0 – 8.0','mm ID'],
+          ['Paediatric','As the equivalent tracheal tube size',''],
+          ['Adjustable flange','For obesity or an unusually deep trachea','']],
+  cuff:[['Pressure','20 – 30','cmH₂O'],['Uncuffed','For a patient no longer needing positive pressure','']],
+  ind:['Prolonged ventilation and weaning','Upper airway obstruction','Airway toilet where secretions cannot be cleared','Head and neck surgery requiring a secure long-term airway'],
+  pro:['Comfortable for long-term use, less sedation required','Reduced dead space and work of breathing','Allows speech with a fenestrated tube and a speaking valve','Easier oral care and mobilisation'],
+  con:['Surgical or percutaneous procedure with its own complications','Stoma infection, granulation, tracheal stenosis','Displacement into a false passage before the tract matures'],
+  warn:['<b>The first tube change is the dangerous one.</b> Wait at least 7 days for a surgical tracheostomy and at least 10 days for a percutaneous one, so the tract is mature. An early change can create a false passage.','A blocked or displaced tracheostomy is an airway emergency — follow the national emergency tracheostomy algorithm and keep the bedside sign, spare tubes and a bougie with the patient at all times.'],
+  mist:['Forcing a tube back into a stoma that has partially closed','Assuming a fenestrated tube can be used for positive-pressure ventilation with the fenestration open','Not confirming with capnography after a change'],
+  pearl:['Keep two spare tubes at the bedside: the same size and one size smaller.','After any change, confirm with capnography before anything else.','A patent upper airway means oral intubation remains an option in an emergency — the laryngectomy patient is the exception.'] }
+];
+
+var _tubeIdx = 0, _tubeCat = 'all';
+function tubeRows(rows){
+  return rows.map(function(r){ return metric(r[0], r[1], r[2]||''); }).join('');
+}
+function tubeTabsHtml(){
+  var cats = '<div class="ref-catrow">'+
+    '<button type="button" class="ref-cat'+(_tubeCat==='all'?' on':'')+'" onclick="tubeCat(\'all\')">All</button>'+
+    TUBE_CATS.map(function(c){
+      return '<button type="button" class="ref-cat'+(_tubeCat===c[0]?' on':'')+'" onclick="tubeCat(\''+c[0]+'\')">'+c[1]+'</button>';
+    }).join('')+'</div>';
+  var tabs = '<div class="ref-tabs" id="tube-tabs">'+
+    TUBES.map(function(t,i){
+      if(_tubeCat!=='all' && t.cat!==_tubeCat) return '';
+      return '<button type="button" class="ref-tab'+(i===_tubeIdx?' on':'')+'" onclick="tubeInline('+i+')">'+t.tab+'</button>';
+    }).join('')+'</div>';
+  return cats + tabs;
+}
+function tubeCat(c){
+  _tubeCat = c;
+  var first = TUBES.map(function(t,i){ return {t:t,i:i}; })
+                   .filter(function(x){ return c==='all' || x.t.cat===c; })[0];
+  if(first) _tubeIdx = first.i;
+  var host = ge('tube-tabs-host'); if(host) host.innerHTML = tubeTabsHtml();
+  tubeInline(_tubeIdx);
+}
+function tubeInline(i){
+  _tubeIdx = i;
+  var host = ge('tube-tabs-host'); if(host) host.innerHTML = tubeTabsHtml();
+  var body = ge('tube-inline-body'); if(!body) return;
+  var t = TUBES[i];
+  var h = '<div class="ref-head"><div class="ref-name">'+t.name+'<i>'+t.sub+'</i></div>'+
+          '<div class="ref-key">'+t.key+'<u>'+t.keyU+'</u></div></div>';
+  var A = '', B = '';
+  if(t.sizing) A += grp('Sizing', tubeRows(t.sizing));
+  if(t.depth)  A += grp('Depth', tubeRows(t.depth));
+  if(t.diam)   A += grp('Diameter', tubeRows(t.diam));
+  if(t.cuff)   A += grp('Cuff', tubeRows(t.cuff) + (t.cuffnote?note(t.cuffnote):''));
+  if(t.laser)  A += grp('Laser precautions', tubeRows(t.laser));
+  if(t.fire)   A += grp('Airway fire drill', bul(t.fire));
+  if(t.whyleft)  A += grp('Why a left tube', note(t.whyleft));
+  if(t.whyright) A += grp('Why a right tube', note(t.whyright));
+  if(t.bronch)   B += grp('Bronchoscopic confirmation', tubeRows(t.bronch));
+  if(t.trouble)  B += grp('Troubleshooting', tubeRows(t.trouble));
+  if(t.ind)    B += grp('Indications', chipset(t.ind));
+  if(t.pro && t.con) B += grp('Advantages &amp; limitations', duo('Advantages', t.pro, 'Limitations', t.con));
+  if(t.contra) B += grp('Contraindications', bul(t.contra));
+  if(t.warn)   B += grp('Warnings', t.warn.map(function(w){ return alert_(w, true); }).join(''));
+  if(t.mist)   B += grp('Common mistakes', bul(t.mist));
+  if(t.pearl)  B += grp('Clinical pearls', bul(t.pearl));
+  body.innerHTML = h + '<div class="ref-cols"><div>'+A+'</div><div>'+B+'</div></div>' +
+    foot('Reference values are typical adult and paediatric figures. Device sizing, cuff pressures and laser ratings vary by manufacturer — always confirm against the product label and your local policy.');
+}
+window.tubeInline=tubeInline; window.tubeCat=tubeCat;
+
 var _sedIdx = 0;
 function sedInline(i){
   _sedIdx = i;
   var tabs = ge('sed-tabs-inline');
-  if(tabs) tabs.querySelectorAll('.crisis-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
+  if(tabs) tabs.querySelectorAll('.ref-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
   var body = ge('sed-inline-body'); if(!body) return;
   var w = crisisWeight();
   var d = SED[i][2](w);
-  var html = '<div class="crisis-emg-t">'+SED[i][0]+' <span>'+SED[i][1]+'</span></div>';
-  d.blocks.forEach(function(blk){
-    html += '<div class="crisis-sec-t">'+blk.h+'</div>';
-    if(blk.rows) html += blk.rows.map(function(r){ return '<div class="crisis-dose"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>'; }).join('');
-    if(blk.list) html += blk.list.map(function(s){ return '<div class="sed-li">'+s+'</div>'; }).join('');
+  var html = '<div class="ref-head"><div class="ref-name">'+SED[i][0]+'<i>'+SED[i][1]+'</i></div></div>';
+  var cols = ['',''];
+  d.blocks.forEach(function(blk, bi){
+    var b = '';
+    if(blk.rows) b += blk.rows.map(function(r){ return metric(r[0], r[1], ''); }).join('');
+    if(blk.list) b += bul(blk.list);
+    cols[bi % 2] += grp(blk.h, b);
   });
-  html += '<div class="sed-note">Reference / educational only — not automatic clinical decision support. Always verify doses against current local protocols and the patient’s context.</div>';
+  html += '<div class="ref-cols"><div>'+cols[0]+'</div><div>'+cols[1]+'</div></div>';
+  html += foot('Reference and education only — not automatic clinical decision support. Always verify doses against current local protocols and the patient\u2019s context.');
   body.innerHTML = html;
 }
 window.sedInline=sedInline;
@@ -1101,7 +1958,11 @@ function cwClearDerived(){
 (function(){
   function L(k,d){ try{ var v=JSON.parse(localStorage.getItem(k)); return v||d; }catch(e){ return d; } }
   function S(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
-  var K_ORD='eng_panels_order', K_COL='eng_panels_collapsed', K_WIDE='eng_panels_wide';
+  // v2 keys: the module set and their identities changed with the workstation
+  // redesign, so saved layouts from the previous grid are not reapplied.
+  var K_ORD='eng_panels_order_v2', K_COL='eng_panels_collapsed_v2', K_WIDE='eng_panels_wide_v2';
+  try{ ['eng_panels_order','eng_panels_collapsed','eng_panels_wide']
+        .forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
   var _applying=false, _dragPk=null;
 
   function panelsWrap(){ return document.querySelector('#output .panels'); }
@@ -1122,6 +1983,7 @@ function cwClearDerived(){
       if(wide[pk] && !p.classList.contains('full')) p.classList.add('wide');
     });
     if(ord && ord.length){ ord.forEach(function(pk){ var p=w.querySelector('.panel[data-pk="'+pk+'"]'); if(p) w.appendChild(p); }); }
+    if(window.balanceRows) window.balanceRows();   // reordering changes which module ends each row
     _applying=false;
   }
   function pulse(){ var o=document.getElementById('output'); if(!o)return;
@@ -1138,7 +2000,7 @@ function cwClearDerived(){
       if(t && t.getAttribute('data-pk')!==_dragPk) t.classList.add('drop-target'); });
     out.addEventListener('drop',function(e){ if(_dragPk==null)return; e.preventDefault();
       var w=panelsWrap(), t=e.target.closest&&e.target.closest('.panel'), src=w&&w.querySelector('.panel[data-pk="'+_dragPk+'"]');
-      if(w && src && t && t!==src){ var r=t.getBoundingClientRect(); var after=(e.clientY-r.top)/r.height>0.5; w.insertBefore(src, after?t.nextSibling:t); saveOrder(); } });
+      if(w && src && t && t!==src){ var r=t.getBoundingClientRect(); var after=(e.clientY-r.top)/r.height>0.5; w.insertBefore(src, after?t.nextSibling:t); saveOrder(); if(window.balanceRows) window.balanceRows(); } });
     out.addEventListener('dragend',function(e){ var p=e.target.closest&&e.target.closest('.panel'); if(p){ p.classList.remove('dragging'); p.removeAttribute('draggable'); }
       out.querySelectorAll('.panel.drop-target').forEach(function(x){ x.classList.remove('drop-target'); }); _dragPk=null; });
   }
@@ -1279,10 +2141,14 @@ function cwClearDerived(){
 (function(){
   // TOOL_SLUG is the routing identity; the drawer shows evidence_id (CALC-LA-001)
   // from the resolved payload.
-  var TOOL_SLUG='local-anesthetic-max-dose', PK='local-anesthetic-limits';
+  // The LA maximum-dose calculator now lives inside the Regional module, which
+  // renders a dedicated slot for this control. The old standalone panel is kept
+  // as a fallback selector so nothing breaks if the layout changes again.
+  var TOOL_SLUG='local-anesthetic-max-dose';
   function inject(){
     if(!window.EvidenceDrawer) return;
-    var body=document.querySelector('.panel[data-pk="'+PK+'"] .panel-body');
+    var body=document.querySelector('[data-evidence-slot="la"]')
+          || document.querySelector('.panel[data-pk="local-anesthetic-limits"] .panel-body');
     if(!body || body.querySelector('.cow-wrap')) return;   // absent, or already attached
     try{ window.EvidenceDrawer.attach(body, TOOL_SLUG); }catch(e){}
   }
