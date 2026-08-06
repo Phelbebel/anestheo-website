@@ -47,6 +47,12 @@ var CSS = [
 '  border-left:2px solid transparent;transition:background .1s cubic-bezier(.22,.61,.36,1);}',
 '.cp-i:hover{background:rgba(255,255,255,.03);}',
 '.cp-i.on{background:rgba(126,207,192,.11);border-left-color:#7ECFC0;}',
+'.cp-i[data-pc]{border-left-width:3px;}',
+'.cp-s{display:flex;align-items:center;flex-wrap:wrap;}',
+'.cp .pc{font-size:9px;padding:3px 6px 3px 4px;margin-right:8px;border-radius:3px;',
+'  letter-spacing:.11em;font-weight:700;text-transform:uppercase;line-height:1;',
+'  display:inline-flex;align-items:center;border-left:3px solid var(--pc);',
+'  background:color-mix(in srgb, var(--pc) 15%, transparent);color:var(--pc);flex:0 0 auto;}',
 '.cp-n{font-size:15px;font-weight:600;color:#fff;line-height:1.3;flex:1 1 auto;min-width:0;',
 '  letter-spacing:-.005em;}',
 '.cp-n mark{background:none;color:#7ECFC0;font-weight:700;}',
@@ -99,6 +105,20 @@ function pushRecent(q){
 var KIND_LABEL = { drug:'Drug', device:'Device', protocol:'Emergency', calculator:'Calculator',
                    block:'Regional', score:'Score', reference:'Reference', prophylaxis:'Prophylaxis' };
 
+/* Paint each result's left edge in its class colour, from the shared model. */
+function paintClasses(){
+  var CC = window.ClinicalContent; if (!CC) return;
+  [].forEach.call(document.querySelectorAll('.cp-i[data-pc]'), function(el){
+    var m = CC.classMeta(el.getAttribute('data-pc'));
+    if (m){ el.style.setProperty('--pc', m.color);
+            if (!el.classList.contains('on')) el.style.borderLeftColor = m.color; }
+  });
+  [].forEach.call(document.querySelectorAll('.cp .pc'), function(el){
+    var m = CC.classMeta(el.getAttribute('data-pc'));
+    if (m) el.style.setProperty('--pc', m.color);
+  });
+}
+
 function render(q){
   var list = document.getElementById('cp-list'); if (!list) return;
   flat = [];
@@ -126,14 +146,20 @@ function render(q){
     html += '<div class="cp-g">'+esc(g.group)+'</div>';
     g.hits.forEach(function(h){
       flat.push(h.item);
-      html += '<div class="cp-i'+(i===sel?' on':'')+'" data-i="'+i+'">'+
+      /* the class badge comes from the shared model, so a drug looks the
+         same here as it does in its module */
+      var badge = (h.item.pclass && window.ClinicalContent.classBadge)
+                    ? window.ClinicalContent.classBadge(h.item.pclass) : '';
+      html += '<div class="cp-i'+(i===sel?' on':'')+'" data-i="'+i+'"'+
+          (h.item.pclass?(' data-pc="'+h.item.pclass+'"'):'')+'>'+
         '<span class="cp-n">'+mark(h.item.name, q)+
-        (h.item.summary ? '<span class="cp-s">'+esc(h.item.summary)+'</span>' : '')+'</span>'+
+        (h.item.summary ? '<span class="cp-s">'+badge+esc(h.item.summary)+'</span>' : '')+'</span>'+
         '<span class="cp-k">'+esc(KIND_LABEL[h.item.kind] || '')+'</span></div>';
       i++;
     });
   });
   list.innerHTML = html;
+  paintClasses();
   var on = list.querySelector('.cp-i.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block:'nearest' });
 }
 
@@ -165,6 +191,7 @@ function paint(){
   var list = document.getElementById('cp-list'); if (!list) return;
   var items = list.querySelectorAll('.cp-i');
   items.forEach(function(el,i){ el.classList.toggle('on', i === sel); });
+  paintClasses();
   var on = list.querySelector('.cp-i.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block:'nearest' });
 }
 

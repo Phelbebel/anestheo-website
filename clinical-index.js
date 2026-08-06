@@ -75,6 +75,42 @@ function supportLine(item, dose, wt){
   return bits.filter(Boolean).join(' · ');
 }
 
+/* ── PHARMACOLOGIC CLASS — a clinical navigation system ──────────────────
+   Hues follow the ISO 26825 anaesthesia syringe-label convention so the colour
+   on screen matches the colour on the syringe. Values are screen-tuned: every
+   one clears WCAG AA (>=4.5:1) against the dark pane ground.
+
+   Colour is NEVER the only cue. Every row also carries the class name in text,
+   so the system works without colour vision and survives a monochrome print.
+
+   This is display metadata. It changes no dose, unit, weight basis or warning.
+   ------------------------------------------------------------------------ */
+var PCLASS = {
+  induction:    { label:'Induction',      color:'#FFD84D', short:'INDUCTION' },
+  benzo:        { label:'Benzodiazepine', color:'#FFA23E', short:'BENZO' },
+  betablocker:  { label:'Beta-blocker',   color:'#FFA23E', short:'BETA-BLOCKER' },
+  opioid:       { label:'Opioid',         color:'#6BB6FF', short:'OPIOID' },
+  nmb:          { label:'Neuromuscular blocker', color:'#FF7A6B', short:'RELAXANT' },
+  vasopressor:  { label:'Vasopressor / inotrope', color:'#C79BFF', short:'VASOPRESSOR' },
+  anticholinergic:{ label:'Anticholinergic', color:'#4FE39B', short:'ANTICHOLINERGIC' },
+  local:        { label:'Local anaesthetic', color:'#C3D2CD', short:'LOCAL' },
+  uterotonic:   { label:'Uterotonic',     color:'#FFFFFF', short:'UTEROTONIC' },
+  reversal:     { label:'Reversal agent', color:'#5FE0A4', short:'REVERSAL', zebra:true }
+};
+/* Drugs with no class in the approved scheme render a neutral badge rather
+   than an invented colour. */
+function classOf(d){ return (d && d.pclass && PCLASS[d.pclass]) ? d.pclass : null; }
+function classMeta(id){ return PCLASS[id] || null; }
+
+/* THE one badge renderer. Rows, the command palette and anything added later
+   call this, so a class can never be styled two different ways. */
+function classBadge(pclassId){
+  var m = PCLASS[pclassId];
+  if (!m) return '';
+  return '<span class="pc' + (m.zebra ? ' pc-zebra' : '') + '" data-pc="' + pclassId +
+         '" style="--pc:' + m.color + '">' + m.short + '</span>';
+}
+
 /* ── DRUG GROUPS ─────────────────────────────────────────────────────── */
 var GROUPS = [
   { id:'induction',   label:'Induction and sedation' },
@@ -99,6 +135,7 @@ var DRUGS = [
 /* ══ MIGRATED VERBATIM — existing-unchanged ══════════════════════════════ */
 
 { id:'drug.propofol', name:'Propofol', group:'induction',
+  pclass:'induction',
   aliases:['propofol','diprivan','propofol lipuro','profol'],
   klass:'Alkylphenol intravenous anaesthetic',
   indications:['induction','sedation','TIVA maintenance'],
@@ -109,6 +146,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Induction · 1.5–2.5 mg/kg TBW' } },
 
 { id:'drug.ketamine', name:'Ketamine', group:'induction',
+  pclass:'induction',
   aliases:['ketamine','ketalar','esketamine','special k'],
   klass:'NMDA antagonist',
   indications:['induction','haemodynamic instability','analgesia'],
@@ -119,6 +157,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Induction · 1–2 mg/kg TBW' } },
 
 { id:'drug.midazolam', name:'Midazolam', group:'induction',
+  pclass:'benzo',
   aliases:['midazolam','versed','dormicum','midaz'],
   klass:'Benzodiazepine',
   indications:['premedication','sedation','anxiolysis'],
@@ -129,6 +168,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Premed · 0.02–0.04 mg/kg TBW' } },
 
 { id:'drug.rocuronium', name:'Rocuronium', group:'nmb',
+  pclass:'nmb',
   aliases:['rocuronium','rocuronium bromide','roc','esmeron','zemuron'],
   klass:'Aminosteroid non-depolarising neuromuscular blocker',
   indications:['intubation','rapid sequence induction','muscle relaxation'],
@@ -139,6 +179,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Intubation · 0.6–1.2 mg/kg TBW' } },
 
 { id:'drug.suxamethonium', name:'Suxamethonium', group:'nmb',
+  pclass:'nmb',
   aliases:['suxamethonium','succinylcholine','sux','scoline','anectine','celocurine','suxamethonium chloride'],
   klass:'Depolarising neuromuscular blocker',
   indications:['rapid sequence induction','laryngospasm'],
@@ -149,6 +190,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'RSI · 1–1.5 mg/kg TBW' } },
 
 { id:'drug.fentanyl', name:'Fentanyl', group:'analgesia',
+  pclass:'opioid',
   aliases:['fentanyl','fentanil','sublimaze'],
   klass:'Synthetic opioid',
   indications:['analgesia','obtunding laryngoscopy response'],
@@ -159,6 +201,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Analgesia · 1–3 mcg/kg TBW' } },
 
 { id:'drug.morphine', name:'Morphine', group:'analgesia',
+  pclass:'opioid',
   aliases:['morphine','morphine sulfate','morphine sulphate','mso4'],
   klass:'Opioid',
   indications:['postoperative analgesia'],
@@ -169,6 +212,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Analgesia · 0.05–0.1 mg/kg TBW' } },
 
 { id:'drug.remifentanil', name:'Remifentanil', group:'analgesia',
+  pclass:'opioid',
   aliases:['remifentanil','remi','ultiva'],
   klass:'Ultra-short-acting synthetic opioid',
   indications:['TIVA','infusion analgesia'],
@@ -179,6 +223,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Infusion · 0.05–0.2 mcg/kg/min' } },
 
 { id:'drug.dexmedetomidine', name:'Dexmedetomidine', group:'induction',
+  pclass:'induction',
   aliases:['dexmedetomidine','dexmed','precedex','dexdor','dex'],
   klass:'Alpha-2 agonist',
   indications:['sedation','procedural sedation','awake fibreoptic'],
@@ -189,6 +234,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Sedation · 0.2–0.7 mcg/kg/h' } },
 
 { id:'drug.sugammadex', name:'Sugammadex', group:'reversal',
+  pclass:'reversal',
   aliases:['sugammadex','bridion','suggamadex'],
   klass:'Selective relaxant binding agent',
   indications:['reversal of rocuronium','reversal of vecuronium'],
@@ -198,6 +244,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Routine reversal · 2–4 mg/kg TBW' } },
 
 { id:'drug.sugammadex-immediate', name:'Sugammadex — immediate reversal', group:'reversal',
+  pclass:'reversal',
   aliases:['sugammadex immediate','sugammadex 16','cico rescue','sugammadex rescue'],
   klass:'Selective relaxant binding agent',
   indications:['immediate reversal','cannot intubate cannot oxygenate'],
@@ -208,6 +255,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Immediate reversal · 16 mg/kg TBW' } },
 
 { id:'drug.neostigmine', name:'Neostigmine', group:'reversal',
+  pclass:'reversal',
   aliases:['neostigmine','prostigmin','neo'],
   klass:'Acetylcholinesterase inhibitor',
   indications:['reversal of neuromuscular blockade'],
@@ -218,6 +266,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Reversal · 0.04–0.05 mg/kg (max 5)' } },
 
 { id:'drug.noradrenaline', name:'Noradrenaline', group:'vaso-inf',
+  pclass:'vasopressor',
   aliases:['noradrenaline','norepinephrine','norad','levophed','noradrenalin','nor-adrenaline','ne'],
   klass:'Catecholamine vasopressor',
   indications:['vasoplegia','shock','maintaining MAP'],
@@ -228,6 +277,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'1st-line vasopressor · titrate to MAP · 0.01–0.5 mcg/kg/min' } },
 
 { id:'drug.adrenaline', name:'Adrenaline', group:'vaso-inf',
+  pclass:'vasopressor',
   aliases:['adrenaline','epinephrine','epi','adrenalin','suprarenin'],
   klass:'Catecholamine inotrope and vasopressor',
   indications:['anaphylaxis','cardiac arrest','low cardiac output'],
@@ -238,6 +288,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Inotrope + vasopressor · anaphylaxis/arrest · 0.01–0.5 mcg/kg/min' } },
 
 { id:'drug.phenylephrine-inf', name:'Phenylephrine — infusion', group:'vaso-inf',
+  pclass:'vasopressor',
   aliases:['phenylephrine infusion','phenylephrine','neosynephrine','neo-synephrine'],
   klass:'Pure alpha-1 agonist',
   indications:['maintaining SVR after spinal'],
@@ -247,6 +298,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Infusion · maintain SVR (e.g. spinal) · 0.1–0.5 mcg/kg/min' } },
 
 { id:'drug.dobutamine', name:'Dobutamine', group:'vaso-inf',
+  pclass:'vasopressor',
   aliases:['dobutamine','dobutrex','dobu'],
   klass:'Beta-1 agonist inotrope',
   indications:['low cardiac output'],
@@ -257,6 +309,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Inotrope · low cardiac output · 2–20 mcg/kg/min' } },
 
 { id:'drug.vasopressin', name:'Vasopressin', group:'vaso-inf',
+  pclass:'vasopressor',
   aliases:['vasopressin','adh','argipressin','pitressin','antidiuretic hormone'],
   klass:'V1 receptor agonist',
   indications:['catecholamine-resistant shock'],
@@ -266,6 +319,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Adjunct · catecholamine-resistant shock · 0.01–0.04 units/min' } },
 
 { id:'drug.phenylephrine-bolus', name:'Phenylephrine — bolus', group:'vaso-bolus',
+  pclass:'vasopressor',
   aliases:['phenylephrine bolus','phenylephrine','neosynephrine'],
   klass:'Pure alpha-1 agonist',
   indications:['hypotension with adequate heart rate'],
@@ -276,6 +330,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Bolus · pure α, reflex bradycardia · 50–100 mcg' } },
 
 { id:'drug.ephedrine', name:'Ephedrine', group:'vaso-bolus',
+  pclass:'vasopressor',
   aliases:['ephedrine','ephedrin'],
   klass:'Mixed alpha/beta agonist',
   indications:['hypotension with bradycardia'],
@@ -286,6 +341,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Bolus · mixed α/β, use if bradycardic · 5–10 mg' } },
 
 { id:'drug.metaraminol', name:'Metaraminol', group:'vaso-bolus',
+  pclass:'vasopressor',
   aliases:['metaraminol','aramine','metaraminol tartrate'],
   klass:'Predominantly alpha agonist',
   indications:['hypotension'],
@@ -295,6 +351,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Predominantly α · longer acting than phenylephrine · 0.5–1 mg' } },
 
 { id:'drug.lidocaine', name:'Lidocaine', group:'local',
+  pclass:'local',
   aliases:['lidocaine','lignocaine','lido','xylocaine','lidocaine hcl','lignocaine hcl'],
   klass:'Amide local anaesthetic',
   indications:['infiltration','peripheral nerve block','epidural top-up'],
@@ -307,6 +364,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Max · 4.5 mg/kg (7 mg/kg w/ epi) TBW' } },
 
 { id:'drug.bupivacaine', name:'Bupivacaine', group:'local',
+  pclass:'local',
   aliases:['bupivacaine','marcaine','sensorcaine','bupi','heavy bupivacaine','hyperbaric bupivacaine'],
   klass:'Amide local anaesthetic',
   indications:['spinal','peripheral nerve block','epidural'],
@@ -319,6 +377,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Max · 2 mg/kg (3 mg/kg w/ epi) TBW' } },
 
 { id:'drug.levobupivacaine', name:'Levobupivacaine', group:'local',
+  pclass:'local',
   aliases:['levobupivacaine','chirocaine','levobupi'],
   klass:'Amide local anaesthetic (S-enantiomer)',
   indications:['peripheral nerve block','epidural'],
@@ -328,6 +387,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'2 mg/kg' } },
 
 { id:'drug.ropivacaine', name:'Ropivacaine', group:'local',
+  pclass:'local',
   aliases:['ropivacaine','naropin','ropi'],
   klass:'Amide local anaesthetic',
   indications:['peripheral nerve block','epidural','infiltration'],
@@ -352,6 +412,7 @@ var DRUGS = [
    named clinical reviewer; no source below was directly accessed.          */
 
 { id:'drug.lidocaine-iv', name:'Lidocaine — intravenous', group:'analgesia',
+  pclass:'local',
   aliases:['lidocaine iv','lignocaine iv','lidocaine infusion','iv lidocaine','lidocaine systemic'],
   klass:'Amide local anaesthetic used systemically',
   indications:['opioid-sparing analgesia','airway reactivity','ventricular arrhythmia'],
@@ -361,6 +422,7 @@ var DRUGS = [
                sourceAccessed:false } },
 
 { id:'drug.esmolol', name:'Esmolol', group:'cardio',
+  pclass:'betablocker',
   aliases:['esmolol','brevibloc','esmolol hydrochloride'],
   klass:'Ultra-short-acting cardioselective beta-blocker',
   indications:['tachycardia','hypertension','obtunding intubation response'],
@@ -369,6 +431,7 @@ var DRUGS = [
                candidateSource:'Manufacturer SmPC / package insert', sourceAccessed:false } },
 
 { id:'drug.labetalol', name:'Labetalol', group:'cardio',
+  pclass:'betablocker',
   aliases:['labetalol','trandate','normodyne'],
   klass:'Combined alpha/beta blocker',
   indications:['hypertension','pre-eclampsia'],
@@ -603,7 +666,7 @@ function buildIndex(){
   var out = [];
   DRUGS.forEach(function(d){
     out.push({
-      id:d.id, kind:'drug', name:d.name, cat:'Drugs',
+      id:d.id, kind:'drug', name:d.name, cat:'Drugs', pclass:classOf(d),
       aliases:d.aliases||[], klass:d.klass||'', indications:d.indications||[],
       summary:d.summary || (d.doses && d.doses[0] ? (d.doses[0].label||'') : ''),
       module:'drug-references', anchor:d.id,
@@ -688,7 +751,8 @@ function visibleDrugsInGroup(groupId, wt){
       var r = renderDose(dose, wt);
       return { id:d.id, name:d.name, val:r.val, unit:r.unit,
                ind:supportLine(d, dose, wt), prep:d.prep,
-               warn:d.warn, severity:d.severity, hi:d.hi };
+               warn:d.warn, severity:d.severity, hi:d.hi,
+               pclass:classOf(d), badge:classBadge(classOf(d)) };
     });
 }
 function byId(id){
@@ -702,7 +766,8 @@ function indexEntry(id){
 }
 
 global.ClinicalContent = {
-  GROUPS:GROUPS, DRUGS:DRUGS, ITEMS:ITEMS, INDEX:INDEX,
+  GROUPS:GROUPS, DRUGS:DRUGS, ITEMS:ITEMS, INDEX:INDEX, PCLASS:PCLASS,
+  classOf:classOf, classMeta:classMeta, classBadge:classBadge,
   REGIONAL_REVIEW:REGIONAL_REVIEW, GROUP_ORDER:GROUP_ORDER,
   search:search, grouped:grouped, byId:byId, indexEntry:indexEntry,
   visibleDrugsInGroup:visibleDrugsInGroup, isPublishable:isPublishable,

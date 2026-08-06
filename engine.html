@@ -341,7 +341,7 @@ body.embed .eng-wrap{padding-top:14px;}
   --hair:rgba(255,255,255,.058);      /* between rows, and the pane edge */
   --hair-2:rgba(255,255,255,.10);     /* under a pane header */
   /* ink */
-  --ink:#fff; --ink-2:#d6e7e1; --ink-3:#8ba39c; --accent:#7ECFC0;
+  --ink:#fff; --ink-2:#e3f0ec; --ink-3:#a9c2ba; --accent:#7ECFC0;
   --amber:#EFC176; --red:#F4A28C;
   /* one motion system */
   --ease:cubic-bezier(.22,.61,.36,1); --fast:.12s; --base:.18s;
@@ -353,7 +353,7 @@ body.embed .eng-wrap{max-width:100%;}
 /* ── GRID (all panes, Crisis Center included) ──────────────────────────
    A tighter gutter: panes read as adjacent regions of one surface.      */
 #output .panels{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
-  grid-auto-flow:row;gap:8px;align-items:start;}
+  grid-auto-flow:row;gap:6px;align-items:start;}
 #output .panel.sp3{grid-column:span 3;}
 #output .panel.sp4{grid-column:span 4;}
 #output .panel.sp6{grid-column:span 6;}
@@ -408,8 +408,8 @@ body.embed .eng-wrap{max-width:100%;}
 #output .panel:not(.crisis-panel) .panel-resize:hover,
 #output .panel:not(.crisis-panel) .panel-chev:hover{color:var(--ink-2);}
 /* no dead space at the foot of a pane */
-#output .panel:not(.crisis-panel) .panel-body{padding:var(--s3) 0 0;}
-#output .panel:not(.crisis-panel) .panel-body>*:last-child{margin-bottom:var(--s3);}
+#output .panel:not(.crisis-panel) .panel-body{padding:0;}
+#output .panel:not(.crisis-panel) .panel-body>*:last-child{margin-bottom:var(--s2);}
 
 /* ── THE ROW ────────────────────────────────────────────────────────────
    name (dominant) ................................ dose (strongest number)
@@ -445,9 +445,11 @@ body.embed .eng-wrap{max-width:100%;}
   letter-spacing:0;line-height:1.4;}
 
 /* Tier 2 — critical only. A left rule, never a box. */
-#output .rw.crit{border-left:2px solid rgba(232,168,56,.7);padding-left:calc(var(--pad) - 2px);}
-#output .rw.crit{padding-top:8px;padding-bottom:8px;}
-#output .rw.crit.hi{border-left-color:rgba(226,90,70,.8);}
+/* An unclassified critical row still shows a left rule; a classified one keeps
+   its class colour there and signals criticality through the warning line. */
+#output .rw.crit:not([data-pc]){border-left:2px solid rgba(232,168,56,.7);
+  padding-left:calc(var(--pad) - 2px);}
+#output .rw.crit:not([data-pc]).hi{border-left-color:rgba(226,90,70,.8);}
 #output .rw-w{flex:1 0 100%;font-size:13px;font-weight:600;line-height:1.5;color:var(--amber);}
 #output .rw.crit.hi .rw-w{color:var(--red);}
 
@@ -455,7 +457,7 @@ body.embed .eng-wrap{max-width:100%;}
    Space is the separator between groups; the rule was removed. Rows stay
    tight, groups breathe.                                                 */
 #output .grp{margin-top:var(--s6);}
-#output .grp:first-child{margin-top:var(--s1);}
+#output .grp:first-child{margin-top:var(--s3);}
 #output .grp>.grp-h{
   font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);padding:0 var(--pad) 9px;margin:0;border:none;line-height:1;}
@@ -465,7 +467,7 @@ body.embed .eng-wrap{max-width:100%;}
 /* ── KPI BAND — the pane's instrument strip ───────────────────────────── */
 #output .kpis{
   display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
-  background:rgba(0,0,0,.16);border-bottom:1px solid var(--hair);margin:0 0 var(--s1);
+  background:rgba(0,0,0,.16);border-bottom:1px solid var(--hair);margin:0;
 }
 #output .kpi{padding:10px 10px;text-align:center;min-width:0;border-left:1px solid var(--hair);}
 #output .kpi:first-child{border-left:none;}
@@ -562,6 +564,70 @@ body.embed .eng-wrap{max-width:100%;}
 #output .warn-chip.hi{border-left-color:rgba(226,90,70,.8);color:var(--red);font-weight:600;
   padding-left:calc(var(--pad) - 2px);}
 
+/* ══════════════════════════════════════════════════════════════════════════
+   PHARMACOLOGIC CLASS COLOUR — a navigation aid, not decoration
+   --------------------------------------------------------------------------
+   Recognition order by design: COLOUR (the 4px edge, seen peripherally) ->
+   DRUG NAME (17/700 white) -> DOSE (22/700 tabular).
+
+   Colour is never the only cue: every classified row also states its class in
+   text, so the system holds without colour vision. Hues follow ISO 26825
+   syringe labelling; --pc is set per row from the shared model.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* The bar is a background gradient, not a border or an inset shadow. A border
+   mitres against the bottom hairline and an inset shadow stops short of it —
+   both notch the bar once per row and break the continuous colour column that
+   carries the peripheral signal. A background paints under the border, so the
+   column runs unbroken down a whole class group. */
+#output .rw[data-pc]{
+  background-image:linear-gradient(to right, var(--pc) 0 4px, transparent 4px);
+  background-repeat:no-repeat;background-clip:border-box;
+}
+#output .rw[data-pc="uterotonic"]{
+  background-image:linear-gradient(to right, rgba(255,255,255,.82) 0 4px, transparent 4px);}
+#output .rw[data-pc="reversal"]{
+  background-image:linear-gradient(to right, #5FE0A4 0 4px, transparent 4px);}
+/* hover tints the row without erasing the bar */
+#output .rw[data-pc]:hover{background-color:rgba(255,255,255,.032);}
+
+/* the class badge — one style, used by rows and by the command palette */
+#output .pc,.cp .pc{
+  display:inline-flex;align-items:center;flex:0 0 auto;
+  font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  line-height:1;padding:4px 7px 4px 5px;border-radius:3px;
+  border-left:3px solid var(--pc);
+  background:color-mix(in srgb, var(--pc) 15%, transparent);
+  color:var(--pc);
+  margin-right:9px;vertical-align:middle;white-space:nowrap;
+}
+/* browsers without color-mix still get a readable badge */
+@supports not (background: color-mix(in srgb, red 10%, transparent)){
+  #output .pc,.cp .pc{background:rgba(255,255,255,.07);}
+}
+#output .pc[data-pc="uterotonic"],.cp .pc[data-pc="uterotonic"]{
+  background:rgba(255,255,255,.13);color:#fff;border-left-color:#fff;}
+
+/* Reversal: light grey ground, thin diagonal green stripes, green left accent,
+   green label. Kept subtle enough that the label stays fully legible. */
+#output .pc-zebra,.cp .pc-zebra{
+  border-left:3px solid #5FE0A4;
+  color:#5FE0A4;
+  background:
+    repeating-linear-gradient(-45deg,
+      rgba(95,224,164,.20) 0 2px,
+      rgba(255,255,255,.10) 2px 7px);
+}
+
+
+/* the badge sits at the head of the supporting line, so drug names stay
+   aligned on one left edge while the colour still leads peripherally */
+#output .rw-s{display:flex;flex-wrap:wrap;align-items:center;column-gap:0;row-gap:3px;}
+#output .rw-s .pc{margin-top:1px;}
+#output .rw-s > .rw-txt{flex:1 1 auto;min-width:0;}
+
+/* a critical warning no longer owns the left edge, so it announces itself */
+#output .rw-w:before{content:'\26A0';margin-right:7px;font-weight:700;}
+
 /* ── SEARCH LANDING HIGHLIGHT ─────────────────────────────────────────── */
 #output .rw.hit,#output .grp.hit>.grp-h{animation:rwHit 2.2s var(--ease);}
 @keyframes rwHit{0%,50%{background:rgba(126,207,192,.14);}100%{background:transparent;}}
@@ -596,7 +662,7 @@ body.embed .eng-wrap{max-width:100%;}
    ══════════════════════════════════════════════════════════════════════════ */
 .eng-wrap{
   --hair:rgba(255,255,255,.058); --hair-2:rgba(255,255,255,.10);
-  --ink:#fff; --ink-2:#d6e7e1; --ink-3:#8ba39c; --accent:#7ECFC0;
+  --ink:#fff; --ink-2:#e3f0ec; --ink-3:#a9c2ba; --accent:#7ECFC0;
   --pad:22px; --ease:cubic-bezier(.22,.61,.36,1); --fast:.12s; --base:.18s;
   padding:16px 18px 64px;
 }
@@ -1418,11 +1484,19 @@ function isPhrase(v){ var t=String(v==null?'':v).replace(/<[^>]+>/g,''); return 
 /* the row: name | value, supporting line beneath, critical warning as a rule */
 function row(o){
   var cls='rw'+(o.txt?' txt':'')+(o.warn?(' crit'+(o.hi?' hi':'')):'');
-  return '<div class="'+cls+'"'+(o.id?(' id="'+o.id+'"'):'')+'>'+
+  var pcAttr='', pcVar='';
+  if(o.pclass && window.ClinicalContent){
+    var m = window.ClinicalContent.classMeta(o.pclass);
+    if(m){ pcAttr=' data-pc="'+o.pclass+'"'; pcVar=' style="--pc:'+m.color+'"'; }
+  }
+  /* the supporting line leads with the class badge, so the drug names on the
+     left edge stay aligned while the colour still reads peripherally */
+  var sub = (o.badge||'') + (o.sub ? '<span class="rw-txt">'+o.sub+'</span>' : '');
+  return '<div class="'+cls+'"'+(o.id?(' id="'+o.id+'"'):'')+pcAttr+pcVar+'>'+
     '<span class="rw-n">'+o.name+'</span>'+
     (o.val!=null&&o.val!==''?'<span class="rw-v">'+o.val+(o.unit?'<u>'+o.unit+'</u>':'')+'</span>':'')+
-    (o.sub ?'<span class="rw-s">'+o.sub+'</span>':'')+
-    (o.caution?'<span class="rw-s rw-c">'+o.caution+'</span>':'')+
+    (sub ?'<span class="rw-s">'+sub+'</span>':'')+
+    (o.caution?'<span class="rw-s rw-c"><span class="rw-txt">'+o.caution+'</span></span>':'')+
     (o.warn?'<span class="rw-w">'+o.warn+'</span>':'')+
   '</div>';
 }
@@ -1449,6 +1523,7 @@ function rx(o){
   var crit = (o.severity === 'critical');
   var sub = [o.ind, o.prep].filter(Boolean).join(' &middot; ');
   return row({ id:o.id, name:o.name, val:o.val, unit:o.unit, sub:sub,
+               pclass:o.pclass, badge:o.badge,
                caution:(crit ? '' : o.warn),
                warn:(crit ? o.warn : ''), hi:o.hi });
 }
