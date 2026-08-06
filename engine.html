@@ -9,6 +9,8 @@
 <script src="/v2/supabase.js"></script>
 <script src="/v2/auth.js"></script>
 <script src="/v2/navbar.js"></script>
+<script src="/v2/clinical-index.js"></script>
+<script src="/v2/clinical-search.js"></script>
 <script src="/v2/evidence-api.js"></script>
 <script src="/v2/evidence-drawer.js"></script>
 <link rel="stylesheet" href="/v2/styles.css">
@@ -320,43 +322,31 @@ body.embed .eng-wrap{padding-top:14px;}
 .eng-wrap .cw-acc-sub,.eng-wrap .inp label{font-weight:800;}
 
 /* ══════════════════════════════════════════════════════════════════════════
-   WORKSTATION DESIGN SYSTEM v2
-   One spacing scale, one type scale, one grid. Loaded last so it is the
-   single source of truth for the modules below the input area.
-   The Crisis Center is deliberately excluded: every .crisis-* rule above is
-   left untouched and nothing here targets .crisis-panel or its children.
+   WORKSTATION DESIGN SYSTEM v3 — CONTINUOUS SURFACE
+   The module is the only card. Everything inside it is a row.
+   Structure comes from alignment, spacing, weight and hairlines — never from
+   nested containers. No sub-element carries a border, fill or radius.
+
+   CRISIS CENTER: every visual rule below is scoped :not(.crisis-panel).
+   Only the grid/placement rules apply to it, so its emergency shell, header
+   and content render exactly as they did before this design system existed.
    ══════════════════════════════════════════════════════════════════════════ */
-.eng-wrap{
-  /* spacing scale — 4 / 8 / 12 / 16 / 24 */
-  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px;
-  /* surface + line tokens */
-  --mod-bg:linear-gradient(158deg,rgba(255,255,255,.055),rgba(255,255,255,.014));
-  --mod-br:rgba(255,255,255,.09);
-  --rule:rgba(126,207,192,.13);
-  --rule-strong:rgba(126,207,192,.26);
-  --ink:#ffffff;
-  --ink-2:#dceee8;
-  --ink-3:#9db3ac;
-  --accent:#7ECFC0;
-  max-width:1360px;
+#output{
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+  --rule:rgba(255,255,255,.055);        /* between rows */
+  --rule-grp:rgba(126,207,192,.16);     /* above a section label */
+  --ink:#fff; --ink-2:#dcebe6; --ink-3:#93a9a2; --accent:#7ECFC0;
 }
+.eng-wrap{max-width:1360px;}
 body.embed .eng-wrap{max-width:100%;}
 
-/* ── GRID ────────────────────────────────────────────────────────────────
-   12 columns with explicit spans, not masonry. Dense packing lets a compact
-   module backfill a hole rather than leaving the row half empty.          */
-#output .panels{
-  display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
-  grid-auto-flow:row;gap:var(--s4);align-items:start;
-}
+/* ── GRID (applies to every panel, including the Crisis Center) ────────── */
+#output .panels{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
+  grid-auto-flow:row;gap:var(--s4);align-items:start;}
 #output .panel.sp3{grid-column:span 3;}
 #output .panel.sp4{grid-column:span 4;}
 #output .panel.sp6{grid-column:span 6;}
-#output .panel.sp12,#output .panel.full{grid-column:1 / -1;}
-/* the resize control now means "make this full width", which is the only
-   resize that keeps the row rhythm intact */
-#output .panel.wide{grid-column:1 / -1;}
-
+#output .panel.sp12,#output .panel.full,#output .panel.wide{grid-column:1 / -1;}
 @media(max-width:1279px){
   #output .panels{grid-template-columns:repeat(4,minmax(0,1fr));}
   #output .panel.sp3,#output .panel.sp4,#output .panel.sp6{grid-column:span 2;}
@@ -364,196 +354,189 @@ body.embed .eng-wrap{max-width:100%;}
 }
 @media(max-width:900px){
   #output .panels{grid-template-columns:1fr;gap:var(--s3);}
-  #output .panel.sp3,#output .panel.sp4,#output .panel.sp6,
-  #output .panel.sp12,#output .panel.full,#output .panel.wide{grid-column:1 / -1;}
+  #output .panel{grid-column:1 / -1 !important;}
 }
 
-/* ── MODULE SHELL ───────────────────────────────────────────────────── */
-#output .panel{
-  background:var(--mod-bg);border:1px solid var(--mod-br);border-radius:16px;
-  box-shadow:0 10px 26px rgba(0,0,0,.24);
-  transition:border-color .2s ease,box-shadow .2s ease;
+/* ── MODULE SHELL ─────────────────────────────────────────────────────── */
+#output .panel:not(.crisis-panel){
+  background:linear-gradient(158deg,rgba(255,255,255,.05),rgba(255,255,255,.013));
+  border:1px solid rgba(255,255,255,.08);border-radius:14px;
+  box-shadow:0 8px 22px rgba(0,0,0,.22);transition:border-color .2s ease;
 }
-#output .panel:hover{transform:none;box-shadow:0 14px 34px rgba(0,0,0,.3);border-color:rgba(126,207,192,.34);}
-#output .panel-head{
-  padding:var(--s4) var(--s6);gap:var(--s3);
-  border-bottom:1px solid var(--rule);align-items:center;
-}
-#output .panel-title{
-  font-size:22px;font-weight:700;line-height:1.14;letter-spacing:-.015em;color:var(--ink);
-}
-#output .panel.compact .panel-title{font-size:17px;}
-#output .panel.compact .panel-tag{display:none;}
-#output .panel-title{min-width:0;}
-#output .panel-ico{font-size:19px;flex:0 0 auto;}
-#output .panel-tag{
-  font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--accent);background:rgba(126,207,192,.09);border:1px solid rgba(126,207,192,.22);
-  padding:4px 9px;border-radius:6px;margin-left:auto;flex:0 0 auto;
-}
-#output .panel-grip,#output .panel-resize,#output .panel-chev{flex:0 0 auto;}
-#output .panel-body{padding:var(--s6);}
-#output .panel.compact .panel-body{padding:20px;}
+#output .panel:not(.crisis-panel):hover{transform:none;box-shadow:0 8px 22px rgba(0,0,0,.22);
+  border-color:rgba(126,207,192,.26);}
+#output .panel:not(.crisis-panel) .panel-head{
+  padding:var(--s4) var(--s6);gap:var(--s3);align-items:center;
+  border-bottom:1px solid var(--rule-grp);}
+#output .panel:not(.crisis-panel) .panel-head:hover{background:none;}
+#output .panel:not(.crisis-panel) .panel-title{
+  font-size:19px;font-weight:700;line-height:1.15;letter-spacing:-.015em;color:var(--ink);min-width:0;}
+#output .panel:not(.crisis-panel) .panel-ico{font-size:16px;opacity:.9;flex:0 0 auto;}
+/* the tag is a quiet caption, not a pill */
+#output .panel:not(.crisis-panel) .panel-tag{
+  font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:none;
+  color:var(--ink-3);background:none;border:none;padding:0;margin-left:auto;flex:0 0 auto;}
+#output .panel:not(.crisis-panel) .panel-grip,
+#output .panel:not(.crisis-panel) .panel-resize,
+#output .panel:not(.crisis-panel) .panel-chev{flex:0 0 auto;opacity:.5;}
+/* vertical padding only — rows supply their own inset so hairlines run full width */
+#output .panel:not(.crisis-panel) .panel-body{padding:var(--s3) 0 var(--s2);}
 
-/* ── TYPE SCALE ─────────────────────────────────────────────────────────
-   section heading 14/700 · drug name 18/700 · value 20/700 ·
-   label 14/500 · note 13/400 · warning 14/700                            */
+/* ── THE ROW — one geometry everywhere ────────────────────────────────
+   name (left) ............................................ value (right)
+   supporting text, aligned to the name
+   The value's right edge is the card's inner edge in every module.      */
+#output .rw{
+  display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--s4);row-gap:3px;
+  padding:10px var(--s6);border-bottom:1px solid var(--rule);
+}
+#output .rw:last-child{border-bottom:none;}
+#output .rw-n{font-size:16px;font-weight:600;color:var(--ink);line-height:1.3;flex:1 1 auto;min-width:0;}
+#output .rw-v{
+  font-size:21px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;
+  line-height:1.15;white-space:nowrap;text-align:right;flex:0 0 auto;margin-left:auto;
+}
+#output .rw-v u{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:5px;
+  text-decoration:none;font-variant-numeric:normal;letter-spacing:.01em;}
+/* supporting line — always full width, aligned to the name */
+#output .rw-s{flex:1 0 100%;font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.5;}
+#output .rw-s b{color:var(--ink-2);font-weight:600;}
+#output .rw-s em{font-style:normal;color:var(--accent);font-weight:600;}
+/* value that is a phrase rather than a number */
+#output .rw.txt .rw-v{font-size:15px;font-weight:600;white-space:normal;text-align:left;
+  color:var(--ink-2);margin-left:auto;max-width:62%;}
 
-/* group heading + separator: replaces long prose runs with scannable blocks */
-#output .grp{margin-top:var(--s4);padding-top:var(--s4);border-top:1px solid var(--rule);}
-#output .grp:first-child{margin-top:0;padding-top:0;border-top:none;}
-#output .grp-h{
-  font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--accent);margin-bottom:var(--s3);line-height:1;
-}
-#output .grp-h em{font-style:normal;font-weight:600;letter-spacing:.02em;text-transform:none;color:var(--ink-3);margin-left:var(--s2);font-size:12.5px;}
+/* Tier 2 — critical only. A left rule, never a box. */
+#output .rw.crit{border-left:2px solid rgba(232,168,56,.75);padding-left:calc(var(--s6) - 2px);}
+#output .rw.crit.hi{border-left-color:rgba(226,90,70,.85);}
+#output .rw-w{flex:1 0 100%;font-size:13px;font-weight:600;line-height:1.5;color:#EFC176;}
+#output .rw.crit.hi .rw-w{color:#F4A28C;}
 
-/* label → value row. One grid, so every value in a module lands on one edge. */
-#output .kv{
-  display:flex;flex-wrap:wrap;align-items:baseline;
-  gap:var(--s1) var(--s4);padding:var(--s3) 0;border-bottom:1px solid var(--rule);
+/* ── GROUP — a quiet label above a full-bleed hairline ─────────────── */
+#output .grp{margin-top:var(--s5);}
+#output .grp:first-child{margin-top:0;}
+#output .grp>.grp-h{
+  font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 var(--s6) var(--s2);margin-top:var(--s4);
+  border-top:1px solid var(--rule-grp);padding-top:var(--s4);
 }
-#output .kv-l{flex:1 1 auto;}
-#output .kv-v{flex:0 0 auto;margin-left:auto;}
-#output .kv:last-child{border-bottom:none;}
-#output .kv-l{font-size:14px;font-weight:500;color:var(--ink-2);line-height:1.35;min-width:0;}
-#output .kv-l i{display:block;font-style:normal;font-size:13px;font-weight:400;color:var(--ink-3);margin-top:var(--s1);line-height:1.4;}
-#output .kv-v{
-  font-size:20px;font-weight:700;color:var(--ink);
-  font-variant-numeric:tabular-nums;text-align:right;line-height:1.15;min-width:0;
-}
-#output .kv-v small,#output .kv-v u{
-  font-size:12px;font-weight:600;color:var(--accent);margin-left:5px;text-decoration:none;
-  font-variant-numeric:normal;
-}
-/* long-text "value" (a phrase, not a number) — wraps under the label instead
-   of colliding with it, which is what the old single-row layout did */
-#output .kv.txt{display:block;}
-#output .kv.txt .kv-l{display:block;margin-bottom:var(--s1);}
-#output .kv.txt .kv-v{font-size:16px;text-align:left;white-space:normal;line-height:1.4;}
+#output .grp:first-child>.grp-h{margin-top:0;border-top:none;padding-top:0;}
+#output .grp-h em{font-style:normal;font-weight:600;letter-spacing:.02em;
+  text-transform:none;color:var(--ink-3);opacity:.8;margin-left:var(--s2);font-size:12px;}
 
-/* ── DRUG / DEVICE CARD — a mini dashboard, not a text box ───────────────
-   row 1  name (left)            dose (right, dominant)
-   row 2  indication
-   row 3  preparation
-   row 4  warning                                                          */
-#output .rxlist{display:grid;gap:var(--s3);}
-#output .rxlist.two{grid-template-columns:repeat(2,minmax(0,1fr));}
-#output .rx{
-  background:rgba(0,0,0,.2);border:1px solid rgba(126,207,192,.14);border-radius:11px;
-  padding:var(--s3) var(--s4);display:grid;gap:var(--s2);
+/* ── KPI BAND — one full-bleed instrument strip, not tiles ────────── */
+#output .kpis{
+  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+  background:rgba(0,0,0,.18);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  margin:0 0 var(--s2);
 }
-/* name left, dose right — and when a long name and a long unit cannot share a
-   line, the dose wraps to its own right-aligned line instead of overlapping. */
-#output .rx-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--s1) var(--s4);}
-#output .rx-name{font-size:18px;font-weight:700;color:var(--ink);line-height:1.2;letter-spacing:-.01em;
-  flex:1 1 auto;min-width:0;}
-#output .rx-val{
-  font-size:20px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;
-  white-space:nowrap;text-align:right;line-height:1.1;flex:0 0 auto;margin-left:auto;
-}
-#output .rx-val u{font-size:12px;font-weight:600;color:var(--accent);margin-left:4px;text-decoration:none;font-variant-numeric:normal;}
-#output .rx-ind{font-size:14px;font-weight:500;color:var(--ink-2);line-height:1.4;}
-#output .rx-prep{font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.45;}
-#output .rx-prep b{color:var(--accent);font-weight:600;}
-#output .rx-warn{
-  font-size:14px;font-weight:700;color:#F3C46B;line-height:1.4;
-  padding-top:var(--s2);border-top:1px solid rgba(232,168,56,.2);
-}
-#output .rx-warn.hi{color:#FF9B86;border-top-color:rgba(192,57,43,.28);}
+#output .kpi{padding:12px var(--s3);text-align:center;min-width:0;
+  border-left:1px solid var(--rule);}
+#output .kpi:first-child{border-left:none;}
+#output .kpi i{display:block;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;line-height:1.25;}
+#output .kpi b{display:block;font-size:23px;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums;line-height:1.05;letter-spacing:-.02em;}
+#output .kpi b span{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:3px;font-variant-numeric:normal;}
+@media(max-width:640px){#output .kpis{grid-auto-flow:row;grid-template-columns:repeat(2,1fr);}
+  #output .kpi{border-left:none;border-top:1px solid var(--rule);}
+  #output .kpi:nth-child(even){border-left:1px solid var(--rule);}}
 
-/* ── KPI STRIP — the numbers the eye should hit first ──────────────────── */
-#output .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:var(--s2);margin-bottom:var(--s4);}
-#output .kpi{background:rgba(0,0,0,.24);border:1px solid rgba(126,207,192,.13);border-radius:10px;padding:var(--s3) var(--s2);text-align:center;min-width:0;}
-#output .kpi i{display:block;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;line-height:1.25;}
-#output .kpi b{display:block;font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.05;letter-spacing:-.02em;}
-#output .kpi b span{font-size:11px;font-weight:600;color:var(--accent);margin-left:3px;font-variant-numeric:normal;}
-#output .panel.compact .kpi b{font-size:20px;}
-
-/* ── NOTES, WARNINGS, LISTS ───────────────────────────────────────────── */
-#output .note{font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.6;padding:var(--s2) 0;}
-#output .note b{color:var(--ink-2);font-weight:700;}
+/* ── NOTES / LISTS ────────────────────────────────────────────────── */
+#output .note{font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.55;padding:8px var(--s6);}
+#output .note b{color:var(--ink-2);font-weight:600;}
 #output .note a{color:var(--accent);}
-#output .note+.note{border-top:1px solid rgba(126,207,192,.07);}
+#output .bul{margin:0;padding:0 var(--s6);}
+#output .bul li{list-style:none;font-size:14px;font-weight:400;color:var(--ink-2);line-height:1.5;
+  padding:7px 0 7px 15px;position:relative;border-bottom:1px solid var(--rule);}
+#output .bul li:last-child{border-bottom:none;}
+#output .bul li:before{content:'';position:absolute;left:1px;top:15px;width:4px;height:4px;
+  border-radius:50%;background:rgba(126,207,192,.55);}
+/* standalone critical note — left rule, no box */
 #output .alert{
-  font-size:14px;font-weight:700;line-height:1.45;color:#F3C46B;
-  background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.26);
-  border-radius:9px;padding:var(--s3) var(--s4);margin-top:var(--s3);
+  font-size:13px;font-weight:600;line-height:1.55;color:#EFC176;
+  border-left:2px solid rgba(232,168,56,.75);background:none;border-radius:0;
+  padding:8px var(--s6);margin:var(--s2) 0;
 }
-#output .alert.hi{color:#FF9B86;background:rgba(192,57,43,.09);border-color:rgba(192,57,43,.34);}
-#output .alert b{color:inherit;}
-#output .bul{display:grid;gap:var(--s2);}
-#output .bul li{list-style:none;font-size:14px;font-weight:500;color:var(--ink-2);line-height:1.45;padding-left:16px;position:relative;}
-#output .bul li:before{content:'';position:absolute;left:2px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--accent);}
-#output ul.bul{margin:0;padding:0;}
-/* two-column pro / con */
-#output .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4);}
-#output .duo-h{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:var(--s2);}
-#output .duo-h.up{color:#7FE0B4;} #output .duo-h.dn{color:#F0A98C;}
-@media(max-width:640px){#output .duo{grid-template-columns:1fr;} #output .rxlist.two{grid-template-columns:1fr;}}
+#output .alert.hi{color:#F4A28C;border-left-color:rgba(226,90,70,.85);}
+/* two-column pro/con — lists, not panels */
+#output .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;padding:0 var(--s6);}
+#output .duo .bul{padding:0;}
+#output .duo-h{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  margin-bottom:var(--s1);color:var(--ink-3);}
+@media(max-width:640px){#output .duo{grid-template-columns:1fr;}}
+/* indications: a plain line, not pills */
+#output .inline-list{font-size:14px;font-weight:400;color:var(--ink-2);line-height:1.6;padding:4px var(--s6) 10px;}
+#output .inline-list span:after{content:' · ';color:var(--ink-3);}
+#output .inline-list span:last-child:after{content:'';}
 
-/* chips (indications, quick facts) */
-#output .chipset{display:flex;flex-wrap:wrap;gap:var(--s2);}
-#output .chipset span{
-  font-size:13px;font-weight:600;color:var(--ink-2);background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:6px 10px;line-height:1.2;
-}
-#output .warn-chip{font-size:14px;font-weight:700;border-radius:8px;padding:7px 11px;margin:0 var(--s2) var(--s2) 0;}
-
-/* ── REFERENCE TAB STRIP (Airway Tubes, TCI/Sedation) ──────────────────
-   Own classes on purpose — the Crisis Center keeps .crisis-tab untouched. */
-#output .ref-catrow{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s3);}
-#output .ref-cat{
-  font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
-  background:none;border:1px solid rgba(255,255,255,.12);color:var(--ink-3);
-  border-radius:7px;padding:7px 12px;cursor:pointer;font-family:inherit;min-height:36px;
-}
-#output .ref-cat.on{border-color:rgba(126,207,192,.55);color:#eafff8;background:rgba(126,207,192,.12);}
-#output .ref-tabs{display:flex;flex-wrap:wrap;gap:var(--s2);margin-bottom:var(--s4);}
-#output .ref-tab{
-  font-size:14px;font-weight:600;background:rgba(255,255,255,.045);
-  border:1px solid rgba(255,255,255,.11);color:var(--ink-2);border-radius:8px;
-  padding:9px 13px;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:38px;
-  transition:border-color .15s,background .15s;
-}
-#output .ref-tab:hover{background:rgba(255,255,255,.08);}
-#output .ref-tab.on{background:rgba(126,207,192,.16);border-color:rgba(126,207,192,.5);color:#fff;font-weight:700;}
-#output .ref-head{
-  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:var(--s4);
-  padding-bottom:var(--s3);border-bottom:1px solid var(--rule-strong);margin-bottom:var(--s4);
-}
-#output .ref-name{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.015em;line-height:1.15;}
-#output .ref-name i{display:block;font-style:normal;font-size:14px;font-weight:500;color:var(--ink-3);margin-top:5px;letter-spacing:0;}
-#output .ref-key{font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;line-height:1.1;}
-#output .ref-key u{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);text-decoration:none;margin-top:5px;font-variant-numeric:normal;}
-/* two-column detail body on wide modules; single column when narrow */
-#output .ref-cols{columns:2;column-gap:32px;column-fill:balance;}
-#output .ref-cols>div{break-inside:auto;}
+/* ── TABS — underline, not pills ──────────────────────────────────── */
+#output .ref-catrow{display:flex;flex-wrap:wrap;gap:var(--s4);padding:0 var(--s6) var(--s2);}
+#output .ref-cat{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:none;border:none;color:var(--ink-3);padding:6px 0;cursor:pointer;font-family:inherit;
+  border-bottom:2px solid transparent;min-height:34px;}
+#output .ref-cat.on{color:var(--accent);border-bottom-color:var(--accent);}
+#output .ref-tabs{display:flex;flex-wrap:wrap;gap:0 var(--s5);padding:0 var(--s6);
+  border-bottom:1px solid var(--rule);margin-bottom:var(--s3);}
+#output .ref-tab{font-size:14px;font-weight:500;background:none;border:none;border-radius:0;
+  color:var(--ink-3);padding:9px 0;cursor:pointer;font-family:inherit;white-space:nowrap;
+  border-bottom:2px solid transparent;margin-bottom:-1px;min-height:38px;}
+#output .ref-tab:hover{color:var(--ink-2);}
+#output .ref-tab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent);}
+#output .ref-head{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--s4);
+  padding:var(--s2) var(--s6) var(--s3);border-bottom:1px solid var(--rule-grp);margin-bottom:var(--s2);}
+#output .ref-name{font-size:19px;font-weight:700;color:var(--ink);letter-spacing:-.015em;
+  line-height:1.2;flex:1 1 auto;min-width:0;}
+#output .ref-name i{display:block;font-style:normal;font-size:13px;font-weight:400;
+  color:var(--ink-3);margin-top:4px;letter-spacing:0;line-height:1.45;}
+#output .ref-key{font-size:21px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;
+  white-space:nowrap;text-align:right;line-height:1.15;flex:0 0 auto;margin-left:auto;}
+#output .ref-key u{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);text-decoration:none;margin-top:4px;font-variant-numeric:normal;}
+#output .ref-cols{columns:2;column-gap:36px;column-fill:balance;}
 #output .ref-cols .grp{break-inside:avoid;}
 @media(max-width:1023px){#output .ref-cols{columns:1;}}
 
-/* ── FOOTNOTE ─────────────────────────────────────────────────────────── */
-#output .foot{
-  font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.6;
-  margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--rule);
-}
+/* ── FOOTNOTE ─────────────────────────────────────────────────────── */
+#output .foot{font-size:12.5px;font-weight:400;color:var(--ink-3);line-height:1.55;
+  margin-top:var(--s3);padding:var(--s3) var(--s6) 0;border-top:1px solid var(--rule);}
 #output .foot a{color:var(--accent);}
 
-/* the readability sweep above forces weight 800 on several classes; the scale
-   defined here is deliberate, so restate the weights that matter */
-#output .kv-l,#output .rx-ind{font-weight:500;}
-#output .note,#output .rx-prep{font-weight:400;}
-#output .kv-v,#output .rx-val,#output .rx-name,#output .grp-h,#output .kpi b,
-#output .ref-name,#output .ref-key,#output .panel-title{font-weight:700;}
-#output .rx-warn,#output .alert,#output .warn-chip{font-weight:700;}
+/* ── Flatten the last nested containers ────────────────────────────────
+   The evidence drawer ships its own boxed styling; inside a module it must
+   read as a row like everything else. Its own component file is untouched. */
+#output .panel:not(.crisis-panel) .cow-wrap{padding:0 var(--s6);}
+#output .panel:not(.crisis-panel) .cow-trigger{
+  background:none;border:none;border-radius:0;padding:8px 0;color:var(--accent);}
+#output .panel:not(.crisis-panel) .cow-region{
+  background:none;border:none;border-radius:0;border-top:1px solid var(--rule);padding:10px 0 0;}
+/* risk flags become rows, not pills */
+#output .warn-chip{display:block;background:none;border:none;border-radius:0;
+  padding:9px var(--s6);margin:0;font-size:14px;font-weight:500;color:var(--ink-2);
+  border-bottom:1px solid var(--rule);border-left:2px solid transparent;}
+#output .warn-chip.hi{border-left-color:rgba(226,90,70,.85);color:#F4A28C;font-weight:600;
+  padding-left:calc(var(--s6) - 2px);}
+
+/* ── SEARCH LANDING HIGHLIGHT ─────────────────────────────────────── */
+#output .rw.hit,#output .grp.hit>.grp-h{animation:rwHit 2.4s ease;}
+@keyframes rwHit{0%,55%{background:rgba(126,207,192,.16);}100%{background:transparent;}}
+#output .rw.hit{border-radius:0;}
+
+/* the earlier readability sweep forces weight 800 on several classes;
+   restate the scale that this system defines */
+#output .rw-n{font-weight:600;}
+#output .rw-s,#output .note{font-weight:400;}
+#output .rw-v,#output .kpi b,#output .ref-name,#output .ref-key,
+#output .panel:not(.crisis-panel) .panel-title{font-weight:700;}
 
 @media(max-width:640px){
-  #output .panel-body{padding:18px;}
-  #output .panel-head{padding:var(--s3) 18px;}
-  #output .panel-title{font-size:19px;}
-  #output .panel.compact .panel-title{font-size:16px;}
-  #output .kpi b{font-size:21px;}
-  #output .rx-val,#output .kv-v{font-size:18px;}
+  #output .rw,#output .note,#output .alert,#output .bul,#output .duo,
+  #output .inline-list,#output .foot,#output .ref-tabs,#output .ref-catrow,
+  #output .ref-head,#output .grp>.grp-h{padding-left:18px;padding-right:18px;}
+  #output .panel:not(.crisis-panel) .panel-head{padding:var(--s3) 18px;}
+  #output .panel:not(.crisis-panel) .panel-title{font-size:17px;}
+  #output .rw-v{font-size:19px;}
+  #output .kpi b{font-size:20px;}
 }
 </style>
 </head>
@@ -880,69 +863,17 @@ function compute(){
   // ── DRUG REFERENCES — grouped INDUCTION / RELAXANT / ANALGESIA / REVERSAL.
   //    Each card is a mini dashboard: name | dose, then indication, then how it
   //    is prepared, then the one warning that matters.
-  var hasWt = !!(wt && wt>0);
-  function vol(mgLo,mgHi,conc){                       // mg range -> mL at a concentration
-    if(!hasWt) return '';
-    var a=mgLo/conc, b=mgHi/conc;
-    return (Math.round(a*10)/10)+(mgHi!==mgLo?('–'+(Math.round(b*10)/10)):'')+' mL';
-  }
+  // ── DRUG REFERENCES — rendered from the shared clinical model.
+  //    Rows, aliases, search and provenance all read from clinical-index.js;
+  //    nothing is duplicated here. Unpublished entries never render.
   var drugRows =
-    grp('Induction', rxList([
-      rx({ name:'Propofol', val:hasWt?(r0(wt*1.5)+'–'+r0(wt*2.5)):'1.5–2.5', unit:hasWt?'mg':'mg/kg',
-           ind:'Induction &middot; 1.5–2.5 mg/kg TBW',
-           prep:'<b>1% = 10 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*1.5,wt*2.5,10)):''),
-           warn:'Reduce 30–50% in the elderly, hypovolaemia and ASA III–IV.' }),
-      rx({ name:'Ketamine', val:hasWt?(r0(wt*1)+'–'+r0(wt*2)):'1–2', unit:hasWt?'mg':'mg/kg',
-           ind:'Induction &middot; 1–2 mg/kg TBW',
-           prep:'<b>10 / 50 mg/mL</b> &middot; haemodynamically stable choice',
-           warn:'Emergence phenomena; avoid in uncontrolled hypertension and raised ICP.' }),
-      rx({ name:'Midazolam', val:hasWt?(r1(wt*0.02)+'–'+r1(wt*0.04)):'0.02–0.04', unit:hasWt?'mg':'mg/kg',
-           ind:'Premedication &middot; 0.02–0.04 mg/kg TBW',
-           prep:'<b>1 / 5 mg/mL</b> &middot; dilute to 1 mg/mL for titration',
-           warn:'Additive respiratory depression with opioids; halve in the elderly.' })
-    ], true)) +
-    grp('Neuromuscular blockade', rxList([
-      rx({ name:'Rocuronium', val:hasWt?(r0(wt*0.6)+'–'+r0(wt*1.2)):'0.6–1.2', unit:hasWt?'mg':'mg/kg',
-           ind:'Intubation &middot; 0.6–1.2 mg/kg TBW',
-           prep:'<b>10 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*0.6,wt*1.2,10)):'')+' &middot; 1.2 mg/kg for RSI',
-           warn:'Only after confirming you can ventilate — unless sugammadex is drawn up.' }),
-      rx({ name:'Suxamethonium', val:hasWt?(r0(wt*1)+'–'+r0(wt*1.5)):'1–1.5', unit:hasWt?'mg':'mg/kg',
-           ind:'RSI &middot; 1–1.5 mg/kg TBW',
-           prep:'<b>50 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*1,wt*1.5,50)):''),
-           warn:'Contraindicated in hyperkalaemia, burns &gt;24 h, denervation, MH susceptibility.', hi:true })
-    ], true)) +
-    grp('Analgesia', rxList([
-      rx({ name:'Fentanyl', val:hasWt?(r0(wt*1)+'–'+r0(wt*3)):'1–3', unit:hasWt?'mcg':'mcg/kg',
-           ind:'Peri-induction analgesia &middot; 1–3 mcg/kg TBW',
-           prep:'<b>50 mcg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*1,wt*3,50)):''),
-           warn:'Chest-wall rigidity with rapid large boluses.' }),
-      rx({ name:'Morphine', val:hasWt?(r1(wt*0.05)+'–'+r1(wt*0.1)):'0.05–0.1', unit:hasWt?'mg':'mg/kg',
-           ind:'Postoperative analgesia &middot; 0.05–0.1 mg/kg TBW',
-           prep:'<b>10 mg/mL</b> &middot; dilute to 1 mg/mL and titrate',
-           warn:'Accumulates in renal impairment — reduce or choose an alternative.' }),
-      rx({ name:'Remifentanil', val:'0.05–0.2', unit:'mcg/kg/min',
-           ind:'Infusion &middot; TIVA analgesic component',
-           prep:'<b>50 mcg/mL</b> (2 mg / 40 mL)',
-           warn:'No residual analgesia — establish multimodal cover before stopping.' }),
-      rx({ name:'Dexmedetomidine', val:'0.2–0.7', unit:'mcg/kg/h',
-           ind:'Sedation &middot; largely preserved respiration',
-           prep:'<b>4 mcg/mL</b> (200 mcg / 50 mL)',
-           warn:'Bradycardia and hypotension, worse with a loading dose.' })
-    ], true)) +
-    grp('Reversal', rxList([
-      rx({ name:'Sugammadex', val:hasWt?(r0(wt*2)+'–'+r0(wt*4)):'2–4', unit:hasWt?'mg':'mg/kg',
-           ind:'Routine reversal &middot; 2–4 mg/kg TBW',
-           prep:'<b>100 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*2,wt*4,100)):'')+' &middot; 2 mg/kg at TOF 2, 4 mg/kg at PTC 1–2' }),
-      rx({ name:'Sugammadex', val:hasWt?r0(wt*16):'16', unit:hasWt?'mg':'mg/kg',
-           ind:'Immediate reversal &middot; 16 mg/kg TBW',
-           prep:'<b>100 mg/mL</b>'+(hasWt?(' &rarr; '+vol(wt*16,wt*16,100)):'')+' &middot; the CICO rescue dose',
-           warn:'Rocuronium will not work again for ~24 h — plan the alternative first.', hi:true }),
-      rx({ name:'Neostigmine', val:hasWt?(r1(wt*0.04)+'–'+r1(Math.min(wt*0.05,5))):'0.04–0.05', unit:hasWt?'mg':'mg/kg',
-           ind:'Reversal &middot; 0.04–0.05 mg/kg, max 5 mg',
-           prep:'<b>2.5 mg/mL</b> &middot; always with glycopyrrolate 0.2 mg per 1 mg',
-           warn:'Ineffective at deep block; give only once TOF count &ge; 2.' })
-    ], true)) +
-    foot('Doses shown are standard reference ranges'+(hasWt?(' calculated for '+r0(wt)+' kg'):'')+
+    drugGroups([
+      { id:'induction', label:'Induction and sedation' },
+      { id:'nmb',       label:'Neuromuscular blockade' },
+      { id:'analgesia', label:'Opioids and analgesia' },
+      { id:'reversal',  label:'Reversal' }
+    ], wt) +
+    foot('Standard reference ranges'+(wt?(' calculated for '+r0(wt)+' kg'):'')+
          '. Verify against your local formulary and the product label.');
 
   // TIVA / TCI
@@ -957,45 +888,15 @@ function compute(){
       m2('Marsh','Plasma target &middot; total body weight, no age term','TBW','')+
       m2('Schnider','Effect-site target &middot; age, height, lean body mass','Ce','')+
       m2('Minto (remifentanil)','Effect-site &middot; age and lean body mass','Ce','')) +
-    alert_('Reduce targets with opioid synergy and with age. TIVA with a relaxant needs depth-of-anaesthesia monitoring.');
+    note('Reduce targets with opioid synergy and with age. TIVA with a relaxant needs depth-of-anaesthesia monitoring.');
   var tivaHelpers='';
 
   // VASOPRESSORS / INOTROPES
   var pressorRows =
-    grp('Infusions', rxList([
-      rx({ name:'Noradrenaline', val:'0.01–0.5', unit:'mcg/kg/min',
-           ind:'First-line vasopressor &middot; titrate to MAP',
-           prep:'<b>4 mg / 50 mL = 80 mcg/mL</b> (or 8 mg / 50 mL)'+
-                (wt?(' &middot; '+(Math.round(wt*0.05/80*60*10)/10)+' mL/h at 0.05 mcg/kg/min'):''),
-           warn:'Central access preferred; extravasation causes tissue necrosis.' }),
-      rx({ name:'Adrenaline', val:'0.01–0.5', unit:'mcg/kg/min',
-           ind:'Inotrope + vasopressor &middot; anaphylaxis, arrest, low output',
-           prep:'<b>1 mg / 50 mL = 20 mcg/mL</b>',
-           warn:'Tachyarrhythmia, hyperglycaemia, lactate rise.' }),
-      rx({ name:'Phenylephrine', val:'0.1–0.5', unit:'mcg/kg/min',
-           ind:'Infusion &middot; maintain SVR after spinal',
-           prep:'<b>100 mcg/mL</b> (10 mg / 100 mL)' }),
-      rx({ name:'Dobutamine', val:'2–20', unit:'mcg/kg/min',
-           ind:'Inotrope &middot; low cardiac output',
-           prep:'<b>250 mg / 50 mL = 5 mg/mL</b>',
-           warn:'Vasodilates — may drop MAP; not a vasopressor.' }),
-      rx({ name:'Vasopressin', val:'0.01–0.04', unit:'units/min',
-           ind:'Adjunct &middot; catecholamine-resistant shock',
-           prep:'<b>20 units / 50 mL = 0.4 units/mL</b>' })
-    ])) +
-    grp('Boluses', rxList([
-      rx({ name:'Phenylephrine', val:'50–100', unit:'mcg',
-           ind:'Pure &alpha; &middot; use when the heart rate is adequate or high',
-           prep:'<b>100 mcg/mL</b> &middot; 0.5–1 mL',
-           warn:'Reflex bradycardia — have an antimuscarinic ready.' }),
-      rx({ name:'Ephedrine', val:'5–10', unit:'mg',
-           ind:'Mixed &alpha;/&beta; &middot; use when bradycardic',
-           prep:'<b>30 mg / 10 mL = 3 mg/mL</b>',
-           warn:'Tachyphylaxis after repeated doses — switch to an infusion.' }),
-      rx({ name:'Metaraminol', val:'0.5–1', unit:'mg',
-           ind:'Predominantly &alpha; &middot; longer acting than phenylephrine',
-           prep:'<b>0.5 mg/mL</b> (10 mg / 20 mL)' })
-    ])) +
+    drugGroups([
+      { id:'vaso-inf',   label:'Infusions' },
+      { id:'vaso-bolus', label:'Boluses' }
+    ], wt) +
     foot('Concentrations are common preparations, not the only ones — always read the syringe label.');
   var pressorHelpers='';
 
@@ -1029,11 +930,7 @@ function compute(){
 
   // LOCAL ANESTHETIC LIMITS (max single dose) — weight source: TBW (lean in obese)
   var laRows =
-    grp('Maximum single dose <em>plain / with adrenaline</em>',
-      m2('Lidocaine','4.5 mg/kg &middot; 7 mg/kg with adrenaline',r0(wt*4.5)+' / '+r0(wt*7),'mg')+
-      m2('Bupivacaine','2 mg/kg &middot; 3 mg/kg with adrenaline',r0(wt*2)+' / '+r0(wt*3),'mg')+
-      m2('Levobupivacaine','2 mg/kg',r0(wt*2),'mg')+
-      m2('Ropivacaine','3 mg/kg',r0(wt*3),'mg')) +
+    drugGroups([{ id:'local', label:'Maximum single dose' }], wt) +
     grp('Volume at maximum dose',
       metric('Lidocaine 1% (10 mg/mL)',r1((wt*4.5)/10),'mL')+
       metric('Lidocaine 2% (20 mg/mL)',r1((wt*4.5)/20),'mL')+
@@ -1102,7 +999,7 @@ function compute(){
       metric('Low A5 / A10 (FIBTEM)','Fibrinogen or cryoprecipitate','')+
       metric('Low EXTEM amplitude','Platelets','')+
       metric('LI30 low / ML high','Fibrinolysis &rarr; tranexamic acid','')) +
-    alert_('Keep ionised Ca²⁺ &gt; 1.1, temperature &gt; 36 °C and pH &gt; 7.2. Avoid dilution; recheck gas and coagulation frequently.');
+    note('<b>Goals:</b> keep ionised Ca²⁺ &gt; 1.1, temperature &gt; 36 °C and pH &gt; 7.2. Avoid dilution; recheck gas and coagulation frequently.');
 
   // Obstetric quick reference (conditional)
   var obHtml = isOb ?
@@ -1227,7 +1124,7 @@ function compute(){
     grp('Depth of anaesthesia',
       metric('Processed EEG target','40 – 60','')+
       metric('Strongly advised','TIVA with a neuromuscular blocker','')) +
-    alert_('Use ultrasound for arterial and central venous access. Confirm venous placement before dilating.');
+    note('Use ultrasound for arterial and central venous access. Confirm venous placement before dilating.');
 
   // ── Regional blocks & ultrasound (compact) ────────────────────────────
   var blockBody =
@@ -1252,6 +1149,27 @@ function compute(){
       metric('If LAST occurs','Crisis Center → lipid emulsion','')) +
     alert_('Bilateral and multi-level blocks add up fast. Sum every millilitre against the maximum dose in the Regional module before you start.', true);
 
+  // ── PERIOPERATIVE ANTIBIOTIC PROPHYLAXIS ──────────────────────────────
+  //    Structure, search category and governance workflow only. No antibiotic
+  //    recommendation, agent or dose is present in this build: the content is
+  //    unpublished until an appropriate antimicrobial reviewer signs it.
+  //    Founder review alone is not sufficient for this module.
+  var abxBody =
+    note('<b>Not yet available.</b> Perioperative antibiotic prophylaxis is under clinical review '+
+         'and no recommendation is published. Follow your institutional antimicrobial policy.') +
+    grp('What this module will cover',
+      metric('Lookup by','Operation type, surgical specialty or antibiotic name','')+
+      metric('For each recommendation','First-line agent, adult dose, weight adjustment','')+
+      metric('Also','Allergy alternative, MRSA risk, renal considerations','')+
+      metric('Timing','Interval before incision and intraoperative redosing','')+
+      metric('Provenance','Source and source date shown on every entry','')) +
+    grp('Governance',
+      metric('Review required','Antimicrobial stewardship, infectious diseases, or a clinical pharmacist with perioperative antimicrobial expertise','')+
+      metric('Founder review','Not sufficient on its own for this module','')+
+      metric('Authority','Local institutional policy governs in all cases','')) +
+    foot('Guidelines vary by country, hospital, resistance pattern and allergy classification. '+
+         'Nothing will be published here that has not been verified against a current authoritative source.');
+
   // ── MODULE LAYOUT ─────────────────────────────────────────────────────
   // A deliberate 12-column rhythm, not masonry. Large modules hold fixed
   // positions; compact modules backfill so no row is left half empty.
@@ -1270,6 +1188,7 @@ function compute(){
     panel('&#128137;','Vasopressors','Infusions &amp; boluses',pressorRows,'sp4')+
     panel('&#129656;','Fluids &amp; blood',isPeds?'Paediatric':'Adult',fluidsBloodBody,'sp4')+
     panel('&#128246;','Blocks &amp; ultrasound','Quick reference',blockBody,'sp4')+
+    panel('&#128137;','Antibiotic prophylaxis','Under review',abxBody,'sp4')+
     panel('&#129728;','Airway',isPeds?'Paediatric':'Adult',airwayBody,'sp6')+
     panel('&#128225;','Monitoring &amp; access','Standards',monBody,'sp6')+
     panel('&#127788;','Ventilation','PBW-based',ventBody,'sp6 compact')+
@@ -1286,44 +1205,49 @@ function compute(){
   if(window.innerWidth<=900) collapseForMobile();
 }
 
-/* ── Row / card builders (design system v2) ────────────────────────────────
-   Everything a module renders goes through one of these, so spacing, weight
-   and the right-hand value edge are identical in every card.               */
+/* ── Row builders (design system v3 — continuous surface) ─────────────────
+   Every piece of information in every module renders through one of these, so
+   spacing, weight and the right-hand value edge are identical everywhere.
+   Nothing here emits a border, fill or radius: the module is the only card. */
 
-/* A "value" that is a phrase rather than a number must not be squeezed onto
-   the same line as its label — that is what produced the collisions in the
-   massive-haemorrhage and fibrinogen rows. */
+/* A "value" that is a phrase rather than a number wraps instead of being
+   squeezed onto the number's line. */
 function isPhrase(v){ var t=String(v==null?'':v).replace(/<[^>]+>/g,''); return t.length>16 || /\s(or|then|over|per|and)\s/i.test(t); }
 
-/* label → value */
+/* the row: name | value, supporting line beneath, critical warning as a rule */
+function row(o){
+  var cls='rw'+(o.txt?' txt':'')+(o.warn?(' crit'+(o.hi?' hi':'')):'');
+  return '<div class="'+cls+'"'+(o.id?(' id="'+o.id+'"'):'')+'>'+
+    '<span class="rw-n">'+o.name+'</span>'+
+    (o.val!=null&&o.val!==''?'<span class="rw-v">'+o.val+(o.unit?'<u>'+o.unit+'</u>':'')+'</span>':'')+
+    (o.sub ?'<span class="rw-s">'+o.sub+'</span>':'')+
+    (o.warn?'<span class="rw-w">'+o.warn+'</span>':'')+
+  '</div>';
+}
+/* label -> value */
 function metric(label,value,unit,range){
-  var txt = isPhrase(value) && !unit;
-  return '<div class="kv'+(txt?' txt':'')+'"><span class="kv-l">'+label+'</span>'+
-         '<span class="kv-v">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
+  return row({ name:label, val:value, unit:unit, txt:(isPhrase(value)&&!unit) });
 }
-/* label + sub-label → value */
+/* label + supporting line -> value */
 function m2(label,sub,value,unit){
-  var txt = isPhrase(value) && !unit;
-  return '<div class="kv'+(txt?' txt':'')+'"><span class="kv-l">'+label+
-         (sub?'<i>'+sub+'</i>':'')+'</span>'+
-         '<span class="kv-v">'+value+(unit?'<small>'+unit+'</small>':'')+'</span></div>';
+  return row({ name:label, sub:sub, val:value, unit:unit, txt:(isPhrase(value)&&!unit) });
 }
-/* group: uppercase heading + separator; the unit of scanning */
+/* group: quiet uppercase label above a full-bleed hairline */
 function grp(head,body,note){
   return '<div class="grp"><div class="grp-h">'+head+(note?'<em>'+note+'</em>':'')+'</div>'+body+'</div>';
 }
-/* the engineered drug / device card:  name | dose / indication / prep / warning */
+/* a drug / device row rendered from the structured clinical model */
 function rx(o){
-  return '<div class="rx">'+
-    '<div class="rx-top"><span class="rx-name">'+o.name+'</span>'+
-      (o.val?'<span class="rx-val">'+o.val+(o.unit?'<u>'+o.unit+'</u>':'')+'</span>':'')+'</div>'+
-    (o.ind ?'<div class="rx-ind">'+o.ind+'</div>':'')+
-    (o.prep?'<div class="rx-prep">'+o.prep+'</div>':'')+
-    (o.warn?'<div class="rx-warn'+(o.hi?' hi':'')+'">'+o.warn+'</div>':'')+
-  '</div>';
+  /* Two warning tiers, per the approved system:
+       critical -> its own line with a left rule (rare)
+       caution  -> folded into the muted supporting line (never dropped)
+     No existing caution text is removed; only its visual weight changes. */
+  var crit = (o.severity === 'critical');
+  var sub = [o.ind, o.prep, (crit ? null : o.warn)].filter(Boolean).join(' &middot; ');
+  return row({ id:o.id, name:o.name, val:o.val, unit:o.unit, sub:sub,
+               warn:(crit ? o.warn : ''), hi:o.hi });
 }
-function rxList(cards,two){ return '<div class="rxlist'+(two?' two':'')+'">'+cards.join('')+'</div>'; }
-/* the numbers the eye should hit first */
+function rxList(cards){ return cards.join(''); }
 function kpi(label,value,unit){
   return '<div class="kpi"><i>'+label+'</i><b>'+value+(unit?'<span>'+unit+'</span>':'')+'</b></div>';
 }
@@ -1332,11 +1256,26 @@ function note(t){ return '<div class="note">'+t+'</div>'; }
 function alert_(t,hi){ return '<div class="alert'+(hi?' hi':'')+'">'+t+'</div>'; }
 function bul(items){ return '<ul class="bul">'+items.map(function(i){ return '<li>'+i+'</li>'; }).join('')+'</ul>'; }
 function duo(upH,up,dnH,dn){
-  return '<div class="duo"><div><div class="duo-h up">'+upH+'</div>'+bul(up)+'</div>'+
-         '<div><div class="duo-h dn">'+dnH+'</div>'+bul(dn)+'</div></div>';
+  return '<div class="duo"><div><div class="duo-h">'+upH+'</div>'+bul(up)+'</div>'+
+         '<div><div class="duo-h">'+dnH+'</div>'+bul(dn)+'</div></div>';
 }
-function chipset(items){ return '<div class="chipset">'+items.map(function(i){ return '<span>'+i+'</span>'; }).join('')+'</div>'; }
+/* indications as a plain line — pills are decoration, not information */
+function chipset(items){ return '<div class="inline-list">'+items.map(function(i){ return '<span>'+i+'</span>'; }).join('')+'</div>'; }
 function foot(t){ return '<div class="foot">'+t+'</div>'; }
+
+/* ── Render drug rows from the shared structured model ───────────────────
+   ClinicalContent is the single source of truth (clinical-index.js). Rows,
+   search, aliases and provenance all read from it; nothing is duplicated
+   here. Only items whose provenance state is publishable are rendered.    */
+function drugGroups(groupIds, weight){
+  var CC = window.ClinicalContent;
+  if(!CC) return '';
+  return groupIds.map(function(g){
+    var items = CC.visibleDrugsInGroup(g.id, weight);
+    if(!items.length) return '';
+    return grp(g.label, rxList(items.map(function(d){ return rx(d); })), g.note);
+  }).join('');
+}
 function panelKey(title){ return (title||'').replace(/<[^>]+>/g,'').replace(/&[^;]+;/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase(); }
 function panel(ico,title,tag,body,cls){
   var pk=panelKey(title);
@@ -1917,6 +1856,7 @@ document.addEventListener('DOMContentLoaded',async function(){
     ge('app').style.display='block';
     if(restoreInputs()) compute();   // only ever from real saved/incoming data
     setupWorkspace();
+    if(window.ClinicalSearch) window.ClinicalSearch.enabled = true;
     console.log('ENGINE READY');
   }catch(e){
     console.error('ENGINE ERROR:',e.message);
@@ -1951,6 +1891,100 @@ function cwClearDerived(){
   var ls=ge('acc-lab-sub'); if(ls){ var lsum=cwLabSummary(); ls.textContent=lsum||'Not entered'; }
 }
 
+
+
+/* ════════ Clinical anchors ═══════════════════════════════════════════════
+   A search result opens the exact row, not the top of a module. Every row the
+   model renders carries its clinical id as a DOM id; devices and crisis
+   protocols resolve through their own inline selectors. The Crisis Center is
+   only scrolled to and its existing tab function is called — nothing about it
+   is modified.                                                             */
+(function(){
+  function findRow(id){ return document.getElementById(id); }
+  function panelOf(el){ return el && el.closest ? el.closest('.panel') : null; }
+  function expand(p){ if(p && p.classList.contains('collapsed')) p.classList.remove('collapsed'); }
+  function flash(el, cls){
+    if(!el) return;
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    setTimeout(function(){ el.classList.remove(cls); }, 2600);
+  }
+  function scrollTo(el){
+    if(!el) return;
+    try{ el.scrollIntoView({ behavior:'smooth', block:'center' }); }
+    catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id, opts){
+    var CC = window.ClinicalContent; if(!CC) return false;
+    var entry = CC.indexEntry(id); if(!entry) return false;
+
+    /* airway device → select it in the tube reference, then land on it */
+    if(entry.tube != null && window.tubeInline){
+      var tp = document.querySelector('.panel[data-pk="airway-tubes"]');
+      expand(tp); window.tubeCat && window.tubeCat('all'); window.tubeInline(entry.tube);
+      setTimeout(function(){ scrollTo(tp); flash(document.getElementById('tube-inline-body'),'hit'); }, 60);
+      return true;
+    }
+    /* crisis protocol → use the Crisis Center's own existing function */
+    if(entry.crisis != null && window.crisisInline){
+      var cp = document.querySelector('.crisis-panel');
+      expand(cp); window.crisisInline(entry.crisis);
+      setTimeout(function(){ scrollTo(cp); }, 60);
+      return true;
+    }
+    /* a rendered clinical row */
+    var row = findRow(id);
+    if(row){ expand(panelOf(row)); setTimeout(function(){ scrollTo(row); flash(row,'hit'); }, 60); return true; }
+    /* otherwise the owning module — but only once the rows have had a chance
+       to render, so an early call never settles for the module. */
+    if(opts && opts.moduleFallback){
+      var mod = entry.module && document.querySelector('.panel[data-pk="'+entry.module+'"]');
+      if(mod){ expand(mod); setTimeout(function(){ scrollTo(mod); }, 60); return true; }
+    }
+    return false;
+  }
+  window.ClinicalAnchors = { reveal:function(id){ return reveal(id,{moduleFallback:true, user:true}); } };
+
+  /* #find=<id> arriving from another page.
+     compute() replaces the whole of #output on every input change, which
+     destroys the row an anchor just landed on. The target is therefore held
+     for a short window and re-applied after each rebuild, so arriving with a
+     link and then typing the patient in still ends on the right row.        */
+  var _pending = null, _pendingUntil = 0;
+  function settle(id){
+    _pending = id; _pendingUntil = Date.now() + 12000;
+    var tries = 0;
+    (function attempt(){
+      if(reveal(id, { moduleFallback: tries >= 20 })) { return; }
+      if(++tries > 21) { return; }
+      setTimeout(attempt, 150);
+    })();
+  }
+  function fromHash(){
+    var m = /[#&]find=([^&]+)/.exec(location.hash || '');
+    if(!m) return;
+    settle(decodeURIComponent(m[1]));
+  }
+  window.addEventListener('hashchange', fromHash);
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(fromHash, 400);
+    var out = document.getElementById('output');
+    if(!out) return;
+    var queued = false;
+    try{
+      new MutationObserver(function(){
+        if(!_pending || Date.now() > _pendingUntil || queued) return;
+        queued = true;
+        setTimeout(function(){
+          queued = false;
+          if(_pending && Date.now() <= _pendingUntil) reveal(_pending, { moduleFallback:false });
+        }, 120);
+      }).observe(out, { childList:true });
+    }catch(e){}
+  });
+  /* an in-page result clears any pending arrival */
+  var _reveal = reveal;
+  reveal = function(id, opts){ if(opts && opts.user) { _pending = null; } return _reveal(id, opts); };
+})();
 
 /* ════════ Workspace layer — collapse / resize / drag-reorder + live highlight ════════
    Presentation only. compute() rebuilds #output each change; this re-applies the

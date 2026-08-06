@@ -348,9 +348,10 @@ function buildHTML(page){
         '<div class="nb-ws" id="nb-ws" role="navigation" aria-label="Workspace"></div>' +
         '<div class="nb-right">' +
           '<div class="nb-search-wrap" id="nb-search-wrap" style="display:none">' +
-            '<input type="text" class="nb-search" id="nb-search" placeholder="Search tools &amp; references…" autocomplete="off" ' +
-              'oninput="window.nbSearch(this.value)" onfocus="window.nbSearch(this.value)" ' +
-              'onkeydown="window.nbSearchKey(event)">' +
+            '<input type="text" class="nb-search" id="nb-search" placeholder="Search drugs, tubes, blocks…" autocomplete="off" ' +
+              'readonly aria-haspopup="dialog" ' +
+              'onfocus="window.nbSearchOpen(event)" onclick="window.nbSearchOpen(event)" ' +
+              'onkeydown="window.nbSearchOpen(event)">' +
             '<div class="nb-search-results" id="nb-search-results"></div>' +
           '</div>' +
           '<div id="nb-guest-links">' +
@@ -385,6 +386,13 @@ function buildHTML(page){
     '<div class="nb-mob-bg" id="nb-mob-bg" onclick="window.nbCloseMob()"></div>' +
     '<div class="nb-mob" id="nb-mob" role="dialog" aria-modal="true" aria-label="Menu">' +
       // 1. WORKSPACES — the mode selector, first and visually dominant.
+      // 0. CLINICAL SEARCH — the header box is hidden on a phone, so the
+      //    palette needs a first-class entry point in the drawer.
+      '<div class="nb-mob-grp" id="nb-mob-searchgrp" style="display:none">' +
+        '<div class="nb-mob-h">Search</div>' +
+        '<button type="button" class="nb-mob-link" id="nb-mob-search" onclick="window.nbMobSearch()">'+
+          '&#9906;&nbsp; Search drugs, tubes, blocks…</button>' +
+      '</div>' +
       '<div class="nb-mob-grp" id="nb-mob-wsgrp" style="display:none">' +
         '<div class="nb-mob-h">Workspaces</div>' +
         '<div class="nb-mob-ws" id="nb-mob-ws" role="navigation" aria-label="Workspace"></div>' +
@@ -651,6 +659,8 @@ function populateMenu(user, profile){
   renderWorkspaceSwitcher(wsRole);
   // Global search for staff only
   var search = ge('nb-search-wrap'); if(search) search.style.display = isStaff ? 'block' : 'none';
+  var msg = ge('nb-mob-searchgrp'); if(msg) msg.style.display = isStaff ? 'block' : 'none';
+  if(isStaff && window.ClinicalSearch) window.ClinicalSearch.enabled = true;
 }
 
 window.nbToggleMenu = function(){
@@ -699,6 +709,37 @@ var NB_SEARCH_INDEX = [
 ];
 
 var _searchSel = -1, _searchHits = [];
+
+/* The clinical command palette is the search surface. The navbar box hands off
+   to it so there is one index, one ranking and one result behaviour everywhere.
+   NB_SEARCH_INDEX below is retained only as the page-level fallback for the
+   handful of destinations that are pages rather than clinical items. */
+function nbOpenClinical(seed){
+  if (window.ClinicalSearch && window.ClinicalContent){
+    window.ClinicalSearch.enabled = true;
+    window.ClinicalSearch.open(seed || '');
+    return true;
+  }
+  return false;
+}
+window.nbOpenClinical = nbOpenClinical;
+
+window.nbSearchOpen = function(e){
+  if (e && e.type === 'keydown' && e.key === 'Tab') return;   // don't trap tabbing
+  if (e && e.preventDefault) e.preventDefault();
+  var el = ge('nb-search'); if (el) el.blur();
+  if (!nbOpenClinical('')){
+    // clinical index not loaded on this page — fall back to the page list
+    if (el){ el.removeAttribute('readonly'); el.focus(); }
+  }
+};
+
+/* Phone: a search action inside the drawer, so the palette is reachable on a
+   handset where the header box is deliberately hidden. */
+window.nbMobSearch = function(){
+  if (window.nbCloseMob) window.nbCloseMob();
+  setTimeout(function(){ nbOpenClinical(''); }, 120);
+};
 
 window.nbSearch = function(q){
   q = (q || '').trim().toLowerCase();
