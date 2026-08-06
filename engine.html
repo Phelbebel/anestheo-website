@@ -322,27 +322,40 @@ body.embed .eng-wrap{padding-top:14px;}
 .eng-wrap .cw-acc-sub,.eng-wrap .inp label{font-weight:800;}
 
 /* ══════════════════════════════════════════════════════════════════════════
-   WORKSTATION DESIGN SYSTEM v3 — CONTINUOUS SURFACE
-   The module is the only card. Everything inside it is a row.
-   Structure comes from alignment, spacing, weight and hairlines — never from
-   nested containers. No sub-element carries a border, fill or radius.
+   WORKSTATION DESIGN SYSTEM v4 — ONE CONTINUOUS CLINICAL SURFACE
+   --------------------------------------------------------------------------
+   The page is one workspace divided into panes, not a tray of cards. Panes
+   have no shadow, a hairline edge, and share one divider weight with the rows
+   inside them, so the eye reads regions rather than objects.
 
-   CRISIS CENTER: every visual rule below is scoped :not(.crisis-panel).
-   Only the grid/placement rules apply to it, so its emergency shell, header
-   and content render exactly as they did before this design system existed.
+   Ten type roles. Two divider weights. One motion curve. Everything else was
+   removed because it could not justify its own pixels.
+
+   CRISIS CENTER: every rule is scoped :not(.crisis-panel). Only grid placement
+   touches it, so its emergency shell and content render exactly as before this
+   design system existed.
    ══════════════════════════════════════════════════════════════════════════ */
 #output{
-  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
-  --rule:rgba(255,255,255,.055);        /* between rows */
-  --rule-grp:rgba(126,207,192,.16);     /* above a section label */
-  --ink:#fff; --ink-2:#dcebe6; --ink-3:#93a9a2; --accent:#7ECFC0;
+  /* spacing — 4 / 8 / 10 / 14 / 20 / 26 */
+  --s1:4px; --s2:8px; --s3:10px; --s4:14px; --s5:20px; --s6:26px;
+  --pad:22px;                 /* the single horizontal inset for every row */
+  /* two divider weights, and nothing else */
+  --hair:rgba(255,255,255,.058);      /* between rows, and the pane edge */
+  --hair-2:rgba(255,255,255,.10);     /* under a pane header */
+  /* ink */
+  --ink:#fff; --ink-2:#d6e7e1; --ink-3:#8ba39c; --accent:#7ECFC0;
+  --amber:#EFC176; --red:#F4A28C;
+  /* one motion system */
+  --ease:cubic-bezier(.22,.61,.36,1); --fast:.12s; --base:.18s;
+  font-feature-settings:"tnum" 1,"lnum" 1;
 }
-.eng-wrap{max-width:1360px;}
+.eng-wrap{max-width:1400px;}
 body.embed .eng-wrap{max-width:100%;}
 
-/* ── GRID (applies to every panel, including the Crisis Center) ────────── */
+/* ── GRID (all panes, Crisis Center included) ──────────────────────────
+   A tighter gutter: panes read as adjacent regions of one surface.      */
 #output .panels{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
-  grid-auto-flow:row;gap:var(--s4);align-items:start;}
+  grid-auto-flow:row;gap:8px;align-items:start;}
 #output .panel.sp3{grid-column:span 3;}
 #output .panel.sp4{grid-column:span 4;}
 #output .panel.sp6{grid-column:span 6;}
@@ -353,190 +366,380 @@ body.embed .eng-wrap{max-width:100%;}
   #output .panel.sp12,#output .panel.full,#output .panel.wide{grid-column:1 / -1;}
 }
 @media(max-width:900px){
-  #output .panels{grid-template-columns:1fr;gap:var(--s3);}
+  #output .panels{grid-template-columns:1fr;gap:8px;}
   #output .panel{grid-column:1 / -1 !important;}
 }
 
-/* ── MODULE SHELL ─────────────────────────────────────────────────────── */
+/* ── PANE ───────────────────────────────────────────────────────────────
+   No shadow. No gradient. A hairline edge in the same value the rows use,
+   so a pane boundary and a row boundary belong to one family.          */
 #output .panel:not(.crisis-panel){
-  background:linear-gradient(158deg,rgba(255,255,255,.05),rgba(255,255,255,.013));
-  border:1px solid rgba(255,255,255,.08);border-radius:14px;
-  box-shadow:0 8px 22px rgba(0,0,0,.22);transition:border-color .2s ease;
+  background:rgba(255,255,255,.021);
+  border:1px solid var(--hair);border-radius:10px;
+  box-shadow:none;transition:border-color var(--base) var(--ease);
+  -webkit-backdrop-filter:none;backdrop-filter:none;
 }
-#output .panel:not(.crisis-panel):hover{transform:none;box-shadow:0 8px 22px rgba(0,0,0,.22);
-  border-color:rgba(126,207,192,.26);}
+#output .panel:not(.crisis-panel):hover{transform:none;box-shadow:none;
+  border-color:rgba(126,207,192,.20);}
+
+/* pane header — a quiet label, deliberately lighter than the data below it */
 #output .panel:not(.crisis-panel) .panel-head{
-  padding:var(--s4) var(--s6);gap:var(--s3);align-items:center;
-  border-bottom:1px solid var(--rule-grp);}
-#output .panel:not(.crisis-panel) .panel-head:hover{background:none;}
+  padding:11px var(--pad) 10px;gap:9px;align-items:center;
+  border-bottom:1px solid var(--hair-2);background:none;}
+#output .panel:not(.crisis-panel) .panel-head:hover{background:rgba(255,255,255,.014);}
 #output .panel:not(.crisis-panel) .panel-title{
-  font-size:19px;font-weight:700;line-height:1.15;letter-spacing:-.015em;color:var(--ink);min-width:0;}
-#output .panel:not(.crisis-panel) .panel-ico{font-size:16px;opacity:.9;flex:0 0 auto;}
-/* the tag is a quiet caption, not a pill */
+  font-size:15px;font-weight:700;line-height:1.2;letter-spacing:.005em;color:var(--ink-2);min-width:0;}
+#output .panel:not(.crisis-panel) .panel-ico{font-size:14px;font-weight:400;line-height:1;
+  opacity:.7;flex:0 0 auto;}
 #output .panel:not(.crisis-panel) .panel-tag{
-  font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:none;
+  font-size:11px;font-weight:500;letter-spacing:.01em;text-transform:none;
   color:var(--ink-3);background:none;border:none;padding:0;margin-left:auto;flex:0 0 auto;}
 #output .panel:not(.crisis-panel) .panel-grip,
 #output .panel:not(.crisis-panel) .panel-resize,
-#output .panel:not(.crisis-panel) .panel-chev{flex:0 0 auto;opacity:.5;}
-/* vertical padding only — rows supply their own inset so hairlines run full width */
-#output .panel:not(.crisis-panel) .panel-body{padding:var(--s3) 0 var(--s2);}
+#output .panel:not(.crisis-panel) .panel-chev{
+  flex:0 0 auto;opacity:0;
+  transition:opacity var(--base) var(--ease),color var(--fast) var(--ease),
+             transform var(--base) var(--ease);
+  font-size:11px;font-weight:600;line-height:1;letter-spacing:normal;color:var(--ink-3);}
+#output .panel:not(.crisis-panel):hover .panel-grip,
+#output .panel:not(.crisis-panel):hover .panel-resize,
+#output .panel:not(.crisis-panel):hover .panel-chev,
+#output .panel:not(.crisis-panel) .panel-head:focus-within .panel-chev,
+#output .panel.collapsed:not(.crisis-panel) .panel-chev{opacity:.55;}
+#output .panel:not(.crisis-panel) .panel-grip:hover,
+#output .panel:not(.crisis-panel) .panel-resize:hover,
+#output .panel:not(.crisis-panel) .panel-chev:hover{color:var(--ink-2);}
+/* no dead space at the foot of a pane */
+#output .panel:not(.crisis-panel) .panel-body{padding:var(--s3) 0 0;}
+#output .panel:not(.crisis-panel) .panel-body>*:last-child{margin-bottom:var(--s3);}
 
-/* ── THE ROW — one geometry everywhere ────────────────────────────────
-   name (left) ............................................ value (right)
-   supporting text, aligned to the name
-   The value's right edge is the card's inner edge in every module.      */
+/* ── THE ROW ────────────────────────────────────────────────────────────
+   name (dominant) ................................ dose (strongest number)
+   supporting text, aligned to the name                                    */
 #output .rw{
-  display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--s4);row-gap:3px;
-  padding:10px var(--s6);border-bottom:1px solid var(--rule);
+  display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--s4);row-gap:2px;
+  padding:8px var(--pad);border-bottom:1px solid var(--hair);
+  transition:background var(--fast) var(--ease);
 }
 #output .rw:last-child{border-bottom:none;}
-#output .rw-n{font-size:16px;font-weight:600;color:var(--ink);line-height:1.3;flex:1 1 auto;min-width:0;}
+#output .rw:hover{background:rgba(255,255,255,.028);}
+#output .rw-n{
+  font-size:17px;font-weight:700;color:var(--ink);line-height:1.28;
+  letter-spacing:-.005em;flex:1 1 auto;min-width:0;}
 #output .rw-v{
-  font-size:21px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;
-  line-height:1.15;white-space:nowrap;text-align:right;flex:0 0 auto;margin-left:auto;
-}
-#output .rw-v u{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:5px;
-  text-decoration:none;font-variant-numeric:normal;letter-spacing:.01em;}
-/* supporting line — always full width, aligned to the name */
-#output .rw-s{flex:1 0 100%;font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.5;}
+  font-size:22px;font-weight:700;color:var(--ink);line-height:1.16;
+  letter-spacing:-.012em;font-variant-numeric:tabular-nums lining-nums;
+  white-space:nowrap;text-align:right;flex:0 0 auto;margin-left:auto;}
+#output .rw-v u{font-size:12px;font-weight:600;line-height:1;color:var(--ink-3);margin-left:5px;
+  text-decoration:none;font-variant-numeric:normal;letter-spacing:0;}
+#output .rw-s{flex:1 0 100%;font-size:13px;font-weight:400;color:var(--ink-3);
+  line-height:1.45;letter-spacing:0;}
 #output .rw-s b{color:var(--ink-2);font-weight:600;}
-#output .rw-s em{font-style:normal;color:var(--accent);font-weight:600;}
-/* value that is a phrase rather than a number */
-#output .rw.txt .rw-v{font-size:15px;font-weight:600;white-space:normal;text-align:left;
-  color:var(--ink-2);margin-left:auto;max-width:62%;}
+/* tier-1 caution: its own line, same muted weight — present, not shouting */
+#output .rw-c{color:var(--ink-3);opacity:.82;}
+#output .rw-s em{font-style:normal;color:var(--ink-2);font-weight:600;}
+/* A value that is a phrase, not a number, takes its own full-width line under
+   the label at the same left gutter. Right-aligning wrapping prose produced
+   ragged L-shapes and broke the numeric column it sat in. */
+#output .rw.txt{row-gap:3px;}
+#output .rw.txt .rw-v{flex:1 0 100%;font-size:15px;font-weight:600;white-space:normal;
+  text-align:left;color:var(--ink-2);margin-left:0;max-width:none;
+  letter-spacing:0;line-height:1.4;}
 
 /* Tier 2 — critical only. A left rule, never a box. */
-#output .rw.crit{border-left:2px solid rgba(232,168,56,.75);padding-left:calc(var(--s6) - 2px);}
-#output .rw.crit.hi{border-left-color:rgba(226,90,70,.85);}
-#output .rw-w{flex:1 0 100%;font-size:13px;font-weight:600;line-height:1.5;color:#EFC176;}
-#output .rw.crit.hi .rw-w{color:#F4A28C;}
+#output .rw.crit{border-left:2px solid rgba(232,168,56,.7);padding-left:calc(var(--pad) - 2px);}
+#output .rw.crit{padding-top:8px;padding-bottom:8px;}
+#output .rw.crit.hi{border-left-color:rgba(226,90,70,.8);}
+#output .rw-w{flex:1 0 100%;font-size:13px;font-weight:600;line-height:1.5;color:var(--amber);}
+#output .rw.crit.hi .rw-w{color:var(--red);}
 
-/* ── GROUP — a quiet label above a full-bleed hairline ─────────────── */
-#output .grp{margin-top:var(--s5);}
-#output .grp:first-child{margin-top:0;}
+/* ── SECTION RHYTHM ─────────────────────────────────────────────────────
+   Space is the separator between groups; the rule was removed. Rows stay
+   tight, groups breathe.                                                 */
+#output .grp{margin-top:var(--s6);}
+#output .grp:first-child{margin-top:var(--s1);}
 #output .grp>.grp-h{
-  font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--ink-3);padding:0 var(--s6) var(--s2);margin-top:var(--s4);
-  border-top:1px solid var(--rule-grp);padding-top:var(--s4);
-}
-#output .grp:first-child>.grp-h{margin-top:0;border-top:none;padding-top:0;}
-#output .grp-h em{font-style:normal;font-weight:600;letter-spacing:.02em;
-  text-transform:none;color:var(--ink-3);opacity:.8;margin-left:var(--s2);font-size:12px;}
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 var(--pad) 9px;margin:0;border:none;line-height:1;}
+#output .grp-h em{font-style:normal;font-weight:600;letter-spacing:.01em;line-height:1;
+  text-transform:none;color:var(--ink-3);opacity:.7;margin-left:9px;font-size:11px;}
 
-/* ── KPI BAND — one full-bleed instrument strip, not tiles ────────── */
+/* ── KPI BAND — the pane's instrument strip ───────────────────────────── */
 #output .kpis{
   display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
-  background:rgba(0,0,0,.18);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
-  margin:0 0 var(--s2);
+  background:rgba(0,0,0,.16);border-bottom:1px solid var(--hair);margin:0 0 var(--s1);
 }
-#output .kpi{padding:12px var(--s3);text-align:center;min-width:0;
-  border-left:1px solid var(--rule);}
+#output .kpi{padding:10px 10px;text-align:center;min-width:0;border-left:1px solid var(--hair);}
 #output .kpi:first-child{border-left:none;}
-#output .kpi i{display:block;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;line-height:1.25;}
-#output .kpi b{display:block;font-size:23px;font-weight:700;color:var(--ink);
-  font-variant-numeric:tabular-nums;line-height:1.05;letter-spacing:-.02em;}
-#output .kpi b span{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:3px;font-variant-numeric:normal;}
+#output .kpi i{display:block;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;line-height:1.2;}
+#output .panel:not(.crisis-panel) .panel-tag{line-height:1;}
+#output .kpi b{display:block;font-size:24px;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums lining-nums;line-height:1.05;letter-spacing:-.022em;}
+#output .kpi b span{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:3px;
+  line-height:1;font-variant-numeric:normal;letter-spacing:0;}
 @media(max-width:640px){#output .kpis{grid-auto-flow:row;grid-template-columns:repeat(2,1fr);}
-  #output .kpi{border-left:none;border-top:1px solid var(--rule);}
-  #output .kpi:nth-child(even){border-left:1px solid var(--rule);}}
+  #output .kpi{border-left:none;border-top:1px solid var(--hair);}
+  #output .kpi:nth-child(even){border-left:1px solid var(--hair);}}
 
-/* ── NOTES / LISTS ────────────────────────────────────────────────── */
-#output .note{font-size:13px;font-weight:400;color:var(--ink-3);line-height:1.55;padding:8px var(--s6);}
+/* ── NOTES / LISTS ────────────────────────────────────────────────────── */
+#output .note{font-size:12.5px;font-weight:400;color:var(--ink-3);line-height:1.5;
+  padding:6px var(--pad);letter-spacing:0;}
 #output .note b{color:var(--ink-2);font-weight:600;}
-#output .note a{color:var(--accent);}
-#output .bul{margin:0;padding:0 var(--s6);}
-#output .bul li{list-style:none;font-size:14px;font-weight:400;color:var(--ink-2);line-height:1.5;
-  padding:7px 0 7px 15px;position:relative;border-bottom:1px solid var(--rule);}
+#output .bul{margin:0;padding:0 var(--pad);}
+#output .bul li{list-style:none;font-size:13px;font-weight:400;color:var(--ink-2);
+  line-height:1.45;padding:5px 0 5px 14px;position:relative;border-bottom:1px solid var(--hair);}
 #output .bul li:last-child{border-bottom:none;}
-#output .bul li:before{content:'';position:absolute;left:1px;top:15px;width:4px;height:4px;
-  border-radius:50%;background:rgba(126,207,192,.55);}
-/* standalone critical note — left rule, no box */
+#output .bul li:before{content:'';position:absolute;left:1px;top:12px;width:3px;height:3px;
+  border-radius:50%;background:var(--ink-3);}
 #output .alert{
-  font-size:13px;font-weight:600;line-height:1.55;color:#EFC176;
-  border-left:2px solid rgba(232,168,56,.75);background:none;border-radius:0;
-  padding:8px var(--s6);margin:var(--s2) 0;
-}
-#output .alert.hi{color:#F4A28C;border-left-color:rgba(226,90,70,.85);}
-/* two-column pro/con — lists, not panels */
-#output .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;padding:0 var(--s6);}
+  font-size:13px;font-weight:600;line-height:1.5;color:var(--amber);
+  border-left:2px solid rgba(232,168,56,.7);background:none;border-radius:0;
+  padding:8px var(--pad);margin:var(--s1) 0;letter-spacing:0;}
+#output .alert.hi{color:var(--red);border-left-color:rgba(226,90,70,.8);}
+#output .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 26px;padding:0 var(--pad);}
 #output .duo .bul{padding:0;}
-#output .duo-h{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  margin-bottom:var(--s1);color:var(--ink-3);}
+#output .duo-h{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;line-height:1;
+  margin-bottom:2px;color:var(--ink-3);}
 @media(max-width:640px){#output .duo{grid-template-columns:1fr;}}
-/* indications: a plain line, not pills */
-#output .inline-list{font-size:14px;font-weight:400;color:var(--ink-2);line-height:1.6;padding:4px var(--s6) 10px;}
+#output .inline-list{font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5;
+  padding:2px var(--pad) 9px;}
+#output .inline-list span{line-height:1.5;}
 #output .inline-list span:after{content:' · ';color:var(--ink-3);}
 #output .inline-list span:last-child:after{content:'';}
 
-/* ── TABS — underline, not pills ──────────────────────────────────── */
-#output .ref-catrow{display:flex;flex-wrap:wrap;gap:var(--s4);padding:0 var(--s6) var(--s2);}
-#output .ref-cat{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+/* ── TABS — accent is reserved for the active state, and nothing else ─── */
+#output .ref-catrow{display:flex;flex-wrap:wrap;gap:var(--s4);padding:0 var(--pad) 7px;}
+#output .ref-cat{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;line-height:1;
   background:none;border:none;color:var(--ink-3);padding:6px 0;cursor:pointer;font-family:inherit;
-  border-bottom:2px solid transparent;min-height:34px;}
-#output .ref-cat.on{color:var(--accent);border-bottom-color:var(--accent);}
-#output .ref-tabs{display:flex;flex-wrap:wrap;gap:0 var(--s5);padding:0 var(--s6);
-  border-bottom:1px solid var(--rule);margin-bottom:var(--s3);}
-#output .ref-tab{font-size:14px;font-weight:500;background:none;border:none;border-radius:0;
-  color:var(--ink-3);padding:9px 0;cursor:pointer;font-family:inherit;white-space:nowrap;
-  border-bottom:2px solid transparent;margin-bottom:-1px;min-height:38px;}
+  border-bottom:1.5px solid transparent;min-height:32px;
+  transition:color var(--fast) var(--ease),border-color var(--fast) var(--ease);}
+#output .ref-cat:hover{color:var(--ink-2);}
+#output .ref-cat.on{color:var(--ink);border-bottom-color:var(--accent);}
+#output .ref-tabs{display:flex;flex-wrap:wrap;gap:0 var(--s5);padding:0 var(--pad);
+  border-bottom:1px solid var(--hair);margin-bottom:var(--s3);}
+#output .ref-tab{font-size:13.5px;font-weight:500;background:none;border:none;border-radius:0;
+  color:var(--ink-3);padding:7px 0;cursor:pointer;font-family:inherit;white-space:nowrap;
+  border-bottom:1.5px solid transparent;margin-bottom:-1px;min-height:34px;
+  transition:color var(--fast) var(--ease),border-color var(--fast) var(--ease);}
 #output .ref-tab:hover{color:var(--ink-2);}
 #output .ref-tab.on{color:var(--ink);font-weight:700;border-bottom-color:var(--accent);}
+/* reserve the bold width so switching tabs never nudges the row */
+#output .ref-tab::after{content:attr(data-label);display:block;height:0;overflow:hidden;
+  visibility:hidden;font-weight:700;}
 #output .ref-head{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:var(--s4);
-  padding:var(--s2) var(--s6) var(--s3);border-bottom:1px solid var(--rule-grp);margin-bottom:var(--s2);}
-#output .ref-name{font-size:19px;font-weight:700;color:var(--ink);letter-spacing:-.015em;
-  line-height:1.2;flex:1 1 auto;min-width:0;}
+  padding:var(--s1) var(--pad) 10px;border-bottom:1px solid var(--hair);margin-bottom:var(--s1);}
+#output .ref-name{font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.005em;
+  line-height:1.28;flex:1 1 auto;min-width:0;}
 #output .ref-name i{display:block;font-style:normal;font-size:13px;font-weight:400;
-  color:var(--ink-3);margin-top:4px;letter-spacing:0;line-height:1.45;}
-#output .ref-key{font-size:21px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;
-  white-space:nowrap;text-align:right;line-height:1.15;flex:0 0 auto;margin-left:auto;}
-#output .ref-key u{display:block;font-size:10px;font-weight:700;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--ink-3);text-decoration:none;margin-top:4px;font-variant-numeric:normal;}
-#output .ref-cols{columns:2;column-gap:36px;column-fill:balance;}
+  color:var(--ink-3);margin-top:3px;letter-spacing:0;line-height:1.5;}
+#output .ref-key{font-size:22px;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.012em;
+  white-space:nowrap;text-align:right;line-height:1.16;flex:0 0 auto;margin-left:auto;}
+#output .ref-key u{display:block;font-size:10px;font-weight:700;letter-spacing:.12em;line-height:1.2;
+  text-transform:uppercase;color:var(--ink-3);text-decoration:none;margin-top:4px;
+  font-variant-numeric:normal;}
+#output .ref-cols{columns:2;column-gap:34px;column-fill:balance;}
 #output .ref-cols .grp{break-inside:avoid;}
 @media(max-width:1023px){#output .ref-cols{columns:1;}}
 
-/* ── FOOTNOTE ─────────────────────────────────────────────────────── */
+/* ── FOOTNOTE ─────────────────────────────────────────────────────────── */
 #output .foot{font-size:12.5px;font-weight:400;color:var(--ink-3);line-height:1.55;
-  margin-top:var(--s3);padding:var(--s3) var(--s6) 0;border-top:1px solid var(--rule);}
-#output .foot a{color:var(--accent);}
+  margin-top:var(--s3);padding:9px var(--pad) 0;border-top:1px solid var(--hair);letter-spacing:0;}
+#output .foot b,#output .note b{font-weight:600;color:var(--ink-2);font-size:inherit;}
+#output .foot a,#output .note a{color:var(--accent);font-weight:inherit;
+  transition:color var(--fast) var(--ease);}
 
-/* ── Flatten the last nested containers ────────────────────────────────
-   The evidence drawer ships its own boxed styling; inside a module it must
-   read as a row like everything else. Its own component file is untouched. */
-#output .panel:not(.crisis-panel) .cow-wrap{padding:0 var(--s6);}
+/* ── EVIDENCE DRAWER + RISK FLAGS — same language as everything else ──── */
+#output .panel:not(.crisis-panel) .cow-wrap{padding:0 var(--pad);}
 #output .panel:not(.crisis-panel) .cow-trigger{
-  background:none;border:none;border-radius:0;padding:8px 0;color:var(--accent);}
+  background:none;border:none;border-radius:0;padding:8px 0;color:var(--accent);
+  font-size:12.5px;font-weight:600;line-height:1.55;transition:color var(--fast) var(--ease);}
+#output .panel:not(.crisis-panel) .cow-chev{font-size:11px;font-weight:600;line-height:1;}
 #output .panel:not(.crisis-panel) .cow-region{
-  background:none;border:none;border-radius:0;border-top:1px solid var(--rule);padding:10px 0 0;}
-/* risk flags become rows, not pills */
+  background:none;border:none;border-radius:0;border-top:1px solid var(--hair);padding:9px 0 0;}
 #output .warn-chip{display:block;background:none;border:none;border-radius:0;
-  padding:9px var(--s6);margin:0;font-size:14px;font-weight:500;color:var(--ink-2);
-  border-bottom:1px solid var(--rule);border-left:2px solid transparent;}
-#output .warn-chip.hi{border-left-color:rgba(226,90,70,.85);color:#F4A28C;font-weight:600;
-  padding-left:calc(var(--s6) - 2px);}
+  padding:8px var(--pad);margin:0;font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5;
+  border-bottom:1px solid var(--hair);border-left:2px solid transparent;letter-spacing:0;}
+#output .warn-chip.hi{border-left-color:rgba(226,90,70,.8);color:var(--red);font-weight:600;
+  padding-left:calc(var(--pad) - 2px);}
 
-/* ── SEARCH LANDING HIGHLIGHT ─────────────────────────────────────── */
-#output .rw.hit,#output .grp.hit>.grp-h{animation:rwHit 2.4s ease;}
-@keyframes rwHit{0%,55%{background:rgba(126,207,192,.16);}100%{background:transparent;}}
-#output .rw.hit{border-radius:0;}
+/* ── SEARCH LANDING HIGHLIGHT ─────────────────────────────────────────── */
+#output .rw.hit,#output .grp.hit>.grp-h{animation:rwHit 2.2s var(--ease);}
+@keyframes rwHit{0%,50%{background:rgba(126,207,192,.14);}100%{background:transparent;}}
 
-/* the earlier readability sweep forces weight 800 on several classes;
-   restate the scale that this system defines */
-#output .rw-n{font-weight:600;}
-#output .rw-s,#output .note{font-weight:400;}
-#output .rw-v,#output .kpi b,#output .ref-name,#output .ref-key,
+/* ── FOCUS — one visible ring, never the browser default ──────────────── */
+#output button:focus-visible,#output a:focus-visible,
+#output [tabindex]:focus-visible,#output .panel-head:focus-visible{
+  outline:2px solid rgba(126,207,192,.85);outline-offset:-2px;border-radius:3px;}
+#output button:focus:not(:focus-visible),#output a:focus:not(:focus-visible){outline:none;}
+
+/* ── TYPE ROLES restated over the older readability sweep ─────────────── */
+#output .rw-n,#output .rw-v,#output .kpi b,#output .ref-name,#output .ref-key,
+#output .grp>.grp-h,#output .duo-h,
 #output .panel:not(.crisis-panel) .panel-title{font-weight:700;}
+#output .rw-s,#output .note,#output .bul li,#output .inline-list,
+#output .warn-chip,#output .foot{font-weight:400;}
+#output .rw-w,#output .alert{font-weight:600;}
+#output .panel:not(.crisis-panel) .panel-tag{font-weight:500;}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE WORKSPACE SHELL — the same language above the panes
+   --------------------------------------------------------------------------
+   The patient area, derived values, timers and disclaimer were a second
+   component library: 16px radii, gradients, a shadow, teal uppercase labels
+   and seven bordered tiles. They now use the pane vocabulary, so the page
+   reads as one workspace from the title to the Crisis Center.
+
+   Deliberately untouched: .cw-crisis (the Crisis Center's own control) keeps
+   its siren treatment — it is the one element that must not look like
+   everything else.
+   ══════════════════════════════════════════════════════════════════════════ */
+.eng-wrap{
+  --hair:rgba(255,255,255,.058); --hair-2:rgba(255,255,255,.10);
+  --ink:#fff; --ink-2:#d6e7e1; --ink-3:#8ba39c; --accent:#7ECFC0;
+  --pad:22px; --ease:cubic-bezier(.22,.61,.36,1); --fast:.12s; --base:.18s;
+  padding:16px 18px 64px;
+}
+/* one surface treatment for every region of the shell */
+.eng-wrap .cw-hero,
+.eng-wrap .cw-acc,
+.eng-wrap .lt-strip,
+.eng-wrap .pacu-mod{
+  background:rgba(255,255,255,.021);
+  border:1px solid var(--hair);border-radius:10px;
+  box-shadow:none;margin-bottom:8px;
+}
+ /* one row: identity left, status and the emergency control right */
+.eng-wrap .cw-hero{padding:13px var(--pad);gap:16px;flex-direction:row;
+  align-items:center;justify-content:space-between;flex-wrap:wrap;}
+.eng-wrap .cw-hero-r1{flex:1 1 auto;min-width:0;}
+.eng-wrap .cw-hero-r2{flex:0 0 auto;gap:18px;justify-content:flex-end;align-items:center;}
+/* the procedure needs room for a real operation name */
+.eng-wrap #acc-patient .inp:last-child{grid-column:span 2;min-width:190px;}
+.eng-wrap .lt-strip,.eng-wrap .pacu-mod{margin-top:0;}
+
+/* hero — the brand serif stays; the card treatment goes */
+.eng-wrap .cw-title{font-size:20px;letter-spacing:-.005em;line-height:1.15;}
+.eng-wrap .cw-sub{font-size:12.5px;font-weight:400;color:var(--ink-3);margin-top:4px;}
+/* a live indicator, not a badge */
+.eng-wrap .cw-ready{background:none;border:none;padding:0;color:var(--ink-3);
+  font-size:11px;font-weight:600;letter-spacing:.02em;gap:7px;}
+.eng-wrap .cw-ready .dot{width:6px;height:6px;box-shadow:0 0 8px #34D399;}
+
+/* section headers share the pane-title role */
+.eng-wrap .cw-acc>summary,
+.eng-wrap .cw-acc-head{
+  padding:11px var(--pad) 10px;gap:9px;
+  font-size:15px;font-weight:700;letter-spacing:.005em;color:var(--ink-2);}
+.eng-wrap .cw-acc[open]>summary{border-bottom:1px solid var(--hair-2);}
+.eng-wrap .cw-acc-head{border-bottom:1px solid var(--hair-2);}
+.eng-wrap .cw-acc>summary:hover{background:rgba(255,255,255,.014);}
+.eng-wrap .cw-acc-chev{font-size:10px;color:var(--ink-3);}
+.eng-wrap .cw-acc-sub{font-size:12.5px;font-weight:400;color:var(--ink-3);
+  font-variant-numeric:tabular-nums lining-nums;}
+.eng-wrap .cw-acc-body{padding:11px var(--pad) 12px;}
+
+/* input labels join the section-label role — neutral, not accent */
+.eng-wrap .inp label{
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);line-height:1;}
+.eng-wrap .inp input,.eng-wrap .inp select{
+  background:rgba(255,255,255,.045);border:1px solid var(--hair-2);border-radius:7px;
+  font-size:15px;font-weight:600;padding:9px 11px;min-height:40px;
+  transition:border-color var(--fast) var(--ease),background var(--fast) var(--ease);}
+.eng-wrap .inp input:hover,.eng-wrap .inp select:hover{background:rgba(255,255,255,.06);}
+.eng-wrap .inp input:focus,.eng-wrap .inp select:focus{
+  border-color:rgba(126,207,192,.7);background:rgba(255,255,255,.07);outline:none;}
+.eng-wrap .inp input:focus-visible,.eng-wrap .inp select:focus-visible{
+  outline:2px solid rgba(126,207,192,.85);outline-offset:-1px;}
+.eng-wrap .input-bar{gap:12px 14px;}
+
+/* derived values become one instrument band, not seven tiles */
+.eng-wrap #acc-derived .cw-acc-body{padding:0;}
+.eng-wrap .cw-derived{
+  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;
+  background:rgba(0,0,0,.16);}
+.eng-wrap .cw-d{
+  background:none;border:none;border-radius:0;border-left:1px solid var(--hair);
+  padding:11px 10px;text-align:center;gap:5px;align-items:center;}
+.eng-wrap .cw-d:first-child{border-left:none;}
+.eng-wrap .cw-d-l{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--ink-3);line-height:1.2;}
+.eng-wrap .cw-d-l small{font-size:9px;color:var(--ink-3);opacity:.75;}
+.eng-wrap .cw-d-val{font-size:24px;font-weight:700;letter-spacing:-.022em;line-height:1.05;
+  font-variant-numeric:tabular-nums lining-nums;}
+.eng-wrap .cw-d-u{font-size:12px;font-weight:600;color:var(--ink-3);line-height:1;}
+@media(max-width:760px){.eng-wrap .cw-derived{grid-auto-flow:row;grid-template-columns:repeat(3,1fr);}
+  .eng-wrap .cw-d{border-left:1px solid var(--hair);border-top:1px solid var(--hair);}
+  .eng-wrap .cw-d:nth-child(3n+1){border-left:none;}}
+@media(max-width:430px){.eng-wrap .cw-derived{grid-template-columns:repeat(2,1fr);}
+  .eng-wrap .cw-d:nth-child(3n+1){border-left:1px solid var(--hair);}
+  .eng-wrap .cw-d:nth-child(2n+1){border-left:none;}}
+
+/* timers: hairline separation, one button height, no inner radii */
+.eng-wrap .lt-strip{background:rgba(0,0,0,.16);box-shadow:none;overflow:hidden;}
+.eng-wrap .lt-bar{padding:9px var(--pad);border-bottom:1px solid var(--hair);gap:9px;}
+.eng-wrap .lt-bar i{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--ink-3);}
+.eng-wrap .lt-card{border-left:1px solid var(--hair);padding:12px 16px 14px;gap:6px;}
+.eng-wrap .lt-head{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--ink-3);}
+.eng-wrap .lt-time{font-size:26px;font-weight:700;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums lining-nums;}
+.eng-wrap .lt-state{font-size:12px;font-weight:400;color:var(--ink-3);min-height:16px;}
+.eng-wrap .lt-btn{
+  background:rgba(255,255,255,.05);border:1px solid var(--hair-2);border-radius:7px;
+  font-size:12.5px;font-weight:600;min-height:36px;padding:8px 10px;
+  transition:background var(--fast) var(--ease),border-color var(--fast) var(--ease);}
+.eng-wrap .lt-btn:hover{background:rgba(255,255,255,.09);}
+.eng-wrap .lt-btn.primary{background:rgba(42,138,116,.26);border-color:rgba(70,211,154,.32);}
+.eng-wrap .lt-btn.primary:hover{background:rgba(42,138,116,.4);}
+.eng-wrap .lt-btns{min-height:36px;}
+.eng-wrap .lt-relbar{height:4px;border-radius:2px;}
+.eng-wrap .pacu-mod{padding:0;}
+.eng-wrap .pacu-mod-head{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--ink-3);
+  padding:11px var(--pad);margin:0;border-bottom:1px solid var(--hair);}
+.eng-wrap .pacu-mod>.lt-row{padding:0;}
+.eng-wrap .lt-pf label{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--ink-3);}
+.eng-wrap .lt-rec{background:none;border:none;border-radius:0;padding:9px 0 0;
+  font-size:12.5px;font-weight:400;color:var(--ink-3);line-height:1.5;}
+.eng-wrap .lt-rec b{color:var(--ink-2);font-weight:600;}
+.eng-wrap .lt-rec.mild,.eng-wrap .lt-rec.mod,.eng-wrap .lt-rec.sev{
+  background:none;border:none;border-left:2px solid rgba(232,168,56,.7);padding-left:10px;}
+.eng-wrap .lt-rec.sev{border-left-color:rgba(226,90,70,.8);}
+
+/* the disclaimer is a note, not a box */
+.eng-wrap .disclaimer{
+  background:none;border:none;border-left:2px solid rgba(232,168,56,.55);border-radius:0;
+  padding:7px 0 7px 12px;margin:0 0 12px;font-size:12px;font-weight:400;
+  color:var(--ink-3);line-height:1.55;}
+.eng-wrap .disclaimer strong{color:var(--amber,#EFC176);font-weight:600;}
+
+/* empty state joins the language */
+.eng-wrap .empty-state{background:none;border:1px dashed var(--hair-2);border-radius:10px;padding:44px 24px;}
+.eng-wrap .empty-state b{font-size:15px;font-weight:700;color:var(--ink-2);}
+.eng-wrap .empty-state p{font-size:13px;font-weight:400;color:var(--ink-3);}
 
 @media(max-width:640px){
-  #output .rw,#output .note,#output .alert,#output .bul,#output .duo,
-  #output .inline-list,#output .foot,#output .ref-tabs,#output .ref-catrow,
-  #output .ref-head,#output .grp>.grp-h{padding-left:18px;padding-right:18px;}
-  #output .panel:not(.crisis-panel) .panel-head{padding:var(--s3) 18px;}
-  #output .panel:not(.crisis-panel) .panel-title{font-size:17px;}
-  #output .rw-v{font-size:19px;}
-  #output .kpi b{font-size:20px;}
+  .eng-wrap{--pad:16px;padding:12px 12px 56px;}
+  .eng-wrap .cw-title{font-size:18px;}
+  .eng-wrap .cw-acc>summary,.eng-wrap .cw-acc-head{padding:11px 16px 10px;font-size:14px;}
+  .eng-wrap .cw-acc-body{padding:12px 16px 14px;}
+}
+
+@media(prefers-reduced-motion:reduce){
+  #output *,#output *::before,#output *::after{
+    animation-duration:.001ms !important;transition-duration:.001ms !important;}
+}
+@media(max-width:640px){
+  #output{--pad:16px;}
+  #output .panel:not(.crisis-panel) .panel-head{padding:11px 16px 10px;}
+  #output .panel:not(.crisis-panel) .panel-title{font-size:14px;}
+  #output .rw-n{font-size:16px;}
+  #output .rw-v{font-size:20px;}
+  #output .kpi b{font-size:21px;}
+  #output .panel:not(.crisis-panel) .panel-grip,
+  #output .panel:not(.crisis-panel) .panel-resize,
+  #output .panel:not(.crisis-panel) .panel-chev{opacity:.5;}
 }
 </style>
 </head>
@@ -1088,7 +1291,7 @@ function compute(){
     tivaRows +
     note(w0 ? ('Weight-based examples for <b>'+w0+' kg</b>.') : 'Enter a weight for weight-based examples — otherwise per-kg ranges are shown.')+
     '<div class="ref-tabs" id="sed-tabs-inline">'+
-      SED.map(function(s,i){ return '<button type="button" class="ref-tab'+(i===_sedIdx?' on':'')+'" onclick="sedInline('+i+')">'+s[0]+'</button>'; }).join('')+
+      SED.map(function(s,i){ return '<button type="button" class="ref-tab'+(i===_sedIdx?' on':'')+'" data-label="'+s[0]+'" onclick="sedInline('+i+')">'+s[0]+'</button>'; }).join('')+
     '</div>'+
     '<div id="sed-inline-body"></div>';
 
@@ -1221,6 +1424,7 @@ function row(o){
     '<span class="rw-n">'+o.name+'</span>'+
     (o.val!=null&&o.val!==''?'<span class="rw-v">'+o.val+(o.unit?'<u>'+o.unit+'</u>':'')+'</span>':'')+
     (o.sub ?'<span class="rw-s">'+o.sub+'</span>':'')+
+    (o.caution?'<span class="rw-s rw-c">'+o.caution+'</span>':'')+
     (o.warn?'<span class="rw-w">'+o.warn+'</span>':'')+
   '</div>';
 }
@@ -1240,11 +1444,14 @@ function grp(head,body,note){
 function rx(o){
   /* Two warning tiers, per the approved system:
        critical -> its own line with a left rule (rare)
-       caution  -> folded into the muted supporting line (never dropped)
-     No existing caution text is removed; only its visual weight changes. */
+       caution  -> its own muted line under the dosing line (never dropped)
+     Folding the caution into the dosing line produced long run-on sentences
+     that wrapped raggedly; giving it its own muted line keeps every drug to
+     the same three-line rhythm without raising its visual weight. */
   var crit = (o.severity === 'critical');
-  var sub = [o.ind, o.prep, (crit ? null : o.warn)].filter(Boolean).join(' &middot; ');
+  var sub = [o.ind, o.prep].filter(Boolean).join(' &middot; ');
   return row({ id:o.id, name:o.name, val:o.val, unit:o.unit, sub:sub,
+               caution:(crit ? '' : o.warn),
                warn:(crit ? o.warn : ''), hi:o.hi });
 }
 function rxList(cards){ return cards.join(''); }
@@ -1773,7 +1980,7 @@ function tubeTabsHtml(){
   var tabs = '<div class="ref-tabs" id="tube-tabs">'+
     TUBES.map(function(t,i){
       if(_tubeCat!=='all' && t.cat!==_tubeCat) return '';
-      return '<button type="button" class="ref-tab'+(i===_tubeIdx?' on':'')+'" onclick="tubeInline('+i+')">'+t.tab+'</button>';
+      return '<button type="button" class="ref-tab'+(i===_tubeIdx?' on':'')+'" data-label="'+t.tab+'" onclick="tubeInline('+i+')">'+t.tab+'</button>';
     }).join('')+'</div>';
   return cats + tabs;
 }
