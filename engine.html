@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-11"></script>
-<script src="/v2/auth.js?v=2026.08.07-11"></script>
-<script src="/v2/navbar.js?v=2026.08.07-11"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-11"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-11"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-11"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-11"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-11">
+<script src="/v2/supabase.js?v=2026.08.07-12"></script>
+<script src="/v2/auth.js?v=2026.08.07-12"></script>
+<script src="/v2/navbar.js?v=2026.08.07-12"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-12"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-12"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-12"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-12"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-12">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -447,8 +447,8 @@ body.embed .eng-wrap{max-width:100%;}
 #output .panel:not(.crisis-panel) .panel-head:hover{background:rgba(255,255,255,.014);}
 #output .panel:not(.crisis-panel) .panel-title{
   font-size:15px;font-weight:700;line-height:1.2;letter-spacing:.005em;color:var(--ink-2);min-width:0;}
-#output .panel:not(.crisis-panel) .panel-ico{font-size:14px;font-weight:400;line-height:1;
-  opacity:.7;flex:0 0 auto;}
+#output .panel:not(.crisis-panel) .panel-ico{font-size:0;line-height:1;
+  opacity:1;flex:0 0 auto;color:var(--ink-3);}
 #output .panel:not(.crisis-panel) .panel-tag{
   font-size:11px;font-weight:500;letter-spacing:.01em;text-transform:none;
   color:var(--ink-3);background:none;border:none;padding:0;margin-left:auto;flex:0 0 auto;}
@@ -590,6 +590,37 @@ body.embed .eng-wrap{max-width:100%;}
   padding-top:12px;padding-bottom:11px;}
 /* the first domain in a region needs no rule above it */
 #output .stack > .panel:first-child > .panel-head{border-top:none;}
+
+/* The domain title was 15px/700 in the metadata grey while a drug name is
+   17px/700 pure white — the landmark was weaker than the content it
+   introduces, which is why territories read as "grey bar, rows" instead of
+   as places. It becomes a proper editorial label: same size, but full
+   weight, near-white and tracked, so it holds the band. It is still well
+   below the 22px dose, so the answer keeps winning. */
+#output .panel:not(.crisis-panel) .panel-title{
+  font-size:15px;font-weight:800;letter-spacing:.005em;color:var(--ink);}
+#output .panel:not(.crisis-panel) .panel-tag{
+  color:var(--ink-3);font-weight:600;}
+/* the icon is a wayfinding mark, not an illustration */
+#output .panel-ico{display:inline-flex;align-items:center;color:var(--ink-3);
+  opacity:1;font-size:0;margin-right:2px;}
+#output .panel-ico .dom-i{display:block;}
+
+/* ══ CHROME ═════════════════════════════════════════════════════════════
+   Measured: 39 control glyphs — a drag grip, a resize handle and a chevron
+   on all 13 domain headers — permanently competing with clinical text.
+   Reordering and resizing are workspace-tuning features nobody uses while
+   holding a laryngoscope, so they surface on hover and focus instead of
+   sitting on the page. The chevron stays: collapsing a domain is a
+   clinician action. Nothing is removed. */
+#output .panel:not(.crisis-panel) .panel-grip,
+#output .panel:not(.crisis-panel) .panel-resize{
+  opacity:0;transition:opacity var(--fast) var(--ease);}
+#output .panel:not(.crisis-panel):hover .panel-grip,
+#output .panel:not(.crisis-panel):hover .panel-resize,
+#output .panel:not(.crisis-panel) .panel-grip:focus-visible,
+#output .panel:not(.crisis-panel) .panel-resize:focus-visible{opacity:.55;}
+#output .panel:not(.crisis-panel) .panel-chev{opacity:.4;}
 
 /* ══ LEVEL 2 — THE SUBGROUP ═════════════════════════════════════════════
    The label had no leading space, so a group opened flush against the row
@@ -963,8 +994,9 @@ body.embed .eng-wrap{max-width:100%;}
 
 /* ── TYPE ROLES restated over the older readability sweep ─────────────── */
 #output .rw-n,#output .rw-v,#output .kpi b,#output .ref-name,#output .ref-key,
-#output .grp>.grp-h,#output .duo-h,
-#output .panel:not(.crisis-panel) .panel-title{font-weight:700;}
+#output .grp>.grp-h,#output .duo-h{font-weight:700;}
+/* the domain title alone carries the extra weight that makes it a landmark */
+#output .panel:not(.crisis-panel) .panel-title{font-weight:800;}
 #output .rw-s,#output .note,#output .bul li,#output .inline-list,
 #output .warn-chip,#output .foot{font-weight:400;}
 #output .rw-w,#output .alert{font-weight:600;}
@@ -1974,13 +2006,41 @@ var PANEL_DOMAIN = {
   'risk-scores':'scores', 'paediatric':'drugs', 'obstetric':'regional',
   'crisis-center':'emergency'
 };
+
+/* ── DOMAIN ICONS ─────────────────────────────────────────────────────────
+   One monochrome line set replacing thirteen coloured platform emoji.
+   Same 16px box, same 1.6 stroke, same currentColor, so every domain header
+   reads as the same kind of object. Icons orient; they do not decorate. */
+var DOM_ICON = {
+  'drug-references':'M4 9h8M8 5v8M3.2 8a4.8 4.8 0 0 1 9.6 0 4.8 4.8 0 0 1-9.6 0Z',
+  'vasopressors':'M2 8h3l1.5-3.5L9 11.5 10.5 8H14',
+  'tiva-tci-sedation':'M3 4h10M5 4v6a3 3 0 0 0 6 0V4M8 13v1.5',
+  'fluids-blood':'M8 2.5C8 2.5 3.5 7.6 3.5 10a4.5 4.5 0 0 0 9 0C12.5 7.6 8 2.5 8 2.5Z',
+  'monitoring-access':'M1.5 8h3l1.5-4 2.5 8 1.5-4h4.5',
+  'antibiotic-prophylaxis':'M6 2.8 13.2 10a2.5 2.5 0 0 1-3.5 3.5L2.5 6.3a2.5 2.5 0 0 1 3.5-3.5ZM4.2 4.5l7.3 7.3',
+  'regional':'M8 2.5c2.6 0 4.5 1.9 4.5 4.3 0 1.7-.9 2.5-.9 4.2 0 1.4-1.4 2.5-3.6 2.5s-3.6-1.1-3.6-2.5c0-1.7-.9-2.5-.9-4.2C3.5 4.4 5.4 2.5 8 2.5Z',
+  'airway-tubes':'M3 5.5h7a3 3 0 0 1 0 6H6M3 3.5v4M13 8.5h1.5',
+  'airway':'M8 2.5v4M8 6.5c-2 0-3.5 1.3-3.5 3v1.5M8 6.5c2 0 3.5 1.3 3.5 3v1.5M4.5 13.5h7',
+  'blocks-ultrasound':'M2.5 12.5 8 3l5.5 9.5ZM8 6.5v3',
+  'ventilation':'M2 6h7a2 2 0 1 0-2-2M2 9.5h9a2.2 2.2 0 1 1-2.2 2.2',
+  'risk-scores':'M2.5 13.5V7M6.5 13.5V3.5M10.5 13.5V9M14 13.5V5.5',
+  'paediatric':'M8 2.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM4.5 13.5v-2a3.5 3.5 0 0 1 7 0v2',
+  'obstetric':'M8 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM5 13.5c0-3 1.3-4.5 3-4.5s3 1.5 3 4.5'
+};
+function domIcon(pk){
+  var d = DOM_ICON[pk];
+  if(!d) return '';
+  return '<svg class="dom-i" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">'+
+         '<path d="'+d+'" fill="none" stroke="currentColor" stroke-width="1.6" '+
+         'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
 function panel(ico,title,tag,body,cls){
   var pk=panelKey(title);
   var dom=PANEL_DOMAIN[pk]||'drugs';
   return '<div class="panel '+(cls||'')+'" data-pk="'+pk+'" data-domain="'+dom+'">'+
     '<div class="panel-head" role="button" tabindex="0" onclick="togglePanel(this)" onkeydown="if(event.key===\'Enter\'){togglePanel(this);}">'+
       '<span class="panel-grip" data-grip title="Drag to reorder" onclick="event.stopPropagation()">&#8942;&#8942;</span>'+
-      '<span class="panel-ico">'+ico+'</span><span class="panel-title">'+title+'</span>'+
+      '<span class="panel-ico">'+(domIcon(pk)||ico)+'</span><span class="panel-title">'+title+'</span>'+
       (tag?'<span class="panel-tag">'+tag+'</span>':'')+
       '<span class="panel-resize" title="Resize panel" onclick="event.stopPropagation();panelResize(this)">&#9974;</span>'+
       '<span class="panel-chev">&#9660;</span>'+
