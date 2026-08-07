@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-17"></script>
-<script src="/v2/auth.js?v=2026.08.07-17"></script>
-<script src="/v2/navbar.js?v=2026.08.07-17"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-17"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-17"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-17"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-17"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-17">
+<script src="/v2/supabase.js?v=2026.08.07-18"></script>
+<script src="/v2/auth.js?v=2026.08.07-18"></script>
+<script src="/v2/navbar.js?v=2026.08.07-18"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-18"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -796,8 +796,16 @@ body.embed .eng-wrap{max-width:100%;}
   color:var(--ink-2);background:transparent;border:1px solid rgba(255,255,255,.16);
   border-radius:5px;padding:0 15px;min-height:40px;cursor:pointer;}
 .case-confirm .cc-b:hover{color:var(--ink);border-color:rgba(255,255,255,.34);}
-.case-confirm .cc-go{color:#0A0C0C;background:var(--ink-2);border-color:var(--ink-2);}
-.case-confirm .cc-go:hover{background:#fff;border-color:#fff;color:#0A0C0C;}
+/* The confirmation is appended to document.body, which is OUTSIDE the
+   #output / .eng-wrap scopes where --ink-2 is declared. So this rule's
+   var(--ink-2) resolved to nothing: the background became transparent and
+   border-color fell back to the text colour, leaving near-black text on the
+   near-black modal at 1.08:1. Only the hover state was readable, because
+   #fff is a literal. Literal values here, for the same reason. */
+.case-confirm .cc-go{color:#CBF0E7;background:rgba(126,207,192,.15);
+  border-color:rgba(126,207,192,.55);}
+.case-confirm .cc-go:hover{color:#fff;background:rgba(126,207,192,.28);
+  border-color:#7ECFC0;}
 .case-confirm .cc-b:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
 
 /* ══ TIMERS — IMMEDIATE ═════════════════════════════════════════════════
