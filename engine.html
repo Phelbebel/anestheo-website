@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-5"></script>
-<script src="/v2/auth.js?v=2026.08.07-5"></script>
-<script src="/v2/navbar.js?v=2026.08.07-5"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-5"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-5"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-5"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-5"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-5">
+<script src="/v2/supabase.js?v=2026.08.07-6"></script>
+<script src="/v2/auth.js?v=2026.08.07-6"></script>
+<script src="/v2/navbar.js?v=2026.08.07-6"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-6"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-6"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-6"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-6"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-6">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -72,17 +72,17 @@ html,body{background:#0A0C0C;}
 .cw-acc-chev{color:#7ECFC0;font-size:11px;transition:transform .2s ease;flex:0 0 auto;}
 .cw-acc[open] .cw-acc-chev{transform:rotate(90deg);}
 .cw-acc-head{display:flex;align-items:center;gap:11px;padding:13px 16px;font-size:13.5px;font-weight:800;color:#f1fffb;}
-.cw-acc-t{letter-spacing:.01em;flex:0 0 auto;}
+.cw-acc-t{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;flex:0 0 auto;color:var(--ink-3);}
 .cw-acc-sub{margin-left:auto;min-width:0;font-size:12px;font-weight:700;color:#c2d6cf;font-variant-numeric:tabular-nums;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cw-acc-body{padding:2px 16px 16px;}
 .cw-acc-body .input-bar{background:none;border:none;border-radius:0;padding:0;margin:0;}
 /* derived values grid (inside its section) */
 .cw-derived{display:grid;grid-template-columns:repeat(7,1fr);gap:11px;}
 .cw-d{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--border);border-radius:13px;padding:12px 13px;display:flex;flex-direction:column;gap:4px;min-width:0;}
-.cw-d-l{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.cw-d-l{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;white-space:nowrap;color:var(--ink-3);}
 .cw-d-l small{font-weight:700;letter-spacing:0;text-transform:none;color:var(--hint);}
 .cw-d-val{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1;color:#fff;font-variant-numeric:tabular-nums;}
-.cw-d-u{font-size:10px;color:var(--hint);font-weight:600;}
+.cw-d-u{font-size:13.5px;color:var(--ink-2);font-weight:700;}
 .cw-flash{animation:cwValFlash .65s ease;}
 @keyframes cwValFlash{0%{color:#7ECFC0;text-shadow:0 0 16px rgba(126,207,192,.75);}100%{color:#fff;text-shadow:none;}}
 .cw-open-pt{margin-top:16px;background:linear-gradient(135deg,#2A8A74,#1B6B5A);color:#fff;border:none;border-radius:11px;padding:11px 20px;font-family:inherit;font-weight:800;font-size:13.5px;cursor:pointer;box-shadow:0 10px 24px rgba(27,107,90,.34);transition:transform .15s ease,filter .15s ease;}
@@ -104,7 +104,7 @@ body.embed .eng-wrap{padding-top:14px;}
 .lt-strip{background:#06120D;border:1px solid rgba(126,207,192,.2);border-radius:14px;
   box-shadow:inset 0 0 40px rgba(0,0,0,.4);margin-bottom:16px;overflow:hidden;}
 .lt-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.06);}
-.lt-bar i{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(126,207,192,.75);}
+.lt-bar i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;color:rgba(126,207,192,.75);}
 .lt-bar .lt-dot{width:7px;height:7px;border-radius:50%;background:#46d39a;box-shadow:0 0 6px #46d39a;}
 .lt-row{display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .lt-card{flex:1 0 188px;min-width:188px;padding:12px 14px 13px;border-left:1px solid rgba(255,255,255,.06);
@@ -153,12 +153,12 @@ body.embed .eng-wrap{padding-top:14px;}
 /* Collapsed preop labs drawer (off the main rapid screen) */
 /* PACU / Recovery module (separate from intraoperative timers) */
 .pacu-mod{background:#06120D;border:1px solid rgba(126,207,192,.2);border-radius:14px;padding:14px 16px;margin-top:16px;}
-.pacu-mod-head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7ECFC0;margin-bottom:11px;}
+.pacu-mod-head{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;display:flex;align-items:center;gap:8px;color:#7ECFC0;margin-bottom:11px;}
 /* PACU widget */
 .lt-card.pacu{flex:1 0 230px;min-width:230px;}
 .lt-pacu-row{display:flex;gap:6px;}
 .lt-pf{flex:1;display:flex;flex-direction:column;gap:3px;}
-.lt-pf label{font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--hint);}
+.lt-pf label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;color:var(--ink-3);}
 .lt-pf input,.lt-pf select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;
   padding:6px 7px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:34px;width:100%;box-sizing:border-box;appearance:none;-webkit-appearance:none;}
 .lt-pf input:focus,.lt-pf select:focus{border-color:#2A8A74;}
@@ -180,7 +180,7 @@ body.embed .eng-wrap{padding-top:14px;}
 .crisis-tab{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:18px;padding:7px 13px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
 .crisis-tab.on{background:rgba(192,57,43,.22);border-color:rgba(192,57,43,.5);color:#fff;font-weight:600;}
 .crisis-body{padding:6px 0 2px;}
-.crisis-sec-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#ff8a72;margin:16px 0 7px;}
+.crisis-sec-t{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;color:#ff8a72;margin:16px 0 7px;}
 .crisis-step{display:flex;gap:10px;font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.5;padding:5px 0;}
 .crisis-step b{color:#fff;}
 .crisis-num{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:rgba(192,57,43,.25);color:#ff9b86;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
@@ -201,16 +201,16 @@ body.embed .eng-wrap{padding-top:14px;}
 /* Dominant patient summary */
 .sum-primary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .sp-cell{background:rgba(0,0,0,.22);border-radius:10px;padding:11px 12px;text-align:center;}
-.sp-cell i{font-style:normal;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:4px;}
+.sp-cell i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;display:block;margin-bottom:4px;color:var(--ink-3);}
 .sp-cell b{font-size:24px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;line-height:1;}
 .sp-cell b u{font-size:11px;text-decoration:none;color:var(--hint);margin-left:2px;font-family:'DM Sans',sans-serif;}
 .sum-proc{background:rgba(0,0,0,.16);border-radius:9px;padding:9px 12px;margin-top:8px;}
-.sum-proc i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-right:8px;}
+.sum-proc i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;margin-right:8px;color:var(--ink-3);}
 .sum-proc b{font-size:14px;color:#fff;font-weight:600;}
 .sum-more{display:none;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px;}
 .sum-more.open{display:grid;}
 .sm-cell{background:rgba(255,255,255,.04);border-radius:8px;padding:7px 9px;text-align:center;}
-.sm-cell i{font-style:normal;display:block;font-size:9px;text-transform:uppercase;color:var(--hint);margin-bottom:2px;}
+.sm-cell i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;display:block;margin-bottom:2px;color:var(--ink-3);}
 .sm-cell b{font-size:14px;color:#cfe;font-weight:600;}
 .sum-more-btn{margin-top:9px;background:none;border:1px solid var(--border);color:#7ECFC0;border-radius:7px;padding:6px 12px;font-size:11.5px;font-family:inherit;cursor:pointer;}
 .sum-more-btn:hover{background:rgba(255,255,255,.04);}
@@ -224,17 +224,17 @@ body.embed .eng-wrap{padding-top:14px;}
 /* Airway & ventilation at-a-glance grid */
 .av-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:6px;}
 .av-cell{background:rgba(0,0,0,.18);border-radius:8px;padding:8px 9px;text-align:center;}
-.av-cell i{font-style:normal;display:block;font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin-bottom:2px;}
+.av-cell i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;display:block;margin-bottom:2px;color:var(--ink-3);}
 .av-cell b{font-size:16px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}
 .sum-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:9px;margin-bottom:4px;}
 .sum-cell{background:rgba(0,0,0,.18);border-radius:8px;padding:8px 11px;}
-.sum-cell i{font-style:normal;display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin-bottom:2px;}
+.sum-cell i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;display:block;margin-bottom:2px;color:var(--ink-3);}
 .sum-cell b{font-size:15px;color:#fff;font-weight:600;}
 .warn-chip{display:inline-block;font-size:12px;font-weight:600;background:rgba(232,168,56,.14);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:7px;padding:5px 10px;margin:3px 5px 3px 0;}
 .warn-chip.hi{background:rgba(192,57,43,.16);border-color:rgba(192,57,43,.4);color:#ff9b86;}
 .lab-imp{font-size:13px;color:rgba(255,255,255,.85);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);line-height:1.5;}
 .lab-imp b{color:#7ECFC0;}
-.av-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#7ECFC0;margin:14px 0 6px;padding-top:8px;border-top:1px solid rgba(27,107,90,.12);}
+.av-sub{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;color:#7ECFC0;margin:14px 0 6px;padding-top:8px;border-top:1px solid rgba(27,107,90,.12);}
 .av-sub:first-child{margin-top:0;padding-top:0;border-top:none;}
 .input-bar{background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:14px;
   padding:18px 20px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;align-items:end;}
@@ -242,7 +242,7 @@ body.embed .eng-wrap{padding-top:14px;}
 /* Age cell holds value + unit, so it needs ~2 columns and a hard floor so the
    value input never collapses (notably on Windows Chrome at 1280/1440/1920). */
 .inp-age{grid-column:span 2;min-width:172px;}
-.inp label{font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;color:#8FD9C6;}
+.inp label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;color:var(--ink-3);}
 .inp input,.inp select{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;
   padding:10px 11px;color:#fff;font-size:16px;font-family:inherit;outline:none;transition:border-color .2s;min-height:44px;appearance:none;-webkit-appearance:none;width:100%;max-width:100%;box-sizing:border-box;min-width:0;}
 .inp input:focus,.inp select:focus{border-color:#2A8A74;}
@@ -273,7 +273,7 @@ body.embed .eng-wrap{padding-top:14px;}
 .panel-grip:active{cursor:grabbing;}
 .panel-ico{font-size:17px;}
 .panel-title{font-size:14px;font-weight:700;letter-spacing:-.01em;}
-.panel-tag{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin-left:auto;background:rgba(126,207,192,.12);border:1px solid rgba(126,207,192,.2);padding:3px 8px;border-radius:20px;}
+.panel-tag{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;color:#7ECFC0;margin-left:auto;background:rgba(126,207,192,.12);border:1px solid rgba(126,207,192,.2);padding:3px 8px;border-radius:20px;}
 .panel-resize{margin-left:8px;color:rgba(255,255,255,.35);font-size:13px;cursor:pointer;line-height:1;padding:2px;border-radius:5px;transition:color .15s,background .15s;}
 .panel-resize:hover{color:#7ECFC0;background:rgba(126,207,192,.1);}
 .panel.wide .panel-resize{color:#7ECFC0;}
@@ -481,7 +481,7 @@ body.embed .eng-wrap{max-width:100%;}
 #output .rw-v u{font-size:13.5px;font-weight:700;line-height:1;color:var(--ink-2);margin-left:5px;
   text-decoration:none;font-variant-numeric:normal;letter-spacing:.005em;}
 #output .rw-s{flex:1 0 100%;font-size:13px;font-weight:400;color:var(--ink-3);
-  line-height:1.45;letter-spacing:0;}
+  line-height:1.5;letter-spacing:0;}
 #output .rw-s b{color:var(--ink-2);font-weight:600;}
 /* Route: a fixed-position token at the head of every supporting line, so a
    clinician scanning for route lands in the same place on every row. */
@@ -551,10 +551,10 @@ body.embed .eng-wrap{max-width:100%;}
    from rhythm, not from boxes. */
 #output .grp{margin-bottom:var(--s5);}
 #output .grp:last-child{margin-bottom:0;}
-#output .grp-h{
-  font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--ink-3);padding:var(--s4) var(--pad) var(--s2);
-  border-bottom:1px solid var(--hair);margin-bottom:2px;}
+#output .grp-h{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;
+  
+  padding:var(--s4) var(--pad) var(--s2);
+  border-bottom:1px solid var(--hair);margin-bottom:2px;color:var(--ink-3);}
 #output .rw{padding-top:7px;padding-bottom:7px;}
 
 /* ── CLINICAL COMMAND STRIP ───────────────────────────────────────────── */
@@ -598,13 +598,13 @@ body.embed .eng-wrap{max-width:100%;}
 .eng-wrap #acc-patient .cw-acc-body,
 .eng-wrap #acc-derived .cw-acc-body{padding:8px 12px;}
 .eng-wrap #acc-patient .input-bar{padding:0;margin:0;gap:8px;border:none;background:none;}
-.eng-wrap .inp label{font-size:9.5px;letter-spacing:.07em;margin-bottom:2px;}
+.eng-wrap .inp label{margin-bottom:2px;}
 .eng-wrap .inp input,.eng-wrap .inp select{padding:7px 9px;font-size:14px;min-height:36px;}
 .eng-wrap .cw-derived{gap:6px;}
 .eng-wrap .cw-d{padding:6px 9px;gap:1px;border-radius:9px;}
 .eng-wrap .cw-d-l{font-size:9px;letter-spacing:.07em;}
 .eng-wrap .cw-d-v{font-size:19px;line-height:1.1;}
-.eng-wrap .cw-d-u{font-size:9.5px;}
+.eng-wrap .cw-d-u{font-size:11.5px;}
 /* Identity and laboratory results are entered once, if at all: they become a
    quiet pair of toggles rather than two full-width bars. */
 .eng-wrap > details.cw-acc{display:inline-block;width:calc(50% - 4px);vertical-align:top;
@@ -638,7 +638,7 @@ body.embed .eng-wrap{max-width:100%;}
    the label at the same left gutter. Right-aligning wrapping prose produced
    ragged L-shapes and broke the numeric column it sat in. */
 #output .rw.txt{row-gap:3px;}
-#output .rw.txt .rw-v{flex:1 0 100%;font-size:15px;font-weight:600;white-space:normal;
+#output .rw.txt .rw-v{flex:1 0 100%;font-size:15px;font-weight:700;white-space:normal;
   text-align:left;color:var(--ink-2);margin-left:0;max-width:none;
   letter-spacing:0;line-height:1.4;}
 
@@ -657,8 +657,8 @@ body.embed .eng-wrap{max-width:100%;}
 #output .grp{margin-top:var(--s6);}
 #output .grp:first-child{margin-top:var(--s3);}
 #output .grp>.grp-h{
-  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);padding:0 var(--pad) 9px;margin:0;border:none;line-height:1;}
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;
+  color:var(--ink-3);padding:0 var(--pad) 9px;margin:0;border:none;}
 #output .grp-h em{font-style:normal;font-weight:600;letter-spacing:.01em;line-height:1;
   text-transform:none;color:var(--ink-3);opacity:.7;margin-left:9px;font-size:11px;}
 
@@ -669,24 +669,24 @@ body.embed .eng-wrap{max-width:100%;}
 }
 #output .kpi{padding:10px 10px;text-align:center;min-width:0;border-left:1px solid var(--hair);}
 #output .kpi:first-child{border-left:none;}
-#output .kpi i{display:block;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;line-height:1.2;}
+#output .kpi i{display:block;font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:4px;line-height:1.25;}
 #output .panel:not(.crisis-panel) .panel-tag{line-height:1;}
 #output .kpi b{display:block;font-size:24px;font-weight:700;color:var(--ink);
   font-variant-numeric:tabular-nums lining-nums;line-height:1.05;letter-spacing:-.022em;}
-#output .kpi b span{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:3px;
-  line-height:1;font-variant-numeric:normal;letter-spacing:0;}
+#output .kpi b span{font-size:13.5px;font-weight:700;color:var(--ink-2);margin-left:4px;
+  line-height:1.05;font-variant-numeric:normal;letter-spacing:.005em;}
 @media(max-width:640px){#output .kpis{grid-auto-flow:row;grid-template-columns:repeat(2,1fr);}
   #output .kpi{border-left:none;border-top:1px solid var(--hair);}
   #output .kpi:nth-child(even){border-left:1px solid var(--hair);}}
 
 /* ── NOTES / LISTS ────────────────────────────────────────────────────── */
-#output .note{font-size:12.5px;font-weight:400;color:var(--ink-3);line-height:1.5;
+#output .note{font-size:13px;font-weight:400;line-height:1.5;color:var(--ink-3);
   padding:6px var(--pad);letter-spacing:0;}
 #output .note b{color:var(--ink-2);font-weight:600;}
 #output .bul{margin:0;padding:0 var(--pad);}
-#output .bul li{list-style:none;font-size:13px;font-weight:400;color:var(--ink-2);
-  line-height:1.45;padding:5px 0 5px 14px;position:relative;border-bottom:1px solid var(--hair);}
+#output .bul li{font-size:13px;font-weight:400;line-height:1.5;list-style:none;color:var(--ink-2);
+  padding:5px 0 5px 14px;position:relative;border-bottom:1px solid var(--hair);}
 #output .bul li:last-child{border-bottom:none;}
 #output .bul li:before{content:'';position:absolute;left:1px;top:12px;width:3px;height:3px;
   border-radius:50%;background:var(--ink-3);}
@@ -697,18 +697,18 @@ body.embed .eng-wrap{max-width:100%;}
 #output .alert.hi{color:var(--red);border-left-color:rgba(226,90,70,.8);}
 #output .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 26px;padding:0 var(--pad);}
 #output .duo .bul{padding:0;}
-#output .duo-h{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;line-height:1;
+#output .duo-h{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;
   margin-bottom:2px;color:var(--ink-3);}
 @media(max-width:640px){#output .duo{grid-template-columns:1fr;}}
 #output .inline-list{font-size:13px;font-weight:400;color:var(--ink-2);line-height:1.5;
   padding:2px var(--pad) 9px;}
-#output .inline-list span{line-height:1.5;}
+#output .inline-list span{font-size:13px;font-weight:400;line-height:1.5;}
 #output .inline-list span:after{content:' · ';color:var(--ink-3);}
 #output .inline-list span:last-child:after{content:'';}
 
 /* ── TABS — accent is reserved for the active state, and nothing else ─── */
 #output .ref-catrow{display:flex;flex-wrap:wrap;gap:var(--s4);padding:0 var(--pad) 7px;}
-#output .ref-cat{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;line-height:1;
+#output .ref-cat{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;
   background:none;border:none;color:var(--ink-3);padding:6px 0;cursor:pointer;font-family:inherit;
   border-bottom:1.5px solid transparent;min-height:32px;
   transition:color var(--fast) var(--ease),border-color var(--fast) var(--ease);}
@@ -742,7 +742,7 @@ body.embed .eng-wrap{max-width:100%;}
 @media(max-width:1023px){#output .ref-cols{columns:1;}}
 
 /* ── FOOTNOTE ─────────────────────────────────────────────────────────── */
-#output .foot{font-size:12.5px;font-weight:400;color:var(--ink-3);line-height:1.55;
+#output .foot{font-size:13px;font-weight:400;line-height:1.5;color:var(--ink-3);
   margin-top:var(--s3);padding:9px var(--pad) 0;border-top:1px solid var(--hair);letter-spacing:0;}
 #output .foot b,#output .note b{font-weight:600;color:var(--ink-2);font-size:inherit;}
 #output .foot a,#output .note a{color:var(--accent);font-weight:inherit;
@@ -921,8 +921,8 @@ body.embed .eng-wrap{max-width:100%;}
 
 /* input labels join the section-label role — neutral, not accent */
 .eng-wrap .inp label{
-  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);line-height:1;}
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;
+  color:var(--ink-3);}
 .eng-wrap .inp input,.eng-wrap .inp select{
   background:rgba(255,255,255,.045);border:1px solid var(--hair-2);border-radius:7px;
   font-size:15px;font-weight:600;padding:9px 11px;min-height:40px;
