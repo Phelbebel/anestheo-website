@@ -2,7 +2,7 @@
 /* All pages import this. navbar.js injects its own scoped CSS. */
 
 /* The Point — design-system primitive. Every dark composition inherits it. */
-@import url("point.css");
+@import url("point.css?v=2026.08.07-1");
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
