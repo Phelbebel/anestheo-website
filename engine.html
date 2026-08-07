@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-12"></script>
-<script src="/v2/auth.js?v=2026.08.07-12"></script>
-<script src="/v2/navbar.js?v=2026.08.07-12"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-12"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-12"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-12"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-12"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-12">
+<script src="/v2/supabase.js?v=2026.08.07-13"></script>
+<script src="/v2/auth.js?v=2026.08.07-13"></script>
+<script src="/v2/navbar.js?v=2026.08.07-13"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-13"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-13"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-13"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-13"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-13">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -750,6 +750,81 @@ body.embed .eng-wrap{max-width:100%;}
   #app.pt-open > .eng-wrap > details.cw-acc{display:block;}
 }
 @media(min-width:901px){ .pt-sum{display:none;} }   /* desktop keeps the form */
+/* ══ NEW PATIENT ════════════════════════════════════════════════════════
+   A primary case-workflow control, so it sits beside the patient context
+   rather than in a menu. Restrained: it ends a case, it does not advertise
+   itself, and it must not compete with a dose. */
+.pt-new{
+  font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;line-height:1.25;
+  color:var(--ink-3);background:transparent;
+  border:1px solid rgba(255,255,255,.15);border-radius:5px;
+  padding:0 12px;min-height:34px;cursor:pointer;white-space:nowrap;
+  transition:color .14s ease,border-color .14s ease,background .14s ease;}
+.pt-new:hover{color:var(--ink);border-color:rgba(255,255,255,.32);
+  background:rgba(255,255,255,.05);}
+.pt-new:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.pt-new-d{margin-left:auto;}
+.eng-wrap .cw-acc-head{display:flex;align-items:center;gap:10px;}
+@media(max-width:900px){
+  /* the summary line and the case action share one row */
+  .pt-sum{margin-bottom:0;}
+  .pt-new{min-height:44px;margin:0 0 6px;width:100%;   /* full-width touch target */
+    border-top:none;border-radius:0;}
+}
+@media(min-width:901px){ .pt-new-d{min-height:30px;} }
+
+/* ══ NEW PATIENT CONFIRMATION ═══════════════════════════════════════════
+   Normal case workflow, not an administrative purge: one short sentence,
+   two buttons, no typed word, no red panel. */
+.case-confirm{position:fixed;inset:0;z-index:200;display:flex;
+  align-items:center;justify-content:center;padding:20px;
+  background:rgba(4,6,6,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+.case-confirm .cc-box{max-width:420px;width:100%;
+  background:#131616;border:1px solid rgba(255,255,255,.14);
+  padding:20px 22px 18px;}
+.case-confirm .cc-t{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:8px;}
+.case-confirm .cc-p{font-size:13px;font-weight:400;line-height:1.5;color:var(--ink-2);
+  margin-bottom:18px;}
+.case-confirm .cc-a{display:flex;gap:8px;justify-content:flex-end;}
+.case-confirm .cc-b{font:inherit;font-size:12.5px;font-weight:700;
+  color:var(--ink-2);background:transparent;border:1px solid rgba(255,255,255,.16);
+  border-radius:5px;padding:0 15px;min-height:40px;cursor:pointer;}
+.case-confirm .cc-b:hover{color:var(--ink);border-color:rgba(255,255,255,.34);}
+.case-confirm .cc-go{color:#0A0C0C;background:var(--ink-2);border-color:var(--ink-2);}
+.case-confirm .cc-go:hover{background:#fff;border-color:#fff;color:#0A0C0C;}
+.case-confirm .cc-b:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+
+/* ══ TIMERS — IMMEDIATE ═════════════════════════════════════════════════
+   The fold cost a disclosure before every timer action. The four existing
+   case timers are on the page again, compacted into one horizontal strip so
+   starting one is a single interaction. Same timers, same controls, no new
+   timer types, no card. */
+.lt-fold[open] .lt-row{display:flex;gap:0;}
+.lt-fold[open] .lt-card{flex:1 1 0;min-width:0;padding:8px 12px;
+  border-left:1px solid var(--hair);}
+.lt-fold[open] .lt-card:first-child{border-left:none;}
+.lt-fold[open] .lt-head{font-size:10px;margin-bottom:2px;}
+.lt-fold[open] .lt-time{font-size:20px;line-height:1.1;}
+.lt-fold[open] .lt-state{font-size:11px;}
+.lt-fold[open] .lt-btns{margin-top:5px;}
+.lt-fold[open] .lt-btn{min-height:32px;font-size:11.5px;padding:0 10px;}
+@media(max-width:900px){
+  /* One scrollable line, not a grid of cards. Timers must be reachable in a
+     single tap (section 7) without pushing the first dose off the screen
+     (section 11); at 390px a 2-up card grid cost ~195px and did both. */
+  .lt-fold[open] .lt-row{overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;flex-wrap:nowrap;}
+  .lt-fold[open] .lt-row::-webkit-scrollbar{display:none;}
+  .lt-fold[open] .lt-card{flex:0 0 auto;width:132px;padding:6px 10px;}
+  .lt-fold[open] .lt-time{font-size:16px;}
+  .lt-fold[open] .lt-head{font-size:9.5px;}
+  .lt-fold[open] .lt-state{display:none;}          /* the button already says it */
+  .lt-fold[open] .lt-relbar{display:none;}
+  .lt-fold[open] .lt-btns{margin-top:4px;}
+  .lt-fold[open] .lt-btn{min-height:40px;font-size:11px;padding:0 8px;}
+  .lt-fold[open] > summary{padding-top:6px;padding-bottom:6px;}
+}
 /* Timers folded: the summary is the control. */
 .lt-fold>summary{list-style:none;cursor:pointer;}
 .lt-fold>summary::-webkit-details-marker{display:none;}
@@ -1212,10 +1287,14 @@ body.embed .eng-wrap{max-width:100%;}
       <span class="pt-sum-line" id="pt-sum-line">Enter patient details</span>
       <span class="pt-sum-edit">Edit</span>
     </button>
+    <button type="button" class="pt-new" onclick="newCaseAsk()"
+            aria-label="Start a new patient — clears the current case">New patient</button>
 
     <!-- Patient Details — always expanded (drives the calculations) -->
     <section class="cw-acc" id="acc-patient">
-      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span></div>
+      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span>
+        <button type="button" class="pt-new pt-new-d" onclick="newCaseAsk()"
+                aria-label="Start a new patient — clears the current case">New patient</button></div>
       <div class="cw-acc-body"><div class="input-bar">
         <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
           <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
@@ -1258,7 +1337,7 @@ body.embed .eng-wrap{max-width:100%;}
     <!-- Timers are a running-case tool, not a lookup. They cost 180px at the
          very top of the workspace, ahead of every clinical answer. Folded by
          default; the summary keeps them one click away and shows their state. -->
-    <details class="lt-strip lt-fold" id="live-timers">
+    <details class="lt-strip lt-fold" id="live-timers" open>
       <summary class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></summary>
       <div class="lt-row">
         <div class="lt-card" id="lt-anes" data-t="anes">
@@ -1328,6 +1407,12 @@ function saveInputs(){
     var d = { age:ge('i-age').value, ageUnit:(ge('i-age-unit')?ge('i-age-unit').value:'y'),
               sex:ge('i-sex').value, height:ge('i-height').value,
               weight:ge('i-weight').value, asa:ge('i-asa').value, proc:ge('i-proc').value };
+    /* An empty case is not a case. Without this, the compute() that follows
+       New Patient writes a blank record straight back and the key returns —
+       harmless to the clinician, but it leaves stale case state on the
+       device and makes "the case was cleared" untrue. */
+    var any = d.age || d.sex || d.height || d.weight || d.asa || d.proc;
+    if(!any){ localStorage.removeItem(ENG_KEY); return; }
     localStorage.setItem(ENG_KEY, JSON.stringify(d));
   } catch(e){}
 }
@@ -2187,6 +2272,94 @@ window.crisisInline=crisisInline; window.crisisJump=crisisJump;
    Each button jumps to a clinical domain and marks itself active. The active
    state is driven by what is actually on screen, so the strip always answers
    "where am I" without the clinician having to remember what they clicked. */
+
+/* ══ CASE LIFECYCLE ═══════════════════════════════════════════════════════
+   Live Tools is a CASE workspace, not a patient profile. The current case
+   survives an accidental refresh on purpose — losing the patient mid-list
+   would be worse than the alternative — but it must end deliberately.
+
+   CASE state (cleared by New Patient)
+     localStorage 'anestheo-engine-inputs'  age, ageUnit, sex, height,
+                                            weight, ASA, procedure
+     localStorage 'anestheo-live-timers'    four case timers + PACU scores
+     in-DOM only                            identity (first/last/ID) and the
+                                            laboratory values, which were
+                                            never persisted but do survive
+                                            inside a session
+     in-memory                              the timer module's own state
+
+   USER state (never touched by New Patient)
+     'eng_panels_order_v2' / '_collapsed_v2' / '_wide_v2'  workspace layout
+     'anestheo_clin_recent'                                search history
+     everything belonging to other pages and to the account
+   The boundary is simple: does it describe THIS PATIENT, or how this
+   clinician likes their workstation? */
+var CASE_KEYS = ['anestheo-engine-inputs','anestheo-live-timers'];
+var CASE_FIELDS = ['i-age','i-sex','i-height','i-weight','i-asa','i-proc',
+                   'i-fname','i-lname','i-pid','i-hb','i-plt','i-inr','i-na','i-cr'];
+
+function caseHasData(){
+  var any = CASE_FIELDS.some(function(id){ var e=ge(id); return e && e.value !== ''; });
+  if(any) return true;
+  return !!(window.ltAnyRunning && window.ltAnyRunning());
+}
+window.caseHasData = caseHasData;
+
+function newCase(){
+  /* 1. stop the clock first, so nothing can write state back underneath us */
+  if(window.ltResetAll) window.ltResetAll();
+  /* 2. remove persisted case state — and only case state */
+  CASE_KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+  /* 3. clear every field that describes this patient */
+  CASE_FIELDS.forEach(function(id){
+    var e=ge(id); if(!e) return;
+    e.value = '';
+    if(e.tagName==='SELECT') e.selectedIndex = 0;
+  });
+  var au=ge('i-age-unit'); if(au) au.value='y';
+  /* 4. recompute, so no figure derived from the previous patient survives
+        on screen. compute() re-renders every module from empty inputs. */
+  if(window.compute) window.compute();
+  if(window.ptSummary) window.ptSummary();
+  /* 5. leave the workspace open on the patient controls */
+  var app=document.getElementById('app');
+  if(app && window.matchMedia('(max-width:900px)').matches) app.classList.add('pt-open');
+  var f=ge('i-age'); if(f) try{ f.focus(); }catch(e){}
+}
+window.newCase = newCase;
+
+/* Fast, but not accidental. Only asks when there is something to lose. */
+function newCaseAsk(){
+  if(!caseHasData()){ newCase(); return; }
+  var running = !!(window.ltAnyRunning && window.ltAnyRunning());
+  var el = document.getElementById('case-confirm');
+  if(el) el.remove();
+  var d = document.createElement('div');
+  d.id = 'case-confirm'; d.className = 'case-confirm';
+  d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true');
+  d.setAttribute('aria-labelledby','case-confirm-t');
+  d.innerHTML =
+    '<div class="cc-box">'+
+      '<div class="cc-t" id="case-confirm-t">Start a new patient?</div>'+
+      '<p class="cc-p">This clears the current patient information and every '+
+        'calculated value'+(running?', and stops and resets the active case timers':'')+'.</p>'+
+      '<div class="cc-a">'+
+        '<button type="button" class="cc-b" onclick="caseConfirmClose()">Cancel</button>'+
+        '<button type="button" class="cc-b cc-go" onclick="caseConfirmClose();newCase();">Start new patient</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(d);
+  d.addEventListener('click', function(e){ if(e.target===d) caseConfirmClose(); });
+  document.addEventListener('keydown', caseConfirmEsc);
+  var go=d.querySelector('.cc-go'); if(go) go.focus();
+}
+function caseConfirmEsc(e){ if(e.key==='Escape') caseConfirmClose(); }
+function caseConfirmClose(){
+  var el=document.getElementById('case-confirm'); if(el) el.remove();
+  document.removeEventListener('keydown', caseConfirmEsc);
+}
+window.newCaseAsk=newCaseAsk; window.caseConfirmClose=caseConfirmClose;
+
 function isPhone(){ return window.matchMedia('(max-width:900px)').matches; }
 
 /* ── MOBILE PATIENT CONTEXT ───────────────────────────────────────────────
@@ -2993,6 +3166,23 @@ function cwClearDerived(){
   }
   function stop(k){ if(st[k].running){ st[k].acc = elapsed(k); st[k].running = false; st[k].startedAt = 0; save(); renderBtns(k); tick(); } }
   function reset(k){ st[k] = blank(); save(); renderBtns(k); tick(); }
+  /* A total reset for New Patient. It must clear the IN-MEMORY state as well
+     as storage: save() is called from start/stop/reset, so a surviving
+     running:true in `st` would write the previous patient's timer straight
+     back after the storage key was removed. */
+  function resetAllTimers(){
+    KEYS.forEach(function(k){ st[k] = blank(); });
+    st.pacu = { pain:'', nausea:'', sed:'' };
+    try { localStorage.removeItem(LT_KEY); } catch(e){}
+    ['lt-pain','lt-nausea','lt-sed'].forEach(function(id){ var e=g(id); if(e) e.value=''; });
+    KEYS.forEach(function(k){ renderBtns(k); });
+    tick();
+    var rec=g('lt-rec'); if(rec) rec.textContent='Enter scores for an educational suggestion.';
+  }
+  window.ltResetAll = resetAllTimers;
+  window.ltAnyRunning = function(){
+    return KEYS.some(function(k){ return st[k].running || elapsed(k)>0; });
+  };
   window.ltStart = start; window.ltStop = stop; window.ltReset = reset;
 
   function btn(cls,label,fn){ return '<button class="lt-btn '+cls+'" onclick="'+fn+'">'+label+'</button>'; }
