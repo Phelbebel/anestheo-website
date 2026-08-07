@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-4"></script>
-<script src="/v2/auth.js?v=2026.08.07-4"></script>
-<script src="/v2/navbar.js?v=2026.08.07-4"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-4"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-4"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-4"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-4"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-4">
+<script src="/v2/supabase.js?v=2026.08.07-5"></script>
+<script src="/v2/auth.js?v=2026.08.07-5"></script>
+<script src="/v2/navbar.js?v=2026.08.07-5"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-5"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-5"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-5"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-5"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-5">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -380,24 +380,28 @@ body.embed .eng-wrap{max-width:100%;}
    order does not, and it never splits. This is deterministic, not masonry:
    there is no reflow on interaction, because opening a disclosure changes
    only that column's flow below the module, never the column assignment. */
-#output .panels{
-  display:block;
-  column-count:3;column-gap:6px;
-  orphans:1;widows:1;
-}
-#output .panels > .panel{
-  break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
-  margin:0 0 6px;display:block;width:100%;
-}
-/* A module that must not be narrowed spans the full width by leaving the
-   column flow entirely. */
-#output .panel.sp12,#output .panel.full{
-  column-span:all;margin-bottom:6px;}
-@media(max-width:1279px){ #output .panels{column-count:2;} }
+#output .panels{display:flex;align-items:flex-start;gap:0;}
+/* Two clinical regions, each flowing independently down its own stack.
+   A module begins immediately under the module above it in ITS column and
+   knows nothing about the height of the module beside it, so a tall Regional
+   can never open a hole under Induction. Placement is explicit — each module
+   is written into a named stack — so a module's position is a property of
+   the clinical model, not of how tall its neighbours happen to render.
+   That is the difference from the column-count flow this replaces, which
+   fixed the dead space but let position drift with content height. */
+#output .stack{flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+/* the two regions meet on a hairline, not across a canyon */
+#output .stack + .stack{border-left:1px solid var(--hair);}
+#output .stack > .panel{margin:0;width:100%;}
+/* Crisis Center spans both regions beneath them. */
+#output .panels-wide{margin-top:0;}
+#output .panels-wide > .panel{width:100%;margin:0;}
+/* A half-width stack cannot carry a two-column reference interior. */
+#output .stack .ref-cols{columns:1;column-count:1;}
 @media(max-width:900px){
-  /* one deliberate clinical stream */
-  #output .panels{column-count:1;column-gap:0;}
-  #output .panels > .panel{margin-bottom:8px;}
+  /* one deliberate clinical stream: the stacks concatenate */
+  #output .panels{flex-direction:column;}
+  #output .stack + .stack{border-left:none;}
 }
 
 /* ── PANE ───────────────────────────────────────────────────────────────
@@ -522,11 +526,22 @@ body.embed .eng-wrap{max-width:100%;}
 .eng-wrap .lt-bar i,.eng-wrap .pacu-mod-head{color:var(--ink-3);}
 .eng-wrap .lt-time{color:var(--ink);}
 .eng-wrap .lt-state{color:var(--ink-3);}
-/* the module surface: one step above the page, no gradient, no glass */
+/* ══ ONE CONTINUOUS SURFACE ═════════════════════════════════════════════
+   A clinical domain is a REGION of the workspace, not a card that could be
+   picked up and moved elsewhere. So: no radius, no drop shadow, no glass,
+   no per-module outline. Domains are told apart by a hairline rule and a
+   strong header, the same way the pharmacologic groups inside them are —
+   one separation language for the whole instrument. */
 #output .panel:not(.crisis-panel){
   background:rgba(255,255,255,.026) !important;
-  border:1px solid var(--hair) !important;
-  box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;}
+  border:none !important;border-radius:0 !important;
+  border-bottom:1px solid var(--hair) !important;
+  box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  margin:0 !important;}
+#output .stack > .panel:last-child{border-bottom:none !important;}
+/* the domain header is what announces a new region */
+#output .panel:not(.crisis-panel) > .panel-head{
+  border-bottom:1px solid var(--hair-2);background:rgba(255,255,255,.018);}
 #output .panel-title{color:var(--ink);}
 #output .panel-tag{color:var(--ink-3);}
 
@@ -1670,21 +1685,47 @@ function compute(){
      pushing every common drug ~600px down. Emergency access is now global
      (the command strip's Emergency button and the "/" search), so the module
      sits where it reads naturally while staying one click from anywhere. */
+  /* ── CLINICAL GEOGRAPHY ────────────────────────────────────────────────
+     Two fixed regions. A module's column is a decision about what kind of
+     content it is, never a consequence of how tall its neighbour rendered,
+     so the workspace looks the same tomorrow as it does today.
+
+       LEFT   what goes into the patient: induction, relaxant, opioid and
+              reversal (the four groups inside Drug references), then the
+              vasoactive infusions, the TIVA/TCI infusions beside them,
+              then fluids and blood.
+       RIGHT  how the case is conducted: regional, the airway devices,
+              airway assessment, blocks, prophylaxis, ventilation, scores.
+
+     TCI sits on the left with the other infusions rather than in the
+     right-hand reference stack: it is a running pharmacological infusion,
+     it belongs beside the vasopressor infusions clinically, and putting it
+     there also keeps the two regions close enough in height that neither
+     ends in a long tail of empty workspace. Induction stays upper-left,
+     Regional upper-right, Airway directly under Regional, and the
+     vasoactive drugs keep a fixed place under Drug references. */
   out.innerHTML='<div class="panels">'+
-    panel('&#128138;','Drug references','Weight-based',drugRows,'sp6')+
-    panel('&#129504;','Regional','Neuraxial &amp; LA',neuraxialRows+laRows,'sp6')+
-    panel('&#128736;','Airway tubes','Reference',tubesBody,'sp12')+
-    panel('&#128137;','Vasopressors','Infusions &amp; boluses',pressorRows,'sp4')+
-    panel('&#129656;','Fluids &amp; blood',isPeds?'Paediatric':'Adult',fluidsBloodBody,'sp4')+
-    panel('&#128246;','Blocks &amp; ultrasound','Quick reference',blockBody,'sp4')+
-    panel('&#128137;','Antibiotic prophylaxis','Under review',abxBody,'sp4')+
-    panel('&#129728;','Airway',isPeds?'Paediatric':'Adult',airwayBody,'sp6')+
-    panel('&#128225;','Monitoring &amp; access','Standards',monBody,'sp6')+
-    panel('&#127788;','Ventilation','PBW-based',ventBody,'sp6 compact')+
-    panel('&#128202;','Risk &amp; scores','Auto',riskScoresBody,'sp6')+
-    (isOb  ? panel('&#128118;','Obstetric','Reference',obHtml,'sp6 compact') : '')+
-    (isPeds? panel('&#129490;','Paediatric','Weight-based',pedHtml,'sp6 compact') : '')+
-    panel('&#128138;','TIVA / TCI &amp; sedation','Reference',sedBody,'sed-panel sp12')+
+    '<div class="stack" id="stack-drugs">'+
+      panel('&#128138;','Drug references','Weight-based',drugRows,'')+
+      panel('&#128137;','Vasopressors','Infusions &amp; boluses',pressorRows,'')+
+      panel('&#128138;','TIVA / TCI &amp; sedation','Reference',sedBody,'sed-panel')+
+      panel('&#129656;','Fluids &amp; blood',isPeds?'Paediatric':'Adult',fluidsBloodBody,'')+
+      /* access sits with what runs through it; prophylaxis is a drug */
+      panel('&#128225;','Monitoring &amp; access','Standards',monBody,'')+
+      panel('&#128137;','Antibiotic prophylaxis','Under review',abxBody,'')+
+      (isPeds? panel('&#129490;','Paediatric','Weight-based',pedHtml,'compact') : '')+
+    '</div>'+
+    '<div class="stack" id="stack-technique">'+
+      panel('&#129504;','Regional','Neuraxial &amp; LA',neuraxialRows+laRows,'')+
+      panel('&#128736;','Airway tubes','Reference',tubesBody,'')+
+      panel('&#129728;','Airway',isPeds?'Paediatric':'Adult',airwayBody,'')+
+      panel('&#128246;','Blocks &amp; ultrasound','Quick reference',blockBody,'')+
+      panel('&#127788;','Ventilation','PBW-based',ventBody,'compact')+
+      panel('&#128202;','Risk &amp; scores','Auto',riskScoresBody,'')+
+      (isOb  ? panel('&#128118;','Obstetric','Reference',obHtml,'compact') : '')+
+    '</div>'+
+  '</div>'+
+  '<div class="panels-wide">'+
     panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
   /* balanceRows() belonged to the 12-column row grid: it padded a short row
