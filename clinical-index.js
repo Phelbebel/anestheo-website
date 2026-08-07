@@ -500,7 +500,7 @@ var ITEMS = [
     aliases:['right dlt','right double lumen','right sided dlt'],
     summary:'Only when the left main bronchus is unusable', module:'airway-tubes', tube:9 },
   { id:'tube.lma-classic', kind:'device', name:'LMA Classic', cat:'Airway and tubes',
-    aliases:['lma','laryngeal mask','lma classic','supraglottic'],
+    aliases:['lma','laryngeal mask','lma classic','supraglottic','supraglottic airway','sga'],
     summary:'First generation · cuff ≤ 60 cmH₂O', module:'airway-tubes', tube:10 },
   { id:'tube.lma-supreme', kind:'device', name:'LMA Supreme', cat:'Airway and tubes',
     aliases:['lma supreme','supreme'],
@@ -557,6 +557,17 @@ var ITEMS = [
     aliases:['ebv','blood volume','estimated blood volume'], summary:'mL, by age band', module:'fluids-blood' },
   { id:'calc.mabl', kind:'calculator', name:'Maximum allowable blood loss', cat:'Fluids and blood',
     aliases:['mabl','allowable blood loss','maximum blood loss'], summary:'To Hct 30 and Hct 25', module:'fluids-blood' },
+  /* Search alias only. This points at the "Massive haemorrhage" group that
+     Fluids & blood already renders; no protocol, target or dose is defined
+     here. It exists because a clinician types "massive bleeding", "MTP" or
+     "haemorrhage" — and every one of those returned nothing. */
+  { id:'ref.massive-haemorrhage', kind:'protocol', name:'Massive haemorrhage', cat:'Fluids and blood',
+    aliases:['massive haemorrhage','massive hemorrhage','massive bleeding','major bleeding',
+             'major haemorrhage','major hemorrhage','haemorrhage','hemorrhage','bleeding',
+             'mtp','massive transfusion','massive transfusion protocol','transfusion',
+             'transfusion protocol','1:1:1','ratio transfusion'],
+    summary:'Ratio, tranexamic acid, calcium, fibrinogen and platelet targets',
+    module:'fluids-blood', priority:2 },
   { id:'calc.mac', kind:'calculator', name:'MAC age adjustment', cat:'Calculators',
     aliases:['mac','minimum alveolar concentration','mac age'], summary:'Relative to a 40-year-old', module:'derived' },
   { id:'calc.pbw', kind:'calculator', name:'Predicted body weight', cat:'Ventilation',
