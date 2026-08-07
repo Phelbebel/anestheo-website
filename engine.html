@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-8"></script>
-<script src="/v2/auth.js?v=2026.08.07-8"></script>
-<script src="/v2/navbar.js?v=2026.08.07-8"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-8"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-8"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-8"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-8"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-8">
+<script src="/v2/supabase.js?v=2026.08.07-9"></script>
+<script src="/v2/auth.js?v=2026.08.07-9"></script>
+<script src="/v2/navbar.js?v=2026.08.07-9"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-9"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-9"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-9"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-9"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-9">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -502,8 +502,16 @@ body.embed .eng-wrap{max-width:100%;}
    It is still smaller than the number, because the number is the answer,
    but it now sits in the bright neutral metadata ink at a weight that
    survives mcg/kg/min at a glance. */
-#output .rw-v u{font-size:13.5px;font-weight:700;line-height:1;color:var(--ink-2);margin-left:5px;
-  text-decoration:none;font-variant-numeric:normal;letter-spacing:.005em;}
+/* THE DOSE COLUMN.
+   The unit used to be appended inline, so every row ended at a different x:
+   "123–205 mg", "1.6–3.3 mg" and "0.2–0.7 mcg/kg/h" put their NUMBERS at
+   three different places and the eye had to re-find the figure on each line.
+   Giving the unit a fixed slot lets the numbers land on one right edge, so a
+   group of drugs reads as a vertical column of answers. Long units simply
+   overflow their slot rather than dragging the number out of line. */
+#output .rw-v u{font-size:13.5px;font-weight:700;line-height:1;color:var(--ink-2);
+  margin-left:5px;text-decoration:none;font-variant-numeric:normal;letter-spacing:.005em;
+  display:inline-block;min-width:4.5em;text-align:left;}
 #output .rw-s{flex:1 0 100%;font-size:13px;font-weight:400;color:var(--ink-3);
   line-height:1.5;letter-spacing:0;}
 #output .rw-s b{color:var(--ink-2);font-weight:600;}
@@ -526,7 +534,7 @@ body.embed .eng-wrap{max-width:100%;}
 #output .rw-more[open]>summary::after{content:' \25BE';}
 #output .rw-more>summary:hover{opacity:1;background:rgba(255,255,255,.06);}
 #output .rw-more[open]>summary{opacity:.9;}
-#output .rw-more[open]{flex:1 0 100%;margin-left:0;margin-top:2px;}
+#output .rw-more[open]{display:block;margin-left:0;margin-top:2px;}
 #output .rw-more .rw-txt{
   display:block;color:var(--ink-3);opacity:.86;font-size:13px;
   line-height:1.45;padding-top:3px;}
@@ -910,8 +918,13 @@ body.embed .eng-wrap{max-width:100%;}
   padding:2px 6px 2px 5px;
   background:repeating-linear-gradient(-45deg,
     rgba(95,224,164,.20) 0 2px, rgba(255,255,255,.10) 2px 7px);}
-#output .rw-s{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:0;row-gap:3px;}
-#output .rw-s > .rw-txt{flex:1 1 auto;min-width:0;}
+/* The caution marker flows with the meta text instead of being a flex
+   sibling of it. As a sibling it was pushed onto a line of its own whenever
+   the meta wrapped — which on a phone was every drug — so a folded Level 3
+   still cost a full line. Inline, it ends the sentence it belongs to. */
+#output .rw-s{display:block;}
+#output .rw-s > .rw-txt{display:inline;}
+#output .rw-more{display:inline-block;vertical-align:baseline;}
 
 /* a critical warning no longer owns the left edge, so it announces itself */
 #output .rw-w:before{content:'\26A0';margin-right:7px;font-weight:700;}
