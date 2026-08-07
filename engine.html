@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-2"></script>
-<script src="/v2/auth.js?v=2026.08.07-2"></script>
-<script src="/v2/navbar.js?v=2026.08.07-2"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-2"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-2"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-2"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-2"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-2">
+<script src="/v2/supabase.js?v=2026.08.07-3"></script>
+<script src="/v2/auth.js?v=2026.08.07-3"></script>
+<script src="/v2/navbar.js?v=2026.08.07-3"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-3"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-3"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-3"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-3"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-3">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -479,11 +479,72 @@ body.embed .eng-wrap{max-width:100%;}
 #output .rw-more[open]>summary::after{content:' \25BE';}
 #output .rw-more>summary:hover{opacity:1;background:rgba(255,255,255,.06);}
 #output .rw-more[open]>summary{opacity:.9;}
-#output .rw-more[open]{flex:1 0 100%;margin-left:0;}
+#output .rw-more[open]{flex:1 0 100%;margin-left:0;margin-top:2px;}
 #output .rw-more .rw-txt{
   display:block;color:var(--ink-3);opacity:.86;font-size:13px;
   line-height:1.45;padding-top:3px;}
 #output .rw-c{color:var(--ink-3);opacity:.82;}
+
+/* ── CLINICAL COMMAND STRIP ───────────────────────────────────────────── */
+.cmd{position:sticky;top:0;z-index:40;margin:0 0 10px;
+  background:rgba(9,12,11,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(255,255,255,.09);}
+.cmd-in{display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;padding:7px 0;}
+.cmd-in::-webkit-scrollbar{display:none;}
+.cmd-b{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.01em;
+  color:#B9CEC7;background:transparent;border:1px solid transparent;border-radius:7px;
+  padding:7px 11px;min-height:34px;cursor:pointer;text-decoration:none;white-space:nowrap;
+  transition:color .14s ease,background .14s ease,border-color .14s ease;}
+.cmd-b:hover{color:#fff;background:rgba(255,255,255,.07);}
+.cmd-b:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.cmd-b.on{color:#0A1A15;background:#7ECFC0;border-color:#7ECFC0;}
+.cmd-find{margin-left:auto;color:#8FA8A1;}
+.cmd-find kbd{font:inherit;font-size:10.5px;font-weight:700;color:#7f948e;
+  border:1px solid rgba(255,255,255,.18);border-radius:4px;padding:1px 5px;}
+/* Emergency is the one permanently loud control on the workspace. */
+.cmd-sos{color:#FF8E76;border-color:rgba(226,90,70,.5);background:rgba(226,90,70,.13);}
+.cmd-sos:hover{color:#fff;background:rgba(226,90,70,.9);border-color:rgba(226,90,70,.9);}
+@media(max-width:900px){
+  .cmd-in{padding:6px 0;}
+  .cmd-b{font-size:12px;padding:8px 10px;min-height:40px;}   /* touch target */
+  .cmd-find{margin-left:0;}
+}
+/* ── COMPACT WORKSTATION HEADER ───────────────────────────────────────────
+   The context a calculation needs — six inputs and seven derived values —
+   compressed into a dense instrument bar. Previously these carried section
+   headings and card padding sized for a landing page and cost 242px between
+   them. Nothing is removed and no control gets smaller than a comfortable
+   touch target; the packaging around them does the shrinking. */
+.eng-wrap #acc-patient .cw-acc-head,
+.eng-wrap #acc-derived .cw-acc-head{display:none;}      /* the fields say it */
+.eng-wrap #acc-patient,.eng-wrap #acc-derived{margin-bottom:6px;}
+.eng-wrap #acc-patient .cw-acc-body,
+.eng-wrap #acc-derived .cw-acc-body{padding:8px 12px;}
+.eng-wrap #acc-patient .input-bar{padding:0;margin:0;gap:8px;border:none;background:none;}
+.eng-wrap .inp label{font-size:9.5px;letter-spacing:.07em;margin-bottom:2px;}
+.eng-wrap .inp input,.eng-wrap .inp select{padding:7px 9px;font-size:14px;min-height:36px;}
+.eng-wrap .cw-derived{gap:6px;}
+.eng-wrap .cw-d{padding:6px 9px;gap:1px;border-radius:9px;}
+.eng-wrap .cw-d-l{font-size:9px;letter-spacing:.07em;}
+.eng-wrap .cw-d-v{font-size:19px;line-height:1.1;}
+.eng-wrap .cw-d-u{font-size:9.5px;}
+/* Identity and laboratory results are entered once, if at all: they become a
+   quiet pair of toggles rather than two full-width bars. */
+.eng-wrap > details.cw-acc{display:inline-block;width:calc(50% - 4px);vertical-align:top;
+  margin:0 0 6px;}
+.eng-wrap > details.cw-acc:first-of-type{margin-right:6px;}
+.eng-wrap > details.cw-acc > summary{padding:7px 12px;font-size:11.5px;}
+.eng-wrap > details.cw-acc[open]{display:block;width:100%;}
+@media(max-width:640px){
+  .eng-wrap > details.cw-acc{display:block;width:100%;margin-right:0;}
+}
+/* Timers folded: the summary is the control. */
+.lt-fold>summary{list-style:none;cursor:pointer;}
+.lt-fold>summary::-webkit-details-marker{display:none;}
+.lt-fold>summary::after{content:'\25B8';margin-left:auto;color:rgba(255,255,255,.45);font-size:11px;}
+.lt-fold[open]>summary::after{content:'\25BE';}
 
 /* LEVEL 3 at module scale — the teaching layer of a reference module. */
 #output .ref-more{margin-top:var(--s3);}
@@ -876,23 +937,29 @@ body.embed .eng-wrap{max-width:100%;}
 <div id="nb-placeholder"></div>
 <div id="app" class="lit">
   <div class="eng-wrap">
-    <div class="cw-hero">
-      <!-- Row 1: title + subtitle -->
-      <div class="cw-hero-row cw-hero-r1">
-        <div class="cw-hero-id">
-          <h1 class="cw-title">Anesthesia Workstation</h1>
-          <p class="cw-sub">One workspace. Every calculation. Instantly updated.</p>
-        </div>
+    <!-- ── CLINICAL COMMAND STRIP ───────────────────────────────────────
+         The workstation's global navigation. It replaces the marketing hero
+         that used to occupy the top of the page: a clinician arriving mid-case
+         needs to know WHERE THE DOMAINS ARE, not what the product is called.
+         Sticky, so the domains stay reachable from anywhere in the document
+         instead of requiring a scroll back to the top. Emergency is a
+         permanent member, which is what lets the Crisis Center module sit in
+         its natural place in the flow rather than ahead of the drugs. -->
+    <nav class="cmd" id="cmd-strip" aria-label="Clinical domains">
+      <div class="cmd-in">
+        <a class="cmd-b" href="#/drugs"     data-jump="drug-references">Drugs</a>
+        <a class="cmd-b" href="#/infusions" data-jump="vasopressors">Infusions</a>
+        <a class="cmd-b" href="#/airway"    data-jump="airway-tubes">Airway</a>
+        <a class="cmd-b" href="#/regional"  data-jump="regional">Regional</a>
+        <a class="cmd-b" href="#/bleeding"  data-jump="fluids-blood">Bleeding</a>
+        <a class="cmd-b" href="#/monitor"   data-jump="monitoring-access">Monitor &amp; vent</a>
+        <a class="cmd-b" href="#/scores"    data-jump="risk-scores">Scores</a>
+        <button class="cmd-b cmd-find" type="button" onclick="if(window.ClinicalSearch)window.ClinicalSearch.open('')"
+                aria-label="Search all clinical content"><span>Search</span><kbd>/</kbd></button>
+        <button class="cmd-b cmd-sos" type="button" onclick="crisisJump()"
+                aria-label="Open the Crisis Center emergency protocols">Emergency</button>
       </div>
-      <!-- Row 2: Workstation Ready (left) | Crisis Center (right) -->
-      <div class="cw-hero-row cw-hero-r2">
-        <span class="cw-ready"><span class="dot"></span>Workstation Ready</span>
-        <button class="cw-crisis" onclick="crisisJump()" aria-label="Open Crisis Center">
-          <span class="cw-crisis-ic">&#128680;</span>
-          <span class="cw-crisis-tx"><b>Crisis Center</b><i>Immediate emergency protocols</i></span>
-        </button>
-      </div>
-    </div>
+    </nav>
 
     <!-- Patient Identity — collapsible, collapsed by default (does not affect any calculation) -->
     <details class="cw-acc">
@@ -946,8 +1013,11 @@ body.embed .eng-wrap{max-width:100%;}
     </section>
 
     <!-- ── LIVE TIMERS (intraoperative workflow) — below Derived Values ── -->
-    <div class="lt-strip" id="live-timers">
-      <div class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></div>
+    <!-- Timers are a running-case tool, not a lookup. They cost 180px at the
+         very top of the workspace, ahead of every clinical answer. Folded by
+         default; the summary keeps them one click away and shows their state. -->
+    <details class="lt-strip lt-fold" id="live-timers">
+      <summary class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></summary>
       <div class="lt-row">
         <div class="lt-card" id="lt-anes" data-t="anes">
           <div class="lt-head"><span class="lt-ico">&#129764;</span>Anesthesia</div>
@@ -975,9 +1045,7 @@ body.embed .eng-wrap{max-width:100%;}
           <div class="lt-btns" id="lt-tourn-btns"></div>
         </div>
       </div>
-    </div>
-
-    <div class="disclaimer"><strong>Reference only.</strong> All values are standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment and verify against current guidelines and product labeling.</div>
+    </details>
 
     <div id="output">
       <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
@@ -1002,6 +1070,11 @@ body.embed .eng-wrap{max-width:100%;}
       </div>
       <div class="lt-rec" id="lt-rec">Enter scores for an educational suggestion.</div>
     </div>
+
+    <!-- The safety statement is unchanged in wording. It moved from ahead of
+         the first clinical answer to the end of the workspace, where a
+         standing disclaimer belongs; it is not a thing to read mid-case. -->
+    <div class="disclaimer"><strong>Reference only.</strong> All values are standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment and verify against current guidelines and product labeling.</div>
   </div>
 </div>
 <script>
@@ -1517,8 +1590,13 @@ function compute(){
      down — 9.7 screens — which is the wrong end of the page for the only
      content that is read under time pressure. It keeps its own visual
      language and spans the full width; it is simply no longer last. */
+  /* Drugs lead: they are the most frequently reached content in a case.
+     The Crisis Center is no longer hoisted above them — putting the whole
+     emergency module first bought emergency findability at the cost of
+     pushing every common drug ~600px down. Emergency access is now global
+     (the command strip's Emergency button and the "/" search), so the module
+     sits where it reads naturally while staying one click from anywhere. */
   out.innerHTML='<div class="panels">'+
-    panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
     panel('&#128138;','Drug references','Weight-based',drugRows,'sp6')+
     panel('&#129504;','Regional','Neuraxial &amp; LA',neuraxialRows+laRows,'sp6')+
     panel('&#128736;','Airway tubes','Reference',tubesBody,'sp12')+
@@ -1533,6 +1611,7 @@ function compute(){
     (isOb  ? panel('&#128118;','Obstetric','Reference',obHtml,'sp6 compact') : '')+
     (isPeds? panel('&#129490;','Paediatric','Weight-based',pedHtml,'sp6 compact') : '')+
     panel('&#128138;','TIVA / TCI &amp; sedation','Reference',sedBody,'sed-panel sp12')+
+    panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
   /* balanceRows() belonged to the 12-column row grid: it padded a short row
      so it would not end with an empty column. Column flow has no row tracks
@@ -1541,6 +1620,7 @@ function compute(){
   sedInline(_sedIdx);         // expand the current TCI / Sedation reference inline
   tubeInline(_tubeIdx);       // expand the current airway-tube reference inline
   if(window.innerWidth<=900) collapseForMobile();
+  if(window.cmdInit) window.cmdInit();   // wire the command strip to this render
 }
 
 /* ── Row builders (design system v3 — continuous surface) ─────────────────
@@ -1567,13 +1647,20 @@ function row(o){
      LEVEL 3 — the non-critical caution, behind a disclosure. It is never
      dropped, but a clinician reading a dose must not have to process it.
      A critical warning is NOT level 3 and stays on its own rule. */
-  var sub = (o.sub ? '<span class="rw-txt">'+o.sub+'</span>' : '');
+  /* The caution toggle rides at the END of the meta line rather than on a
+     line of its own — a folded level 3 that still cost a third line would
+     have defeated the point. */
+  var more = o.caution
+    ? '<details class="rw-more"><summary aria-label="Show caution">caution</summary>'+
+      '<span class="rw-txt">'+o.caution+'</span></details>'
+    : '';
+  var sub = (o.sub || more)
+    ? '<span class="rw-s">'+(o.sub?'<span class="rw-txt">'+o.sub+'</span>':'')+more+'</span>'
+    : '';
   return '<div class="'+cls+'"'+(o.id?(' id="'+o.id+'"'):'')+pcAttr+pcVar+'>'+
     '<span class="rw-n">'+o.name+(o.badge||'')+'</span>'+
     (o.val!=null&&o.val!==''?'<span class="rw-v">'+o.val+(o.unit?'<u>'+o.unit+'</u>':'')+'</span>':'')+
-    (sub ?'<span class="rw-s">'+sub+'</span>':'')+
-    (o.caution?'<details class="rw-more"><summary aria-label="Show caution">caution</summary>'+
-      '<span class="rw-txt">'+o.caution+'</span></details>':'')+
+    sub+
     (o.warn?'<span class="rw-w">'+o.warn+'</span>':'')+
   '</div>';
 }
@@ -1773,10 +1860,59 @@ function crisisInline(i){
 }
 // Header crisis button: scroll the inline Crisis Center into view (no modal).
 function crisisJump(){
-  var el = ge('crisis-inline-body') || document.querySelector('.crisis-panel');
-  if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); }
+  var p = document.querySelector('.crisis-panel');
+  if(p){ p.classList.remove('collapsed'); }
+  var el = ge('crisis-inline-body') || p;
+  if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
 }
 window.crisisInline=crisisInline; window.crisisJump=crisisJump;
+
+/* ── COMMAND STRIP BEHAVIOUR ──────────────────────────────────────────────
+   Each button jumps to a clinical domain and marks itself active. The active
+   state is driven by what is actually on screen, so the strip always answers
+   "where am I" without the clinician having to remember what they clicked. */
+function cmdJump(pk){
+  var el = document.querySelector('.panel[data-pk="'+pk+'"]');
+  if(!el) return false;
+  el.classList.remove('collapsed');
+  var strip = ge('cmd-strip');
+  var off = strip ? strip.getBoundingClientRect().height + 8 : 0;
+  var y = el.getBoundingClientRect().top + window.scrollY - off;
+  window.scrollTo({top:Math.max(0,y), behavior:'smooth'});
+  return true;
+}
+window.cmdJump=cmdJump;
+function cmdInit(){
+  var strip = ge('cmd-strip'); if(!strip) return;
+  var links = [].slice.call(strip.querySelectorAll('.cmd-b[data-jump]'));
+  links.forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      if(cmdJump(a.getAttribute('data-jump'))){
+        links.forEach(function(o){ o.classList.remove('on'); });
+        a.classList.add('on');
+      }
+    });
+  });
+  /* active-section tracking: the domain whose module currently owns the top
+     of the viewport wins. Cheap, and it never fights a smooth scroll. */
+  var t=null;
+  window.addEventListener('scroll', function(){
+    if(t) return;
+    t = setTimeout(function(){
+      t=null;
+      var best=null, bestD=Infinity, line=(strip.getBoundingClientRect().height||0)+90;
+      links.forEach(function(a){
+        var el=document.querySelector('.panel[data-pk="'+a.getAttribute('data-jump')+'"]');
+        if(!el) return;
+        var d=Math.abs(el.getBoundingClientRect().top-line);
+        if(el.getBoundingClientRect().top<=line+40 && d<bestD){ bestD=d; best=a; }
+      });
+      links.forEach(function(o){ o.classList.toggle('on', o===best); });
+    }, 120);
+  }, {passive:true});
+}
+window.cmdInit=cmdInit;
 
 // ── TCI / Sedation reference (educational only) ──
 // Each entry: [name, model/drug subtitle, fn(weight) -> { blocks:[{h, rows?, list?}] }]
