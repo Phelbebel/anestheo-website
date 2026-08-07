@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-13"></script>
-<script src="/v2/auth.js?v=2026.08.07-13"></script>
-<script src="/v2/navbar.js?v=2026.08.07-13"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-13"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-13"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-13"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-13"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-13">
+<script src="/v2/supabase.js?v=2026.08.07-14"></script>
+<script src="/v2/auth.js?v=2026.08.07-14"></script>
+<script src="/v2/navbar.js?v=2026.08.07-14"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-14"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-14"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-14"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-14"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-14">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -749,7 +749,7 @@ body.embed .eng-wrap{max-width:100%;}
   .eng-wrap > details.cw-acc{display:none;}   /* identity / labs: rarely used on a phone */
   #app.pt-open > .eng-wrap > details.cw-acc{display:block;}
 }
-@media(min-width:901px){ .pt-sum{display:none;} }   /* desktop keeps the form */
+@media(min-width:901px){ .pt-sum,.pt-row > .pt-new{display:none;} }   /* desktop keeps the form */
 /* ══ NEW PATIENT ════════════════════════════════════════════════════════
    A primary case-workflow control, so it sits beside the patient context
    rather than in a menu. Restrained: it ends a case, it does not advertise
@@ -767,10 +767,15 @@ body.embed .eng-wrap{max-width:100%;}
 .pt-new-d{margin-left:auto;}
 .eng-wrap .cw-acc-head{display:flex;align-items:center;gap:10px;}
 @media(max-width:900px){
-  /* the summary line and the case action share one row */
-  .pt-sum{margin-bottom:0;}
-  .pt-new{min-height:44px;margin:0 0 6px;width:100%;   /* full-width touch target */
-    border-top:none;border-radius:0;}
+  /* Summary, Edit and New patient share ONE row. A full-width case button
+     under the summary cost 44px of the space the first dose needs. */
+  .pt-sum{margin-bottom:6px;padding-right:6px;}
+  .pt-sum-line{font-size:13px;}
+  .pt-new{min-height:40px;padding:0 10px;margin:0;
+    position:relative;top:0;flex:0 0 auto;}
+  .pt-row{display:flex;align-items:stretch;gap:0;}
+  .pt-row .pt-sum{flex:1 1 auto;min-width:0;margin-bottom:0;}
+  .pt-row .pt-new{align-self:center;margin-right:6px;}
 }
 @media(min-width:901px){ .pt-new-d{min-height:30px;} }
 
@@ -810,11 +815,21 @@ body.embed .eng-wrap{max-width:100%;}
 .lt-fold[open] .lt-btns{margin-top:5px;}
 .lt-fold[open] .lt-btn{min-height:32px;font-size:11.5px;padding:0 10px;}
 @media(max-width:900px){
-  /* One scrollable line, not a grid of cards. Timers must be reachable in a
-     single tap (section 7) without pushing the first dose off the screen
-     (section 11); at 390px a 2-up card grid cost ~195px and did both. */
+  /* The full card row stays closed on a phone; the summary bar IS the timer
+     UI. Result: the strip costs one line instead of ~195px, and the first
+     dose comes back up the page. Opening the disclosure still gives the
+     complete controls — relaxant, tourniquet, reset, PACU. */
+  .lt-fold > summary{padding:7px 12px;}
   .lt-fold[open] .lt-row{overflow-x:auto;-webkit-overflow-scrolling:touch;
     scrollbar-width:none;flex-wrap:nowrap;}
+  .lt-fold[open] .lt-row::-webkit-scrollbar{display:none;}
+  .lt-fold[open] .lt-card{flex:0 0 auto;width:132px;padding:6px 10px;}
+  .lt-fold[open] .lt-time{font-size:16px;}
+  .lt-fold[open] .lt-head{font-size:9.5px;}
+  .lt-fold[open] .lt-btn{min-height:40px;font-size:11px;padding:0 8px;}
+  .lt-bar i{flex:0 0 auto;}
+  .lt-micro{display:flex;}
+}
   .lt-fold[open] .lt-row::-webkit-scrollbar{display:none;}
   .lt-fold[open] .lt-card{flex:0 0 auto;width:132px;padding:6px 10px;}
   .lt-fold[open] .lt-time{font-size:16px;}
@@ -825,6 +840,29 @@ body.embed .eng-wrap{max-width:100%;}
   .lt-fold[open] .lt-btn{min-height:40px;font-size:11px;padding:0 8px;}
   .lt-fold[open] > summary{padding-top:6px;padding-bottom:6px;}
 }
+
+/* ══ TIMER MICRO-STRIP ═══════════════════════════════════════════════════
+   Desktop keeps the full row and hides this; the phone uses it instead. */
+.lt-micro{display:none;align-items:center;gap:6px;margin-left:auto;
+  overflow-x:auto;scrollbar-width:none;}
+.lt-micro::-webkit-scrollbar{display:none;}
+.ltm{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;
+  padding-left:8px;border-left:1px solid var(--hair);}
+.ltm:first-child{border-left:none;padding-left:0;}
+.ltm i{font-style:normal;font-size:9.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);}
+.ltm b{font-size:13px;font-weight:700;color:var(--ink-2);
+  font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.01em;}
+/* running reads as active without a glow or a colour change of substance */
+.ltm.on b{color:var(--ink);}
+.ltm.on i{color:var(--accent);}
+.ltm-b{font:inherit;font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-3);background:transparent;
+  border:1px solid rgba(255,255,255,.16);border-radius:4px;
+  padding:0 8px;min-height:30px;cursor:pointer;white-space:nowrap;}
+.ltm-b:hover{color:var(--ink);border-color:rgba(255,255,255,.34);}
+.ltm-b:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+@media(max-width:900px){ .ltm-b{min-height:40px;} }
 /* Timers folded: the summary is the control. */
 .lt-fold>summary{list-style:none;cursor:pointer;}
 .lt-fold>summary::-webkit-details-marker{display:none;}
@@ -1282,13 +1320,15 @@ body.embed .eng-wrap{max-width:100%;}
          calculated from them — but by default they collapse to one readable
          line of context plus the derived band, with the form one tap away.
          Desktop never sees this: the strip is display:none above 900px. -->
-    <button type="button" class="pt-sum" id="pt-sum" onclick="ptToggle()"
-            aria-expanded="false" aria-controls="acc-patient">
-      <span class="pt-sum-line" id="pt-sum-line">Enter patient details</span>
-      <span class="pt-sum-edit">Edit</span>
-    </button>
-    <button type="button" class="pt-new" onclick="newCaseAsk()"
-            aria-label="Start a new patient — clears the current case">New patient</button>
+    <div class="pt-row">
+      <button type="button" class="pt-sum" id="pt-sum" onclick="ptToggle()"
+              aria-expanded="false" aria-controls="acc-patient">
+        <span class="pt-sum-line" id="pt-sum-line">Enter patient details</span>
+        <span class="pt-sum-edit">Edit</span>
+      </button>
+      <button type="button" class="pt-new" onclick="newCaseAsk()"
+              aria-label="Start a new patient — clears the current case">New</button>
+    </div>
 
     <!-- Patient Details — always expanded (drives the calculations) -->
     <section class="cw-acc" id="acc-patient">
@@ -1337,8 +1377,9 @@ body.embed .eng-wrap{max-width:100%;}
     <!-- Timers are a running-case tool, not a lookup. They cost 180px at the
          very top of the workspace, ahead of every clinical answer. Folded by
          default; the summary keeps them one click away and shows their state. -->
-    <details class="lt-strip lt-fold" id="live-timers" open>
-      <summary class="lt-bar"><span class="lt-dot"></span><i>Live timers &middot; intraoperative</i></summary>
+    <details class="lt-strip lt-fold" id="live-timers">
+      <summary class="lt-bar"><span class="lt-dot"></span><i>Live timers</i>
+        <span class="lt-micro" id="lt-micro"></span></summary>
       <div class="lt-row">
         <div class="lt-card" id="lt-anes" data-t="anes">
           <div class="lt-head"><span class="lt-ico">&#129764;</span>Anesthesia</div>
@@ -1973,6 +2014,8 @@ function compute(){
   sedInline(_sedIdx);         // expand the current TCI / Sedation reference inline
   tubeInline(_tubeIdx);       // expand the current airway-tube reference inline
   if(window.innerWidth<=900) collapseForMobile();
+  var _lt=document.getElementById('live-timers');
+  if(_lt && !window.matchMedia('(max-width:900px)').matches) _lt.open=true;  // desktop keeps the full row
   if(window.ptSummary) window.ptSummary();   // keep the mobile context line current
   if(window.cmdInit) window.cmdInit();   // wire the command strip to this render
   /* Drugs is the default clinical stream: it is what is reached for most
@@ -3205,7 +3248,38 @@ function cwClearDerived(){
 
   function setCard(k, cls){ var c = g('lt-'+k); if(c) c.className = 'lt-card' + (cls?(' '+cls):''); }
 
+  /* ── MOBILE MICRO-STRIP ────────────────────────────────────────────────
+     The full card row costs ~195px on a phone and pushed the first dose from
+     395px to 614px. The summary bar itself now carries the live state of the
+     two timers a clinician starts first, each with a one-tap control, so the
+     timers stay immediately actionable while the row they came from stays
+     closed. Same state object, same start/stop functions — this is a second
+     view of the existing timers, not a second timer system. */
+  var MICRO = ['anes','surg'];
+  function renderMicro(){
+    var host = g('lt-micro'); if(!host) return;
+    host.innerHTML = MICRO.map(function(k){
+      var sec = Math.floor(elapsed(k)/1000), run = st[k].running;
+      var t = (CFG[k].fmt==='ms') ? mmss(sec) : hms(sec);
+      var short = (k==='anes') ? 'Anaes' : 'Surg';
+      return '<span class="ltm'+(run?' on':'')+'">'+
+               '<i>'+short+'</i><b>'+t+'</b>'+
+               '<button type="button" class="ltm-b" data-k="'+k+'" data-a="'+(run?'stop':'start')+'" '+
+                 'aria-label="'+(run?'Stop':'Start')+' '+short+' timer">'+(run?'Stop':'Start')+'</button>'+
+             '</span>';
+    }).join('');
+  }
+  /* one delegated listener: the control acts without opening the disclosure */
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('.ltm-b'); if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var k=b.getAttribute('data-k');
+    if(b.getAttribute('data-a')==='start') start(k); else stop(k);
+    renderMicro();
+  }, true);
+
   function tick(){
+    renderMicro();
     KEYS.forEach(function(k){
       var cfg = CFG[k], sec = Math.floor(elapsed(k)/1000), running = st[k].running, has = running || elapsed(k)>0;
       var tEl = g('lt-'+k+'-time'); if(tEl) tEl.textContent = (cfg.fmt==='ms') ? mmss(sec) : hms(sec);
