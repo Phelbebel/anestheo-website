@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-15"></script>
-<script src="/v2/auth.js?v=2026.08.07-15"></script>
-<script src="/v2/navbar.js?v=2026.08.07-15"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-15"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-15"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-15"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-15"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-15">
+<script src="/v2/supabase.js?v=2026.08.07-16"></script>
+<script src="/v2/auth.js?v=2026.08.07-16"></script>
+<script src="/v2/navbar.js?v=2026.08.07-16"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-16"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-16"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-16"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-16"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-16">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -1283,6 +1283,61 @@ body.embed .eng-wrap{max-width:100%;}
   #output .panel:not(.crisis-panel) .panel-grip,
   #output .panel:not(.crisis-panel) .panel-resize,
   #output .panel:not(.crisis-panel) .panel-chev{opacity:.5;}
+}
+
+/* ══ CASE-CONTROL AND TIMER CORRECTIONS ═════════════════════════════════
+   Three defects visible in the merged desktop build, fixed here at the end
+   of the sheet so the breakpoints are unambiguous rather than depending on
+   where they happen to fall among the earlier blocks.
+
+   1. NEW PATIENT was invisible on desktop. The desktop control lives in the
+      Patient Details heading, and an earlier compact-header pass hid that
+      heading at every width to save space. The mobile control is hidden
+      above 900px by design, so nothing remained. The heading comes back on
+      desktop — where there is room for it — and carries the control. */
+@media(min-width:901px){
+  .eng-wrap #acc-patient .cw-acc-head{
+    display:flex !important;align-items:center;gap:10px;
+    padding:7px 12px 5px;}
+  .eng-wrap #acc-patient .cw-acc-t{
+    font-size:10.5px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;line-height:1.25;color:var(--ink-3);}
+  .pt-new-d{display:inline-flex !important;align-items:center;margin-left:auto;
+    min-height:30px;}
+}
+
+/*  2. The timers were shown twice on desktop: the mobile micro-strip AND
+       the real card row. The micro-strip exists only to protect the first
+       clinical answer on a phone; a 1440px workstation has room for the
+       real controls, so it is a phone-only device. Both representations
+       always read the same state object — this hides one view, it does not
+       fork the timer model. */
+@media(min-width:901px){
+  .lt-micro,.lt-more{display:none !important;}
+}
+@media(max-width:900px){
+  .lt-micro{display:flex !important;}
+  .lt-more{display:inline-flex !important;}
+}
+
+/*  3. Two search entry points were visible at once: the site navbar search
+       and the workstation's own clinical search. On Live Tools the clinical
+       search is the right one — it sits with the domain navigation and
+       queries the clinical index. The navbar search is hidden on THIS PAGE
+       only; every other page keeps it. */
+body .nb-search-wrap{display:none !important;}
+
+/*  4. The real desktop timers had been compressed to the point where a
+       running clock was not the most readable thing in the strip. The time
+       is the answer, so it gets the weight back — typography and spacing
+       only, no card, no glow. */
+@media(min-width:901px){
+  .lt-fold[open] .lt-card{padding:10px 14px;}
+  .lt-fold[open] .lt-time{font-size:26px;letter-spacing:-.02em;line-height:1.05;}
+  .lt-fold[open] .lt-head{font-size:10px;margin-bottom:3px;}
+  .lt-fold[open] .lt-state{font-size:11.5px;}
+  .lt-fold[open] .lt-btns{margin-top:7px;}
+  .lt-fold[open] .lt-btn{min-height:32px;}
 }
 </style>
 </head>
@@ -3281,10 +3336,14 @@ function cwClearDerived(){
       var sec = Math.floor(elapsed(k)/1000), run = st[k].running;
       var t = (CFG[k].fmt==='ms') ? mmss(sec) : hms(sec);
       var short = (k==='anes') ? 'Anaes' : 'Surg';
+      /* A stopped timer that already has time on it is PAUSED, not unstarted.
+         The full controls call that Resume; the strip said Start, which read
+         as though the clock had never run. Same word in both views. */
+      var lbl = run ? 'Stop' : (sec > 0 ? 'Resume' : 'Start');
       return '<span class="ltm'+(run?' on':'')+'">'+
                '<i>'+short+'</i><b>'+t+'</b>'+
                '<button type="button" class="ltm-b" data-k="'+k+'" data-a="'+(run?'stop':'start')+'" '+
-                 'aria-label="'+(run?'Stop':'Start')+' '+short+' timer">'+(run?'Stop':'Start')+'</button>'+
+                 'aria-label="'+lbl+' '+short+' timer">'+lbl+'</button>'+
              '</span>';
     }).join('');
   }
