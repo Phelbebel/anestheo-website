@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-7"></script>
-<script src="/v2/auth.js?v=2026.08.07-7"></script>
-<script src="/v2/navbar.js?v=2026.08.07-7"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-7"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-7"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-7"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-7"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-7">
+<script src="/v2/supabase.js?v=2026.08.07-8"></script>
+<script src="/v2/auth.js?v=2026.08.07-8"></script>
+<script src="/v2/navbar.js?v=2026.08.07-8"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-8"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-8"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-8"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-8"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-8">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -664,7 +664,31 @@ body.embed .eng-wrap{max-width:100%;}
   .eng-wrap .cw-d{padding:4px 5px;gap:0;}
   .eng-wrap .cw-d-v{font-size:15px;line-height:1.15;}
   .lt-strip{margin-bottom:6px;}
+
+  /* the context line stands in for the form until the form is wanted */
+  .pt-sum{display:flex;align-items:center;gap:10px;width:100%;
+    min-height:44px;padding:9px 12px;margin:0 0 6px;
+    background:rgba(255,255,255,.022);border:1px solid var(--hair);border-radius:0;
+    font-family:inherit;text-align:left;cursor:pointer;color:var(--ink);
+    -webkit-tap-highlight-color:transparent;}
+  .pt-sum:hover{background:rgba(255,255,255,.045);}
+  .pt-sum:focus-visible{outline:2px solid #7ECFC0;outline-offset:-2px;}
+  .pt-sum-line{flex:1 1 auto;min-width:0;font-size:13.5px;font-weight:600;
+    line-height:1.35;color:var(--ink);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}  /* never scrolls sideways */
+  .pt-sum.empty .pt-sum-line{color:var(--ink-3);font-weight:500;}
+  .pt-sum-edit{flex:0 0 auto;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+    text-transform:uppercase;line-height:1.25;color:var(--ink-3);}
+  .pt-sum[aria-expanded="true"] .pt-sum-edit{color:#7ECFC0;}
+  /* the form and its heading collapse behind the line; the DERIVED band does
+     not — those numbers are how the clinician checks the dose is for the
+     right patient, so they stay visible at all times. */
+  #app:not(.pt-open) #acc-patient{display:none;}
+  #app.pt-open .pt-sum{margin-bottom:0;}
+  .eng-wrap > details.cw-acc{display:none;}   /* identity / labs: rarely used on a phone */
+  #app.pt-open > .eng-wrap > details.cw-acc{display:block;}
 }
+@media(min-width:901px){ .pt-sum{display:none;} }   /* desktop keeps the form */
 /* Timers folded: the summary is the control. */
 .lt-fold>summary{list-style:none;cursor:pointer;}
 .lt-fold>summary::-webkit-details-marker{display:none;}
@@ -1109,6 +1133,18 @@ body.embed .eng-wrap{max-width:100%;}
         <div class="inp"><label>Patient ID</label><input id="i-pid" type="text" placeholder="ID / MRN" autocomplete="off" oninput="cwIdentity()"></div>
       </div></div>
     </details>
+
+    <!-- ── MOBILE PATIENT CONTEXT ──────────────────────────────────────────
+         On a phone the six inputs and seven derived values cost 615px before
+         the first dose. They are not removed — every value on the page is
+         calculated from them — but by default they collapse to one readable
+         line of context plus the derived band, with the form one tap away.
+         Desktop never sees this: the strip is display:none above 900px. -->
+    <button type="button" class="pt-sum" id="pt-sum" onclick="ptToggle()"
+            aria-expanded="false" aria-controls="acc-patient">
+      <span class="pt-sum-line" id="pt-sum-line">Enter patient details</span>
+      <span class="pt-sum-edit">Edit</span>
+    </button>
 
     <!-- Patient Details — always expanded (drives the calculations) -->
     <section class="cw-acc" id="acc-patient">
@@ -1785,6 +1821,7 @@ function compute(){
   sedInline(_sedIdx);         // expand the current TCI / Sedation reference inline
   tubeInline(_tubeIdx);       // expand the current airway-tube reference inline
   if(window.innerWidth<=900) collapseForMobile();
+  if(window.ptSummary) window.ptSummary();   // keep the mobile context line current
   if(window.cmdInit) window.cmdInit();   // wire the command strip to this render
   /* Drugs is the default clinical stream: it is what is reached for most
      often, and it puts a usable dose on the first screen. */
@@ -2056,6 +2093,38 @@ window.crisisInline=crisisInline; window.crisisJump=crisisJump;
    state is driven by what is actually on screen, so the strip always answers
    "where am I" without the clinician having to remember what they clicked. */
 function isPhone(){ return window.matchMedia('(max-width:900px)').matches; }
+
+/* ── MOBILE PATIENT CONTEXT ───────────────────────────────────────────────
+   One line of context standing in for the form. It restates exactly what the
+   clinician typed — nothing is inferred and nothing is hidden that a
+   calculation depends on, because the derived band stays on screen beside
+   it. Tapping anywhere on the line opens the form; tapping again closes it. */
+function ptSummary(){
+  var el = ge('pt-sum-line'); if(!el) return;
+  function v(id){ var e=ge(id); return e && e.value!=='' ? e.value : null; }
+  function txt(id){ var e=ge(id); if(!e) return null;
+    var o=e.options && e.options[e.selectedIndex];
+    return (e.value!=='' && o) ? o.textContent.trim() : (e.value||null); }
+  var age=v('i-age'), unit=ge('i-age-unit'), u=unit?unit.value:'y';
+  var bits=[];
+  if(age) bits.push(age + (u==='y'?'y':u==='mo'?'mo':u==='w'?'w':'d'));
+  var sex=txt('i-sex'); if(sex && sex!=='—') bits.push(sex);
+  var ht=v('i-height'); if(ht) bits.push(ht+' cm');
+  var wt=v('i-weight'); if(wt) bits.push(wt+' kg');
+  var asa=v('i-asa'); if(asa) bits.push('ASA '+asa);
+  var proc=txt('i-proc'); if(proc && proc!=='—') bits.push(proc);
+  el.textContent = bits.length ? bits.join('  ·  ') : 'Enter patient details';
+  var b=ge('pt-sum'); if(b) b.classList.toggle('empty', !bits.length);
+}
+window.ptSummary=ptSummary;
+
+function ptToggle(){
+  var w=document.getElementById('app'); if(!w) return;
+  var open=w.classList.toggle('pt-open');
+  var b=ge('pt-sum'); if(b) b.setAttribute('aria-expanded', open?'true':'false');
+  if(open){ var f=ge('i-age'); if(f && isPhone()) setTimeout(function(){ f.focus(); },120); }
+}
+window.ptToggle=ptToggle;
 
 /* Make a clinical domain the active mobile stream. Above the breakpoint the
    attribute is inert, so the same call is safe from any code path. */
