@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-6"></script>
-<script src="/v2/auth.js?v=2026.08.07-6"></script>
-<script src="/v2/navbar.js?v=2026.08.07-6"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-6"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-6"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-6"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-6"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-6">
+<script src="/v2/supabase.js?v=2026.08.07-7"></script>
+<script src="/v2/auth.js?v=2026.08.07-7"></script>
+<script src="/v2/navbar.js?v=2026.08.07-7"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-7"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-7"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-7"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-7"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-7">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -96,7 +96,7 @@ html,body{background:#0A0C0C;}
   .cw-derived{grid-template-columns:repeat(3,1fr);gap:9px;}
   .cw-d-val{font-size:20px;}
 }
-@media(max-width:430px){.cw-derived{grid-template-columns:repeat(2,1fr);} .cw-crisis-tx i{display:none;}}
+@media(max-width:430px){.cw-derived{grid-template-columns:repeat(4,1fr);} .cw-crisis-tx i{display:none;}}
 /* In embedded mode (inside the Doctor Workspace) hide the duplicate site nav */
 body.embed .nb,body.embed #nb-nav{display:none!important;}
 body.embed .eng-wrap{padding-top:14px;}
@@ -399,10 +399,34 @@ body.embed .eng-wrap{max-width:100%;}
 /* A half-width stack cannot carry a two-column reference interior. */
 #output .stack .ref-cols{columns:1;column-count:1;}
 @media(max-width:900px){
-  /* one deliberate clinical stream: the stacks concatenate */
+  /* ══ MOBILE: ONE ACTIVE CLINICAL DOMAIN ═══════════════════════════════
+     The desktop shows two regions at once because a workstation screen can
+     hold them. A phone cannot, and stacking all thirteen modules produced a
+     16,742px document — 19.8 screens — in which the clinician's answer was
+     somewhere inside a reference book they had to scroll.
+
+     So on a phone the workspace shows ONE domain at a time. The command
+     strip stops being a scroll-to control and becomes the domain selector:
+     one tap swaps the whole stream, with no reload and no loss of patient
+     context, because only visibility changes. Inactive domains are display
+     :none — they cost no scroll, and the height figure that mattered stops
+     being the document and starts being the domain. */
   #output .panels{flex-direction:column;}
   #output .stack + .stack{border-left:none;}
+  #output[data-domain] .panel{display:none;}
+  #output[data-domain="drugs"]     .panel[data-domain="drugs"],
+  #output[data-domain="infusions"] .panel[data-domain="infusions"],
+  #output[data-domain="regional"]  .panel[data-domain="regional"],
+  #output[data-domain="airway"]    .panel[data-domain="airway"],
+  #output[data-domain="bleeding"]  .panel[data-domain="bleeding"],
+  #output[data-domain="monitor"]   .panel[data-domain="monitor"],
+  #output[data-domain="scores"]    .panel[data-domain="scores"],
+  #output[data-domain="emergency"] .panel[data-domain="emergency"]{display:block;}
+  /* an emptied stack must not leave its rule or its space behind */
+  #output .stack:empty,#output .panels-wide:empty{display:none;}
 }
+/* Above the breakpoint every domain is present: the attribute is inert. */
+@media(min-width:901px){ #output[data-domain] .panel{display:block;} }
 
 /* ── PANE ───────────────────────────────────────────────────────────────
    No shadow. No gradient. A hairline edge in the same value the rows use,
@@ -614,6 +638,32 @@ body.embed .eng-wrap{max-width:100%;}
 .eng-wrap > details.cw-acc[open]{display:block;width:100%;}
 @media(max-width:640px){
   .eng-wrap > details.cw-acc{display:block;width:100%;margin-right:0;}
+}
+@media(max-width:900px){
+  /* ══ MOBILE CONTEXT STRIP ═══════════════════════════════════════════════
+     Measured on the previous build the patient form and the derived values
+     filled 853px — 101% of the first viewport — so the first dose sat below
+     the fold on a phone. The inputs stay (every value is calculated from
+     them) but they become a dense strip: three per row instead of one, and
+     the derived values a compact band. Context supports the answer; it does
+     not get to be the first screen. */
+  .eng-wrap #acc-patient .input-bar{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .eng-wrap #acc-patient .inp{min-width:0;}
+  .eng-wrap #acc-patient .inp input,.eng-wrap #acc-patient .inp select{
+    min-height:40px;font-size:15px;padding:6px 8px;}   /* touch target kept */
+  .eng-wrap .cw-derived{grid-template-columns:repeat(4,1fr);gap:4px;}
+  .eng-wrap .cw-d{padding:5px 6px;}
+  .eng-wrap .cw-d-v{font-size:16px;}
+  .eng-wrap .cw-d-u{font-size:10.5px;}
+  .eng-wrap #acc-patient .cw-acc-body,
+  .eng-wrap #acc-derived .cw-acc-body{padding:6px 8px;}
+  .eng-wrap > details.cw-acc > summary{padding:5px 10px;}
+  .eng-wrap .inp label{margin-bottom:1px;}
+  .eng-wrap #acc-patient .input-bar{row-gap:4px;}
+  .eng-wrap .cw-d{padding:4px 5px;gap:0;}
+  .eng-wrap .cw-d-v{font-size:15px;line-height:1.15;}
+  .lt-strip{margin-bottom:6px;}
 }
 /* Timers folded: the summary is the control. */
 .lt-fold>summary{list-style:none;cursor:pointer;}
@@ -951,7 +1001,7 @@ body.embed .eng-wrap{max-width:100%;}
 @media(max-width:760px){.eng-wrap .cw-derived{grid-auto-flow:row;grid-template-columns:repeat(3,1fr);}
   .eng-wrap .cw-d{border-left:1px solid var(--hair);border-top:1px solid var(--hair);}
   .eng-wrap .cw-d:nth-child(3n+1){border-left:none;}}
-@media(max-width:430px){.eng-wrap .cw-derived{grid-template-columns:repeat(2,1fr);}
+@media(max-width:430px){.eng-wrap .cw-derived{grid-template-columns:repeat(4,1fr);}
   .eng-wrap .cw-d:nth-child(3n+1){border-left:1px solid var(--hair);}
   .eng-wrap .cw-d:nth-child(2n+1){border-left:none;}}
 
@@ -1036,13 +1086,13 @@ body.embed .eng-wrap{max-width:100%;}
          its natural place in the flow rather than ahead of the drugs. -->
     <nav class="cmd" id="cmd-strip" aria-label="Clinical domains">
       <div class="cmd-in">
-        <a class="cmd-b" href="#/drugs"     data-jump="drug-references">Drugs</a>
-        <a class="cmd-b" href="#/infusions" data-jump="vasopressors">Infusions</a>
-        <a class="cmd-b" href="#/airway"    data-jump="airway-tubes">Airway</a>
-        <a class="cmd-b" href="#/regional"  data-jump="regional">Regional</a>
-        <a class="cmd-b" href="#/bleeding"  data-jump="fluids-blood">Bleeding</a>
-        <a class="cmd-b" href="#/monitor"   data-jump="monitoring-access">Monitor &amp; vent</a>
-        <a class="cmd-b" href="#/scores"    data-jump="risk-scores">Scores</a>
+        <a class="cmd-b" href="#/drugs"     data-jump="drug-references" data-domain="drugs">Drugs</a>
+        <a class="cmd-b" href="#/infusions" data-jump="vasopressors" data-domain="infusions">Infusions</a>
+        <a class="cmd-b" href="#/airway"    data-jump="airway-tubes" data-domain="airway">Airway</a>
+        <a class="cmd-b" href="#/regional"  data-jump="regional" data-domain="regional">Regional</a>
+        <a class="cmd-b" href="#/bleeding"  data-jump="fluids-blood" data-domain="bleeding">Bleeding</a>
+        <a class="cmd-b" href="#/monitor"   data-jump="monitoring-access" data-domain="monitor">Monitor &amp; vent</a>
+        <a class="cmd-b" href="#/scores"    data-jump="risk-scores" data-domain="scores">Scores</a>
         <button class="cmd-b cmd-find" type="button" onclick="if(window.ClinicalSearch)window.ClinicalSearch.open('')"
                 aria-label="Search all clinical content"><span>Search</span><kbd>/</kbd></button>
         <button class="cmd-b cmd-sos" type="button" onclick="crisisJump()"
@@ -1736,6 +1786,9 @@ function compute(){
   tubeInline(_tubeIdx);       // expand the current airway-tube reference inline
   if(window.innerWidth<=900) collapseForMobile();
   if(window.cmdInit) window.cmdInit();   // wire the command strip to this render
+  /* Drugs is the default clinical stream: it is what is reached for most
+     often, and it puts a usable dose on the first screen. */
+  if(window.setDomain) window.setDomain(document.getElementById('output').getAttribute('data-domain') || 'drugs');
 }
 
 /* ── Row builders (design system v3 — continuous surface) ─────────────────
@@ -1836,9 +1889,23 @@ function drugGroups(groupIds, weight){
   }).join('');
 }
 function panelKey(title){ return (title||'').replace(/<[^>]+>/g,'').replace(/&[^;]+;/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase(); }
+/* Every module declares the clinical domain it belongs to. On the desktop
+   this is inert; on a phone it is what lets one domain be the active stream
+   while the rest stay out of the document. */
+var PANEL_DOMAIN = {
+  'drug-references':'drugs', 'antibiotic-prophylaxis':'drugs',
+  'vasopressors':'infusions', 'tiva-tci-sedation':'infusions',
+  'regional':'regional', 'blocks-ultrasound':'regional',
+  'airway-tubes':'airway', 'airway':'airway',
+  'fluids-blood':'bleeding',
+  'monitoring-access':'monitor', 'ventilation':'monitor',
+  'risk-scores':'scores', 'paediatric':'drugs', 'obstetric':'regional',
+  'crisis-center':'emergency'
+};
 function panel(ico,title,tag,body,cls){
   var pk=panelKey(title);
-  return '<div class="panel '+(cls||'')+'" data-pk="'+pk+'">'+
+  var dom=PANEL_DOMAIN[pk]||'drugs';
+  return '<div class="panel '+(cls||'')+'" data-pk="'+pk+'" data-domain="'+dom+'">'+
     '<div class="panel-head" role="button" tabindex="0" onclick="togglePanel(this)" onkeydown="if(event.key===\'Enter\'){togglePanel(this);}">'+
       '<span class="panel-grip" data-grip title="Drag to reorder" onclick="event.stopPropagation()">&#8942;&#8942;</span>'+
       '<span class="panel-ico">'+ico+'</span><span class="panel-title">'+title+'</span>'+
@@ -1977,6 +2044,8 @@ function crisisInline(i){
 function crisisJump(){
   var p = document.querySelector('.crisis-panel');
   if(p){ p.classList.remove('collapsed'); }
+  /* one tap from any domain: bring the emergency stream forward first */
+  if(window.setDomain) window.setDomain('emergency');
   var el = ge('crisis-inline-body') || p;
   if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
 }
@@ -1986,12 +2055,45 @@ window.crisisInline=crisisInline; window.crisisJump=crisisJump;
    Each button jumps to a clinical domain and marks itself active. The active
    state is driven by what is actually on screen, so the strip always answers
    "where am I" without the clinician having to remember what they clicked. */
+function isPhone(){ return window.matchMedia('(max-width:900px)').matches; }
+
+/* Make a clinical domain the active mobile stream. Above the breakpoint the
+   attribute is inert, so the same call is safe from any code path. */
+function setDomain(dom){
+  var out = ge('output'); if(!out) return false;
+  if(!out.querySelector('.panel[data-domain="'+dom+'"]')) return false;
+  out.setAttribute('data-domain', dom);
+  var links = document.querySelectorAll('#cmd-strip .cmd-b[data-jump]');
+  [].forEach.call(links, function(a){
+    a.classList.toggle('on', a.getAttribute('data-domain')===dom);
+    a.setAttribute('aria-current', a.getAttribute('data-domain')===dom ? 'true' : 'false');
+  });
+  return true;
+}
+window.setDomain=setDomain;
+
+/* Given a module key, make sure its domain is the one on screen. Search and
+   the exact anchors both go through here, so a hit in a domain that happens
+   to be hidden brings its domain forward instead of silently failing. */
+function revealDomainFor(pk){
+  var el = document.querySelector('.panel[data-pk="'+pk+'"]');
+  if(!el) return false;
+  var dom = el.getAttribute('data-domain');
+  if(isPhone() && dom) setDomain(dom);
+  return true;
+}
+window.revealDomainFor=revealDomainFor;
+
 function cmdJump(pk){
   var el = document.querySelector('.panel[data-pk="'+pk+'"]');
   if(!el) return false;
   el.classList.remove('collapsed');
+  revealDomainFor(pk);
   var strip = ge('cmd-strip');
   var off = strip ? strip.getBoundingClientRect().height + 8 : 0;
+  /* On a phone the domain swap already put the stream at the top, so the
+     clinician lands on the first answer rather than mid-document. */
+  if(isPhone()){ window.scrollTo({top:Math.max(0,(ge('output').getBoundingClientRect().top+window.scrollY)-off), behavior:'smooth'}); return true; }
   var y = el.getBoundingClientRect().top + window.scrollY - off;
   window.scrollTo({top:Math.max(0,y), behavior:'smooth'});
   return true;
@@ -2009,11 +2111,11 @@ function cmdInit(){
       }
     });
   });
-  /* active-section tracking: the domain whose module currently owns the top
-     of the viewport wins. Cheap, and it never fights a smooth scroll. */
+  /* On a phone the active domain is whatever the clinician selected, so
+     scroll tracking would fight it. Desktop keeps the where-am-I readout. */
   var t=null;
   window.addEventListener('scroll', function(){
-    if(t) return;
+    if(t || isPhone()) return;
     t = setTimeout(function(){
       t=null;
       var best=null, bestD=Infinity, line=(strip.getBoundingClientRect().height||0)+90;
@@ -2547,6 +2649,10 @@ function cwClearDerived(){
   function reveal(id, opts){
     var CC = window.ClinicalContent; if(!CC) return false;
     var entry = CC.indexEntry(id); if(!entry) return false;
+    /* A hit can belong to a domain that is not the active mobile stream.
+       Bring that domain forward first, or the scroll lands on nothing. */
+    if(entry.crisis != null){ if(window.setDomain) window.setDomain('emergency'); }
+    else if(entry.module && window.revealDomainFor) window.revealDomainFor(entry.module);
 
     /* airway device → select it in the tube reference, then land on it */
     if(entry.tube != null && window.tubeInline){
