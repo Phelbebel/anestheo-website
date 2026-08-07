@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-1"></script>
-<script src="/v2/auth.js?v=2026.08.07-1"></script>
-<script src="/v2/navbar.js?v=2026.08.07-1"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-1"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-1"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-1"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-1"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-1">
+<script src="/v2/supabase.js?v=2026.08.07-2"></script>
+<script src="/v2/auth.js?v=2026.08.07-2"></script>
+<script src="/v2/navbar.js?v=2026.08.07-2"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-2"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-2"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-2"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-2"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-2">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -352,20 +352,40 @@ body.embed .eng-wrap{max-width:100%;}
 
 /* ── GRID (all panes, Crisis Center included) ──────────────────────────
    A tighter gutter: panes read as adjacent regions of one surface.      */
-#output .panels{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
-  grid-auto-flow:row;gap:6px;align-items:start;}
-#output .panel.sp3{grid-column:span 3;}
-#output .panel.sp4{grid-column:span 4;}
-#output .panel.sp6{grid-column:span 6;}
-#output .panel.sp12,#output .panel.full,#output .panel.wide{grid-column:1 / -1;}
-@media(max-width:1279px){
-  #output .panels{grid-template-columns:repeat(4,minmax(0,1fr));}
-  #output .panel.sp3,#output .panel.sp4,#output .panel.sp6{grid-column:span 2;}
-  #output .panel.sp12,#output .panel.full,#output .panel.wide{grid-column:1 / -1;}
+/* ── LAYOUT: INDEPENDENT COLUMN FLOW ────────────────────────────────────
+   The old algorithm was a 12-column grid with grid-auto-flow:row. In a row
+   grid every module in an implicit row shares one row track, so the track is
+   as tall as the TALLEST module and a short neighbour leaves dead space
+   beneath it until the next row starts. Measured on the shipped build that
+   cost 884px at 1440 and 946px at 1024 — up to 406px in a single row.
+
+   CSS multi-column flows each module independently: a short module is
+   followed immediately by the next one in its column. Modules never share a
+   row track, so the coupling that produced the dead space cannot occur.
+
+   Predictability is preserved because multicol fills in document order and
+   break-inside:avoid keeps a module whole — a module's neighbours change, its
+   order does not, and it never splits. This is deterministic, not masonry:
+   there is no reflow on interaction, because opening a disclosure changes
+   only that column's flow below the module, never the column assignment. */
+#output .panels{
+  display:block;
+  column-count:3;column-gap:6px;
+  orphans:1;widows:1;
 }
+#output .panels > .panel{
+  break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
+  margin:0 0 6px;display:block;width:100%;
+}
+/* A module that must not be narrowed spans the full width by leaving the
+   column flow entirely. */
+#output .panel.sp12,#output .panel.full{
+  column-span:all;margin-bottom:6px;}
+@media(max-width:1279px){ #output .panels{column-count:2;} }
 @media(max-width:900px){
-  #output .panels{grid-template-columns:1fr;gap:8px;}
-  #output .panel{grid-column:1 / -1 !important;}
+  /* one deliberate clinical stream */
+  #output .panels{column-count:1;column-gap:0;}
+  #output .panels > .panel{margin-bottom:8px;}
 }
 
 /* ── PANE ───────────────────────────────────────────────────────────────
@@ -445,8 +465,38 @@ body.embed .eng-wrap{max-width:100%;}
 #output .rw-s b.rt{
   color:var(--ink-2);font-weight:700;font-size:11.5px;letter-spacing:.06em;
   text-transform:uppercase;}
-/* tier-1 caution: its own line, same muted weight — present, not shouting */
+/* LEVEL 3 — the caution is present on every row that has one, but folded.
+   Closed it costs one short word at the end of the meta line; open it reads
+   exactly as before. Nothing is ever removed, only subordinated. */
+#output .rw-more{flex:0 0 auto;margin-left:var(--s2);font-size:12px;}
+#output .rw-more>summary{
+  list-style:none;cursor:pointer;color:var(--ink-3);opacity:.62;
+  font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  padding:1px 6px;border-radius:4px;white-space:nowrap;
+  transition:opacity var(--fast) var(--ease),background var(--fast) var(--ease);}
+#output .rw-more>summary::-webkit-details-marker{display:none;}
+#output .rw-more>summary::after{content:' \25B8';}
+#output .rw-more[open]>summary::after{content:' \25BE';}
+#output .rw-more>summary:hover{opacity:1;background:rgba(255,255,255,.06);}
+#output .rw-more[open]>summary{opacity:.9;}
+#output .rw-more[open]{flex:1 0 100%;margin-left:0;}
+#output .rw-more .rw-txt{
+  display:block;color:var(--ink-3);opacity:.86;font-size:13px;
+  line-height:1.45;padding-top:3px;}
 #output .rw-c{color:var(--ink-3);opacity:.82;}
+
+/* LEVEL 3 at module scale — the teaching layer of a reference module. */
+#output .ref-more{margin-top:var(--s3);}
+#output .ref-more>summary{
+  list-style:none;cursor:pointer;
+  font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-3);padding:9px var(--pad);margin:0 calc(var(--pad) * -1);
+  border-top:1px solid var(--hair);
+  transition:color var(--fast) var(--ease),background var(--fast) var(--ease);}
+#output .ref-more>summary::-webkit-details-marker{display:none;}
+#output .ref-more>summary::after{content:' \25B8';margin-left:5px;}
+#output .ref-more[open]>summary::after{content:' \25BE';}
+#output .ref-more>summary:hover{color:var(--ink-2);background:rgba(255,255,255,.03);}
 #output .rw-s em{font-style:normal;color:var(--ink-2);font-weight:600;}
 /* A value that is a phrase, not a number, takes its own full-width line under
    the label at the same left gutter. Right-aligning wrapping prose produced
@@ -630,10 +680,14 @@ body.embed .eng-wrap{max-width:100%;}
       rgba(255,255,255,.10) 2px 7px);
 }
 
-/* the badge sits at the head of the supporting line, so drug names stay
-   aligned on one left edge while the colour still leads peripherally */
-#output .rw-s{display:flex;flex-wrap:wrap;align-items:center;column-gap:0;row-gap:3px;}
-#output .rw-s .pc{margin-top:1px;}
+/* CLASS COLOUR -> DRUG NAME -> DOSE. The chip rides beside the name on the
+   answer line, so the class is read in the same fixation as the drug and the
+   dose instead of costing a second line. Names keep one left edge. */
+#output .rw-n{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+#output .rw-n .pc{
+  font-size:9px;padding:3px 6px 3px 4px;margin-right:0;
+  position:relative;top:-1px;}
+#output .rw-s{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:0;row-gap:3px;}
 #output .rw-s > .rw-txt{flex:1 1 auto;min-width:0;}
 
 /* a critical warning no longer owns the left edge, so it announces itself */
@@ -1458,7 +1512,13 @@ function compute(){
   //   row 6  conditional Obstetric (4) / Paediatric (4)
   //   row 7  TCI / Sedation (12)
   //   row 8  Crisis Center (12)  — unchanged
+  /* Crisis Center leads. On the shipped build it was the LAST module on the
+     page: measured at 1440 the LAST and anaphylaxis protocols sat 8,698px
+     down — 9.7 screens — which is the wrong end of the page for the only
+     content that is read under time pressure. It keeps its own visual
+     language and spans the full width; it is simply no longer last. */
   out.innerHTML='<div class="panels">'+
+    panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
     panel('&#128138;','Drug references','Weight-based',drugRows,'sp6')+
     panel('&#129504;','Regional','Neuraxial &amp; LA',neuraxialRows+laRows,'sp6')+
     panel('&#128736;','Airway tubes','Reference',tubesBody,'sp12')+
@@ -1473,9 +1533,10 @@ function compute(){
     (isOb  ? panel('&#128118;','Obstetric','Reference',obHtml,'sp6 compact') : '')+
     (isPeds? panel('&#129490;','Paediatric','Weight-based',pedHtml,'sp6 compact') : '')+
     panel('&#128138;','TIVA / TCI &amp; sedation','Reference',sedBody,'sed-panel sp12')+
-    panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
-  balanceRows();              // no row may end with an empty column
+  /* balanceRows() belonged to the 12-column row grid: it padded a short row
+     so it would not end with an empty column. Column flow has no row tracks
+     to balance, so it no longer has anything to do. */
   crisisInline(_crisisIdx);   // expand the current protocol inline (no click needed)
   sedInline(_sedIdx);         // expand the current TCI / Sedation reference inline
   tubeInline(_tubeIdx);       // expand the current airway-tube reference inline
@@ -1501,12 +1562,18 @@ function row(o){
   }
   /* the supporting line leads with the class badge, so the drug names on the
      left edge stay aligned while the colour still reads peripherally */
-  var sub = (o.badge||'') + (o.sub ? '<span class="rw-txt">'+o.sub+'</span>' : '');
+  /* LEVEL 1 — name + class chip + value, one line, shared right edge.
+     LEVEL 2 — one controlled meta line (route · indication · preparation).
+     LEVEL 3 — the non-critical caution, behind a disclosure. It is never
+     dropped, but a clinician reading a dose must not have to process it.
+     A critical warning is NOT level 3 and stays on its own rule. */
+  var sub = (o.sub ? '<span class="rw-txt">'+o.sub+'</span>' : '');
   return '<div class="'+cls+'"'+(o.id?(' id="'+o.id+'"'):'')+pcAttr+pcVar+'>'+
-    '<span class="rw-n">'+o.name+'</span>'+
+    '<span class="rw-n">'+o.name+(o.badge||'')+'</span>'+
     (o.val!=null&&o.val!==''?'<span class="rw-v">'+o.val+(o.unit?'<u>'+o.unit+'</u>':'')+'</span>':'')+
     (sub ?'<span class="rw-s">'+sub+'</span>':'')+
-    (o.caution?'<span class="rw-s rw-c"><span class="rw-txt">'+o.caution+'</span></span>':'')+
+    (o.caution?'<details class="rw-more"><summary aria-label="Show caution">caution</summary>'+
+      '<span class="rw-txt">'+o.caution+'</span></details>':'')+
     (o.warn?'<span class="rw-w">'+o.warn+'</span>':'')+
   '</div>';
 }
@@ -1636,10 +1703,13 @@ function panelResize(el){
   if(window.wsSaveWide) wsSaveWide();
 }
 window.panelResize=panelResize;
-function collapseForMobile(){
-  var ps=document.querySelectorAll('.panels .panel');
-  ps.forEach(function(p,i){ if(i>0) p.classList.add('collapsed'); }); // keep Patient summary open
-}
+/* Narrow widths are a clinical stream, not an index.
+   The shipped build collapsed every module but the first below 900px — the
+   Crisis Center included — so on a tablet at the head of the table every
+   answer except a drug dose was behind a tap, and the emergency protocols
+   were behind a tap and a scroll. A module now always renders its own answer
+   layer; only Level 3 stays folded, exactly as on the desktop. */
+function collapseForMobile(){ /* intentionally no mass collapse — see note */ }
 window.togglePanel=togglePanel;
 function lmaForWeight(wt){
   if(wt<5)return '1'; if(wt<10)return '1.5'; if(wt<20)return '2'; if(wt<30)return '2.5';
@@ -2050,19 +2120,26 @@ var TUBES = [
   pearl:['Keep two spare tubes at the bedside: the same size and one size smaller.','After any change, confirm with capnography before anything else.','A patent upper airway means oral intubation remains an option in an emergency — the laryngectomy patient is the exception.'] }
 ];
 
-var _tubeIdx = 0, _tubeCat = 'all';
+/* default to tracheal tubes — the device reached for in most cases */
+var _tubeIdx = 0, _tubeCat = 'ett';
 function tubeRows(rows){
   return rows.map(function(r){ return metric(r[0], r[1], r[2]||''); }).join('');
 }
+/* ONE navigation hierarchy.
+   The shipped build showed the category row AND every one of the 16 device
+   names at once — 22 simultaneous choices, measured. A clinician had to read
+   past the whole device catalogue to reach the reference.
+   Now the category chooses, and only that category's devices are offered:
+   5 categories + at most 5 devices. "All" is gone, because its only effect
+   was to print the entire catalogue. */
 function tubeTabsHtml(){
   var cats = '<div class="ref-catrow">'+
-    '<button type="button" class="ref-cat'+(_tubeCat==='all'?' on':'')+'" onclick="tubeCat(\'all\')">All</button>'+
     TUBE_CATS.map(function(c){
       return '<button type="button" class="ref-cat'+(_tubeCat===c[0]?' on':'')+'" onclick="tubeCat(\''+c[0]+'\')">'+c[1]+'</button>';
     }).join('')+'</div>';
   var tabs = '<div class="ref-tabs" id="tube-tabs">'+
     TUBES.map(function(t,i){
-      if(_tubeCat!=='all' && t.cat!==_tubeCat) return '';
+      if(t.cat!==_tubeCat) return '';
       return '<button type="button" class="ref-tab'+(i===_tubeIdx?' on':'')+'" data-label="'+t.tab+'" onclick="tubeInline('+i+')">'+t.tab+'</button>';
     }).join('')+'</div>';
   return cats + tabs;
@@ -2070,7 +2147,7 @@ function tubeTabsHtml(){
 function tubeCat(c){
   _tubeCat = c;
   var first = TUBES.map(function(t,i){ return {t:t,i:i}; })
-                   .filter(function(x){ return c==='all' || x.t.cat===c; })[0];
+                   .filter(function(x){ return x.t.cat===c; })[0];
   if(first) _tubeIdx = first.i;
   var host = ge('tube-tabs-host'); if(host) host.innerHTML = tubeTabsHtml();
   tubeInline(_tubeIdx);
@@ -2091,14 +2168,21 @@ function tubeInline(i){
   if(t.fire)   A += grp('Airway fire drill', bul(t.fire));
   if(t.whyleft)  A += grp('Why a left tube', note(t.whyleft));
   if(t.whyright) A += grp('Why a right tube', note(t.whyright));
+  /* LEVEL 2 — still needed at the table: how you confirm it and what to do
+     when it misbehaves, plus the warnings, which are never folded. */
   if(t.bronch)   B += grp('Bronchoscopic confirmation', tubeRows(t.bronch));
   if(t.trouble)  B += grp('Troubleshooting', tubeRows(t.trouble));
-  if(t.ind)    B += grp('Indications', chipset(t.ind));
-  if(t.pro && t.con) B += grp('Advantages &amp; limitations', duo('Advantages', t.pro, 'Limitations', t.con));
-  if(t.contra) B += grp('Contraindications', bul(t.contra));
   if(t.warn)   B += grp('Warnings', t.warn.map(function(w){ return alert_(w, true); }).join(''));
-  if(t.mist)   B += grp('Common mistakes', bul(t.mist));
-  if(t.pearl)  B += grp('Clinical pearls', bul(t.pearl));
+  /* LEVEL 3 — the teaching layer. Indications, advantages, contraindications,
+     common mistakes and pearls are what you read the night before, not what
+     you read while holding a laryngoscope. Present, one click away. */
+  var L3 = '';
+  if(t.ind)    L3 += grp('Indications', chipset(t.ind));
+  if(t.pro && t.con) L3 += grp('Advantages &amp; limitations', duo('Advantages', t.pro, 'Limitations', t.con));
+  if(t.contra) L3 += grp('Contraindications', bul(t.contra));
+  if(t.mist)   L3 += grp('Common mistakes', bul(t.mist));
+  if(t.pearl)  L3 += grp('Clinical pearls', bul(t.pearl));
+  if(L3) B += '<details class="ref-more"><summary>Indications, limitations &amp; pearls</summary>'+L3+'</details>';
   body.innerHTML = h + '<div class="ref-cols"><div>'+A+'</div><div>'+B+'</div></div>' +
     foot('Reference values are typical adult and paediatric figures. Device sizing, cuff pressures and laser ratings vary by manufacturer — always confirm against the product label and your local policy.');
 }
@@ -2113,14 +2197,23 @@ function sedInline(i){
   var w = crisisWeight();
   var d = SED[i][2](w);
   var html = '<div class="ref-head"><div class="ref-name">'+SED[i][0]+'<i>'+SED[i][1]+'</i></div></div>';
-  var cols = ['',''];
-  d.blocks.forEach(function(blk, bi){
+  /* ANSWER BEFORE IT TEACHES.
+     A block of value rows is an answer — targets, model basis, infusion
+     rates — and stays on the surface. A block of prose bullets is the
+     teaching layer: use cases, elderly/paediatric adjustment, model
+     rationale. Those fold. Cautions are the exception and never fold. */
+  var cols = ['',''], L3 = '', ci = 0;
+  d.blocks.forEach(function(blk){
+    var isAnswer = !!blk.rows;
+    var isCaution = /caution|warning|risk/i.test(blk.h||'');
     var b = '';
     if(blk.rows) b += blk.rows.map(function(r){ return metric(r[0], r[1], ''); }).join('');
     if(blk.list) b += bul(blk.list);
-    cols[bi % 2] += grp(blk.h, b);
+    if(isAnswer || isCaution){ cols[ci % 2] += grp(blk.h, b); ci++; }
+    else L3 += grp(blk.h, b);
   });
   html += '<div class="ref-cols"><div>'+cols[0]+'</div><div>'+cols[1]+'</div></div>';
+  if(L3) html += '<details class="ref-more"><summary>Models, use cases &amp; dose adjustment</summary>'+L3+'</details>';
   html += foot('Reference and education only — not automatic clinical decision support. Always verify doses against current local protocols and the patient\u2019s context.');
   body.innerHTML = html;
 }
@@ -2207,7 +2300,12 @@ function cwClearDerived(){
     /* airway device → select it in the tube reference, then land on it */
     if(entry.tube != null && window.tubeInline){
       var tp = document.querySelector('.panel[data-pk="airway-tubes"]');
-      expand(tp); window.tubeCat && window.tubeCat('all'); window.tubeInline(entry.tube);
+      /* Land on the device's OWN category, then the device. "All" no longer
+         exists, and selecting the wrong category would hide the target. */
+      expand(tp);
+      var _t = (typeof TUBES!=='undefined') && TUBES[entry.tube];
+      if(_t && window.tubeCat) window.tubeCat(_t.cat);
+      window.tubeInline(entry.tube);
       setTimeout(function(){ scrollTo(tp); flash(document.getElementById('tube-inline-body'),'hit'); }, 60);
       return true;
     }
