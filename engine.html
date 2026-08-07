@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-16"></script>
-<script src="/v2/auth.js?v=2026.08.07-16"></script>
-<script src="/v2/navbar.js?v=2026.08.07-16"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-16"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-16"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-16"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-16"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-16">
+<script src="/v2/supabase.js?v=2026.08.07-17"></script>
+<script src="/v2/auth.js?v=2026.08.07-17"></script>
+<script src="/v2/navbar.js?v=2026.08.07-17"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-17"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-17"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-17"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-17"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-17">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -1339,6 +1339,49 @@ body .nb-search-wrap{display:none !important;}
   .lt-fold[open] .lt-btns{margin-top:7px;}
   .lt-fold[open] .lt-btn{min-height:32px;}
 }
+
+/* ══ CURRENT CASE BAR ═══════════════════════════════════════════════════
+   The previous control failed a real discoverability test, and the reason
+   was measurable: at 10.5px/700 in the supporting ink it was byte-identical
+   to "Patient Details" and "BMI" — rendered in the page's LABEL language,
+   so it read as a label. A thin border at that size does not register as an
+   action. It now reads as a control: larger, semibold, in the metadata ink
+   rather than the supporting one, on a bar of its own that sits above
+   everything collapsible so it is never inside a disclosure. Still no fill,
+   no glow, no gradient, no pill. */
+.case-bar{display:flex;align-items:center;gap:12px;
+  padding:7px 12px;margin:0 0 6px;
+  background:rgba(255,255,255,.03);border:1px solid var(--hair);}
+.case-state{flex:1 1 auto;min-width:0;
+  font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  line-height:1.25;color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.case-state.on{color:var(--ink-2);}
+.case-new{flex:0 0 auto;font:inherit;
+  font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  line-height:1;color:var(--ink-2);background:transparent;
+  border:1px solid rgba(255,255,255,.26);border-radius:5px;
+  padding:0 14px;min-height:34px;cursor:pointer;white-space:nowrap;
+  transition:color .14s ease,border-color .14s ease,background .14s ease;}
+/* it ends a case, so the hover state says so — restrained, and only on hover */
+.case-new:hover{color:#F0A882;border-color:rgba(232,150,110,.55);
+  background:rgba(232,150,110,.09);}
+.case-new:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+@media(max-width:900px){
+  .case-bar{padding:6px 10px;}
+  .case-new{min-height:40px;font-size:11.5px;padding:0 12px;}
+}
+
+/* On a phone this bar replaces the separate summary row: one line carrying
+   the case, Edit and New case, instead of two saying the same thing. */
+.case-state{font:inherit;background:transparent;border:none;text-align:left;padding:0;}
+.case-edit{display:none;flex:0 0 auto;font-size:10.5px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);}
+@media(max-width:900px){
+  .pt-row{display:none;}                 /* the case bar is the summary now */
+  .case-state{cursor:pointer;min-height:40px;display:flex;align-items:center;}
+  .case-edit{display:inline-flex;align-items:center;min-height:40px;}
+}
 </style>
 </head>
 <body>
@@ -1380,6 +1423,18 @@ body .nb-search-wrap{display:none !important;}
       </div></div>
     </details>
 
+    <!-- ── CURRENT CASE BAR ────────────────────────────────────────────────
+         The case command area. It sits above Patient Identity and Patient
+         Details so it can never be inside anything collapsible, and it is
+         the only home for the reset action at any width. -->
+    <div class="case-bar">
+      <button type="button" class="case-state" id="case-state" onclick="ptToggle()"
+              aria-controls="acc-patient">No active patient</button>
+      <span class="case-edit">Edit</span>
+      <button type="button" class="case-new" onclick="newCaseAsk()"
+              aria-label="Start a new case — clears the current patient, calculations and timers">New case</button>
+    </div>
+
     <!-- ── MOBILE PATIENT CONTEXT ──────────────────────────────────────────
          On a phone the six inputs and seven derived values cost 615px before
          the first dose. They are not removed — every value on the page is
@@ -1392,15 +1447,11 @@ body .nb-search-wrap{display:none !important;}
         <span class="pt-sum-line" id="pt-sum-line">Enter patient details</span>
         <span class="pt-sum-edit">Edit</span>
       </button>
-      <button type="button" class="pt-new" onclick="newCaseAsk()"
-              aria-label="Start a new patient — clears the current case">New</button>
     </div>
 
     <!-- Patient Details — always expanded (drives the calculations) -->
     <section class="cw-acc" id="acc-patient">
-      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span>
-        <button type="button" class="pt-new pt-new-d" onclick="newCaseAsk()"
-                aria-label="Start a new patient — clears the current case">New patient</button></div>
+      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span></div>
       <div class="cw-acc-body"><div class="input-bar">
         <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
           <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
@@ -2450,12 +2501,12 @@ function newCaseAsk(){
   d.setAttribute('aria-labelledby','case-confirm-t');
   d.innerHTML =
     '<div class="cc-box">'+
-      '<div class="cc-t" id="case-confirm-t">Start a new patient?</div>'+
-      '<p class="cc-p">This clears the current patient information and every '+
-        'calculated value'+(running?', and stops and resets the active case timers':'')+'.</p>'+
+      '<div class="cc-t" id="case-confirm-t">Start a new case?</div>'+
+      '<p class="cc-p">This clears the current patient information, every '+
+        'calculated value'+(running?' and the active case timers':'')+'.</p>'+
       '<div class="cc-a">'+
         '<button type="button" class="cc-b" onclick="caseConfirmClose()">Cancel</button>'+
-        '<button type="button" class="cc-b cc-go" onclick="caseConfirmClose();newCase();">Start new patient</button>'+
+        '<button type="button" class="cc-b cc-go" onclick="caseConfirmClose();newCase();">Start new case</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(d);
@@ -2478,7 +2529,7 @@ function isPhone(){ return window.matchMedia('(max-width:900px)').matches; }
    calculation depends on, because the derived band stays on screen beside
    it. Tapping anywhere on the line opens the form; tapping again closes it. */
 function ptSummary(){
-  var el = ge('pt-sum-line'); if(!el) return;
+  var el = ge('pt-sum-line');
   function v(id){ var e=ge(id); return e && e.value!=='' ? e.value : null; }
   function txt(id){ var e=ge(id); if(!e) return null;
     var o=e.options && e.options[e.selectedIndex];
@@ -2491,8 +2542,14 @@ function ptSummary(){
   var wt=v('i-weight'); if(wt) bits.push(wt+' kg');
   var asa=v('i-asa'); if(asa) bits.push('ASA '+asa);
   var proc=txt('i-proc'); if(proc && proc!=='—') bits.push(proc);
-  el.textContent = bits.length ? bits.join('  ·  ') : 'Enter patient details';
+  if(el) el.textContent = bits.length ? bits.join('  ·  ') : 'Enter patient details';
   var b=ge('pt-sum'); if(b) b.classList.toggle('empty', !bits.length);
+  /* the case bar says whether a case is loaded, in the same words */
+  var cs=ge('case-state');
+  if(cs){
+    cs.textContent = bits.length ? ('Current case  ·  '+bits.join('  ·  ')) : 'No active patient';
+    cs.classList.toggle('on', !!bits.length);
+  }
 }
 window.ptSummary=ptSummary;
 
