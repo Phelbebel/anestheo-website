@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-14"></script>
-<script src="/v2/auth.js?v=2026.08.07-14"></script>
-<script src="/v2/navbar.js?v=2026.08.07-14"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-14"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-14"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-14"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-14"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-14">
+<script src="/v2/supabase.js?v=2026.08.07-15"></script>
+<script src="/v2/auth.js?v=2026.08.07-15"></script>
+<script src="/v2/navbar.js?v=2026.08.07-15"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-15"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-15"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-15"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-15"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-15">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -829,6 +829,10 @@ body.embed .eng-wrap{max-width:100%;}
   .lt-fold[open] .lt-btn{min-height:40px;font-size:11px;padding:0 8px;}
   .lt-bar i{flex:0 0 auto;}
   .lt-micro{display:flex;}
+  /* More is part of the summary, so the whole 44px bar is its target */
+  .lt-more{display:inline-flex;align-items:center;min-height:44px;}
+  .lt-fold > summary{min-height:44px;align-items:center;}
+  .lt-fold > summary::after{display:none;}   /* replaced by the More label */
 }
   .lt-fold[open] .lt-row::-webkit-scrollbar{display:none;}
   .lt-fold[open] .lt-card{flex:0 0 auto;width:132px;padding:6px 10px;}
@@ -844,8 +848,15 @@ body.embed .eng-wrap{max-width:100%;}
 /* ══ TIMER MICRO-STRIP ═══════════════════════════════════════════════════
    Desktop keeps the full row and hides this; the phone uses it instead. */
 .lt-micro{display:none;align-items:center;gap:6px;margin-left:auto;
-  overflow-x:auto;scrollbar-width:none;}
-.lt-micro::-webkit-scrollbar{display:none;}
+  min-width:0;}                       /* never scrolls: it only shows what fits */
+/* the disclosure affordance, sized as a real target on touch */
+.lt-more{display:inline-flex;align-items:center;min-height:44px;
+  flex:0 0 auto;font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+  padding:0 4px 0 10px;}
+@media(min-width:901px){ .lt-more{display:none;} }   /* desktop shows the row */
+.lt-more::after{content:' \203A';font-size:13px;line-height:1;}
+.lt-fold[open] .lt-more::after{content:' \2039';}
 .ltm{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;
   padding-left:8px;border-left:1px solid var(--hair);}
 .ltm:first-child{border-left:none;padding-left:0;}
@@ -1379,7 +1390,8 @@ body.embed .eng-wrap{max-width:100%;}
          default; the summary keeps them one click away and shows their state. -->
     <details class="lt-strip lt-fold" id="live-timers">
       <summary class="lt-bar"><span class="lt-dot"></span><i>Live timers</i>
-        <span class="lt-micro" id="lt-micro"></span></summary>
+        <span class="lt-micro" id="lt-micro"></span>
+        <span class="lt-more">More</span></summary>
       <div class="lt-row">
         <div class="lt-card" id="lt-anes" data-t="anes">
           <div class="lt-head"><span class="lt-ico">&#129764;</span>Anesthesia</div>
@@ -3255,10 +3267,17 @@ function cwClearDerived(){
      timers stay immediately actionable while the row they came from stays
      closed. Same state object, same start/stop functions — this is a second
      view of the existing timers, not a second timer system. */
-  var MICRO = ['anes','surg'];
+  /* Which timers the strip exposes directly depends on the room available.
+     A 390px phone fits exactly one timer with its control fully visible, so
+     it gets the one a clinician starts first; the rest are behind More, one
+     tap away. Wider screens fit both. Nothing is ever clipped and the strip
+     never scrolls sideways. */
+  function microKeys(){
+    return (window.innerWidth < 600) ? ['anes'] : ['anes','surg'];
+  }
   function renderMicro(){
     var host = g('lt-micro'); if(!host) return;
-    host.innerHTML = MICRO.map(function(k){
+    host.innerHTML = microKeys().map(function(k){
       var sec = Math.floor(elapsed(k)/1000), run = st[k].running;
       var t = (CFG[k].fmt==='ms') ? mmss(sec) : hms(sec);
       var short = (k==='anes') ? 'Anaes' : 'Surg';
