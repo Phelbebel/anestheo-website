@@ -6,19 +6,31 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-3"></script>
-<script src="/v2/auth.js?v=2026.08.07-3"></script>
-<script src="/v2/navbar.js?v=2026.08.07-3"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-3"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-3"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-3"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-3"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-3">
+<script src="/v2/supabase.js?v=2026.08.07-4"></script>
+<script src="/v2/auth.js?v=2026.08.07-4"></script>
+<script src="/v2/navbar.js?v=2026.08.07-4"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-4"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-4"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-4"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-4"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-4">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
 #app,.eng-wrap,.panels,.panel,.input-bar{max-width:100%;}
-#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
+/* ══ WORKSTATION SURFACE ═══════════════════════════════════════════════
+   Live Tools leaves the site's green page ground behind. Measured on the
+   previous build the page was rgb(10,26,21) — hue 161, saturation 44% —
+   and the three most-used text colours were all green-tinted; #a9c2ba
+   alone carried 343 of them, including every unit and every piece of
+   metadata. That is what produced the muddy cast at a distance.
+
+   Here the structure is graphite and the ink is neutral, so the only
+   saturated colour on screen belongs to a pharmacologic class, a warning,
+   or an active control. Scoped to this page: the marketing site keeps its
+   own identity, which is not this instrument's job to carry.            */
+html,body{background:#0A0C0C;}
+#loader{position:fixed;inset:0;background:#0A0C0C;z-index:9999;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
@@ -341,8 +353,8 @@ body.embed .eng-wrap{padding-top:14px;}
   --hair:rgba(255,255,255,.058);      /* between rows, and the pane edge */
   --hair-2:rgba(255,255,255,.10);     /* under a pane header */
   /* ink */
-  --ink:#fff; --ink-2:#e3f0ec; --ink-3:#a9c2ba; --accent:#7ECFC0;
-  --amber:#EFC176; --red:#F4A28C;
+  --ink:#fff; --ink-2:#C6CCCC; --ink-3:#8E9899; --accent:#7ECFC0;
+  --amber:#E8B562; --red:#F08A72;
   /* one motion system */
   --ease:cubic-bezier(.22,.61,.36,1); --fast:.12s; --base:.18s;
   font-feature-settings:"tnum" 1,"lnum" 1;
@@ -455,8 +467,15 @@ body.embed .eng-wrap{max-width:100%;}
   font-size:22px;font-weight:700;color:var(--ink);line-height:1.16;
   letter-spacing:-.012em;font-variant-numeric:tabular-nums lining-nums;
   white-space:nowrap;text-align:right;flex:0 0 auto;margin-left:auto;}
-#output .rw-v u{font-size:12px;font-weight:600;line-height:1;color:var(--ink-3);margin-left:5px;
-  text-decoration:none;font-variant-numeric:normal;letter-spacing:0;}
+/* THE UNIT IS PART OF THE ANSWER.
+   "116–193" and "mg" are one clinical fact and must be acquired together.
+   Previously the unit was 12px/600 in the green secondary ink — smaller AND
+   dimmer AND tinted, three penalties at once on mg, mcg/kg/min, mL/h, Fr.
+   It is still smaller than the number, because the number is the answer,
+   but it now sits in the bright neutral metadata ink at a weight that
+   survives mcg/kg/min at a glance. */
+#output .rw-v u{font-size:13.5px;font-weight:700;line-height:1;color:var(--ink-2);margin-left:5px;
+  text-decoration:none;font-variant-numeric:normal;letter-spacing:.005em;}
 #output .rw-s{flex:1 0 100%;font-size:13px;font-weight:400;color:var(--ink-3);
   line-height:1.45;letter-spacing:0;}
 #output .rw-s b{color:var(--ink-2);font-weight:600;}
@@ -485,23 +504,64 @@ body.embed .eng-wrap{max-width:100%;}
   line-height:1.45;padding-top:3px;}
 #output .rw-c{color:var(--ink-3);opacity:.82;}
 
+/* ══ NEUTRALISING THE REMAINING GREEN ═══════════════════════════════════
+   Structure carries no hue. Each rule below replaces a green structural
+   token found in the audit, not a decorative preference. */
+.eng-wrap .lt-strip,.eng-wrap .pacu-mod{
+  background:rgba(255,255,255,.022);border:1px solid var(--hair);}
+.eng-wrap .cw-d{background:rgba(255,255,255,.035);border:1px solid var(--hair);}
+.eng-wrap .cw-acc,.eng-wrap #acc-patient,.eng-wrap #acc-derived{
+  background:rgba(255,255,255,.022);border:1px solid var(--hair);}
+.eng-wrap .inp input,.eng-wrap .inp select{
+  background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.10);color:var(--ink);}
+.eng-wrap .inp input:focus,.eng-wrap .inp select:focus{
+  border-color:rgba(126,207,192,.6);outline:none;}      /* teal = focus, a state */
+.eng-wrap .inp label,.eng-wrap .cw-d-l{color:var(--ink-3);}
+.eng-wrap .cw-d-v{color:var(--ink);}
+.eng-wrap .cw-d-u{color:var(--ink-2);}                  /* derived units legible too */
+.eng-wrap .lt-bar i,.eng-wrap .pacu-mod-head{color:var(--ink-3);}
+.eng-wrap .lt-time{color:var(--ink);}
+.eng-wrap .lt-state{color:var(--ink-3);}
+/* the module surface: one step above the page, no gradient, no glass */
+#output .panel:not(.crisis-panel){
+  background:rgba(255,255,255,.026) !important;
+  border:1px solid var(--hair) !important;
+  box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;}
+#output .panel-title{color:var(--ink);}
+#output .panel-tag{color:var(--ink-3);}
+
+/* ══ GROUP RHYTHM ═══════════════════════════════════════════════════════
+   Rows inside a pharmacologic group sit close together; the space between
+   groups is what the eye uses to chunk them. Peripheral separation comes
+   from rhythm, not from boxes. */
+#output .grp{margin-bottom:var(--s5);}
+#output .grp:last-child{margin-bottom:0;}
+#output .grp-h{
+  font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);padding:var(--s4) var(--pad) var(--s2);
+  border-bottom:1px solid var(--hair);margin-bottom:2px;}
+#output .rw{padding-top:7px;padding-bottom:7px;}
+
 /* ── CLINICAL COMMAND STRIP ───────────────────────────────────────────── */
 .cmd{position:sticky;top:0;z-index:40;margin:0 0 10px;
-  background:rgba(9,12,11,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  border-bottom:1px solid rgba(255,255,255,.09);}
+  background:rgba(10,12,12,.96);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(255,255,255,.10);}
 .cmd-in{display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none;
   -webkit-overflow-scrolling:touch;padding:7px 0;}
 .cmd-in::-webkit-scrollbar{display:none;}
 .cmd-b{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
-  font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.01em;
-  color:#B9CEC7;background:transparent;border:1px solid transparent;border-radius:7px;
+  font:inherit;font-size:12.5px;font-weight:600;letter-spacing:.01em;
+  color:var(--ink-2);background:transparent;border:1px solid transparent;border-radius:6px;
   padding:7px 11px;min-height:34px;cursor:pointer;text-decoration:none;white-space:nowrap;
-  transition:color .14s ease,background .14s ease,border-color .14s ease;}
-.cmd-b:hover{color:#fff;background:rgba(255,255,255,.07);}
+  transition:color .14s ease,background .14s ease,box-shadow .14s ease;}
+.cmd-b:hover{color:var(--ink);background:rgba(255,255,255,.06);}
 .cmd-b:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
-.cmd-b.on{color:#0A1A15;background:#7ECFC0;border-color:#7ECFC0;}
-.cmd-find{margin-left:auto;color:#8FA8A1;}
-.cmd-find kbd{font:inherit;font-size:10.5px;font-weight:700;color:#7f948e;
+/* Active reads as an instrument indicator — a lit underline and brighter
+   ink — rather than a saturated fill. One small teal mark, not a block. */
+.cmd-b.on{color:var(--ink);background:rgba(255,255,255,.05);
+  box-shadow:inset 0 -2px 0 0 #7ECFC0;}
+.cmd-find{margin-left:auto;color:var(--ink-3);}
+.cmd-find kbd{font:inherit;font-size:10.5px;font-weight:700;color:var(--ink-3);
   border:1px solid rgba(255,255,255,.18);border-radius:4px;padding:1px 5px;}
 /* Emergency is the one permanently loud control on the workspace. */
 .cmd-sos{color:#FF8E76;border-color:rgba(226,90,70,.5);background:rgba(226,90,70,.13);}
@@ -745,9 +805,22 @@ body.embed .eng-wrap{max-width:100%;}
    answer line, so the class is read in the same fixation as the drug and the
    dose instead of costing a second line. Names keep one left edge. */
 #output .rw-n{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+/* The class marker, restrained.
+   The peripheral signal is the 4px rule down the row edge; the chip only has
+   to name the class for anyone who cannot use the colour. So it drops the
+   tinted fill and keeps a coloured stub plus coloured text — a marker, not a
+   block of colour competing with the dose. */
 #output .rw-n .pc{
-  font-size:9px;padding:3px 6px 3px 4px;margin-right:0;
-  position:relative;top:-1px;}
+  font-size:9px;padding:2px 0 2px 5px;margin-right:0;
+  background:none;border-radius:0;
+  border-left:2px solid var(--pc);
+  position:relative;top:-1px;opacity:.92;}
+/* Reversal keeps its zebra: the stripe pattern IS the convention, and
+   dropping the fill everywhere would have quietly deleted it. */
+#output .rw-n .pc-zebra{
+  padding:2px 6px 2px 5px;
+  background:repeating-linear-gradient(-45deg,
+    rgba(95,224,164,.20) 0 2px, rgba(255,255,255,.10) 2px 7px);}
 #output .rw-s{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:0;row-gap:3px;}
 #output .rw-s > .rw-txt{flex:1 1 auto;min-width:0;}
 
@@ -786,8 +859,9 @@ body.embed .eng-wrap{max-width:100%;}
    everything else.
    ══════════════════════════════════════════════════════════════════════════ */
 .eng-wrap{
-  --hair:rgba(255,255,255,.058); --hair-2:rgba(255,255,255,.10);
-  --ink:#fff; --ink-2:#e3f0ec; --ink-3:#a9c2ba; --accent:#7ECFC0;
+  --hair:rgba(255,255,255,.062); --hair-2:rgba(255,255,255,.11);
+  /* neutral ink: no hue in the greys, so class colour is the only tint */
+  --ink:#fff; --ink-2:#C6CCCC; --ink-3:#8E9899; --accent:#7ECFC0;
   --pad:22px; --ease:cubic-bezier(.22,.61,.36,1); --fast:.12s; --base:.18s;
   padding:16px 18px 64px;
 }
