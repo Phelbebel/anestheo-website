@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-10"></script>
-<script src="/v2/auth.js?v=2026.08.07-10"></script>
-<script src="/v2/navbar.js?v=2026.08.07-10"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-10"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-10"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-10"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-10"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-10">
+<script src="/v2/supabase.js?v=2026.08.07-11"></script>
+<script src="/v2/auth.js?v=2026.08.07-11"></script>
+<script src="/v2/navbar.js?v=2026.08.07-11"></script>
+<script src="/v2/clinical-index.js?v=2026.08.07-11"></script>
+<script src="/v2/clinical-search.js?v=2026.08.07-11"></script>
+<script src="/v2/evidence-api.js?v=2026.08.07-11"></script>
+<script src="/v2/evidence-drawer.js?v=2026.08.07-11"></script>
+<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-11">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -571,9 +571,31 @@ body.embed .eng-wrap{max-width:100%;}
   box-shadow:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;
   margin:0 !important;}
 #output .stack > .panel:last-child{border-bottom:none !important;}
-/* the domain header is what announces a new region */
+/* ══ LEVEL 1 — THE CLINICAL DOMAIN BAND ═════════════════════════════════
+   Measured on the previous build the domain header was rgba(255,255,255,.02)
+   sitting on a module surface of rgba(255,255,255,.027) — the band was
+   DIMMER than its own content, so there was no band at all. With module
+   separation deliberately at 0px, consecutive domains ran together and the
+   workspace read as one continuous column of rows.
+
+   The band is now a real step ABOVE the content surface, closed by a rule
+   at the top so the boundary is unmistakable when scanning. It stays
+   graphite: no colour, no gradient, no shadow, no radius, no card. The
+   header organises — it must never out-shout a drug name or a dose, so its
+   type is left exactly as it was, smaller and quieter than the answer. */
 #output .panel:not(.crisis-panel) > .panel-head{
-  border-bottom:1px solid var(--hair-2);background:rgba(255,255,255,.018);}
+  background:rgba(255,255,255,.085);
+  border-top:1px solid rgba(255,255,255,.17);
+  border-bottom:1px solid rgba(255,255,255,.10);
+  padding-top:12px;padding-bottom:11px;}
+/* the first domain in a region needs no rule above it */
+#output .stack > .panel:first-child > .panel-head{border-top:none;}
+
+/* ══ LEVEL 2 — THE SUBGROUP ═════════════════════════════════════════════
+   The label had no leading space, so a group opened flush against the row
+   above and did no chunking. Space BEFORE, tight after — the gap is what
+   the eye uses to find the boundary. No box, no fill. */
+#output .grp + .grp > .grp-h{margin-top:var(--s5);}
 #output .panel-title{color:var(--ink);}
 #output .panel-tag{color:var(--ink-3);}
 
