@@ -61,21 +61,29 @@ DirectoryIndex index.html
   # never sees videos-v1/ and the visible URL stays /videos.html. That matters:
   # the URL is already indexed and already linked from the V2 navbar.
   #
-  # ONE CONSEQUENCE YOU MUST HANDLE, and it is not optional:
+  # HOW RELATIVE PATHS RESOLVE, and why the real page needs almost nothing:
   # because the visible URL stays /videos.html, the browser resolves the page's
-  # RELATIVE references against "/" — not against /videos-v1/. A page asking for
-  # style.css would fetch /style.css and get a 404 (or, worse, a leftover V1
-  # file). This was reproduced: the preserved page loaded with two 404s until
-  # fixed.
+  # RELATIVE references against "/" — not against /videos-v1/.
   #
-  # The fix is one line, added to the preserved copy as the FIRST tag in <head>:
+  # For THIS page that is a feature, not a problem. The audit of the real V1
+  # videos.html (see ROOT_CUTOVER.md sec 3.2) found it has ZERO root-absolute
+  # paths and only three local references: anestheo-app.js and two favicons.
+  # The favicons resolve to /favicon-32x32.png and /apple-touch-icon.png, which
+  # is exactly where the cutover keeps them. All eleven of its navigation links
+  # are relative and resolve to the V2 root, which is where they should go.
   #
-  #     <base href="/videos-v1/">
+  # So only ONE reference needed changing — the script, which must come from the
+  # isolated folder rather than the root:
   #
-  # With it, every relative reference resolves inside the isolated folder and
-  # nothing escapes to the root. Any ROOT-ABSOLUTE reference in the V1 page
-  # (src="/auth.js") ignores <base> and must be changed to relative by hand —
-  # the dependency capture step in ROOT_CUTOVER.md is what finds those.
+  #     src="anestheo-app.js"  ->  src="videos-v1/anestheo-app.js"
+  #
+  # That is the entire edit. The prepared copy is deploy/videos-v1/index.html
+  # and differs from the production original by that single line.
+  #
+  # <base href="/videos-v1/"> is deliberately NOT used. It would have forced all
+  # eleven navigation links to be rewritten as well, turning a one-line change
+  # into twelve, and any missed one would have pointed at /videos-v1/about.html
+  # which does not exist.
   #
   # No loop: the substitution "videos-v1/index.html" does not match ^videos\.html$
   # or ^videos-v1\.html$, so neither rule can re-fire.

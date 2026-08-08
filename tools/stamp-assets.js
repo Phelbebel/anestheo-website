@@ -61,8 +61,15 @@ const REF = /((?:src|href)\s*=\s*")(\/[A-Za-z0-9._-]+\.(?:js|css))(?:\?[^"]*)?("
    as release-sensitive as a <link>, and an HTML-only sweep cannot see them. */
 const CSS_IMPORT = /(@import\s+url\(\s*["']?)([A-Za-z0-9._-]+\.css)(?:\?[^"')]*)?(["']?\s*\))/g;
 
+/* Preserved V1 material is NOT part of this release and must never be stamped.
+   v1-source/ holds the pristine production originals and deploy/ holds the
+   ready-to-upload copies; both are legacy files that happen to be HTML. They
+   carry no ?v= versioning of their own and rewriting them would corrupt an
+   archival copy of something already live. */
+const EXCLUDE = /^(v1-source|deploy)\//;
+
 const files = cp.execSync('git ls-files "*.html" "*.css"', { cwd: ROOT })
-  .toString().trim().split('\n').filter(Boolean);
+  .toString().trim().split('\n').filter(Boolean).filter(f => !EXCLUDE.test(f));
 
 let changed = 0, stale = [], total = 0, matchedFiles = 0;
 

@@ -35,12 +35,13 @@ backups/  (outside the document root)
 |---|---|---|
 | 1 | `videos.html` collision | **RESOLVED** — V1 preserved at `/videos.html`, isolated in `videos-v1/`. Section 3. |
 | 2 | V1 pages loading V2 `auth.js` / `supabase.js` | **RESOLVED** — V1 functional pages are archived out of the live root and their URLs redirect. Section 4. |
-| 3 | V1 videos page's own dependencies | **OPEN — awaiting the file.** Cannot be determined from here: the V1 `videos.html` is not in the repository and production is unreachable from this environment. The procedure is no longer manual — `tools/audit-v1-videos.js` performs the full audit and assembles `videos-v1/`. Section 3.2. |
-| 4 | `/contact.html` has no V2 equivalent | **OPEN — product decision.** Section 4.3. |
+| 3 | V1 videos page's own dependencies | **CLOSED.** Audited against the real production file, built, and browser-tested at `/videos.html`: zero 404s, zero JS errors. One file needed (`anestheo-app.js`), one line changed. Section 3.2. |
+| 4 | `/contact.html` has no V2 equivalent | **OPEN — product decision, now the only one.** Confirmed reachable from the preserved videos page footer, where it reaches the 404 page. One `.htaccess` line fixes it once you choose a destination. Section 4.3. |
 | 5 | `/legal.html` maps five ways | **OPEN — low risk.** Provisionally mapped to `/terms.html`. Section 4.3. |
 
-Blockers 1 and 2 are closed. Blocker 3 is a short pre-cutover task, not a
-redesign. Blockers 4 and 5 do not stop the cutover.
+Blockers 1, 2 and 3 are closed. Blocker 4 is the only decision left that has a
+visible consequence — one `.htaccess` line. Blocker 5 is provisional and low
+risk. Neither stops the cutover.
 
 ---
 
@@ -83,11 +84,13 @@ So the V1 page and **every file it depends on** live together, isolated:
 
 ```
 public_html/videos-v1/
-    index.html          <- the V1 videos page
-    style.css           <- its V1 stylesheet
-    anestheo-app.js     <- its V1 script
-    …                   <- whatever else section 3.2 finds
+    index.html          <- the V1 videos page, one reference changed
+    anestheo-app.js     <- its only script
 ```
+
+That is the complete folder. The audit in 3.2 found nothing else is needed:
+the page carries its CSS inline and its nav markup inline, so there is no
+`style.css` and no `_nav.html` to bring across.
 
 and `.htaccess` maps the public URL onto it with an **internal rewrite**:
 
@@ -102,77 +105,80 @@ navbar links to. `/videos-v1.html` is provided as the named archival URL you
 asked for; both addresses return the same page and `robots.txt` excludes the
 duplicate so only `/videos.html` is indexed.
 
-**`<base href="/videos-v1/">` is mandatory in the preserved copy, as the first
-tag in `<head>`.** Because the visible URL stays `/videos.html`, the browser
-resolves relative references against `/`, not against `/videos-v1/`. Without the
-`<base>` tag the page loads with 404s on its own stylesheet and script — this
-was reproduced in a browser, not theorised. With it, everything resolves inside
-the folder. Root-absolute references (`src="/auth.js"`) ignore `<base>` and must
-be made relative by hand; 3.2 is what finds them.
+Because the visible URL stays `/videos.html`, the browser resolves the page's
+relative references against `/`, not against `/videos-v1/`. For this page that
+is exactly what we want: its favicons resolve to the root, where the cutover
+keeps them, and its eleven navigation links resolve to the V2 root, where they
+should go. Only the script had to be redirected into the folder. See 3.2.
 
-### 3.2 REQUIRED before cutover — capture the V1 videos dependencies
+### 3.2 The V1 videos page — audited, built and tested
 
-**This is the one thing that could not be determined from this environment.**
-The V1 `videos.html` is not in the repository and production is not reachable
-from here, so the page's actual dependency list is unknown.
+**Blocker 3 is closed.** The real production `videos.html` was audited with
+`tools/audit-v1-videos.js`, the package was built, and it was loaded in Chromium
+at `/videos.html` through the redirect rules.
 
-It is not a manual job. **`tools/audit-v1-videos.js`** does the whole
-extraction and classification:
+**Every dependency in the real page** (14,235 bytes, 24 references):
 
-```bash
-# 1. Download public_html/videos.html and everything beside it into ./v1src/
-# 2. Audit — reads the real file, reports every reference
-node tools/audit-v1-videos.js v1src/videos.html --v1-dir v1src
+| Bucket | Items |
+|---|---|
+| Required V1 file | `anestheo-app.js` |
+| Already satisfied | `favicon-32x32.png`, `apple-touch-icon.png` — already PRESERVE-at-root |
+| Navigation only (11) | `about` · `ask` · `patients` (+2 anchors) · `videos` · `doctor` (+2 anchors) · `legal` · `contact` |
+| External (9) | Supabase CDN bundle · Google Fonts · 6 YouTube embeds · YouTube channel · `mailto:` |
+| Root collision | **none** |
+| API / runtime | see below |
 
-# 3. Build the isolated folder: copies dependencies, injects <base>,
-#    rewrites root-absolute ASSET paths, leaves navigation alone
-node tools/audit-v1-videos.js v1src/videos.html --v1-dir v1src --build videos-v1
+**It does NOT reference** `style.css` (all CSS is inline), `_nav.html` (nav is
+inline), `auth.js`, `supabase.js`, `logo.png`, `doctor.jpg`, any images or
+assets folder, or any `fetch`/API endpoint. It has **zero root-absolute paths**
+and **zero inline body scripts**.
+
+**Supabase — the runtime finding that matters.** The page loads the Supabase CDN
+bundle and `anestheo-app.js`. That script does `var supa = window.sb`, and
+`window.sb` is only ever set by V1's `supabase.js` — **which this page never
+loads**. So `supa` is undefined, and the script logs
+`SUPABASE NOT AVAILABLE` and stops after building a guest nav.
+
+That is the CURRENT PRODUCTION BEHAVIOUR, reproduced exactly, not something the
+preservation introduced. Two consequences, both good: V1's `supabase.js` is not
+needed, and no V1 Supabase client is ever created, so nothing can touch V2's
+`anestheo-auth` session in localStorage. There is no auth cross-contamination.
+
+(`anestheo-app.js` does inject a login modal with a password field. It cannot
+function without a client. Cosmetic, pre-existing, unchanged by this work.)
+
+**The change: one line.** `deploy/videos-v1/index.html` differs from the
+production original by exactly one reference:
+
+```
+src="anestheo-app.js"   ->   src="videos-v1/anestheo-app.js"
 ```
 
-It sweeps `<script>`, `<link>`, `<img>` (including `srcset`), `<source>`,
-`<video>`/`<audio>`, `<iframe>`, `<embed>`/`<object>`, `<form action>`,
-anchors, `<meta refresh>`, CSS `@import`, CSS `url()`, inline `style="…url()"`,
-`fetch`/`XHR`, `location` assignments and ES `import` — then sorts every hit
-into relative / root-absolute / protocol-relative / external / `data:` /
-fragment, and tells you exactly which files to copy and which references to
-edit.
+`<base href="/videos-v1/">` was **rejected**. It would have forced all eleven
+navigation links to be rewritten too — twelve edits instead of one — and any
+missed link would point at `/videos-v1/about.html`, which does not exist. The
+page has no root-absolute paths, so `<base>` buys nothing and costs eleven
+opportunities to get it wrong.
 
-Three distinctions it enforces, because conflating them is how this goes wrong:
+**Browser result at `/videos.html`:** URL unchanged, title `Videos - Anestheo`,
+6 YouTube embeds, 5 video cards, injected nav present, body padding applied,
+**zero 404s, zero JS errors**. Every link but one lands in the V2 site:
 
-* **Navigation** (`<a href="/index.html">`) — the page *leaves* for the V2
-  site. Never copied, never rewritten. Rewriting would trap the visitor inside
-  `videos-v1/`.
-* **Assets** (`<script src="/app.js">`) — the page *loads* them. Must be copied
-  in and rewritten, or the page silently pulls the V2 file of the same name.
-* **Data/API** (`fetch('/api/x.json')`) — could be a static file that must come
-  along, or a live endpoint that must stay at the root. **Flagged, never
-  auto-rewritten.** Only you know which.
+| Link | Lands on | Via |
+|---|---|---|
+| `index` `patients` `ask` `about` (+anchors) | same-named V2 page | direct |
+| `doctor.html` (+`#signup`, `#tools`) | `/dashboard.html` | legacy 301 |
+| `legal.html` | `/terms.html` | legacy 301 |
+| `auth.html` | intercepted by V1's own modal; as a URL it 301s to `/index.html` | legacy 301 |
+| `videos.html` | itself | — |
+| **`contact.html`** | **404 page** | **blocker 4, below** |
 
-**Relative navigation links are a trap the tool calls out specifically:**
-`<base>` resolves `<a href="patients.html">` into `/videos-v1/patients.html`,
-which does not exist. Those must be made root-absolute.
+The `doctor.html#signup` / `#tools` fragments survive the redirect and mean
+nothing on `/dashboard.html`. Cosmetic; noted, not fixed.
 
-If the page references `auth.js` or `supabase.js`, copy the **V1** versions
-from the backup — never the V2 ones. That is the whole point of the isolation.
-
-Then verify in a browser at `/videos.html`, not at `/videos-v1/index.html`:
-**zero 404s, and no request escaping to a root path.**
-
-The tool and this whole flow were exercised end to end against a synthetic V1
-page carrying every reference type — relative CSS, a root-absolute script, a
-root-absolute image and favicon, a `srcset`, a CSS `@import`, an inline
-`url()`, a protocol-relative CDN script, a Google Font, a YouTube iframe, a
-`data:` image, a `fetch()`, root-absolute anchors, a fragment and a `mailto:`.
-Result: the page rendered at an unchanged `/videos.html`, both V1 scripts
-executed, zero requests escaped the folder, zero 404s, zero JS errors, and all
-three navigation links landed on real V2 pages. The `fetch()` was left
-deliberately unresolved on the first pass, and it failed exactly as predicted —
-404, then a `JSON.parse` error on the 404 page's HTML — which is why it is
-flagged rather than guessed. The check was then shown able to fail, by removing
-one stylesheet and watching it go red.
-
-**None of that was your real page.** It proves the procedure and the tooling.
-The real file still has to go through it.
+**Files to upload at cutover:** the folder `deploy/videos-v1/` becomes
+`public_html/videos-v1/`. Two files. Nothing else from V1 is required for this
+page.
 
 ### 3.3 When the port task lands
 
@@ -455,7 +461,7 @@ step 1.
 | 2 | **Second, separate backup of `videos.html`** as `videos-v1-original.html`. | Deliberately redundant. This is the file you said you want to keep; it should survive a mistake in the main backup. |
 | 3 | Verify both backups open and contain what you expect. | A backup you have not opened is not a backup. |
 | 4 | **Record the current root state**: file listing with sizes and dates, plus the current Supabase Site URL. | You need the old Site URL to roll back step 12. |
-| 5 | **Run the videos dependency capture** (section 3.2) and assemble `videos-v1/` locally, including `<base href="/videos-v1/">`. | Do this before touching production. |
+| 5 | *(already done)* The videos package is prepared and tested: `deploy/videos-v1/`. | Two files. Nothing to assemble. Section 3.2. |
 | 6 | **Archive the V1 files** listed in section 5 out of the live root into the backup area. Leave PRESERVE files in place. | Do not delete — move. `videos.html` moves into `videos-v1/index.html`. |
 | 7 | **Upload the root-ready V2 package** to `public_html/`. | Do **not** upload `deploy/`, `docs/`, `*.md`, or `*.sql`. Do not delete `public_html/v2/`. |
 | 8 | Upload the `videos-v1/` folder. | |
