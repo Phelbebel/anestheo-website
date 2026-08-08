@@ -446,6 +446,40 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-orig{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:5px;padding:2px 6px;margin-right:8px;vertical-align:middle;}
 .ws-orig.doc{color:#FFE0B0;background:rgba(255,180,84,.14);border:1px solid rgba(255,180,84,.35);}
 .ws-orig.pt{color:#CDE7FF;background:rgba(79,168,255,.14);border:1px solid rgba(79,168,255,.4);}
+/* "No response · Nd" — a warning, not an error. It borrows the amber the
+   workspace already uses for "needs attention" rather than introducing a new
+   colour, and sits at the same weight as the provenance chip beside it. */
+.ws-stale{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:5px;padding:2px 6px;
+  margin-right:8px;vertical-align:middle;white-space:nowrap;
+  color:#FFC089;background:rgba(255,154,82,.14);border:1px solid rgba(255,154,82,.42);}
+/* Per-row action menu. Discreet by design: the trigger is a low-contrast glyph
+   that only gains presence on hover/focus, so it never competes with the row's
+   primary button. */
+/* Primary button + menu trigger travel together as one action group. */
+.ws-mp-actrow{display:flex;align-items:stretch;gap:6px;}
+.ws-mp-actrow .ws-mp-act{flex:1 1 auto;}
+.ws-rowmenu{position:relative;flex:0 0 auto;display:flex;}
+/* Discreet, but a BUTTON: it carries the same border as its neighbour so it is
+   legible at rest, and only fills in on hover. Invisible-until-hover would be
+   the same discoverability mistake as an unreadable primary control. */
+.ws-rowmenu-btn{background:rgba(255,255,255,.03);border:1px solid var(--border);color:rgba(255,255,255,.62);
+  font-family:inherit;font-size:16px;line-height:1;padding:0 11px;border-radius:9px;cursor:pointer;
+  transition:color .15s,background .15s,border-color .15s;}
+.ws-rowmenu-btn:hover,.ws-rowmenu-btn:focus-visible{color:#fff;background:rgba(255,255,255,.09);border-color:rgba(126,207,192,.5);outline:none;}
+.ws-rowmenu-pop{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:236px;
+  background:#0C1F18;border:1px solid rgba(27,107,90,.42);border-radius:11px;padding:5px;
+  box-shadow:0 14px 34px rgba(0,0,0,.5);}
+.ws-rowmenu-pop.open{display:block;}
+.ws-rowmenu-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;
+  color:rgba(255,255,255,.86);font-family:inherit;font-size:13px;font-weight:500;padding:9px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;}
+.ws-rowmenu-item:hover{background:rgba(126,207,192,.12);color:#fff;}
+.ws-rowmenu-item .ic{width:17px;text-align:center;flex:0 0 auto;opacity:.9;}
+.ws-rowmenu-item.danger{color:#FFB4A8;}
+.ws-rowmenu-item.danger:hover{background:rgba(255,120,100,.13);color:#FFD0C7;}
+/* The headline gains a second line; keep the number dominant and the
+   explanation quiet, so the hierarchy is unchanged at a glance. */
+.hl-total{flex-wrap:wrap;}
+.hl-total-sub{flex:1 0 100%;font-size:11.5px;color:var(--hint);font-weight:500;margin-top:3px;letter-spacing:0;}
 .ws-ws-workflow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:9px 13px;margin-bottom:8px;font-size:12.5px;color:var(--muted);}
 /* consultation workspace bits (reuses the surgical #ws-ws overlay) */
 .ws-consult-banner{font-size:12px;color:#bcd9f5;background:rgba(61,139,220,.1);border:1px solid rgba(61,139,220,.3);border-radius:9px;padding:9px 13px;margin-bottom:6px;}
@@ -1044,7 +1078,14 @@ async function wsLoadCases(){
     var sg=surgById[c.surgery_id]||{}; var qd=q[c.patient_id]||{}; var rs=qd.review_state||'not_submitted';
     var stage=wsBridgeStage(rs, sg);
     _wsActiveMap[c.patient_id]={name:c.patient_name,surgeryId:c.surgery_id};
-    mp.push({ key:'b'+c.id, origin:'patient', stage:stage, name:c.patient_name||sg.patient_name||'Patient',
+    // Provenance, taken from the row that actually created the relationship.
+    // These reached My Patients through an ACCEPTED care_request, which is what
+    // respond_care_request() uses to set patient_surgeries.assigned_doctor_id.
+    // is_consultation distinguishes a consultation from a surgical request; it
+    // is read from the request itself, never inferred from assignment alone.
+    mp.push({ key:'b'+c.id, origin:'patient',
+      source:(c.is_consultation||(sg&&sg.care_state==='consultation'))?'consult':'request',
+      stage:stage, name:c.patient_name||sg.patient_name||'Patient',
       procedure:c.procedure||sg.procedure_type||'', hospital:sg.hospital||'', surgeryDate:sg.surgery_date||null,
       progress:({awaiting:(qd.completion||10),review:70,approved:90,scheduled:95,completed:100})[stage]||0,
       statusText:wsStageLabel(stage), patientId:c.patient_id, surgeryId:c.surgery_id,
@@ -1058,6 +1099,16 @@ async function wsLoadCases(){
     var sgc=surgByClinic[p.id]||null;
     mp.push({ key:'c'+p.id, origin:'clinic', stage:stage, name:p.patient_name||'Patient',
       procedure:p.procedure||'', hospital:p.hospital||'', surgeryDate:p.surgery_date||null,
+      // source 'created': the doctor made this row themselves — cp_insert only
+      // permits WITH CHECK (auth.uid() = doctor_id), so doctor_id = me is proof.
+      source:'created',
+      // Invitation evidence for the "No response" indicator. Nothing is
+      // inferred: these are the timestamps the questionnaire flow itself writes
+      // (sent_at by wsMarkSent, opened_at by get_clinic_patient_by_token,
+      //  completed_at by submit_clinic_questionnaire).
+      opened_at:p.opened_at||null, q_completed_at:p.completed_at||null,
+      // Questionnaire actions are only offered when a link actually exists.
+      hasToken:!!p.token,
       progress:wsProgressPct(p), statusText:wsStageLabel(stage), clinicId:p.id, sent_at:p.sent_at,
       surgeryId:(sgc?sgc.id:null), archived:!!(sgc&&sgc.archived_at), archivedAt:(sgc&&sgc.archived_at)||null, archivedBy:(sgc&&sgc.archived_by)||null,
       updatedAt:(p.updated_at||p.questionnaire_submitted_at||p.sent_at||p.created_at||null),
@@ -1380,8 +1431,9 @@ function wsRenderMpStats(){
   var set=function(id,n){ var e=document.getElementById(id); if(e) e.textContent=n; };
   // Headline — the single source for "how many patients" + "who needs me".
   set('ws-mp-hl-total', a.length);
-  var pl=document.getElementById('ws-mp-hl-total'); var lab=pl&&pl.parentNode&&pl.parentNode.querySelector('.hl-total-l');
-  if(lab) lab.textContent=(a.length===1?'patient':'patients');
+  // The label is now the fixed heading "My Patients ·" rather than a pluralised
+  // noun, so it is no longer rewritten here. (It used to read "3 patients",
+  // which never said whose patients they were.)
   var attn=a.filter(function(p){return p.stage==='review';}).length;
   var pill=document.getElementById('ws-mp-hl-pill');
   if(pill){
@@ -1398,6 +1450,139 @@ function wsMpComparator(mode){
   return function(a,b){ var ad=a.surgeryDate?new Date(a.surgeryDate).getTime():Infinity, bd=b.surgeryDate?new Date(b.surgeryDate).getTime():Infinity; return ad-bd; };
 }
 // My Patients board — surgical-only, grouped by the 5 derived stages.
+/* ── Patient provenance ──────────────────────────────────────────────────────
+   Every label here is backed by a row that proves it. There is no "probably".
+
+     created  clinic_patients.doctor_id = me. RLS (cp_insert) only allows a
+              doctor to insert rows owned by themselves, so this IS "by you".
+     consult  an accepted care_request flagged is_consultation (or a record
+              whose care_state is 'consultation').
+     request  an accepted, non-consultation care_request.
+
+   A patient assigned by some other route would carry no source and simply
+   shows no badge — better than inventing provenance we cannot demonstrate. */
+var WS_SRC = {
+  created: { cls:'doc', label:'Created by you' },
+  consult: { cls:'pt',  label:'Accepted consultation' },
+  request: { cls:'pt',  label:'Accepted request' }
+};
+function wsSourceChip(p){
+  var s = WS_SRC[p.source];
+  if(!s) return '';
+  return '<span class="ws-orig '+s.cls+'" title="How this patient entered your list">'+s.label+'</span>';
+}
+
+/* ── "No response · Nd" ──────────────────────────────────────────────────────
+   Deliberately narrow. It fires only when we can PROVE an invitation was sent
+   and the patient has not touched it:
+
+     sent_at IS NOT NULL          the doctor actually launched WhatsApp/email
+     opened_at IS NULL            get_clinic_patient_by_token never ran
+     completed_at IS NULL         the questionnaire was never submitted
+     now - sent_at >= 7 days
+
+   It is a warning, never an action: nothing is archived automatically and no
+   scheduled job exists. Patients who opened the link, or who arrived by any
+   other route, are out of scope because we have no comparable evidence. */
+var WS_STALE_DAYS = 7;
+function wsStaleDays(p){
+  if(!p || p.archived || p.source!=='created') return 0;
+  if(!p.sent_at || p.opened_at || p.q_completed_at) return 0;
+  if(p.stage!=='awaiting') return 0;
+  var ms = Date.now() - new Date(p.sent_at).getTime();
+  if(!(ms > 0)) return 0;
+  var d = Math.floor(ms/86400000);
+  return d >= WS_STALE_DAYS ? d : 0;
+}
+function wsStaleChip(p){
+  var d = wsStaleDays(p);
+  return d ? '<span class="ws-stale" title="Invitation sent '+d+' days ago and not opened yet">&#9888; No response &middot; '+d+'d</span>' : '';
+}
+
+/* ── Per-patient action menu ─────────────────────────────────────────────────
+   Context-aware: an action appears only when it can actually be performed.
+   Nothing here duplicates the row's primary button, and nothing claims that a
+   message was delivered — WhatsApp and Email open an external app, which is
+   exactly what the labels say. */
+// rowSend tells the menu which actions the CARD already shows, so it never
+// repeats them. The menu carries what the row cannot: opening the record,
+// sending when there is no send row, and archiving.
+function wsRowMenu(p, rowSend){
+  var items=[];
+  var cid=p.clinicId?String(p.clinicId).replace(/'/g,''):'';
+  var sid=p.surgeryId?String(p.surgeryId).replace(/'/g,''):'';
+  if(p.archived){
+    if(sid) items.push(['&#8630;','Restore patient',"wsRestorePatient('"+sid+"')",'']);
+  } else {
+    items.push(['&#128194;','Open patient', p.openFn, '']);
+    if(cid && p.hasToken){
+      if(rowSend){
+        // WhatsApp / Email / Copy link are already on the card. Only the
+        // re-send framing adds anything, and only once something was sent.
+        if(p.sent_at) items.push(['&#8635;','Resend questionnaire',"wsSendWhatsApp('"+cid+"')",'']);
+      } else {
+        items.push(['&#128241;','WhatsApp &mdash; opens WhatsApp',"wsSendWhatsApp('"+cid+"')",'']);
+        items.push(['&#9993;&#65039;','Email &mdash; opens mail app',"wsSendEmail('"+cid+"')",'']);
+        items.push(['&#128279;','Copy questionnaire link',"wsCopyLink('"+cid+"')",'']);
+      }
+    }
+    if(sid) items.push(['&#128230;','Archive patient',"wsArchiveFromCard('"+sid+"')",'danger']);
+  }
+  if(!items.length) return '';
+  return '<div class="ws-rowmenu" onclick="event.stopPropagation()">'+
+    '<button class="ws-rowmenu-btn" aria-haspopup="true" aria-expanded="false" title="More actions" '+
+      'onclick="wsRowMenuToggle(event,this)">&#8943;</button>'+
+    '<div class="ws-rowmenu-pop" role="menu">'+
+      items.map(function(it){
+        return '<button class="ws-rowmenu-item'+(it[3]?' '+it[3]:'')+'" role="menuitem" onclick="wsRowMenuGo(event,function(){'+it[2]+';})">'+
+               '<span class="ic">'+it[0]+'</span>'+it[1]+'</button>';
+      }).join('')+
+    '</div></div>';
+}
+function wsRowMenuToggle(ev, btn){
+  ev.stopPropagation();
+  var pop=btn.parentNode.querySelector('.ws-rowmenu-pop');
+  var open=pop.classList.contains('open');
+  document.querySelectorAll('.ws-rowmenu-pop.open').forEach(function(x){ x.classList.remove('open'); });
+  document.querySelectorAll('.ws-rowmenu-btn[aria-expanded="true"]').forEach(function(x){ x.setAttribute('aria-expanded','false'); });
+  if(!open){ pop.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+}
+function wsRowMenuGo(ev, fn){
+  ev.stopPropagation();
+  document.querySelectorAll('.ws-rowmenu-pop.open').forEach(function(x){ x.classList.remove('open'); });
+  try{ fn(); }catch(e){ wsToast('Action failed: '+(e&&e.message||'error')); }
+}
+document.addEventListener('click', function(){
+  document.querySelectorAll('.ws-rowmenu-pop.open').forEach(function(x){ x.classList.remove('open'); });
+  document.querySelectorAll('.ws-rowmenu-btn[aria-expanded="true"]').forEach(function(x){ x.setAttribute('aria-expanded','false'); });
+});
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){
+  document.querySelectorAll('.ws-rowmenu-pop.open').forEach(function(x){ x.classList.remove('open'); }); } });
+window.wsRowMenuToggle=wsRowMenuToggle; window.wsRowMenuGo=wsRowMenuGo;
+
+// Archive straight from a card. Uses the SAME eligibility gate and the SAME
+// archive_patient RPC as the patient record — one archive mechanism, not two.
+async function wsArchiveFromCard(sid){
+  if(!sid){ wsToast('This patient has no linked record to archive.'); return; }
+  var elig=null;
+  try{
+    var e=await window.sb.rpc('patient_archive_eligibility',{ p_surgery_id: sid });
+    if(e&&e.error) throw e.error;
+    elig=e&&e.data;
+  }catch(err){ wsToast('Could not check whether this patient can be archived.'); return; }
+  if(elig && elig.eligible===false){ wsToast(elig.reason||'This patient cannot be archived yet.'); return; }
+  wsConfirmDialog('Archive this patient?',
+    'The record moves to your Archived list and leaves your active counts. All history &mdash; consultations, questions, questionnaire, journey, notes &mdash; is preserved, and you can restore it at any time. Nothing is deleted.',
+    'Archive patient', false, async function(){
+      try{
+        var r=await window.sb.rpc('archive_patient',{ p_surgery_id: sid, p_reason: null });
+        if(r&&r.error) throw r.error;
+        wsToast('Patient archived.'); wsLoadCases();
+      }catch(err){ wsToast((err&&err.message)||'Could not archive.'); }
+    });
+}
+window.wsArchiveFromCard=wsArchiveFromCard;
+
 function wsRenderMyPatients(){
   // stage counts on the pipeline (active only) + Row 1 statistics
   WS_MP_STAGES.forEach(function(st){
@@ -1406,6 +1591,13 @@ function wsRenderMyPatients(){
   });
   var an=document.getElementById('ws-mp-archived-n');
   if(an) an.textContent=_wsMyPatients.filter(function(p){return p.archived;}).length||0;
+  // Tab count mirrors the headline: ACTIVE patients only. Archived rows are
+  // preserved and reachable under Archived, but they are not workload, so they
+  // must not inflate "My Patients". Questions never appear here at all — they
+  // are a different table and a different workflow.
+  var mpActive=_wsMyPatients.filter(function(p){return !p.archived;}).length||0;
+  var mpt=document.getElementById('ws-mp-total');
+  if(mpt){ mpt.textContent=mpActive; mpt.style.display=mpActive?'inline-block':'none'; }
   wsRenderMpStats();
   var box=document.getElementById('ws-mp-list'); if(!box) return;
   var term=(_wsMpSearch||'').trim().toLowerCase();
@@ -1442,10 +1634,14 @@ function wsRenderMyPatients(){
       ? '<div class="ws-mp-datechip '+dcls+'"><div class="dl">Surgery</div><div class="dd">'+wsEsc(wsFmtDate(p.surgeryDate))+'</div>'+(rel?'<div class="dr">'+relIco+wsEsc(rel)+'</div>':'')+'</div>'
       : '<div class="ws-mp-datechip none"><div class="dl">Surgery</div><div class="dd">Not scheduled</div></div>';
     var pct=Math.max(0,Math.min(100,p.progress||0));
-    var origChip=p.origin==='clinic'?'<span class="ws-orig doc">Created</span>':'<span class="ws-orig pt">Requested</span>';
+    var origChip=wsSourceChip(p)+wsStaleChip(p);
     var action=(p.stage==='review')?'Review &rarr;':'Open &rarr;';
     // Awaiting Questionnaire (invited patients): show send-questionnaire actions.
-    var qActions=(!p.archived && p.origin==='clinic'&&p.stage==='awaiting')
+    // Send actions require a questionnaire link to send. Without a token these
+    // buttons could only ever toast "this patient has no questionnaire link
+    // yet", so they are not offered at all.
+    var rowSend=(!p.archived && p.origin==='clinic' && p.stage==='awaiting' && p.hasToken);
+    var qActions=rowSend
       ? '<div class="ws-q-row" onclick="event.stopPropagation()">'+wsQActions(p.clinicId, p.questionnaire_status&&p.questionnaire_status!=='not_sent')+'</div>' : '';
     // Archived rows: show who/when + a Restore action; no clinical primary button.
     var sub = p.archived
@@ -1462,7 +1658,10 @@ function wsRenderMyPatients(){
       '<div class="ws-mp-main"><div class="ws-mp-top">'+origChip+'<span class="ws-mp-nm">'+wsEsc(p.name)+'</span>'+(meta?'<span class="ws-mp-meta">'+meta+'</span>':'')+'</div>'+
         '<div class="ws-mp-sub">'+sub+'</div>'+
         progOrArch+'</div>'+
-      '<div class="ws-mp-right">'+dateChip+right+'</div>'+
+      // The menu sits ON the action row, immediately beside the primary button,
+      // so it reads as "more actions for this patient" rather than as three
+      // stray dots floating under the card.
+      '<div class="ws-mp-right">'+dateChip+'<div class="ws-mp-actrow">'+right+wsRowMenu(p,rowSend)+'</div></div>'+
     '</div>';
   }).join('');
 }
@@ -1890,7 +2089,15 @@ function wsRenderConsultWorkspace(){
 // so they are identical for both origins and survive Convert.
 async function wsSaveConsultWsNotes(){
   var ta=document.getElementById('ws-consult-notes'); if(!ta||!_wsCtx||!_wsCtx.surgeryId) return;
-  try{ var u=await window.sb.from('patient_surgeries').update({ doctor_notes:ta.value }).eq('id',_wsCtx.surgeryId); if(u&&u.error) throw new Error(u.error.message);
+  // A direct UPDATE here matched ZERO rows: patient_surgeries has no doctor
+  // UPDATE policy (ps_update is USING auth.uid() = patient_id), and PostgREST
+  // reports an update that changed nothing as success — so the old code showed
+  // "Notes saved" while the note was silently discarded. save_doctor_notes()
+  // writes that one column under the assigned-doctor check and RAISEs when the
+  // caller is not entitled, so the toast below now reflects the database.
+  try{
+    var u=await window.sb.rpc('save_doctor_notes',{ p_surgery_id:_wsCtx.surgeryId, p_notes:ta.value });
+    if(u&&u.error) throw new Error(u.error.message);
     var row=(_wsConsults||[]).filter(function(x){return x.id===_wsCtx.consultId;})[0]; if(row) row.doctor_notes=ta.value;
     wsToast('Notes saved'); }catch(e){ wsToast('Save failed: '+(e.message||'error')); }
 }
@@ -2430,7 +2637,13 @@ async function wsLoadPatients(){
   // The My Patients board itself is rendered by wsLoadCases/wsRenderMyPatients.
   _wsDoctorId = window.__wsUserId || null;
   try {
-    var r = await window.sb.from('clinic_patients').select('*').order('created_at',{ascending:false});
+    // Defence in depth. RLS (cp_select) is the real boundary and already limits
+    // this to auth.uid() = doctor_id, but an unfiltered select states a broader
+    // intent than we mean. Asking only for our own rows means a future policy
+    // change cannot quietly widen what this screen shows.
+    var q = window.sb.from('clinic_patients').select('*');
+    if(_wsDoctorId) q = q.eq('doctor_id', _wsDoctorId);
+    var r = await q.order('created_at',{ascending:false});
     if(r.error) throw new Error(r.error.message);
     _wsPatients = r.data || [];
   } catch(e){ _wsPatients = []; }
@@ -3113,7 +3326,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
         // ── Top-level workflow tabs ──
         '<div class="ws-wftabs">' +
-          '<button class="ws-wftab active" data-wf="mypatients" onclick="wsWf(\'mypatients\')">&#128101; My Patients</button>' +
+          '<button class="ws-wftab active" data-wf="mypatients" onclick="wsWf(\'mypatients\')">&#128101; My Patients <span class="ws-wftab-n" id="ws-mp-total">0</span></button>' +
           '<button class="ws-wftab" data-wf="consults" onclick="wsWf(\'consults\')">&#128172; Consultation Requests <span class="ws-wftab-n" id="ws-cr-total">0</span></button>' +
         '</div>' +
 
@@ -3121,7 +3334,10 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div class="ws-wf on" data-wf="mypatients">' +
           // Headline — single source: how many patients + who needs attention
           '<div class="ws-mp-headline">' +
-            '<div class="hl-total"><b id="ws-mp-hl-total">0</b> <span class="hl-total-l">patients</span></div>' +
+            // "3 patients" did not say WHOSE. It does now, with one line of
+            // explanation so the ownership rule is visible rather than assumed.
+            '<div class="hl-total"><span class="hl-total-l">My Patients &middot;</span> <b id="ws-mp-hl-total">0</b>' +
+              '<span class="hl-total-sub">Patients you created, or accepted into your care.</span></div>' +
             '<button id="ws-mp-hl-pill" class="hl-attn" onclick="wsMpStage(\'review\')"><span class="d"></span>All caught up</button>' +
             '<button class="ws-btn ws-btn-wa hl-add" onclick="wsOpenAddModal()">&#10133; New Patient</button>' +
           '</div>' +
