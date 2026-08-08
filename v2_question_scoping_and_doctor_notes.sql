@@ -26,14 +26,31 @@
 -- role-wide predicate with the treating relationship, keep patient self-access,
 -- keep admin access through is_platform_admin().
 --
+-- NO TRIAGE POOL. An earlier draft let any clinician read questions from
+-- patients who had no treating doctor, so that such questions could still be
+-- answered. That was removed after checking whether the path it protected
+-- actually works. It does not:
+--
+--   ask.html inserts {name, role, topic, question, email}. None of those are
+--   columns on public.questions -> ERROR: column "name" does not exist.
+--   It also never sets patient_id, so even with correct columns the insert
+--   fails q_insert_own's WITH CHECK (auth.uid() = patient_id).
+--
+-- It is the only question-creating path in the application; no RPC creates one
+-- either. So the pool would have widened PHI visibility across every doctor on
+-- the platform in exchange for rescuing rows that cannot currently be created.
+-- Unclaimed questions are therefore reachable by the patient and by an admin,
+-- and by nobody else. A deliberate claim/assign workflow can be designed later;
+-- it should not be implied by a policy.
+--
 -- SAFETY
 --   * Idempotent. Every object is dropped-if-exists then recreated.
 --   * Transaction-wrapped: a failed assertion rolls the whole thing back.
 --   * Defensive about schema. question_replies is ABSENT in production (see the
 --     relation contract in v2_admin_phase0.sql) and is handled only if present.
 --     Nothing here assumes a column or table that the preflight has not proven.
---   * Weakens nothing. Every policy it writes is strictly narrower than the one
---     it replaces, except the deliberate triage rule documented below.
+--   * Weakens nothing. Every policy it writes is strictly narrower than the
+--     one it replaces. There is no exception and no widening clause.
 --
 -- NOT APPLIED TO PRODUCTION BY THIS TASK.
 -- ============================================================
@@ -61,123 +78,18 @@ END
 $pre$;
 
 
--- ── 1a. is_staff_doctor() ───────────────────────────────────
--- "Is the caller a clinician at all?" — used ONLY to decide who may see the
--- unclaimed triage pool described below. It is deliberately separate from
--- is_platform_admin() and never grants access to a patient who already has a
--- doctor. SECURITY DEFINER for the same reason is_platform_admin() is: it
--- reads public.profiles, and a policy that calls it must not re-enter that
--- table's own RLS.
--- CREATE OR REPLACE, not DROP + CREATE: once the policies below reference this
--- function, dropping it is impossible, and a second run of the migration must
--- still succeed.
-CREATE OR REPLACE FUNCTION public.is_staff_doctor()
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $fn$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles p
-     WHERE p.id = auth.uid()
-       AND ( (to_jsonb(p) ->> 'is_admin') = 'true'
-             OR (to_jsonb(p) ->> 'role') IN ('doctor','admin') )
-  );
-$fn$;
-
-REVOKE ALL   ON FUNCTION public.is_staff_doctor() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.is_staff_doctor() TO authenticated;
-
-
--- ── 1b. patient_has_treating_doctor(uuid) ───────────────────
--- WHY THIS EXISTS, and why the scoping is not simply "treating doctors only".
---
--- A patient can ask a question before any doctor is attached to them:
--- ask.html inserts into public.questions with no doctor and no surgery_id.
--- If reading were restricted to the treating relationship alone, such a
--- question would be invisible to every doctor on the platform and could only
--- ever be answered by an administrator. That is not a security improvement,
--- it is a dropped clinical message.
---
--- So an UNCLAIMED question — one whose patient has no treating doctor at all —
--- stays visible to doctors as a shared triage pool. This does not weaken the
--- requirement: a patient with no doctor is nobody's patient, so no doctor is
--- reading another doctor's patient. The moment any doctor is attached, the
--- question leaves the pool and becomes private to that relationship.
---
--- Compiled defensively, mirroring doctor_treats_patient(): each relationship
--- is included only if its table and columns actually exist, so this cannot
--- fail on a database that lacks one of them.
--- Built with CREATE OR REPLACE for the same reason as is_staff_doctor(): the
--- question policies depend on it after the first run.
-DO $build$
-DECLARE
-  v_parts text[] := '{}';
-  v_skip  text[] := '{}';
-  v_sql   text;
-BEGIN
-  IF to_regclass('public.patient_surgeries') IS NOT NULL
-     AND EXISTS (SELECT 1 FROM information_schema.columns
-                  WHERE table_schema='public' AND table_name='patient_surgeries'
-                    AND column_name='assigned_doctor_id') THEN
-    v_parts := v_parts || ($p$
-    EXISTS (SELECT 1 FROM public.patient_surgeries s
-             WHERE s.patient_id = p_patient AND s.assigned_doctor_id IS NOT NULL)$p$)::text;
-  ELSE v_skip := v_skip || 'patient_surgeries.assigned_doctor_id'::text; END IF;
-
-  IF to_regclass('public.care_requests') IS NOT NULL
-     AND EXISTS (SELECT 1 FROM information_schema.columns
-                  WHERE table_schema='public' AND table_name='care_requests'
-                    AND column_name='doctor_id') THEN
-    v_parts := v_parts || ($p$
-    EXISTS (SELECT 1 FROM public.care_requests r
-             WHERE r.patient_id = p_patient AND r.doctor_id IS NOT NULL
-               AND r.status IN ('accepted','closed'))$p$)::text;
-  ELSE v_skip := v_skip || 'care_requests.doctor_id'::text; END IF;
-
-  IF to_regclass('public.clinic_patients') IS NOT NULL
-     AND EXISTS (SELECT 1 FROM information_schema.columns
-                  WHERE table_schema='public' AND table_name='clinic_patients'
-                    AND column_name='auth_user_id') THEN
-    v_parts := v_parts || ($p$
-    EXISTS (SELECT 1 FROM public.clinic_patients c
-             WHERE c.auth_user_id = p_patient AND c.doctor_id IS NOT NULL)$p$)::text;
-  ELSE v_skip := v_skip || 'clinic_patients.auth_user_id'::text; END IF;
-
-  IF array_length(v_parts,1) IS NULL THEN
-    RAISE EXCEPTION 'ABORT: no usable patient/doctor relationship exists. No changes were made.';
-  END IF;
-
-  v_sql :=
-    $hd$
-CREATE OR REPLACE FUNCTION public.patient_has_treating_doctor(p_patient uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $fn$
-  SELECT p_patient IS NOT NULL AND ($hd$
-    || array_to_string(v_parts, E'\n    OR')
-    || $ft$
-  );
-$fn$;
-$ft$;
-  EXECUTE v_sql;
-
-  RAISE NOTICE 'patient_has_treating_doctor() compiled with % relationship(s); skipped: %',
-    array_length(v_parts,1), COALESCE(array_to_string(v_skip, ', '), '(none)');
-END
-$build$;
-
-REVOKE ALL   ON FUNCTION public.patient_has_treating_doctor(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.patient_has_treating_doctor(uuid) TO authenticated;
+-- ── 1. No new helper functions ──────────────────────────────
+-- doctor_treats_patient() from v2_security_hardening.sql already expresses the
+-- whole authorisation rule, so this migration introduces NO new SECURITY
+-- DEFINER surface. An earlier draft added is_staff_doctor() and
+-- patient_has_treating_doctor() purely to support the triage pool; with the
+-- pool gone they have no callers and are removed below rather than left behind
+-- as unused privileged functions.
 
 
 -- ── 2. questions — SELECT ───────────────────────────────────
 --   DROPPED : q_select_own_or_staff  (role='doctor' -> EVERY patient's question)
---   CREATED : q_select_scoped        (patient self | admin | treating | unclaimed)
+--   CREATED : q_select_scoped        (patient self | admin | treating doctor)
 -- Note the role change: the old policy was TO public, which includes anon.
 -- anon has no auth.uid(), so it matched nothing, but the new policies are
 -- explicitly TO authenticated so the intent is stated rather than implied.
@@ -189,7 +101,6 @@ CREATE POLICY q_select_scoped ON public.questions
     patient_id = auth.uid()
     OR public.is_platform_admin()
     OR public.doctor_treats_patient(patient_id)
-    OR (public.is_staff_doctor() AND NOT public.patient_has_treating_doctor(patient_id))
   );
 
 -- ── 3. questions — UPDATE ───────────────────────────────────
@@ -205,12 +116,10 @@ CREATE POLICY q_update_scoped ON public.questions
   USING (
     public.is_platform_admin()
     OR public.doctor_treats_patient(patient_id)
-    OR (public.is_staff_doctor() AND NOT public.patient_has_treating_doctor(patient_id))
   )
   WITH CHECK (
     public.is_platform_admin()
     OR public.doctor_treats_patient(patient_id)
-    OR (public.is_staff_doctor() AND NOT public.patient_has_treating_doctor(patient_id))
   );
 
 -- q_insert_own is UNCHANGED: WITH CHECK (auth.uid() = patient_id) is already
@@ -238,8 +147,7 @@ BEGIN
          WHERE q.id = question_replies.question_id
            AND ( q.patient_id = auth.uid()
                  OR public.is_platform_admin()
-                 OR public.doctor_treats_patient(q.patient_id)
-                 OR (public.is_staff_doctor() AND NOT public.patient_has_treating_doctor(q.patient_id)) )))
+                 OR public.doctor_treats_patient(q.patient_id) )))
   $x$;
 
   EXECUTE $x$ DROP POLICY IF EXISTS r_insert_participant ON public.question_replies $x$;
@@ -252,8 +160,7 @@ BEGIN
          WHERE q.id = question_replies.question_id
            AND ( q.patient_id = auth.uid()
                  OR public.is_platform_admin()
-                 OR public.doctor_treats_patient(q.patient_id)
-                 OR (public.is_staff_doctor() AND NOT public.patient_has_treating_doctor(q.patient_id)) )))
+                 OR public.doctor_treats_patient(q.patient_id) )))
   $x$;
 
   RAISE NOTICE 'question_replies policies replaced (select + insert).';
@@ -278,21 +185,29 @@ DECLARE
   v_uid   uuid := auth.uid();
   v_row   public.patient_surgeries%ROWTYPE;
   v_admin boolean := false;
+  v_found boolean := false;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
   END IF;
 
   SELECT * INTO v_row FROM public.patient_surgeries WHERE id = p_surgery_id;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Patient record not found' USING ERRCODE = '42704';
-  END IF;
+  v_found := FOUND;
 
   BEGIN v_admin := public.is_platform_admin(); EXCEPTION WHEN others THEN v_admin := false; END;
 
-  -- Reject rather than silently succeed. A doctor who is not assigned to this
-  -- record gets an error, not a no-op that the UI would report as saved.
-  IF NOT (v_row.assigned_doctor_id = v_uid OR v_admin) THEN
+  -- ONE message for both "no such record" and "not yours".
+  --
+  -- Distinguishing them would answer a question the caller is not entitled to
+  -- ask: given an arbitrary id, does this surgery exist? Two different errors
+  -- turn the function into an existence oracle over other doctors' records.
+  -- Surgery ids are UUIDs and therefore hard to guess, but the leak is free to
+  -- close and there is no legitimate caller that needs to tell the cases apart.
+  --
+  -- Rejecting is itself the point: the bug this replaces was an UPDATE that
+  -- matched zero rows and reported success, so the doctor believed a note had
+  -- been saved when it had not.
+  IF NOT (v_found AND (v_row.assigned_doctor_id = v_uid OR v_admin)) THEN
     RAISE EXCEPTION 'You can only edit notes on your own assigned patients'
       USING ERRCODE = '42501';
   END IF;
@@ -322,6 +237,15 @@ GRANT EXECUTE ON FUNCTION public.save_doctor_notes(uuid, text) TO authenticated;
 REVOKE SELECT ON public.clinic_patients FROM anon;
 
 
+-- ── 6b. Remove helpers this migration no longer needs ───────
+-- Only relevant to a database where an earlier draft of THIS migration ran and
+-- created them. They are dropped after the policies above stopped referencing
+-- them, so the dependency is already gone. An unused SECURITY DEFINER function
+-- is standing privilege with no purpose, so it does not stay.
+DROP FUNCTION IF EXISTS public.patient_has_treating_doctor(uuid);
+DROP FUNCTION IF EXISTS public.is_staff_doctor();
+
+
 -- ── 7. VERIFY BEFORE COMMITTING ─────────────────────────────
 DO $verify$
 DECLARE n integer;
@@ -346,7 +270,18 @@ BEGIN
     RAISE EXCEPTION 'Verification failed: anon still holds SELECT on clinic_patients.';
   END IF;
 
-  RAISE NOTICE 'Verified: question policies scoped, save_doctor_notes() installed, anon grant removed.';
+  -- The scoped policies must NOT mention a staff-wide or unclaimed clause.
+  IF EXISTS (SELECT 1 FROM pg_policies
+              WHERE schemaname='public' AND tablename IN ('questions','question_replies')
+                AND (coalesce(qual,'')||coalesce(with_check,'')) ILIKE '%is_staff_doctor%') THEN
+    RAISE EXCEPTION 'Verification failed: a question policy still references the removed triage clause.';
+  END IF;
+  IF to_regprocedure('public.is_staff_doctor()') IS NOT NULL
+     OR to_regprocedure('public.patient_has_treating_doctor(uuid)') IS NOT NULL THEN
+    RAISE EXCEPTION 'Verification failed: an unused helper function survived.';
+  END IF;
+
+  RAISE NOTICE 'Verified: questions scoped to patient/admin/treating-doctor only; no triage pool; no new SECURITY DEFINER helpers; save_doctor_notes() installed; anon grant removed.';
 END
 $verify$;
 
