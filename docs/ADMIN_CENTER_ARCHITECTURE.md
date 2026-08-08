@@ -2,7 +2,7 @@
 
 **Status:** Design for review. No implementation code written yet.
 **Scope:** Operational control center for the whole platform, built on the existing
-`/v2` static + Supabase architecture. Reuses existing routes, schema, RPCs and
+static + Supabase architecture at the document root. Reuses existing routes, schema, RPCs and
 Edge Functions. Invents no tables, columns or routes without flagging them.
 
 ---
@@ -110,11 +110,11 @@ ADMIN CENTER
 
 ## 2. Page hierarchy
 
-Consolidate into **one shell at the existing `/v2/admin.html` route** (no new
+Consolidate into **one shell at the existing `/admin.html` route** (no new
 routes) with hash-addressable sections, absorbing the two duplicate pages.
 
 ```
-/v2/admin.html                       Admin Center shell (single page app-shell)
+/admin.html                       Admin Center shell (single page app-shell)
   #overview                          ① dashboard
   #search?q=…                        global search results
   #doctors        · #doctors/:id     ② doctor list → 360° profile (tabs)
@@ -126,7 +126,7 @@ routes) with hash-addressable sections, absorbing the two duplicate pages.
   #documents                         requirement_documents review queue
   #videos                            YouTube sync + metadata
   #content                           procedures / guides / references / legal
-  #evidence      → deep-links to existing /v2/admin-evidence.html (kept)
+  #evidence      → deep-links to existing /admin-evidence.html (kept)
   #health                            system health probes
   #audit                             audit log
   #analytics                         analytics
@@ -134,9 +134,9 @@ routes) with hash-addressable sections, absorbing the two duplicate pages.
   #super                             super-admin tools (feature-gated)
   #explorer                          database explorer (read-only default)
 
-/v2/admin-evidence.html              KEPT as-is (deep tool, linked from #content)
-/v2/users.html                       DEPRECATE → redirect to admin.html#accounts
-/v2/doctor-approvals.html            DEPRECATE → redirect to admin.html#doctors?filter=pending
+/admin-evidence.html              KEPT as-is (deep tool, linked from #content)
+/users.html                       DEPRECATE → redirect to admin.html#accounts
+/doctor-approvals.html            DEPRECATE → redirect to admin.html#doctors?filter=pending
 ```
 
 Rationale for one shell: shared search, shared audit surface, one auth gate, one

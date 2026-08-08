@@ -6,13 +6,13 @@
 <title>My Space — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<script src="/v2/journey.js?v=2026.08.07-18"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<script src="/journey.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.07-18">
 <style>
 /* ============================================================
    MY SPACE — premium patient healthcare home.
@@ -557,7 +557,7 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
       <div class="ms-sec-head">
         <div class="ms-sec-ico con"><span class="ic-slot" data-ic="stethoscope"></span></div>
         <div><div class="ms-sec-title">My consultations</div><div class="ms-sec-sub">Questions you've asked an anesthesiologist</div></div>
-        <a class="ms-sec-link con" href="/v2/ask.html"><span class="ic-slot" data-ic="plus"></span> Ask a question</a>
+        <a class="ms-sec-link con" href="/ask.html"><span class="ic-slot" data-ic="plus"></span> Ask a question</a>
       </div>
       <div id="q-body"></div>
     </section>
@@ -862,12 +862,12 @@ function computeSpotlight(){
   }
   if(_surgery && effDone(_surgery) && !upcomingSurgeries().length){
     return { tone:'tone-done', pin:'Recovery', icon:'heart-pulse', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
-      btn:'Recovery information', btnCls:'ms-btn-primary', on:'location.href=\'/v2/recovery.html\'' };
+      btn:'Recovery information', btnCls:'ms-btn-primary', on:'location.href=\'/recovery.html\'' };
   }
   // Questionnaire not done yet — the single most important step.
   if(hasS && !qSub){
     return { tone:'', pin:'Prioritized for you · do this next', icon:'zap', t:'Complete your health questionnaire', s:'About 8 minutes. This lets your anesthesiologist prepare your plan.',
-      btn:(_quest?'Continue questionnaire':'Start questionnaire'), btnCls:'ms-btn-action', on:'location.href=\'/v2/questionnaire.html\'',
+      btn:(_quest?'Continue questionnaire':'Start questionnaire'), btnCls:'ms-btn-action', on:'location.href=\'/questionnaire.html\'',
       celebrate: (_surgery && _surgery.procedure_type) ? 'Nice — your surgery is added. The questionnaire is the next step.' : '' };
   }
   // Completed prep ready to send to the clinician.
@@ -878,7 +878,7 @@ function computeSpotlight(){
   // A consultation reply is waiting.
   if(answeredConsults().length){
     return { tone:'tone-info', pin:'New reply', icon:'stethoscope', t:'You have a reply to your consultation', s:'Your anesthesiologist answered your question.',
-      btn:'Read the reply', btnCls:'ms-btn-con', on:'location.href=\'/v2/ask.html\'' };
+      btn:'Read the reply', btnCls:'ms-btn-con', on:'location.href=\'/ask.html\'' };
   }
   // Submitted but not yet connected to a clinician.
   if(crs !== 'accepted' && rs === 'not_submitted'){
@@ -1412,7 +1412,7 @@ function badgeFor(d){
 function sjCTA(s, d){
   var js = d.journeyStatus;
   if(js==='completed' || js==='in_recovery' || js==='archived')
-    return '<a class="ms-btn ms-btn-primary ms-btn-sm" href="/v2/recovery.html">'+iconHtml('heart-pulse')+' Recovery information</a>';
+    return '<a class="ms-btn ms-btn-primary ms-btn-sm" href="/recovery.html">'+iconHtml('heart-pulse')+' Recovery information</a>';
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   var qSub = !!(_quest && _quest.status === 'submitted');
   var label, icon = 'clipboard-check', cls = 'ms-btn-primary';
@@ -1623,7 +1623,7 @@ function prepContentHtml(){
   }
   if(!_quest || _quest.status !== 'submitted'){
     return recs + '<div style="font-size:14px;color:var(--muted);margin-bottom:12px;">Complete your pre-op questionnaire to unlock your personalized preparation guide.</div>' +
-      '<a href="/v2/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
+      '<a href="/questionnaire.html" class="btn-sm">' + (_quest ? 'Continue questionnaire' : 'Start questionnaire') + '</a>';
   }
   return recs + changes + prepBuildGuide(_quest) + sday + summary;
 }
@@ -1836,7 +1836,7 @@ function renderQuestions(qs, replies){
   if(!qs || !qs.length){
     host.innerHTML = '<div class="ms-empty-cta"><div><div class="et">No consultations yet</div>' +
       '<div class="es">Ask an anesthesiologist about anesthesia, sedation, or your procedure — no surgery needed.</div></div>' +
-      '<a class="ms-btn ms-btn-con" href="/v2/ask.html">Ask a question &rarr;</a></div>';
+      '<a class="ms-btn ms-btn-con" href="/ask.html">Ask a question &rarr;</a></div>';
     return;
   }
   host.innerHTML = qs.slice(0,5).map(function(q){
@@ -1848,17 +1848,17 @@ function renderQuestions(qs, replies){
     if(st === 'closed'){
       cls = 'closed';
       badge = '<span class="ms-cbadge closed"><span class="bd"></span>Closed</span>' + (when?' '+esc(when):'');
-      acts = '<a class="ms-link muted" href="/v2/ask.html">View summary</a>';
+      acts = '<a class="ms-link muted" href="/ask.html">View summary</a>';
     } else if(st === 'answered'){
       cls = '';
       badge = '<span class="ms-cbadge reply"><span class="bd"></span>Reply received</span>' + (rep.length?' Answered':'');
-      acts = '<a class="ms-btn ms-btn-con ms-btn-sm" href="/v2/ask.html">Continue conversation &rarr;</a>';
+      acts = '<a class="ms-btn ms-btn-con ms-btn-sm" href="/ask.html">Continue conversation &rarr;</a>';
       if(rep.length) replyHtml = '<div class="ms-crq-reply"><b>'+esc(rep[rep.length-1].author_role||'Reply')+':</b> '+esc(rep[rep.length-1].message||'')+'</div>';
     } else {
       cls = '';
       var waitLbl = st === 'under_review' ? 'Under review' : 'Waiting for reply';
       badge = '<span class="ms-cbadge wait"><span class="bd"></span>'+waitLbl+'</span>' + (when?' Sent '+esc(when):'');
-      acts = '<a class="ms-link" href="/v2/ask.html">'+iconHtml('pencil')+' Edit</a><a class="ms-link" href="/v2/ask.html">View</a>';
+      acts = '<a class="ms-link" href="/ask.html">'+iconHtml('pencil')+' Edit</a><a class="ms-link" href="/ask.html">View</a>';
     }
     return '<div class="ms-crq '+cls+'">' +
       '<div class="ms-crq-ico">'+iconHtml('stethoscope')+'</div>' +
@@ -1983,7 +1983,7 @@ var _pdWatchdog = setTimeout(function(){
       '<p style="color:#fff;font-size:15px;margin-bottom:10px;">This is taking longer than expected.</p>' +
       '<p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px;">Please refresh or try again.</p>' +
       '<button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Refresh</button> ' +
-      '<a href="/v2/patients.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Back to portal</a></div>';
+      '<a href="/patients.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Back to portal</a></div>';
   }
 }, 10000);
 

@@ -6,14 +6,14 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/evidence-api.js?v=2026.08.07-18"></script>
-<script src="/v2/evidence-drawer.js?v=2026.08.07-18"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/evidence-api.js?v=2026.08.07-18"></script>
+<script src="/evidence-drawer.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.07-18">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -1736,7 +1736,7 @@ function compute(){
       metric('MACOCHA','Mallampati III/IV · apnoea · cervical · &lt;3 cm · coma · hypoxaemia','')) +
     grp('Emergency', emAirwayRow) +
     foot('Full tube reference in the <b>Airway Tubes</b> module below &middot; ' +
-         '<a href="/v2/difficult-airway.html">difficult airway algorithm</a>.');
+         '<a href="/difficult-airway.html">difficult airway algorithm</a>.');
 
   // ── VENTILATION (compact module) — PBW-driven, targets as one table
   var ventBody =
@@ -1916,7 +1916,7 @@ function compute(){
       m2('MgSO₄','Loading dose then 1 g/h','4','g')+
       m2('Before neuraxial','Check platelets and coagulation','','')) +
      alert_('<b>Magnesium toxicity:</b> loss of reflexes (~4 mmol/L) → respiratory depression → arrest. Stop magnesium and give calcium gluconate 1 g IV.', true) +
-     foot('Full reference: <a href="/v2/obstetric.html">obstetric anaesthesia</a>.')) : '';
+     foot('Full reference: <a href="/obstetric.html">obstetric anaesthesia</a>.')) : '';
 
   // Pediatric quick reference (conditional)
   var pedHtml = isPeds ?
@@ -1968,7 +1968,7 @@ function compute(){
       m2('STOP-BANG','Snore · Tired · Observed apnoea · Pressure · BMI &gt;35 · Age &gt;50 · Neck &gt;40 cm · Male','&ge;3','risk')+
       m2('Apfel PONV','Female · non-smoker · PONV or motion history · postop opioids','0–4','')+
       m2('RCRI','High-risk surgery · IHD · CHF · CVD · insulin · creatinine &gt;177','','')) +
-    foot('Full interactive calculators in <a href="/v2/scores.html">Clinical Scores</a>.');
+    foot('Full interactive calculators in <a href="/scores.html">Clinical Scores</a>.');
 
   // Crisis Center card — inline protocols. One click on a protocol expands it
   // right here on the same page (no button, no modal, no navigation).

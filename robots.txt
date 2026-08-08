@@ -1,0 +1,54 @@
+# Anestheo — https://anestheo.com/
+#
+# The application is served from the document root. Everything behind a login
+# is listed below not because robots.txt protects it — it does not, and must
+# never be relied on for that — but because there is nothing there for a
+# crawler to index. Access is enforced by Supabase RLS and the page auth
+# guards; this file only avoids wasting crawl budget on pages that render a
+# redirect to the homepage for anyone who is not signed in.
+#
+# Patient-identifying URLs (the questionnaire token link) are excluded for a
+# stronger reason: a token in a URL must never end up in a search index.
+
+User-agent: *
+
+# ── Signed-in application surfaces ──────────────────────────────────────────
+Disallow: /dashboard.html
+Disallow: /patient-dashboard.html
+Disallow: /engine.html
+Disallow: /settings.html
+Disallow: /role-select.html
+Disallow: /questionnaire.html
+Disallow: /questionnaires.html
+
+# ── Admin Center ────────────────────────────────────────────────────────────
+Disallow: /admin.html
+Disallow: /admin-evidence.html
+Disallow: /doctor-approvals.html
+Disallow: /users.html
+Disallow: /questions.html
+
+# ── Clinician reference library (staff only) ────────────────────────────────
+Disallow: /references.html
+Disallow: /resources.html
+Disallow: /airway.html
+Disallow: /difficult-airway.html
+Disallow: /anaphylaxis.html
+Disallow: /anticoagulation.html
+Disallow: /icu.html
+Disallow: /last.html
+Disallow: /obstetric.html
+Disallow: /pediatric.html
+Disallow: /regional.html
+Disallow: /scores.html
+
+# ── Tokenised patient links — never index ───────────────────────────────────
+Disallow: /q.html
+
+# ── Legacy /v2 prefix ───────────────────────────────────────────────────────
+# Every /v2/ URL 301s to its root equivalent. The redirect is what consolidates
+# ranking signal onto the new URL, so the old path must stay CRAWLABLE — a
+# Disallow here would stop crawlers ever seeing the 301 and the old URLs would
+# linger in the index instead of being replaced. Do not add "Disallow: /v2/".
+
+Sitemap: https://anestheo.com/sitemap.xml

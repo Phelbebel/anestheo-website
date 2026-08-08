@@ -1,0 +1,128 @@
+# ============================================================================
+# Anestheo — root cutover .htaccess
+#
+# THIS FILE IS NOT ACTIVE.
+#
+# It is deliberately named "htaccess-root-cutover" and kept under deploy/ so
+# that uploading the repository cannot switch redirects on by accident. To
+# activate it, copy it to public_html/.htaccess as a separate, deliberate step
+# in the cutover sequence — see ROOT_CUTOVER.md.
+#
+# Hostinger shared hosting runs LiteSpeed, which reads .htaccess and implements
+# mod_rewrite, mod_alias and ErrorDocument with Apache semantics. Everything
+# used here is within that supported subset. Nothing here needs shell access,
+# and nothing here requires a server restart: LiteSpeed re-reads .htaccess per
+# request, so a mistake is reverted in the time it takes to re-upload the file.
+#
+# WHAT THIS DOES
+#   1. Serves index.html for a bare directory request  -> anestheo.com/ works
+#   2. Permanently redirects every /v2/... URL to its root equivalent,
+#      preserving the query string  -> old patient links keep working
+#   3. Serves 404.html for anything that does not exist
+#
+# WHAT THIS DELIBERATELY DOES NOT DO
+#   * No HTTPS or www canonicalisation. Hostinger already terminates both at
+#     the edge; adding rules here risks a redirect loop with that layer. If you
+#     want them, verify what the panel is already doing FIRST.
+#   * No caching headers. They are drafted at the foot of this file, commented
+#     out, and are not part of the cutover.
+# ============================================================================
+
+# ── 1. Directory index ──────────────────────────────────────────────────────
+# A request for "/" is served from index.html. This is what makes the preferred
+# homepage URL anestheo.com/ rather than anestheo.com/index.html. Both work;
+# only one is advertised.
+DirectoryIndex index.html
+
+
+# ── 2. Legacy /v2 URLs ──────────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # The rules must run before mod_dir gets involved. If public_html/v2/ is
+  # still physically present (it is, deliberately, as the rollback copy),
+  # mod_dir would otherwise issue its own trailing-slash redirect first and
+  # cost an extra hop.
+
+  # 2a. The bare prefix, with or without a trailing slash, is the homepage.
+  #     /v2   -> /
+  #     /v2/  -> /
+  RewriteRule ^v2/?$ / [R=301,L]
+
+  # 2b. Everything below the prefix keeps its path.
+  #     /v2/engine.html          -> /engine.html
+  #     /v2/q.html?t=ABC123      -> /q.html?t=ABC123
+  #     /v2/styles.css?v=2026…   -> /styles.css?v=2026…
+  #
+  #     The query string is preserved automatically: a substitution that
+  #     contains no "?" leaves the original query untouched. QSA is NOT used
+  #     here — it is for merging a query the rule itself introduces, and adding
+  #     it would risk duplicating parameters.
+  #
+  #     WHY THIS CANNOT LOOP: the substitution "/$1" never begins with "v2/",
+  #     because the pattern consumed that prefix. The redirected request is a
+  #     fresh external request for /engine.html, which does not match ^v2/ and
+  #     therefore passes straight through. There is exactly one hop.
+  #
+  #     A token in a query string survives this untouched, which is the whole
+  #     point: every questionnaire link already sent by email or WhatsApp still
+  #     opens the right patient's questionnaire.
+  RewriteRule ^v2/(.*)$ /$1 [R=301,L]
+</IfModule>
+
+
+# ── 3. Not found ────────────────────────────────────────────────────────────
+# The path is root-absolute, so it resolves the same way for a missing page at
+# any depth. 404.html itself loads only root-absolute assets, so it renders
+# correctly whether the bad URL was /nope.html or /a/b/c/nope.html.
+ErrorDocument 404 /404.html
+
+
+# ── 4. Do not serve source or operational files ─────────────────────────────
+# The repository contains .sql migrations and .md documents that have no reason
+# to be web-readable. This is defence in depth for the class of problem already
+# identified at the root: V1 left supabase_migration_final.sql publicly
+# downloadable. Schema disclosure is not a breach on its own — RLS is the
+# boundary — but it hands an attacker the map for free.
+<FilesMatch "\.(sql|md|py|log|bak|old|orig|ini|sh|yml|yaml)$">
+  Require all denied
+</FilesMatch>
+
+# Dotfiles and version-control leftovers.
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+RedirectMatch 404 /\.git
+
+
+# ============================================================================
+# OPTIONAL — CACHING. NOT PART OF THE CUTOVER. LEAVE COMMENTED.
+# ============================================================================
+# Every local .js and .css reference carries ?v=<VERSION> from
+# tools/stamp-assets.js, so an asset URL changes on every release and a long
+# cache lifetime is safe *for assets only*. HTML must never be cached hard, or
+# a browser will keep serving old markup that points at old asset versions.
+#
+# Turn this on only AFTER the cutover is verified and you have confirmed
+# "node tools/stamp-assets.js --check" passes in the deployed tree. If stamping
+# ever silently stopped, this block would freeze the broken state in every
+# visitor's browser for a year.
+#
+# <IfModule mod_expires.c>
+#   ExpiresActive On
+#   ExpiresByType text/javascript          "access plus 1 year"
+#   ExpiresByType application/javascript   "access plus 1 year"
+#   ExpiresByType text/css                 "access plus 1 year"
+#   ExpiresByType image/png                "access plus 6 months"
+#   ExpiresByType image/jpeg               "access plus 6 months"
+#   ExpiresByType image/x-icon             "access plus 6 months"
+#   ExpiresByType text/html                "access plus 0 seconds"
+# </IfModule>
+# <IfModule mod_headers.c>
+#   <FilesMatch "\.(js|css)$">
+#     Header set Cache-Control "public, max-age=31536000"
+#   </FilesMatch>
+#   <FilesMatch "\.html$">
+#     Header set Cache-Control "no-cache, must-revalidate"
+#   </FilesMatch>
+# </IfModule>

@@ -6,13 +6,13 @@
 <title>For Patients — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<script src="/v2/journey.js?v=2026.08.07-18"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<script src="/journey.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.07-18">
 <style>
 /* -- Patient Home (UX ported from surgery-journey; status from derived spine) -- */
 #ph-loader{min-height:50vh;display:flex;align-items:center;justify-content:center;}
@@ -81,7 +81,7 @@
         <p>A personal, step-by-step assistant - from preparation to recovery. Understand your anesthesia, complete your forms, and know exactly what to do next.</p>
         <div class="gh-btns">
           <button class="btn-primary" onclick="window.nbStartPatientJourney ? window.nbStartPatientJourney() : window.nbOpenModal()">Start my surgery journey</button>
-          <a href="/v2/ask.html" class="btn-ghost">Ask a question</a>
+          <a href="/ask.html" class="btn-ghost">Ask a question</a>
         </div>
       </div>
     </div>
@@ -103,12 +103,12 @@
 
     <div class="ph-qa-label">Quick actions</div>
     <div class="ph-grid">
-      <a class="ph-tile" href="/v2/questionnaire.html"><span class="ph-tile-ico">&#128203;</span><span class="ph-tile-t">Complete Questionnaire</span><span class="ph-tile-d">Your pre-operative health forms.</span></a>
-      <a class="ph-tile" href="/v2/patient-dashboard.html"><span class="ph-tile-ico">&#129658;</span><span class="ph-tile-t">My Surgery Journey</span><span class="ph-tile-d">Track every surgery, step by step.</span></a>
-      <a class="ph-tile" href="/v2/procedures.html"><span class="ph-tile-ico">&#128214;</span><span class="ph-tile-t">Surgery Preparation</span><span class="ph-tile-d">Your complete anesthesia guide.</span></a>
-      <a class="ph-tile" href="/v2/videos.html"><span class="ph-tile-ico">&#127916;</span><span class="ph-tile-t">Educational Videos</span><span class="ph-tile-d">Short videos about anesthesia.</span></a>
-      <a class="ph-tile" href="/v2/ask.html"><span class="ph-tile-ico">&#128172;</span><span class="ph-tile-t">Ask an Anesthesiologist</span><span class="ph-tile-d">Get answers from a specialist.</span></a>
-      <a class="ph-tile" href="/v2/recovery.html"><span class="ph-tile-ico">&#10084;&#65039;</span><span class="ph-tile-t">Recovery Information</span><span class="ph-tile-d">Pain, recovery, warning signs.</span></a>
+      <a class="ph-tile" href="/questionnaire.html"><span class="ph-tile-ico">&#128203;</span><span class="ph-tile-t">Complete Questionnaire</span><span class="ph-tile-d">Your pre-operative health forms.</span></a>
+      <a class="ph-tile" href="/patient-dashboard.html"><span class="ph-tile-ico">&#129658;</span><span class="ph-tile-t">My Surgery Journey</span><span class="ph-tile-d">Track every surgery, step by step.</span></a>
+      <a class="ph-tile" href="/procedures.html"><span class="ph-tile-ico">&#128214;</span><span class="ph-tile-t">Surgery Preparation</span><span class="ph-tile-d">Your complete anesthesia guide.</span></a>
+      <a class="ph-tile" href="/videos.html"><span class="ph-tile-ico">&#127916;</span><span class="ph-tile-t">Educational Videos</span><span class="ph-tile-d">Short videos about anesthesia.</span></a>
+      <a class="ph-tile" href="/ask.html"><span class="ph-tile-ico">&#128172;</span><span class="ph-tile-t">Ask an Anesthesiologist</span><span class="ph-tile-d">Get answers from a specialist.</span></a>
+      <a class="ph-tile" href="/recovery.html"><span class="ph-tile-ico">&#10084;&#65039;</span><span class="ph-tile-t">Recovery Information</span><span class="ph-tile-d">Pain, recovery, warning signs.</span></a>
       <div class="ph-tile soon"><span class="ph-tile-ico">&#128451;&#65039;</span><span class="ph-tile-t">Lifetime Anesthesia Record</span><span class="ph-soon-tag">Coming soon</span></div>
     </div>
   </section>
@@ -117,17 +117,17 @@
   <section id="ph-clin" style="display:none;">
     <div class="ph-hi">For Patients</div>
     <div class="ph-sub">This is the patient experience. Your clinical tools are in the workspace.</div>
-    <a href="/v2/dashboard.html" class="ph-cta">Open clinician workspace</a>
+    <a href="/dashboard.html" class="ph-cta">Open clinician workspace</a>
   </section>
 </div>
 
 <footer class="site-footer">
   <div class="footer-inner">
-    <a href="/v2/index.html" class="footer-logo">Anest<span>heo</span></a>
+    <a href="/index.html" class="footer-logo">Anest<span>heo</span></a>
     <div class="footer-links">
-      <a href="/v2/index.html">Home</a>
-      <a href="/v2/videos.html">Videos</a>
-      <a href="/v2/ask.html">Ask</a>
+      <a href="/index.html">Home</a>
+      <a href="/videos.html">Videos</a>
+      <a href="/ask.html">Ask</a>
     </div>
   </div>
   <div class="footer-inner"><p class="footer-copy">&copy; 2025 Anestheo. Educational purposes only.</p></div>
@@ -171,7 +171,7 @@ function renderSnapshot(s, ctx){
       stepper +
       '<div class="ph-next">&#10148; <span>Next: <b>'+esc(d.nextStep)+'</b></span></div>' +
       conn +
-      '<a class="ph-cta" href="/v2/patient-dashboard.html">Continue Journey &rarr;</a>' +
+      '<a class="ph-cta" href="/patient-dashboard.html">Continue Journey &rarr;</a>' +
     '</div>';
 }
 function renderEmpty(){
@@ -179,7 +179,7 @@ function renderEmpty(){
     '<div class="ph-empty">' +
       '<h3>Start planning your surgery</h3>' +
       '<p>Add your surgery to get a personalized, step-by-step preparation plan - from forms to recovery.</p>' +
-      '<a class="ph-cta" href="/v2/patient-dashboard.html">+ Add Surgery</a>' +
+      '<a class="ph-cta" href="/patient-dashboard.html">+ Add Surgery</a>' +
     '</div>';
 }
 

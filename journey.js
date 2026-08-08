@@ -1,5 +1,5 @@
 // ============================================================
-// Anestheo /v2 — Journey derivation (WORKFLOW_REFERENCE.md §1 + §6)
+// Anestheo — Journey derivation (WORKFLOW_REFERENCE.md §1 + §6)
 //
 // SINGLE SOURCE OF TRUTH: care_request.status + review_state + set-once
 // milestones. journey_status, stage, pill and next-step are DERIVED here and

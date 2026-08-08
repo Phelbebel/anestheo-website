@@ -1,4 +1,4 @@
-// auth.js — /v2 shared auth helpers
+// auth.js — shared auth helpers
 // Load order: CDN → supabase.js → auth.js → navbar.js → page script
 
 // ── TIMEOUT GUARD ─────────────────────────────────────────────
@@ -47,13 +47,13 @@ async function getProfile(userId) {
 
 // ── requireAuth ───────────────────────────────────────────────
 // Call on every protected page. Returns { session, user, profile } or null.
-// Redirects to /v2/index.html if no session.
+// Redirects to /index.html if no session.
 async function requireAuth(opts) {
   opts = opts || {};
   var session = await getSession();
   if (!session) {
     if (opts.noRedirect) { return null; }
-    window.location.href = '/v2/index.html';
+    window.location.href = '/index.html';
     return null;
   }
   var user    = session.user;
@@ -79,7 +79,7 @@ function initializeAuth() {
 // Returns { session, user, profile } when permitted, or null after redirect.
 async function requireRole(allowed, opts) {
   opts = opts || {};
-  var auth = await requireAuth(opts);              // unauthenticated → /v2/index.html
+  var auth = await requireAuth(opts);              // unauthenticated → /index.html
   if (!auth) return null;
   var p = auth.profile || {};
   var role = p.role || 'patient';
@@ -94,7 +94,7 @@ async function requireRole(allowed, opts) {
   // Wrong role: non-staff (patients/other) go to their own space; a staff
   // member lacking a finer role (e.g. a doctor on an admin page) goes to the
   // staff dashboard. replace() so Back doesn't return to the blocked page.
-  var dest = opts.deny || (isStaff ? '/v2/dashboard.html' : '/v2/patient-dashboard.html');
+  var dest = opts.deny || (isStaff ? '/dashboard.html' : '/patient-dashboard.html');
   window.location.replace(dest);
   return null;
 }
@@ -198,7 +198,7 @@ window.ensureProfile = ensureProfile;
 async function signOut() {
   _sessionPromise = null;
   try { await window.sb.auth.signOut(); } catch(e) {}
-  window.location.href = '/v2/index.html';
+  window.location.href = '/index.html';
 }
 
 // ── ONE auth state listener — bust session cache on sign-out only ──

@@ -6,11 +6,11 @@
 <title>Dashboard — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -848,7 +848,7 @@ var _dashWatchdog = setTimeout(function(){
       '<p style="color:#fff;font-size:15px;margin-bottom:10px;">Login is taking longer than expected.</p>' +
       '<p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px;">Please refresh or try again.</p>' +
       '<button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Refresh</button> ' +
-      '<a href="/v2/index.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Return home</a>' +
+      '<a href="/index.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Return home</a>' +
       '</div>';
   }
 }, 10000);
@@ -862,7 +862,7 @@ function dashFail(msg){
       '<p style="color:rgba(255,160,140,.95);font-size:15px;margin-bottom:10px;">Could not load your dashboard</p>' +
       '<p style="color:rgba(255,255,255,.5);font-size:13px;margin-bottom:18px;">' + (msg || 'Unknown error') + '</p>' +
       '<button onclick="location.reload()" style="background:#1B6B5A;color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;">Try again</button> ' +
-      '<a href="/v2/index.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Return home</a>' +
+      '<a href="/index.html" style="color:#7ECFC0;font-size:13px;margin-left:10px;">Return home</a>' +
       '</div>';
   }
 }
@@ -1369,7 +1369,7 @@ window.wsLoadOpList=wsLoadOpList;
    inputs and reactive panels ARE the workstation. No medical logic here. */
 function wsOpenTools(){
   var f=document.getElementById('ws-wkframe');
-  if(f && !f.getAttribute('src')) f.setAttribute('src','/v2/engine.html?embed=1');
+  if(f && !f.getAttribute('src')) f.setAttribute('src','/engine.html?embed=1');
 }
 window.wsOpenTools=wsOpenTools;
 
@@ -2558,7 +2558,7 @@ async function wsCancelInvite(id){
   await wsLoadPatients(); wsLoadCases();
 }
 window.wsCancelInvite=wsCancelInvite;
-function wsPreview(){ window.open('/v2/q.html?preview=1', '_blank'); }
+function wsPreview(){ window.open('/q.html?preview=1', '_blank'); }
 function wsPrint(id){
   var p = _wsPatients.find(function(x){ return x.id === id; });
   if(!p){ wsToast('Patient not found'); return; }
@@ -2665,7 +2665,7 @@ async function wsSavePatient(thenSend){
 // ── DELIVERY ─────────────────────────────────────────────────
 // "sent" is recorded ONLY after a real delivery action launches
 // (WhatsApp or the device SMS app). Creating a patient never sets "sent".
-function wsLink(p){ return p && p.token ? (location.origin + '/v2/q.html?t=' + p.token) : ''; }
+function wsLink(p){ return p && p.token ? (location.origin + '/q.html?t=' + p.token) : ''; }
 function wsMessage(p){
   var first = p.patient_name ? p.patient_name.split(' ')[0] : '';
   return 'Hello ' + first + ',\n\n' +
@@ -2939,7 +2939,7 @@ function wsRenderAsk(){
     var msg = q.message || q.question || '';
     return '<div class="ws-row"><div class="ws-row-top"><div><div class="ws-row-name">'+wsEsc(subj)+'</div>' +
       '<div class="ws-row-meta">'+wsEsc(msg).slice(0,160)+'</div></div><span class="ws-badge '+(bmap[st]||'b-new')+'">'+(blab[st]||'New')+'</span></div>' +
-      '<div class="ws-row-actions"><a class="ws-btn" href="/v2/ask.html">Open &amp; reply</a></div></div>';
+      '<div class="ws-row-actions"><a class="ws-btn" href="/ask.html">Open &amp; reply</a></div></div>';
   }).join('');
 }
 
@@ -3013,7 +3013,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       }
       if(!hasRole){
         _dashDone = true; clearTimeout(_dashWatchdog);
-        window.location.href = '/v2/role-select.html';
+        window.location.href = '/role-select.html';
         return;
       }
     }
@@ -3024,7 +3024,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     // Patients land on the For Patients portal (dashboard is one tool inside it)
     if(role === 'patient'){
       _dashDone = true; clearTimeout(_dashWatchdog);
-      window.location.replace('/v2/patients.html');
+      window.location.replace('/patients.html');
       return;
     }
 
@@ -3074,11 +3074,11 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div class="ws-railgrp-lbl">Knowledge</div>' +
         railTab('refs','book-open','References') +
         railTab('resources','folder','Resources') +
-        '<a class="ws-tab" href="/v2/videos.html"><span class="ws-tab-ic">'+dIcon('play-circle')+'</span><span class="ws-tab-tx">Videos</span></a>' +
+        '<a class="ws-tab" href="/videos.html"><span class="ws-tab-ic">'+dIcon('play-circle')+'</span><span class="ws-tab-tx">Videos</span></a>' +
       '</div>' +
       '<div class="ws-rail-sp"></div>' +
       '<div class="ws-railgrp ws-railgrp-util">' +
-        '<a class="ws-tab" href="/v2/settings.html"><span class="ws-tab-ic">'+dIcon('settings')+'</span><span class="ws-tab-tx">Settings</span></a>' +
+        '<a class="ws-tab" href="/settings.html"><span class="ws-tab-ic">'+dIcon('settings')+'</span><span class="ws-tab-tx">Settings</span></a>' +
         '<button class="ws-tab" onclick="window.nbSignOut()"><span class="ws-tab-ic">'+dIcon('log-out')+'</span><span class="ws-tab-tx">Sign out</span></button>' +
       '</div>';
 
@@ -3099,7 +3099,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       '<div class="ws-sec" id="sec-tools">' +
         '<div class="ws-wkbar">' +
           '<span class="ws-wk-live"><span class="d"></span> Live workspace</span>' +
-          '<a href="/v2/engine.html" target="_blank" class="ws-open">'+dIcon('external-link')+' Full screen</a>' +
+          '<a href="/engine.html" target="_blank" class="ws-open">'+dIcon('external-link')+' Full screen</a>' +
         '</div>' +
         '<div class="ws-wkframe-wrap"><iframe class="ws-wkframe" id="ws-wkframe" title="Anesthesia Workstation" loading="lazy"></iframe></div>' +
       '</div>';
@@ -3172,10 +3172,10 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     // SECTION 3 — Clinical References (inline directory)
     var refItems = [
-      ['Airway','/v2/airway.html','&#128168;'],['Anticoagulation','/v2/anticoagulation.html','&#129656;'],
-      ['Regional','/v2/regional.html','&#129504;'],['Obstetric','/v2/obstetric.html','&#129328;'],
-      ['Pediatric','/v2/pediatric.html','&#129730;'],['ICU','/v2/icu.html','&#127973;'],
-      ['LAST','/v2/last.html','&#9888;'],['Anaphylaxis','/v2/anaphylaxis.html','&#128137;']
+      ['Airway','/airway.html','&#128168;'],['Anticoagulation','/anticoagulation.html','&#129656;'],
+      ['Regional','/regional.html','&#129504;'],['Obstetric','/obstetric.html','&#129328;'],
+      ['Pediatric','/pediatric.html','&#129730;'],['ICU','/icu.html','&#127973;'],
+      ['LAST','/last.html','&#9888;'],['Anaphylaxis','/anaphylaxis.html','&#128137;']
     ];
     var secRefs =
       '<div class="ws-sec" id="sec-refs">' +
@@ -3194,7 +3194,7 @@ document.addEventListener('DOMContentLoaded', async function(){
           '<div class="ws-sec-sub">Reference library and downloads</div></div></div>' +
         '<div class="ws-grid">' +
           resItems.map(function(r){ return '<button class="ws-tile" onclick="wsToast(\''+r[0]+' — coming soon\')"><span class="ws-tile-ico">'+r[1]+'</span><span class="ws-tile-t">'+r[0]+'</span></button>'; }).join('') +
-          '<a class="ws-tile" href="/v2/videos.html"><span class="ws-tile-ico">&#127909;</span><span class="ws-tile-t">Videos</span></a>' +
+          '<a class="ws-tile" href="/videos.html"><span class="ws-tile-ico">&#127909;</span><span class="ws-tile-t">Videos</span></a>' +
         '</div>' +
       '</div>';
 
@@ -3218,7 +3218,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       '<div class="ws-sec" id="sec-admin">' +
         '<div class="ws-sec-head"><div><div class="ws-sec-title">Admin center</div>' +
           '<div class="ws-sec-sub">Approvals, users, and platform</div></div>' +
-          '<a class="ws-open" href="/v2/admin.html">Full admin page &#8599;</a></div>' +
+          '<a class="ws-open" href="/admin.html">Full admin page &#8599;</a></div>' +
         '<div class="ws-stats" id="ws-admin-stats"></div>' +
         '<div class="ws-sec-title" style="font-size:14px;margin:18px 0 10px;">Doctor approvals</div>' +
         '<div id="ws-approvals" class="ws-list"><div class="ws-empty">Loading…</div></div>' +

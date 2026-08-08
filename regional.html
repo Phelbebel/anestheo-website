@@ -6,12 +6,12 @@
 <title>Regional Anesthesia — Anestheo References</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.07-18">
 <style>
 #loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
@@ -47,11 +47,11 @@
 <div id="nb-placeholder"></div>
 <div id="app">
   <div class="page-wrap" style="max-width:760px;">
-    <div class="crumb"><a href="/v2/dashboard.html">Dashboard</a> &rsaquo; <a href="/v2/references.html">Clinical References</a> &rsaquo; Regional Anesthesia</div>
+    <div class="crumb"><a href="/dashboard.html">Dashboard</a> &rsaquo; <a href="/references.html">Clinical References</a> &rsaquo; Regional Anesthesia</div>
     <h1 class="ref-h1">Regional Anesthesia</h1>
     <p class="ref-sub">Common blocks, local anesthetic dosing, and maximum doses.</p>
     <div class="disclaimer"><strong>Reference only.</strong> Summary for education and quick reference. Not a substitute for clinical judgment, current guidelines, or local protocols. Verify all doses and intervals before use.</div>
-    <div class="block"><div class="block-title">Local anesthetic maximum doses</div><table class="rtbl"><thead><tr><th>Agent</th><th>Max (plain)</th><th>Max (with epinephrine)</th><th>Onset / duration</th></tr></thead><tbody><tr><td>Lidocaine</td><td>4.5 mg/kg</td><td>7 mg/kg</td><td>Fast / 1–2 h</td></tr><tr><td>Bupivacaine</td><td>2 mg/kg</td><td>3 mg/kg</td><td>Slow / 4–8 h</td></tr><tr><td>Ropivacaine</td><td>3 mg/kg</td><td>3 mg/kg</td><td>Medium / 4–6 h</td></tr><tr><td>Mepivacaine</td><td>4.5 mg/kg</td><td>7 mg/kg</td><td>Fast / 2–3 h</td></tr></tbody></table></div><div class="block"><div class="block-title">Common blocks — quick reference</div><table class="rtbl"><thead><tr><th>Block</th><th>Target</th><th>Typical volume</th></tr></thead><tbody><tr><td>Interscalene</td><td>Shoulder / upper arm</td><td>15–20 mL</td></tr><tr><td>Supraclavicular</td><td>Arm / forearm</td><td>20–25 mL</td></tr><tr><td>Axillary</td><td>Forearm / hand</td><td>20–30 mL</td></tr><tr><td>Femoral</td><td>Anterior thigh / knee</td><td>15–20 mL</td></tr><tr><td>Adductor canal</td><td>Knee (motor-sparing)</td><td>15–20 mL</td></tr><tr><td>Popliteal sciatic</td><td>Foot / ankle</td><td>20–30 mL</td></tr><tr><td>TAP</td><td>Abdominal wall</td><td>15–20 mL per side</td></tr></tbody></table></div><div class="block"><div class="block-title">Safe practice</div><div class="algo"><div class="algo-step"><span class="algo-num">1</span><span>Calculate the maximum safe dose by weight before drawing up.</span></div><div class="algo-step"><span class="algo-num">2</span><span>Use ultrasound guidance; visualize needle tip and spread.</span></div><div class="algo-step"><span class="algo-num">3</span><span>Aspirate before and during injection; inject incrementally (3–5 mL).</span></div><div class="algo-step"><span class="algo-num">4</span><span>Monitor for LAST during and after injection — see the LAST reference.</span></div></div></div><div class="block"><div class="block-title">Important notes</div><div class="note">&bull; Reduce doses in elderly, cachectic, hepatic or cardiac impairment.</div><div class="note">&bull; Add epinephrine 1:200,000 as a marker of intravascular injection and to extend duration.</div><div class="note">&bull; Lipid emulsion (Intralipid 20%) must be immediately available — see <a href="/v2/last.html" style="color:#7ECFC0;">LAST</a>.</div></div>
+    <div class="block"><div class="block-title">Local anesthetic maximum doses</div><table class="rtbl"><thead><tr><th>Agent</th><th>Max (plain)</th><th>Max (with epinephrine)</th><th>Onset / duration</th></tr></thead><tbody><tr><td>Lidocaine</td><td>4.5 mg/kg</td><td>7 mg/kg</td><td>Fast / 1–2 h</td></tr><tr><td>Bupivacaine</td><td>2 mg/kg</td><td>3 mg/kg</td><td>Slow / 4–8 h</td></tr><tr><td>Ropivacaine</td><td>3 mg/kg</td><td>3 mg/kg</td><td>Medium / 4–6 h</td></tr><tr><td>Mepivacaine</td><td>4.5 mg/kg</td><td>7 mg/kg</td><td>Fast / 2–3 h</td></tr></tbody></table></div><div class="block"><div class="block-title">Common blocks — quick reference</div><table class="rtbl"><thead><tr><th>Block</th><th>Target</th><th>Typical volume</th></tr></thead><tbody><tr><td>Interscalene</td><td>Shoulder / upper arm</td><td>15–20 mL</td></tr><tr><td>Supraclavicular</td><td>Arm / forearm</td><td>20–25 mL</td></tr><tr><td>Axillary</td><td>Forearm / hand</td><td>20–30 mL</td></tr><tr><td>Femoral</td><td>Anterior thigh / knee</td><td>15–20 mL</td></tr><tr><td>Adductor canal</td><td>Knee (motor-sparing)</td><td>15–20 mL</td></tr><tr><td>Popliteal sciatic</td><td>Foot / ankle</td><td>20–30 mL</td></tr><tr><td>TAP</td><td>Abdominal wall</td><td>15–20 mL per side</td></tr></tbody></table></div><div class="block"><div class="block-title">Safe practice</div><div class="algo"><div class="algo-step"><span class="algo-num">1</span><span>Calculate the maximum safe dose by weight before drawing up.</span></div><div class="algo-step"><span class="algo-num">2</span><span>Use ultrasound guidance; visualize needle tip and spread.</span></div><div class="algo-step"><span class="algo-num">3</span><span>Aspirate before and during injection; inject incrementally (3–5 mL).</span></div><div class="algo-step"><span class="algo-num">4</span><span>Monitor for LAST during and after injection — see the LAST reference.</span></div></div></div><div class="block"><div class="block-title">Important notes</div><div class="note">&bull; Reduce doses in elderly, cachectic, hepatic or cardiac impairment.</div><div class="note">&bull; Add epinephrine 1:200,000 as a marker of intravascular injection and to extend duration.</div><div class="note">&bull; Lipid emulsion (Intralipid 20%) must be immediately available — see <a href="/last.html" style="color:#7ECFC0;">LAST</a>.</div></div>
   </div>
 </div>
 <script>
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', async function(){
   try{
     var auth = await window.requireAuth(); if(!auth) return;
     var role = auth.profile ? auth.profile.role : '';
-    if(role === 'patient'){ window.location.href = '/v2/dashboard.html'; return; }
+    if(role === 'patient'){ window.location.href = '/dashboard.html'; return; }
     document.getElementById('loader').style.display='none';
     document.getElementById('app').style.display='block';
   }catch(e){
