@@ -36,12 +36,12 @@ backups/  (outside the document root)
 | 1 | `videos.html` collision | **RESOLVED** — V1 preserved at `/videos.html`, isolated in `videos-v1/`. Section 3. |
 | 2 | V1 pages loading V2 `auth.js` / `supabase.js` | **RESOLVED** — V1 functional pages are archived out of the live root and their URLs redirect. Section 4. |
 | 3 | V1 videos page's own dependencies | **CLOSED.** Audited against the real production file, built, and browser-tested at `/videos.html`: zero 404s, zero JS errors. One file needed (`anestheo-app.js`), one line changed. Section 3.2. |
-| 4 | `/contact.html` has no V2 equivalent | **OPEN — product decision, now the only one.** Confirmed reachable from the preserved videos page footer, where it reaches the 404 page. One `.htaccess` line fixes it once you choose a destination. Section 4.3. |
+| 4 | `/contact.html` has no V2 equivalent | **CLOSED.** Approved mapping: `/contact.html` -> `/ask.html`. Rule added and tested. No contact page is being built for the cutover. Section 4.1. |
 | 5 | `/legal.html` maps five ways | **OPEN — low risk.** Provisionally mapped to `/terms.html`. Section 4.3. |
 
-Blockers 1, 2 and 3 are closed. Blocker 4 is the only decision left that has a
-visible consequence — one `.htaccess` line. Blocker 5 is provisional and low
-risk. Neither stops the cutover.
+Blockers 1 to 4 are closed. Blocker 5 is provisional, low risk, and does not
+stop the cutover: `/legal.html` lands on `/terms.html`, which is a real page
+that links to the other four legal documents.
 
 ---
 
@@ -75,10 +75,11 @@ implementation stays in the repository, intact, for the port task to work from.
 
 ### 3.1 How it is served
 
-The V1 page cannot simply sit at the document root. V1 pages load V1
-`auth.js` / `supabase.js` / `style.css`, and at the root those names either
-belong to V2 now or are archived away. A V1 page reading V2 JavaScript is
-exactly the hybrid to avoid.
+The V1 page cannot simply sit at the document root. Its script,
+`anestheo-app.js`, is being archived out of the root, and V1 pages in general
+reach for names like `auth.js` and `supabase.js` that now belong to V2. A V1
+page reading V2 JavaScript is exactly the hybrid to avoid, and the isolation
+makes it structurally impossible rather than merely unlikely.
 
 So the V1 page and **every file it depends on** live together, isolated:
 
@@ -171,10 +172,11 @@ opportunities to get it wrong.
 | `legal.html` | `/terms.html` | legacy 301 |
 | `auth.html` | intercepted by V1's own modal; as a URL it 301s to `/index.html` | legacy 301 |
 | `videos.html` | itself | — |
-| **`contact.html`** | **404 page** | **blocker 4, below** |
+| `contact.html` | `/ask.html` | legacy 301 (approved) |
 
-The `doctor.html#signup` / `#tools` fragments survive the redirect and mean
-nothing on `/dashboard.html`. Cosmetic; noted, not fixed.
+All thirteen links now resolve. The `doctor.html#signup` / `#tools` fragments
+survive the redirect and mean nothing on `/dashboard.html` — cosmetic; noted,
+not fixed.
 
 **Files to upload at cutover:** the folder `deploy/videos-v1/` becomes
 `public_html/videos-v1/`. Two files. Nothing else from V1 is required for this
@@ -210,6 +212,7 @@ standing to the new ones.
 | `/legal.html` | `/terms.html` | REDIRECT | **Ambiguous — see 4.3** |
 | `/Pre-operative anesthesia questionnaire.html` | `/questionnaire.html` | REDIRECT | **Ambiguous — see 4.3** |
 | `/_nav.html` | `/` | REDIRECT | Exact — a fragment, never a page |
+| `/contact.html` | `/ask.html` | REDIRECT | **Approved** — Ask the Anesthesiologist is where a user with a question goes |
 
 ### 4.2 No redirect needed — V2 occupies the same filename
 
@@ -226,11 +229,12 @@ the root. A redirect rule would be a no-op at best and a loop at worst.
 
 ### 4.3 Flagged, not guessed
 
-**`/contact.html` → no V2 equivalent.** There is no contact page in V2. It is
-marked **ARCHIVE/REVIEW** and, as configured, will serve the 404 page. Three
-options: point it at `/about.html`; point it at `/ask.html`; or build a contact
-page. Deliberately left unrouted rather than silently aimed somewhere plausible —
-add one line to `.htaccess` once decided.
+**`/contact.html` → `/ask.html` — decided.** V2 has no contact page and none is
+being built during the cutover. Ask the Anesthesiologist is the closest
+functional equivalent: it is the surface a user with a question actually needs.
+The decision mattered in practice, not just on paper — the preserved V1 videos
+page links to `/contact.html` from its footer, and without this rule that link
+reached the 404 page.
 
 **`/legal.html` → five candidates.** V2 splits legal content into `terms`,
 `privacy`, `cookies`, `data-protection` and `medical-disclaimer`. Provisionally
@@ -298,7 +302,7 @@ set of URLs that all redirect or 404. The replacement is on this branch.
 | `anestheo-app.js` | — | V1 application script. Copy into `videos-v1/` first if 3.2 needs it. |
 | `style.css` | — | V1 stylesheet. Same. |
 | `doctor.jpg` | — | Used only by V1 pages. |
-| `contact.html` | *unrouted* | **REVIEW — 4.3.** |
+| `contact.html` | `/ask.html` | Approved mapping — 4.1. |
 
 ### ARCHIVE — security
 

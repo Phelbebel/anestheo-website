@@ -134,14 +134,19 @@ DirectoryIndex index.html
   # V1 fragment include — never a page a human should land on.
   RewriteRule ^_nav\.html$        /                      [R=301,L]
 
+  # Contact. V2 has no contact page and none is being built for the cutover.
+  # Ask the Anesthesiologist is the closest functional equivalent: it is where a
+  # user with a question actually goes. Confirmed reachable — the preserved V1
+  # videos page links to /contact.html from its footer, and without this rule it
+  # reached the 404 page.
+  RewriteRule ^contact\.html$     /ask.html              [R=301,L]
+
   # NOT REDIRECTED, deliberately: about.html, admin.html, ask.html,
   # index.html, patients.html. V2 has a file of the same name at the root, so
   # these URLs keep working by themselves and a rule would be a no-op at best
   # and a loop at worst.
   #
-  # NOT REDIRECTED, needs a decision: contact.html. There is no V2 equivalent.
-  # It is marked ARCHIVE/REVIEW in ROOT_CUTOVER.md and will 404 (with the 404
-  # page) until someone decides. Add a rule here once that is settled.
+  # Every V1 URL now has a destination. Nothing is left unrouted.
 
 
   # ── 4. Legacy /v2 URLs ────────────────────────────────────────────────────
