@@ -45,10 +45,23 @@ Disallow: /scores.html
 # ── Tokenised patient links — never index ───────────────────────────────────
 Disallow: /q.html
 
-# ── Legacy /v2 prefix ───────────────────────────────────────────────────────
-# Every /v2/ URL 301s to its root equivalent. The redirect is what consolidates
-# ranking signal onto the new URL, so the old path must stay CRAWLABLE — a
-# Disallow here would stop crawlers ever seeing the 301 and the old URLs would
-# linger in the index instead of being replaced. Do not add "Disallow: /v2/".
+# ── Videos: the preserved V1 page ───────────────────────────────────────────
+# /videos.html is served, internally, from videos-v1/. Both addresses return
+# the same bytes, so the folder is excluded to keep one canonical URL. Only
+# /videos.html should ever be indexed. Remove this when the port task lands and
+# the folder goes away.
+Disallow: /videos-v1/
+Disallow: /videos-v1.html
+
+# ── Legacy URLs — keep these CRAWLABLE ──────────────────────────────────────
+# Every /v2/ URL, and every retired V1 page, 301s to its replacement. The
+# redirect is what consolidates ranking signal onto the new URL, so the old
+# paths must stay crawlable — a Disallow would stop crawlers ever seeing the
+# 301, and the old URLs would linger in the index instead of being replaced.
+#
+# Do NOT add "Disallow: /v2/", and do not disallow auth.html, register.html,
+# doctor.html, patient.html, calculator.html, calculators.html, clinical.html
+# or legal.html. They are redirects now, and a redirect has to be readable to
+# do its job.
 
 Sitemap: https://anestheo.com/sitemap.xml

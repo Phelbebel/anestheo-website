@@ -14,11 +14,18 @@
 # and nothing here requires a server restart: LiteSpeed re-reads .htaccess per
 # request, so a mistake is reverted in the time it takes to re-upload the file.
 #
-# WHAT THIS DOES
-#   1. Serves index.html for a bare directory request  -> anestheo.com/ works
-#   2. Permanently redirects every /v2/... URL to its root equivalent,
-#      preserving the query string  -> old patient links keep working
-#   3. Serves 404.html for anything that does not exist
+# ORDER MATTERS. The blocks below run top to bottom and the first [L] wins:
+#
+#   1. DirectoryIndex          — "/" serves index.html
+#   2. Videos exception        — /videos.html serves the preserved V1 page
+#   3. Legacy V1 URLs          — old V1 pages 301 to their V2 equivalents
+#   4. Legacy /v2 URLs         — /v2/anything 301 to /anything
+#   5. ErrorDocument           — 404.html
+#   6. Source file denial      — .sql, .md, .py, dotfiles
+#
+# The videos rule is FIRST among the rewrites on purpose: it is the one
+# deliberate exception to "the root is the V2 application", and putting it
+# first means no later rule can accidentally capture it.
 #
 # WHAT THIS DELIBERATELY DOES NOT DO
 #   * No HTTPS or www canonicalisation. Hostinger already terminates both at
@@ -35,21 +42,106 @@
 DirectoryIndex index.html
 
 
-# ── 2. Legacy /v2 URLs ──────────────────────────────────────────────────────
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # The rules must run before mod_dir gets involved. If public_html/v2/ is
-  # still physically present (it is, deliberately, as the rollback copy),
-  # mod_dir would otherwise issue its own trailing-slash redirect first and
-  # cost an extra hop.
+  # ── 2. VIDEOS — the one deliberate V1 exception ───────────────────────────
+  #
+  # The V1 videos page is the preferred one and stays live at /videos.html
+  # until the dedicated port task replaces it. It cannot simply sit at the
+  # document root: it is a V1 page, and V1 pages load V1 auth.js / supabase.js
+  # / style.css — all of which are either replaced by V2 files at the root or
+  # gone. A V1 page reading V2 JavaScript is the hybrid we are avoiding.
+  #
+  # So the V1 page and EVERY file it depends on live together, isolated, in
+  # public_html/videos-v1/. Nothing in that folder can reach a V2 file, and
+  # nothing V2 can reach into it.
+  #
+  # These are INTERNAL rewrites, not redirects. There is no [R], so the browser
+  # never sees videos-v1/ and the visible URL stays /videos.html. That matters:
+  # the URL is already indexed and already linked from the V2 navbar.
+  #
+  # ONE CONSEQUENCE YOU MUST HANDLE, and it is not optional:
+  # because the visible URL stays /videos.html, the browser resolves the page's
+  # RELATIVE references against "/" — not against /videos-v1/. A page asking for
+  # style.css would fetch /style.css and get a 404 (or, worse, a leftover V1
+  # file). This was reproduced: the preserved page loaded with two 404s until
+  # fixed.
+  #
+  # The fix is one line, added to the preserved copy as the FIRST tag in <head>:
+  #
+  #     <base href="/videos-v1/">
+  #
+  # With it, every relative reference resolves inside the isolated folder and
+  # nothing escapes to the root. Any ROOT-ABSOLUTE reference in the V1 page
+  # (src="/auth.js") ignores <base> and must be changed to relative by hand —
+  # the dependency capture step in ROOT_CUTOVER.md is what finds those.
+  #
+  # No loop: the substitution "videos-v1/index.html" does not match ^videos\.html$
+  # or ^videos-v1\.html$, so neither rule can re-fire.
+  #
+  # WHEN THE PORT TASK LANDS: delete this whole block. /videos.html then falls
+  # through to the V2 file already sitting at the root, with no other change.
+  RewriteRule ^videos\.html$     videos-v1/index.html  [L]
+  RewriteRule ^videos-v1\.html$  videos-v1/index.html  [L]
 
-  # 2a. The bare prefix, with or without a trailing slash, is the homepage.
-  #     /v2   -> /
-  #     /v2/  -> /
+
+  # ── 3. Legacy V1 URLs ─────────────────────────────────────────────────────
+  #
+  # These V1 pages are archived out of the live root at cutover, so without
+  # these rules every one of them would 404 for anyone holding a bookmark or
+  # arriving from a search result. Each destination is the V2 page that does
+  # the same job; the mapping table and its reasoning are in ROOT_CUTOVER.md.
+  #
+  # 301 (permanent) because these moves are permanent and we want search
+  # engines to transfer the old pages' standing to the new ones.
+  #
+  # No loop: every destination is a real V2 file at the root, and no
+  # destination appears on the left-hand side of any rule above or below.
+
+  # Authentication — V2 has no standalone login page. Sign-in and registration
+  # are a modal in navbar.js, reachable from the homepage. This is the closest
+  # honest destination, not an exact equivalent. See ROOT_CUTOVER.md.
+  RewriteRule ^auth\.html$        /index.html            [R=301,L]
+  RewriteRule ^register\.html$    /index.html            [R=301,L]
+
+  # Role workspaces
+  RewriteRule ^doctor\.html$      /dashboard.html        [R=301,L]
+  RewriteRule ^patient\.html$     /patient-dashboard.html [R=301,L]
+
+  # Clinical tools and reference
+  RewriteRule ^calculator\.html$  /engine.html           [R=301,L]
+  RewriteRule ^calculators\.html$ /engine.html           [R=301,L]
+  RewriteRule ^clinical\.html$    /references.html       [R=301,L]
+
+  # Legal. V1 had one combined page; V2 splits it five ways. /terms.html is the
+  # entry point and links to the rest. FLAGGED AS AMBIGUOUS in ROOT_CUTOVER.md.
+  RewriteRule ^legal\.html$       /terms.html            [R=301,L]
+
+  # The V1 questionnaire. Note the spaces in the original filename — they
+  # arrive percent-encoded, so the pattern matches the decoded form and the
+  # encoded one. FLAGGED AS AMBIGUOUS in ROOT_CUTOVER.md.
+  RewriteRule ^Pre-operative(%20|\s)anesthesia(%20|\s)questionnaire\.html$ /questionnaire.html [R=301,L,NC]
+
+  # V1 fragment include — never a page a human should land on.
+  RewriteRule ^_nav\.html$        /                      [R=301,L]
+
+  # NOT REDIRECTED, deliberately: about.html, admin.html, ask.html,
+  # index.html, patients.html. V2 has a file of the same name at the root, so
+  # these URLs keep working by themselves and a rule would be a no-op at best
+  # and a loop at worst.
+  #
+  # NOT REDIRECTED, needs a decision: contact.html. There is no V2 equivalent.
+  # It is marked ARCHIVE/REVIEW in ROOT_CUTOVER.md and will 404 (with the 404
+  # page) until someone decides. Add a rule here once that is settled.
+
+
+  # ── 4. Legacy /v2 URLs ────────────────────────────────────────────────────
+
+  # 4a. The bare prefix, with or without a trailing slash, is the homepage.
   RewriteRule ^v2/?$ / [R=301,L]
 
-  # 2b. Everything below the prefix keeps its path.
+  # 4b. Everything below the prefix keeps its path.
   #     /v2/engine.html          -> /engine.html
   #     /v2/q.html?t=ABC123      -> /q.html?t=ABC123
   #     /v2/styles.css?v=2026…   -> /styles.css?v=2026…
@@ -67,18 +159,22 @@ DirectoryIndex index.html
   #     A token in a query string survives this untouched, which is the whole
   #     point: every questionnaire link already sent by email or WhatsApp still
   #     opens the right patient's questionnaire.
+  #
+  #     Note /v2/videos.html: it 301s to /videos.html, which then internally
+  #     rewrites to the preserved V1 page. One redirect, then a rewrite the
+  #     browser never sees.
   RewriteRule ^v2/(.*)$ /$1 [R=301,L]
 </IfModule>
 
 
-# ── 3. Not found ────────────────────────────────────────────────────────────
+# ── 5. Not found ────────────────────────────────────────────────────────────
 # The path is root-absolute, so it resolves the same way for a missing page at
 # any depth. 404.html itself loads only root-absolute assets, so it renders
 # correctly whether the bad URL was /nope.html or /a/b/c/nope.html.
 ErrorDocument 404 /404.html
 
 
-# ── 4. Do not serve source or operational files ─────────────────────────────
+# ── 6. Do not serve source or operational files ─────────────────────────────
 # The repository contains .sql migrations and .md documents that have no reason
 # to be web-readable. This is defence in depth for the class of problem already
 # identified at the root: V1 left supabase_migration_final.sql publicly
