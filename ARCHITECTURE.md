@@ -109,7 +109,7 @@ Primary workflow of the product.
         (doctor_id, name, phone, procedure, hospital, date; token generated;
          questionnaire_status='not_sent')
 3. Send questionnaire:
-     wsSendWhatsApp() → opens wa.me/<phone>?text=...<link /v2/q.html?t=token>
+     wsSendWhatsApp() → opens wa.me/<phone>?text=...<link /q.html?t=token>
      → on real send: questionnaire_status='sent'
 4. Patient fills (see §6). Status flows: sent → opened → in_progress → completed
 5. Doctor sees results:
@@ -129,7 +129,7 @@ Other dashboard sections: Live Tools (iframe), References, Resources, Questions 
 
 ### Primary (token, no account) ✅
 ```
-Receives WhatsApp/SMS link → /v2/q.html?t=<token>
+Receives WhatsApp/SMS link → /q.html?t=<token>
    → RPC get_clinic_patient_by_token (marks 'opened')
    → fills adaptive questionnaire
    → RPC submit_clinic_questionnaire → clinic_patients.questionnaire_answers, 'completed'
@@ -178,7 +178,7 @@ Gate: is_admin === true OR role === 'admin' (client-side check + RLS).
 ### ✅ SURVIVING — System A (Clinic / Token)
 ```
 dashboard.html (doctor) ─creates─► clinic_patients (doctor_id, token)
-        │  /v2/q.html?t=<token>   (no login)
+        │  /q.html?t=<token>   (no login)
         ▼
 q.html  engine: QUESTIONS array (35+ adaptive fields), branching
         (pregnancy / pediatric / cesarean pathways),
@@ -215,7 +215,7 @@ questionnaire.html (requireAuth) ─saveQuestionnaire()─► preop_questionnair
 navbar.js auth modal
   ├─ Sign in:  sb.auth.signInWithPassword()
   │     → verify getSession() → load/auto-create profiles (ensureProfile)
-  │     → redirect /v2/dashboard.html
+  │     → redirect /dashboard.html
   └─ Register: role chips (patient/doctor/other) → sb.auth.signUp({data:{role,...}})
         → routeByRole()  (patient→patients.html; else dashboard.html)
 
@@ -275,8 +275,8 @@ NOTE: clinic_patients ╳ preop_questionnaires have NO relationship today.
 
 ```
 engine.html
-  ├─ Standalone:  /v2/engine.html              (full screen, with navbar)
-  └─ Embedded:    /v2/engine.html?embed=1       (iframe inside dashboard.html
+  ├─ Standalone:  /engine.html              (full screen, with navbar)
+  └─ Embedded:    /engine.html?embed=1       (iframe inside dashboard.html
                      → body.embed hides duplicate navbar via CSS)
 
 Components:

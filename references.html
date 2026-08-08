@@ -6,12 +6,12 @@
 <title>Clinical References — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.07-18">
 <style>
 #loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
@@ -29,16 +29,16 @@
       <h2 class="section-title">Clinical references</h2>
       <p class="section-sub">Anesthesiology reference guides. Select a topic to open its library.</p>
       <div class="card-grid">
-        <a href="/v2/scores.html" class="card" style="border-color:rgba(42,138,116,.4);"><div class="card-ico">&#128202;</div><div class="card-title">Clinical Scores &amp; Calculators</div><div class="card-desc">Interactive pre-op, frailty, cognitive, ICU, airway, obstetric &amp; pediatric scores with interpretation.</div></a>
-        <a href="/v2/airway.html" class="card"><div class="card-ico">&#128168;</div><div class="card-title">Airway</div><div class="card-desc">Assessment, equipment sizing, and management.</div></a>
-        <a href="/v2/anticoagulation.html" class="card"><div class="card-ico">&#129656;</div><div class="card-title">Anticoagulation</div><div class="card-desc">Periprocedural management and neuraxial timing.</div></a>
-        <a href="/v2/regional.html" class="card"><div class="card-ico">&#129504;</div><div class="card-title">Regional Anesthesia</div><div class="card-desc">Blocks, landmarks, and local anesthetic dosing.</div></a>
-        <a href="/v2/icu.html" class="card"><div class="card-ico">&#127973;</div><div class="card-title">ICU</div><div class="card-desc">Critical care references and protocols.</div></a>
-        <a href="/v2/obstetric.html" class="card"><div class="card-ico">&#129716;</div><div class="card-title">Obstetric</div><div class="card-desc">Obstetric anesthesia considerations.</div></a>
-        <a href="/v2/pediatric.html" class="card"><div class="card-ico">&#129662;</div><div class="card-title">Pediatric</div><div class="card-desc">Pediatric dosing and airway formulas.</div></a>
-        <a href="/v2/last.html" class="card"><div class="card-ico">&#9888;</div><div class="card-title">LAST</div><div class="card-desc">Local anesthetic systemic toxicity management.</div></a>
-        <a href="/v2/difficult-airway.html" class="card"><div class="card-ico">&#128680;</div><div class="card-title">Difficult Airway</div><div class="card-desc">Difficult airway algorithm and rescue.</div></a>
-        <a href="/v2/anaphylaxis.html" class="card"><div class="card-ico">&#128137;</div><div class="card-title">Anaphylaxis</div><div class="card-desc">Perioperative anaphylaxis recognition and treatment.</div></a>
+        <a href="/scores.html" class="card" style="border-color:rgba(42,138,116,.4);"><div class="card-ico">&#128202;</div><div class="card-title">Clinical Scores &amp; Calculators</div><div class="card-desc">Interactive pre-op, frailty, cognitive, ICU, airway, obstetric &amp; pediatric scores with interpretation.</div></a>
+        <a href="/airway.html" class="card"><div class="card-ico">&#128168;</div><div class="card-title">Airway</div><div class="card-desc">Assessment, equipment sizing, and management.</div></a>
+        <a href="/anticoagulation.html" class="card"><div class="card-ico">&#129656;</div><div class="card-title">Anticoagulation</div><div class="card-desc">Periprocedural management and neuraxial timing.</div></a>
+        <a href="/regional.html" class="card"><div class="card-ico">&#129504;</div><div class="card-title">Regional Anesthesia</div><div class="card-desc">Blocks, landmarks, and local anesthetic dosing.</div></a>
+        <a href="/icu.html" class="card"><div class="card-ico">&#127973;</div><div class="card-title">ICU</div><div class="card-desc">Critical care references and protocols.</div></a>
+        <a href="/obstetric.html" class="card"><div class="card-ico">&#129716;</div><div class="card-title">Obstetric</div><div class="card-desc">Obstetric anesthesia considerations.</div></a>
+        <a href="/pediatric.html" class="card"><div class="card-ico">&#129662;</div><div class="card-title">Pediatric</div><div class="card-desc">Pediatric dosing and airway formulas.</div></a>
+        <a href="/last.html" class="card"><div class="card-ico">&#9888;</div><div class="card-title">LAST</div><div class="card-desc">Local anesthetic systemic toxicity management.</div></a>
+        <a href="/difficult-airway.html" class="card"><div class="card-ico">&#128680;</div><div class="card-title">Difficult Airway</div><div class="card-desc">Difficult airway algorithm and rescue.</div></a>
+        <a href="/anaphylaxis.html" class="card"><div class="card-ico">&#128137;</div><div class="card-title">Anaphylaxis</div><div class="card-desc">Perioperative anaphylaxis recognition and treatment.</div></a>
       </div>
     </div>
   </div>
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async function(){
   try{
     var auth = await window.requireAuth(); if(!auth) return;
     var role = auth.profile ? auth.profile.role : '';
-    if(role === 'patient'){ window.location.href = '/v2/dashboard.html'; return; }
+    if(role === 'patient'){ window.location.href = '/dashboard.html'; return; }
     document.getElementById('loader').style.display='none';
     document.getElementById('app').style.display='block';
   }catch(e){

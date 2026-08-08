@@ -1,5 +1,5 @@
 // ============================================================
-// Anestheo /v2 - youtube-latest
+// Anestheo - youtube-latest
 // Server-side proxy for the official Anestheo YouTube channel. Resolves the
 // channel handle -> uploads playlist -> latest videos (+ durations) using the
 // YouTube Data API, and returns a small JSON array the patient dashboard

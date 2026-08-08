@@ -7,7 +7,7 @@
 
 ## 1. Project Overview
 
-**Anestheo v2** is a static-file web application (no build step, no bundler, no framework) served from the `/v2/` path. It is an anesthesiology platform serving three user types:
+**Anestheo v2** is a static-file web application (no build step, no bundler, no framework) served from the document root (`/`). It is an anesthesiology platform serving three user types:
 
 - **Patients** — educational resources, pre-op questionnaire, surgery preparation journey
 - **Doctors / staff** — clinical workspace: patient management, pre-op questionnaire delivery, live clinical tools, references
@@ -20,7 +20,7 @@ All persistence is in a single Supabase project. The UI is rendered in vanilla J
 ## 2. File Structure
 
 ```
-/v2/
+/
 ├── supabase.js                 ← Supabase client singleton (load first)
 ├── auth.js                     ← Auth helpers, questionnaire helpers (load second)
 ├── navbar.js                   ← Shared nav, auth modal, search, live monitor widget
@@ -124,22 +124,22 @@ navbar.js opens auth modal
         │      • Load profiles row; auto-create via ensureProfile() if      │
         │        missing (calls upsert with user metadata role)             │
         │      • resetSessionCache()                                        │
-        │      • Redirect → /v2/dashboard.html                             │
+        │      • Redirect → /dashboard.html                             │
         │                                                                   │
         └─── REGISTER mode ─────────────────────────────────────────────────┘
              Step 1: Role chips (patient / doctor / other)
              Step 2: Email + password form
              → sb.auth.signUp({ data: { role, verification_status } })
              • If session returned immediately → saveProfile() → routeByRole()
-                 patient → /v2/patients.html
-                 doctor/other/admin → /v2/dashboard.html
+                 patient → /patients.html
+                 doctor/other/admin → /dashboard.html
              • If email confirmation required → show success message
 
 DASHBOARD ROUTING (dashboard.html)
         │
-        ├── No session → redirect /v2/index.html
-        ├── Profile missing role → redirect /v2/role-select.html
-        ├── role = 'patient' → redirect /v2/patients.html
+        ├── No session → redirect /index.html
+        ├── Profile missing role → redirect /role-select.html
+        ├── role = 'patient' → redirect /patients.html
         └── role = doctor/admin/other → render workspace in-place
 
 SESSION MANAGEMENT
@@ -165,7 +165,7 @@ SESSION MANAGEMENT
    - `patient_status = 'awaiting_questionnaire'`
 3. "Send questionnaire" → `wsSendWhatsApp(id)`:
    - Opens `https://wa.me/<phone>?text=<pre-filled message>` in new window
-   - Message includes: greeting, short instructions, and the link `/v2/q.html?t=<token>`
+   - Message includes: greeting, short instructions, and the link `/q.html?t=<token>`
    - If the pop-up opened → updates `questionnaire_status = 'sent'`
    - If pop-up blocked → does NOT mark sent (intentional: only real delivery triggers status)
 4. Fallback: `wsSendSms(id)` → opens native SMS app via `sms:` URI, then marks sent.
@@ -245,7 +245,7 @@ ws-shell (grid: 210px rail | 1fr body)
 - Patient cards described in Section 5 above
 
 ### Section 2 — Live Tools
-- iframe embedding `/v2/engine.html?embed=1` at `78vh` height
+- iframe embedding `/engine.html?embed=1` at `78vh` height
 - "Open full screen" link opens `engine.html` in a new tab
 
 ### Section 3 — Clinical References
@@ -470,7 +470,7 @@ These decisions are intentional and should be preserved unless explicitly change
 
 9. **Engine embeds inside the dashboard as an iframe** — `engine.html?embed=1` is served inside a `78vh` iframe in the "Live Tools" section. In embed mode, the shared navbar is hidden via `body.embed .nb { display: none }` to avoid double navbars.
 
-10. **Role routing on login always goes to `/v2/dashboard.html` first** — The dashboard then performs role-based redirects (patient → patients.html; no role → role-select.html). This centralises routing logic in one place.
+10. **Role routing on login always goes to `/dashboard.html` first** — The dashboard then performs role-based redirects (patient → patients.html; no role → role-select.html). This centralises routing logic in one place.
 
 11. **Dark teal colour system** — All UI uses the CSS custom property palette defined in `styles.css`. Do not introduce new brand colours without updating the `:root` block. The primary action colour is `--teal` (`#1B6B5A`) / `--teal2` (`#2A8A74`). Accent labels and links use `--accent` (`#7ECFC0`).
 

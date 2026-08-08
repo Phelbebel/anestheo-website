@@ -6,8 +6,8 @@
 <title>Set up your account — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -149,14 +149,14 @@ var _session = null;
 
 (async function(){
   var session = await getSession();
-  if(!session){ window.location.href='/v2/index.html'; return; }
+  if(!session){ window.location.href='/index.html'; return; }
   _session = session;
   // If they already have a role, go straight to their default landing:
   // patients → Patient Home, staff → workspace.
   var profile = await getProfile(session.user.id);
   if(profile && profile.role && profile.role !== 'pending'){
     var isAdm = (profile.is_admin === true || profile.role === 'admin');
-    window.location.href = (!isAdm && profile.role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
+    window.location.href = (!isAdm && profile.role === 'patient') ? '/index.html' : '/dashboard.html';
   }
 })();
 
@@ -222,7 +222,7 @@ async function saveProfileAndGo(){
   if(error){ btn.disabled=false; btn.textContent='Save & open dashboard →'; errEl.textContent=error.message; errEl.style.display='block'; return; }
 
   // Onboarding complete: patients land on the Patient Home, staff on the workspace.
-  window.location.href = (_role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
+  window.location.href = (_role === 'patient') ? '/index.html' : '/dashboard.html';
 }
 </script>
 </body>

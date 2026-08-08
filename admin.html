@@ -6,12 +6,12 @@
 <title>Admin Center — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.07-18">
 <style>
 /* ============================================================
    ADMIN CENTER — platform administration
@@ -3349,25 +3349,25 @@ AC.exportAudit = function(){
 /* ── Content inventory (static, honest) ──────────────── */
 var CONTENT = [
   { g:'Procedure guides', items:[
-    ['Orthopedic surgery','/v2/orthopedic.html'],['General surgery','/v2/general-surgery.html'],
-    ['Obstetric anesthesia','/v2/obstetric.html'],['C-section','/v2/csection.html'],
-    ['Oncogynecology','/v2/oncogynecology.html'],['Pediatric','/v2/pediatric.html'],
-    ['ENT','/v2/ent.html'],['Urology','/v2/urology.html'],['Dental','/v2/dental.html'],
-    ['Plastic surgery','/v2/plastic.html'],['ICU','/v2/icu.html'],['Recovery','/v2/recovery.html'],
-    ['Procedures index','/v2/procedures.html'] ]},
+    ['Orthopedic surgery','/orthopedic.html'],['General surgery','/general-surgery.html'],
+    ['Obstetric anesthesia','/obstetric.html'],['C-section','/csection.html'],
+    ['Oncogynecology','/oncogynecology.html'],['Pediatric','/pediatric.html'],
+    ['ENT','/ent.html'],['Urology','/urology.html'],['Dental','/dental.html'],
+    ['Plastic surgery','/plastic.html'],['ICU','/icu.html'],['Recovery','/recovery.html'],
+    ['Procedures index','/procedures.html'] ]},
   { g:'Clinical references', items:[
-    ['Airway','/v2/airway.html'],['Difficult airway','/v2/difficult-airway.html'],
-    ['Regional anesthesia','/v2/regional.html'],['Anaphylaxis','/v2/anaphylaxis.html'],
-    ['Anticoagulation','/v2/anticoagulation.html'],['Scores','/v2/scores.html'],
-    ['References index','/v2/references.html'],['Evidence transparency','/v2/evidence-transparency.html'] ]},
+    ['Airway','/airway.html'],['Difficult airway','/difficult-airway.html'],
+    ['Regional anesthesia','/regional.html'],['Anaphylaxis','/anaphylaxis.html'],
+    ['Anticoagulation','/anticoagulation.html'],['Scores','/scores.html'],
+    ['References index','/references.html'],['Evidence transparency','/evidence-transparency.html'] ]},
   { g:'Patient education', items:[
-    ['For patients','/v2/patients.html'],['Pre-op instructions','/v2/preop-instructions.html'],
-    ['Videos','/v2/videos.html'],['Resources','/v2/resources.html'],['Ask','/v2/ask.html'] ]},
+    ['For patients','/patients.html'],['Pre-op instructions','/preop-instructions.html'],
+    ['Videos','/videos.html'],['Resources','/resources.html'],['Ask','/ask.html'] ]},
   { g:'Legal & trust', items:[
-    ['Privacy','/v2/privacy.html'],['Terms','/v2/terms.html'],
-    ['Medical disclaimer','/v2/medical-disclaimer.html'],['Security','/v2/security.html'],
-    ['Cookies','/v2/cookies.html'],['Data protection','/v2/data-protection.html'],
-    ['Release notes','/v2/release-notes.html'],['About','/v2/about.html'] ]}
+    ['Privacy','/privacy.html'],['Terms','/terms.html'],
+    ['Medical disclaimer','/medical-disclaimer.html'],['Security','/security.html'],
+    ['Cookies','/cookies.html'],['Data protection','/data-protection.html'],
+    ['Release notes','/release-notes.html'],['About','/about.html'] ]}
 ];
 function vContent(){
   var h = head('Content','Content inventory','Procedure guides, clinical references, patient education and legal pages '+
@@ -3663,7 +3663,7 @@ function fail(msg, detail){
   l.innerHTML = '<div style="text-align:center;padding:30px;max-width:460px;">'+
     '<p style="color:rgba(255,160,140,.92);font-size:14px;font-family:DM Sans,sans-serif;">'+esc(msg)+'</p>'+
     (detail?'<p style="color:rgba(255,255,255,.4);font-size:12px;margin-top:8px;font-family:DM Sans,sans-serif;">'+esc(detail)+'</p>':'')+
-    '<p style="margin-top:16px;"><a href="/v2/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to dashboard</a></p></div>';
+    '<p style="margin-top:16px;"><a href="/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to dashboard</a></p></div>';
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
@@ -3726,6 +3726,6 @@ document.addEventListener('keydown', function(e){
 
 })();
 </script>
-<script src="/v2/videos-data.js?v=2026.08.07-18"></script>
+<script src="/videos-data.js?v=2026.08.07-18"></script>
 </body>
 </html>

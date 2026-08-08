@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-/* stamp-assets.js — release cache-busting for the /v2 static site.
+/* stamp-assets.js — release cache-busting for the Anestheo static site.
  *
  * WHY THIS EXISTS
  * ---------------
  * Every page loads its shared JavaScript and CSS from stable, absolute URLs
- * (/v2/clinical-index.js, /v2/navbar.js, /v2/styles.css …). A browser or CDN
+ * (/clinical-index.js, /navbar.js, /styles.css …). A browser or CDN
  * holding one of those files from a previous release will keep serving it
  * against newly deployed HTML. That produces a MIXED RELEASE: new HTML paired
  * with old JavaScript. It is silent — the page renders, throws nothing, and
@@ -49,19 +49,29 @@ if (!/^[A-Za-z0-9._-]+$/.test(version)) {
   process.exit(2);
 }
 
-/* Local application assets only: an absolute /v2/ path ending in .js or .css.
-   Anything with a scheme (https:, //) is left alone by construction. */
-const REF = /((?:src|href)\s*=\s*")(\/v2\/[A-Za-z0-9._-]+\.(?:js|css))(?:\?[^"]*)?(")/g;
+/* Local application assets only: a root-absolute path ending in .js or .css.
+   The site is served from the document root, so a local asset is "/name.js".
+   Anything with a scheme is excluded by construction: "https://…" does not
+   start with a single slash, and a protocol-relative "//host/x.js" is rejected
+   because the character after the leading slash may not itself be a slash. */
+const REF = /((?:src|href)\s*=\s*")(\/[A-Za-z0-9._-]+\.(?:js|css))(?:\?[^"]*)?(")/g;
 
 /* A stylesheet can pull in another stylesheet without ever appearing in the
    HTML — styles.css does exactly that with point.css. Those imports are just
    as release-sensitive as a <link>, and an HTML-only sweep cannot see them. */
 const CSS_IMPORT = /(@import\s+url\(\s*["']?)([A-Za-z0-9._-]+\.css)(?:\?[^"')]*)?(["']?\s*\))/g;
 
-const files = cp.execSync('git ls-files "*.html" "*.css"', { cwd: ROOT })
-  .toString().trim().split('\n').filter(Boolean);
+/* Preserved V1 material is NOT part of this release and must never be stamped.
+   v1-source/ holds the pristine production originals and deploy/ holds the
+   ready-to-upload copies; both are legacy files that happen to be HTML. They
+   carry no ?v= versioning of their own and rewriting them would corrupt an
+   archival copy of something already live. */
+const EXCLUDE = /^(v1-source|deploy)\//;
 
-let changed = 0, stale = [], total = 0;
+const files = cp.execSync('git ls-files "*.html" "*.css"', { cwd: ROOT })
+  .toString().trim().split('\n').filter(Boolean).filter(f => !EXCLUDE.test(f));
+
+let changed = 0, stale = [], total = 0, matchedFiles = 0;
 
 for (const rel of files) {
   const file = path.join(ROOT, rel);
@@ -80,12 +90,39 @@ for (const rel of files) {
     });
   }
   total += count;
+  if (count > 0) matchedFiles++;
   if (out !== src) {
     stale.push(rel);
     if (!CHECK) { fs.writeFileSync(file, out); changed++; }
   }
 }
 const pages = files;
+
+/* SANITY FLOOR — the reason this exists.
+ *
+ * The matcher is a regular expression tied to the shape of a local asset URL.
+ * When the site moved from /v2/ to the document root, that shape changed. A
+ * matcher that no longer matches anything does not fail: it rewrites nothing,
+ * finds nothing stale, and --check exits 0 with a cheerful message. The tool
+ * would report success precisely when it had stopped protecting anything.
+ *
+ * So a run that matched nothing, or noticeably less than the site is known to
+ * contain, is treated as a broken tool rather than a clean release. These
+ * numbers are the floor observed at the root cutover; raise them when the site
+ * genuinely grows, and investigate before ever lowering them.
+ */
+const MIN_FILES = 50;   // HTML pages + CSS carrying at least one local asset
+const MIN_REFS  = 280;  // local asset references across those files
+
+if (total < MIN_REFS || matchedFiles < MIN_FILES) {
+  console.error('SANITY CHECK FAILED — the asset matcher is not seeing the site.');
+  console.error('  matched references:   ' + total + ' (expected at least ' + MIN_REFS + ')');
+  console.error('  files with a match:   ' + matchedFiles + ' (expected at least ' + MIN_FILES + ')');
+  console.error('  files scanned:        ' + pages.length);
+  console.error('This normally means the asset URL shape changed and REF/CSS_IMPORT');
+  console.error('no longer match it. Cache-busting is NOT in effect. Fix the matcher.');
+  process.exit(3);
+}
 
 if (CHECK) {
   if (stale.length) {
@@ -94,9 +131,9 @@ if (CHECK) {
     console.error('Run: node tools/stamp-assets.js');
     process.exit(1);
   }
-  console.log("all " + pages.length + " files stamped at v=" + version +
-              ' (' + total + ' local asset references)');
+  console.log('all ' + matchedFiles + ' asset-carrying files stamped at v=' + version +
+              ' (' + total + ' local asset references, ' + pages.length + ' files scanned)');
 } else {
-  console.log('stamped v=' + version + ' across ' + pages.length + ' files, ' +
+  console.log('stamped v=' + version + ' across ' + matchedFiles + ' asset-carrying files, ' +
               total + ' local asset references, ' + changed + ' file(s) rewritten');
 }

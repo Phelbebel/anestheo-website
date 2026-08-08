@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Evidence Transparency — Anestheo</title>
+<meta name="robots" content="noindex">
+<title>Page not found — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.07-18"></script>
@@ -20,38 +21,40 @@ a{color:var(--accent);}
 .doc-wrap{max-width:760px;margin:0 auto;padding:88px 24px 40px;}
 .doc-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);}
 .doc-h1{font-size:clamp(24px,4vw,30px);font-weight:700;letter-spacing:-.02em;margin:8px 0 6px;}
-.doc-lead{font-size:15px;color:rgba(255,255,255,.6);margin-bottom:26px;}
+.doc-lead{font-size:15px;color:rgba(255,255,255,.6);margin-bottom:22px;}
 .doc-card{background:rgba(255,255,255,.035);border:1px solid rgba(27,107,90,.22);border-radius:14px;padding:20px 22px;margin-bottom:14px;}
 .doc-card h2{font-size:16px;font-weight:700;margin-bottom:8px;}
 .doc-card p{font-size:14px;color:rgba(255,255,255,.74);margin-bottom:10px;}
 .doc-card p:last-child{margin-bottom:0;}
-.doc-card ul{margin:4px 0 0 18px;}
-.doc-card li{font-size:14px;color:rgba(255,255,255,.74);margin-bottom:6px;}
+.nf-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;}
+.nf-links a{display:inline-flex;align-items:center;font-size:14px;font-weight:600;color:#fff;text-decoration:none;
+  background:rgba(255,255,255,.04);border:1px solid rgba(27,107,90,.32);border-radius:11px;padding:11px 16px;}
+.nf-links a:hover{background:rgba(126,207,192,.10);border-color:rgba(126,207,192,.55);}
 .doc-note{font-size:12.5px;color:rgba(255,255,255,.45);margin-top:14px;}
 </style>
 </head>
 <body>
 <div id="nb-placeholder"></div>
 <div class="doc-wrap">
-  <div class="doc-eyebrow">Trust</div>
-  <h1 class="doc-h1">Evidence Transparency</h1>
-  <p class="doc-lead">Every clinical tool and reference in Anestheo carries a traceable evidence trail.</p>
+  <div class="doc-eyebrow">404</div>
+  <h1 class="doc-h1">This page could not be found</h1>
+  <p class="doc-lead">The address may be mistyped, or the page may have moved.</p>
 
   <div class="doc-card">
-    <h2>A permanent evidence identity</h2>
-    <p>Each calculator and reference is tied to a permanent evidence identifier that never changes, kept separate from the tool's routing name. That separation means the audit trail stays stable even if a tool is renamed or moved.</p>
+    <h2>Where to go next</h2>
+    <p>If you arrived from a link your clinic sent you, it may have expired. Ask
+       them to resend it rather than editing the address by hand — preparation
+       links are personal and cannot be guessed.</p>
+    <div class="nf-links">
+      <a href="/">Home</a>
+      <a href="/patients.html">For patients</a>
+      <a href="/procedures.html">Choose your procedure</a>
+      <a href="/preop-instructions.html">Pre-op instructions</a>
+    </div>
   </div>
 
-  <div class="doc-card">
-    <h2>A documented review lifecycle</h2>
-    <p>Clinical content moves through an explicit review state before it is published, and only reviewed, published content is served to clinicians. The lifecycle is tracked so it is always clear what has been reviewed and what has not.</p>
-  </div>
-
-  <div class="doc-card">
-    <h2>Seeing the evidence in context</h2>
-    <p>Where a tool surfaces a recommendation, the underlying evidence can be opened alongside it, so you can check the basis for a value rather than taking it on trust. Browse the full library from <a href="/references.html">Clinical references</a>.</p>
-  </div>
-  <p class="doc-note">Questions about a specific tool's evidence? <a href="mailto:support@anestheo.com?subject=Evidence%20query">Contact us</a>.</p>
+  <p class="doc-note">If you believe this page should exist, the current
+     service state is published on the <a href="/status.html">system status</a> page.</p>
 </div>
 </body>
 </html>

@@ -15,7 +15,7 @@
 'use strict';
 
 var RECENT_KEY = 'anestheo_clin_recent';
-var ENGINE = '/v2/engine.html';
+var ENGINE = '/engine.html';
 var open = false, sel = 0, hits = [], flat = [];
 
 /* ── styles (injected once) ─────────────────────────────────────────── */

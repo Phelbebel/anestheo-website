@@ -1,5 +1,5 @@
 // ============================================================
-// Anestheo /v2 - convert_clinic_patient (Stage 3)
+// Anestheo - convert_clinic_patient (Stage 3)
 // Account-linked convergence: turns a COMPLETED clinic-invited patient into
 // a real auth.users patient + the canonical bridge rows (patient_surgeries /
 // care_requests / preop_questionnaires), so they enter the SAME pipeline as a

@@ -1,5 +1,5 @@
-// navbar.js — /v2 shared navbar
-// Requires: /v2/supabase.js then /v2/auth.js loaded first
+// navbar.js — shared navbar
+// Requires: /supabase.js then /auth.js loaded first
 
 (function(){
 
@@ -313,35 +313,35 @@ function buildHTML(page){
   return (
     '<nav class="nb" id="nb-nav">' +
       '<div class="nb-inner">' +
-        '<a href="/v2/index.html" class="nb-logo">Anest<span>heo</span></a>' +
+        '<a href="/index.html" class="nb-logo">Anest<span>heo</span></a>' +
         '<div class="nb-nav-links" id="nb-nav-links">' +
-          '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
-          '<a href="/v2/patients.html"' + activeCls('/v2/patients.html', p) + '>For Patients</a>' +
-          '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
-          '<a href="/v2/ask.html"' + activeCls('/v2/ask.html', p) + '>Ask Anesthesiologist</a>' +
-          '<a href="/v2/engine.html"' + activeCls('/v2/engine.html', p) + '>Live Tools</a>' +
+          '<a href="/index.html"' + activeCls('/index.html', p) + '>Home</a>' +
+          '<a href="/patients.html"' + activeCls('/patients.html', p) + '>For Patients</a>' +
+          '<a href="/videos.html"' + activeCls('/videos.html', p) + '>Videos</a>' +
+          '<a href="/ask.html"' + activeCls('/ask.html', p) + '>Ask Anesthesiologist</a>' +
+          '<a href="/engine.html"' + activeCls('/engine.html', p) + '>Live Tools</a>' +
         '</div>' +
         // Role-aware patient navigation (shown only to logged-in patients).
         '<div class="nb-nav-links" id="nb-nav-patient" style="display:none">' +
-          '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
-          '<a href="/v2/patient-dashboard.html"' + activeCls('/v2/patient-dashboard.html', p) + '>My Space</a>' +
-          '<a href="/v2/ask.html"' + activeCls('/v2/ask.html', p) + '>Ask Anesthesiologist</a>' +
-          '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
-          '<a href="/v2/settings.html"' + activeCls('/v2/settings.html', p) + '>Profile</a>' +
+          '<a href="/index.html"' + activeCls('/index.html', p) + '>Home</a>' +
+          '<a href="/patient-dashboard.html"' + activeCls('/patient-dashboard.html', p) + '>My Space</a>' +
+          '<a href="/ask.html"' + activeCls('/ask.html', p) + '>Ask Anesthesiologist</a>' +
+          '<a href="/videos.html"' + activeCls('/videos.html', p) + '>Videos</a>' +
+          '<a href="/settings.html"' + activeCls('/settings.html', p) + '>Profile</a>' +
         '</div>' +
         // Doctor navigation (shown only to logged-in doctors). Doctors are
         // anesthesiologists, so "Ask Anesthesiologist" is omitted; "For Patients"
         // stays so they can preview the patient-facing site.
         '<div class="nb-nav-links" id="nb-nav-doctor" style="display:none">' +
-          '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
-          '<a href="/v2/patients.html"' + activeCls('/v2/patients.html', p) + '>For Patients</a>' +
-          '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
+          '<a href="/index.html"' + activeCls('/index.html', p) + '>Home</a>' +
+          '<a href="/patients.html"' + activeCls('/patients.html', p) + '>For Patients</a>' +
+          '<a href="/videos.html"' + activeCls('/videos.html', p) + '>Videos</a>' +
         '</div>' +
         // Admin content navigation. Workspaces live in the switcher below, so
         // Admin Center / Doctor Workspace / Live Tools appear exactly once.
         '<div class="nb-nav-links" id="nb-nav-admin" style="display:none">' +
-          '<a href="/v2/index.html"' + activeCls('/v2/index.html', p) + '>Home</a>' +
-          '<a href="/v2/videos.html"' + activeCls('/v2/videos.html', p) + '>Videos</a>' +
+          '<a href="/index.html"' + activeCls('/index.html', p) + '>Home</a>' +
+          '<a href="/videos.html"' + activeCls('/videos.html', p) + '>Videos</a>' +
         '</div>' +
         // Role-aware workspace switcher (staff only; filled by populateMenu).
         '<div class="nb-ws" id="nb-ws" role="navigation" aria-label="Workspace"></div>' +
@@ -368,10 +368,10 @@ function buildHTML(page){
                   '<div class="nb-menu-role" id="nb-menu-role"></div>' +
                   '<div class="nb-menu-email" id="nb-menu-email"></div>' +
                 '</div>' +
-                '<a href="/v2/dashboard.html" class="nb-menu-item" id="nb-menu-workspace">&#129658; Doctor Workspace</a>' +
+                '<a href="/dashboard.html" class="nb-menu-item" id="nb-menu-workspace">&#129658; Doctor Workspace</a>' +
                 '<button class="nb-menu-item" id="nb-menu-myjourney" style="display:none;background:none;border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;" onclick="window.nbStartPatientJourney()">&#129489; My Patient Journey</button>' +
-                '<a href="/v2/patient-dashboard.html" class="nb-menu-item" id="nb-menu-patient" style="display:none">&#10024; My Space</a>' +
-                '<a href="/v2/settings.html" class="nb-menu-item">&#9881; Settings</a>' +
+                '<a href="/patient-dashboard.html" class="nb-menu-item" id="nb-menu-patient" style="display:none">&#10024; My Space</a>' +
+                '<a href="/settings.html" class="nb-menu-item">&#9881; Settings</a>' +
                 '<div class="nb-menu-sep"></div>' +
                 '<button class="nb-menu-item nb-menu-danger" onclick="window.nbSignOut()">&#8594; Sign out</button>' +
               '</div>' +
@@ -401,31 +401,31 @@ function buildHTML(page){
       '<div class="nb-mob-h">Navigation</div>' +
       // Public mobile nav — guests (unchanged).
       '<div id="nb-mob-public">' +
-        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
-        '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
-        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
-        '<a href="/v2/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
-        '<a href="/v2/engine.html" class="nb-mob-link">Live Tools</a>' +
+        '<a href="/index.html" class="nb-mob-link">Home</a>' +
+        '<a href="/patients.html" class="nb-mob-link">For Patients</a>' +
+        '<a href="/videos.html" class="nb-mob-link">Videos</a>' +
+        '<a href="/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
+        '<a href="/engine.html" class="nb-mob-link">Live Tools</a>' +
       '</div>' +
       // Patient mobile nav — logged-in patients only.
       '<div id="nb-mob-patient-nav" style="display:none">' +
-        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
-        '<a href="/v2/patient-dashboard.html" class="nb-mob-link">&#10024; My Space</a>' +
-        '<a href="/v2/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
-        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
-        '<a href="/v2/settings.html" class="nb-mob-link">Profile</a>' +
+        '<a href="/index.html" class="nb-mob-link">Home</a>' +
+        '<a href="/patient-dashboard.html" class="nb-mob-link">&#10024; My Space</a>' +
+        '<a href="/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
+        '<a href="/videos.html" class="nb-mob-link">Videos</a>' +
+        '<a href="/settings.html" class="nb-mob-link">Profile</a>' +
       '</div>' +
       // Doctor mobile nav — logged-in doctors only (no Ask Anesthesiologist;
       // Dashboard comes from the auth section below).
       '<div id="nb-mob-doctor-nav" style="display:none">' +
-        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
-        '<a href="/v2/patients.html" class="nb-mob-link">For Patients</a>' +
-        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
+        '<a href="/index.html" class="nb-mob-link">Home</a>' +
+        '<a href="/patients.html" class="nb-mob-link">For Patients</a>' +
+        '<a href="/videos.html" class="nb-mob-link">Videos</a>' +
       '</div>' +
       // Admin mobile content nav.
       '<div id="nb-mob-admin-nav" style="display:none">' +
-        '<a href="/v2/index.html" class="nb-mob-link">Home</a>' +
-        '<a href="/v2/videos.html" class="nb-mob-link">Videos</a>' +
+        '<a href="/index.html" class="nb-mob-link">Home</a>' +
+        '<a href="/videos.html" class="nb-mob-link">Videos</a>' +
       '</div>' +
       '</div>' +                                   // end NAVIGATION group
       // 3. ACCOUNT — always last, always separated from content links.
@@ -433,8 +433,8 @@ function buildHTML(page){
         '<div class="nb-mob-h">Account</div>' +
         '<div id="nb-mob-guest"><div style="padding:0 16px;"><button class="nb-btn" style="width:100%;min-height:48px" onclick="window.nbOpenModal();window.nbCloseMob()">Login</button></div></div>' +
         '<div id="nb-mob-auth" style="display:none">' +
-          '<a href="/v2/dashboard.html" class="nb-mob-link" id="nb-mob-workspace">Dashboard</a>' +
-          '<a href="/v2/settings.html" class="nb-mob-link" id="nb-mob-settings">Profile &amp; settings</a>' +
+          '<a href="/dashboard.html" class="nb-mob-link" id="nb-mob-workspace">Dashboard</a>' +
+          '<a href="/settings.html" class="nb-mob-link" id="nb-mob-settings">Profile &amp; settings</a>' +
           '<button class="nb-mob-link nb-mob-signout" onclick="window.nbSignOut()">Sign out</button>' +
         '</div>' +
       '</div>' +
@@ -526,22 +526,22 @@ function setGuest(){
 
 // ── Workspace switcher ────────────────────────────────────────
 // Every destination is an existing route. Nothing here is invented.
-//   /v2/admin.html      Admin Center        (admins only)
-//   /v2/dashboard.html  Doctor Workspace    (staff)
-//   /v2/engine.html     Live Tools          (staff)
+//   /admin.html      Admin Center        (admins only)
+//   /dashboard.html  Doctor Workspace    (staff)
+//   /engine.html     Live Tools          (staff)
 var NB_WORKSPACES = {
   doctor: [
-    { href:'/v2/dashboard.html', label:'Dashboard',  ico:'🩺',
+    { href:'/dashboard.html', label:'Dashboard',  ico:'🩺',
       desc:'Patients, reviews and clinical work' },
-    { href:'/v2/engine.html',    label:'Live Tools', ico:'⚡', live:true,
+    { href:'/engine.html',    label:'Live Tools', ico:'⚡', live:true,
       desc:'Drugs, calculators and crisis tools' }
   ],
   admin: [
-    { href:'/v2/admin.html',     label:'Admin Center',     ico:'🛡',
+    { href:'/admin.html',     label:'Admin Center',     ico:'🛡',
       desc:'Platform operations and oversight' },
-    { href:'/v2/dashboard.html', label:'Doctor Workspace', ico:'🩺',
+    { href:'/dashboard.html', label:'Doctor Workspace', ico:'🩺',
       desc:'Clinical patient management' },
-    { href:'/v2/engine.html',    label:'Live Tools',       ico:'⚡', live:true,
+    { href:'/engine.html',    label:'Live Tools',       ico:'⚡', live:true,
       desc:'Clinical tools and crisis workstation' }
   ]
 };
@@ -669,41 +669,41 @@ window.nbToggleMenu = function(){
 
 // ── GLOBAL SEARCH ─────────────────────────────────────────────
 var NB_SEARCH_INDEX = [
-  {title:'Anesthesiology Live Tools', cat:'Tools', ico:'\uD83E\uDE7A', url:'/v2/engine.html',
+  {title:'Anesthesiology Live Tools', cat:'Tools', ico:'\uD83E\uDE7A', url:'/engine.html',
    kw:'anesthesiology live tools engine calculator dosing airway ventilation neuraxial fluids scores tiva tci vasopressor inotrope mabl blood volume drug reference perioperative'},
-  {title:'Clinical References', cat:'Library', ico:'\uD83D\uDCD6', url:'/v2/references.html',
+  {title:'Clinical References', cat:'Library', ico:'\uD83D\uDCD6', url:'/references.html',
    kw:'clinical references library guides knowledge'},
-  {title:'Airway', cat:'Reference', ico:'\uD83D\uDCA8', url:'/v2/airway.html',
+  {title:'Airway', cat:'Reference', ico:'\uD83D\uDCA8', url:'/airway.html',
    kw:'airway ett tube intubation lma mallampati lemon laryngoscopy sizing depth preoxygenation rsi'},
-  {title:'Difficult Airway', cat:'Reference', ico:'\uD83D\uDEA8', url:'/v2/difficult-airway.html',
+  {title:'Difficult Airway', cat:'Reference', ico:'\uD83D\uDEA8', url:'/difficult-airway.html',
    kw:'difficult airway cico cant intubate oxygenate cricothyroidotomy plan das rescue front of neck'},
-  {title:'Anticoagulation', cat:'Reference', ico:'\uD83E\uDE78', url:'/v2/anticoagulation.html',
+  {title:'Anticoagulation', cat:'Reference', ico:'\uD83E\uDE78', url:'/anticoagulation.html',
    kw:'anticoagulation anticoagulant blood thinner heparin lmwh warfarin rivaroxaban apixaban dabigatran clopidogrel aspirin neuraxial timing asra bridging'},
-  {title:'Regional Anesthesia', cat:'Reference', ico:'\uD83E\uDDE0', url:'/v2/regional.html',
+  {title:'Regional Anesthesia', cat:'Reference', ico:'\uD83E\uDDE0', url:'/regional.html',
    kw:'regional anesthesia block nerve interscalene supraclavicular axillary femoral adductor popliteal tap local anesthetic lidocaine bupivacaine ropivacaine maximum dose'},
-  {title:'Neuraxial', cat:'Reference', ico:'\uD83E\uDDE0', url:'/v2/regional.html',
+  {title:'Neuraxial', cat:'Reference', ico:'\uD83E\uDDE0', url:'/regional.html',
    kw:'neuraxial spinal epidural intrathecal labor cesarean caudal'},
-  {title:'ICU', cat:'Reference', ico:'\uD83C\uDFE5', url:'/v2/icu.html',
+  {title:'ICU', cat:'Reference', ico:'\uD83C\uDFE5', url:'/icu.html',
    kw:'icu intensive critical care ards ardsnet ventilation tidal volume sedation rass vasoactive noradrenaline sepsis'},
-  {title:'Obstetric', cat:'Reference', ico:'\uD83E\uDD30', url:'/v2/obstetric.html',
+  {title:'Obstetric', cat:'Reference', ico:'\uD83E\uDD30', url:'/obstetric.html',
    kw:'obstetric obstetrics pregnancy labor cesarean spinal epidural aortocaval phenylephrine hypotension'},
-  {title:'Pediatric', cat:'Reference', ico:'\uD83E\uDDD2', url:'/v2/pediatric.html',
+  {title:'Pediatric', cat:'Reference', ico:'\uD83E\uDDD2', url:'/pediatric.html',
    kw:'pediatric paediatric child children neonate infant ett formula weight 421 fluids atropine'},
-  {title:'LAST', cat:'Reference', ico:'\u26A0', url:'/v2/last.html',
+  {title:'LAST', cat:'Reference', ico:'\u26A0', url:'/last.html',
    kw:'last local anesthetic systemic toxicity lipid emulsion intralipid seizure cardiac arrest'},
-  {title:'Anaphylaxis', cat:'Reference', ico:'\uD83D\uDC89', url:'/v2/anaphylaxis.html',
+  {title:'Anaphylaxis', cat:'Reference', ico:'\uD83D\uDC89', url:'/anaphylaxis.html',
    kw:'anaphylaxis allergic reaction adrenaline epinephrine tryptase bronchospasm hypotension'},
-  {title:'Resources', cat:'Library', ico:'\uD83D\uDCDA', url:'/v2/resources.html',
+  {title:'Resources', cat:'Library', ico:'\uD83D\uDCDA', url:'/resources.html',
    kw:'resources books pdf checklists icu survival guide patient education downloads brochures material'},
-  {title:'Ask Anesthesiologist', cat:'Communication', ico:'\uD83D\uDCAC', url:'/v2/ask.html',
+  {title:'Ask Anesthesiologist', cat:'Communication', ico:'\uD83D\uDCAC', url:'/ask.html',
    kw:'ask anesthesiologist question patient communication query'},
-  {title:'Settings', cat:'Account', ico:'\u2699', url:'/v2/settings.html',
+  {title:'Settings', cat:'Account', ico:'\u2699', url:'/settings.html',
    kw:'settings account profile password preferences'},
-  {title:'Epidural', cat:'Reference', ico:'\uD83E\uDDE0', url:'/v2/regional.html',
+  {title:'Epidural', cat:'Reference', ico:'\uD83E\uDDE0', url:'/regional.html',
    kw:'epidural epi labor infusion topup'},
-  {title:'Epinephrine / Adrenaline', cat:'Reference', ico:'\uD83D\uDC89', url:'/v2/anaphylaxis.html',
+  {title:'Epinephrine / Adrenaline', cat:'Reference', ico:'\uD83D\uDC89', url:'/anaphylaxis.html',
    kw:'epinephrine adrenaline epi pressor vasopressor anaphylaxis'},
-  {title:'Apixaban', cat:'Reference', ico:'\uD83E\uDE78', url:'/v2/anticoagulation.html',
+  {title:'Apixaban', cat:'Reference', ico:'\uD83E\uDE78', url:'/anticoagulation.html',
    kw:'apixaban apix doac noac anticoagulant'}
 ];
 
@@ -811,7 +811,7 @@ function nbShowAuthModal(){
 }
 function nbGoWorkspace(role){
   // Returning session: patients land on the Patient Home; staff on the workspace.
-  location.href = (role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
+  location.href = (role === 'patient') ? '/index.html' : '/dashboard.html';
 }
 // The sign-in modal must ONLY appear when there is no authenticated session.
 // If a valid Supabase session already exists, reuse it and send the user to
@@ -871,7 +871,7 @@ function _nbShowPatientOptIn(uid){
     // page (patient-dashboard.html) is open to any authenticated user and saves
     // data under this auth.uid(); the doctor role/profile is left untouched.
     try { localStorage.setItem(_nbPatientOptKey(uid), '1'); } catch(e){}
-    window.location.href = '/v2/patient-dashboard.html';
+    window.location.href = '/patient-dashboard.html';
   };
 }
 // "Start my surgery journey" / "My Patient Journey" entry point.
@@ -879,11 +879,11 @@ window.nbStartPatientJourney = async function(){
   var sess = null;
   try { sess = (typeof window.getSession === 'function') ? await window.getSession() : null; } catch(e){}
   if (!sess){ nbShowAuthModal(); return; }                 // not signed in → sign in / sign up
-  if (_nbRole === 'patient'){ window.location.href = '/v2/patient-dashboard.html'; return; }
+  if (_nbRole === 'patient'){ window.location.href = '/patient-dashboard.html'; return; }
   var uid = sess.user.id;
   var optedIn = false;
   try { optedIn = localStorage.getItem(_nbPatientOptKey(uid)) === '1'; } catch(e){}
-  if (optedIn || await _nbHasPatientData(uid)){ window.location.href = '/v2/patient-dashboard.html'; return; }
+  if (optedIn || await _nbHasPatientData(uid)){ window.location.href = '/patient-dashboard.html'; return; }
   _nbShowPatientOptIn(uid);                                  // clinician with no journey yet → ask first
 };
 
@@ -1122,11 +1122,11 @@ window.nbSubmitAuth = async function(){
 
       // STEP 6 — redirect
       // Default landing by role: patients land on the Patient Home (the
-      // authenticated state of /v2/index.html); My Space stays reachable from
+      // authenticated state of /index.html); My Space stays reachable from
       // the navbar and the Home hero. Doctors/admins are unchanged.
       if(window.resetSessionCache) window.resetSessionCache();
       var _isAdmin = prof && (prof.is_admin === true || prof.role === 'admin');
-      var dest = (!_isAdmin && prof && prof.role === 'patient') ? '/v2/index.html' : '/v2/dashboard.html';
+      var dest = (!_isAdmin && prof && prof.role === 'patient') ? '/index.html' : '/dashboard.html';
       window.nbCloseModal();
       window.location.href = dest;
     }
@@ -1139,8 +1139,8 @@ window.nbSubmitAuth = async function(){
 
 // Route a freshly-created user to the right place by role
 function routeByRole(role){
-  if(role === 'patient'){ window.location.href = '/v2/index.html'; }   // Patient Home
-  else { window.location.href = '/v2/dashboard.html'; }  // doctor/other/admin → workspace (verification banner shows for doctors)
+  if(role === 'patient'){ window.location.href = '/index.html'; }   // Patient Home
+  else { window.location.href = '/dashboard.html'; }  // doctor/other/admin → workspace (verification banner shows for doctors)
 }
 
 // Back-compat aliases
@@ -1157,7 +1157,7 @@ window.nbForgot = async function(){
 
 window.nbSignOut = async function(){
   try { await window.sb.auth.signOut(); } catch(e){}
-  window.location.href = '/v2/index.html';
+  window.location.href = '/index.html';
 };
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -1175,9 +1175,9 @@ function nbAppFooter(){
       }).join('')+'</div>';
   }
   return '<div class="nb-foot" role="contentinfo" id="nb-app-foot"><div class="nb-foot-in"><div class="nb-foot-cols">'+
-    col('Company', [['About','/v2/about.html'],['Support','mailto:support@anestheo.com']])+
-    col('Legal &amp; Trust', [['Privacy','/v2/privacy.html'],['Terms','/v2/terms.html'],['Medical Disclaimer','/v2/medical-disclaimer.html'],['Security','/v2/security.html']])+
-    col('Product', [['Release Notes','/v2/release-notes.html'],['Report a Bug','mailto:support@anestheo.com?subject=Bug%20report']])+
+    col('Company', [['About','/about.html'],['Support','mailto:support@anestheo.com']])+
+    col('Legal &amp; Trust', [['Privacy','/privacy.html'],['Terms','/terms.html'],['Medical Disclaimer','/medical-disclaimer.html'],['Security','/security.html']])+
+    col('Product', [['Release Notes','/release-notes.html'],['Report a Bug','mailto:support@anestheo.com?subject=Bug%20report']])+
     '</div><div class="nb-foot-bot"><span class="nb-foot-brand">Anest<span>heo</span></span>'+
     '<span class="nb-foot-copy">&copy; 2026 Anestheo</span></div></div></div>';
 }

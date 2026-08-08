@@ -11,12 +11,12 @@
      inside the embedded tool preview (.pv) so it renders as the actual tool. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<script src="/v2/videos-data.js?v=2026.08.07-18"></script>
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<script src="/videos-data.js?v=2026.08.07-18"></script>
 <style>
 /* =========================================================================
    Anestheo homepage — two-path action hero (patient-first).
@@ -678,7 +678,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 
 <header class="mast">
   <nav class="mast-in" aria-label="Primary">
-    <a class="brand" href="/v2/index.html">Anest<span class="brand-accent">heo</span></a>
+    <a class="brand" href="/index.html">Anest<span class="brand-accent">heo</span></a>
     <div class="nav-r">
       <a href="#patient-actions">Preparing for surgery</a>
       <a href="#clinicians">For clinicians</a>
@@ -699,14 +699,14 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
         <div class="role">Patients</div>
         <h2>I&rsquo;m preparing for surgery</h2>
         <p>Understand what to expect, and arrive ready.</p>
-        <div class="cta-wrap"><a class="btn btn-light" href="/v2/patients.html">Start preparation</a></div>
+        <div class="cta-wrap"><a class="btn btn-light" href="/patients.html">Start preparation</a></div>
       </div>
       <!-- Clinician path: secondary (light, outline) -->
       <div class="path path-clinician">
         <div class="role">Clinicians</div>
         <h2>I&rsquo;m a clinician</h2>
         <p>Calculators and references, ready at the point of care.</p>
-        <div class="cta-wrap"><a class="btn btn-outline" href="/v2/engine.html">See the tools</a></div>
+        <div class="cta-wrap"><a class="btn btn-outline" href="/engine.html">See the tools</a></div>
       </div>
     </div>
   </section>
@@ -721,17 +721,17 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       <div class="card reveal">
         <h3>Tell us about your surgery</h3>
         <p>Answer a few questions so your anesthesia team is ready for you.</p>
-        <div class="cta-wrap"><a class="btn" href="/v2/questionnaire.html">Start the questionnaire</a></div>
+        <div class="cta-wrap"><a class="btn" href="/questionnaire.html">Start the questionnaire</a></div>
       </div>
       <div class="card reveal">
         <h3>Understand your anesthesia</h3>
         <p>Short, clear videos about the anesthesia options you may be offered.</p>
-        <div class="cta-wrap"><a class="btn" href="/v2/videos.html">Watch short videos</a></div>
+        <div class="cta-wrap"><a class="btn" href="/videos.html">Watch short videos</a></div>
       </div>
       <div class="card reveal">
         <h3>Get ready for the day</h3>
         <p>Build a checklist for fasting, medicines, documents, and questions.</p>
-        <div class="cta-wrap"><a class="btn" href="/v2/patient-dashboard.html">Build my checklist</a></div>
+        <div class="cta-wrap"><a class="btn" href="/patient-dashboard.html">Build my checklist</a></div>
       </div>
     </div>
   </section>
@@ -746,17 +746,17 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       <div class="card reveal">
         <h3>Calculators</h3>
         <p>Weight-based values and point-of-care calculations, ready in seconds.</p>
-        <div class="cta-wrap"><a class="btn-text" href="/v2/engine.html">Open calculators <span class="arr">&rarr;</span></a></div>
+        <div class="cta-wrap"><a class="btn-text" href="/engine.html">Open calculators <span class="arr">&rarr;</span></a></div>
       </div>
       <div class="card reveal">
         <h3>Clinical references</h3>
         <p>Fast reference summaries that show their sources and review status.</p>
-        <div class="cta-wrap"><a class="btn-text" href="/v2/references.html">Open references <span class="arr">&rarr;</span></a></div>
+        <div class="cta-wrap"><a class="btn-text" href="/references.html">Open references <span class="arr">&rarr;</span></a></div>
       </div>
       <div class="card reveal">
         <h3>Assessment workspace</h3>
         <p>Review a patient&rsquo;s pre-operative information and record the readiness decision.</p>
-        <div class="cta-wrap"><a class="btn-text" href="/v2/dashboard.html">Open workspace <span class="arr">&rarr;</span></a></div>
+        <div class="cta-wrap"><a class="btn-text" href="/dashboard.html">Open workspace <span class="arr">&rarr;</span></a></div>
       </div>
     </div>
     <div class="clin-foot">
@@ -784,7 +784,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
         <p class="cap">A preview of the Live Tools workstation. Example values, not a real patient.</p>
       </div>
       <div class="clin-cta reveal">
-        <a class="btn" href="/v2/engine.html">Open the workstation</a>
+        <a class="btn" href="/engine.html">Open the workstation</a>
         <p class="sub">Sign in or create an account to continue.</p>
       </div>
     </div>
@@ -795,7 +795,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     <div class="trust-in">
       <h2 class="eyebrow reveal" id="tr-h" style="display:block;margin-bottom:14px;">Trust</h2>
       <p class="reveal">Clinical content includes sources, review status, and limitations where available.</p>
-      <div class="cta-wrap reveal"><a class="btn-text" style="justify-content:center;" href="/v2/about.html">Review our clinical approach <span class="arr">&rarr;</span></a></div>
+      <div class="cta-wrap reveal"><a class="btn-text" style="justify-content:center;" href="/about.html">Review our clinical approach <span class="arr">&rarr;</span></a></div>
     </div>
   </section>
 
@@ -808,11 +808,11 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       <p class="discl">Decision support for clinicians and preparation for patients. Not a substitute for professional clinical judgment.</p>
     </div>
     <div class="foot-links">
-      <a href="/v2/about.html">About</a>
+      <a href="/about.html">About</a>
       <a href="mailto:support@anestheo.com">Contact</a>
-      <a href="/v2/privacy.html">Privacy</a>
-      <a href="/v2/terms.html">Terms</a>
-      <a href="/v2/medical-disclaimer.html">Medical disclaimer</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/medical-disclaimer.html">Medical disclaimer</a>
     </div>
     <div class="foot-copy">&copy; 2026 Anestheo</div>
   </div>
@@ -881,9 +881,9 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // (defined in navbar.js). Rendered inside #ah so it sits in the dark shell.
   function appFooter(){
     if(typeof window.nbAppFooter === 'function') return window.nbAppFooter();
-    return '<div class="ah-foot"><a href="/v2/about.html">About</a>'
-      + '<a href="mailto:support@anestheo.com">Support</a><a href="/v2/privacy.html">Privacy</a>'
-      + '<a href="/v2/terms.html">Terms</a><a href="/v2/medical-disclaimer.html">Medical disclaimer</a>'
+    return '<div class="ah-foot"><a href="/about.html">About</a>'
+      + '<a href="mailto:support@anestheo.com">Support</a><a href="/privacy.html">Privacy</a>'
+      + '<a href="/terms.html">Terms</a><a href="/medical-disclaimer.html">Medical disclaimer</a>'
       + '<span class="ah-copy">Anestheo</span></div>';
   }
 
@@ -926,28 +926,28 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // Every href is a page that exists (no invented routes; Procedures excluded —
   // that is patient education and lives on the patient side).
   var AH_REF_CARDS=[
-    {k:'airway',ic:'🫁',n:'Airway',s:'Assessment & management',h:'/v2/airway.html',
+    {k:'airway',ic:'🫁',n:'Airway',s:'Assessment & management',h:'/airway.html',
      sum:'Structured airway assessment, equipment and sizing, and a stepwise plan for the anticipated and unanticipated difficult airway.',
-     kp:['Predictors and bedside assessment of a difficult airway','Tube/device sizing and preparation','Plan A–D and escalation to front-of-neck access'],rel:[['Difficult airway','/v2/difficult-airway.html']]},
-    {k:'anticoag',ic:'💉',n:'Anticoagulation',s:'Peri-operative bridging & timing',h:'/v2/anticoagulation.html',
+     kp:['Predictors and bedside assessment of a difficult airway','Tube/device sizing and preparation','Plan A–D and escalation to front-of-neck access'],rel:[['Difficult airway','/difficult-airway.html']]},
+    {k:'anticoag',ic:'💉',n:'Anticoagulation',s:'Peri-operative bridging & timing',h:'/anticoagulation.html',
      sum:'Peri-operative management of anticoagulants and antiplatelets — when to stop, whether to bridge, and safe timing around neuraxial techniques.',
-     kp:['Stop/restart intervals by agent','Bridging decisions by thrombotic risk','Neuraxial timing and safety windows'],rel:[['Regional','/v2/regional.html']]},
-    {k:'icu',ic:'🫀',n:'ICU',s:'Critical care reference',h:'/v2/icu.html',
+     kp:['Stop/restart intervals by agent','Bridging decisions by thrombotic risk','Neuraxial timing and safety windows'],rel:[['Regional','/regional.html']]},
+    {k:'icu',ic:'🫀',n:'ICU',s:'Critical care reference',h:'/icu.html',
      sum:'Peri-operative critical care reference covering sedation, ventilation and haemodynamic support.',
      kp:['Sedation and analgesia strategies','Ventilation targets','Haemodynamic and vasoactive support'],rel:[]},
-    {k:'obstetric',ic:'🤰',n:'Obstetric',s:'Obstetric anaesthesia',h:'/v2/obstetric.html',
+    {k:'obstetric',ic:'🤰',n:'Obstetric',s:'Obstetric anaesthesia',h:'/obstetric.html',
      sum:'Obstetric anaesthesia essentials for labour analgesia, caesarean delivery and peripartum emergencies.',
-     kp:['Neuraxial for labour and caesarean','The obstetric difficult airway','Major obstetric haemorrhage'],rel:[['Airway','/v2/airway.html']]},
-    {k:'pediatric',ic:'🧒',n:'Pediatric',s:'Paediatric anaesthesia',h:'/v2/pediatric.html',
+     kp:['Neuraxial for labour and caesarean','The obstetric difficult airway','Major obstetric haemorrhage'],rel:[['Airway','/airway.html']]},
+    {k:'pediatric',ic:'🧒',n:'Pediatric',s:'Paediatric anaesthesia',h:'/pediatric.html',
      sum:'Paediatric anaesthesia reference for weight-based planning, airway sizing and fasting.',
      kp:['Weight-based dosing and equipment sizing','Age-appropriate airway management','Fasting and fluid guidance'],rel:[]},
-    {k:'regional',ic:'🎯',n:'Regional',s:'Blocks & dosing',h:'/v2/regional.html',
+    {k:'regional',ic:'🎯',n:'Regional',s:'Blocks & dosing',h:'/regional.html',
      sum:'Regional anaesthesia reference covering block selection, technique and safe local-anaesthetic dosing.',
-     kp:['Block selection by procedure','Ultrasound and landmark technique','Maximum safe LA doses'],rel:[['LAST','/v2/last.html']]},
-    {k:'last',ic:'🚨',n:'LAST',s:'Local anaesthetic systemic toxicity',h:'/v2/last.html',
+     kp:['Block selection by procedure','Ultrasound and landmark technique','Maximum safe LA doses'],rel:[['LAST','/last.html']]},
+    {k:'last',ic:'🚨',n:'LAST',s:'Local anaesthetic systemic toxicity',h:'/last.html',
      sum:'Recognition and management of local anaesthetic systemic toxicity — a time-critical emergency after regional techniques.',
-     kp:['Recognise early CNS and cardiac signs','Stop injection; secure airway; control seizures','Lipid emulsion rescue therapy'],rel:[['Regional','/v2/regional.html']]},
-    {k:'anaphylaxis',ic:'⚠️',n:'Anaphylaxis',s:'Peri-operative crisis',h:'/v2/anaphylaxis.html',
+     kp:['Recognise early CNS and cardiac signs','Stop injection; secure airway; control seizures','Lipid emulsion rescue therapy'],rel:[['Regional','/regional.html']]},
+    {k:'anaphylaxis',ic:'⚠️',n:'Anaphylaxis',s:'Peri-operative crisis',h:'/anaphylaxis.html',
      sum:'Recognition and management of peri-operative anaphylaxis, including the common triggers under anaesthesia.',
      kp:['Recognise the peri-operative presentation','Adrenaline as first-line treatment','Remove trigger, fluids, airway support'],rel:[]}
   ];
@@ -972,8 +972,8 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // Reference quick-view (doctor) and the Procedure guide quick-view (patient).
   // Extracts ONLY the content region of an existing page — never its shell.
   var _fragCache={};
-  // href may be a whole page ('/v2/recovery.html') or a SECTION of a page
-  // ('/v2/preop-instructions.html#fasting'). In the section form only that
+  // href may be a whole page ('/recovery.html') or a SECTION of a page
+  // ('/preop-instructions.html#fasting'). In the section form only that
   // element is extracted, so three cards can reuse one existing page without
   // duplicating its content.
   function ahFragFetch(href){
@@ -1059,7 +1059,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   window.ahRefOpen=function(ev,key){ return _refViewer.open(ev,key); };
   window.ahRefClose=function(){ _refViewer.close(); };
 
-  function resGridCard(r){ return '<a class="rf-card" href="/v2/resources.html" onclick="ahLog(\'resource\',\''+esc(r.n)+'\',\'/v2/resources.html\')"><span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>'; }
+  function resGridCard(r){ return '<a class="rf-card" href="/resources.html" onclick="ahLog(\'resource\',\''+esc(r.n)+'\',\'/resources.html\')"><span class="rf-ico">'+r.ic+'</span><span class="rf-name">'+esc(r.n)+'</span><span class="rf-sub">'+esc(r.s)+'</span></a>'; }
   // A workflow glass card: premium icon, meaningful status (filled later), one action.
   function wfCard(key,cls,ico,name,href,cta){
     return '<a class="wf-card wf-'+key+(cls?' '+cls:'')+'" href="'+href+'" onclick="ahLog(\'action\',\''+esc(name)+'\',\''+href+'\')">'+
@@ -1080,7 +1080,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     return '<div class="ah-acc"><button class="ah-acc-h" onclick="ahAcc(this)" aria-expanded="false">'+
       '<span class="ic">'+r.ic+'</span><span class="t">'+esc(r.n)+'</span><span class="chev">▾</span></button>'+
       '<div class="ah-acc-b"><p class="sum">'+esc(r.sum)+'</p>'+
-      '<div class="ah-acc-links"><a class="ah-open-ref" href="/v2/resources.html" onclick="ahLog(\'resource\',\''+esc(r.n)+'\',\'/v2/resources.html\')">Open in Resources →</a></div></div></div>';
+      '<div class="ah-acc-links"><a class="ah-open-ref" href="/resources.html" onclick="ahLog(\'resource\',\''+esc(r.n)+'\',\'/resources.html\')">Open in Resources →</a></div></div></div>';
   }
 
   function buildDoctor(ah, session, profile, role){
@@ -1096,30 +1096,30 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     if(pending) h+='<div class="ah-verify pending">Your clinician account is pending verification. Some tools may be unavailable until an administrator approves your account.</div>';
     // ── WORKFLOW CARDS — the actionable centerpiece (glass, real status) ──
     h+='<div class="ah-sec"><div class="wf-grid">'+
-         wfCard('review','','🩺','Review Queue','/v2/dashboard.html','Open review queue')+
-         wfCard('quest','blue','💬','Patient Questions','/v2/dashboard.html','Open questions')+
-         wfCard('active','green','👥','Active Patients','/v2/dashboard.html','Open patient list')+
+         wfCard('review','','🩺','Review Queue','/dashboard.html','Open review queue')+
+         wfCard('quest','blue','💬','Patient Questions','/dashboard.html','Open questions')+
+         wfCard('active','green','👥','Active Patients','/dashboard.html','Open patient list')+
        '</div></div>';
     // ── NEEDS YOUR ATTENTION — named items, shown only when work exists ──
     h+='<div class="ah-sec" id="ah-attn-sec" style="display:none"><div class="ah-sec-h"><span class="ah-sec-t">Needs your attention</span></div><div id="ah-inbox"></div></div>';
     // ── LIVE WORKSPACE — one elegant card ──
-    h+='<div class="ah-sec"><a class="lw2" href="/v2/engine.html" onclick="ahLog(\'workspace\',\'Live Workspace\',\'/v2/engine.html\')">'+
+    h+='<div class="ah-sec"><a class="lw2" href="/engine.html" onclick="ahLog(\'workspace\',\'Live Workspace\',\'/engine.html\')">'+
          '<span class="glow"></span><span class="lw2-ic">⚡</span>'+
          '<span class="lw2-tx"><b>Live Workspace</b><span>Anesthesia workstation, drug library, scores &amp; crisis tools</span></span>'+
          '<span class="lw2-go">&rarr;</span></a>'+
-       '<div class="lw-sub"><a href="/v2/dashboard.html" onclick="ahLog(\'action\',\'New patient\',\'/v2/dashboard.html\')">＋ New patient</a></div></div>';
+       '<div class="lw-sub"><a href="/dashboard.html" onclick="ahLog(\'action\',\'New patient\',\'/dashboard.html\')">＋ New patient</a></div></div>';
     // ── CLINICAL REFERENCES — responsive grid of premium cards ──
-    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Clinical references</span><a class="ah-more" href="/v2/references.html">View all →</a></div>'+
+    h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Clinical references</span><a class="ah-more" href="/references.html">View all →</a></div>'+
        '<div class="rf-grid">'+AH_REF_CARDS.map(refGridCard).join('')+'</div>'+
        '<div class="ref-panel" id="ah-ref-panel" hidden></div></div>';
     // ── RESOURCES — ONE card (no duplicate category links; existing route) ──
-    h+='<div class="ah-sec"><a class="res-card" href="/v2/resources.html" onclick="ahLog(\'resource\',\'Resources\',\'/v2/resources.html\')">'+
+    h+='<div class="ah-sec"><a class="res-card" href="/resources.html" onclick="ahLog(\'resource\',\'Resources\',\'/resources.html\')">'+
          '<span class="glow"></span><span class="res-ic">🗂️</span>'+
          '<span class="res-tx"><b>Resources</b><span>Protocols, templates, downloads, research, and patient education.</span></span>'+
          '<span class="res-go">Open Resources →</span></a></div>';
     // ── LATEST VIDEOS — real videos from the official channel (shared source) ──
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest videos</span>'+
-         '<span class="ah-vhead"><a class="ah-more" href="/v2/videos.html">View all videos →</a>'+
+         '<span class="ah-vhead"><a class="ah-more" href="/videos.html">View all videos →</a>'+
          '<a class="ah-more" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a></span></div>'+
        '<div id="ah-videos"></div></div>';
     h+=appFooter()+'</div>';
@@ -1141,7 +1141,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   function renderOverview(m){
     var box=document.getElementById('ah-ov'); if(!box) return;
     function row(cls,label,v){ return '<div class="ov-row '+cls+(v===0?' zero':'')+'"><span class="ov-dot"></span><span class="ov-l">'+label+'</span><span class="ov-v">'+v+'</span></div>'; }
-    box.innerHTML='<div class="ov-card"><div class="ov-hd"><span class="ov-t">Today’s Overview</span><a class="ah-more" href="/v2/dashboard.html">View operating list →</a></div>'+
+    box.innerHTML='<div class="ov-card"><div class="ov-hd"><span class="ov-t">Today’s Overview</span><a class="ah-more" href="/dashboard.html">View operating list →</a></div>'+
       '<div class="ov-rows">'+
         row('a','Active patients',m.active)+
         row('b','Awaiting questionnaire',m.awaitingQ)+
@@ -1228,9 +1228,9 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     // patient-facing task (a waiting question first, then review, then documents).
     var seen={}, items=[];
     function add(name,row){ if(items.length>=8 || seen[name]) return; seen[name]=1; items.push(row); }
-    qNames.forEach(function(nm){ add(nm,{ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/v2/dashboard.html'}); });
-    reviewNames.forEach(function(nm){ add(nm,{ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted — awaiting review',act:'Review questionnaire',href:'/v2/dashboard.html'}); });
-    docItems.forEach(function(d){ add(d.name,{ic:'📎',name:d.name,sub:d.n+' document'+(d.n===1?'':'s')+' to review',act:'Review documents',href:'/v2/dashboard.html'}); });
+    qNames.forEach(function(nm){ add(nm,{ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/dashboard.html'}); });
+    reviewNames.forEach(function(nm){ add(nm,{ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted — awaiting review',act:'Review questionnaire',href:'/dashboard.html'}); });
+    docItems.forEach(function(d){ add(d.name,{ic:'📎',name:d.name,sub:d.n+' document'+(d.n===1?'':'s')+' to review',act:'Review documents',href:'/dashboard.html'}); });
     renderInbox(items);
   }
 
@@ -1238,14 +1238,14 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // Procedure guides — the existing pages/routes, with their own real icons and
   // subtitles. Each card opens ITS OWN guide (never the shared My Space route).
   var AH_PROC_CARDS=[
-    {k:'csection',   ic:'&#129488;',       n:'C-Section / Childbirth', s:'Cesarean delivery and labor',      h:'/v2/csection.html'},
-    {k:'orthopedic', ic:'&#129460;',       n:'Orthopedic Surgery',     s:'Joint, bone and limb procedures',  h:'/v2/orthopedic.html'},
-    {k:'dental',     ic:'&#129463;',       n:'Dental & Oral Surgery',  s:'Sedation for dental procedures',   h:'/v2/dental.html'},
-    {k:'ent',        ic:'&#128066;',       n:'ENT Surgery',            s:'Ear, nose, throat and sinus',      h:'/v2/ent.html'},
-    {k:'plastic',    ic:'&#10024;',        n:'Plastic Surgery',        s:'Reconstructive and cosmetic',      h:'/v2/plastic.html'},
-    {k:'oncogyn',    ic:'&#9792;&#65039;', n:'Oncogynecology',         s:'Gynecologic oncology surgery',     h:'/v2/oncogynecology.html'},
-    {k:'urology',    ic:'&#129752;',       n:'Urology',                s:'Kidney, bladder and urinary',      h:'/v2/urology.html'},
-    {k:'general',    ic:'&#128298;',       n:'General / Other Surgery',s:'Abdominal and general procedures', h:'/v2/general-surgery.html'}
+    {k:'csection',   ic:'&#129488;',       n:'C-Section / Childbirth', s:'Cesarean delivery and labor',      h:'/csection.html'},
+    {k:'orthopedic', ic:'&#129460;',       n:'Orthopedic Surgery',     s:'Joint, bone and limb procedures',  h:'/orthopedic.html'},
+    {k:'dental',     ic:'&#129463;',       n:'Dental & Oral Surgery',  s:'Sedation for dental procedures',   h:'/dental.html'},
+    {k:'ent',        ic:'&#128066;',       n:'ENT Surgery',            s:'Ear, nose, throat and sinus',      h:'/ent.html'},
+    {k:'plastic',    ic:'&#10024;',        n:'Plastic Surgery',        s:'Reconstructive and cosmetic',      h:'/plastic.html'},
+    {k:'oncogyn',    ic:'&#9792;&#65039;', n:'Oncogynecology',         s:'Gynecologic oncology surgery',     h:'/oncogynecology.html'},
+    {k:'urology',    ic:'&#129752;',       n:'Urology',                s:'Kidney, bladder and urinary',      h:'/urology.html'},
+    {k:'general',    ic:'&#128298;',       n:'General / Other Surgery',s:'Abdominal and general procedures', h:'/general-surgery.html'}
   ];
   var _procMap={}; (function(){ AH_PROC_CARDS.forEach(function(r){ _procMap[r.k]={h:r.h,n:r.n}; }); })();
   function procGridCard(r){
@@ -1264,11 +1264,11 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   // (#fasting / #medications / #what-to-bring / #what-to-tell), one is the
   // existing recovery page. Each opens inline; no page navigation.
   var AH_PREP_CARDS=[
-    {k:'fasting',  ic:'&#9201;',   n:'Fasting',          s:'When to stop eating &amp; drinking', h:'/v2/preop-instructions.html#fasting'},
-    {k:'meds',     ic:'&#128138;', n:'Medications',      s:'What to continue or pause',          h:'/v2/preop-instructions.html#medications'},
-    {k:'bring',    ic:'&#129509;', n:'What to bring',    s:'Documents and essentials',           h:'/v2/preop-instructions.html#what-to-bring'},
-    {k:'tell',     ic:'&#128172;', n:'Questions to ask', s:'What to tell your anesthesiologist', h:'/v2/preop-instructions.html#what-to-tell'},
-    {k:'recovery', ic:'&#127807;', n:'Recovery',         s:'What to expect afterwards',          h:'/v2/recovery.html'}
+    {k:'fasting',  ic:'&#9201;',   n:'Fasting',          s:'When to stop eating &amp; drinking', h:'/preop-instructions.html#fasting'},
+    {k:'meds',     ic:'&#128138;', n:'Medications',      s:'What to continue or pause',          h:'/preop-instructions.html#medications'},
+    {k:'bring',    ic:'&#129509;', n:'What to bring',    s:'Documents and essentials',           h:'/preop-instructions.html#what-to-bring'},
+    {k:'tell',     ic:'&#128172;', n:'Questions to ask', s:'What to tell your anesthesiologist', h:'/preop-instructions.html#what-to-tell'},
+    {k:'recovery', ic:'&#127807;', n:'Recovery',         s:'What to expect afterwards',          h:'/recovery.html'}
   ];
   var _prepMap={}; (function(){ AH_PREP_CARDS.forEach(function(r){ _prepMap[r.k]={h:r.h,n:r.n}; }); })();
   function prepCard(c){
@@ -1393,7 +1393,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     try{ window.scrollTo({top:window.scrollY+el.getBoundingClientRect().top-80,behavior:'smooth'}); }catch(e){ el.scrollIntoView(); } return false; };
 
   function buildPatient(ah, session, profile){
-    var MYSPACE='/v2/patient-dashboard.html';
+    var MYSPACE='/patient-dashboard.html';
     var authed = !!(session && session.user);
     var first=stripDr(pickName(session, profile)).split(/\s+/)[0]||'';
     var h='<div class="ah-wrap">';
@@ -1417,25 +1417,25 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
        '</div></div>';
     // 3 — CHOOSE YOUR PROCEDURE (each card opens its own existing guide inline)
     h+='<div class="ah-sec" id="pt-procedures"><div class="ah-sec-h"><span class="ah-sec-t">Choose your procedure</span>'+
-       '<a class="ah-more" href="/v2/procedures.html">View all procedures →</a></div>'+
+       '<a class="ah-more" href="/procedures.html">View all procedures →</a></div>'+
        '<div class="rf-grid">'+AH_PROC_CARDS.map(procGridCard).join('')+'</div>'+
        '<div class="ref-panel" id="ah-proc-panel" hidden></div></div>';
     // 4 — PREPARE FOR SURGERY — opens INLINE, same viewer as Clinical References
     h+='<div class="ah-sec" id="pt-prepare"><div class="ah-sec-h"><span class="ah-sec-t">Prepare for surgery</span>'+
-       '<a class="ah-more" href="/v2/preop-instructions.html">All pre-op instructions →</a></div>'+
+       '<a class="ah-more" href="/preop-instructions.html">All pre-op instructions →</a></div>'+
        '<div class="pt-prep">'+AH_PREP_CARDS.map(prepCard).join('')+'</div>'+
        '<div class="ref-panel" id="ah-prep-panel" hidden></div></div>';
     // 5 — ASK THE ANESTHESIOLOGIST (its own destination, never My Space)
     h+='<div class="ah-sec"><div class="pt-ask"><span class="glow"></span>'+
        '<span class="tx"><b>Questions about anesthesia?</b>'+
        '<span>Ask about general anesthesia, spinal or epidural, fasting, medications, recovery, or feeling anxious before surgery. A real anesthesiologist answers.</span></span>'+
-       '<a class="pt-btn primary" href="/v2/ask.html">Ask an anesthesiologist →</a></div></div>';
+       '<a class="pt-btn primary" href="/ask.html">Ask an anesthesiologist →</a></div></div>';
     // 5b — MANAGE JOURNEY (archive / start new / delete; real data, gated RPCs)
     h+='<div class="ah-sec" id="pt-journeys"><div class="ah-sec-h"><span class="ah-sec-t">Manage journey</span></div>'+
        '<div class="mj-card" id="ah-journeys"><div class="pt-j-empty">Loading your surgeries…</div></div></div>';
     // 6 — LATEST VIDEOS (shared real-video source; neutral wording)
     h+='<div class="ah-sec"><div class="ah-sec-h"><span class="ah-sec-t">Latest anesthesia videos</span>'+
-       '<span class="ah-vhead"><a class="ah-more" href="/v2/videos.html">View all videos →</a>'+
+       '<span class="ah-vhead"><a class="ah-more" href="/videos.html">View all videos →</a>'+
        '<a class="ah-more" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Watch on YouTube →</a>'+
        '<a class="ah-more sub" href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener">Subscribe on YouTube →</a></span></div>'+
        '<div id="ah-videos"></div></div>';

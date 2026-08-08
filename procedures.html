@@ -6,12 +6,12 @@
 <title>Choose Your Procedure — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/v2/supabase.js?v=2026.08.07-18"></script>
-<script src="/v2/auth.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-index.js?v=2026.08.07-18"></script>
-<script src="/v2/clinical-search.js?v=2026.08.07-18"></script>
-<script src="/v2/navbar.js?v=2026.08.07-18"></script>
-<link rel="stylesheet" href="/v2/styles.css?v=2026.08.07-18">
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/clinical-index.js?v=2026.08.07-18"></script>
+<script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.07-18">
 <style>
 .step-tag{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;background:rgba(27,107,90,.14);border:1px solid rgba(42,138,116,.3);padding:6px 13px;border-radius:30px;margin-bottom:16px;}
 .step-num{width:20px;height:20px;border-radius:50%;background:#2A8A74;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;}
@@ -106,7 +106,7 @@ function fastTable(rows){
 }
 function faqHtml(qa){ return qa.map(function(x){ return '<div class="faq-q">'+x[0]+'</div><div class="faq-a">'+x[1]+'</div>'; }).join(''); }
 function vidHtml(vids){
-  return '<div class="vid-grid">'+vids.map(function(v){ return '<a href="/v2/videos.html" class="vid-card"><div class="vid-ico">&#127909;</div><div class="vid-title">'+v+'</div></a>'; }).join('')+'</div>';
+  return '<div class="vid-grid">'+vids.map(function(v){ return '<a href="/videos.html" class="vid-card"><div class="vid-ico">&#127909;</div><div class="vid-title">'+v+'</div></a>'; }).join('')+'</div>';
 }
 
 function showGuide(key){
@@ -141,8 +141,8 @@ function showGuide(key){
     block('8 · Recovery expectations', paras(p.recovery)) +
     block('9 · Common questions', faqHtml(p.faqs)) +
     block('10 · Related videos', vidHtml(p.videos)) +
-    '<div class="ask-cta"><div><div class="ask-cta-text">Still have questions?</div><div class="ask-cta-sub">Send them directly to an anesthesiologist.</div></div><a href="/v2/ask.html" class="btn-primary">Ask the Anesthesiologist</a></div>' +
-    '<div class="next-strip"><a href="/v2/preop-instructions.html">Preparation &rarr;</a><a href="/v2/videos.html">Educational videos &rarr;</a><a href="/v2/recovery.html">Recovery guide &rarr;</a></div>' +
+    '<div class="ask-cta"><div><div class="ask-cta-text">Still have questions?</div><div class="ask-cta-sub">Send them directly to an anesthesiologist.</div></div><a href="/ask.html" class="btn-primary">Ask the Anesthesiologist</a></div>' +
+    '<div class="next-strip"><a href="/preop-instructions.html">Preparation &rarr;</a><a href="/videos.html">Educational videos &rarr;</a><a href="/recovery.html">Recovery guide &rarr;</a></div>' +
   '</div>';
 
   var g = document.getElementById('guide');
