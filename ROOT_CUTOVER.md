@@ -35,7 +35,7 @@ backups/  (outside the document root)
 |---|---|---|
 | 1 | `videos.html` collision | **RESOLVED** — V1 preserved at `/videos.html`, isolated in `videos-v1/`. Section 3. |
 | 2 | V1 pages loading V2 `auth.js` / `supabase.js` | **RESOLVED** — V1 functional pages are archived out of the live root and their URLs redirect. Section 4. |
-| 3 | V1 videos page's own dependencies | **OPEN — needs 10 minutes of inspection.** Cannot be determined from here; the V1 file is not in the repository and production is unreachable from this environment. Exact procedure in section 3.2. |
+| 3 | V1 videos page's own dependencies | **OPEN — awaiting the file.** Cannot be determined from here: the V1 `videos.html` is not in the repository and production is unreachable from this environment. The procedure is no longer manual — `tools/audit-v1-videos.js` performs the full audit and assembles `videos-v1/`. Section 3.2. |
 | 4 | `/contact.html` has no V2 equivalent | **OPEN — product decision.** Section 4.3. |
 | 5 | `/legal.html` maps five ways | **OPEN — low risk.** Provisionally mapped to `/terms.html`. Section 4.3. |
 
@@ -114,26 +114,65 @@ be made relative by hand; 3.2 is what finds them.
 
 **This is the one thing that could not be determined from this environment.**
 The V1 `videos.html` is not in the repository and production is not reachable
-from here. Ten minutes in File Manager settles it.
+from here, so the page's actual dependency list is unknown.
 
-1. Open `public_html/videos.html` in the Hostinger File Manager editor.
-2. Write down every `<script src=…>`, `<link href=…>`, `<img src=…>`,
-   `@import`, and `fetch(…)` in the file.
-3. Classify each:
-   * **relative** (`style.css`, `js/app.js`) → copy the file into
-     `videos-v1/` at the same relative position. `<base>` handles the rest.
-   * **root-absolute** (`/style.css`, `/auth.js`) → copy the file into
-     `videos-v1/` **and edit the reference to be relative**. `<base>` does not
-     affect root-absolute paths.
-   * **external** (`https://…`) → leave alone.
-4. If it references `auth.js` or `supabase.js`, copy the **V1** versions from
-   the backup — never the V2 ones. This is the whole point of the isolation.
-5. Add `<base href="/videos-v1/">` as the first tag in `<head>`.
-6. Verify by loading `/videos.html` and confirming the browser network panel
-   shows **zero 404s** and no request escaping to a root path.
+It is not a manual job. **`tools/audit-v1-videos.js`** does the whole
+extraction and classification:
 
-If step 3 turns up nothing but external URLs and inline CSS, the page is
-self-contained and steps 3–4 are a no-op. Confirm rather than assume.
+```bash
+# 1. Download public_html/videos.html and everything beside it into ./v1src/
+# 2. Audit — reads the real file, reports every reference
+node tools/audit-v1-videos.js v1src/videos.html --v1-dir v1src
+
+# 3. Build the isolated folder: copies dependencies, injects <base>,
+#    rewrites root-absolute ASSET paths, leaves navigation alone
+node tools/audit-v1-videos.js v1src/videos.html --v1-dir v1src --build videos-v1
+```
+
+It sweeps `<script>`, `<link>`, `<img>` (including `srcset`), `<source>`,
+`<video>`/`<audio>`, `<iframe>`, `<embed>`/`<object>`, `<form action>`,
+anchors, `<meta refresh>`, CSS `@import`, CSS `url()`, inline `style="…url()"`,
+`fetch`/`XHR`, `location` assignments and ES `import` — then sorts every hit
+into relative / root-absolute / protocol-relative / external / `data:` /
+fragment, and tells you exactly which files to copy and which references to
+edit.
+
+Three distinctions it enforces, because conflating them is how this goes wrong:
+
+* **Navigation** (`<a href="/index.html">`) — the page *leaves* for the V2
+  site. Never copied, never rewritten. Rewriting would trap the visitor inside
+  `videos-v1/`.
+* **Assets** (`<script src="/app.js">`) — the page *loads* them. Must be copied
+  in and rewritten, or the page silently pulls the V2 file of the same name.
+* **Data/API** (`fetch('/api/x.json')`) — could be a static file that must come
+  along, or a live endpoint that must stay at the root. **Flagged, never
+  auto-rewritten.** Only you know which.
+
+**Relative navigation links are a trap the tool calls out specifically:**
+`<base>` resolves `<a href="patients.html">` into `/videos-v1/patients.html`,
+which does not exist. Those must be made root-absolute.
+
+If the page references `auth.js` or `supabase.js`, copy the **V1** versions
+from the backup — never the V2 ones. That is the whole point of the isolation.
+
+Then verify in a browser at `/videos.html`, not at `/videos-v1/index.html`:
+**zero 404s, and no request escaping to a root path.**
+
+The tool and this whole flow were exercised end to end against a synthetic V1
+page carrying every reference type — relative CSS, a root-absolute script, a
+root-absolute image and favicon, a `srcset`, a CSS `@import`, an inline
+`url()`, a protocol-relative CDN script, a Google Font, a YouTube iframe, a
+`data:` image, a `fetch()`, root-absolute anchors, a fragment and a `mailto:`.
+Result: the page rendered at an unchanged `/videos.html`, both V1 scripts
+executed, zero requests escaped the folder, zero 404s, zero JS errors, and all
+three navigation links landed on real V2 pages. The `fetch()` was left
+deliberately unresolved on the first pass, and it failed exactly as predicted —
+404, then a `JSON.parse` error on the 404 page's HTML — which is why it is
+flagged rather than guessed. The check was then shown able to fail, by removing
+one stylesheet and watching it go red.
+
+**None of that was your real page.** It proves the procedure and the tooling.
+The real file still has to go through it.
 
 ### 3.3 When the port task lands
 
