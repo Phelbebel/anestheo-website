@@ -1535,10 +1535,11 @@ body .nb-search-wrap{display:none !important;}
       </div>
     </details>
 
-    <div id="output">
-      <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
-      <button class="cw-open-pt" onclick="var a=ge('acc-patient');if(a)a.scrollIntoView({behavior:'smooth',block:'center'});var f=ge('i-age');if(f)f.focus();">Enter patient details</button></div>
-    </div>
+    <!-- Empty on purpose. With no active patient the patient form above is
+         already open, so a 271px card saying "enter patient details" sat
+         between the clinician and the fields they were being told to fill in.
+         compute() fills this element the moment the inputs are valid. -->
+    <div id="output"></div>
 
     <!-- PACU / Recovery — separate from the intraoperative timer strip -->
     <div class="pacu-mod">
@@ -1629,9 +1630,13 @@ function compute(){
   var age=ageC?ageC.years:null, sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
   var out=ge('output');
   if(age==null||!sex||ht==null||wt==null){
-    out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>'+
-      '<button class="cw-open-pt" onclick="var a=ge(\'acc-patient\');a.open=true;a.scrollIntoView({behavior:\'smooth\',block:\'center\'});var f=ge(\'i-age\');if(f)f.focus();">Open Patient Details</button></div>';
+    /* No usable patient yet. The form above is open (ptOpenWhenEmpty), so the
+       clinician is already looking at the fields. A card telling them to fill
+       those fields in would repeat the form and push it further up the page,
+       so this stays empty. Derived values keep showing their true dashes. */
+    out.innerHTML='';
     cwClearDerived();
+    ptOpenWhenEmpty();
     return;
   }
   var isPeds=age<16;
@@ -2490,9 +2495,11 @@ function newCase(){
         on screen. compute() re-renders every module from empty inputs. */
   if(window.compute) window.compute();
   if(window.ptSummary) window.ptSummary();
-  /* 5. leave the workspace open on the patient controls */
-  var app=document.getElementById('app');
-  if(app && window.matchMedia('(max-width:900px)').matches) app.classList.add('pt-open');
+  /* 5. leave the empty patient form open and ready to type into.
+        Previously this only opened below 900px; ptOpenWhenEmpty() is safe at
+        any width because above the breakpoint the class is inert and the form
+        is shown regardless. */
+  ptOpenWhenEmpty();
   var f=ge('i-age'); if(f) try{ f.focus(); }catch(e){}
 }
 window.newCase = newCase;
@@ -2568,6 +2575,40 @@ function ptToggle(){
   if(open){ var f=ge('i-age'); if(f && isPhone()) setTimeout(function(){ f.focus(); },120); }
 }
 window.ptToggle=ptToggle;
+
+/* ── The patient form is open whenever there is no patient ───────────────────
+   With an empty case there is exactly one thing to do — enter a patient — so
+   the form is already open and the clinician can start typing.
+
+   THE BUG THIS REPLACES. The old empty state offered "Enter patient details",
+   whose handler was scrollIntoView() + focus(). Below 900px the form is hidden
+   by "#app:not(.pt-open) #acc-patient{display:none}", and focusing a
+   display:none input is a no-op, so on a phone the button did nothing at all —
+   measured: display stayed none, pt-open stayed false, focus stayed on the
+   button. The compute()-rendered variant instead set acc.open = true, but
+   #acc-patient is a <section>, not a <details>, so that assignment was inert
+   too. Above 900px the form is never hidden, so the button had no visible
+   effect there either. Neither handler ever touched pt-open, which is the only
+   thing that actually reveals the form.
+
+   Visibility is driven by that one class, so this sets it and nothing else.
+   Above 900px the class is inert — the form is already shown — so the same
+   call is safe from any code path and at any width. */
+function ptCaseIsEmpty(){
+  var ids=['i-age','i-sex','i-height','i-weight','i-asa','i-proc'];
+  for(var i=0;i<ids.length;i++){
+    var e=ge(ids[i]);
+    if(e && String(e.value||'').trim()!=='') return false;
+  }
+  return true;
+}
+function ptOpenWhenEmpty(){
+  var app=document.getElementById('app'); if(!app) return;
+  if(!ptCaseIsEmpty()) return;
+  app.classList.add('pt-open');
+  var b=ge('pt-sum'); if(b) b.setAttribute('aria-expanded','true');
+}
+window.ptCaseIsEmpty=ptCaseIsEmpty; window.ptOpenWhenEmpty=ptOpenWhenEmpty;
 
 /* Make a clinical domain the active mobile stream. Above the breakpoint the
    attribute is inert, so the same call is safe from any code path. */
@@ -3094,14 +3135,18 @@ document.addEventListener('DOMContentLoaded',async function(){
       var s = await getSession();
       ge('loader').style.display='none';
       ge('app').style.display='block';
-      if(restoreInputs()) compute();   // only ever from real saved/incoming data
+      // No saved case -> the form opens itself, so the clinician can type
+      // straight away instead of hunting for a control.
+      if(restoreInputs()) compute(); else ptOpenWhenEmpty();
       setupWorkspace();
       return;
     }
     var auth=await window.requireRole('staff'); if(!auth)return;
     ge('loader').style.display='none';
     ge('app').style.display='block';
-    if(restoreInputs()) compute();   // only ever from real saved/incoming data
+    // No saved case -> the form opens itself, so the clinician can type
+    // straight away instead of hunting for a control.
+    if(restoreInputs()) compute(); else ptOpenWhenEmpty();
     setupWorkspace();
     if(window.ClinicalSearch) window.ClinicalSearch.enabled = true;
   }catch(e){
