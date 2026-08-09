@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Signing you in — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<style>
+:root{--accent:#7ECFC0;--teal:#2A8A74;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0A1A15;color:#fff;font-family:'DM Sans',-apple-system,system-ui,sans-serif;line-height:1.6;
+  -webkit-font-smoothing:antialiased;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:52px 52px;}
+.cb{width:100%;max-width:420px;text-align:center;}
+.cb-logo{font-size:20px;font-weight:600;margin-bottom:28px;letter-spacing:.01em;}
+.cb-logo span{color:#2A8A74;}
+.cb-card{background:rgba(255,255,255,.035);border:1px solid rgba(27,107,90,.24);border-radius:14px;padding:30px 24px;}
+.cb-spin{width:26px;height:26px;margin:0 auto 16px;border:2.5px solid rgba(126,207,192,.22);
+  border-top-color:#7ECFC0;border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.cb-t{font-size:16px;font-weight:700;margin-bottom:6px;}
+.cb-s{font-size:13.5px;color:rgba(255,255,255,.6);}
+.cb-err .cb-t{color:#FFB4A8;}
+.cb-actions{display:flex;flex-direction:column;gap:9px;margin-top:20px;}
+.cb-btn{display:block;width:100%;padding:11px 16px;border-radius:10px;font-family:inherit;font-size:14px;
+  font-weight:600;text-decoration:none;cursor:pointer;border:1px solid rgba(27,107,90,.4);
+  background:rgba(255,255,255,.05);color:#fff;}
+.cb-btn:hover{background:rgba(126,207,192,.12);border-color:rgba(126,207,192,.55);}
+.cb-btn-primary{background:linear-gradient(135deg,#2A8A74,#1B6B5A);border-color:transparent;}
+</style>
+</head>
+<body>
+<div class="cb">
+  <div class="cb-logo">Anest<span>heo</span></div>
+  <div class="cb-card" id="cb-card">
+    <div class="cb-spin" id="cb-spin"></div>
+    <div class="cb-t" id="cb-t">Signing you in</div>
+    <div class="cb-s" id="cb-s">One moment.</div>
+    <div class="cb-actions" id="cb-actions" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE LANDING THAT OWNS THE DECISION
+
+   Every authenticated arrival that is not an ordinary page load comes here:
+   a social sign-in returning from Apple/Google/Facebook, and an email
+   confirmation link. Previously both landed on whatever the Supabase Site URL
+   happened to be, and the app had to infer what had just happened.
+
+   HOW THE SESSION IS ESTABLISHED. supabase.js sets detectSessionInUrl:true, so
+   supabase-js parses the tokens out of the URL and stores the session before
+   anything here runs. That is why no PKCE exchange, Edge Function or server
+   callback is needed for a static site — adding one would be a second auth
+   path to keep correct. We wait for the session rather than assume it: on a
+   cold load the client may still be reading storage when this script runs.
+
+   AUTHORIZATION IS NOT DECIDED HERE. resolveAuthDestination() reads
+   public.profiles and routes on the DATABASE role and verification status.
+   Nothing from the provider is consulted, so a Google account cannot arrive
+   claiming to be a verified doctor.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function show(title, sub, actions, isErr){
+  document.getElementById('cb-spin').style.display = isErr ? 'none' : 'block';
+  document.getElementById('cb-t').textContent = title;
+  document.getElementById('cb-s').textContent = sub;
+  document.getElementById('cb-card').className = 'cb-card' + (isErr ? ' cb-err' : '');
+  var box = document.getElementById('cb-actions');
+  if(actions && actions.length){
+    box.innerHTML = actions.map(function(a){
+      return '<a class="cb-btn' + (a.primary ? ' cb-btn-primary' : '') + '" href="' + a.href + '">' + a.label + '</a>';
+    }).join('');
+    box.style.display = 'flex';
+  } else { box.style.display = 'none'; }
+}
+
+/* The provider reports failure in the URL, before any session exists. Read it
+   first so a cancelled sign-in explains itself instead of looking like a
+   broken page. Both query and fragment are checked: providers differ. */
+function providerError(){
+  var out = {};
+  [window.location.search.slice(1), window.location.hash.slice(1)].forEach(function(part){
+    part.split('&').forEach(function(kv){
+      if(!kv) return;
+      var i = kv.indexOf('='); if(i < 0) return;
+      out[decodeURIComponent(kv.slice(0,i))] = decodeURIComponent(kv.slice(i+1).replace(/\+/g,' '));
+    });
+  });
+  return out.error || out.error_code ? out : null;
+}
+
+// The session may not be readable on the first tick. Poll briefly, do not spin forever.
+async function waitForSession(maxMs){
+  var started = Date.now();
+  while(Date.now() - started < maxMs){
+    try {
+      var r = await window.sb.auth.getSession();
+      if(r && r.data && r.data.session) return r.data.session;
+    } catch(e){ /* transient; keep trying until the deadline */ }
+    await new Promise(function(res){ setTimeout(res, 250); });
+  }
+  return null;
+}
+
+(async function(){
+  var SIGN_IN = { href:'/index.html', label:'Back to sign in', primary:true };
+
+  try{
+    var perr = providerError();
+    if(perr){
+      var d = String(perr.error_description || perr.error || '');
+      // "access_denied" is the user pressing Cancel. That is not a failure.
+      if(/access_denied|user_cancelled|user_denied/i.test(perr.error + ' ' + (perr.error_code||''))){
+        show('Sign-in cancelled', 'You can try again, or sign in with your email and password.', [SIGN_IN], true);
+        return;
+      }
+      if(/expired|invalid/i.test(d)){
+        show('This link has expired',
+             'Confirmation and sign-in links are short-lived. Request a new one and try again.', [SIGN_IN], true);
+        return;
+      }
+      show('Sign-in could not be completed',
+           'The sign-in provider reported a problem. Try again, or use your email and password.', [SIGN_IN], true);
+      return;
+    }
+
+    var session = await waitForSession(8000);
+    if(!session){
+      show('We could not complete sign-in',
+           'The sign-in link may have already been used or expired. Please sign in again.', [SIGN_IN], true);
+      return;
+    }
+
+    var res = await window.resolveAuthDestination();
+    if(!res.ok){
+      if(res.reason === 'profile-failed'){
+        // Authenticated, but the profile row could not be created or read.
+        // Do NOT route into the app: the guards would bounce them straight
+        // back and it would look like a loop.
+        show('Your account is signed in, but we could not load your profile',
+             'This is usually temporary. Try again in a moment.',
+             [{href:'/auth-callback.html', label:'Try again', primary:true},
+              {href:'/index.html', label:'Go to the homepage'}], true);
+        return;
+      }
+      show('We could not complete sign-in', 'Please sign in again.', [SIGN_IN], true);
+      return;
+    }
+
+    show('Signed in', 'Taking you to your workspace…');
+    window.location.replace(res.dest);
+
+  }catch(e){
+    show('Something went wrong signing you in',
+         'Please try again. If it keeps happening, sign in with your email and password.', [SIGN_IN], true);
+  }
+})();
+</script>
+</body>
+</html>

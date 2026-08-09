@@ -187,6 +187,30 @@ body.nb-lock{position:fixed;width:100%;overflow:hidden;}
   font-family:inherit;padding:0;text-decoration:none;}
 .nb-link-btn:hover{text-decoration:underline;}
 /* signup role chips */
+/* ── Social sign-in buttons ──────────────────────────────────────────────
+   Restrained on purpose. Three saturated brand blocks would out-shout the
+   email form and the rest of the modal; these carry the recognisable mark on
+   the workspace's own surface treatment, so the provider is identifiable
+   without the modal turning into a logo wall. Full width and 44px min-height
+   so they stay comfortable targets on a phone. */
+.nb-soc{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:44px;
+  margin-bottom:8px;padding:11px 14px;border-radius:10px;cursor:pointer;font-family:inherit;
+  font-size:14px;font-weight:600;color:#fff;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.16);transition:background .15s,border-color .15s;}
+.nb-soc:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.28);}
+.nb-soc:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
+.nb-soc:disabled{opacity:.55;cursor:default;}
+.nb-soc-i{display:inline-flex;align-items:center;justify-content:center;width:18px;flex:0 0 18px;}
+/* Apple's mark is monochrome and sits directly on the dark surface. */
+.nb-soc-apple .nb-soc-i{color:#fff;}
+/* Google requires its four-colour mark on a light chip, so it gets one. */
+.nb-soc-google .nb-soc-i{background:#fff;border-radius:3px;width:20px;height:20px;flex:0 0 20px;}
+.nb-or{display:flex;align-items:center;gap:12px;margin:14px 0 12px;
+  color:rgba(255,255,255,.42);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;}
+.nb-or::before,.nb-or::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.12);}
+@media(max-width:430px){
+  .nb-soc{font-size:13.5px;padding:11px 12px;gap:9px;}
+}
 .nb-role-chip{display:flex;align-items:center;gap:13px;width:100%;text-align:left;background:rgba(255,255,255,.04);
   border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:10px;cursor:pointer;
   font-family:inherit;transition:all .18s;color:inherit;}
@@ -450,6 +474,31 @@ function buildHTML(page){
           '<button class="nb-role-chip" onclick="window.nbPickRole(\'doctor\')"><span class="nb-role-ico">&#129658;</span><span><b>Doctor</b><small>Anesthesiologist (verification required)</small></span></button>' +
           '<button class="nb-role-chip" onclick="window.nbPickRole(\'other\')"><span class="nb-role-ico">&#127973;</span><span><b>Nurse / Student / Other</b><small>Healthcare professional</small></span></button>' +
         '</div>' +
+        // ── Social sign-in ───────────────────────────────────────────
+        // Above the credentials because it is the faster path for most
+        // people. Brand marks are inline SVG/text: no external request, so
+        // they render before any network round-trip and cannot be blocked.
+        '<div id="nb-social">' +
+          '<button type="button" class="nb-soc nb-soc-apple" onclick="window.nbSocial(\'apple\')">' +
+            '<span class="nb-soc-i" aria-hidden="true">' +
+              '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">' +
+              '<path d="M11.18 8.5c.02-1.6 1.31-2.37 1.37-2.41-.75-1.09-1.91-1.24-2.32-1.26-.99-.1-1.93.58-2.43.58-.5 0-1.27-.57-2.09-.55-1.07.02-2.06.62-2.61 1.58-1.11 1.93-.28 4.79.8 6.35.53.77 1.16 1.63 1.98 1.6.79-.03 1.09-.51 2.05-.51.95 0 1.23.51 2.07.5.86-.02 1.4-.78 1.92-1.55.61-.89.86-1.75.87-1.79-.02-.01-1.67-.64-1.69-2.54zM9.63 3.8c.44-.53.73-1.27.65-2.01-.63.03-1.39.42-1.84.95-.4.47-.75 1.22-.66 1.94.7.05 1.42-.36 1.85-.88z"/>' +
+              '</svg></span>Continue with Apple</button>' +
+          '<button type="button" class="nb-soc nb-soc-google" onclick="window.nbSocial(\'google\')">' +
+            '<span class="nb-soc-i" aria-hidden="true">' +
+              '<svg viewBox="0 0 18 18" width="16" height="16">' +
+              '<path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/>' +
+              '<path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/>' +
+              '<path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/>' +
+              '<path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>' +
+              '</svg></span>Continue with Google</button>' +
+          '<button type="button" class="nb-soc nb-soc-fb" onclick="window.nbSocial(\'facebook\')">' +
+            '<span class="nb-soc-i" aria-hidden="true">' +
+              '<svg viewBox="0 0 16 16" width="16" height="16" fill="#1877F2">' +
+              '<path d="M16 8.05C16 3.6 12.42 0 8 0S0 3.6 0 8.05C0 12.07 2.93 15.4 6.75 16v-5.62H4.72V8.05h2.03V6.28c0-2.02 1.2-3.13 3.02-3.13.87 0 1.79.16 1.79.16v1.97h-1.01c-.99 0-1.3.62-1.3 1.26v1.51h2.22l-.36 2.33H9.25V16C13.07 15.4 16 12.07 16 8.05z"/>' +
+              '</svg></span>Continue with Facebook</button>' +
+        '</div>' +
+        '<div class="nb-or"><span>or</span></div>' +
         // ── Credentials step ──
         '<div id="nb-cred-step">' +
           '<div id="nb-role-pill" style="display:none"></div>' +
@@ -1045,7 +1094,19 @@ window.nbSubmitAuth = async function(){
       var verif = (_regRole === 'doctor') ? 'pending' : 'not_required';
       var rs = await window.sb.auth.signUp({
         email: email, password: pass,
-        options: { data: { role: _regRole, verification_status: verif } }
+        options: {
+          /* Explicit root-domain landing. Without this the confirmation link
+             falls back to the Supabase Site URL, which is exactly how these
+             links ended up pointing at /v2/ before the cutover. The value must
+             match a Supabase Redirect URLs entry verbatim. */
+          emailRedirectTo: window.authRedirectTo('auth-callback.html'),
+          /* anestheo_signup marks this as OUR registration form, so
+             ensureProfile() may honour the role the person actually chose.
+             Metadata from Apple/Google/Facebook carries no such marker and can
+             never seed a role. verification_status is still derived
+             server-side; sending it here is legacy and harmless. */
+          data: { role: _regRole, verification_status: verif, anestheo_signup: true }
+        }
       });
       setBtns(false);
       if(rs.error){ showMsg('err', rs.error.message); return; }
@@ -1147,10 +1208,32 @@ function routeByRole(role){
 window.nbSignIn = function(){ _authMode = 'signin';   applyMode(); window.nbSubmitAuth(); };
 window.nbSignUp = function(){ _authMode = 'register';  applyMode(); window.nbSubmitAuth(); };
 
+/* Social sign-in from the modal. A successful call navigates away to the
+   provider, so the only code that runs after it is the failure path. */
+window.nbSocial = async function(provider){
+  var names = { apple:'Apple', google:'Google', facebook:'Facebook' };
+  try{
+    showMsg('ok', 'Opening ' + (names[provider]||provider) + '\u2026');
+    var r = await window.signInWithProvider(provider);
+    if(r && r.error){
+      showMsg('err', r.error.message ||
+        ('Could not continue with ' + (names[provider]||provider) + '. Try again, or use your email and password below.'));
+    }
+  }catch(e){
+    showMsg('err', 'Could not continue with ' + (names[provider]||provider) +
+      '. Try again, or use your email and password below.');
+  }
+};
+
 window.nbForgot = async function(){
   var email = (ge('nb-email').value || '').trim().toLowerCase();
   if(!email || !email.includes('@')){ showMsg('err', 'Enter your email above first.'); return; }
-  var r = await window.sb.auth.resetPasswordForEmail(email);
+  /* Explicit recovery destination. Previously this had no redirectTo, so the
+     link landed on the Site URL: the visitor was silently signed in on the
+     homepage with no way to set a new password. */
+  var r = await window.sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.authRedirectTo('reset-password.html')
+  });
   if(r.error){ showMsg('err', r.error.message); return; }
   showMsg('ok', '&#10003; Reset email sent to <strong>' + email + '</strong>.');
 };

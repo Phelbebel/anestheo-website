@@ -171,11 +171,37 @@ async function ensureProfile(user) {
   if (profile) return profile;
 
   var meta = user.user_metadata || {};
+
+  /* ROLE IS NOT TAKEN FROM ARBITRARY PROVIDER METADATA.
+     user_metadata is writable by whoever created the user. For our own
+     registration form that is us, and the role the person picked is carried
+     there deliberately. For an OAuth sign-in it is whatever Apple, Google or
+     Facebook chose to return, and a claim called "role" arriving from a third
+     party must never seed an Anestheo role.
+
+     So metadata is trusted only when it also carries the marker our own
+     signUp() writes, and only for the roles that form can produce. Everything
+     else — every social sign-in — starts at 'pending' and goes through
+     role-select.html.
+
+     verification_status is never read from metadata at all: it is derived,
+     because "am I a verified doctor" is not something a client may assert.
+
+     Defence in depth, not the boundary. trg_guard_profiles_self_update forces
+     these same values on INSERT server-side — verified locally: role 'admin'
+     becomes 'pending', is_admin becomes false, and doctor+approved becomes
+     doctor+pending. This block simply stops the client asking for something
+     the database would refuse. */
+  var SELF_SIGNUP_ROLES = ['patient', 'doctor', 'other'];
+  var claimed = (meta.anestheo_signup === true && typeof meta.role === 'string')
+    ? meta.role : null;
+  var role = (claimed && SELF_SIGNUP_ROLES.indexOf(claimed) >= 0) ? claimed : 'pending';
+
   var row = {
     id: user.id,
     email: user.email,
-    role: meta.role || 'pending',
-    verification_status: meta.verification_status || (meta.role === 'doctor' ? 'pending' : 'not_required')
+    role: role,
+    verification_status: (role === 'doctor') ? 'pending' : 'not_required'
   };
   try {
     var r = await withTimeout(window.sb.from('profiles').upsert(row, { onConflict: 'id' }), 8000, 'ensureProfile');
@@ -328,6 +354,105 @@ async function getAllQuestionnaires() {
     return r.data || [];
   } catch(e) { console.error('getAllQuestionnaires exc:', e.message); return []; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SOCIAL SIGN-IN  (Apple / Google / Facebook)
+
+   One function for all three providers, on the same Supabase client and the
+   same session as email/password. There is no second auth system: a social
+   login produces an ordinary Supabase session in the same localStorage key,
+   so every existing guard, RLS policy and RPC keeps working untouched.
+
+   AUTHENTICATION ONLY. Signing in with Apple proves the caller controls an
+   Apple ID — nothing more. Role and doctor verification come from the
+   database, never from provider metadata. See resolveAndRoute() below.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+var AUTH_PROVIDERS = ['apple', 'google', 'facebook'];
+
+/* Where the provider sends the browser back to.
+
+   Built from location.origin rather than hard-coded, so the same code works
+   on production and on a staging origin. In production this resolves to
+   exactly https://anestheo.com/auth-callback.html, which is what must appear
+   in the Supabase Redirect URLs allowlist — Supabase compares it verbatim and
+   silently falls back to Site URL when it does not match. That fallback is
+   the safe direction, but it is also how a typo hides, so the allowlist entry
+   and this value must be kept identical. */
+function authRedirectTo(page) {
+  return window.location.origin + '/' + page;
+}
+window.authRedirectTo = authRedirectTo;
+
+async function signInWithProvider(provider) {
+  if (AUTH_PROVIDERS.indexOf(provider) < 0) {
+    return { error: { message: 'Unsupported sign-in provider.' } };
+  }
+  try {
+    var r = await window.sb.auth.signInWithOAuth({
+      provider: provider,
+      options: { redirectTo: authRedirectTo('auth-callback.html') }
+    });
+    /* A configured provider redirects the browser and this line never runs.
+       Reaching here with an error almost always means the provider is not
+       enabled in the Supabase dashboard, or its credentials are wrong. Say
+       so plainly rather than showing a raw OAuth string. */
+    if (r && r.error) {
+      var m = String(r.error.message || '');
+      if (/provider.*not enabled|unsupported provider/i.test(m)) {
+        return { error: { message: 'That sign-in method is not available yet.' } };
+      }
+      return { error: { message: m || 'Could not start sign-in.' } };
+    }
+    return { error: null };
+  } catch (e) {
+    return { error: { message: 'Could not reach the sign-in service. Check your connection and try again.' } };
+  }
+}
+window.signInWithProvider = signInWithProvider;
+
+/* ── resolveAndRoute ────────────────────────────────────────────────────────
+   The single decision point after ANY landing that carries a session: social
+   callback, email confirmation, or a recovery link that has finished.
+
+   Every branch reads public.profiles. Provider metadata is never consulted,
+   so a Google account claiming to be a doctor is still routed as whatever the
+   database says it is — which for a brand-new user is 'pending', i.e. the
+   role chooser. Returns the destination rather than navigating, so callers
+   can report failures instead of bouncing the user somewhere misleading. */
+async function resolveAuthDestination() {
+  var session = await getSession();
+  if (!session || !session.user) {
+    return { ok: false, reason: 'no-session' };
+  }
+  var user = session.user;
+
+  var profile = await getProfile(user.id);
+  if (!profile) {
+    profile = await ensureProfile(user);      // upsert on id — never duplicates
+    if (!profile) return { ok: false, reason: 'profile-failed', user: user };
+  }
+
+  var role   = profile.role || 'pending';
+  var verif  = profile.verification_status || '';
+  var admin  = (profile.is_admin === true) || role === 'admin';
+
+  // No role yet — a brand-new social user, or a confirmation for an account
+  // that never finished onboarding. Send them to the existing chooser.
+  if (!role || role === 'pending') {
+    return { ok: true, dest: '/role-select.html', role: 'pending', verification: verif };
+  }
+  if (admin)            return { ok: true, dest: '/dashboard.html',         role: 'admin',   verification: verif };
+  if (role === 'patient') return { ok: true, dest: '/patient-dashboard.html', role: 'patient', verification: verif };
+
+  /* Doctor and other staff both land on the workspace. A doctor whose
+     verification_status is still 'pending' is NOT blocked here — dashboard.html
+     already shows the verification banner and every verified-only capability is
+     gated server-side by RLS. Inventing a separate pending page here would add
+     a second, weaker gate in the client. */
+  return { ok: true, dest: '/dashboard.html', role: role, verification: verif };
+}
+window.resolveAuthDestination = resolveAuthDestination;
 
 // ── EXPORTS ───────────────────────────────────────────────────
 window.getSession        = getSession;
