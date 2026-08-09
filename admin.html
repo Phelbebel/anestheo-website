@@ -885,7 +885,7 @@ var CAPS = [
   { key:'profiles',  table:'profiles',   label:'Accounts & profiles', required:true,
     cols:['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at',
           'account_status','suspended_at','suspended_by','suspend_reason','banned_at','banned_by','ban_reason','ban_expires_at',
-          'deleted_at','deleted_by','delete_reason','medical_license_number'] },
+          'deleted_at','deleted_by','delete_reason','medical_license_number','professional_level','medical_university'] },
   { key:'surgeries', table:'patient_surgeries', label:'Surgery journeys',
     cols:['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
           'assigned_doctor_id','assigned_at','care_state','origin','contact_email','clinic_patient_id',
@@ -1017,7 +1017,7 @@ async function loadAll(){
     fetchTable('profiles','profiles',
       ['id','email','full_name','role','is_admin','verification_status','specialty','hospital','phone','country','created_at','updated_at',
        'account_status','suspended_at','suspended_by','suspend_reason','banned_at','banned_by','ban_reason','ban_expires_at',
-       'deleted_at','deleted_by','delete_reason','medical_license_number'],
+       'deleted_at','deleted_by','delete_reason','medical_license_number','professional_level','medical_university'],
       'created_at').then(function(d){ AC.db.profiles = d; }),
     fetchTable('surgeries','patient_surgeries',
       ['id','patient_id','patient_name','procedure_type','surgery_date','hospital','surgeon','anesthesia_type',
@@ -1728,7 +1728,21 @@ function vDoctor(id, qs){
   if(tab==='overview'){
     h += '<div class="gcard"><div class="gcard-h">Profile</div><div class="kv">'+
       kv('Full name', p.full_name) + kv('Email', p.email) + kv('Phone', p.phone) +
-      kv('Country', p.country) + kv('Hospital', p.hospital) + kv('Specialty', p.specialty) +
+      kv('Country', p.country) +
+      /* Professional level and medical university come from doctor onboarding
+         (v2_auth_onboarding.sql). Guarded by has() like every other optional
+         column, so an admin looking at a database where the migration has not
+         run yet sees "Not available" rather than a blank the eye reads as
+         "they did not answer". */
+      kv('Professional level',
+         has('profiles','professional_level')
+           ? ({consultant:'Consultant / Specialist', resident:'Resident'}[p.professional_level] || p.professional_level)
+           : null,
+         has('profiles','professional_level') ? null : 'Not available') +
+      kv('Hospital', p.hospital) +
+      kv('Medical university', has('profiles','medical_university') ? p.medical_university : null,
+         has('profiles','medical_university') ? null : 'Not available') +
+      kv('Specialty', p.specialty) +
       kv('Role', isAdminRole(p)?'admin':p.role) +
       kv('License number', has('profiles','medical_license_number') ? p.medical_license_number : null,
          has('profiles','medical_license_number') ? null : 'Not available') +

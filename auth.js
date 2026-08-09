@@ -85,6 +85,20 @@ async function requireRole(allowed, opts) {
   var role = p.role || 'patient';
   var isAdmin = (p.is_admin === true || role === 'admin');
   if (isAdmin) role = 'admin';
+
+  /* An unapproved doctor is not staff for routing purposes. Before this,
+     isStaff was true for role='doctor' regardless of verification_status, so a
+     pending doctor reached every staff page. The database now refuses their
+     reads (v2_auth_onboarding.sql), which means without this they would land
+     on a workspace that silently renders nothing — the worst of both. Send
+     them somewhere that explains itself instead.
+
+     Admins are never gated: is_admin short-circuits above. */
+  if (role === 'doctor' && (p.verification_status || '') !== 'approved') {
+    window.location.replace('/doctor-pending.html');
+    return null;
+  }
+
   var isStaff = (role === 'doctor' || role === 'admin');
   var allow = Array.isArray(allowed) ? allowed : [allowed];
   var ok;
@@ -128,34 +142,29 @@ async function saveProfile(userId, data) {
 // ── setOwnRole ────────────────────────────────────────────────
 // The ONE legitimate self-service role write. The server decides
 // verification_status and refuses 'admin'; the caller supplies only the role.
-// Falls back to the legacy direct write while v2_security_hardening.sql has not
-// been applied yet, so onboarding keeps working across the deploy boundary.
-var _roleRpc = null;                       // null unknown, true present, false absent
-function _fnMissing(err) {
-  if (!err) return false;
-  return err.code === '42883' || err.code === 'PGRST202' ||
-         /function .* does not exist|could not find the function|schema cache/i.test(err.message || '');
-}
+//
+// THERE IS DELIBERATELY NO FALLBACK. An earlier version dropped back to a
+// direct profiles.update() when the RPC was missing, so that onboarding would
+// survive deploying the client before the migration. That convenience was a
+// privilege-escalation hole: with the hardening absent, `setOwnRole('admin')`
+// typed into the browser console wrote role='admin' straight to the caller's
+// own row, and is_platform_admin() keys off exactly that. Measured on a
+// replica with the trigger dropped, that write succeeds.
+//
+// So the RPC is now the only path. If it is missing the call fails loudly and
+// onboarding stops — which is the correct outcome, because a database without
+// the hardening cannot safely accept a role write from a browser at all.
 async function setOwnRole(role) {
-  if (_roleRpc !== false) {
-    try {
-      var r = await window.sb.rpc('set_own_role', { p_role: role });
-      if (!r.error) { _roleRpc = true; return { error: null }; }
-      if (!_fnMissing(r.error)) { _roleRpc = true; return { error: r.error }; }
-      _roleRpc = false;                    // not deployed yet
-    } catch(e) { _roleRpc = false; }
-  }
-  // Pre-migration path only. Once the hardening migration is applied the RPC
-  // exists and this branch is never reached; if it somehow is, the trigger
-  // rejects it rather than letting a privileged field through.
   try {
-    var s = await getSession();
-    if (!s) return { error: { message: 'Not signed in' } };
-    var verif = (role === 'doctor') ? 'pending' : 'not_required';
-    var u = await window.sb.from('profiles')
-      .update({ role: role, verification_status: verif, updated_at: new Date().toISOString() })
-      .eq('id', s.user.id);
-    return { error: u.error || null };
+    var r = await window.sb.rpc('set_own_role', { p_role: role });
+    if (!r.error) return { error: null };
+    if (r.error.code === '42883' || r.error.code === 'PGRST202' ||
+        /function .* does not exist|could not find the function|schema cache/i.test(r.error.message || '')) {
+      console.error('set_own_role() is missing — apply v2_security_hardening.sql.');
+      return { error: { message:
+        'Account setup is temporarily unavailable. Please try again shortly.' } };
+    }
+    return { error: r.error };
   } catch(e) {
     return { error: { message: e.message } };
   }
@@ -170,38 +179,30 @@ async function ensureProfile(user) {
   var profile = await getProfile(user.id);
   if (profile) return profile;
 
-  var meta = user.user_metadata || {};
+  /* NO ROLE IS EVER READ FROM user_metadata.
 
-  /* ROLE IS NOT TAKEN FROM ARBITRARY PROVIDER METADATA.
-     user_metadata is writable by whoever created the user. For our own
-     registration form that is us, and the role the person picked is carried
-     there deliberately. For an OAuth sign-in it is whatever Apple, Google or
-     Facebook chose to return, and a claim called "role" arriving from a third
-     party must never seed an Anestheo role.
+     Metadata is client-supplied — for a social sign-in it is whatever Google
+     or Facebook returned, and for our own form it used to be whatever the
+     browser posted. The previous version tried to tell those apart with an
+     `anestheo_signup` marker. That worked, but it meant the codebase still
+     contained a path where a role arrived from outside the database and had
+     to be judged. Registration no longer sends one at all, so the judgement
+     is gone with it: EVERY new profile starts at 'pending' and every new user
+     chooses on role-select.html, against a real session, through
+     set_own_role().
 
-     So metadata is trusted only when it also carries the marker our own
-     signUp() writes, and only for the roles that form can produce. Everything
-     else — every social sign-in — starts at 'pending' and goes through
-     role-select.html.
+     verification_status is derived, never asserted: "am I a verified doctor"
+     is not a claim a client gets to make.
 
-     verification_status is never read from metadata at all: it is derived,
-     because "am I a verified doctor" is not something a client may assert.
-
-     Defence in depth, not the boundary. trg_guard_profiles_self_update forces
-     these same values on INSERT server-side — verified locally: role 'admin'
-     becomes 'pending', is_admin becomes false, and doctor+approved becomes
-     doctor+pending. This block simply stops the client asking for something
-     the database would refuse. */
-  var SELF_SIGNUP_ROLES = ['patient', 'doctor', 'other'];
-  var claimed = (meta.anestheo_signup === true && typeof meta.role === 'string')
-    ? meta.role : null;
-  var role = (claimed && SELF_SIGNUP_ROLES.indexOf(claimed) >= 0) ? claimed : 'pending';
-
+     Defence in depth, not the boundary — trg_guard_profiles_self_update
+     forces exactly these values on INSERT server-side. Measured on a replica:
+     a forged INSERT of role=admin/is_admin=true/verification=approved lands as
+     pending / false / not_required. */
   var row = {
     id: user.id,
     email: user.email,
-    role: role,
-    verification_status: (role === 'doctor') ? 'pending' : 'not_required'
+    role: 'pending',
+    verification_status: 'not_required'
   };
   try {
     var r = await withTimeout(window.sb.from('profiles').upsert(row, { onConflict: 'id' }), 8000, 'ensureProfile');
@@ -442,14 +443,34 @@ async function resolveAuthDestination() {
   if (!role || role === 'pending') {
     return { ok: true, dest: '/role-select.html', role: 'pending', verification: verif };
   }
-  if (admin)            return { ok: true, dest: '/dashboard.html',         role: 'admin',   verification: verif };
-  if (role === 'patient') return { ok: true, dest: '/patient-dashboard.html', role: 'patient', verification: verif };
+  if (admin) return { ok: true, dest: '/dashboard.html', role: 'admin', verification: verif };
 
-  /* Doctor and other staff both land on the workspace. A doctor whose
-     verification_status is still 'pending' is NOT blocked here — dashboard.html
-     already shows the verification banner and every verified-only capability is
-     gated server-side by RLS. Inventing a separate pending page here would add
-     a second, weaker gate in the client. */
+  /* Patient Home is /index.html in its authenticated state — that is the
+     established patient landing, used by role-select.html and by sign-in
+     before this change. /patient-dashboard.html ("My Space") stays reachable
+     from the navbar; it is a destination within the patient area, not its
+     front door. This resolver previously sent patients to My Space, which
+     made the OAuth callback disagree with every other entry point. */
+  if (role === 'patient') return { ok: true, dest: '/index.html', role: 'patient', verification: verif };
+
+  /* A doctor who is not yet approved goes to the pending page, not the
+     workspace. Until now they were sent to dashboard.html with a banner, which
+     was misleading in both directions: it looked like access had been granted,
+     and — because nothing server-side consulted verification_status — it
+     actually had been.
+
+     v2_auth_onboarding.sql closes that at the database: a RESTRICTIVE policy
+     on twelve clinical tables now denies every unapproved doctor. So the
+     workspace would render empty for them anyway. Routing here is the honest
+     presentation of a decision the server already enforces, NOT the gate
+     itself — deleting this line would change what they see, never what they
+     can reach.
+
+     Any status other than 'approved' lands here, including 'rejected' and
+     'changes_requested': fail closed, and let the page explain the state. */
+  if (role === 'doctor' && verif !== 'approved') {
+    return { ok: true, dest: '/doctor-pending.html', role: 'doctor', verification: verif };
+  }
   return { ok: true, dest: '/dashboard.html', role: role, verification: verif };
 }
 window.resolveAuthDestination = resolveAuthDestination;

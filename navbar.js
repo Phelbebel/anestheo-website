@@ -211,16 +211,6 @@ body.nb-lock{position:fixed;width:100%;overflow:hidden;}
 @media(max-width:430px){
   .nb-soc{font-size:13.5px;padding:11px 12px;gap:9px;}
 }
-.nb-role-chip{display:flex;align-items:center;gap:13px;width:100%;text-align:left;background:rgba(255,255,255,.04);
-  border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:10px;cursor:pointer;
-  font-family:inherit;transition:all .18s;color:inherit;}
-.nb-role-chip:hover{border-color:rgba(42,138,116,.5);background:rgba(27,107,90,.12);}
-.nb-role-ico{font-size:24px;flex-shrink:0;}
-.nb-role-chip b{display:block;font-size:14px;color:#fff;font-weight:600;}
-.nb-role-chip small{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
-#nb-role-pill{display:flex;align-items:center;justify-content:space-between;background:rgba(27,107,90,.12);
-  border:1px solid rgba(42,138,116,.3);border-radius:9px;padding:9px 13px;margin-bottom:14px;font-size:13px;color:#7ECFC0;}
-#nb-role-pill button{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;}
 /* ── Role-aware workspace switcher (staff only) ─────────────────────────────
    One home for workspace destinations, so no destination is listed twice.
    Doctor : Dashboard | Live Tools
@@ -330,6 +320,49 @@ function injectCSS(){
 
 function activeCls(href, page){
   return (href.split('/').pop() === page) ? ' class="nb-link nb-active"' : ' class="nb-link"';
+}
+
+/* ── Social sign-in providers ──────────────────────────────────────────────
+   ENABLED is the whole switch. Apple's mark and label stay defined below,
+   deliberately: the generic OAuth path in auth.js still accepts 'apple', and
+   Apple is expected back once its Developer Program membership and the
+   six-monthly client-secret rotation are in place. Deleting the definition
+   would mean rebuilding it — and re-deriving the SVG — for no benefit.
+
+   Rendering from a list rather than hand-written markup also means the button
+   order, the count, and what the tests see all come from one place. */
+var NB_PROVIDER_MARKS = {
+  apple:
+    '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">' +
+    '<path d="M11.18 8.5c.02-1.6 1.31-2.37 1.37-2.41-.75-1.09-1.91-1.24-2.32-1.26-.99-.1-1.93.58-2.43.58-.5 0-1.27-.57-2.09-.55-1.07.02-2.06.62-2.61 1.58-1.11 1.93-.28 4.79.8 6.35.53.77 1.16 1.63 1.98 1.6.79-.03 1.09-.51 2.05-.51.95 0 1.23.51 2.07.5.86-.02 1.4-.78 1.92-1.55.61-.89.86-1.75.87-1.79-.02-.01-1.67-.64-1.69-2.54zM9.63 3.8c.44-.53.73-1.27.65-2.01-.63.03-1.39.42-1.84.95-.4.47-.75 1.22-.66 1.94.7.05 1.42-.36 1.85-.88z"/>' +
+    '</svg>',
+  google:
+    '<svg viewBox="0 0 18 18" width="16" height="16">' +
+    '<path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/>' +
+    '<path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/>' +
+    '<path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/>' +
+    '<path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>' +
+    '</svg>',
+  facebook:
+    '<svg viewBox="0 0 16 16" width="16" height="16" fill="#1877F2">' +
+    '<path d="M16 8.05C16 3.6 12.42 0 8 0S0 3.6 0 8.05C0 12.07 2.93 15.4 6.75 16v-5.62H4.72V8.05h2.03V6.28c0-2.02 1.2-3.13 3.02-3.13.87 0 1.79.16 1.79.16v1.97h-1.01c-.99 0-1.3.62-1.3 1.26v1.51h2.22l-.36 2.33H9.25V16C13.07 15.4 16 12.07 16 8.05z"/>' +
+    '</svg>'
+};
+var NB_PROVIDER_LABEL = { apple:'Apple', google:'Google', facebook:'Facebook' };
+var NB_PROVIDER_CLASS = { apple:'nb-soc-apple', google:'nb-soc-google', facebook:'nb-soc-fb' };
+
+// Apple is OFF. Add 'apple' back to this array to restore the button — no other
+// change is required anywhere.
+var NB_PROVIDERS_ENABLED = ['google', 'facebook'];
+
+function nbSocialButtons(){
+  return NB_PROVIDERS_ENABLED.map(function(id){
+    return '<button type="button" class="nb-soc ' + NB_PROVIDER_CLASS[id] + '" ' +
+             'onclick="window.nbSocial(\'' + id + '\')">' +
+             '<span class="nb-soc-i" aria-hidden="true">' + NB_PROVIDER_MARKS[id] + '</span>' +
+             'Continue with ' + NB_PROVIDER_LABEL[id] +
+           '</button>';
+  }).join('');
 }
 
 function buildHTML(page){
@@ -468,40 +501,20 @@ function buildHTML(page){
         '<button class="nb-modal-close" onclick="window.nbCloseModal()">&#10005;</button>' +
         '<h2 id="nb-modal-title">Sign in</h2>' +
         '<p id="nb-modal-sub">Access Anestheo</p>' +
-        // ── Role step (register only) ──
-        '<div id="nb-role-step" style="display:none">' +
-          '<button class="nb-role-chip" onclick="window.nbPickRole(\'patient\')"><span class="nb-role-ico">&#129489;</span><span><b>Patient</b><small>Preparing for a procedure</small></span></button>' +
-          '<button class="nb-role-chip" onclick="window.nbPickRole(\'doctor\')"><span class="nb-role-ico">&#129658;</span><span><b>Doctor</b><small>Anesthesiologist (verification required)</small></span></button>' +
-          '<button class="nb-role-chip" onclick="window.nbPickRole(\'other\')"><span class="nb-role-ico">&#127973;</span><span><b>Nurse / Student / Other</b><small>Healthcare professional</small></span></button>' +
-        '</div>' +
+        /* There is no role step here any more. Registration used to ask for a
+           role and carry it in user_metadata, which meant the answer arrived
+           from the browser and had to be distrusted on the way back in. Now
+           EVERY new account — email, Google, Facebook alike — reaches
+           role-select.html after it is authenticated, and the role is written
+           by set_own_role() against a real session. One path, one place. */
         // ── Social sign-in ───────────────────────────────────────────
         // Above the credentials because it is the faster path for most
         // people. Brand marks are inline SVG/text: no external request, so
         // they render before any network round-trip and cannot be blocked.
-        '<div id="nb-social">' +
-          '<button type="button" class="nb-soc nb-soc-apple" onclick="window.nbSocial(\'apple\')">' +
-            '<span class="nb-soc-i" aria-hidden="true">' +
-              '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">' +
-              '<path d="M11.18 8.5c.02-1.6 1.31-2.37 1.37-2.41-.75-1.09-1.91-1.24-2.32-1.26-.99-.1-1.93.58-2.43.58-.5 0-1.27-.57-2.09-.55-1.07.02-2.06.62-2.61 1.58-1.11 1.93-.28 4.79.8 6.35.53.77 1.16 1.63 1.98 1.6.79-.03 1.09-.51 2.05-.51.95 0 1.23.51 2.07.5.86-.02 1.4-.78 1.92-1.55.61-.89.86-1.75.87-1.79-.02-.01-1.67-.64-1.69-2.54zM9.63 3.8c.44-.53.73-1.27.65-2.01-.63.03-1.39.42-1.84.95-.4.47-.75 1.22-.66 1.94.7.05 1.42-.36 1.85-.88z"/>' +
-              '</svg></span>Continue with Apple</button>' +
-          '<button type="button" class="nb-soc nb-soc-google" onclick="window.nbSocial(\'google\')">' +
-            '<span class="nb-soc-i" aria-hidden="true">' +
-              '<svg viewBox="0 0 18 18" width="16" height="16">' +
-              '<path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/>' +
-              '<path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/>' +
-              '<path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/>' +
-              '<path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>' +
-              '</svg></span>Continue with Google</button>' +
-          '<button type="button" class="nb-soc nb-soc-fb" onclick="window.nbSocial(\'facebook\')">' +
-            '<span class="nb-soc-i" aria-hidden="true">' +
-              '<svg viewBox="0 0 16 16" width="16" height="16" fill="#1877F2">' +
-              '<path d="M16 8.05C16 3.6 12.42 0 8 0S0 3.6 0 8.05C0 12.07 2.93 15.4 6.75 16v-5.62H4.72V8.05h2.03V6.28c0-2.02 1.2-3.13 3.02-3.13.87 0 1.79.16 1.79.16v1.97h-1.01c-.99 0-1.3.62-1.3 1.26v1.51h2.22l-.36 2.33H9.25V16C13.07 15.4 16 12.07 16 8.05z"/>' +
-              '</svg></span>Continue with Facebook</button>' +
-        '</div>' +
+        '<div id="nb-social">' + nbSocialButtons() + '</div>' +
         '<div class="nb-or"><span>or</span></div>' +
         // ── Credentials step ──
         '<div id="nb-cred-step">' +
-          '<div id="nb-role-pill" style="display:none"></div>' +
           '<label>Email</label>' +
           '<input type="email" id="nb-email" placeholder="your@email.com" autocomplete="email" ' +
             'onkeydown="if(event.key===\'Enter\')document.getElementById(\'nb-pass\').focus()">' +
@@ -537,7 +550,6 @@ function showMsg(type, text){
 
 // Auth modal mode: 'signin' or 'register'
 var _authMode = 'signin';
-var _regRole = null;
 // Current auth state (UI only) so the login modal is never shown to an
 // already-authenticated user. Set by setAuth/populateMenu, cleared by setGuest.
 var _nbAuthed = false;
@@ -946,7 +958,7 @@ function applyMode(){
   var isReg = _authMode === 'register';
   var title = ge('nb-modal-title'), sub = ge('nb-modal-sub'), btn = ge('nb-submit-btn');
   var ttext = ge('nb-toggle-text'), tbtn = ge('nb-toggle-btn'), forgot = ge('nb-forgot-row');
-  var roleStep = ge('nb-role-step'), credStep = ge('nb-cred-step'), pill = ge('nb-role-pill');
+  var credStep = ge('nb-cred-step');
   if(title) title.textContent = isReg ? 'Create account' : 'Sign in';
   if(ttext) ttext.textContent = isReg ? 'Already have an account?' : 'New to Anestheo?';
   if(tbtn)  tbtn.textContent  = isReg ? 'Sign in' : 'Create an account';
@@ -955,42 +967,12 @@ function applyMode(){
   var passEl = ge('nb-pass');
   if(passEl) passEl.setAttribute('autocomplete', isReg ? 'new-password' : 'current-password');
 
-  if(isReg){
-    // Step 1: pick role. Hide credentials until a role is chosen.
-    _regRole = null;
-    if(sub) sub.textContent = 'Choose how you will use Anestheo';
-    if(roleStep) roleStep.style.display = 'block';
-    if(credStep) credStep.style.display = 'none';
-    if(pill) pill.style.display = 'none';
-  } else {
-    if(sub) sub.textContent = 'Access Anestheo';
-    if(roleStep) roleStep.style.display = 'none';
-    if(credStep) credStep.style.display = 'block';
-    if(pill) pill.style.display = 'none';
-  }
+  // Credentials are the only step now, in both modes: what kind of account
+  // this is gets decided after authentication, on role-select.html.
+  if(sub) sub.textContent = isReg ? 'Create your Anestheo account' : 'Access Anestheo';
+  if(credStep) credStep.style.display = 'block';
   showMsg(null);
 }
-
-var _roleLabels = { patient:'Patient', doctor:'Doctor', other:'Nurse / Student / Other' };
-
-window.nbPickRole = function(role){
-  _regRole = role;
-  var sub = ge('nb-modal-sub'), roleStep = ge('nb-role-step'), credStep = ge('nb-cred-step'), pill = ge('nb-role-pill');
-  if(sub) sub.textContent = 'Create your account';
-  if(roleStep) roleStep.style.display = 'none';
-  if(credStep) credStep.style.display = 'block';
-  if(pill){
-    pill.style.display = 'flex';
-    pill.innerHTML = '<span>Signing up as <strong>' + (_roleLabels[role] || role) + '</strong></span>' +
-      '<button onclick="window.nbBackToRole()">Change</button>';
-  }
-  setTimeout(function(){ var e = ge('nb-email'); if(e) e.focus(); }, 60);
-};
-
-window.nbBackToRole = function(){
-  _regRole = null;
-  applyMode();
-};
 
 window.nbToggleMode = function(){
   _authMode = (_authMode === 'register') ? 'signin' : 'register';
@@ -1090,8 +1072,6 @@ window.nbSubmitAuth = async function(){
 
   try {
     if(_authMode === 'register'){
-      if(!_regRole){ setBtns(false); showMsg('err', 'Please choose how you will use Anestheo.'); return; }
-      var verif = (_regRole === 'doctor') ? 'pending' : 'not_required';
       var rs = await window.sb.auth.signUp({
         email: email, password: pass,
         options: {
@@ -1099,31 +1079,30 @@ window.nbSubmitAuth = async function(){
              falls back to the Supabase Site URL, which is exactly how these
              links ended up pointing at /v2/ before the cutover. The value must
              match a Supabase Redirect URLs entry verbatim. */
-          emailRedirectTo: window.authRedirectTo('auth-callback.html'),
-          /* anestheo_signup marks this as OUR registration form, so
-             ensureProfile() may honour the role the person actually chose.
-             Metadata from Apple/Google/Facebook carries no such marker and can
-             never seed a role. verification_status is still derived
-             server-side; sending it here is legacy and harmless. */
-          data: { role: _regRole, verification_status: verif, anestheo_signup: true }
+          emailRedirectTo: window.authRedirectTo('auth-callback.html')
+          /* No `data` payload. Registration deliberately sends NO role: it
+             would travel as user_metadata, which is client-supplied, and the
+             server would have to decide whether to believe it. The account is
+             created with no role at all and picks one on role-select.html
+             against a real session. Nothing to distrust means nothing to
+             get wrong. */
         }
       });
       setBtns(false);
       if(rs.error){ showMsg('err', rs.error.message); return; }
 
       if(rs.data.user && rs.data.session){
-        // Active session — persist role to profiles now, then route.
-        try {
-          // Role is privileged: the server sets it (and decides verification).
-          await window.setOwnRole(_regRole);
-        } catch(e){ console.warn('profile role save deferred:', e.message); }
+        /* Confirmation is switched off in this project, so the account is live
+           immediately. Send them to choose a role exactly like a confirmed or
+           social user — same destination, one flow. */
         window.nbCloseModal();
-        routeByRole(_regRole);
-      } else if(rs.data.user && !rs.data.session){
-        // Email confirmation required — role saved in user metadata, applied on first login.
-        showMsg('ok', '&#10003; Account created as <strong>' + (_roleLabels[_regRole]||_regRole) + '</strong>. Check <strong>' + email + '</strong> to confirm your email, then sign in.');
+        window.location.href = '/role-select.html';
       } else {
-        showMsg('ok', '&#10003; Check <strong>' + email + '</strong> to confirm your account.');
+        /* The normal path with confirmation ON: no session until the link is
+           clicked. Say what happens next rather than "check your email", which
+           leaves people wondering whether they are signed up or not. */
+        showMsg('ok', '&#10003; Account created. Confirm <strong>' + email +
+          '</strong> using the link we just sent, and you will land back here to finish setting up.');
       }
     } else {
       // ── Sign in ─────────────────────────────────────────────
@@ -1181,13 +1160,18 @@ window.nbSubmitAuth = async function(){
         }
       }
 
-      // STEP 6 — redirect
-      // Default landing by role: patients land on the Patient Home (the
-      // authenticated state of /index.html); My Space stays reachable from
-      // the navbar and the Home hero. Doctors/admins are unchanged.
+      /* STEP 6 — redirect, via the SAME resolver the OAuth callback and the
+         password-reset page use. This used to re-derive the destination from
+         `prof` inline, which is how sign-in ended up as the one entry point
+         that knew nothing about role='pending' or an unapproved doctor: a new
+         email user landed on a dashboard instead of role selection. One
+         resolver, one answer, every door. */
       if(window.resetSessionCache) window.resetSessionCache();
-      var _isAdmin = prof && (prof.is_admin === true || prof.role === 'admin');
-      var dest = (!_isAdmin && prof && prof.role === 'patient') ? '/index.html' : '/dashboard.html';
+      var dest = '/index.html';
+      try {
+        var res = await window.resolveAuthDestination();
+        if(res && res.ok) dest = res.dest;
+      } catch(e){ /* fall back to the homepage rather than trap them here */ }
       window.nbCloseModal();
       window.location.href = dest;
     }
@@ -1197,12 +1181,6 @@ window.nbSubmitAuth = async function(){
     showMsg('err', e && e.message ? e.message : 'Network error. Please try again.');
   }
 };
-
-// Route a freshly-created user to the right place by role
-function routeByRole(role){
-  if(role === 'patient'){ window.location.href = '/index.html'; }   // Patient Home
-  else { window.location.href = '/dashboard.html'; }  // doctor/other/admin → workspace (verification banner shows for doctors)
-}
 
 // Back-compat aliases
 window.nbSignIn = function(){ _authMode = 'signin';   applyMode(); window.nbSubmitAuth(); };

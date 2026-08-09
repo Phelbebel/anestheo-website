@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Set up your account — Anestheo</title>
+<meta name="robots" content="noindex">
+<title>How will you use Anestheo?</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.07-18"></script>
@@ -14,215 +15,451 @@
   --border:rgba(27,107,90,.22);--text:#fff;--muted:rgba(255,255,255,.5);}
 body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
   min-height:100vh;display:flex;align-items:center;justify-content:center;
-  padding:24px;-webkit-font-smoothing:antialiased;}
+  padding:24px;-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
+  background-size:52px 52px;}
+.wrap{width:100%;max-width:560px;}
+.brand{text-align:center;font-size:19px;font-weight:600;margin-bottom:22px;}
+.brand span{color:var(--teal2);}
 .card{background:rgba(10,22,15,.98);border:1px solid var(--border);
-  border-radius:18px;width:100%;max-width:500px;overflow:hidden;
-  box-shadow:0 32px 80px rgba(0,0,0,.5);}
-.card-head{padding:28px 28px 22px;border-bottom:1px solid var(--border);text-align:center;}
-.card-head h1{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:5px;}
-.card-head p{font-size:13px;color:var(--muted);}
+  border-radius:18px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.5);}
+.card-head{padding:28px 28px 20px;border-bottom:1px solid var(--border);}
+.card-head h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bottom:6px;}
+.card-head p{font-size:13.5px;color:var(--muted);}
 .card-body{padding:24px 28px 28px;}
 .step{display:none;} .step.active{display:block;}
-/* Role grid */
-.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
-.role-opt{background:rgba(255,255,255,.03);border:2px solid rgba(255,255,255,.08);
-  border-radius:11px;padding:18px 14px;text-align:center;cursor:pointer;transition:all .2s;
-  -webkit-tap-highlight-color:transparent;}
-.role-opt:hover{border-color:rgba(42,138,116,.4);background:rgba(27,107,90,.1);}
+
+/* Role choice — stacked, generous, description-led. Two options only. */
+.role-opt{display:block;width:100%;text-align:left;background:rgba(255,255,255,.03);
+  border:2px solid rgba(255,255,255,.08);border-radius:13px;padding:18px 18px;
+  cursor:pointer;transition:border-color .18s,background .18s;margin-bottom:12px;
+  font-family:inherit;color:inherit;-webkit-tap-highlight-color:transparent;}
+.role-opt:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.1);}
+.role-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .role-opt.sel{border-color:var(--teal2);background:rgba(27,107,90,.18);}
-.role-opt.wide{grid-column:1/-1;}
-.ro-ico{font-size:26px;margin-bottom:8px;}
-.ro-name{font-size:14px;font-weight:600;margin-bottom:3px;font-family:'Playfair Display',serif;}
-.ro-desc{font-size:11px;color:var(--muted);line-height:1.4;}
-/* Profile form */
+.ro-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;margin-bottom:5px;}
+.ro-desc{font-size:13px;color:var(--muted);line-height:1.55;}
+.ro-flag{display:inline-block;margin-top:9px;font-size:11px;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;color:rgba(255,220,150,.9);
+  background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.26);
+  border-radius:20px;padding:3px 10px;}
+
+/* Doctor form */
 .field{margin-bottom:13px;}
-.field label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.06em;
+.field label{display:block;font-size:10px;color:rgba(255,255,255,.38);letter-spacing:.06em;
   text-transform:uppercase;font-weight:600;margin-bottom:5px;}
 .field input,.field select{width:100%;background:rgba(255,255,255,.055);
   border:1px solid rgba(255,255,255,.11);border-radius:8px;padding:11px 13px;
-  color:var(--text);font-size:14px;font-family:inherit;outline:none;
-  transition:border-color .2s;min-height:44px;appearance:none;}
+  color:var(--text);font-size:14.5px;font-family:inherit;outline:none;
+  transition:border-color .2s;min-height:44px;}
+.field select{appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%237ECFC0' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:32px;}
 .field input:focus,.field select:focus{border-color:var(--teal2);}
-.field select option{background:#132218;}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-/* Buttons */
-.btn{width:100%;padding:13px;border-radius:9px;font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit;border:none;min-height:48px;transition:all .2s;}
-.btn-primary{background:var(--teal);color:#fff;}
-.btn-primary:hover{background:var(--teal2);}
-.btn-primary:disabled{opacity:.4;cursor:default;}
-.msg{display:none;border-radius:7px;padding:9px 12px;font-size:13px;margin-top:10px;}
+.field select option{background:#132218;color:#fff;}
+.field .hint{font-size:11.5px;color:rgba(255,255,255,.34);margin-top:5px;line-height:1.45;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+/* Phone: dial code sits against the number, one control visually */
+.phone-row{display:grid;grid-template-columns:96px 1fr;gap:8px;}
+.phone-row .dial{display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.11);
+  border-radius:8px;font-size:14.5px;color:var(--accent);min-height:44px;font-variant-numeric:tabular-nums;}
+/* Segmented control for professional level */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.seg button{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);
+  border-radius:9px;padding:12px 10px;color:rgba(255,255,255,.72);font-family:inherit;
+  font-size:13.5px;font-weight:600;cursor:pointer;min-height:46px;transition:all .18s;}
+.seg button.on{border-color:var(--teal2);background:rgba(27,107,90,.2);color:#fff;}
+
+.btn{width:100%;padding:13px;border-radius:9px;font-size:14.5px;font-weight:600;
+  cursor:pointer;font-family:inherit;border:none;min-height:48px;transition:background .2s;
+  background:var(--teal);color:#fff;margin-top:6px;}
+.btn:hover{background:var(--teal2);}
+.btn:disabled{opacity:.45;cursor:default;}
+.btn-ghost{background:none;border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.6);
+  margin-top:9px;}
+.btn-ghost:hover{background:rgba(255,255,255,.05);}
+.msg{display:none;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:12px;line-height:1.5;}
 .msg-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:rgba(255,160,140,.93);}
 .verify-note{background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.2);
-  border-radius:8px;padding:11px 13px;font-size:12px;color:rgba(255,220,150,.88);
-  line-height:1.7;margin-bottom:14px;}
-@media(max-width:440px){
-  .row2{grid-template-columns:1fr;}
+  border-radius:9px;padding:12px 14px;font-size:12.5px;color:rgba(255,220,150,.88);
+  line-height:1.65;margin-bottom:16px;}
+.sec-h{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;
+  color:rgba(126,207,192,.62);margin:20px 0 10px;padding-bottom:7px;
+  border-bottom:1px solid rgba(27,107,90,.2);}
+.sec-h:first-child{margin-top:0;}
+@media(max-width:480px){
+  .row2,.seg{grid-template-columns:1fr;}
   .card-head,.card-body{padding-left:18px;padding-right:18px;}
 }
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="card-head">
-    <h1>Set up your account</h1>
-    <p id="rs-sub">Choose how you will use Anestheo</p>
-  </div>
-  <div class="card-body">
-
-    <!-- STEP 1: pick role -->
-    <div class="step active" id="step-role">
-      <div class="role-grid">
-        <div class="role-opt" id="ro-patient" onclick="pickRole('patient')">
-          <div class="ro-ico">&#129656;</div>
-          <div class="ro-name">Patient</div>
-          <div class="ro-desc">I am preparing for surgery</div>
-        </div>
-        <div class="role-opt" id="ro-doctor" onclick="pickRole('doctor')">
-          <div class="ro-ico">&#128104;&#8205;&#9877;</div>
-          <div class="ro-name">Doctor</div>
-          <div class="ro-desc">Anesthesiologist or physician</div>
-        </div>
-        <div class="role-opt wide" id="ro-other" onclick="pickRole('other')">
-          <div class="ro-ico">&#127979;</div>
-          <div class="ro-name">Nurse / Student / Other</div>
-          <div class="ro-desc">Nurse, medical student, or other healthcare professional</div>
-        </div>
-      </div>
-      <button class="btn btn-primary" id="role-next-btn" onclick="goProfile()" disabled style="opacity:.35">
-        Continue &#8594;
-      </button>
-      <div class="msg msg-err" id="role-err"></div>
+<div class="wrap">
+  <div class="brand">Anest<span>heo</span></div>
+  <div class="card">
+    <div class="card-head">
+      <h1 id="rs-h">How will you use Anestheo?</h1>
+      <p id="rs-sub">This decides what you see. You can ask us to change it later.</p>
     </div>
+    <div class="card-body">
 
-    <!-- STEP 2: fill profile -->
-    <div class="step" id="step-profile">
-      <!-- doctor extra -->
-      <div id="doctor-note" style="display:none">
-        <div class="verify-note">&#128274; Doctors are verified before full access is granted. Usually within 24 hours.</div>
+      <!-- STEP 1 — choose role. Two options only. -->
+      <div class="step active" id="step-role">
+        <button type="button" class="role-opt" id="ro-patient" onclick="pickRole('patient')">
+          <div class="ro-name">I&rsquo;m a patient</div>
+          <div class="ro-desc">Prepare for surgery, complete questionnaires, and manage your anesthesia journey.</div>
+        </button>
+        <button type="button" class="role-opt" id="ro-doctor" onclick="pickRole('doctor')">
+          <div class="ro-name">I&rsquo;m a doctor</div>
+          <div class="ro-desc">Clinical workspace and patient management. Professional verification required.</div>
+          <span class="ro-flag">Verification required</span>
+        </button>
+        <div class="msg msg-err" id="role-err"></div>
       </div>
-      <div class="row2">
-        <div class="field"><label>First name *</label><input type="text" id="pf-first" placeholder="Your first name" autocomplete="given-name"></div>
-        <div class="field"><label>Last name *</label><input type="text" id="pf-last" placeholder="Your last name" autocomplete="family-name"></div>
-      </div>
-      <div class="field"><label>Country</label>
-        <select id="pf-country">
-          <option value="">Select…</option>
-          <option value="Israel">Israel</option>
-          <option value="Georgia">Georgia</option>
-          <option value="USA">USA</option>
-          <option value="UK">UK</option>
-          <option value="Germany">Germany</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <!-- doctor-only fields -->
-      <div id="doctor-fields" style="display:none">
-        <div class="field"><label>Hospital / Clinic *</label><input type="text" id="pf-hospital" placeholder="Your institution"></div>
-        <div class="row2">
-          <div class="field"><label>Specialty *</label>
-            <select id="pf-specialty">
-              <option value="">Select…</option>
-              <option>Anesthesiology</option>
-              <option>Anesthesiology &amp; ICU</option>
-              <option>Intensive Care / ICU</option>
-              <option>Resident — Anesthesiology</option>
-              <option>Pain Medicine</option>
-              <option>Other</option>
-            </select>
+
+      <!-- STEP 2 — doctor professional details. Patients never see this. -->
+      <div class="step" id="step-doctor">
+        <div class="verify-note">
+          <strong>Professional verification required.</strong><br>
+          An Anestheo administrator reviews every clinical account by hand. You can sign in
+          while that happens, but the clinical workspace stays closed until you are approved.
+        </div>
+
+        <div class="sec-h">You</div>
+        <div class="field">
+          <label for="d-name">Full name *</label>
+          <input type="text" id="d-name" autocomplete="name" placeholder="As it appears on your registration">
+        </div>
+        <div class="field">
+          <label>Professional level *</label>
+          <div class="seg">
+            <button type="button" id="lvl-consultant" onclick="pickLevel('consultant')">Consultant / Specialist</button>
+            <button type="button" id="lvl-resident"   onclick="pickLevel('resident')">Resident</button>
           </div>
-          <div class="field"><label>Medical license #</label><input type="text" id="pf-license" placeholder="e.g. IL-12345"></div>
         </div>
-      </div>
-      <button class="btn btn-primary" id="profile-save-btn" onclick="saveProfileAndGo()">
-        Save &amp; open dashboard &#8594;
-      </button>
-      <div class="msg msg-err" id="profile-err"></div>
-    </div>
+        <div class="field">
+          <label for="d-country">Country *</label>
+          <select id="d-country" onchange="onCountryChange()"></select>
+          <div class="hint" id="d-country-hint" style="display:none">
+            We guessed this from your device&rsquo;s time zone — please correct it if it&rsquo;s wrong.
+          </div>
+        </div>
+        <div class="field">
+          <label for="d-phone">Telephone *</label>
+          <div class="phone-row">
+            <div class="dial" id="d-dial">+—</div>
+            <input type="tel" id="d-phone" autocomplete="tel-national" inputmode="tel" placeholder="Phone number">
+          </div>
+          <div class="hint">Used only to reach you about verification.</div>
+        </div>
 
+        <div class="sec-h">Your practice</div>
+        <div class="field">
+          <label for="d-license">Medical license / registration number *</label>
+          <input type="text" id="d-license" placeholder="As issued by your medical council">
+        </div>
+        <div class="field">
+          <label for="d-hospital">Hospital / institution *</label>
+          <input type="text" id="d-hospital" list="dl-hospital" autocomplete="organization"
+                 placeholder="Where you practise">
+          <datalist id="dl-hospital"></datalist>
+          <div class="hint">Suggestions are a starting point — type any institution.</div>
+        </div>
+        <div class="field">
+          <label for="d-university">Medical university *</label>
+          <input type="text" id="d-university" list="dl-university" placeholder="Where you qualified">
+          <datalist id="dl-university"></datalist>
+          <div class="hint">Suggestions are a starting point — type any university.</div>
+        </div>
+        <div class="field">
+          <label for="d-specialty">Specialty *</label>
+          <select id="d-specialty">
+            <option value="">Select…</option>
+            <option>Anesthesiology</option>
+            <option>Anesthesiology &amp; Intensive Care</option>
+            <option>Intensive Care / ICU</option>
+            <option>Pain Medicine</option>
+            <option>Emergency Medicine</option>
+            <option>Surgery</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <button class="btn" id="d-submit" onclick="submitDoctor()">Submit for verification</button>
+        <button class="btn btn-ghost" onclick="backToRole()">Back</button>
+        <div class="msg msg-err" id="doctor-err"></div>
+      </div>
+
+    </div>
   </div>
 </div>
 
 <script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROLE SELECTION AND DOCTOR ONBOARDING
+
+   Two roles are offered. The data model still accepts nurse / student / other
+   through set_own_role(), so adding them later is a UI change here and nothing
+   else — but offering a role we cannot yet do anything useful with only
+   produces accounts nobody can serve.
+
+   NOTHING ON THIS PAGE IS AN AUTHORIZATION DECISION. The role is written by
+   set_own_role(), which refuses 'admin' and derives verification_status
+   server-side; the professional details are ordinary self-editable profile
+   columns — claims about oneself, not grants. A doctor submitting this form
+   becomes role='doctor', verification_status='pending', and the database
+   denies them every clinical table until an admin approves them.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 var _role = null;
+var _level = null;
 var _session = null;
 
+/* ── Countries ────────────────────────────────────────────────────────────
+   Dial code travels with the country so the phone field can show the right
+   prefix without a second question. Kept deliberately small and ordinary
+   rather than pretending to be an authoritative ISO dataset. */
+var COUNTRIES = [
+  { name:'Israel',         iso:'IL', dial:'+972' },
+  { name:'Georgia',        iso:'GE', dial:'+995' },
+  { name:'United Kingdom', iso:'GB', dial:'+44'  },
+  { name:'United States',  iso:'US', dial:'+1'   },
+  { name:'Canada',         iso:'CA', dial:'+1'   },
+  { name:'Germany',        iso:'DE', dial:'+49'  },
+  { name:'France',         iso:'FR', dial:'+33'  },
+  { name:'Italy',          iso:'IT', dial:'+39'  },
+  { name:'Spain',          iso:'ES', dial:'+34'  },
+  { name:'Netherlands',    iso:'NL', dial:'+31'  },
+  { name:'Poland',         iso:'PL', dial:'+48'  },
+  { name:'Turkey',         iso:'TR', dial:'+90'  },
+  { name:'India',          iso:'IN', dial:'+91'  },
+  { name:'Australia',      iso:'AU', dial:'+61'  },
+  { name:'Other',          iso:'',   dial:''     }
+];
+
+/* Time zone → country. Reliable enough to save a tap and wrong often enough
+   that it must never be more than a default: the field stays editable, the
+   hint says we guessed, and nothing downstream treats it as verified. It is a
+   device setting, not evidence of where anyone practises. */
+var TZ_COUNTRY = {
+  'Asia/Jerusalem':'Israel', 'Asia/Tel_Aviv':'Israel', 'Asia/Tbilisi':'Georgia',
+  'Europe/London':'United Kingdom', 'Europe/Berlin':'Germany', 'Europe/Paris':'France',
+  'Europe/Rome':'Italy', 'Europe/Madrid':'Spain', 'Europe/Amsterdam':'Netherlands',
+  'Europe/Warsaw':'Poland', 'Europe/Istanbul':'Turkey', 'Asia/Kolkata':'India',
+  'Asia/Calcutta':'India', 'Australia/Sydney':'Australia', 'Australia/Melbourne':'Australia',
+  'America/Toronto':'Canada', 'America/Vancouver':'Canada',
+  'America/New_York':'United States', 'America/Chicago':'United States',
+  'America/Denver':'United States', 'America/Los_Angeles':'United States'
+};
+
+/* Institution suggestions, by country. A convenience only — the inputs are
+   free text and a <datalist> never constrains what can be typed. There is no
+   trustworthy global registry of hospitals or medical schools we could ship
+   or call, and a closed list would lock out exactly the doctors least likely
+   to be on it. So: help where we can, block nobody. */
+var HOSPITALS = {
+  'Israel':['Sheba Medical Center','Ichilov (Sourasky)','Hadassah Ein Kerem','Rambam Health Care Campus','Shaare Zedek Medical Center','Rabin Medical Center (Beilinson)','Soroka Medical Center'],
+  'Georgia':['Tbilisi State Medical University Hospital','Aversi Clinic','New Hospitals','Ingorokva High Medical Technology Center'],
+  'United Kingdom':['Guy’s and St Thomas’','Royal Free Hospital','Addenbrooke’s Hospital','Manchester Royal Infirmary','John Radcliffe Hospital'],
+  'United States':['Massachusetts General Hospital','Cleveland Clinic','Johns Hopkins Hospital','Mayo Clinic','Stanford Health Care'],
+  'Germany':['Charité Berlin','Universitätsklinikum Heidelberg','LMU Klinikum München'],
+  'India':['AIIMS New Delhi','Christian Medical College Vellore','Tata Memorial Hospital']
+};
+var UNIVERSITIES = {
+  'Israel':['Tel Aviv University','Hebrew University of Jerusalem','Technion — Israel Institute of Technology','Ben-Gurion University of the Negev'],
+  'Georgia':['Tbilisi State Medical University','Ivane Javakhishvili Tbilisi State University','David Tvildiani Medical University'],
+  'United Kingdom':['University of Oxford','University of Cambridge','Imperial College London','University of Edinburgh'],
+  'United States':['Harvard Medical School','Johns Hopkins University','Stanford University','University of Pennsylvania'],
+  'Germany':['Charité — Universitätsmedizin Berlin','Heidelberg University','LMU Munich'],
+  'India':['All India Institute of Medical Sciences','Christian Medical College Vellore','Maulana Azad Medical College']
+};
+
+function el(id){ return document.getElementById(id); }
+function showErr(id, m){ var e = el(id); e.textContent = m; e.style.display = 'block'; }
+function clearErr(id){ el(id).style.display = 'none'; }
+
+/* ── Entry ─────────────────────────────────────────────────────────────────
+   An existing user with a real role never sees this page. resolveAuthDestination()
+   is the same resolver the callback and sign-in use, so "where does this person
+   belong" has exactly one answer in the codebase. */
 (async function(){
   var session = await getSession();
-  if(!session){ window.location.href='/index.html'; return; }
+  if(!session){ window.location.replace('/index.html'); return; }
   _session = session;
-  // If they already have a role, go straight to their default landing:
-  // patients → Patient Home, staff → workspace.
+
   var profile = await getProfile(session.user.id);
-  if(profile && profile.role && profile.role !== 'pending'){
-    var isAdm = (profile.is_admin === true || profile.role === 'admin');
-    window.location.href = (!isAdm && profile.role === 'patient') ? '/index.html' : '/dashboard.html';
-  }
-})();
 
-function pickRole(role){
-  _role = role;
-  ['patient','doctor','other'].forEach(function(r){
-    document.getElementById('ro-'+r).classList.toggle('sel', r===role);
-  });
-  var btn = document.getElementById('role-next-btn');
-  btn.disabled = false; btn.style.opacity = '1';
-  document.getElementById('role-err').style.display = 'none';
-}
-
-function goProfile(){
-  if(!_role){ document.getElementById('role-err').textContent='Please pick a role.'; document.getElementById('role-err').style.display='block'; return; }
-  document.getElementById('step-role').classList.remove('active');
-  document.getElementById('step-profile').classList.add('active');
-  document.getElementById('rs-sub').textContent = 'Tell us a bit about yourself';
-  if(_role === 'doctor'){
-    document.getElementById('doctor-note').style.display = 'block';
-    document.getElementById('doctor-fields').style.display = 'block';
-  }
-}
-
-async function saveProfileAndGo(){
-  var first = document.getElementById('pf-first').value.trim();
-  var last  = document.getElementById('pf-last').value.trim();
-  var errEl = document.getElementById('profile-err');
-  var btn   = document.getElementById('profile-save-btn');
-  errEl.style.display = 'none';
-
-  if(!first || !last){ errEl.textContent='Please enter your first and last name.'; errEl.style.display='block'; return; }
-  if(_role === 'doctor'){
-    if(!document.getElementById('pf-hospital').value.trim() || !document.getElementById('pf-specialty').value){
-      errEl.textContent='Please fill in hospital and specialty.'; errEl.style.display='block'; return;
+  /* Guarantee the profiles row BEFORE offering any choice. set_own_role()
+     raises P0002 ('no profile row for this account') rather than creating one
+     — correctly, since inventing rows is not a role-setter's job. Normally
+     handle_new_user() has already made it, but anyone arriving here directly
+     rather than through auth-callback.html can outrun that, and the failure
+     mode was a dead end: pick a role, nothing happens, no way forward. */
+  if(!profile){
+    profile = await window.ensureProfile(session.user);
+    if(!profile){
+      showErr('role-err', 'We could not open your account setup. Please refresh and try again.');
+      return;
     }
   }
 
-  btn.disabled = true; btn.textContent = 'Saving…';
+  if(profile.role && profile.role !== 'pending'){
+    var res = await window.resolveAuthDestination();
+    window.location.replace((res && res.ok) ? res.dest : '/index.html');
+    return;
+  }
+  buildCountries();
+})();
 
-  // Two writes, deliberately separate: the ROLE is privileged and is set by the
-  // server (which also decides verification_status), while the rest are ordinary
-  // self-editable profile fields.
-  var roleRes = await window.setOwnRole(_role === 'other' ? 'other' : _role);
+function buildCountries(){
+  var sel = el('d-country');
+  sel.innerHTML = '<option value="">Select…</option>' +
+    COUNTRIES.map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('');
+
+  var guess = null;
+  try {
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    guess = TZ_COUNTRY[tz] || null;
+  } catch(e){ guess = null; }
+
+  if(guess){
+    sel.value = guess;
+    el('d-country-hint').style.display = 'block';
+  }
+  onCountryChange();
+}
+
+function onCountryChange(){
+  var name = el('d-country').value;
+  var c = COUNTRIES.filter(function(x){ return x.name === name; })[0];
+  el('d-dial').textContent = (c && c.dial) ? c.dial : '+—';
+  fillList('dl-hospital',   HOSPITALS[name]   || []);
+  fillList('dl-university', UNIVERSITIES[name] || []);
+}
+
+function fillList(id, items){
+  el(id).innerHTML = items.map(function(v){
+    return '<option value="' + v.replace(/"/g,'&quot;') + '"></option>';
+  }).join('');
+}
+
+function pickRole(role){
+  _role = role;
+  el('ro-patient').classList.toggle('sel', role === 'patient');
+  el('ro-doctor').classList.toggle('sel',  role === 'doctor');
+  clearErr('role-err');
+  if(role === 'patient') return activatePatient();
+  el('step-role').classList.remove('active');
+  el('step-doctor').classList.add('active');
+  el('rs-h').textContent = 'Tell us about your practice';
+  el('rs-sub').textContent = 'An administrator checks these details before your workspace opens.';
+  setTimeout(function(){ el('d-name').focus(); }, 60);
+}
+
+function backToRole(){
+  el('step-doctor').classList.remove('active');
+  el('step-role').classList.add('active');
+  el('rs-h').textContent = 'How will you use Anestheo?';
+  el('rs-sub').textContent = 'This decides what you see. You can ask us to change it later.';
+  el('ro-doctor').classList.remove('sel');
+  _role = null;
+}
+
+function pickLevel(v){
+  _level = v;
+  el('lvl-consultant').classList.toggle('on', v === 'consultant');
+  el('lvl-resident').classList.toggle('on',   v === 'resident');
+}
+
+/* ── Patient: one click, active immediately ────────────────────────────────
+   No form. A patient has nothing for us to verify, so asking them for a
+   profile before they can use anything would be friction with no purpose. */
+async function activatePatient(){
+  el('ro-patient').style.opacity = '.6';
+  var r = await window.setOwnRole('patient');
+  if(r && r.error){
+    el('ro-patient').style.opacity = '1';
+    el('ro-patient').classList.remove('sel');
+    _role = null;
+    showErr('role-err', r.error.message || 'We could not set up your account. Please try again.');
+    return;
+  }
+  var res = await window.resolveAuthDestination();
+  window.location.replace((res && res.ok) ? res.dest : '/index.html');
+}
+
+/* ── Doctor: collect the claim, then wait ──────────────────────────────────
+   Order matters. setOwnRole() first, because it is the call that can fail on
+   authorization; the profile columns are written only once the role is real.
+   Doing it the other way round would leave professional details attached to a
+   roleless account if the role write were refused. */
+async function submitDoctor(){
+  clearErr('doctor-err');
+  var name = el('d-name').value.trim();
+  var country = el('d-country').value;
+  var phone = el('d-phone').value.trim();
+  var license = el('d-license').value.trim();
+  var hospital = el('d-hospital').value.trim();
+  var university = el('d-university').value.trim();
+  var specialty = el('d-specialty').value;
+  var btn = el('d-submit');
+
+  var missing = [];
+  if(!name) missing.push('your full name');
+  if(!_level) missing.push('your professional level');
+  if(!country) missing.push('your country');
+  if(!phone) missing.push('a telephone number');
+  if(!license) missing.push('your license number');
+  if(!hospital) missing.push('your hospital');
+  if(!university) missing.push('your medical university');
+  if(!specialty) missing.push('your specialty');
+  if(missing.length){
+    showErr('doctor-err', 'Please add ' + missing.slice(0,3).join(', ') +
+      (missing.length > 3 ? ', and ' + (missing.length - 3) + ' more.' : '.'));
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  var roleRes = await window.setOwnRole('doctor');
   if(roleRes && roleRes.error){
-    btn.disabled=false; btn.textContent='Save & open dashboard →';
-    errEl.textContent=roleRes.error.message; errEl.style.display='block'; return;
+    btn.disabled = false; btn.textContent = 'Submit for verification';
+    showErr('doctor-err', roleRes.error.message || 'We could not submit your application.');
+    return;
   }
 
-  var data = {
-    id:        _session.user.id,
-    email:     _session.user.email,
-    full_name: (first + ' ' + last).trim(),
-    country:   document.getElementById('pf-country').value || null
-  };
-  if(_role === 'doctor'){
-    data.hospital               = document.getElementById('pf-hospital').value.trim();
-    data.specialty              = document.getElementById('pf-specialty').value;
-    data.medical_license_number = document.getElementById('pf-license').value.trim() || null;
+  var save = await window.saveProfile(_session.user.id, {
+    email:                  _session.user.email,
+    full_name:              name,
+    professional_level:     _level,
+    country:                country,
+    phone:                  normalizePhone(country, phone),
+    medical_license_number: license,
+    hospital:               hospital,
+    medical_university:     university,
+    specialty:              specialty
+  });
+  if(save && save.error){
+    /* The role IS set at this point, so they are a pending doctor with an
+       incomplete file rather than a lost account. Say so plainly and send
+       them on: an admin can ask for the rest. */
+    btn.disabled = false; btn.textContent = 'Submit for verification';
+    showErr('doctor-err', 'Your application was created but some details did not save: ' +
+      (save.error.message || 'unknown error') + ' You can add them from your profile.');
+    return;
   }
+  window.location.replace('/doctor-pending.html');
+}
 
-  var { error } = await saveProfile(_session.user.id, data);
-  if(error){ btn.disabled=false; btn.textContent='Save & open dashboard →'; errEl.textContent=error.message; errEl.style.display='block'; return; }
-
-  // Onboarding complete: patients land on the Patient Home, staff on the workspace.
-  window.location.href = (_role === 'patient') ? '/index.html' : '/dashboard.html';
+/* Store something closer to E.164 than free text, without pretending to be a
+   full phone-number library: strip separators, drop a national trunk '0', and
+   prefix the country's dial code unless the person already typed one. */
+function normalizePhone(countryName, raw){
+  var c = COUNTRIES.filter(function(x){ return x.name === countryName; })[0];
+  var digits = String(raw || '').replace(/[^\d+]/g, '');
+  if(digits.charAt(0) === '+') return digits;
+  digits = digits.replace(/^0+/, '');
+  return (c && c.dial) ? (c.dial + digits) : digits;
 }
 </script>
 </body>
