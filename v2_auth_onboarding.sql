@@ -132,6 +132,53 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
+  /* ── RE-VERIFICATION ON PROFESSIONAL IDENTITY CHANGE ──────────────────
+     Approval is granted against a specific professional identity. Without
+     this, a doctor could be verified as one clinician and then quietly become
+     another: get approved on a real licence, then edit the licence number,
+     name, institution or specialty from settings.html and keep the badge. The
+     fields below are self-editable BY DESIGN — they are claims a person makes
+     about themselves — but changing them after approval invalidates exactly
+     what the administrator checked.
+
+     Set here rather than in a second trigger so there is one guard on this
+     table with one order of operations. It runs AFTER the blocked-field check
+     above, so this assignment is never mistaken for the caller trying to write
+     verification_status themselves — that is still rejected.
+
+     'pending' specifically, not 'changes_requested': the Admin Center's
+     verification queue selects on verification_status='pending', so this puts
+     them back in the list an administrator already watches. Any other value and
+     re-reviews would silently never be seen.
+
+     The access lock is immediate and needs no extra machinery:
+     is_pending_doctor() tests for a status that is not exactly 'approved', so
+     the RESTRICTIVE policies start denying on the very next statement.
+
+     Admin edits do NOT land here. admin_update_profile_fields() and
+     admin_set_verification() are SECURITY DEFINER, so current_user is the owner
+     and the guard has already returned at the top. An administrator changing a
+     doctor's details is a deliberate, audited act, not a self-service claim. */
+  IF TG_OP = 'UPDATE'
+     AND OLD.role = 'doctor'
+     AND COALESCE(OLD.verification_status,'') = 'approved'
+     AND (   OLD.full_name              IS DISTINCT FROM NEW.full_name
+          OR OLD.professional_level     IS DISTINCT FROM NEW.professional_level
+          OR OLD.medical_license_number IS DISTINCT FROM NEW.medical_license_number
+          OR OLD.country                IS DISTINCT FROM NEW.country
+          OR OLD.hospital               IS DISTINCT FROM NEW.hospital
+          OR OLD.medical_university     IS DISTINCT FROM NEW.medical_university
+          OR OLD.specialty              IS DISTINCT FROM NEW.specialty)
+  THEN
+    /* phone is deliberately NOT in that list. It is how we reach a doctor
+       about verification, not evidence of who they are; revoking clinical
+       access mid-shift because someone changed a mobile number would be
+       friction with no security gain. Nor are email (owned by the auth
+       record), avatar_url, bio, city, languages, timezone or
+       accepting_patients — none of them is anything an admin verified. */
+    NEW.verification_status := 'pending';
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -171,10 +218,96 @@ AS $$
   );
 $$;
 
+-- "Is the caller a doctor account at all?" — independent of approval, because
+-- the credential table has to serve doctors who are not yet approved.
+CREATE OR REPLACE FUNCTION public.is_doctor_account()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles p
+     WHERE p.id = auth.uid() AND p.role = 'doctor'
+  );
+$$;
+
 REVOKE ALL ON FUNCTION public.is_pending_doctor()  FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.is_verified_doctor() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.is_doctor_account()  FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_pending_doctor()  TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_verified_doctor() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_doctor_account()  TO authenticated;
+
+-- ============================================================
+-- 3b. DOCTOR VERIFICATION DOCUMENTS — DOCTORS ONLY
+-- ============================================================
+-- The phase-3 policies keyed on `doctor_id = auth.uid()` alone. Since that
+-- column is only ever compared to the caller's own id, ANY authenticated user
+-- satisfied it: a PATIENT could insert rows into the doctor-verification table
+-- and read them back. Measured before this change, a patient INSERT returned
+-- INSERT 0 1. Nothing downstream trusted those rows, so it was not an
+-- escalation — but a patient has no business holding a credential record, and
+-- an administrator reviewing the queue should never be shown one.
+--
+-- The correction is the smallest one that closes it: the same predicates, plus
+-- "and you are a doctor". Ownership (doctor_id = auth.uid()) is untouched, so
+-- Doctor B still cannot see Doctor A's file, and admins still read everything
+-- through is_platform_admin().
+--
+-- INSERT and DELETE additionally require NOT-yet-approved. Uploading or
+-- withdrawing evidence is part of GETTING verified; doing it afterwards would
+-- let an approved doctor swap the evidence behind their badge with nobody
+-- re-reviewing it. There is deliberately no UPDATE policy at all — an
+-- unmodifiable record is the point of an evidence table — so approved doctors
+-- keep read access to their own file and nothing more.
+DO $dvd$
+BEGIN
+  IF to_regclass('public.doctor_verification_documents') IS NULL THEN
+    RAISE NOTICE '  skip doctor_verification_documents (apply v2_admin_phase3.sql for it)';
+    RETURN;
+  END IF;
+
+  DROP POLICY IF EXISTS dvd_select ON public.doctor_verification_documents;
+  CREATE POLICY dvd_select ON public.doctor_verification_documents
+    FOR SELECT TO authenticated
+    USING ( (doctor_id = auth.uid() AND public.is_doctor_account())
+            OR public.is_platform_admin() );
+
+  DROP POLICY IF EXISTS dvd_insert_own ON public.doctor_verification_documents;
+  CREATE POLICY dvd_insert_own ON public.doctor_verification_documents
+    FOR INSERT TO authenticated
+    WITH CHECK ( doctor_id = auth.uid()
+                 AND public.is_doctor_account()
+                 AND public.is_pending_doctor() );
+
+  DROP POLICY IF EXISTS dvd_delete_own ON public.doctor_verification_documents;
+  CREATE POLICY dvd_delete_own ON public.doctor_verification_documents
+    FOR DELETE TO authenticated
+    USING ( doctor_id = auth.uid()
+            AND public.is_doctor_account()
+            AND public.is_pending_doctor()
+            AND reviewed_at IS NULL );
+
+  RAISE NOTICE 'doctor_verification_documents: policies narrowed to doctor accounts.';
+END
+$dvd$;
+
+-- Rows a non-doctor should never have been able to create. Reported, not
+-- silently deleted: they are somebody's uploaded file, and a migration that
+-- destroys data without saying so is worse than the rows themselves.
+DO $orphans$
+DECLARE v_n int := 0;
+BEGIN
+  IF to_regclass('public.doctor_verification_documents') IS NULL THEN RETURN; END IF;
+  SELECT count(*) INTO v_n
+    FROM public.doctor_verification_documents d
+    LEFT JOIN public.profiles p ON p.id = d.doctor_id
+   WHERE COALESCE(p.role,'') <> 'doctor';
+  IF v_n > 0 THEN
+    RAISE NOTICE 'NOTE: % verification document(s) belong to non-doctor accounts.', v_n;
+    RAISE NOTICE '      They are now unreachable by their owner. Review, then delete deliberately.';
+  END IF;
+END
+$orphans$;
 
 -- ============================================================
 -- 4. THE GATE

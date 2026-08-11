@@ -164,6 +164,20 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
               </div>
             </div>
             <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="+972 50 000 0000"></div>
+            <!-- Shown only to an APPROVED doctor. The rule itself lives in the
+                 database (guard_profiles_self_update): changing name, country,
+                 hospital or specialty returns verification to pending. This
+                 notice does not enforce anything - it stops the enforcement
+                 arriving as a surprise, which is the difference between a
+                 policy and an outage. -->
+            <div id="reverify-warn" style="display:none;background:rgba(232,168,56,.07);
+                 border:1px solid rgba(232,168,56,.22);border-radius:9px;padding:11px 13px;
+                 font-size:12.5px;color:rgba(255,220,150,.88);line-height:1.6;margin-bottom:12px;">
+              Your account is verified. Changing your <strong>name, country, hospital or
+              specialty</strong> returns it to pending review, and the clinical workspace
+              closes until an administrator approves it again. Contact details such as your
+              phone number are not affected.
+            </div>
             <button class="btn-save" id="save-btn" onclick="saveProfileData()">Save profile</button>
             <div class="msg msg-ok"  id="save-ok"></div>
             <div class="msg msg-err" id="save-err"></div>
@@ -295,6 +309,12 @@ document.addEventListener('DOMContentLoaded', async function(){
     var roleText = rl[_curRole] || _curRole;
     if(_curRole === 'doctor' && _curVerif === 'pending') roleText += ' (verification pending)';
     document.getElementById('role-label').textContent = roleText;
+
+    // Only an approved doctor has verification to lose, so only they are warned.
+    if(_curRole === 'doctor' && _curVerif === 'approved'){
+      var w = document.getElementById('reverify-warn');
+      if(w) w.style.display = 'block';
+    }
 
     // Clinician directory opt-in — doctors and admins only
     if(_curRole === 'doctor' || _curRole === 'admin' || (profile && profile.is_admin === true)){
