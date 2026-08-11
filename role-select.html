@@ -117,7 +117,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
         <div class="msg msg-err" id="role-err"></div>
       </div>
 
-      <!-- STEP 2 — doctor professional details. Patients never see this. -->
+      <!-- STEP 2a — the entire patient form. One field, usually prefilled.
+           A patient has nothing for us to verify, so anything beyond their name
+           is friction before they have seen the product. Country and phone are
+           offered later, in settings, and are optional there. -->
+      <div class="step" id="step-patient">
+        <div class="field">
+          <label for="p-name">Your name *</label>
+          <input type="text" id="p-name" autocomplete="name" placeholder="First and last name">
+          <div class="hint" id="p-name-hint" style="display:none">
+            We got this from your sign-in — correct it if it&rsquo;s not how you want to be addressed.
+          </div>
+        </div>
+        <button class="btn" id="p-submit" onclick="submitPatient()">Continue</button>
+        <button class="btn btn-ghost" id="p-back" onclick="backToRole()">Back</button>
+        <div class="msg msg-err" id="patient-err"></div>
+      </div>
+
+      <!-- STEP 2b — doctor professional details. Patients never see this. -->
       <div class="step" id="step-doctor">
         <div class="verify-note">
           <strong>Professional verification required.</strong><br>
@@ -214,6 +231,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
 var _role = null;
 var _level = null;
 var _session = null;
+var _profile = null;
 
 /* ── Countries ────────────────────────────────────────────────────────────
    Dial code travels with the country so the phone field can show the right
@@ -303,13 +321,63 @@ function clearErr(id){ el(id).style.display = 'none'; }
     }
   }
 
+  _profile = profile;
+  var q = new URLSearchParams(window.location.search);
+
   if(profile.role && profile.role !== 'pending'){
+    /* An existing account. Three reasons it can legitimately be here, and a
+       redirect for everything else — nobody is asked to choose a role twice. */
+
+    // 1. A patient applying to become a doctor, sent from settings. Same form,
+    //    same set_own_role() path, same pending outcome. There is deliberately
+    //    no shortcut that turns a patient into a doctor without it.
+    if(q.get('apply') === 'doctor' && profile.role === 'patient'){
+      buildCountries();
+      prefillDoctor(profile);
+      openDoctor();
+      return;
+    }
+
+    // 2. A patient whose name we never captured — accounts that pre-date this
+    //    flow. A prompt, not a dead end, and not a re-run of onboarding.
+    if(profile.role === 'patient' && !hasName(profile.full_name)){
+      _role = 'patient';
+      openPatient(providerName());
+      return;
+    }
+
     var res = await window.resolveAuthDestination();
     window.location.replace((res && res.ok) ? res.dest : '/index.html');
     return;
   }
   buildCountries();
 })();
+
+/* A name is "usable" if it looks like something a person would answer to.
+   Providers sometimes return an empty string, a single space, or the local
+   part of an email address; none of those should be shown back as "your name"
+   without asking. */
+function hasName(v){
+  return typeof v === 'string' && v.trim().length >= 2 && /[^\d\s]/.test(v);
+}
+
+/* Google and Facebook both populate user_metadata, but not identically, and
+   neither is guaranteed. Take the first thing that actually looks like a name
+   and let the person correct it — a provider display name is a convenience,
+   never an identity claim we act on. */
+function providerName(){
+  var u = (_session && _session.user) || {};
+  var m = u.user_metadata || {};
+  var candidates = [
+    m.full_name, m.name,
+    (m.given_name && m.family_name) ? (m.given_name + ' ' + m.family_name) : null,
+    m.preferred_username
+  ];
+  for(var i = 0; i < candidates.length; i++){
+    if(hasName(candidates[i])) return String(candidates[i]).trim();
+  }
+  return '';
+}
 
 function buildCountries(){
   var sel = el('d-country');
@@ -348,20 +416,51 @@ function pickRole(role){
   el('ro-patient').classList.toggle('sel', role === 'patient');
   el('ro-doctor').classList.toggle('sel',  role === 'doctor');
   clearErr('role-err');
-  if(role === 'patient') return activatePatient();
+  if(role === 'patient') return openPatient(providerName());
+  openDoctor();
+}
+
+function openPatient(prefill){
   el('step-role').classList.remove('active');
+  el('step-doctor').classList.remove('active');
+  el('step-patient').classList.add('active');
+  el('rs-h').textContent = 'What should we call you?';
+  el('rs-sub').textContent = 'This is the only thing we need to get you started.';
+  var f = el('p-name');
+  if(prefill){ f.value = prefill; el('p-name-hint').style.display = 'block'; }
+  // An existing patient completing a missing name has nowhere to go "back" to.
+  el('p-back').style.display = (_profile && _profile.role === 'patient') ? 'none' : 'block';
+  setTimeout(function(){ f.focus(); f.select(); }, 60);
+}
+
+function openDoctor(){
+  el('step-role').classList.remove('active');
+  el('step-patient').classList.remove('active');
   el('step-doctor').classList.add('active');
   el('rs-h').textContent = 'Tell us about your practice';
   el('rs-sub').textContent = 'An administrator checks these details before your workspace opens.';
   setTimeout(function(){ el('d-name').focus(); }, 60);
 }
 
+/* A patient applying to be a doctor already told us some of this. Carrying it
+   over is not a shortcut through verification — every field stays editable and
+   the outcome is still role=doctor + pending. */
+function prefillDoctor(p){
+  if(!p) return;
+  if(hasName(p.full_name)) el('d-name').value = p.full_name;
+  if(p.country){ el('d-country').value = p.country; onCountryChange(); }
+  if(p.phone) el('d-phone').value = p.phone;
+  el('rs-sub').textContent = 'Your account becomes a doctor account once an administrator approves it.';
+}
+
 function backToRole(){
   el('step-doctor').classList.remove('active');
+  el('step-patient').classList.remove('active');
   el('step-role').classList.add('active');
   el('rs-h').textContent = 'How will you use Anestheo?';
   el('rs-sub').textContent = 'This decides what you see. You can ask us to change it later.';
   el('ro-doctor').classList.remove('sel');
+  el('ro-patient').classList.remove('sel');
   _role = null;
 }
 
@@ -371,19 +470,46 @@ function pickLevel(v){
   el('lvl-resident').classList.toggle('on',   v === 'resident');
 }
 
-/* ── Patient: one click, active immediately ────────────────────────────────
-   No form. A patient has nothing for us to verify, so asking them for a
-   profile before they can use anything would be friction with no purpose. */
-async function activatePatient(){
-  el('ro-patient').style.opacity = '.6';
-  var r = await window.setOwnRole('patient');
-  if(r && r.error){
-    el('ro-patient').style.opacity = '1';
-    el('ro-patient').classList.remove('sel');
-    _role = null;
-    showErr('role-err', r.error.message || 'We could not set up your account. Please try again.');
+/* ── Patient: a name, and they are in ──────────────────────────────────────
+   Country and phone are NOT asked here. They are useful later and optional in
+   settings; requiring them to enter the product would be collecting data
+   before we have earned it, from someone who is usually about to have surgery.
+
+   Order matters: set_own_role() first, because that is the call that can fail
+   on authorization. The name is an ordinary self-editable column written only
+   once the role is real. */
+async function submitPatient(){
+  clearErr('patient-err');
+  var name = el('p-name').value.trim();
+  var btn = el('p-submit');
+  if(!hasName(name)){
+    showErr('patient-err', 'Please enter your name so we know how to address you.');
+    el('p-name').focus();
     return;
   }
+  btn.disabled = true; btn.textContent = 'Setting up…';
+
+  // Already a patient (completing a missing name) — the role write is a no-op
+  // we can skip, and skipping it avoids a pointless privileged call.
+  if(!(_profile && _profile.role === 'patient')){
+    var r = await window.setOwnRole('patient');
+    if(r && r.error){
+      btn.disabled = false; btn.textContent = 'Continue';
+      showErr('patient-err', r.error.message || 'We could not set up your account. Please try again.');
+      return;
+    }
+  }
+
+  var save = await window.saveProfile(_session.user.id, {
+    email: _session.user.email,
+    full_name: name
+  });
+  if(save && save.error){
+    btn.disabled = false; btn.textContent = 'Continue';
+    showErr('patient-err', 'We could not save your name: ' + (save.error.message || 'unknown error'));
+    return;
+  }
+
   var res = await window.resolveAuthDestination();
   window.location.replace((res && res.ok) ? res.dest : '/index.html');
 }

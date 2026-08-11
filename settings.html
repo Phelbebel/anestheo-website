@@ -69,10 +69,53 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .msg-ok  { background: rgba(27,107,90,.15); border: 1px solid rgba(42,138,116,.3); color: #7ECFC0; }
 .msg-err { background: rgba(192,57,43,.12); border: 1px solid rgba(192,57,43,.3); color: rgba(255,160,140,.93); }
 
+/* Read-only facts read as text, not as disabled inputs. A greyed-out box
+   invites clicking and then refuses; a line of type simply states a fact. */
+.kv-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:9px 0; }
+.kv-row + .kv-row { border-top:1px solid rgba(27,107,90,.14); }
+.kv-k { font-size:11px; color:rgba(255,255,255,.32); letter-spacing:.06em; text-transform:uppercase; font-weight:600; }
+.kv-v { font-size:14.5px; color:#fff; text-align:right; word-break:break-word; }
+.kv-note { font-size:12px; color:rgba(255,255,255,.32); line-height:1.6; margin-top:4px; }
+.pill { display:inline-block; font-size:12px; font-weight:600; border-radius:20px; padding:4px 11px;
+  background:rgba(27,107,90,.16); border:1px solid rgba(42,138,116,.3); color:#7ECFC0; }
+.pill.warn { background:rgba(232,168,56,.1); border-color:rgba(232,168,56,.28); color:rgba(255,220,150,.92); }
+.pill.stop { background:rgba(192,57,43,.12); border-color:rgba(192,57,43,.32); color:rgba(255,170,150,.95); }
+.opt { font-size:10px; font-weight:500; color:rgba(255,255,255,.22); text-transform:none; letter-spacing:0; margin-left:5px; }
+.warn-note { background:rgba(232,168,56,.07); border:1px solid rgba(232,168,56,.22); border-radius:9px;
+  padding:11px 13px; font-size:12.5px; color:rgba(255,220,150,.88); line-height:1.6; margin:10px 0 14px; }
+.btn-line { display:inline-block; text-decoration:none; background:rgba(255,255,255,.05);
+  border:1px solid rgba(42,138,116,.35); color:#fff; padding:10px 16px; border-radius:8px;
+  font-size:13.5px; font-weight:600; min-height:42px; line-height:22px; }
+.btn-line:hover { background:rgba(126,207,192,.12); border-color:rgba(126,207,192,.5); }
+.phone-row { display:grid; grid-template-columns:92px 1fr; gap:8px; }
+.phone-row .dial { display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.11); border-radius:8px; font-size:14px; color:#7ECFC0;
+  min-height:44px; font-variant-numeric:tabular-nums; }
+/* Collapsed by default: present for support, invisible to everyone else. */
+.signout-row { display:flex; align-items:center; justify-content:space-between; gap:16px;
+  margin-top:18px; padding-top:16px; border-top:1px solid rgba(27,107,90,.15); flex-wrap:wrap; }
+.adv { margin-top:22px; border-top:1px solid rgba(27,107,90,.15); padding-top:14px; }
+.adv summary { cursor:pointer; font-size:12.5px; color:rgba(255,255,255,.3); list-style:none;
+  padding:6px 0; user-select:none; }
+.adv summary::-webkit-details-marker { display:none; }
+.adv summary::before { content:'\25B8'; display:inline-block; margin-right:7px; transition:transform .18s; }
+.adv[open] summary::before { transform:rotate(90deg); }
+.adv summary:hover { color:rgba(255,255,255,.55); }
+.adv-body { padding:10px 0 4px; }
+.adv-id { display:flex; align-items:center; gap:9px; margin-top:5px; flex-wrap:wrap; }
+.adv-id code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px;
+  color:rgba(255,255,255,.5); background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+  border-radius:6px; padding:7px 10px; word-break:break-all; }
+.btn-copy { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); color:rgba(255,255,255,.7);
+  border-radius:6px; padding:7px 13px; font-size:12.5px; font-family:inherit; cursor:pointer; min-height:34px; }
+.btn-copy:hover { background:rgba(126,207,192,.12); color:#fff; }
+
 @media (max-width: 760px) {
   .sidebar { display: none; }
   .main { padding: 20px 16px 48px; }
   .row2 { grid-template-columns: 1fr; }
+  .kv-row { flex-direction:column; align-items:flex-start; gap:3px; }
+  .kv-v { text-align:left; }
 }
 </style>
 </head>
@@ -85,11 +128,11 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
   <div class="shell">
 
     <aside class="sidebar">
-      <div>
+      <div id="sb-workspace" style="display:none;">
         <div class="sb-label">Workspace</div>
         <a href="/dashboard.html" class="sb-link">&#128202; Dashboard</a>
       </div>
-      <div class="sb-sep"></div>
+      <div class="sb-sep" id="sb-sep" style="display:none;"></div>
       <div class="sb-bottom">
         <div class="sb-label">Account</div>
         <a href="/settings.html" class="sb-link active">&#9881; Settings</a>
@@ -105,82 +148,105 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
           <p>Manage your account and profile</p>
         </div>
 
-        <!-- ACCOUNT (read-only) -->
+        <!-- ACCOUNT — who you are to us, in words a person uses -->
         <div class="section">
           <div class="section-head"><div class="section-title">Account</div></div>
           <div class="section-body">
-            <div class="row2">
-              <div class="field"><label>Email</label><input type="email" id="f-email" disabled></div>
-              <div class="field"><label>User ID</label><input type="text" id="f-uid" disabled></div>
+            <div class="kv-row">
+              <div class="kv-k">Email</div>
+              <div class="kv-v" id="v-email">&mdash;</div>
             </div>
-            <div class="field" style="margin-top:14px;">
-              <label>Current role</label>
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.25);border-radius:9px;padding:11px 14px;">
-                <span id="role-label" style="font-size:14px;color:#fff;font-weight:500;">—</span>
-                <button class="btn-save" style="padding:8px 14px;font-size:13px;" onclick="toggleRoleChange()">Request role change</button>
+            <div class="kv-note">
+              Your email is your sign-in and cannot be changed here. Contact us if you need it moved.
+            </div>
+            <div class="kv-row">
+              <div class="kv-k">Account type</div>
+              <div class="kv-v"><span class="pill" id="v-acctype">&mdash;</span></div>
+            </div>
+            <!-- Patients only. There is no generic "change role": the single
+                 destination is the doctor application, which is the same form
+                 and the same pending outcome as signing up as a doctor. -->
+            <div id="become-doctor" style="display:none;margin-top:16px;">
+              <a class="btn-line" href="/role-select.html?apply=doctor">Apply to become a doctor</a>
+              <div class="kv-note" style="margin-top:8px;">
+                You will be asked for your professional details. An administrator reviews every
+                clinical account before it is approved.
               </div>
-            </div>
-            <div id="role-change-box" style="display:none;margin-top:14px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:16px;">
-              <div style="font-size:13px;color:var(--muted);margin-bottom:11px;">I want to change my account role to:</div>
-              <label class="rc-opt"><input type="radio" name="rc-role" value="patient"><span>Patient</span></label>
-              <label class="rc-opt"><input type="radio" name="rc-role" value="other"><span>Nurse / Student / Other</span></label>
-              <label class="rc-opt"><input type="radio" name="rc-role" value="doctor"><span>Doctor <small style="color:var(--hint);">(requires verification)</small></span></label>
-              <div id="rc-msg" style="font-size:12px;margin-top:8px;display:none;"></div>
-              <button class="btn-save" id="rc-submit" style="margin-top:12px;" onclick="submitRoleChange()">Submit</button>
             </div>
           </div>
         </div>
 
-        <!-- PROFILE -->
-        <div class="section">
-          <div class="section-head"><div class="section-title">Profile</div></div>
+        <!-- PERSONAL INFORMATION — patients. Name required, rest optional. -->
+        <div class="section" id="personal-section" style="display:none;">
+          <div class="section-head"><div class="section-title">Personal information</div></div>
           <div class="section-body">
-            <div class="row2">
-              <div class="field"><label>Full name</label><input type="text" id="f-name" placeholder="Your full name"></div>
-              <div class="field"><label>Country</label>
-                <select id="f-country">
-                  <option value="">Select&hellip;</option>
-                  <option value="Israel">Israel</option>
-                  <option value="Georgia">Georgia</option>
-                  <option value="USA">USA</option>
-                  <option value="UK">UK</option>
-                  <option value="Germany">Germany</option>
-                  <option value="Other">Other</option>
-                </select>
+            <div class="field"><label>Full name</label>
+              <input type="text" id="f-name" placeholder="Your full name" autocomplete="name"></div>
+            <div class="field"><label>Country <span class="opt">optional</span></label>
+              <select id="f-country" onchange="onCountryChange()"></select></div>
+            <div class="field"><label>Phone <span class="opt">optional</span></label>
+              <div class="phone-row">
+                <div class="dial" id="f-dial">+&mdash;</div>
+                <input type="tel" id="f-phone" placeholder="Phone number" inputmode="tel" autocomplete="tel-national">
               </div>
+              <div class="kv-note" style="margin-top:6px;">Only used if we need to reach you about your care.</div>
             </div>
-            <div class="row2">
-              <div class="field"><label>Hospital / Clinic</label><input type="text" id="f-hospital" placeholder="Your institution"></div>
-              <div class="field"><label>Specialty</label>
-                <select id="f-specialty">
-                  <option value="">Select&hellip;</option>
-                  <option>Anesthesiology</option>
-                  <option>Anesthesiology &amp; ICU</option>
-                  <option>Intensive Care / ICU</option>
-                  <option>Resident &mdash; Anesthesiology</option>
-                  <option>Pain Medicine</option>
-                  <option>Other</option>
-                </select>
-              </div>
-            </div>
-            <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="+972 50 000 0000"></div>
-            <!-- Shown only to an APPROVED doctor. The rule itself lives in the
-                 database (guard_profiles_self_update): changing name, country,
-                 hospital or specialty returns verification to pending. This
-                 notice does not enforce anything - it stops the enforcement
-                 arriving as a surprise, which is the difference between a
-                 policy and an outage. -->
-            <div id="reverify-warn" style="display:none;background:rgba(232,168,56,.07);
-                 border:1px solid rgba(232,168,56,.22);border-radius:9px;padding:11px 13px;
-                 font-size:12.5px;color:rgba(255,220,150,.88);line-height:1.6;margin-bottom:12px;">
-              Your account is verified. Changing your <strong>name, country, hospital or
-              specialty</strong> returns it to pending review, and the clinical workspace
-              closes until an administrator approves it again. Contact details such as your
-              phone number are not affected.
-            </div>
-            <button class="btn-save" id="save-btn" onclick="saveProfileData()">Save profile</button>
+            <button class="btn-save" id="save-btn" onclick="saveProfileData()">Save changes</button>
             <div class="msg msg-ok"  id="save-ok"></div>
             <div class="msg msg-err" id="save-err"></div>
+          </div>
+        </div>
+
+        <!-- PROFESSIONAL PROFILE — doctors. Deliberately NOT simplified: these
+             are the fields an administrator verified against. -->
+        <div class="section" id="professional-section" style="display:none;">
+          <div class="section-head"><div class="section-title">Professional profile</div></div>
+          <div class="section-body">
+            <div class="kv-row">
+              <div class="kv-k">Verification</div>
+              <div class="kv-v"><span class="pill" id="v-verif">&mdash;</span></div>
+            </div>
+            <div id="reverify-warn" class="warn-note" style="display:none;">
+              Your account is verified. Changing your <strong>name, professional level, licence
+              number, country, hospital, university or specialty</strong> returns it to pending
+              review, and the clinical workspace closes until an administrator approves it again.
+              Your phone number is not affected.
+            </div>
+            <div class="field"><label>Full name</label>
+              <input type="text" id="d-name" placeholder="As it appears on your registration" autocomplete="name"></div>
+            <div class="field"><label>Professional level</label>
+              <select id="d-level">
+                <option value="">Select&hellip;</option>
+                <option value="consultant">Consultant / Specialist</option>
+                <option value="resident">Resident</option>
+              </select></div>
+            <div class="field"><label>Country</label>
+              <select id="d-country" onchange="onCountryChange()"></select></div>
+            <div class="field"><label>Phone</label>
+              <div class="phone-row">
+                <div class="dial" id="d-dial">+&mdash;</div>
+                <input type="tel" id="d-phone" placeholder="Phone number" inputmode="tel" autocomplete="tel-national">
+              </div></div>
+            <div class="field"><label>Medical licence / registration number</label>
+              <input type="text" id="d-license" placeholder="As issued by your medical council"></div>
+            <div class="field"><label>Hospital / institution</label>
+              <input type="text" id="d-hospital" placeholder="Where you practise" autocomplete="organization"></div>
+            <div class="field"><label>Medical university</label>
+              <input type="text" id="d-university" placeholder="Where you qualified"></div>
+            <div class="field"><label>Specialty</label>
+              <select id="d-specialty">
+                <option value="">Select&hellip;</option>
+                <option>Anesthesiology</option>
+                <option>Anesthesiology &amp; Intensive Care</option>
+                <option>Intensive Care / ICU</option>
+                <option>Pain Medicine</option>
+                <option>Emergency Medicine</option>
+                <option>Surgery</option>
+                <option>Other</option>
+              </select></div>
+            <button class="btn-save" id="dsave-btn" onclick="saveDoctorData()">Save changes</button>
+            <div class="msg msg-ok"  id="dsave-ok"></div>
+            <div class="msg msg-err" id="dsave-err"></div>
           </div>
         </div>
 
@@ -201,34 +267,63 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
           </div>
         </div>
 
-        <!-- PASSWORD -->
+        <!-- SECURITY — password for email accounts, provider for OAuth ones -->
         <div class="section">
-          <div class="section-head"><div class="section-title">Change password</div></div>
+          <div class="section-head"><div class="section-title">Security</div></div>
           <div class="section-body">
-            <div class="field"><label>New password</label>
-              <input type="password" id="f-pw1" placeholder="Minimum 6 characters" autocomplete="new-password"
-                onkeydown="if(event.key==='Enter')document.getElementById('f-pw2').focus()">
+            <!-- Shown only when Supabase actually reports a social identity.
+                 We never infer the provider from an email domain: a gmail.com
+                 address does not mean the account signs in with Google, and
+                 telling someone the wrong way to get back in is worse than
+                 telling them nothing. -->
+            <div id="sec-provider" style="display:none;">
+              <div class="kv-row">
+                <div class="kv-k">Sign-in method</div>
+                <div class="kv-v"><span class="pill" id="v-provider">&mdash;</span></div>
+              </div>
+              <div class="kv-note">
+                You sign in through this provider, so Anestheo holds no password for you.
+                Manage it in your provider account.
+              </div>
             </div>
-            <div class="field"><label>Confirm password</label>
-              <input type="password" id="f-pw2" placeholder="Repeat password" autocomplete="new-password"
-                onkeydown="if(event.key==='Enter')changePassword()">
+
+            <div id="sec-password">
+              <div class="field"><label>New password</label>
+                <input type="password" id="f-pw1" placeholder="Minimum 6 characters" autocomplete="new-password"
+                  onkeydown="if(event.key==='Enter')document.getElementById('f-pw2').focus()">
+              </div>
+              <div class="field"><label>Confirm password</label>
+                <input type="password" id="f-pw2" placeholder="Repeat password" autocomplete="new-password"
+                  onkeydown="if(event.key==='Enter')changePassword()">
+              </div>
+              <button class="btn-save" id="pw-btn" onclick="changePassword()">Update password</button>
+              <div class="msg msg-ok"  id="pw-ok"></div>
+              <div class="msg msg-err" id="pw-err"></div>
             </div>
-            <button class="btn-save" id="pw-btn" onclick="changePassword()">Update password</button>
-            <div class="msg msg-ok"  id="pw-ok"></div>
-            <div class="msg msg-err" id="pw-err"></div>
+
+            <div class="signout-row">
+              <div class="kv-note" style="margin:0;">Signing out ends your session on this device.</div>
+              <button class="btn-danger" onclick="window.nbSignOut()">Sign out</button>
+            </div>
           </div>
         </div>
 
-        <!-- SIGN OUT -->
-        <div class="section">
-          <div class="section-head"><div class="section-title">Session</div></div>
-          <div class="section-body">
-            <p style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:14px;line-height:1.6;">
-              Sign out ends your session on this device.
-            </p>
-            <button class="btn-danger" onclick="window.nbSignOut()">Sign out</button>
+        <!-- ADVANCED — the UUID lives here and nowhere else. It is the
+             immutable primary key and support occasionally needs it, but it is
+             not the patient's identity and must not sit beside their name. -->
+        <details class="adv">
+          <summary>Advanced account information</summary>
+          <div class="adv-body">
+            <div class="kv-k">Account ID</div>
+            <div class="adv-id">
+              <code id="v-uid">&mdash;</code>
+              <button type="button" class="btn-copy" id="copy-uid" onclick="copyUid()">Copy</button>
+            </div>
+            <div class="kv-note" style="margin-top:8px;">
+              An internal reference. Quote it if our support team asks for it; otherwise you can ignore it.
+            </div>
           </div>
-        </div>
+        </details>
 
       </div>
     </main>
@@ -239,88 +334,183 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 var _userId = null;
 var _curRole = null, _curVerif = '';
 
-function toggleRoleChange(){
-  var box = document.getElementById('role-change-box');
-  box.style.display = box.style.display === 'none' ? 'block' : 'none';
-}
-function rcMsg(text, ok){
-  var m = document.getElementById('rc-msg');
-  m.style.display = 'block';
-  m.style.color = ok ? '#7ECFC0' : 'rgba(255,150,130,.95)';
-  m.innerHTML = text;
-}
-async function submitRoleChange(){
-  var sel = document.querySelector('input[name="rc-role"]:checked');
-  if(!sel){ rcMsg('Please choose a role.', false); return; }
-  var target = sel.value;
-  if(target === _curRole){ rcMsg('That is already your current role.', false); return; }
+/* The old "Request role change" control is gone. It offered Patient / Nurse /
+   Doctor as if they were interchangeable settings, and picking Doctor called
+   set_own_role('doctor') while collecting NO professional details — leaving an
+   administrator a pending application with nothing in it to review. It never
+   granted approved status (the server forces 'pending'), so it was not a
+   security hole, but it was a dead end dressed as a feature.
 
-  var btn = document.getElementById('rc-submit');
-  btn.disabled = true; btn.textContent = 'Submitting…';
-  try {
-    if(target === 'doctor'){
-      // Doctor requires verification. The server sets the role AND forces
-      // verification_status='pending' — the browser never supplies either.
-      var rd = await window.setOwnRole('doctor');
-      if(rd && rd.error) throw rd.error;
-      _curRole = 'doctor'; _curVerif = 'pending';
-      document.getElementById('role-label').textContent = 'Anesthesiologist (verification pending)';
-      rcMsg('&#10003; Request submitted. A doctor account requires verification — an administrator will review it.', true);
-    } else {
-      // Patient ↔ Nurse/Student/Other change immediately.
-      var rt = await window.setOwnRole(target);
-      if(rt && rt.error) throw rt.error;
-      _curRole = target; _curVerif = 'not_required';
-      var rl = { patient:'Patient', other:'Nurse / Student / Other' };
-      document.getElementById('role-label').textContent = rl[target] || target;
-      rcMsg('&#10003; Your role has been updated to ' + (rl[target]||target) + '.', true);
-    }
-  } catch(e){
-    rcMsg('Could not update role: ' + e.message, false);
+   The single replacement is the "Apply to become a doctor" link in the Account
+   card, which opens the real application form. Same form, same set_own_role()
+   call, same pending outcome, same admin approval. There is no path from
+   Patient to approved Doctor that does not pass through it. */
+
+/* ── Countries: shared by the patient and doctor forms ────────────────────
+   The dial code travels with the country so the phone field can show the right
+   prefix without asking a second question. */
+var COUNTRIES = [
+  { name:'Israel', dial:'+972' }, { name:'Georgia', dial:'+995' },
+  { name:'United Kingdom', dial:'+44' }, { name:'United States', dial:'+1' },
+  { name:'Canada', dial:'+1' }, { name:'Germany', dial:'+49' },
+  { name:'France', dial:'+33' }, { name:'Italy', dial:'+39' },
+  { name:'Spain', dial:'+34' }, { name:'Netherlands', dial:'+31' },
+  { name:'Poland', dial:'+48' }, { name:'Turkey', dial:'+90' },
+  { name:'India', dial:'+91' }, { name:'Australia', dial:'+61' },
+  { name:'Other', dial:'' }
+];
+function fillCountries(sel, current){
+  if(!sel) return;
+  sel.innerHTML = '<option value="">Select\u2026</option>' +
+    COUNTRIES.map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('');
+  if(current) sel.value = current;
+}
+function dialFor(name){
+  var c = COUNTRIES.filter(function(x){ return x.name === name; })[0];
+  return (c && c.dial) ? c.dial : '+\u2014';
+}
+/* A stored number is E.164 ("+972501112222"). The dial code already has its
+   own chip, so showing the whole thing in the field beside it prints the
+   prefix twice. Split it for display and re-join it on save. */
+function splitPhone(countryName, stored){
+  var v = String(stored || '').trim();
+  if(!v) return '';
+  var c = COUNTRIES.filter(function(x){ return x.name === countryName; })[0];
+  if(c && c.dial && v.indexOf(c.dial) === 0) return v.slice(c.dial.length);
+  return v;
+}
+function onCountryChange(){
+  var pc = document.getElementById('f-country'), dc = document.getElementById('d-country');
+  var pd = document.getElementById('f-dial'),    dd = document.getElementById('d-dial');
+  if(pc && pd) pd.textContent = dialFor(pc.value);
+  if(dc && dd) dd.textContent = dialFor(dc.value);
+}
+/* Store something closer to E.164 than free text without pretending to be a
+   full phone library: strip separators, drop a national trunk 0, and prefix
+   the country's dial code unless one was typed. */
+function normalizePhone(countryName, raw){
+  var c = COUNTRIES.filter(function(x){ return x.name === countryName; })[0];
+  var digits = String(raw || '').replace(/[^\d+]/g, '');
+  if(!digits) return null;
+  if(digits.charAt(0) === '+') return digits;
+  digits = digits.replace(/^0+/, '');
+  return (c && c.dial) ? (c.dial + digits) : digits;
+}
+
+/* Sign-in method, only when Supabase actually reports one. supabase-js exposes
+   the linked identities on the user object; if the array is absent or empty we
+   say nothing rather than guess. */
+var PROVIDER_LABEL = { google:'Google', facebook:'Facebook', apple:'Apple', email:'Email and password' };
+function socialProvider(user){
+  var ids = (user && user.identities) || [];
+  for(var i = 0; i < ids.length; i++){
+    var p = ids[i] && ids[i].provider;
+    if(p && p !== 'email') return PROVIDER_LABEL[p] || (p.charAt(0).toUpperCase() + p.slice(1));
   }
-  btn.disabled = false; btn.textContent = 'Submit';
+  return null;
+}
+
+function copyUid(){
+  var el = document.getElementById('v-uid'), btn = document.getElementById('copy-uid');
+  var txt = el ? el.textContent : '';
+  function done(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1600); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done, function(){ selectUid(); });
+  } else { selectUid(); }
+  function selectUid(){
+    // Clipboard API needs a secure context; select the text so a manual copy works.
+    var r = document.createRange(); r.selectNodeContents(el);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); done();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async function(){
   try {
-
     var auth = await window.requireAuth();
     if (!auth) return; // redirected to index
 
     var user    = auth.user;
-    var profile = auth.profile;
-
+    var profile = auth.profile || {};
     _userId = user.id;
-    document.getElementById('f-email').value = user.email;
-    document.getElementById('f-uid').value   = user.id;
 
-    if (profile) {
-      if (profile.full_name) document.getElementById('f-name').value      = profile.full_name;
-      if (profile.hospital)  document.getElementById('f-hospital').value  = profile.hospital;
-      if (profile.specialty) document.getElementById('f-specialty').value = profile.specialty;
-      if (profile.country)   document.getElementById('f-country').value   = profile.country;
-      if (profile.phone)     document.getElementById('f-phone').value     = profile.phone;
+    _curRole  = (profile.is_admin ? 'admin' : profile.role) || 'pending';
+    _curVerif = profile.verification_status || '';
+    var isDoctor = (_curRole === 'doctor');
+    var isPatient = (_curRole === 'patient');
+
+    // ACCOUNT — stated as facts, not as disabled form controls.
+    document.getElementById('v-email').textContent = user.email || '\u2014';
+    var typeLabel = { patient:'Patient', doctor:'Doctor', admin:'Administrator',
+                      other:'Healthcare professional', pending:'Not set yet' };
+    var pill = document.getElementById('v-acctype');
+    pill.textContent = typeLabel[_curRole] || _curRole;
+    if(_curRole === 'pending') pill.className = 'pill warn';
+
+    // Only a patient is offered the doctor application, and it is the full
+    // verification flow — never a role switch.
+    if(isPatient) document.getElementById('become-doctor').style.display = 'block';
+
+    /* The sidebar's Workspace link goes to the staff dashboard, which
+       requireRole() bounces a patient straight back out of. Showing a dead
+       link is worse than showing none. */
+    if(!isPatient && _curRole !== 'pending'){
+      document.getElementById('sb-workspace').style.display = 'block';
+      document.getElementById('sb-sep').style.display = 'block';
     }
 
-    // Current role display
-    _curRole = (profile && (profile.is_admin ? 'admin' : profile.role)) || 'pending';
-    _curVerif = profile ? (profile.verification_status || '') : '';
-    var rl = { patient:'Patient', doctor:'Anesthesiologist', admin:'Administrator', other:'Nurse / Student / Other', pending:'Not set' };
-    var roleText = rl[_curRole] || _curRole;
-    if(_curRole === 'doctor' && _curVerif === 'pending') roleText += ' (verification pending)';
-    document.getElementById('role-label').textContent = roleText;
+    // PERSONAL INFORMATION (patients, and anyone without a professional role)
+    if(!isDoctor){
+      document.getElementById('personal-section').style.display = 'block';
+      document.getElementById('f-name').value = profile.full_name || '';
+      fillCountries(document.getElementById('f-country'), profile.country);
+      document.getElementById('f-phone').value = splitPhone(profile.country, profile.phone);
+    } else {
+      // PROFESSIONAL PROFILE (doctors) — full field set, plus verification state.
+      document.getElementById('professional-section').style.display = 'block';
+      var vp = document.getElementById('v-verif');
+      var vmap = { approved:['Verified','pill'], pending:['Awaiting verification','pill warn'],
+                   rejected:['Not approved','pill stop'], changes_requested:['Changes requested','pill warn'] };
+      var vv = vmap[_curVerif] || ['Awaiting verification','pill warn'];
+      vp.textContent = vv[0]; vp.className = vv[1];
+      if(_curVerif === 'approved') document.getElementById('reverify-warn').style.display = 'block';
 
-    // Only an approved doctor has verification to lose, so only they are warned.
-    if(_curRole === 'doctor' && _curVerif === 'approved'){
-      var w = document.getElementById('reverify-warn');
-      if(w) w.style.display = 'block';
+      document.getElementById('d-name').value      = profile.full_name || '';
+      document.getElementById('d-hospital').value  = profile.hospital || '';
+      document.getElementById('d-specialty').value = profile.specialty || '';
+      document.getElementById('d-phone').value     = splitPhone(profile.country, profile.phone);
+      fillCountries(document.getElementById('d-country'), profile.country);
+
+      /* getProfile() selects a narrow, fixed column list because it runs on
+         every protected page; the professional columns are read here, where
+         they are shown. Narrow fallback if the migration is not applied yet. */
+      try {
+        var extra = await window.sb.from('profiles')
+          .select('professional_level,medical_license_number,medical_university')
+          .eq('id', user.id).maybeSingle();
+        if(!extra.error && extra.data){
+          document.getElementById('d-level').value      = extra.data.professional_level || '';
+          document.getElementById('d-license').value    = extra.data.medical_license_number || '';
+          document.getElementById('d-university').value = extra.data.medical_university || '';
+        }
+      } catch(e){ /* leave those fields empty rather than fail the page */ }
+    }
+    onCountryChange();
+
+    // SECURITY — a social account has no Anestheo password to change.
+    var prov = socialProvider(user);
+    if(prov){
+      document.getElementById('sec-provider').style.display = 'block';
+      document.getElementById('v-provider').textContent = prov;
+      document.getElementById('sec-password').style.display = 'none';
     }
 
     // Clinician directory opt-in — doctors and admins only
-    if(_curRole === 'doctor' || _curRole === 'admin' || (profile && profile.is_admin === true)){
+    if(isDoctor || _curRole === 'admin' || profile.is_admin === true){
       document.getElementById('directory-section').style.display = 'block';
-      document.getElementById('f-accepting').checked = !!(profile && profile.accepting_patients);
+      document.getElementById('f-accepting').checked = !!profile.accepting_patients;
     }
+
+    document.getElementById('v-uid').textContent = user.id;
 
     document.getElementById('loader').style.display = 'none';
     document.getElementById('app').style.display    = 'block';
@@ -333,31 +523,85 @@ document.addEventListener('DOMContentLoaded', async function(){
   }
 });
 
+/* Patients save three things. role, verification_status and is_admin are
+   stripped by saveProfile() and rejected by the database trigger regardless —
+   this form simply never had a reason to send them. */
 async function saveProfileData(){
   var btn = document.getElementById('save-btn');
   var ok  = document.getElementById('save-ok');
   var err = document.getElementById('save-err');
   ok.style.display = err.style.display = 'none';
+
+  var name = document.getElementById('f-name').value.trim();
+  if(name.length < 2){
+    err.textContent = 'Please enter your name.'; err.style.display = 'block'; return;
+  }
   btn.disabled = true; btn.textContent = 'Saving\u2026';
 
-  var data = {
-    full_name: document.getElementById('f-name').value.trim()     || null,
-    hospital:  document.getElementById('f-hospital').value.trim() || null,
-    specialty: document.getElementById('f-specialty').value       || null,
-    country:   document.getElementById('f-country').value         || null,
-    phone:     document.getElementById('f-phone').value.trim()    || null
-  };
-
-  var result = await window.saveProfile(_userId, data);
-  btn.disabled = false; btn.textContent = 'Save profile';
+  var country = document.getElementById('f-country').value || null;
+  var result = await window.saveProfile(_userId, {
+    full_name: name,
+    country:   country,
+    phone:     normalizePhone(country, document.getElementById('f-phone').value)
+  });
+  btn.disabled = false; btn.textContent = 'Save changes';
 
   if(result.error){
-    err.textContent = result.error.message;
-    err.style.display = 'block';
-  } else {
-    ok.textContent = '\u2713 Profile saved.';
-    ok.style.display = 'block';
+    err.textContent = result.error.message; err.style.display = 'block'; return;
   }
+  ok.textContent = 'Saved.'; ok.style.display = 'block';
+  document.getElementById('f-phone').value =
+    splitPhone(country, normalizePhone(country, document.getElementById('f-phone').value));
+}
+
+/* Doctors save the professional set. Any change to a verification-sensitive
+   field returns verification_status to 'pending' — enforced by the database
+   trigger, not here — so re-read the state afterwards and tell them plainly
+   rather than leaving a stale "Verified" badge on screen. */
+async function saveDoctorData(){
+  var btn = document.getElementById('dsave-btn');
+  var ok  = document.getElementById('dsave-ok');
+  var err = document.getElementById('dsave-err');
+  ok.style.display = err.style.display = 'none';
+
+  var name = document.getElementById('d-name').value.trim();
+  if(name.length < 2){
+    err.textContent = 'Please enter your full name.'; err.style.display = 'block'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Saving\u2026';
+
+  var country = document.getElementById('d-country').value || null;
+  var was = _curVerif;
+  var result = await window.saveProfile(_userId, {
+    full_name:              name,
+    professional_level:     document.getElementById('d-level').value || null,
+    country:                country,
+    phone:                  normalizePhone(country, document.getElementById('d-phone').value),
+    medical_license_number: document.getElementById('d-license').value.trim() || null,
+    hospital:               document.getElementById('d-hospital').value.trim() || null,
+    medical_university:     document.getElementById('d-university').value.trim() || null,
+    specialty:              document.getElementById('d-specialty').value || null
+  });
+  btn.disabled = false; btn.textContent = 'Save changes';
+
+  if(result.error){
+    err.textContent = result.error.message; err.style.display = 'block'; return;
+  }
+
+  var fresh = await window.getProfile(_userId);
+  var now = (fresh && fresh.verification_status) || was;
+  _curVerif = now;
+  if(was === 'approved' && now !== 'approved'){
+    var vp = document.getElementById('v-verif');
+    vp.textContent = 'Awaiting verification'; vp.className = 'pill warn';
+    document.getElementById('reverify-warn').style.display = 'none';
+    ok.innerHTML = 'Saved. Because you changed a professional detail, your account is ' +
+      '<strong>awaiting verification again</strong> and the clinical workspace is closed until ' +
+      'an administrator approves it.';
+  } else {
+    ok.textContent = 'Saved.';
+  }
+  ok.style.display = 'block';
 }
 
 async function saveDirectory(){
