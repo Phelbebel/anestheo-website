@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Anesthesia Records — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/anesthesia.js?v=2026.08.07-18"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
+  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.45);}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
+  -webkit-font-smoothing:antialiased;}
+#loader{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);
+  border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+#app{display:none;max-width:1000px;margin:0 auto;padding:30px 20px 60px;}
+h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;}
+.sub{font-size:14px;color:var(--muted);margin-bottom:22px;}
+.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin-bottom:14px;}
+.card-h{padding:12px 16px;border-bottom:1px solid rgba(27,107,90,.16);font-size:12.5px;
+  font-weight:700;color:var(--accent);}
+.card-b{padding:16px;}
+.row{display:flex;align-items:center;gap:14px;padding:13px 16px;text-decoration:none;color:inherit;
+  border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s;}
+.row:hover{background:rgba(126,207,192,.07);}
+.row:last-child{border-bottom:none;}
+.row-main{flex:1;min-width:0;}
+.row-name{font-size:15px;font-weight:600;}
+.row-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.badge{font-size:11px;font-weight:600;border-radius:6px;padding:4px 9px;white-space:nowrap;}
+.b-live{background:rgba(27,107,90,.18);border:1px solid rgba(42,138,116,.35);color:var(--accent);}
+.b-done{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.6);}
+.empty{text-align:center;padding:34px 18px;color:var(--muted);font-size:14px;line-height:1.7;}
+label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.06em;
+  text-transform:uppercase;font-weight:600;margin:10px 0 4px;}
+input,select{width:100%;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;padding:10px 12px;color:#fff;font-family:inherit;font-size:14.5px;min-height:44px;outline:none;}
+input:focus,select:focus{border-color:var(--teal2);}
+select option{background:#132218;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.btn{width:100%;padding:12px;border-radius:9px;border:none;font-family:inherit;font-size:14.5px;
+  font-weight:600;cursor:pointer;background:var(--teal);color:#fff;min-height:46px;margin-top:14px;}
+.btn:hover{background:var(--teal2);}
+.btn.ghost{background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);}
+.msg{display:none;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px;
+  background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#FFB4A8;}
+@media(max-width:560px){ .g2{grid-template-columns:1fr;} #app{padding:20px 14px 50px;} }
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div id="app">
+  <h1>Anesthesia records</h1>
+  <p class="sub">Cases you are the anesthesiologist for, or have a treating relationship with.</p>
+
+  <div class="card">
+    <div class="card-h">START A NEW RECORD</div>
+    <div class="card-b">
+      <label for="n-name">Patient name</label>
+      <input id="n-name" placeholder="As identified in theatre" autocomplete="off">
+      <div class="g2">
+        <div><label for="n-mrn">Hospital / MRN</label><input id="n-mrn" autocomplete="off"></div>
+        <div><label for="n-dob">Date of birth</label><input id="n-dob" type="date"></div>
+      </div>
+      <div class="g2">
+        <div><label for="n-weight">Weight (kg)</label><input id="n-weight" type="number" step="0.1"></div>
+        <div><label for="n-height">Height (cm)</label><input id="n-height" type="number" step="0.5"></div>
+      </div>
+      <div class="g2">
+        <div><label for="n-asa">ASA</label>
+          <select id="n-asa"><option value="">—</option><option>I</option><option>II</option>
+            <option>III</option><option>IV</option><option>V</option><option>VI</option></select></div>
+        <div><label for="n-urgency">Urgency</label>
+          <select id="n-urgency"><option value="elective">Elective</option>
+            <option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
+      </div>
+      <label for="n-proc">Planned procedure</label>
+      <input id="n-proc" placeholder="e.g. Laparoscopic cholecystectomy" autocomplete="off">
+      <label for="n-allergy">Allergies</label>
+      <input id="n-allergy" placeholder="Leave blank only if genuinely none known" autocomplete="off">
+      <button class="btn" id="n-go" onclick="createCase()">Open record</button>
+      <div class="msg" id="n-err"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">RECORDS</div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+/* The list is whatever RLS returns. There is no "my cases" filter in the query
+   because there does not need to be one: a doctor simply cannot select a case
+   they have no relationship with, so the client asking for everything and the
+   client asking for its own rows return the same thing. */
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s)
+  .replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+async function render(){
+  var cases = await ANES.listCases();
+  if(!cases.length){
+    el('list').innerHTML = '<div class="empty">No anesthesia records yet.<br>' +
+      'Start one above — you can fill in the detail as the case goes.</div>';
+    return;
+  }
+  el('list').innerHTML = cases.map(function(c){
+    var live = c.status !== 'finalized';
+    var bits = [];
+    if(c.planned_procedure) bits.push(c.planned_procedure);
+    if(c.case_date) bits.push(new Date(c.case_date).toLocaleDateString());
+    if(c.operating_room) bits.push(c.operating_room);
+    return '<a class="row" href="/anesthesia-record.html?case=' + encodeURIComponent(c.id) + '">' +
+      '<div class="row-main"><div class="row-name">' + esc(c.display_name || 'Unnamed case') + '</div>' +
+      '<div class="row-sub">' + esc(bits.join(' · ')) + '</div></div>' +
+      '<span class="badge ' + (live ? 'b-live' : 'b-done') + '">' +
+      (live ? 'In progress' : 'Finalized') + '</span></a>';
+  }).join('');
+}
+
+async function createCase(){
+  var err = el('n-err'); err.style.display = 'none';
+  var name = el('n-name').value.trim();
+  if(name.length < 2){ err.textContent = 'Enter the patient name.'; err.style.display = 'block'; return; }
+  var btn = el('n-go'); btn.disabled = true; btn.textContent = 'Opening…';
+  var r = await ANES.createCase({
+    display_name: name,
+    mrn: el('n-mrn').value.trim() || null,
+    date_of_birth: el('n-dob').value || null,
+    weight_kg: parseFloat(el('n-weight').value) || null,
+    height_cm: parseFloat(el('n-height').value) || null,
+    asa_class: el('n-asa').value || null,
+    urgency: el('n-urgency').value,
+    planned_procedure: el('n-proc').value.trim() || null,
+    allergies: el('n-allergy').value.trim() || null
+  });
+  btn.disabled = false; btn.textContent = 'Open record';
+  if(r.error || !r.id){
+    err.textContent = (r.error && r.error.message) || 'Could not open the record.';
+    err.style.display = 'block';
+    return;
+  }
+  location.href = '/anesthesia-record.html?case=' + encodeURIComponent(r.id);
+}
+
+(async function(){
+  var auth = await window.requireRole('staff');
+  if(!auth) return;
+  await render();
+  el('loader').style.display = 'none';
+  el('app').style.display = 'block';
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Anesthesia Record — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase.js?v=2026.08.07-18"></script>
+<script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/anesthesia.js?v=2026.08.07-18"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;--panel:rgba(255,255,255,.04);
+  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.45);--warn:#E8A838;}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
+  -webkit-font-smoothing:antialiased;padding-bottom:40px;}
+#loader{position:fixed;inset:0;background:var(--dark);z-index:99;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);
+  border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+#app{display:none;}
+
+/* ── Persistent case header. Sticky because in theatre you must be able to see
+      who this is and how long they have been under, at any scroll position. ── */
+.hdr{position:sticky;top:0;z-index:20;background:rgba(6,16,11,.985);
+  border-bottom:1px solid var(--border);backdrop-filter:blur(8px);}
+.hdr-in{max-width:1400px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;
+  gap:18px;flex-wrap:wrap;}
+.hdr-id{min-width:180px;}
+.hdr-name{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;line-height:1.2;}
+.hdr-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.chip{font-size:11.5px;font-weight:600;border-radius:6px;padding:4px 9px;
+  background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.3);color:var(--accent);white-space:nowrap;}
+.chip.k{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.75);}
+.chip.warn{background:rgba(232,168,56,.12);border-color:rgba(232,168,56,.32);color:#FFD9A0;}
+.chip.stop{background:rgba(192,57,43,.14);border-color:rgba(192,57,43,.34);color:#FFB4A8;}
+/* Weight is the single most dangerous number to get wrong in a child. */
+.chip.weight{font-size:14px;padding:5px 12px;font-weight:700;}
+.chip.weight.peds{background:rgba(232,168,56,.16);border-color:var(--warn);color:#FFD9A0;font-size:16px;}
+.clock{margin-left:auto;text-align:right;}
+.clock-t{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+.clock-l{font-size:10.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px;}
+
+.wrap{max-width:1400px;margin:0 auto;padding:18px;display:grid;
+  grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+.card-h{padding:11px 15px;border-bottom:1px solid rgba(27,107,90,.16);display:flex;
+  align-items:center;justify-content:space-between;gap:10px;}
+.card-t{font-size:12.5px;font-weight:700;color:var(--accent);letter-spacing:.03em;}
+.card-b{padding:14px 15px;}
+
+/* ── Timeline: the chart itself. ── */
+.tl{list-style:none;}
+.tl-row{display:grid;grid-template-columns:64px 14px 1fr;gap:10px;align-items:start;padding:7px 0;}
+.tl-row+.tl-row{border-top:1px solid rgba(255,255,255,.05);}
+.tl-time{font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600;color:var(--accent);padding-top:1px;}
+.tl-dot{position:relative;height:100%;}
+.tl-dot::before{content:'';position:absolute;left:4px;top:6px;width:7px;height:7px;border-radius:50%;
+  background:var(--teal2);box-shadow:0 0 0 3px rgba(42,138,116,.18);}
+.tl-dot::after{content:'';position:absolute;left:7px;top:16px;bottom:-9px;width:1px;background:rgba(255,255,255,.08);}
+.tl-row:last-child .tl-dot::after{display:none;}
+.tl-row.ev .tl-dot::before{background:var(--warn);box-shadow:0 0 0 3px rgba(232,168,56,.18);}
+.tl-row.milestone .tl-dot::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.14);}
+.tl-txt{font-size:14px;line-height:1.45;}
+.tl-meta{font-size:11.5px;color:var(--muted);margin-top:1px;}
+.empty{font-size:13.5px;color:var(--muted);text-align:center;padding:26px 12px;line-height:1.6;}
+
+/* ── Quick panel ── */
+.qtabs{display:flex;gap:5px;flex-wrap:wrap;padding:11px 13px 0;}
+.qtab{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:7px;
+  padding:6px 10px;font-size:12px;font-family:inherit;color:rgba(255,255,255,.62);cursor:pointer;min-height:32px;}
+.qtab.on{background:rgba(27,107,90,.24);border-color:var(--teal2);color:#fff;font-weight:600;}
+.qpane{display:none;padding:13px;} .qpane.on{display:block;}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.qbtn{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);border-radius:9px;
+  padding:10px 9px;font-family:inherit;font-size:13px;color:#fff;cursor:pointer;text-align:left;
+  min-height:46px;line-height:1.3;transition:all .15s;}
+.qbtn:hover{background:rgba(126,207,192,.13);border-color:rgba(126,207,192,.45);}
+.qbtn:active{transform:scale(.985);}
+.qbtn b{display:block;font-weight:600;}
+.qbtn small{display:block;color:var(--muted);font-size:11px;margin-top:1px;}
+.qbtn.wide{grid-column:1/-1;}
+.qbtn.done{opacity:.45;}
+.fieldrow{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:9px;}
+input,select,textarea{width:100%;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;padding:9px 11px;color:#fff;font-family:inherit;font-size:14px;min-height:42px;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--teal2);}
+select option{background:#132218;}
+label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.06em;
+  text-transform:uppercase;font-weight:600;margin:9px 0 4px;}
+.btn{width:100%;padding:11px;border-radius:9px;border:none;font-family:inherit;font-size:14px;
+  font-weight:600;cursor:pointer;background:var(--teal);color:#fff;min-height:44px;margin-top:10px;}
+.btn:hover{background:var(--teal2);}
+.btn.ghost{background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);}
+.btn.danger{background:none;border:1px solid rgba(192,57,43,.4);color:#FFB4A8;}
+.totals{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;font-size:13px;}
+.totals dt{color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase;}
+.totals dd{font-weight:600;font-variant-numeric:tabular-nums;margin-bottom:5px;}
+.banner{margin:0;padding:10px 15px;font-size:13px;line-height:1.55;}
+.banner.locked{background:rgba(232,168,56,.09);border-bottom:1px solid rgba(232,168,56,.25);color:#FFD9A0;}
+.msg{display:none;border-radius:8px;padding:9px 12px;font-size:13px;margin-top:10px;}
+.msg-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#FFB4A8;}
+.msg-ok{background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.3);color:var(--accent);}
+@media(max-width:1000px){
+  .wrap{grid-template-columns:1fr;}
+  .clock{margin-left:0;text-align:left;}
+}
+@media(max-width:520px){
+  .hdr-in{padding:9px 13px;gap:11px;} .wrap{padding:13px;}
+  .qgrid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+
+<div id="app">
+  <!-- Persistent header: identity, the numbers you must never misread, and the clock -->
+  <header class="hdr">
+    <div class="hdr-in">
+      <div class="hdr-id">
+        <div class="hdr-name" id="h-name">—</div>
+        <div class="hdr-sub" id="h-sub">—</div>
+      </div>
+      <div class="chips" id="h-chips"></div>
+      <div class="clock">
+        <div class="clock-t" id="h-clock">--:--</div>
+        <div class="clock-l" id="h-clock-l">since anesthesia start</div>
+      </div>
+    </div>
+    <div class="banner locked" id="h-locked" style="display:none">
+      <strong>This record is finalized.</strong> It can no longer be edited. Corrections are
+      recorded as amendments, which are appended with your name, the time and the reason.
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- CENTRE: the chart -->
+    <div>
+      <div class="card">
+        <div class="card-h">
+          <span class="card-t">ANESTHESIA TIMELINE</span>
+          <span class="card-t" id="tl-count" style="color:var(--muted);font-weight:500"></span>
+        </div>
+        <div class="card-b" style="padding:6px 15px 14px;">
+          <ul class="tl" id="timeline"></ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="card-t">CASE TOTALS</span></div>
+        <div class="card-b"><dl class="totals" id="totals"></dl></div>
+      </div>
+
+      <div class="card" id="amend-card" style="display:none">
+        <div class="card-h"><span class="card-t">AMENDMENTS</span></div>
+        <div class="card-b" id="amend-list"></div>
+      </div>
+    </div>
+
+    <!-- SIDE: one-tap documentation -->
+    <div>
+      <div class="card">
+        <div class="qtabs" id="qtabs"></div>
+        <div id="qpanes"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="card-t">RECORD</span></div>
+        <div class="card-b">
+          <button class="btn" id="btn-finalize" onclick="finalizeCase()">Sign &amp; finalize record</button>
+          <button class="btn ghost" id="btn-amend" onclick="openAmend()" style="display:none">Record an amendment</button>
+          <a class="btn ghost" href="/anesthesia-cases.html" style="display:block;text-align:center;text-decoration:none;line-height:22px;">Back to cases</a>
+          <div class="msg msg-err" id="rec-err"></div>
+          <div class="msg msg-ok"  id="rec-ok"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE INTRAOPERATIVE RECORD
+
+   Everything on this page writes a row with a case_id, a clinical timestamp
+   and entered_by. There is no free-text "notes" blob standing in for the
+   chart, because a record you cannot query is a record you cannot audit.
+
+   The quick panel exists because the alternative to one tap is a clinician
+   writing on a paper towel and transcribing it later from memory. Every
+   one-tap action stamps NOW and remains editable afterwards: retrospective
+   correction is normal practice, and a chart that forbids it just becomes a
+   tidy chart that is wrong.
+
+   Authorization is NOT here. RLS decides who may read or write this case;
+   this page only decides what to show. If someone forged their way onto this
+   URL the queries would return nothing and the writes would be refused.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+var CASE_ID = new URLSearchParams(location.search).get('case');
+var _case = null, _locked = false, _clockBase = null;
+
+function el(id){ return document.getElementById(id); }
+function msg(id, text){ var e = el(id); e.textContent = text; e.style.display = 'block';
+  setTimeout(function(){ e.style.display = 'none'; }, 6000); }
+function esc(s){ return String(s == null ? '' : s)
+  .replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function hhmm(ts){ if(!ts) return '--:--';
+  var d = new Date(ts);
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+function renderHeader(){
+  var c = _case;
+  el('h-name').textContent = c.display_name || 'Unnamed case';
+  var bits = [];
+  if(c.mrn) bits.push('MRN ' + c.mrn);
+  if(c.date_of_birth) bits.push(ANES.ageFrom(c.date_of_birth));
+  if(c.sex) bits.push(c.sex);
+  if(c.operating_room) bits.push(c.operating_room);
+  el('h-sub').textContent = bits.join(' · ') || 'No identifiers recorded';
+
+  var peds = (c.case_modes || []).some(function(m){ return m === 'pediatric' || m === 'neonatal'; });
+  var chips = [];
+  if(c.weight_kg != null)
+    chips.push('<span class="chip weight' + (peds ? ' peds' : '') + '">' + esc(c.weight_kg) + ' kg</span>');
+  if(c.height_cm != null) chips.push('<span class="chip k">' + esc(c.height_cm) + ' cm</span>');
+  var bmi = ANES.bmi(c.weight_kg, c.height_cm);
+  if(bmi) chips.push('<span class="chip k">BMI ' + bmi + '</span>');
+  if(c.asa_class) chips.push('<span class="chip">ASA ' + esc(c.asa_class) + (c.asa_emergency ? 'E' : '') + '</span>');
+  if(c.urgency && c.urgency !== 'elective')
+    chips.push('<span class="chip ' + (c.urgency === 'emergency' ? 'stop' : 'warn') + '">' + esc(c.urgency) + '</span>');
+  // Allergies are shown loudly or not at all — a quiet allergy chip is worse
+  // than none, because it reads as "checked and clear".
+  chips.push(c.allergies
+    ? '<span class="chip stop">⚠ ' + esc(c.allergies) + '</span>'
+    : '<span class="chip k">No known allergies recorded</span>');
+  (c.anesthesia_types || []).forEach(function(t){ chips.push('<span class="chip k">' + esc(t) + '</span>'); });
+  (c.case_modes || []).forEach(function(m){ chips.push('<span class="chip warn">' + esc(m) + '</span>'); });
+  el('h-chips').innerHTML = chips.join('');
+
+  _locked = (c.status === 'finalized');
+  el('h-locked').style.display = _locked ? 'block' : 'none';
+  el('btn-finalize').style.display = _locked ? 'none' : 'block';
+  el('btn-amend').style.display    = _locked ? 'block' : 'none';
+}
+
+/* The running clock counts from anesthesia start, not from page load: the
+   number a clinician wants is "how long has this patient been under". */
+function tickClock(){
+  if(!_clockBase){ el('h-clock').textContent = '--:--'; el('h-clock-l').textContent = 'anesthesia not started'; return; }
+  var mins = Math.floor((Date.now() - new Date(_clockBase).getTime()) / 60000);
+  if(mins < 0) mins = 0;
+  el('h-clock').textContent = Math.floor(mins/60) + ':' + String(mins%60).padStart(2,'0');
+  el('h-clock-l').textContent = 'since anesthesia start';
+}
+
+/* ── Timeline ───────────────────────────────────────────────────────────── */
+function renderTimeline(rows){
+  el('tl-count').textContent = rows.length ? rows.length + ' entries' : '';
+  if(!rows.length){
+    el('timeline').innerHTML = '<div class="empty">Nothing recorded yet.<br>' +
+      'Use the panel to log the first event — every entry is stamped with the current time.</div>';
+    return;
+  }
+  el('timeline').innerHTML = rows.map(function(r){
+    return '<li class="tl-row ' + r.cls + '">' +
+      '<div class="tl-time">' + hhmm(r.at) + '</div>' +
+      '<div class="tl-dot"></div>' +
+      '<div><div class="tl-txt">' + esc(r.text) + '</div>' +
+      (r.meta ? '<div class="tl-meta">' + esc(r.meta) + '</div>' : '') + '</div></li>';
+  }).join('');
+}
+
+/* ── Quick panel ────────────────────────────────────────────────────────── */
+function buildPanel(){
+  var tabs = ANES.PANELS.map(function(p, i){
+    return '<button class="qtab' + (i===0?' on':'') + '" data-p="' + p.id + '" onclick="showPane(\'' + p.id + '\')">' +
+           esc(p.label) + '</button>'; }).join('');
+  el('qtabs').innerHTML = tabs;
+  el('qpanes').innerHTML = ANES.PANELS.map(function(p, i){
+    return '<div class="qpane' + (i===0?' on':'') + '" id="pane-' + p.id + '">' + p.render() + '</div>';
+  }).join('');
+}
+function showPane(id){
+  [].forEach.call(document.querySelectorAll('.qtab'), function(b){ b.classList.toggle('on', b.dataset.p === id); });
+  [].forEach.call(document.querySelectorAll('.qpane'), function(d){ d.classList.toggle('on', d.id === 'pane-' + id); });
+}
+
+/* ── Writes. Each returns to reload() so the timeline is always the server's
+      version of events, never an optimistic guess. ─────────────────────── */
+async function guard(){
+  if(_locked){ msg('rec-err', 'This record is finalized. Record an amendment instead.'); return false; }
+  return true;
+}
+async function markMilestone(key, label){
+  if(!await guard()) return;
+  var r = await ANES.setMilestone(CASE_ID, key);
+  if(r.error) return msg('rec-err', r.error.message);
+  await reload();
+}
+async function giveDrug(name, dose, unit, category){
+  if(!await guard()) return;
+  var r = await ANES.addMedication(CASE_ID, { medication:name, dose:dose, unit:unit, category:category, route:'iv' });
+  if(r.error) return msg('rec-err', r.error.message);
+  await reload();
+}
+async function giveCustomDrug(){
+  if(!await guard()) return;
+  var name = el('d-name').value.trim(), dose = parseFloat(el('d-dose').value);
+  if(!name || !(dose > 0)) return msg('rec-err', 'Enter a medication and a dose.');
+  var r = await ANES.addMedication(CASE_ID, { medication:name, dose:dose,
+    unit: el('d-unit').value, route: el('d-route').value });
+  if(r.error) return msg('rec-err', r.error.message);
+  el('d-name').value = ''; el('d-dose').value = '';
+  await reload();
+}
+async function addFluid(fluid, category, volume){
+  if(!await guard()) return;
+  var v = volume != null ? volume : parseFloat(el('f-vol').value);
+  if(!(v > 0)) return msg('rec-err', 'Enter a volume.');
+  var r = await ANES.addFluid(CASE_ID, { fluid:fluid || el('f-name').value, category:category || 'crystalloid', volume_ml:v });
+  if(r.error) return msg('rec-err', r.error.message);
+  await reload();
+}
+async function addFluidFav(i){
+  var f = ANES.FLUID_FAVOURITES[i];
+  if(!f) return;
+  await addFluid(f.name, f.category, f.volume_ml);
+}
+async function addOutput(kind){
+  if(!await guard()) return;
+  var v = parseFloat(el('o-vol').value);
+  if(!(v > 0)) return msg('rec-err', 'Enter a volume.');
+  var r = await ANES.addOutput(CASE_ID, { kind:kind, volume_ml:v });
+  if(r.error) return msg('rec-err', r.error.message);
+  el('o-vol').value = '';
+  await reload();
+}
+async function addEvent(type){
+  if(!await guard()) return;
+  var r = await ANES.addEvent(CASE_ID, { category:'complication', event_type:type,
+    description: el('e-desc') ? el('e-desc').value.trim() : null });
+  if(r.error) return msg('rec-err', r.error.message);
+  if(el('e-desc')) el('e-desc').value = '';
+  await reload();
+}
+async function addVital(){
+  if(!await guard()) return;
+  var p = el('v-param').value, v = parseFloat(el('v-value').value);
+  if(!(v === v)) return msg('rec-err', 'Enter a value.');
+  var r = await ANES.addVital(CASE_ID, { parameter:p, value:v, unit: ANES.VITAL_UNITS[p] || null });
+  if(r.error) return msg('rec-err', r.error.message);
+  el('v-value').value = '';
+  await reload();
+}
+
+async function finalizeCase(){
+  if(_locked) return;
+  if(!confirm('Sign and finalize this anesthesia record?\n\n' +
+    'The record becomes immutable. Later corrections must be recorded as amendments, ' +
+    'which are appended with your name, the time and the reason.')) return;
+  var r = await ANES.finalize(CASE_ID);
+  if(r.error) return msg('rec-err', r.error.message);
+  msg('rec-ok', 'Record finalized.');
+  await reload();
+}
+async function openAmend(){
+  var area = prompt('Which part of the record does this amendment concern?\n(e.g. medications, timeline, airway)');
+  if(area === null) return;
+  var text = prompt('What is the correction?');
+  if(!text) return;
+  var reason = prompt('Why is it being amended? (required)');
+  if(!reason) return msg('rec-err', 'An amendment needs a reason.');
+  var r = await ANES.amend(CASE_ID, area || 'general', null, text, reason);
+  if(r.error) return msg('rec-err', r.error.message);
+  msg('rec-ok', 'Amendment recorded.');
+  await reload();
+}
+
+/* ── Load ───────────────────────────────────────────────────────────────── */
+async function reload(){
+  var data = await ANES.loadCase(CASE_ID);
+  if(!data.case){
+    document.body.innerHTML = '<div style="max-width:520px;margin:80px auto;padding:24px;font-family:DM Sans,sans-serif;' +
+      'color:#fff;text-align:center"><h1 style="font-size:20px;margin-bottom:10px">Record not available</h1>' +
+      '<p style="color:rgba(255,255,255,.5);line-height:1.6">This anesthesia record does not exist, or you do not ' +
+      'have access to it. Access is decided by the database, not by this page.</p>' +
+      '<p style="margin-top:18px"><a href="/anesthesia-cases.html" style="color:#7ECFC0">Back to cases</a></p></div>';
+    return;
+  }
+  _case = data.case;
+  renderHeader();
+  _clockBase = data.milestones.anesthesia_start || null;
+  tickClock();
+  renderTimeline(ANES.buildTimeline(data));
+  el('totals').innerHTML = ANES.renderTotals(data);
+  // Mark milestones already recorded, so a second tap is obviously redundant.
+  [].forEach.call(document.querySelectorAll('[data-milestone]'), function(b){
+    b.classList.toggle('done', !!data.milestones[b.dataset.milestone]);
+  });
+  if(data.amendments.length){
+    el('amend-card').style.display = 'block';
+    el('amend-list').innerHTML = data.amendments.map(function(a){
+      return '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)">' +
+        '<div style="font-size:13.5px">' + esc(a.amendment) + '</div>' +
+        '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' +
+        esc(a.target_area) + ' · ' + hhmm(a.amended_at) + ' · ' + esc(a.reason) + '</div></div>';
+    }).join('');
+  }
+}
+
+(async function(){
+  // Verified doctors only. requireRole sends a pending doctor to the pending
+  // page and a patient to their own area; the database refuses them regardless.
+  var auth = await window.requireRole('staff');
+  if(!auth) return;
+  if(!CASE_ID){ location.replace('/anesthesia-cases.html'); return; }
+  buildPanel();
+  await reload();
+  setInterval(tickClock, 15000);
+  el('loader').style.display = 'none';
+  el('app').style.display = 'block';
+})();
+</script>
+</body>
+</html>
