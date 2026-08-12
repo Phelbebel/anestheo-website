@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Anesthesia Record — Anestheo</title>
+<title>Live Chart — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.07-18"></script>
 <script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
 <script src="/anesthesia.js?v=2026.08.07-18"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -132,7 +133,7 @@ label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.0
       </div>
     </div>
     <div class="banner locked" id="h-locked" style="display:none">
-      <strong>This record is finalized.</strong> It can no longer be edited. Corrections are
+      <strong>This Live Chart record is finalized.</strong> It can no longer be edited. Corrections are
       recorded as amendments, which are appended with your name, the time and the reason.
     </div>
   </header>
@@ -172,7 +173,7 @@ label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.0
         <div class="card-b">
           <button class="btn" id="btn-finalize" onclick="finalizeCase()">Sign &amp; finalize record</button>
           <button class="btn ghost" id="btn-amend" onclick="openAmend()" style="display:none">Record an amendment</button>
-          <a class="btn ghost" href="/anesthesia-cases.html" style="display:block;text-align:center;text-decoration:none;line-height:22px;">Back to cases</a>
+          <a class="btn ghost" href="/anesthesia-cases.html" style="display:block;text-align:center;text-decoration:none;line-height:22px;">Back to Live Chart</a>
           <div class="msg msg-err" id="rec-err"></div>
           <div class="msg msg-ok"  id="rec-ok"></div>
         </div>
@@ -389,7 +390,7 @@ async function reload(){
       'color:#fff;text-align:center"><h1 style="font-size:20px;margin-bottom:10px">Record not available</h1>' +
       '<p style="color:rgba(255,255,255,.5);line-height:1.6">This anesthesia record does not exist, or you do not ' +
       'have access to it. Access is decided by the database, not by this page.</p>' +
-      '<p style="margin-top:18px"><a href="/anesthesia-cases.html" style="color:#7ECFC0">Back to cases</a></p></div>';
+      '<p style="margin-top:18px"><a href="/anesthesia-cases.html" style="color:#7ECFC0">Back to Live Chart</a></p></div>';
     return;
   }
   _case = data.case;

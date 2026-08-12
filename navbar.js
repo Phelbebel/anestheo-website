@@ -126,6 +126,16 @@ body.nb-lock{position:fixed;width:100%;overflow:hidden;}
 .nb-mob-card.on .nb-mob-ico{background:rgba(42,138,116,.34);border-color:rgba(126,207,192,.4);}
 .nb-mob-card.on .nb-mob-lb{color:#fff;}
 
+/* The Live Tools strip: which tool inside the workspace you are looking at. */
+.nb-tools{display:flex;gap:6px;flex-wrap:wrap;padding:0;margin:0 0 16px;}
+.nb-tool{display:inline-block;padding:7px 14px;border-radius:8px;font-size:13.5px;
+  font-weight:600;text-decoration:none;color:rgba(255,255,255,.6);
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
+  min-height:38px;line-height:22px;transition:all .16s;}
+.nb-tool:hover{color:#fff;background:rgba(126,207,192,.1);border-color:rgba(126,207,192,.4);}
+.nb-tool.on{color:#fff;background:rgba(27,107,90,.26);border-color:#2A8A74;}
+@media(max-width:520px){ .nb-tool{flex:1 1 auto;text-align:center;} }
+
 /* Live Tools — the one elevated card. Teal only. */
 .nb-mob-card.live{border-color:rgba(42,138,116,.5);
   background:
@@ -463,6 +473,7 @@ function buildHTML(page){
         '<a href="/videos.html" class="nb-mob-link">Videos</a>' +
         '<a href="/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
         '<a href="/engine.html" class="nb-mob-link">Live Tools</a>' +
+        '<a href="/anesthesia-cases.html" class="nb-mob-link">Live Chart</a>' +
       '</div>' +
       // Patient mobile nav — logged-in patients only.
       '<div id="nb-mob-patient-nav" style="display:none">' +
@@ -606,6 +617,33 @@ var NB_WORKSPACES = {
       desc:'Clinical tools and crisis workstation' }
   ]
 };
+/* ── Live Tools ───────────────────────────────────────────────────────────
+   Live Tools is a workspace; the things inside it are tools. Live Chart is the
+   first, and this strip is where the next one goes — which is why it is a list
+   here rather than two hand-written links on two pages.
+
+   Live Chart is the user-facing name for the anesthesia record. The files stay
+   called anesthesia-* because renaming routes would break links people already
+   have, and the internal name is accurate. */
+var NB_LIVE_TOOLS = [
+  { href:'/engine.html',           label:'Live Tools',
+    desc:'Drugs, calculators and crisis tools' },
+  { href:'/anesthesia-cases.html', label:'Live Chart',
+    desc:'Start or continue an anesthesia record' }
+];
+
+/* Rendered by the tool pages themselves rather than injected into the navbar:
+   it belongs to the workspace, not to the site chrome, and a page that is not
+   part of Live Tools should not show it. */
+window.nbToolsBar = function(activeHref){
+  return '<nav class="nb-tools" aria-label="Live Tools">' +
+    NB_LIVE_TOOLS.map(function(t){
+      var on = (t.href === activeHref);
+      return '<a href="' + t.href + '" class="nb-tool' + (on ? ' on' : '') + '"' +
+             (on ? ' aria-current="page"' : '') + '>' + t.label + '</a>';
+    }).join('') + '</nav>';
+};
+
 function nbCurrentPage(){ return (location.pathname.split('/').pop() || 'index.html'); }
 
 function renderWorkspaceSwitcher(role){
@@ -730,6 +768,8 @@ window.nbToggleMenu = function(){
 
 // ── GLOBAL SEARCH ─────────────────────────────────────────────
 var NB_SEARCH_INDEX = [
+  {title:'Live Chart', cat:'Tools', ico:'\uD83D\uDCC8', url:'/anesthesia-cases.html',
+   desc:'Digital anesthesia record — start or continue a case', staff:true},
   {title:'Anesthesiology Live Tools', cat:'Tools', ico:'\uD83E\uDE7A', url:'/engine.html',
    kw:'anesthesiology live tools engine calculator dosing airway ventilation neuraxial fluids scores tiva tci vasopressor inotrope mabl blood volume drug reference perioperative'},
   {title:'Clinical References', cat:'Library', ico:'\uD83D\uDCD6', url:'/references.html',

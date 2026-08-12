@@ -1397,6 +1397,10 @@ body .nb-search-wrap{display:none !important;}
 <div id="nb-placeholder"></div>
 <div id="app" class="lit">
   <div class="eng-wrap">
+    <!-- Which TOOL you are in. The command strip below is which DOMAIN within
+         this tool — a different level, so the two do not compete. Rendered
+         from navbar.js so adding a third tool is one entry, not three edits. -->
+    <div id="tools-bar"></div>
     <!-- ── CLINICAL COMMAND STRIP ───────────────────────────────────────
          The workstation's global navigation. It replaces the marketing hero
          that used to occupy the top of the page: a clinician arriving mid-case
@@ -3508,6 +3512,24 @@ function cwClearDerived(){
   }).observe(out,{childList:true,subtree:true});
   inject();
 })();
+</script>
+<script>
+/* Staff-only chrome. Live Tools is already staff-gated, but the strip is drawn
+   only when the navbar has actually resolved a staff session, so it never
+   flashes a Live Chart link at someone who cannot open it. */
+document.addEventListener('DOMContentLoaded', function(){
+  var slot = document.getElementById('tools-bar');
+  if(!slot || typeof window.nbToolsBar !== 'function') return;
+  (window.getSession ? window.getSession() : Promise.resolve(null)).then(function(sess){
+    if(!sess) return;
+    return window.getProfile(sess.user.id).then(function(p){
+      if(!p) return;
+      var staff = (p.is_admin === true) || p.role === 'admin' ||
+                  (p.role === 'doctor' && p.verification_status === 'approved');
+      if(staff) slot.innerHTML = window.nbToolsBar('/engine.html');
+    });
+  }).catch(function(){});
+});
 </script>
 </body>
 </html>

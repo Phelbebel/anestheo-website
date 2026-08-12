@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Anesthesia Records — Anestheo</title>
+<title>Live Chart — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.07-18"></script>
 <script src="/auth.js?v=2026.08.07-18"></script>
+<script src="/navbar.js?v=2026.08.07-18"></script>
 <script src="/anesthesia.js?v=2026.08.07-18"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -52,14 +53,30 @@ select option{background:#132218;}
 .btn.ghost{background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);}
 .msg{display:none;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px;
   background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#FFB4A8;}
-@media(max-width:560px){ .g2{grid-template-columns:1fr;} #app{padding:20px 14px 50px;} }
+.qrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.qrow input{flex:1 1 260px;min-width:0;}
+.tabs{display:flex;gap:5px;flex-wrap:wrap;}
+.tab{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:8px;
+  padding:8px 13px;font-size:13px;font-family:inherit;color:rgba(255,255,255,.6);
+  cursor:pointer;min-height:40px;}
+.tab:hover{color:#fff;background:rgba(126,207,192,.1);}
+.tab.on{background:rgba(27,107,90,.26);border-color:#2A8A74;color:#fff;font-weight:600;}
+@media(max-width:560px){ .g2{grid-template-columns:1fr;} #app{padding:20px 14px 50px;}
+  .qrow{flex-direction:column;align-items:stretch;} .tabs{justify-content:stretch;} .tab{flex:1;} }
 </style>
 </head>
 <body>
 <div id="loader"><div class="spin"></div></div>
 <div id="app">
-  <h1>Anesthesia records</h1>
-  <p class="sub">Cases you are the anesthesiologist for, or have a treating relationship with.</p>
+  <div id="tools-bar"></div>
+  <h1>Live Chart</h1>
+  <p class="sub">The digital anesthesia record. Cases you are charting, or have a treating
+    relationship with — the database decides which, not this page.</p>
+
+  <div class="qrow">
+    <input id="q" placeholder="Search by name, MRN, procedure or room" oninput="render()" autocomplete="off">
+    <div class="tabs" id="tabs"></div>
+  </div>
 
   <div class="card">
     <div class="card-h">START A NEW RECORD</div>
@@ -92,7 +109,7 @@ select option{background:#132218;}
   </div>
 
   <div class="card">
-    <div class="card-h">RECORDS</div>
+    <div class="card-h" id="list-h">RECORDS</div>
     <div id="list"></div>
   </div>
 </div>
@@ -106,11 +123,56 @@ function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s == null ? '' : s)
   .replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
-async function render(){
-  var cases = await ANES.listCases();
+/* Four views over the same list rather than four queries: RLS already decided
+   what this doctor may see, and re-asking the server per tab would only add
+   round-trips and a second place for the filter to drift. */
+var VIEWS = [
+  { id:'active',    label:'Active',    hint:'Open records you are charting now' },
+  { id:'recent',    label:'Recent',    hint:'Everything from the last 14 days' },
+  { id:'finalized', label:'Finalized', hint:'Signed records' },
+  { id:'all',       label:'All',       hint:'Every record you can see' }
+];
+var _view = 'active', _cases = [];
+
+function inView(c){
+  if(_view === 'active')    return c.status !== 'finalized';
+  if(_view === 'finalized') return c.status === 'finalized';
+  if(_view === 'recent'){
+    var d = new Date(c.case_date || c.created_at);
+    return (Date.now() - d.getTime()) <= 14*86400000;
+  }
+  return true;
+}
+function matches(c, q){
+  if(!q) return true;
+  return [c.display_name, c.mrn, c.planned_procedure, c.actual_procedure, c.operating_room, c.surgeon]
+    .filter(Boolean).join(' ').toLowerCase().indexOf(q) >= 0;
+}
+function setView(v){ _view = v; renderTabs(); render(); }
+function renderTabs(){
+  el('tabs').innerHTML = VIEWS.map(function(v){
+    return '<button class="tab' + (_view===v.id?' on':'') + '" title="' + esc(v.hint) +
+           '" onclick="setView(\'' + v.id + '\')">' + esc(v.label) + '</button>';
+  }).join('');
+}
+
+async function load(){
+  _cases = await ANES.listCases();
+  renderTabs();
+  render();
+}
+
+function render(){
+  var q = (el('q').value || '').trim().toLowerCase();
+  var cases = _cases.filter(inView).filter(function(c){ return matches(c, q); });
+  var view = VIEWS.filter(function(v){ return v.id === _view; })[0] || VIEWS[0];
+  el('list-h').textContent = view.label.toUpperCase() + ' — ' + cases.length +
+    (cases.length === 1 ? ' RECORD' : ' RECORDS');
   if(!cases.length){
-    el('list').innerHTML = '<div class="empty">No anesthesia records yet.<br>' +
-      'Start one above — you can fill in the detail as the case goes.</div>';
+    el('list').innerHTML = '<div class="empty">' +
+      (q ? 'Nothing matches &ldquo;' + esc(q) + '&rdquo; in this view.'
+         : (_view === 'active' ? 'No open records.<br>Start one above — you can fill in the detail as the case goes.'
+                               : 'Nothing here yet.')) + '</div>';
     return;
   }
   el('list').innerHTML = cases.map(function(c){
@@ -153,9 +215,14 @@ async function createCase(){
 }
 
 (async function(){
+  /* requireRole('staff') is a courtesy, not the boundary: it decides what to
+     render. A pending doctor is sent to their pending page and a patient to
+     their own area, and even if someone reached this URL anyway the queries
+     return nothing and every write is refused. */
   var auth = await window.requireRole('staff');
   if(!auth) return;
-  await render();
+  el('tools-bar').innerHTML = window.nbToolsBar('/anesthesia-cases.html');
+  await load();
   el('loader').style.display = 'none';
   el('app').style.display = 'block';
 })();
