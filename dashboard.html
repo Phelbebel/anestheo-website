@@ -10,6 +10,7 @@
 <script src="/auth.js?v=2026.08.07-18"></script>
 <script src="/clinical-index.js?v=2026.08.07-18"></script>
 <script src="/clinical-search.js?v=2026.08.07-18"></script>
+<script src="/clinical-open.js?v=2026.08.07-18"></script>
 <script src="/navbar.js?v=2026.08.07-18"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -482,6 +483,11 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 /* My Patients board rows */
 .ws-mp-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:11px;padding:11px 14px;margin-bottom:8px;cursor:pointer;}
 .ws-mp-row:hover{border-color:rgba(126,207,192,.32);background:rgba(126,207,192,.04);}
+/* A row with no record behind it is not a control: it does not invite a tap. */
+.ws-mp-row.ws-mp-noopen{cursor:default;}
+.ws-mp-row.ws-mp-noopen:hover{border-color:var(--border);background:rgba(255,255,255,.035);}
+.ws-noopen{cursor:default !important;}
+.ws-noopen:hover{transform:none !important;}
 .ws-mp-ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#15414f,#1c6e5a);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#bff5df;flex:0 0 auto;}
 .ws-mp-main{flex:1;min-width:0;}
 .ws-mp-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
@@ -545,6 +551,7 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .wsx-moreitem:disabled{color:rgba(255,255,255,.34);cursor:not-allowed;}
 .wsx-morehint{font-size:11.5px;color:var(--hint);padding:2px 10px 6px;line-height:1.45;}
 .wsx-morehint.block{color:#FFB98A;}
+.wsx-archbanner{margin:0 0 12px;padding:10px 14px;border-radius:10px;font-size:12.5px;line-height:1.5;color:rgba(255,255,255,.82);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);}
 .wsx-archchip{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:20px;padding:4px 11px;white-space:nowrap;}
 .wsx-arch-restore,.wsx-restore{background:rgba(126,207,192,.12);border:1px solid rgba(126,207,192,.4);color:#7ECFC0;}
 .wsx-arch-restore:hover,.wsx-restore:hover{background:rgba(126,207,192,.2);}
@@ -959,6 +966,17 @@ function wsDeriveStatus(p){
 // ============================================================
 var URGENCY_CRITICAL=2, URGENCY_SOON=7;
 var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsActiveClinicIds={}, _wsMyPatients=[];
+var _wsSurgByClinic={};
+// iPad especially: opening a record must not cost the doctor their place in a
+// long list. Filter/tab/search already persist (wsMpStateSet); scroll does not,
+// so it is captured on open and restored on close.
+var _wsScrollY=null;
+function wsRememberScroll(){ _wsScrollY=(window.pageYOffset||document.documentElement.scrollTop||0); }
+function wsRestoreScroll(){
+  if(_wsScrollY==null) return;
+  var y=_wsScrollY; _wsScrollY=null;
+  try{ window.scrollTo(0,y); }catch(e){}
+}
 function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
 function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
 function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
@@ -1024,6 +1042,27 @@ async function wsLoadCases(){
     ((s&&s.data)||[]).forEach(function(x){ surgById[x.id]=x; if(x.clinic_patient_id) surgByClinic[x.clinic_patient_id]=x; }); }catch(e){}
   var clinics=[];
   try { var cp=await window.sb.from('clinic_patients').select('*').eq('doctor_id',uid); clinics=(cp&&cp.data)||[]; }catch(e){}
+  // Lifecycle: soft-deleted records live in the Recycle Bin, never in the
+  // ordinary workspace. Archived records DO stay — they have their own stage.
+  // wsVisible mirrors journey_visible()/clinic_patient_visible(): a record is
+  // hidden when it is deleted, or when a parent above it is deleted. The server
+  // predicate is authoritative at open time; this is the list-side twin so a
+  // deleted record never even renders a control.
+  var deletedClinicIds={}, hiddenSurgIds={};
+  clinics.forEach(function(p){ if(p.deleted_at) deletedClinicIds[p.id]=true; });
+  clinics=clinics.filter(function(p){ return !p.deleted_at; });
+  Object.keys(surgById).forEach(function(k){
+    var x=surgById[k];
+    if(x.deleted_at || (x.clinic_patient_id && deletedClinicIds[x.clinic_patient_id])){
+      hiddenSurgIds[k]=true;
+      delete surgById[k];
+      if(x.clinic_patient_id) delete surgByClinic[x.clinic_patient_id];
+    }
+  });
+  crs=crs.filter(function(c){ return !(c.surgery_id && hiddenSurgIds[c.surgery_id]); });
+  // Shared with the canonical opener so following a clinic patient to its journey
+  // costs no extra query on the common path.
+  _wsSurgByClinic=surgByClinic;
 
   // ── Consultation Requests workflow (care_requests only) ──
   _wsRequests=[]; _wsConsults=[]; _wsConsultsDone=[]; var surgicalReqs=[];
@@ -1058,7 +1097,10 @@ async function wsLoadCases(){
       statusText:wsStageLabel(stage), patientId:c.patient_id, surgeryId:c.surgery_id,
       archived:!!sg.archived_at, archivedAt:sg.archived_at||null, archivedBy:sg.archived_by||null,
       updatedAt:(sg.updated_at||c.responded_at||c.requested_at||null),
-      openFn:"wsOpenRecord('"+c.surgery_id+"')" });
+      // A patient-requested row IS a journey. If the care request has no
+      // surgery yet there is nothing clinical to open, and the row renders no
+      // control rather than a button that silently does nothing.
+      openKind:'journey', openId:(c.surgery_id||null) });
   });
   clinics.forEach(function(p){
     var stage=wsClinicStage(p);
@@ -1069,7 +1111,9 @@ async function wsLoadCases(){
       progress:wsProgressPct(p), statusText:wsStageLabel(stage), clinicId:p.id, sent_at:p.sent_at,
       surgeryId:(sgc?sgc.id:null), archived:!!(sgc&&sgc.archived_at), archivedAt:(sgc&&sgc.archived_at)||null, archivedBy:(sgc&&sgc.archived_by)||null,
       updatedAt:(p.updated_at||p.questionnaire_submitted_at||p.sent_at||p.created_at||null),
-      questionnaire_status:p.questionnaire_status, openFn:"wsOpenClinicRecord('"+p.id+"')" });
+      // A clinic-patient row IS a clinic patient — always, including when it has
+      // no journey yet. It must never be opened as {kind:'journey', id:''}.
+      questionnaire_status:p.questionnaire_status, openKind:'clinic_patient', openId:p.id });
   });
   _wsMyPatients=mp;
 
@@ -1325,13 +1369,17 @@ function wsOlKey(e){
 window.wsOlKey=wsOlKey;
 function wsOlCardHtml(c){
   var flags=wsOlFlags(c.patientId), hi=flags.length>0;
-  var open=(c.openFn||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  var ref={kind:c.openKind,id:c.openId};
+  var openable=window.ClinicalOpen && window.ClinicalOpen.isOpenable(ref);
+  var open=openable?window.ClinicalOpen.refAttr(ref):'';
   var loc='<span class="ws-ol-loc"><span class="pin">&#128205;</span>'+wsEsc(c.hospital||'Hospital TBD')+'</span>';
   var proc=c.procedure?'<span class="ws-ol-proc">'+wsEsc(c.procedure)+'</span>':'';
-  var action = wsOlEligible(c)
-    ? '<button class="ws-ol-btn approve" onclick="event.stopPropagation();wsOlApprove(\''+(c.surgeryId||'')+'\',this)">'+dIcon('shield-check')+'Approve</button>'
-    : '<button class="ws-ol-btn review" onclick="event.stopPropagation();'+open+'">Open review '+dIcon('arrow-right')+'</button>';
-  return '<div class="ws-ol-card '+wsOlAccent(c)+(hi?' hi':'')+'" data-sid="'+wsEsc(c.surgeryId||'')+'" role="button" tabindex="0" aria-label="Open review for '+wsEsc(c.name||'patient')+'" onkeydown="wsOlKey(event)" onclick="'+open+'">' +
+  var action = (wsOlEligible(c) && c.surgeryId)
+    ? '<button class="ws-ol-btn approve" onclick="event.stopPropagation();wsOlApprove(\''+c.surgeryId+'\',this)">'+dIcon('shield-check')+'Approve</button>'
+    : (openable
+        ? '<button class="ws-ol-btn review"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>Open review '+dIcon('arrow-right')+'</button>'
+        : '');
+  return '<div class="ws-ol-card '+wsOlAccent(c)+(hi?' hi':'')+(openable?'':' ws-noopen')+'" data-sid="'+wsEsc(c.surgeryId||'')+'"'+(openable?' role="button" tabindex="0" aria-label="Open review for '+wsEsc(c.name||'patient')+'" onkeydown="wsOlKey(event)"'+open:'')+'>' +
     '<span class="ws-ol-rail"></span>' +
     '<div class="ws-ol-card-main">' +
       '<div class="ws-ol-card-top"><span class="ws-ol-nm">'+wsEsc(c.name||'Patient')+'</span>'+wsOlSignal(c)+'</div>' +
@@ -1342,15 +1390,16 @@ function wsOlCardHtml(c){
   '</div>';
 }
 function wsOlReadyHtml(c){
-  var open=(c.openFn||'').replace(/"/g,'&quot;');
+  var ref={kind:c.openKind,id:c.openId};
+  var open=(window.ClinicalOpen&&window.ClinicalOpen.isOpenable(ref))?window.ClinicalOpen.refAttr(ref):'';
   var loc=c.hospital?'<span class="ws-ol-rd-loc"><span class="pin">&#128205;</span> '+wsEsc(c.hospital)+'</span>':'';
   var sep=(loc&&c.procedure)?' &middot; ':'';
   var proc=c.procedure?wsEsc(c.procedure):'';
-  return '<div class="ws-ol-rd"'+(open?' onclick="'+open+'"':'')+'>' +
+  return '<div class="ws-ol-rd'+(open?'':' ws-noopen')+'"'+open+'>' +
     '<span class="ws-ol-rd-ck">&#10003;</span>' +
     '<span class="ws-ol-rd-nm">'+wsEsc(c.name||'Patient')+'</span>' +
     '<span class="ws-ol-rd-meta">'+loc+sep+proc+'</span>' +
-    '<span class="ws-ol-rd-go">View</span></div>';
+    (open?'<span class="ws-ol-rd-go">View</span>':'')+'</div>';
 }
 // One-click Approve — reuses the EXISTING approve_plan RPC (no save needed; it
 // promotes any draft plan, and already blocks if any document is unreviewed).
@@ -1460,6 +1509,12 @@ function wsRenderMyPatients(){
     var pct=Math.max(0,Math.min(100,p.progress||0));
     var origChip=p.origin==='clinic'?'<span class="ws-orig doc">Created</span>':'<span class="ws-orig pt">Requested</span>';
     var action=(p.stage==='review')?'Review &rarr;':'Open &rarr;';
+    // One ref per row, carried from the query that knows which table it came
+    // from. Archived rows open through exactly the same ref as active ones —
+    // the opener adds the archived banner; there is no separate id path and no
+    // empty-string fallback.
+    var ref={kind:p.openKind,id:p.openId};
+    var openable=window.ClinicalOpen && window.ClinicalOpen.isOpenable(ref);
     // Awaiting Questionnaire (invited patients): show send-questionnaire actions.
     var qActions=(!p.archived && p.origin==='clinic'&&p.stage==='awaiting')
       ? '<div class="ws-q-row" onclick="event.stopPropagation()">'+wsQActions(p.clinicId, p.questionnaire_status&&p.questionnaire_status!=='not_sent')+'</div>' : '';
@@ -1467,13 +1522,19 @@ function wsRenderMyPatients(){
     var sub = p.archived
       ? 'Archived'+(p.archivedAt?' on '+wsEsc(wsFmtDate(p.archivedAt)):'')+(p.archivedBy===window.__wsUserId?' by you':'')
       : wsEsc(p.statusText);
+    // Say so, rather than leaving a row that looks clickable and is not.
+    if(!openable) sub += ' &middot; <span style="color:var(--hint);">No record to open yet</span>';
     var right = p.archived
-      ? '<button class="ws-btn ws-mp-act wsx-restore" onclick="event.stopPropagation();wsRestorePatient(\''+(p.surgeryId||'')+'\')">&#8630; Restore</button>'
-      : '<button class="ws-btn pc-green ws-mp-act" onclick="event.stopPropagation();'+p.openFn+'">'+action+'</button>';
+      ? (p.surgeryId
+          ? '<button class="ws-btn ws-mp-act wsx-restore" onclick="event.stopPropagation();wsRestorePatient(\''+p.surgeryId+'\')">&#8630; Restore</button>'
+          : '')
+      : (openable
+          ? '<button class="ws-btn pc-green ws-mp-act"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>'+action+'</button>'
+          : '');
     var progOrArch = p.archived
       ? '<div class="ws-mp-sub" style="margin-top:2px;color:var(--hint);">Data preserved &middot; can be restored</div>'
       : '<div class="ws-mp-prog"><div class="ws-mp-bar"><div class="ws-mp-fill" style="width:'+pct+'%"></div></div><span class="ws-mp-pct">'+pct+'%</span></div>'+qActions;
-    return '<div class="ws-mp-row'+(p.archived?' arch':'')+'" onclick="'+(p.archived?'wsOpenRecord(\''+(p.surgeryId||'')+'\')':p.openFn)+'">'+
+    return '<div class="ws-mp-row'+(p.archived?' arch':'')+(openable?'':' ws-mp-noopen')+'"'+(openable?window.ClinicalOpen.refAttr(ref):'')+'>'+
       '<div class="ws-mp-ava '+(p.archived?'r4':(ringMap[p.stage]||'r4'))+'"><span class="av-in">'+wsEsc(initial)+'</span></div>'+
       '<div class="ws-mp-main"><div class="ws-mp-top">'+origChip+'<span class="ws-mp-nm">'+wsEsc(p.name)+'</span>'+(meta?'<span class="ws-mp-meta">'+meta+'</span>':'')+'</div>'+
         '<div class="ws-mp-sub">'+sub+'</div>'+
@@ -1521,7 +1582,9 @@ function wsDeriveBridge(c, sg, qd, prepN, docG){
   var o={source:'bridge', origin:origin, patientId:c.patient_id, surgeryId:c.surgery_id, name:c.patient_name||'Patient',
     procedure:c.procedure||sg.procedure_type||'Procedure', hospital:sg.hospital||'', surgeryDate:sg.surgery_date||null, urgency:urg,
     prepN:prepN, reviewState:rs, sourceTag:(origin==='clinic'?'Clinic invited':'Patient requested'), unreviewedDocs:docG.names||[],
-    openFn:"wsOpenCase('"+c.patient_id+"')"};
+    // patient_id here is an auth.users id — a THIRD id space. It is never used
+    // as a journey id; the patient-account opener resolves it explicitly.
+    openKind:'patient_account', openId:(c.patient_id||null)};
   if(rs==='pending'){ o.color='red'; o.bucket='action'; o.headline='New questionnaire submitted'; o.actionLabel='Review Now'; o.priority=1; o.eventTs=qd.updated_at?new Date(qd.updated_at).getTime():null; o.eventLine='Submitted '+wsTimeAgo(o.eventTs); }
   else if(docG.count>0){ o.color='blue'; o.bucket='action'; o.headline=docG.count+' document'+(docG.count>1?'s':'')+' received'; o.actionLabel='Review Documents'; o.priority=2; o.eventTs=docG.ts||null; o.eventLine=(o.unreviewedDocs.slice(0,4).join(' + ')||'Documents')+' uploaded '+wsTimeAgo(o.eventTs); }
   else if(rs==='in_review'){ o.color='green'; o.bucket='action'; o.headline='Ready to approve'; o.actionLabel='Review / Approve'; o.priority=3; o.eventTs=qd.updated_at?new Date(qd.updated_at).getTime():null; o.eventLine='In review · awaiting your approval'; }
@@ -1542,7 +1605,7 @@ function wsDeriveClinic(p){
   var o={source:'clinic', origin:'clinic', clinicId:p.id, name:p.patient_name||'Patient', procedure:p.procedure||'Procedure',
     hospital:p.hospital||'', surgeryDate:p.surgery_date||null, urgency:urg, sourceTag:'Clinic invited', unreviewedDocs:[],
     color:'red', bucket:'action', headline:'New questionnaire submitted', actionLabel:'Review Now', priority:1,
-    openFn:"wsOpenClinic('"+p.id+"')",
+    openKind:'clinic_patient', openId:p.id,
     eventTs:p.completed_at?new Date(p.completed_at).getTime():(p.updated_at?new Date(p.updated_at).getTime():null)};
   o.eventLine='Submitted '+wsTimeAgo(o.eventTs);
   if(urg.critical){ o.priority=0; o.urgentSub='Patient not reviewed'; }
@@ -1560,22 +1623,25 @@ function wsSrcChip(origin){
 function wsCaseLine(c){ return [c.procedure, c.hospital].filter(Boolean).map(wsEsc).join(' &middot; '); }
 var _wsSrcFilter='all';
 function wsSrcMatch(c){ return _wsSrcFilter==='all' || (_wsSrcFilter==='mine'&&c.origin==='clinic') || (_wsSrcFilter==='requests'&&c.origin==='patient'); }
-// Whole-card click target: same routing as the CTA (wsOpenCase / wsOpenClinic).
+// Whole-card click target: the SAME {kind,id} ref the CTA uses. The kind is
+// carried in the markup, never re-derived from the id when the click arrives.
+function wsCardRef(c){ return {kind:c.openKind, id:c.openId}; }
+function wsCardOpenable(c){ return !!(window.ClinicalOpen && window.ClinicalOpen.isOpenable(wsCardRef(c))); }
 function wsCardAttrs(c){
-  var open=(c.source==='clinic') ? ('data-open="clinic" data-cid="'+c.clinicId+'"') : ('data-open="case" data-pid="'+c.patientId+'"');
-  return 'tabindex="0" role="button" aria-label="Open '+wsEsc(c.name||'case')+'" '+open;
+  if(!wsCardOpenable(c)) return '';
+  return 'tabindex="0" role="button" aria-label="Open '+wsEsc(c.name||'case')+'" data-open-kind="'+c.openKind+'" data-open-id="'+c.openId+'"';
 }
 function wsCardDispatch(card){
   if(!card) return;
-  var k=card.getAttribute('data-open');
-  if(k==='case') wsOpenCase(card.getAttribute('data-pid'));
-  else if(k==='clinic') wsOpenClinic(card.getAttribute('data-cid'));
+  var kind=card.getAttribute('data-open-kind'), id=card.getAttribute('data-open-id');
+  if(!kind || !id) return;
+  window.coOpen(kind, id);
 }
 // Bulletproof card activation: ONE document-level delegated listener, attached
 // once at script load. document always exists and is never re-created, so this
 // survives every innerHTML re-render and any async timing. Real controls
-// (CTA / Accept / Decline) are excluded, so nothing double-fires. Routing
-// unchanged: data-open=case -> wsOpenCase; data-open=clinic -> wsOpenClinic.
+// (CTA / Accept / Decline) are excluded, so nothing double-fires. The card
+// carries data-open-kind + data-open-id and hands both to the canonical opener.
 document.addEventListener('click', function(e){
   if(e.target.closest('button,a,input,select,textarea,label')) return;
   var c=e.target.closest('.ac-card.clickable, .acs-card.clickable');
@@ -1595,7 +1661,8 @@ function wsActionCardHtml(c){
   var surg=c.surgeryDate?('<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+wsEsc(c.urgency.label)+'</div>'):'<div class="ac-surg none">No surgery date set</div>';
   var subUrg=urgent&&c.urgentSub?'<div class="ac-sub urg">'+wsEsc(c.urgentSub)+'</div>':'';
   var when=c.eventLine?'<div class="ac-when">'+wsEsc(c.eventLine)+'</div>':'';
-  return '<div class="ac-card clickable rail-'+rail+(c.isNew?' is-new':'')+'" '+wsCardAttrs(c)+'>'+
+  var ref=wsCardRef(c), openable=wsCardOpenable(c);
+  return '<div class="ac-card'+(openable?' clickable':'')+' rail-'+rail+(c.isNew?' is-new':'')+'" '+wsCardAttrs(c)+'>'+
     '<div class="ac-row"><span class="ac-rail"></span>'+
       '<div class="ac-body">'+
         '<div class="ac-top"><span class="ac-headline">'+head+'</span>'+newBadge+'</div>'+
@@ -1604,7 +1671,7 @@ function wsActionCardHtml(c){
         surg+subUrg+when+
         wsSrcChip(c.origin)+
       '</div>'+
-      '<div class="ac-action"><button class="ws-btn pc-green" onclick="event.stopPropagation();'+c.openFn+'">'+wsEsc(c.actionLabel)+' &rarr;</button></div>'+
+      (openable?'<div class="ac-action"><button class="ws-btn pc-green"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>'+wsEsc(c.actionLabel)+' &rarr;</button></div>':'')+
     '</div>'+
   '</div>';
 }
@@ -1776,13 +1843,16 @@ function wsRenderWorkspaceUnified(){
     jrow('Surgical preparation', (cs==='surgical'&&rs!=='approved'&&!s.completed_at)?'on':(cs==='surgical'?'done':''))+
     jrow('Approved for surgery', rs==='approved'?'on':'')+jrow('Completed', s.completed_at?'on':'')+'</div>';
   var idchip=(!c.patientId)?'<span class="ws-orig doc" style="margin:0 0 0 8px;">No account · invite to link</span>':'';
+  // Archived records DO open — with the archived state stated plainly at the top,
+  // so nothing about the record looks live when it is not.
+  var archBanner=c.archivedNotice?'<div class="wsx-archbanner">&#128451; '+wsEsc(c.archivedNotice)+'</div>':'';
   var body=document.getElementById('ws-ws-body'); body.classList.add('wsx-host');
   body.innerHTML='<div class="wsx">'+
     '<div class="wsx-rail">'+
       '<div class="wsx-who"><div class="wsx-ava">'+wsEsc(initial)+'</div><div class="wsx-nm">'+wsEsc(c.name||'Patient')+'</div>'+
       '<span class="wsx-pill '+(cs==='consultation'?'con':'sur')+'">'+(cs==='consultation'?'&#128172; Consultation':'&#127973; Surgical')+'</span></div>'+
       nav+'<div class="wsx-railsec">Tools</div>'+toolsNav+journey+'</div>'+
-    '<div class="wsx-main">'+
+    '<div class="wsx-main">'+archBanner+
       '<div class="wsx-actbar"><span class="lane">'+(cs==='consultation'?'Advice-only status':'In the pre-operative pipeline')+idchip+'</span>'+actions+wsArchiveCtlHtml(c.surgeryId||s.id, s)+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='overview'?' on':'')+'" data-tab="overview">'+pOverview+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='questionnaire'?' on':'')+'" data-tab="questionnaire">'+pQuest+'</div>'+
@@ -1954,14 +2024,15 @@ function wsRenderActionCenter(){
 function wsActiveCardHtml(c){
   var word=c.color==='yellow'?'WAITING ON PATIENT':(c.color==='green'?'APPROVED':c.headline.toUpperCase());
   var surg=c.surgeryDate?wsEsc(c.urgency.label):'No surgery date';
-  return '<div class="acs-card clickable rail-'+c.color+'" '+wsCardAttrs(c)+'>'+
+  var ref=wsCardRef(c), openable=wsCardOpenable(c);
+  return '<div class="acs-card'+(openable?' clickable':'')+' rail-'+c.color+'" '+wsCardAttrs(c)+'>'+
     '<div class="ac-row"><span class="ac-rail"></span><div class="ac-body">'+
     '<div class="acs-status">'+wsColorIcon(c.color)+' '+word+'</div>'+
     '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
     '<div class="ac-proc">'+wsCaseLine(c)+'</div>'+
     '<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+surg+'</div>'+
     wsSrcChip(c.origin)+
-    '</div><div class="ac-action"><button class="ws-btn" onclick="event.stopPropagation();'+c.openFn+'">Open Case &rarr;</button></div></div></div>';
+    '</div>'+(openable?'<div class="ac-action"><button class="ws-btn"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>Open Case &rarr;</button></div>':'')+'</div></div>';
 }
 function wsRenderActiveCases(){
   var box=document.getElementById('ws-active-cases'); if(!box) return;
@@ -1975,9 +2046,18 @@ function wsRenderActiveCases(){
   box.innerHTML='<div class="acs-head"><span class="ac-title">Active cases</span><span class="acs-n">'+items.length+'</span></div>'+chips+grid;
 }
 function wsCaseFilter(f){ _wsCaseFilter=f; wsRenderActiveCases(); }
-function wsOpenCase(pid){ var c=_wsCases.filter(function(x){return x.source==='bridge'&&x.patientId===pid;})[0]; if(c){ wsSeenSet(pid,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsOpenPatient(pid); }
-function wsOpenClinic(id){ var c=_wsCases.filter(function(x){return x.source==='clinic'&&x.clinicId===id;})[0]; if(c){ wsSeenSet('c'+id,c.eventTs); c.isNew=false; } wsRenderActionCenter(); wsOpenClinicRecord(id); }
-window.wsCaseFilter=wsCaseFilter; window.wsSrcFilter=wsSrcFilter; window.wsOpenCase=wsOpenCase; window.wsOpenClinic=wsOpenClinic;
+// Action Center bookkeeping only: clear the NEW dot for the card being opened.
+// Routing is not decided here — the canonical opener owns that.
+function wsMarkCaseSeen(kind, id){
+  var c=null;
+  if(kind==='patient_account') c=_wsCases.filter(function(x){return x.source==='bridge'&&x.patientId===id;})[0];
+  else if(kind==='clinic_patient') c=_wsCases.filter(function(x){return x.source==='clinic'&&x.clinicId===id;})[0];
+  if(!c) return;
+  wsSeenSet(kind==='clinic_patient'?('c'+id):id, c.eventTs);
+  c.isNew=false;
+  wsRenderActionCenter();
+}
+window.wsCaseFilter=wsCaseFilter; window.wsSrcFilter=wsSrcFilter;
 
 // ── Active Patients + in-page workspace (Epic E) ──
 var WS_PREPARE=['Confirm your surgery date, arrival time, and where to check in','Write down a full list of your medications, doses, and supplements','Note any allergies and past reactions to anesthesia','Arrange a responsible adult to take you home and stay with you','Prepare comfortable, loose clothing and flat shoes for the day','Write down questions you want to ask your anesthesiologist'];
@@ -2159,25 +2239,84 @@ async function wsSavePlan(silent, histEntry){
   } catch(e){ wsSetSaveState('error'); wsToast('Save failed: '+(e.message||'error')); return false; }
 }
 
-async function wsOpenPatient(patientId){
-  var info=_wsActiveMap[patientId]; if(!info) return;
-  wsOpenRecord(info.surgeryId);
+/* ══════ Canonical opening — everything routes through clinical-open.js ══════
+   The dashboard no longer decides WHICH record a click means. It supplies the
+   presenters and the account resolver; clinical-open.js validates the kind,
+   applies lifecycle visibility, and calls back with a record it has already
+   confirmed the doctor may see. */
+
+// A patient account id (auth.users) resolves to a journey through the surgery's
+// declared patient_id column. It is never used as a journey id itself.
+async function wsResolvePatientAccount(authUserId){
+  var info=_wsActiveMap[authUserId];
+  if(info && info.surgeryId) return { kind:'journey', id:info.surgeryId };
+  try{
+    // A patient may have several journeys over time; pick a live one rather
+    // than the most recent one, which could be sitting in the Recycle Bin.
+    var r=await window.sb.from('patient_surgeries').select('id')
+      .eq('patient_id',authUserId).is('deleted_at',null)
+      .order('updated_at',{ascending:false,nullsFirst:false}).limit(1);
+    var row=(r&&r.data&&r.data[0])||null;
+    if(row) return { kind:'journey', id:row.id };
+  }catch(e){}
+  return null;
 }
-// Resolve a clinic (doctor-created) patient to its canonical record, then open
-// the unified workspace. Falls back to the legacy view only for pre-migration
-// rows that have no patient_surgeries yet.
-async function wsOpenClinicRecord(clinicId){
-  var sid=null;
-  try{ var s=await window.sb.from('patient_surgeries').select('id').eq('clinic_patient_id',clinicId).maybeSingle(); sid=s.data&&s.data.id; }catch(e){}
-  if(sid) wsOpenRecord(sid); else wsDetail(clinicId);
+
+// A clinic patient may or may not have a journey yet. Both are normal states.
+// Having one is a declared parent→child link on patient_surgeries; NOT having
+// one does not make the record some other kind — it stays a clinic patient and
+// opens as one.
+// Deliberately unfiltered by lifecycle: this answers "which journey is declared
+// as this patient's child", nothing more. Whether that journey may be shown is
+// decided in exactly one place — the canonical opener — so the two rules cannot
+// drift apart. (_wsSurgByClinic is the already-filtered fast path.)
+async function wsClinicJourneyId(clinicPatientId){
+  var sg=_wsSurgByClinic&&_wsSurgByClinic[clinicPatientId];
+  if(sg && sg.id) return sg.id;
+  try{
+    var r=await window.sb.from('patient_surgeries').select('id')
+      .eq('clinic_patient_id',clinicPatientId).limit(1);
+    var row=(r&&r.data&&r.data[0])||null;
+    return row?row.id:null;
+  }catch(e){ return null; }
 }
-// ── THE one unified workspace entry for ANY patient (both origins, both lanes) ──
-// Loads the canonical record + its surgery_id-keyed children. care_state picks
-// the layout; origin never changes the actions or available tools.
-async function wsOpenRecord(surgeryId){
-  if(!surgeryId) return;
-  var surgery={}, clinic=null;
-  try { var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; }catch(e){}
+
+window.ClinicalOpen.registerPresenters({
+  beforeOpen: function(ref){ if(ref) wsMarkCaseSeen(ref.kind, ref.id); },
+  resolvePatientAccount: wsResolvePatientAccount,
+  onFailure: function(o){ wsToast(o.message); },
+  journey: function(ctx){ return wsPresentJourney(ctx); },
+  clinic_patient: async function(ctx){
+    var jid=await wsClinicJourneyId(ctx.id);
+    if(jid){
+      // Open the child journey by its own explicit kind, so the journey's own
+      // lifecycle is checked too rather than inherited from the parent. Silent
+      // because a failure here is not the end of the road: the clinic patient
+      // record still opens below, and two contradictory messages help nobody.
+      var r=await window.ClinicalOpen.openClinicalRecord({kind:'journey', id:jid}, {silent:true});
+      if(r.ok) return;
+      // The journey is gone or hidden, but the clinic patient itself is not.
+      // Show the patient record, and say what happened to the journey.
+      wsDetail(ctx.id, ctx.row, ctx.archivedNotice ||
+        'The clinical journey for this patient is no longer available. The patient record below is unchanged.');
+      return;
+    }
+    wsDetail(ctx.id, ctx.row, ctx.archivedNotice);
+  }
+});
+
+// Legacy names kept as thin wrappers: one line each, no routing logic.
+function wsOpenPatient(patientId){ return window.ClinicalOpen.open({kind:'patient_account', id:patientId}); }
+function wsOpenClinicRecord(clinicId){ return window.ClinicalOpen.open({kind:'clinic_patient', id:clinicId}); }
+function wsOpenRecord(surgeryId){ return window.ClinicalOpen.open({kind:'journey', id:surgeryId}); }
+// ── THE one unified workspace presenter for a journey (both origins, both lanes) ──
+// Loads the surgery_id-keyed children. care_state picks the layout; origin never
+// changes the actions or available tools. The surgery row and the decision that
+// it may be shown both come from clinical-open.js — this function never re-reads
+// patient_surgeries to work out what it is looking at.
+async function wsPresentJourney(ctx){
+  var surgeryId=ctx.id, surgery=ctx.row||{}, clinic=null;
+  wsRememberScroll();
   if(surgery.clinic_patient_id){ try{ var cpr=await window.sb.from('clinic_patients').select('*').eq('id',surgery.clinic_patient_id).maybeSingle(); clinic=cpr.data||null; }catch(e){} }
   var patientId=surgery.patient_id||null;
   var quest={}, items={};
@@ -2213,13 +2352,14 @@ async function wsOpenRecord(surgeryId){
     notes:(plan.notes||''), requirements:reqMap, planSavedAt:planSavedAt, version:planVersion,
     history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs, recs:recs,
     message:(clinic&&clinic.notes)||careMsg||'', consultNotes:(surgery.doctor_notes||''),
-    savedNotes:(plan.notes||''), savedReqs:wsCloneReqs(reqMap) };
+    savedNotes:(plan.notes||''), savedReqs:wsCloneReqs(reqMap),
+    lifecycle:ctx.lifecycle, archivedNotice:ctx.archivedNotice };
   _wsTab='overview'; wsRenderWorkspaceUnified();
   document.getElementById('ws-ws').classList.add('open');
 }
 window.wsOpenRecord=wsOpenRecord; window.wsOpenClinicRecord=wsOpenClinicRecord;
 function wsCloneReqs(m){ var o={}; Object.keys(m||{}).forEach(function(k){ o[k]={checked:!!m[k].checked,note:m[k].note||'',label:m[k].label||'',custom:!!m[k].custom}; }); return o; }
-function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); var b=document.getElementById('ws-ws-body'); if(b) b.classList.remove('wsx-host'); _wsCtx=null; }
+function wsCloseWorkspace(){ document.getElementById('ws-ws').classList.remove('open'); var b=document.getElementById('ws-ws-body'); if(b) b.classList.remove('wsx-host'); _wsCtx=null; wsRestoreScroll(); }
 
 function wsRenderWorkspace(){
   var c=_wsCtx; if(!c) return;
@@ -2446,9 +2586,11 @@ async function wsLoadPatients(){
   // The My Patients board itself is rendered by wsLoadCases/wsRenderMyPatients.
   _wsDoctorId = window.__wsUserId || null;
   try {
+    // Lifecycle: deleted patients belong to the Recycle Bin, not to any list
+    // that renders an opener. Same rule as clinic_patient_visible().
     var r = await window.sb.from('clinic_patients').select('*').order('created_at',{ascending:false});
     if(r.error) throw new Error(r.error.message);
-    _wsPatients = r.data || [];
+    _wsPatients = (r.data || []).filter(function(p){ return !p.deleted_at; });
   } catch(e){ _wsPatients = []; }
 }
 function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m) return; m.classList.add('open'); var n=document.getElementById('wa-name'); if(n) n.focus(); }
@@ -2831,9 +2973,14 @@ function wsCopyPortalLink(){ var el=document.getElementById('ws-portal-link'); i
 window.wsActivatePortal=wsActivatePortal; window.wsCopyPortalLink=wsCopyPortalLink;
 
 // ── PATIENT DETAIL ──
-function wsDetail(id){
-  var p = _wsPatients.find(function(x){ return x.id === id; });
-  if(!p) return;
+// The clinic-patient record view. Reached when a clinic patient has no journey
+// yet — a normal state, not a fallback. The row is passed in by the canonical
+// opener (which has already read and authorised it); the cached list is only a
+// convenience for the legacy call sites.
+function wsDetail(id, row, archivedNotice){
+  var p = row || _wsPatients.find(function(x){ return x.id === id; });
+  if(!p){ wsToast(window.ClinicalOpen.COPY.unavailable); return; }
+  wsRememberScroll();
   var a = p.questionnaire_answers || {};
   var scores = a._scores || {};
   var flags = a._flags || [];
@@ -2885,6 +3032,7 @@ function wsDetail(id){
     '<div class="ws-d-head"><div><div class="ws-d-name">'+wsEsc(p.patient_name)+'</div>' +
       '<div class="ws-d-sub">'+wsDeriveStatus(p)+'</div></div>' +
       '<button class="ws-btn" onclick="wsCloseDetail()">Close &times;</button></div>' +
+    (archivedNotice?'<div class="wsx-archbanner">&#128451; '+wsEsc(archivedNotice)+'</div>':'') +
     '<div class="ws-d-grid">' +
       srow('Phone', p.phone_number) + srow('Procedure', p.procedure) + srow('Hospital', p.hospital) + srow('Surgery date', dateFmt) +
       srow('Questionnaire', wsQStatusLabel(p.questionnaire_status)) + srow('Consultation', wsVisitLabel(p.consultation_status)) +
@@ -2900,7 +3048,7 @@ function wsDetail(id){
   document.getElementById('ws-detail-body').innerHTML = body;
   document.getElementById('ws-detail-modal').classList.add('open');
 }
-function wsCloseDetail(){ document.getElementById('ws-detail-modal').classList.remove('open'); }
+function wsCloseDetail(){ document.getElementById('ws-detail-modal').classList.remove('open'); wsRestoreScroll(); }
 async function wsSaveNotes(id){
   var v = document.getElementById('ws-d-notes').value;
   try { await window.sb.from('clinic_patients').update({ doctor_notes: v }).eq('id', id); wsToast('Notes saved');
