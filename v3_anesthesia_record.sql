@@ -65,6 +65,11 @@ BEGIN
   IF to_regproc('public.is_platform_admin')  IS NULL THEN v_missing := v_missing || 'is_platform_admin() [v2_admin_phase0]'::text; END IF;
   IF to_regproc('public.is_verified_doctor') IS NULL THEN v_missing := v_missing || 'is_verified_doctor() [v2_auth_onboarding]'::text; END IF;
   IF to_regproc('public.is_pending_doctor')  IS NULL THEN v_missing := v_missing || 'is_pending_doctor() [v2_auth_onboarding]'::text; END IF;
+  -- doctor_treats_patient() calls account_is_active(); a missing dependency
+  -- would surface as an error inside a policy, which is the worst place to
+  -- discover it.
+  IF to_regproc('public.account_is_active')  IS NULL THEN v_missing := v_missing || 'account_is_active() [v2_admin_phase2]'::text; END IF;
+  IF to_regproc('public.doctor_treats_patient') IS NULL THEN v_missing := v_missing || 'doctor_treats_patient() [v2_security_hardening]'::text; END IF;
   IF array_length(v_missing,1) IS NOT NULL THEN
     RAISE EXCEPTION E'ABORT: prerequisites missing: %.\n'
       '  The anesthesia record is charted only by verified doctors; without those\n'
@@ -421,8 +426,11 @@ CREATE TABLE IF NOT EXISTS public.anesthesia_positioning (
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
 
--- 3.9 Bolus medications. dose_mg_per_kg is stored as charted, never computed
--- into the dose: the clinician decides the dose, the system records it.
+-- 3.9 Bolus medications. The administered dose is the source of truth and is
+-- stored exactly as charted. There is deliberately NO stored weight-normalised
+-- column: mg/kg is a presentation derived from the case's snapshotted weight,
+-- and storing it would create a second number that can silently disagree with
+-- the dose actually given. The system never computes a dose.
 CREATE TABLE IF NOT EXISTS public.anesthesia_medications (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   case_id      uuid NOT NULL REFERENCES public.anesthesia_cases(id) ON DELETE CASCADE,
