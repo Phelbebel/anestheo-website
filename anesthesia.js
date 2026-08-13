@@ -46,7 +46,16 @@ ANES.DRUG_CATEGORIES = ['induction','opioid','nmb','reversal','vasopressor','ino
   'uterotonic','other'];
 
 ANES.ROUTES = ['iv','im','po','sc','neuraxial','inhaled','topical','nerve block','other'];
-ANES.DOSE_UNITS = ['mg','mcg','g','units','mL','mmol','mcg/kg','mg/kg'];
+/* The units an administration may be recorded in. Deliberately absolute.
+   anesthesia_medications.dose is the amount that ENTERED THE PATIENT, and
+   "2 mg/kg" is not an amount — it is a calculation that needs a weight to
+   become one. Storing it in the dose column would make the record depend on a
+   weight that may be estimated, may be corrected later, and is not carried on
+   the row. A weight-normalised figure can be DERIVED for display from the
+   actual dose and the case weight; it is never the stored administration.
+   (Infusion RATES are a different thing and keep mcg/kg/min, which is a rate,
+   not an amount.) */
+ANES.DOSE_UNITS = ['mg','mcg','g','units','mL','mmol'];
 
 /* The master timeline. Order is the order they normally occur, so the panel
    reads like the case does. Nothing here is compulsory — an ICU patient who
@@ -196,6 +205,82 @@ ANES.elapsedSince = function(iso){
   return h ? (h + 'h ' + m + 'm ago') : (m + 'm ago');
 };
 
+/* ═══════════ THE BOOLEAN CONTRACT ═════════════════════════════════════════
+   Forty columns in this schema are genuine PostgreSQL booleans, and the chart
+   speaks in yes / no / unknown because "not asked" and "asked and the answer
+   was no" are different clinical facts. Those two representations have to meet
+   somewhere, and it must be exactly one place.
+
+   What went wrong before this existed: PostgreSQL silently coerces 'yes' and
+   'no' to true and false, so writes appeared to work — but 'unknown' is
+   rejected outright, and reading back true and comparing it to 'yes' is always
+   false. A difficult airway could be documented, stored correctly as true, and
+   then never shown again: not in the header, not on the row, not on the
+   timeline. The data was right and every reader was wrong.
+
+   The contract:
+     DB true  <-> UI 'yes'
+     DB false <-> UI 'no'
+     DB null  <-> UI 'unknown'   (and for a two-state field, simply unselected)
+
+   toForm() is applied when a saved row is loaded into a form; fromForm() is
+   applied inside every writer, so no call site can forget it. Display never
+   compares by hand — it asks ANES.yes(), which accepts either representation
+   and therefore cannot be broken by whichever side of the boundary it is on. */
+ANES.BOOL_COLUMNS = {};
+[
+  'anesthesia_access.patent','anesthesia_access.placed_before_or',
+  'anesthesia_access.sterile_technique','anesthesia_access.ultrasound',
+  'anesthesia_access.waveform_confirmed','anesthesia_access.zeroed',
+  'anesthesia_airway.bilateral_ventilation','anesthesia_airway.bronchoscopy_confirmed',
+  'anesthesia_airway.difficult_airway','anesthesia_airway.etco2_confirmed',
+  'anesthesia_blood_products.warmed','anesthesia_cases.asa_emergency',
+  'anesthesia_fluids.warmed','anesthesia_handoffs.extubated',
+  'anesthesia_handoffs.transferred_intubated','anesthesia_history_review.reviewed',
+  'anesthesia_history_review.significant','anesthesia_medications.is_redose',
+  'anesthesia_positioning.axillary_roll','anesthesia_positioning.eyes_protected',
+  'anesthesia_positioning.padding','anesthesia_positioning.pressure_points_checked',
+  'anesthesia_positioning.scds','anesthesia_preassessment.chewing_gum',
+  'anesthesia_preassessment.facial_hair','anesthesia_preassessment.fasting_not_met_emergency',
+  'anesthesia_regional.aspiration_negative','anesthesia_regional.blood_aspirated',
+  'anesthesia_regional.catheter','anesthesia_regional.consent',
+  'anesthesia_regional.csf_obtained','anesthesia_regional.incremental_injection',
+  'anesthesia_regional.mask','anesthesia_regional.nerve_stimulator',
+  'anesthesia_regional.paresthesia','anesthesia_regional.sterile_gloves',
+  'anesthesia_regional.sterile_probe_cover','anesthesia_regional.sterile_technique',
+  'anesthesia_regional.time_out','anesthesia_regional.ultrasound'
+].forEach(function(c){ ANES.BOOL_COLUMNS[c] = true; });
+ANES.isBoolColumn = function(table, col){ return !!ANES.BOOL_COLUMNS[table + '.' + col]; };
+
+/* The one display predicate. Accepts a database boolean, a form string, and
+   the strings a text column may legitimately hold, so a reader is right on
+   both sides of the boundary and stays right if a column type ever changes. */
+ANES.yes = function(v){ return v === true || v === 'yes' || v === 't' || v === 'true'; };
+ANES.no  = function(v){ return v === false || v === 'no' || v === 'f' || v === 'false'; };
+/* For a chip to light up. 'unknown' and null are the same answer: not recorded. */
+ANES.uiBool = function(v){ return v == null ? 'unknown' : (ANES.yes(v) ? 'yes' : (ANES.no(v) ? 'no' : v)); };
+ANES.dbBool = function(v){ return v === 'unknown' || v == null || v === '' ? null
+                                : (ANES.yes(v) ? true : (ANES.no(v) ? false : null)); };
+
+/* A stored row, ready to be edited. */
+ANES.toForm = function(table, row){
+  var out = {};
+  if(!row) return out;
+  Object.keys(row).forEach(function(k){
+    out[k] = ANES.isBoolColumn(table, k) ? ANES.uiBool(row[k]) : row[k];
+  });
+  return out;
+};
+/* Form values, ready for the database. Applied inside every writer below. */
+ANES.fromForm = function(table, obj){
+  var out = {};
+  if(!obj) return out;
+  Object.keys(obj).forEach(function(k){
+    out[k] = ANES.isBoolColumn(table, k) ? ANES.dbBool(obj[k]) : obj[k];
+  });
+  return out;
+};
+
 function nowIso(){ return new Date().toISOString(); }
 async function uid(){ var s = await window.getSession(); return s ? s.user.id : null; }
 ANES.nowIso = nowIso;
@@ -293,7 +378,7 @@ ANES.insert = async function(table, caseId, row){
   var me = await uid();
   if(!me) return { error:{ message:'You are not signed in.' } };
   try {
-    var payload = clean(row);
+    var payload = clean(ANES.fromForm(table, row));
     payload.case_id = caseId; payload.entered_by = me;
     var r = await window.sb.from(table).insert(payload).select('*').maybeSingle();
     return { error: r.error || null, data: r.data || null };
@@ -302,7 +387,8 @@ ANES.insert = async function(table, caseId, row){
 
 ANES.update = async function(table, id, patch){
   try {
-    var r = await window.sb.from(table).update(clean(patch)).eq('id', id).select('*').maybeSingle();
+    var r = await window.sb.from(table).update(clean(ANES.fromForm(table, patch)))
+              .eq('id', id).select('*').maybeSingle();
     return { error: r.error || null, data: r.data || null };
   } catch(e){ return { error:{ message:e.message } }; }
 };
@@ -319,7 +405,8 @@ ANES.remove = async function(table, id){
    this is a plain update: the server decides what is allowed to change. */
 ANES.updateCase = async function(caseId, patch){
   try {
-    var r = await window.sb.from('anesthesia_cases').update(clean(patch))
+    var r = await window.sb.from('anesthesia_cases')
+              .update(clean(ANES.fromForm('anesthesia_cases', patch)))
               .eq('id', caseId).select('*').maybeSingle();
     return { error: r.error || null, data: r.data || null };
   } catch(e){ return { error:{ message:e.message } }; }
@@ -331,7 +418,7 @@ ANES.savePreassessment = async function(caseId, patch){
   var me = await uid();
   if(!me) return { error:{ message:'You are not signed in.' } };
   try {
-    var payload = clean(patch);
+    var payload = clean(ANES.fromForm('anesthesia_preassessment', patch));
     payload.case_id = caseId; payload.entered_by = me;
     if(!payload.assessed_at) payload.assessed_at = nowIso();
     var r = await window.sb.from('anesthesia_preassessment')
@@ -364,7 +451,7 @@ ANES.saveHistory = async function(caseId, topic, patch){
     if(existing.error) return { error: existing.error };
     if(existing.data && existing.data.id)
       return await ANES.update('anesthesia_history_review', existing.data.id, patch);
-    var row = clean(patch);
+    var row = clean(ANES.fromForm('anesthesia_history_review', patch));
     row.case_id = caseId; row.topic = topic; row.entered_by = me;
     var r = await window.sb.from('anesthesia_history_review').insert(row).select('*').maybeSingle();
     return { error: r.error || null, data: r.data || null };
@@ -428,7 +515,7 @@ ANES.createCase = async function(data){
   var me = await uid();
   if(!me) return { error:{ message:'You are not signed in.' } };
   try {
-    var row = clean({
+    var row = clean(ANES.fromForm('anesthesia_cases', {
       display_name: data.display_name, mrn: data.mrn,
       date_of_birth: data.date_of_birth, sex: data.sex,
       weight_kg: data.weight_kg, height_cm: data.height_cm,
@@ -437,7 +524,7 @@ ANES.createCase = async function(data){
       surgeon: data.surgeon, operating_room: data.operating_room,
       urgency: data.urgency || 'elective',
       surgery_id: data.surgery_id, clinic_patient_id: data.clinic_patient_id
-    });
+    }));
     row.anesthesia_types = data.anesthesia_types || [];
     row.case_modes = data.case_modes || [];
     row.status = 'in_progress';
@@ -615,7 +702,7 @@ ANES.FORMS.positioning = {
     F('position','Position','choice',
       { options:['supine','prone','lateral','lithotomy','beach chair','sitting','other'] }),
     F('arms','Arms','choice',{ options:['tucked','abducted <90°','abducted >90°','over head','one out'] }),
-    F('padding','Padding','text'),
+    F('padding','Padding applied','tri'),
     F('eyes_protected','Eyes protected','tri'),
     F('pressure_points_checked','Pressure points checked','tri'),
     F('head_neck','Head and neck','text'),
@@ -741,7 +828,7 @@ ANES.FORMS.handoff = {
     F('hr','Heart rate','num',{ group:'Handoff' }),
     F('spo2','SpO₂ (%)','num',{ group:'Handoff' }),
     F('temperature_c','Temperature (°C)','num',{ group:'Handoff' }),
-    F('pain_score','Pain score','num',{ group:'Handoff' }),
+    F('pain_score','Pain score','text',{ group:'Handoff' }),
     F('sedation_score','Sedation score','text',{ group:'Handoff' }),
     F('ponv','PONV','tri',{ group:'Handoff' }),
     F('neuro_status','Neurological status','text',{ group:'Handoff' }),
@@ -755,6 +842,128 @@ ANES.FORMS.handoff = {
       { options:['nurse','anesthesiologist','intensivist','resident','other'], group:'Handoff' }),
     F('transferring_clinician','Handed over by','text',{ group:'Handoff' })
   ]
+};
+
+/* ── Correction forms ────────────────────────────────────────────────────
+   A clinical chart that can only be appended to is not a chart, it is a log.
+   Before finalization the clinician must be able to correct what they wrote —
+   a 7.5 tube typed when a 7.0 went in has to become a 7.0, not a second
+   contradictory row. These describe the quick-entry tables so the SAME
+   renderer edits them, and the update goes to the row that already exists. */
+ANES.FORMS.medication = {
+  table:'anesthesia_medications', timeKey:'administered_at',
+  fields: [
+    F('administered_at','Time','time'),
+    F('medication','Medication','text'),
+    F('dose','Dose','num'),
+    F('unit','Unit','choice',{ options:ANES.DOSE_UNITS }),
+    F('route','Route','choice',{ options:ANES.ROUTES }),
+    F('category','Category','choice',{ options:ANES.DRUG_CATEGORIES }),
+    F('concentration','Concentration','text'),
+    F('line','Line','text'),
+    F('indication','Indication','text'),
+    F('administered_by','Administered by','text'),
+    F('is_redose','Redose','bool'),
+    F('note','Note','area')
+  ]
+};
+ANES.FORMS.infusion = {
+  table:'anesthesia_infusions', timeKey:'started_at',
+  fields: [
+    F('medication','Medication','text'), F('concentration','Concentration','text'),
+    F('rate_unit','Rate unit','text'), F('line','Line','text'),
+    F('tci_model','TCI model','text'),
+    F('tci_target_kind','TCI target','choice',{ options:['plasma','effect-site'] }),
+    F('started_at','Started','time'), F('stopped_at','Stopped','time'),
+    F('total_given','Total given','num'), F('total_unit','Total unit','text'),
+    F('note','Note','area')
+  ]
+};
+ANES.FORMS.fluid = {
+  table:'anesthesia_fluids', timeKey:'started_at',
+  fields: [
+    F('fluid','Fluid','text'),
+    F('category','Category','choice',{ options:ANES.FLUID_CATEGORIES }),
+    F('volume_ml','Volume (mL)','num'),
+    F('started_at','Started','time'), F('finished_at','Finished','time'),
+    F('warmed','Warmed','tri'), F('line','Line','text'), F('note','Note','area')
+  ]
+};
+ANES.FORMS.blood = {
+  table:'anesthesia_blood_products', timeKey:'started_at',
+  fields: [
+    F('product','Product','choice',{ options:ANES.BLOOD_PRODUCTS }),
+    F('units','Units','num'), F('volume_ml','Volume (mL)','num'),
+    F('unit_identifier','Unit identifier','text'),
+    F('started_at','Started','time'), F('finished_at','Finished','time'),
+    F('warmed','Warmed','tri'), F('reaction','Reaction','text'), F('note','Note','area')
+  ]
+};
+ANES.FORMS.output = {
+  table:'anesthesia_outputs', timeKey:'recorded_at',
+  fields: [
+    F('kind','Kind','choice',{ options:ANES.OUTPUT_KINDS }),
+    F('volume_ml','Volume (mL)','num'), F('recorded_at','Time','time'),
+    F('label','Label','text'), F('note','Note','area')
+  ]
+};
+ANES.FORMS.vital = {
+  table:'anesthesia_vitals', timeKey:'measured_at',
+  fields: [
+    F('parameter','Parameter','text'), F('value','Value','num'),
+    F('unit','Unit','text'), F('measured_at','Time','time')
+  ]
+};
+ANES.FORMS.lab = {
+  table:'anesthesia_labs', timeKey:'sampled_at',
+  fields: [
+    F('panel','Panel','choice',{ options:ANES.LAB_PANELS }),
+    F('analyte','Analyte','text'), F('value','Value','num'),
+    F('value_text','Value (text)','text'), F('unit','Unit','text'),
+    F('sampled_at','Sampled','time')
+  ]
+};
+ANES.FORMS.device = {
+  table:'anesthesia_device_sessions', timeKey:'started_at',
+  fields: [
+    F('label','Device','text'), F('kind','Kind','text'),
+    F('category','Category','text'),
+    F('started_at','Started','time'), F('stopped_at','Stopped','time'),
+    F('note','Note','area')
+  ]
+};
+
+/* Which form edits which list, and how a row is titled in the confirmation
+   when it is about to be removed. */
+ANES.EDITABLE = {
+  medications:  { spec:'medication',  table:'anesthesia_medications',
+                  label:function(r){ return r.medication + ' ' + (+r.dose) + ' ' + (r.unit||''); } },
+  infusions:    { spec:'infusion',    table:'anesthesia_infusions',
+                  label:function(r){ return r.medication + ' infusion'; } },
+  fluids:       { spec:'fluid',       table:'anesthesia_fluids',
+                  label:function(r){ return r.fluid + ' ' + (+r.volume_ml) + ' mL'; } },
+  blood:        { spec:'blood',       table:'anesthesia_blood_products',
+                  label:function(r){ return String(r.product).toUpperCase(); } },
+  outputs:      { spec:'output',      table:'anesthesia_outputs',
+                  label:function(r){ return String(r.kind).toUpperCase() + ' ' + (+r.volume_ml) + ' mL'; } },
+  vitals:       { spec:'vital',       table:'anesthesia_vitals',
+                  label:function(r){ return String(r.parameter).toUpperCase() + ' ' + (+r.value); } },
+  labs:         { spec:'lab',         table:'anesthesia_labs',
+                  label:function(r){ return r.analyte + ' ' + (r.value != null ? (+r.value) : (r.value_text||'')); } },
+  devices:      { spec:'device',      table:'anesthesia_device_sessions',
+                  label:function(r){ return r.label || r.kind; } },
+  airway:       { spec:'airway',      table:'anesthesia_airway',
+                  label:function(r){ return [r.device, r.device_size].filter(Boolean).join(' ') || 'airway record'; } },
+  access:       { spec:'access',      table:'anesthesia_access',
+                  label:function(r){ return [r.gauge, r.kind].filter(Boolean).join(' '); } },
+  positioning:  { spec:'positioning', table:'anesthesia_positioning',
+                  label:function(r){ return r.position; } },
+  ventilation:  { spec:'ventilation', table:'anesthesia_ventilation',
+                  label:function(r){ return (r.mode || 'ventilation') + ' settings'; } },
+  regional:     { spec:'regional',    table:'anesthesia_regional',
+                  label:function(r){ return r.block_name || r.kind; } },
+  events:       { spec:'event',       table:'anesthesia_events',
+                  label:function(r){ return r.event_type; } }
 };
 
 /* ── Case header, editable while the record is open ──────────────────────── */
@@ -811,7 +1020,7 @@ ANES.buildTimeline = function(d){
       (inf && inf.rate_unit ? ' ' + inf.rate_unit : '')); });
   (d.fluids || []).forEach(function(f){
     push(f.started_at, '', f.fluid + ' ' + (+f.volume_ml) + ' mL',
-      f.warmed ? 'warmed' : null); });
+      ANES.yes(f.warmed) ? 'warmed' : null); });
   (d.blood || []).forEach(function(b){
     push(b.started_at, 'ev', String(b.product).toUpperCase() +
       (b.units ? ' ' + (+b.units) + ' unit(s)' : ''),
@@ -819,12 +1028,12 @@ ANES.buildTimeline = function(d){
   (d.outputs || []).forEach(function(o){
     push(o.recorded_at, '', String(o.kind).toUpperCase() + ' ' + (+o.volume_ml) + ' mL', o.label); });
   (d.airway || []).forEach(function(a){
-    push(a.occurred_at, a.difficult_airway === 'yes' ? 'ev' : '',
+    push(a.occurred_at, ANES.yes(a.difficult_airway) ? 'ev' : '',
       'Airway: ' + [a.device, a.device_size].filter(Boolean).join(' ') +
       (a.technique ? ' via ' + a.technique : ''),
       [a.cormack_lehane ? 'CL ' + a.cormack_lehane : null,
        a.attempts ? a.attempts + ' attempt(s)' : null,
-       a.difficult_airway === 'yes' ? 'DIFFICULT AIRWAY' : null].filter(Boolean).join(' · ') || null);
+       ANES.yes(a.difficult_airway) ? 'DIFFICULT AIRWAY' : null].filter(Boolean).join(' · ') || null);
     push(a.olv_started_at, '', 'One-lung ventilation started');
     push(a.olv_ended_at, '', 'One-lung ventilation ended'); });
   (d.access || []).forEach(function(a){
@@ -897,7 +1106,7 @@ ANES.totals = function(d){
    the single fact from this chart most likely to matter to the next
    anesthetist who meets this patient. */
 ANES.hasDifficultAirway = function(d){
-  return (d.airway || []).some(function(a){ return a.difficult_airway === 'yes'; })
+  return (d.airway || []).some(function(a){ return ANES.yes(a.difficult_airway); })
       || ((d.preassessment || {}).anticipated_intubation_difficulty === 'likely');
 };
 

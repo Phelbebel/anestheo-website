@@ -123,6 +123,11 @@ select option{background:#132218;}
 .row-x{font-size:14px;line-height:1.45;}
 .row-s{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5;}
 .row.bad{border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.07);}
+.rowbtn{flex:0 0 auto;background:none;border:1px solid rgba(255,255,255,.14);border-radius:8px;
+  color:rgba(255,255,255,.55);font-family:inherit;font-size:16px;line-height:1;cursor:pointer;
+  min-width:44px;min-height:44px;}
+.rowbtn:hover{color:#fff;border-color:rgba(126,207,192,.5);background:rgba(126,207,192,.1);}
+.card.edit{border-color:rgba(126,207,192,.5);box-shadow:0 0 0 1px rgba(126,207,192,.18);}
 .empty{font-size:13.5px;color:var(--muted);text-align:center;padding:22px 12px;line-height:1.6;}
 .secerr{font-size:13px;color:#FFB4A8;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);
   border-radius:9px;padding:10px 12px;line-height:1.55;margin-bottom:12px;}
@@ -257,7 +262,7 @@ function fromLocalInput(v){ return v ? new Date(v).toISOString() : null; }
    what has been documented and what has not. */
 var SECTIONS = [
   { id:'overview',  ic:'▤', label:'Overview',        render:secOverview,  count:function(){ return (D.times||[]).length; } },
-  { id:'preop',     ic:'✚', label:'Pre-op',          render:secPreop,     count:function(){ return (D.history||[]).filter(function(h){return h.reviewed;}).length; } },
+  { id:'preop',     ic:'✚', label:'Pre-op',          render:secPreop,     count:function(){ return (D.history||[]).filter(function(h){ return ANES.yes(h.reviewed); }).length; } },
   { id:'airway',    ic:'◔', label:'Airway',          render:secAirway,    count:function(){ return (D.airway||[]).length; } },
   { id:'access',    ic:'◈', label:'Access & Monitoring', render:secAccess, count:function(){ return (D.access||[]).length + (D.devices||[]).length; } },
   { id:'anesthesia',ic:'◉', label:'Anesthesia',      render:secAnesthesia,count:function(){ return (D.positioning||[]).length; } },
@@ -334,6 +339,9 @@ function renderField(spec, f, v){
         esc(o) + '</button>';
     }).join('') + '</div>';
   } else if(f.type === 'tri' || f.type === 'bool'){
+    // Normalised, so a value that arrived as a database boolean still selects
+    // the right chip. The renderer must never be the reason data looks absent.
+    val = ANES.uiBool(val);
     var opts = f.type === 'tri' ? ['yes','no','unknown'] : ['yes','no'];
     out += '<div class="opts">' + opts.map(function(o){
       return '<button type="button" class="opt' + (val === o ? ' on' : '') +
@@ -455,6 +463,88 @@ async function saveNew(spec, table, extra){
   if(ok){ _forms[spec] = {}; await reload(); }
 }
 
+/* ═══════════ CORRECTING WHAT IS ALREADY THERE ═════════════════════════════
+   Before finalization a chart must be correctable. A 7.5 tube typed when a 7.0
+   went in has to BECOME a 7.0 — not sit next to a second, contradictory row for
+   whoever reads the case later. Editing loads the existing row and updates it;
+   removing asks first. After finalization neither control is rendered at all,
+   and the database refuses both regardless.
+
+   Which section each list belongs to, so the editor opens where the clinician
+   already is. */
+var EDIT_SECTION = { medications:'drugs', infusions:'drugs', fluids:'fluids', blood:'fluids',
+  outputs:'fluids', vitals:'vitals', labs:'vitals', devices:'access', airway:'airway',
+  access:'access', positioning:'anesthesia', ventilation:'vent', regional:'regional',
+  events:'events' };
+var _edit = null;          // { list, id }
+
+function rowFor(list, id){
+  return (D[list] || []).filter(function(r){ return String(r.id) === String(id); })[0] || null;
+}
+/* The ⋯ control. Absent once the record is finalized — an action that cannot
+   succeed should not be offered. */
+function rowActions(list, id){
+  if(_locked) return '';
+  return '<button class="rowbtn" title="Correct or remove this entry" ' +
+    'aria-label="Correct or remove this entry" onclick="startEdit(\'' + list + '\',\'' + id + '\')">⋯</button>';
+}
+var EDIT_SPEC = '__edit';   // its own namespace, so its inputs never collide
+                            // with the blank add-form rendered in the same section
+function startEdit(list, id){
+  var cfg = ANES.EDITABLE[list], row = rowFor(list, id);
+  if(!cfg || !row) return;
+  _edit = { list:list, id:id };
+  _forms[EDIT_SPEC] = ANES.toForm(cfg.table, row);
+  _sec = EDIT_SECTION[list] || _sec;
+  renderRail(); redrawSection();
+  var card = el('edit-card');
+  if(card) card.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function cancelEdit(){
+  if(!_edit) return;
+  _edit = null; _forms[EDIT_SPEC] = {};
+  redrawSection();
+}
+async function saveEdit(){
+  if(!_edit) return;
+  var cfg = ANES.EDITABLE[_edit.list];
+  var v = captureInputs(EDIT_SPEC);
+  var id = _edit.id;
+  var ok = await runSave('edit', function(){ return ANES.update(cfg.table, id, v); }, 'Correction saved');
+  if(ok){ _edit = null; _forms[EDIT_SPEC] = {}; await reload(); }
+}
+async function removeRow(){
+  if(!_edit) return;
+  var cfg = ANES.EDITABLE[_edit.list], row = rowFor(_edit.list, _edit.id);
+  if(!row) return;
+  if(!confirm('Remove "' + cfg.label(row) + '" from this record?\n\n' +
+    'It is deleted from the chart. The audit trail keeps a record that it was removed, ' +
+    'and this is only possible while the record is open.')) return;
+  var id = _edit.id;
+  var ok = await runSave('edit', function(){ return ANES.remove(cfg.table, id); }, 'Entry removed');
+  if(ok){ _edit = null; _forms[EDIT_SPEC] = {}; await reload(); }
+}
+window.prefillFav = prefillFav;
+window.startEdit = startEdit; window.cancelEdit = cancelEdit;
+window.saveEdit = saveEdit; window.removeRow = removeRow;
+
+/* Rendered at the top of the section the entry lives in, so the correction
+   happens where the clinician is already looking. */
+function editCard(section){
+  if(!_edit || (EDIT_SECTION[_edit.list] || '') !== section) return '';
+  var cfg = ANES.EDITABLE[_edit.list], row = rowFor(_edit.list, _edit.id);
+  if(!cfg || !row) return '';
+  return '<div class="card edit" id="edit-card"><div class="card-h">' +
+    '<span class="card-t">Correcting — ' + esc(cfg.label(row)) + '</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">updates this entry, does not add another</span>' +
+    '</div><div class="card-b">' +
+    renderForm(EDIT_SPEC, ANES.FORMS[cfg.spec]) +
+    '<div class="acts"><button class="btn" data-save="edit" onclick="saveEdit()">Save correction</button>' +
+    '<button class="btn ghost" onclick="cancelEdit()">Cancel</button>' +
+    '<button class="btn danger" onclick="removeRow()">Remove entry</button>' +
+    '<span class="savest" id="save-edit"></span></div></div></div>';
+}
+
 /* ═══════════ SECTIONS ═════════════════════════════════════════════════════ */
 function sectionError(key, what){
   if(!D.errors || !D.errors[key]) return '';
@@ -548,16 +638,16 @@ function secPreop(){
   var hist = ANES.HISTORY_TOPICS.map(function(topic){
     var h = byTopic[topic] || {};
     var sid = 'h-' + topic.replace(/[^a-z]/gi,'');
-    return '<div class="row' + (h.significant ? ' bad' : '') + '">' +
+    return '<div class="row' + (ANES.yes(h.significant) ? ' bad' : '') + '">' +
       '<div class="row-m"><div class="row-x" style="font-weight:600">' + esc(topic) +
-      (h.significant ? ' <span class="chip stop">significant</span>' : '') + '</div>' +
+      (ANES.yes(h.significant) ? ' <span class="chip stop">significant</span>' : '') + '</div>' +
       (h.finding ? '<div class="row-s">' + esc(h.finding) + '</div>' : '') +
       '<div class="opts" style="margin-top:8px">' +
-        '<button type="button" class="opt' + (h.reviewed && !h.finding ? ' on' : '') + '"' +
+        '<button type="button" class="opt' + (ANES.yes(h.reviewed) && !h.finding ? ' on' : '') + '"' +
           (_locked ? ' disabled' : '') + ' onclick="histSet(' + JSON.stringify(topic).replace(/"/g,'&quot;') + ',\'clear\')">No significant finding</button>' +
         '<button type="button" class="opt' + (h.finding ? ' on' : '') + '"' +
           (_locked ? ' disabled' : '') + ' onclick="histFinding(' + JSON.stringify(topic).replace(/"/g,'&quot;') + ')">Finding…</button>' +
-        (h.finding ? '<button type="button" class="opt' + (h.significant ? ' on flag' : '') + '"' +
+        (h.finding ? '<button type="button" class="opt' + (ANES.yes(h.significant) ? ' on flag' : '') + '"' +
           (_locked ? ' disabled' : '') + ' onclick="histSet(' + JSON.stringify(topic).replace(/"/g,'&quot;') + ',\'sig\')">Significant</button>' : '') +
       '</div></div></div>';
   }).join('');
@@ -573,7 +663,7 @@ function secPreop(){
 
     '<div class="card"><div class="card-h"><span class="card-t">History</span>' +
     '<span class="card-t" style="color:var(--muted);font-weight:500">' +
-    (D.history||[]).filter(function(h){ return h.reviewed; }).length + ' of ' + ANES.HISTORY_TOPICS.length + ' reviewed</span>' +
+    (D.history||[]).filter(function(h){ return ANES.yes(h.reviewed); }).length + ' of ' + ANES.HISTORY_TOPICS.length + ' reviewed</span>' +
     '</div><div class="card-b"><div class="rows">' + hist + '</div>' +
     '<div class="savest" id="save-history" style="margin-top:10px"></div></div></div>' +
 
@@ -585,22 +675,22 @@ function secPreop(){
 /* ── 3. Airway ───────────────────────────────────────────────────────────── */
 function secAirway(){
   var recs = (D.airway || []).map(function(a){
-    return '<div class="row' + (a.difficult_airway === 'yes' ? ' bad' : '') + '">' +
+    return '<div class="row' + (ANES.yes(a.difficult_airway) ? ' bad' : '') + '">' +
       '<div class="row-t">' + hhmm(a.occurred_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc([a.device, a.device_size].filter(Boolean).join(' ') || 'Airway') +
       (a.technique ? ' — ' + esc(a.technique) : '') +
-      (a.difficult_airway === 'yes' ? ' <span class="chip stop">DIFFICULT AIRWAY</span>' : '') + '</div>' +
+      (ANES.yes(a.difficult_airway) ? ' <span class="chip stop">DIFFICULT AIRWAY</span>' : '') + '</div>' +
       '<div class="row-s">' + esc([
         a.mask_ventilation ? 'mask ' + a.mask_ventilation : null,
         a.cormack_lehane ? 'Cormack-Lehane ' + a.cormack_lehane : null,
         a.attempts ? a.attempts + ' attempt(s)' : null,
         a.depth_cm ? a.depth_cm + ' cm' : null,
-        a.etco2_confirmed === 'yes' ? 'EtCO₂ confirmed' : null,
+        ANES.yes(a.etco2_confirmed) ? 'EtCO₂ confirmed' : null,
         a.complication ? 'complication: ' + a.complication : null
-      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+      ].filter(Boolean).join(' · ')) + '</div>' + rowActions('airway', a.id) + '</div>';
   });
 
-  return sectionError('airway','Airway records') +
+  return editCard('airway') + sectionError('airway','Airway records') +
     '<div class="card"><div class="card-h"><span class="card-t">Pre-operative airway assessment</span></div>' +
     '<div class="card-b">' + renderForm('airwayAssessment', ANES.FORMS.airwayAssessment) +
     saveBar('airwayAssessment','Save airway assessment') + '</div></div>' +
@@ -621,20 +711,20 @@ function secAccess(){
       '<div class="row-x">' + esc(v.label || v.kind) + '</div><div class="row-s">' +
       esc(v.category || '') + (v.stopped_at ? ' · stopped ' + hhmm(v.stopped_at) : ' · running') + '</div></div>' +
       (v.stopped_at || _locked ? '' : '<button class="btn ghost" style="padding:6px 11px;min-height:38px;font-size:12px" ' +
-        'onclick="stopDevice(\'' + v.id + '\')">Stop</button>') + '</div>';
+        'onclick="stopDevice(\'' + v.id + '\')">Stop</button>') + rowActions('devices', v.id) + '</div>';
   });
   var acc = (D.access || []).map(function(a){
     return '<div class="row"><div class="row-t">' + hhmm(a.inserted_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc([a.gauge, a.kind].filter(Boolean).join(' ')) +
       (a.site ? ' — ' + esc(a.site) : '') + (a.side ? ' (' + esc(a.side) + ')' : '') + '</div>' +
       '<div class="row-s">' + esc([
-        a.placed_before_or === 'yes' ? 'pre-existing' : null,
+        ANES.yes(a.placed_before_or) ? 'pre-existing' : null,
         a.lumens ? a.lumens + ' lumen' : null,
-        a.ultrasound === 'yes' ? 'ultrasound' : null,
+        ANES.yes(a.ultrasound) ? 'ultrasound' : null,
         a.attempts ? a.attempts + ' attempt(s)' : null,
-        a.waveform_confirmed === 'yes' ? 'waveform confirmed' : null,
+        ANES.yes(a.waveform_confirmed) ? 'waveform confirmed' : null,
         a.complications ? 'complication: ' + a.complications : null
-      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+      ].filter(Boolean).join(' · ')) + '</div></div>' + rowActions('access', a.id) + '</div>';
   });
 
   var quick = Object.keys(ANES.MONITORS).map(function(cat){
@@ -651,7 +741,7 @@ function secAccess(){
   var kind = fvals('access').kind;
   var allowed = kind ? (ANES.ACCESS_FIELDS[kind] || []) : [];
 
-  return sectionError('devices','Monitoring') + sectionError('access','Vascular access') +
+  return editCard('access') + sectionError('devices','Monitoring') + sectionError('access','Vascular access') +
     '<div class="card"><div class="card-h"><span class="card-t">Monitoring &amp; devices</span></div>' +
     '<div class="card-b"><div class="lead">One tap starts a device session and stamps the time. ' +
     'Tap Stop when it comes off.</div>' + quick +
@@ -681,12 +771,12 @@ function secAnesthesia(){
     return '<div class="row"><div class="row-t">' + hhmm(p.occurred_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc(p.position) + '</div><div class="row-s">' + esc([
         p.arms ? 'arms ' + p.arms : null,
-        p.eyes_protected === 'yes' ? 'eyes protected' : null,
-        p.pressure_points_checked === 'yes' ? 'pressure points checked' : null,
-        p.scds === 'yes' ? 'SCDs' : null, p.precautions
-      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+        ANES.yes(p.eyes_protected) ? 'eyes protected' : null,
+        ANES.yes(p.pressure_points_checked) ? 'pressure points checked' : null,
+        ANES.yes(p.scds) ? 'SCDs' : null, p.precautions
+      ].filter(Boolean).join(' · ')) + '</div></div>' + rowActions('positioning', p.id) + '</div>';
   });
-  return sectionError('positioning','Positioning') +
+  return editCard('anesthesia') + sectionError('positioning','Positioning') +
     '<div class="card"><div class="card-h"><span class="card-t">Case details</span>' +
     '<span class="card-t" style="color:var(--muted);font-weight:500">' +
     (_locked ? 'finalized — read only' : 'editable while the record is open') + '</span></div>' +
@@ -723,10 +813,10 @@ function secVent(){
         v.peep_cmh2o != null ? 'PEEP ' + v.peep_cmh2o : null,
         v.fio2_pct ? 'FiO₂ ' + v.fio2_pct + '%' : null,
         v.peak_pressure_cmh2o ? 'Ppeak ' + v.peak_pressure_cmh2o : null
-      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+      ].filter(Boolean).join(' · ')) + '</div></div>' + rowActions('ventilation', v.id) + '</div>';
   });
 
-  return sectionError('ventilation','Ventilation') +
+  return editCard('vent') + sectionError('ventilation','Ventilation') +
     '<div class="card"><div class="card-h"><span class="card-t">Current ventilation</span>' +
     (cur ? '<span class="card-t" style="color:var(--muted);font-weight:500">set ' + hhmm(cur.occurred_at) + '</span>' : '') +
     '</div><div class="card-b">' + summary + '</div></div>' +
@@ -744,16 +834,16 @@ function secVent(){
 /* ── 7. Drugs & infusions ────────────────────────────────────────────────── */
 function secDrugs(){
   var favs = '<div class="qgrid">' + ANES.FAVOURITES.map(function(f, i){
-    return '<button class="qbtn"' + (_locked ? ' disabled' : '') + ' onclick="giveFav(' + i + ')">' +
-      '<b>' + esc(f.name) + '</b><small>' + f.dose + ' ' + f.unit + ' IV</small></button>';
+    return '<button class="qbtn"' + (_locked ? ' disabled' : '') + ' onclick="prefillFav(' + i + ')">' +
+      '<b>' + esc(f.name) + '</b><small>' + f.dose + ' ' + f.unit + ' IV · fills the form</small></button>';
   }).join('') + '</div>';
 
   var meds = (D.medications || []).slice().reverse().map(function(m){
     return '<div class="row"><div class="row-t">' + hhmm(m.administered_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc(m.medication) + ' ' + (+m.dose) + ' ' + esc(m.unit) +
       (m.route ? ' ' + esc(String(m.route).toUpperCase()) : '') + '</div>' +
-      '<div class="row-s">' + esc([m.category, m.indication, m.is_redose ? 'redose' : null,
-        m.line, m.note].filter(Boolean).join(' · ')) + '</div></div></div>';
+      '<div class="row-s">' + esc([m.category, m.indication, ANES.yes(m.is_redose) ? 'redose' : null,
+        m.line, m.note].filter(Boolean).join(' · ')) + '</div></div>' + rowActions('medications', m.id) + '</div>';
   });
 
   var infs = (D.infusions || []).map(function(inf){
@@ -773,13 +863,17 @@ function secDrugs(){
         '<button class="btn ghost" style="min-height:40px;padding:8px 12px" onclick="changeRate(\'' + inf.id + '\')">Rate change</button>' +
         '<button class="btn ghost" style="min-height:40px;padding:8px 12px" onclick="stopInfusion(\'' + inf.id + '\')">Stop</button>' +
         '</div>') +
-      '</div></div>';
+      '</div>' + rowActions('infusions', inf.id) + '</div>';
   });
 
-  return sectionError('medications','Medications') + sectionError('infusions','Infusions') +
+  return editCard('drugs') + sectionError('medications','Medications') + sectionError('infusions','Infusions') +
     '<div class="card"><div class="card-h"><span class="card-t">Favourites</span>' +
-    '<span class="card-t" style="color:var(--muted);font-weight:500">one tap · stamps now</span></div>' +
-    '<div class="card-b">' + favs + '<div class="savest" id="save-fav" style="margin-top:10px"></div></div></div>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">fills the form &middot; you confirm the dose</span></div>' +
+    '<div class="card-b">' + favs +
+    '<div class="lead" style="margin:11px 0 0">A favourite is a starting point, not a prescription. ' +
+    'Tapping one fills the entry below with a common dose so you can check it against this patient ' +
+    'and change it — nothing is recorded until you tap Record administration.</div>' +
+    '<div class="savest" id="save-fav" style="margin-top:10px"></div></div></div>' +
 
     '<div class="card"><div class="card-h"><span class="card-t">Record an administration</span></div>' +
     '<div class="card-b"><div class="fgrid">' +
@@ -827,17 +921,17 @@ function secFluids(){
   var fl = rows(D.fluids || [], function(f){
     return '<div class="row"><div class="row-t">' + hhmm(f.started_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc(f.fluid) + ' ' + (+f.volume_ml) + ' mL</div><div class="row-s">' +
-      esc([f.category, f.line, f.warmed ? 'warmed' : null].filter(Boolean).join(' · ')) + '</div></div></div>'; });
+      esc([f.category, f.line, ANES.yes(f.warmed) ? 'warmed' : null].filter(Boolean).join(' · ')) + '</div></div>' + rowActions('fluids', f.id) + '</div>'; });
   var bl = rows(D.blood || [], function(b){
     return '<div class="row' + (b.reaction ? ' bad' : '') + '"><div class="row-t">' + hhmm(b.started_at) + '</div>' +
       '<div class="row-m"><div class="row-x">' + esc(String(b.product).toUpperCase()) +
       (b.units ? ' × ' + (+b.units) : '') + (b.volume_ml ? ' · ' + (+b.volume_ml) + ' mL' : '') + '</div>' +
-      '<div class="row-s">' + esc([b.unit_identifier, b.warmed ? 'warmed' : null,
-        b.reaction ? 'REACTION: ' + b.reaction : null].filter(Boolean).join(' · ')) + '</div></div></div>'; });
+      '<div class="row-s">' + esc([b.unit_identifier, ANES.yes(b.warmed) ? 'warmed' : null,
+        b.reaction ? 'REACTION: ' + b.reaction : null].filter(Boolean).join(' · ')) + '</div></div>' + rowActions('blood', b.id) + '</div>'; });
   var op = rows(D.outputs || [], function(o){
     return '<div class="row"><div class="row-t">' + hhmm(o.recorded_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc(String(o.kind).toUpperCase()) + ' ' + (+o.volume_ml) + ' mL</div>' +
-      (o.label ? '<div class="row-s">' + esc(o.label) + '</div>' : '') + '</div></div>'; });
+      (o.label ? '<div class="row-s">' + esc(o.label) + '</div>' : '') + '</div>' + rowActions('outputs', o.id) + '</div>'; });
 
   var totals = [
     ['Crystalloid', t.crystalloid], ['Colloid', t.colloid], ['Glucose', t.glucose],
@@ -846,7 +940,7 @@ function secFluids(){
     ['Balance', t.balance]
   ].map(function(i){ return '<div><dt>' + i[0] + '</dt><dd>' + (i[1] || i[1] === 0 ? i[1] : '—') + '</dd></div>'; }).join('');
 
-  return sectionError('fluids','Fluids') + sectionError('blood','Blood products') + sectionError('outputs','Outputs') +
+  return editCard('fluids') + sectionError('fluids','Fluids') + sectionError('blood','Blood products') + sectionError('outputs','Outputs') +
     '<div class="card"><div class="card-h"><span class="card-t">Running totals</span></div>' +
     '<div class="card-b"><dl class="totals">' + totals + '</dl></div></div>' +
 
@@ -888,14 +982,14 @@ function secRegional(){
         r.kind, r.vertebral_level, r.local_anesthetic,
         r.la_volume_ml ? r.la_volume_ml + ' mL' : null,
         r.la_total_mg ? r.la_total_mg + ' mg' : null,
-        r.ultrasound === 'yes' ? 'ultrasound' : null,
+        ANES.yes(r.ultrasound) ? 'ultrasound' : null,
         r.attempts ? r.attempts + ' attempt(s)' : null,
         r.sensory_level ? 'sensory ' + r.sensory_level : null,
         r.complications ? 'complication: ' + r.complications : null
-      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+      ].filter(Boolean).join(' · ')) + '</div></div>' + rowActions('regional', r.id) + '</div>';
   });
   var kind = fvals('regional').kind;
-  return sectionError('regional','Regional techniques') +
+  return editCard('regional') + sectionError('regional','Regional techniques') +
     '<div class="card"><div class="card-h"><span class="card-t">Blocks performed</span>' +
     '<span class="card-t" style="color:var(--muted);font-weight:500">' + recs.length + '</span></div>' +
     '<div class="card-b">' + listOr(recs, 'No regional technique recorded.') + '</div></div>' +
@@ -912,15 +1006,15 @@ function secVitals(){
     return '<div class="row"><div class="row-t">' + hhmm(l.sampled_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc(l.analyte) + ' ' +
       esc(l.value != null ? (+l.value) : (l.value_text || '')) + (l.unit ? ' ' + esc(l.unit) : '') + '</div>' +
-      '<div class="row-s">' + esc(l.panel || '') + '</div></div></div>';
+      '<div class="row-s">' + esc(l.panel || '') + '</div></div>' + rowActions('labs', l.id) + '</div>';
   });
   var recent = (D.vitals || []).slice(-12).reverse().map(function(v){
     return '<div class="row"><div class="row-t">' + hhmm(v.measured_at) + '</div><div class="row-m">' +
       '<div class="row-x">' + esc(String(v.parameter).toUpperCase()) + ' ' + (+v.value) +
-      (v.unit ? ' ' + esc(v.unit) : '') + '</div><div class="row-s">' + esc(v.source || 'manual') + '</div></div></div>';
+      (v.unit ? ' ' + esc(v.unit) : '') + '</div><div class="row-s">' + esc(v.source || 'manual') + '</div></div>' + rowActions('vitals', v.id) + '</div>';
   });
 
-  return sectionError('vitals','Vitals') + sectionError('labs','Labs') +
+  return editCard('vitals') + sectionError('vitals','Vitals') + sectionError('labs','Labs') +
     '<div class="card"><div class="card-h"><span class="card-t">Intraoperative chart</span>' +
     '<span class="card-t" style="color:var(--muted);font-weight:500">' + (D.vitals||[]).length + ' values</span></div>' +
     '<div class="card-b">' + vitalsGraph() + '</div></div>' +
@@ -970,9 +1064,9 @@ function secEvents(){
       '<div class="row-x">' + esc(e.event_type) + (e.severity ? ' — ' + esc(e.severity) : '') + '</div>' +
       '<div class="row-s">' + esc([e.description, e.treatment ? 'treated: ' + e.treatment : null,
         e.response, e.outcome, e.resolved_at ? 'resolved ' + hhmm(e.resolved_at) : null]
-        .filter(Boolean).join(' · ')) + '</div></div></div>';
+        .filter(Boolean).join(' · ')) + '</div></div>' + rowActions('events', e.id) + '</div>';
   });
-  return sectionError('events','Events') +
+  return editCard('events') + sectionError('events','Events') +
     '<div class="card"><div class="card-h"><span class="card-t">Record quickly</span>' +
     '<span class="card-t" style="color:var(--muted);font-weight:500">detail can be added after</span></div>' +
     '<div class="card-b">' + quick + '<div class="savest" id="save-qev" style="margin-top:10px"></div></div></div>' +
@@ -991,7 +1085,7 @@ function secHandoff(){
   var recs = (D.handoffs || []).map(function(x){
     return '<div class="row"><div class="row-t">' + hhmm(x.handoff_at) + '</div><div class="row-m">' +
       '<div class="row-x">Handover to ' + esc(x.destination || '—') + '</div><div class="row-s">' + esc([
-        x.extubated === 'yes' ? 'extubated ' + (x.extubation_type || '') : (x.transferred_intubated === 'yes' ? 'transferred intubated' : null),
+        ANES.yes(x.extubated) ? 'extubated ' + (x.extubation_type || '') : (ANES.yes(x.transferred_intubated) ? 'transferred intubated' : null),
         x.reversal_agent && x.reversal_agent !== 'none' ? 'reversal: ' + x.reversal_agent : null,
         x.recipient_name ? 'to ' + x.recipient_name + (x.recipient_role ? ' (' + x.recipient_role + ')' : '') : null
       ].filter(Boolean).join(' · ')) + '</div></div></div>';
@@ -1109,12 +1203,21 @@ async function markMilestone(key){
   if(r.error) return msg('rec-err', r.error.message);
   await reload();
 }
-async function giveFav(i){
-  var f = ANES.FAVOURITES[i]; if(!f) return;
-  var ok = await runSave('fav', function(){
-    return ANES.addMedication(CASE_ID, { medication:f.name, dose:f.dose, unit:f.unit,
-      category:f.cat, route:'iv' }); }, f.name + ' ' + f.dose + ' ' + f.unit + ' recorded');
-  if(ok) await reload();
+/* A favourite PREFILLS. It does not administer.
+   A system-wide preset dose is a guess about a patient it has never seen: it
+   knows nothing of their weight, their age, their kidneys or what they have
+   already had. Committing that guess on the first tap would turn a convenience
+   into a clinical entry nobody read. So the dose is placed in front of the
+   clinician, editable, and one deliberate action records it. */
+function prefillFav(i){
+  var f = ANES.FAVOURITES[i]; if(!f || _locked) return;
+  var set = function(id, v){ var n = el(id); if(n) n.value = v; };
+  set('m-name', f.name); set('m-dose', f.dose);
+  set('m-unit', f.unit); set('m-route', 'iv'); set('m-cat', f.cat);
+  var r = el('m-redose'); if(r) r.classList.remove('on');
+  setSaveState('fav', 'busy', 'Check the dose for this patient, then tap Record administration.');
+  var d = el('m-dose');
+  if(d){ d.focus(); if(d.select) d.select(); d.scrollIntoView({ behavior:'smooth', block:'center' }); }
 }
 async function giveCustom(){
   var name = val('m-name'), dose = num('m-dose');
@@ -1250,7 +1353,7 @@ async function histFinding(topic){
 async function histSet(topic, what){
   var cur = (D.history || []).filter(function(h){ return h.topic === topic; })[0] || {};
   var patch = what === 'clear' ? { reviewed:true, finding:null, significant:false }
-                               : { reviewed:true, significant:!cur.significant };
+                               : { reviewed:true, significant:!ANES.yes(cur.significant) };
   var r = await ANES.saveHistory(CASE_ID, topic, patch);
   if(r.error){ setSaveState('history','err', r.error.message); return; }
   setSaveState('history','ok','Saved');
@@ -1334,11 +1437,14 @@ function renderHeader(){
   if(c.asa_class) chips.push('<span class="chip">ASA ' + esc(c.asa_class) + (c.asa_emergency ? 'E' : '') + '</span>');
   if(c.urgency && c.urgency !== 'elective')
     chips.push('<span class="chip ' + (c.urgency === 'emergency' ? 'stop' : 'warn') + '">' + esc(c.urgency) + '</span>');
-  // Allergies are shown loudly or not at all — a quiet allergy chip is worse
-  // than none, because it reads as "checked and clear".
+  // An empty allergy field means nobody has written anything, which is NOT the
+  // same as a clinician confirming there are none. The schema has one free-text
+  // column and no separate confirmed-NKDA state, so the header says exactly what
+  // is true: undocumented. If a clinician writes "No known allergies" it shows
+  // that, because then it really was documented.
   chips.push(c.allergies
     ? '<span class="chip stop">⚠ ' + esc(c.allergies) + '</span>'
-    : '<span class="chip k">No known allergies recorded</span>');
+    : '<span class="chip warn">Allergy status not documented</span>');
   // The one fact from this chart most likely to matter to the next
   // anesthetist who meets this patient.
   if(ANES.hasDifficultAirway(D)) chips.push('<span class="chip da">⚠ DIFFICULT AIRWAY</span>');
@@ -1389,18 +1495,18 @@ function redrawSection(){
 function seedForms(){
   // The single-row forms open showing what is already recorded, so a clinician
   // adding one field does not silently blank the other thirty.
-  var pre = D.preassessment || {};
+  var pre = ANES.toForm('anesthesia_preassessment', D.preassessment || {});
   ['fasting','airwayAssessment','investigations'].forEach(function(spec){
     var v = {};
     ANES.FORMS[spec].fields.forEach(function(f){ if(pre[f.k] != null) v[f.k] = pre[f.k]; });
     _forms[spec] = v;
   });
-  var v = {};
-  ANES.FORMS.caseHeader.fields.forEach(function(f){ if(_case[f.k] != null) v[f.k] = _case[f.k]; });
+  var ch = ANES.toForm('anesthesia_cases', _case), v = {};
+  ANES.FORMS.caseHeader.fields.forEach(function(f){ if(ch[f.k] != null) v[f.k] = ch[f.k]; });
   _forms.caseHeader = v;
-  var h = (D.handoffs || [])[0];
-  if(h){
-    var hv = {};
+  var h0 = (D.handoffs || [])[0];
+  if(h0){
+    var h = ANES.toForm('anesthesia_handoffs', h0), hv = {};
     ANES.FORMS.handoff.fields.forEach(function(f){ if(h[f.k] != null) hv[f.k] = h[f.k]; });
     _forms.handoff = hv;
   }
