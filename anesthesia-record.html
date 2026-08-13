@@ -1460,12 +1460,16 @@ function renderHeader(){
 /* The clock counts from anesthesia start, not from page load: the number a
    clinician wants is "how long has this patient been under". */
 function tickClock(){
-  if(!_clockBase){ el('h-clock').textContent = '--:--';
-    el('h-clock-l').textContent = 'anesthesia not started'; return; }
+  // The page may have been replaced by the "record not available" view, and a
+  // timer that keeps firing against a page that no longer exists throws every
+  // fifteen seconds into a console nobody is reading.
+  var c = el('h-clock'), l = el('h-clock-l');
+  if(!c || !l) return;
+  if(!_clockBase){ c.textContent = '--:--'; l.textContent = 'anesthesia not started'; return; }
   var mins = Math.floor((Date.now() - new Date(_clockBase).getTime()) / 60000);
   if(mins < 0) mins = 0;
-  el('h-clock').textContent = Math.floor(mins/60) + ':' + String(mins%60).padStart(2,'0');
-  el('h-clock-l').textContent = 'since anesthesia start';
+  c.textContent = Math.floor(mins/60) + ':' + String(mins%60).padStart(2,'0');
+  l.textContent = 'since anesthesia start';
 }
 
 function renderRail(){
@@ -1512,6 +1516,9 @@ function seedForms(){
   }
 }
 
+/* Returns false when the record could not be opened and the page has been
+   replaced by an explanation. The caller must then stop: continuing would
+   reach for elements that are no longer on the page. */
 async function reload(){
   D = await ANES.loadCase(CASE_ID);
   if(!D.case){
@@ -1523,7 +1530,7 @@ async function reload(){
         : 'This anesthesia record does not exist, or you do not have access to it. Access is decided by the ' +
           'database, not by this page.') +
       '</p><p style="margin-top:18px"><a href="/anesthesia-cases.html" style="color:#7ECFC0">Back to Live Chart</a></p></div>';
-    return;
+    return false;
   }
   _case = D.case;
   seedForms();
@@ -1532,6 +1539,7 @@ async function reload(){
   tickClock();
   renderRail();
   redrawSection();
+  return true;
 }
 
 (async function(){
@@ -1540,10 +1548,11 @@ async function reload(){
   var auth = await window.requireRole('staff');
   if(!auth) return;
   if(!CASE_ID){ location.replace('/anesthesia-cases.html'); return; }
-  await reload();
+  if(!await reload()) return;          // the page now explains why; nothing more to show
   setInterval(tickClock, 15000);
-  el('loader').style.display = 'none';
-  el('app').style.display = 'block';
+  var ld = el('loader'), ap = el('app');
+  if(ld) ld.style.display = 'none';
+  if(ap) ap.style.display = 'block';
 })();
 </script>
 </body>

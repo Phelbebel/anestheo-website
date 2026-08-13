@@ -189,26 +189,68 @@ function render(){
   }).join('');
 }
 
+/* A failed creation must never look like nothing happened.
+
+   The clinician taps Open record and either the chart opens or they are told,
+   in the server's own words, why it did not — visibly, next to the button they
+   pressed, and it stays on screen until they act. A refusal that scrolls out of
+   view or fades after five seconds is indistinguishable from a dead button, and
+   a dead button in theatre means the case gets charted on paper. */
+var _creating = false;
+function showCreateError(text, hint){
+  var err = el('n-err');
+  err.className = 'msg msg-err';
+  err.innerHTML = '<strong>The record was not created.</strong><br>' + esc(text) +
+    (hint ? '<br><span style="opacity:.8">' + esc(hint) + '</span>' : '');
+  err.style.display = 'block';
+  try { err.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e){}
+}
+/* PostgREST speaks in policy names. Say what it means for the person holding
+   the iPad, without pretending to know more than the server told us. */
+function createHint(msg){
+  msg = String(msg || '');
+  if(/row-level security|permission denied|violates row-level/i.test(msg))
+    return 'Your account is not permitted to open anesthesia records. This needs a doctor ' +
+           'account with approved verification — an administrator account is not the same thing.';
+  if(/not signed in|JWT|session/i.test(msg))
+    return 'Your session may have expired. Reload the page and sign in again.';
+  if(/Failed to fetch|NetworkError|network/i.test(msg))
+    return 'The server could not be reached. Check the connection and try again.';
+  return 'Nothing was saved. You can correct the details and try again.';
+}
+
 async function createCase(){
+  if(_creating) return;                     // a second tap must not open a second case
   var err = el('n-err'); err.style.display = 'none';
   var name = el('n-name').value.trim();
-  if(name.length < 2){ err.textContent = 'Enter the patient name.'; err.style.display = 'block'; return; }
+  if(name.length < 2){ showCreateError('Enter the patient name.', ''); el('n-name').focus(); return; }
+
+  _creating = true;
   var btn = el('n-go'); btn.disabled = true; btn.textContent = 'Opening…';
-  var r = await ANES.createCase({
-    display_name: name,
-    mrn: el('n-mrn').value.trim() || null,
-    date_of_birth: el('n-dob').value || null,
-    weight_kg: parseFloat(el('n-weight').value) || null,
-    height_cm: parseFloat(el('n-height').value) || null,
-    asa_class: el('n-asa').value || null,
-    urgency: el('n-urgency').value,
-    planned_procedure: el('n-proc').value.trim() || null,
-    allergies: el('n-allergy').value.trim() || null
-  });
+  var r;
+  try {
+    r = await ANES.createCase({
+      display_name: name,
+      mrn: el('n-mrn').value.trim() || null,
+      date_of_birth: el('n-dob').value || null,
+      weight_kg: parseFloat(el('n-weight').value) || null,
+      height_cm: parseFloat(el('n-height').value) || null,
+      asa_class: el('n-asa').value || null,
+      urgency: el('n-urgency').value,
+      planned_procedure: el('n-proc').value.trim() || null,
+      allergies: el('n-allergy').value.trim() || null
+    });
+  } catch(e){
+    r = { error:{ message: e && e.message ? e.message : String(e) } };
+  }
+  _creating = false;
   btn.disabled = false; btn.textContent = 'Open record';
-  if(r.error || !r.id){
-    err.textContent = (r.error && r.error.message) || 'Could not open the record.';
-    err.style.display = 'block';
+
+  if(!r || r.error || !r.id){
+    var msg = (r && r.error && r.error.message) ||
+              'The server did not return a record. Nothing was saved.';
+    try { console.error('[live chart] case creation failed', r && r.error); } catch(e){}
+    showCreateError(msg, createHint(msg));
     return;
   }
   location.href = '/anesthesia-record.html?case=' + encodeURIComponent(r.id);

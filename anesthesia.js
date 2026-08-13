@@ -511,6 +511,40 @@ ANES.addInfusionRate = function(caseId, infusionId, rate, when){
 
 /* Lifecycle goes through the RPCs, never a direct UPDATE: they are the only
    things that can write finalized_by/finalized_at and guarantee the audit row. */
+/* A v4 UUID from the browser. The case id is generated HERE, deliberately —
+   see createCase below for why the database cannot hand one back. */
+ANES.newId = function(){
+  try { if(global.crypto && global.crypto.randomUUID) return global.crypto.randomUUID(); } catch(e){}
+  var b;
+  try {
+    b = new Uint8Array(16); global.crypto.getRandomValues(b);
+  } catch(e){
+    b = []; for(var i=0;i<16;i++) b.push(Math.floor(Math.random()*256));
+  }
+  b[6] = (b[6] & 0x0f) | 0x40;            // version 4
+  b[8] = (b[8] & 0x3f) | 0x80;            // variant 10
+  var h = [];
+  for(var j=0;j<16;j++) h.push(('0' + b[j].toString(16)).slice(-2));
+  return h.slice(0,4).join('') + '-' + h.slice(4,6).join('') + '-' + h.slice(6,8).join('') +
+         '-' + h.slice(8,10).join('') + '-' + h.slice(10,16).join('');
+};
+
+/* Creating a case does NOT ask the database to return the new id.
+
+   anes_case_select is anesthesia_case_access(id), a SECURITY DEFINER STABLE
+   function that re-queries anesthesia_cases. During INSERT ... RETURNING —
+   which is exactly what supabase-js issues for .insert().select() — PostgreSQL
+   evaluates the SELECT policy against the new row, but a STABLE function runs
+   on the statement's snapshot and therefore cannot see the row being inserted.
+   EXISTS comes back false, the RETURNING is refused, and the whole INSERT
+   fails with "new row violates row-level security policy". Proved on a replica:
+   the identical INSERT without RETURNING succeeds, and the row is readable the
+   moment it exists.
+
+   So the client supplies the id, inserts without RETURNING, and then READS the
+   row back. The read is not ceremony: it proves both that the row landed and
+   that this caller can open it, so a redirect can never send a clinician to a
+   record they will be refused. */
 ANES.createCase = async function(data){
   var me = await uid();
   if(!me) return { error:{ message:'You are not signed in.' } };
@@ -529,9 +563,18 @@ ANES.createCase = async function(data){
     row.case_modes = data.case_modes || [];
     row.status = 'in_progress';
     row.anesthesiologist_id = me; row.created_by = me;
-    var r = await window.sb.from('anesthesia_cases').insert(row).select('id').maybeSingle();
-    if(r.error) return { error:r.error };
-    return { error:null, id: r.data ? r.data.id : null };
+    row.id = ANES.newId();
+
+    var r = await window.sb.from('anesthesia_cases').insert(row);   // no RETURNING
+    if(r && r.error) return { error:r.error };
+
+    var v = await window.sb.from('anesthesia_cases').select('id').eq('id', row.id).maybeSingle();
+    if(v && v.error) return { error:v.error };
+    if(!v || !v.data){
+      return { error:{ message:'The record was created but could not be opened. ' +
+        'Your account may not have permission to chart this case.' } };
+    }
+    return { error:null, id: row.id };
   } catch(e){ return { error:{ message:e.message } }; }
 };
 
