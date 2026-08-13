@@ -3315,11 +3315,15 @@ document.addEventListener('DOMContentLoaded', async function(){
       }
     }
 
-    // Step 5: build and render
-    var role  = isAdmin ? 'admin' : profile.role;
+    // Step 5: build and render.
+    // The role column says what this person does clinically; is_admin says what
+    // they may administer. Collapsing the first into the second used to hide
+    // the anesthesiologist inside a founder account.
+    var role  = profile.role || (isAdmin ? 'admin' : 'patient');
 
-    // Patients land on the For Patients portal (dashboard is one tool inside it)
-    if(role === 'patient'){
+    // Patients land on the For Patients portal (dashboard is one tool inside it).
+    // An administrator is not sent away from their own console.
+    if(role === 'patient' && !isAdmin){
       _dashDone = true; clearTimeout(_dashWatchdog);
       window.location.replace('/patients.html');
       return;
@@ -3330,11 +3334,15 @@ document.addEventListener('DOMContentLoaded', async function(){
     name      = name.charAt(0).toUpperCase() + name.slice(1);
 
     var roleLabels = { doctor:'Anesthesiologist', patient:'Patient', admin:'Administrator', nurse:'Nurse', student:'Medical Student', other:'Healthcare Professional' };
+    // Both facts, when both are true.
     var roleLabel  = roleLabels[role] || role;
+    if(isAdmin && role !== 'admin') roleLabel = roleLabel + ' · Administrator';
     var greeting   = (role === 'doctor' || role === 'admin') ? 'Dr. ' + name : name;
 
     // ── SINGLE-PAGE WORKSPACE (Bloomberg-terminal style) ──────
-    var isAdminRole = (role === 'admin');
+    // Keyed on the privilege, so the Admin section appears for an
+    // administrator whatever their clinical role happens to be.
+    var isAdminRole = !!isAdmin;
 
     // Verification banner for pending doctors
     var banner = '';

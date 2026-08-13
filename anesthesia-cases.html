@@ -83,10 +83,13 @@ select option{background:#132218;}
     <div class="card-b">
       <label for="n-name">Patient name</label>
       <input id="n-name" placeholder="As identified in theatre" autocomplete="off">
-      <div class="g2">
-        <div><label for="n-mrn">Hospital / MRN</label><input id="n-mrn" autocomplete="off"></div>
-        <div><label for="n-dob">Date of birth</label><input id="n-dob" type="date"></div>
-      </div>
+      <label for="n-mrn">Hospital / MRN</label>
+      <input id="n-mrn" autocomplete="off">
+      <!-- Date of birth OR age. A new record starts with neither: an empty
+           field is an honest statement, and a patient whose birthday nobody
+           knows is a normal morning in theatre, not an error. -->
+      <label>Date of birth / age</label>
+      <div id="n-dobwrap"></div>
       <div class="g2">
         <div><label for="n-weight">Weight (kg)</label><input id="n-weight" type="number" step="0.1"></div>
         <div><label for="n-height">Height (cm)</label><input id="n-height" type="number" step="0.5"></div>
@@ -178,6 +181,8 @@ function render(){
   el('list').innerHTML = cases.map(function(c){
     var live = c.status !== 'finalized';
     var bits = [];
+    var age = ANES.ageLabel(c);
+    if(age) bits.push(age);
     if(c.planned_procedure) bits.push(c.planned_procedure);
     if(c.case_date) bits.push(new Date(c.case_date).toLocaleDateString());
     if(c.operating_room) bits.push(c.operating_room);
@@ -225,6 +230,15 @@ async function createCase(){
   var name = el('n-name').value.trim();
   if(name.length < 2){ showCreateError('Enter the patient name.', ''); el('n-name').focus(); return; }
 
+  /* Refused here rather than by the database, so the clinician is told which
+     field is wrong while they are still looking at it. */
+  var age = ANES.readDob('n-dob');
+  if(age.error){
+    showCreateError(age.error, 'Correct the date of birth, give an age instead, or leave both blank.');
+    var f = el('n-dob-wrap'); if(f) try { f.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e){}
+    return;
+  }
+
   _creating = true;
   var btn = el('n-go'); btn.disabled = true; btn.textContent = 'Opening…';
   var r;
@@ -232,7 +246,9 @@ async function createCase(){
     r = await ANES.createCase({
       display_name: name,
       mrn: el('n-mrn').value.trim() || null,
-      date_of_birth: el('n-dob').value || null,
+      date_of_birth: age.date_of_birth,
+      age_value: age.age_value,
+      age_unit: age.age_unit,
       weight_kg: parseFloat(el('n-weight').value) || null,
       height_cm: parseFloat(el('n-height').value) || null,
       asa_class: el('n-asa').value || null,
@@ -264,6 +280,8 @@ async function createCase(){
   var auth = await window.requireRole('staff');
   if(!auth) return;
   el('tools-bar').innerHTML = window.nbToolsBar('/anesthesia-cases.html');
+  // Empty: a new record starts with no date of birth and no age.
+  el('n-dobwrap').innerHTML = ANES.dobFieldHtml('n-dob', {});
   await load();
   el('loader').style.display = 'none';
   el('app').style.display = 'block';

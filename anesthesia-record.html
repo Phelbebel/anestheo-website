@@ -294,7 +294,28 @@ function captureInputs(spec){
     else if(node.type === 'number') v[k] = node.value === '' ? null : parseFloat(node.value);
     else v[k] = node.value;
   });
+  /* The date-of-birth control owns three columns and no single data-k, so it
+     is read separately. Both branches are written every time, including the
+     nulls: switching from an age to a birthday has to CLEAR the age, or the
+     row ends up asserting both and the database refuses it. */
+  document.querySelectorAll('[data-dobfor="' + spec + '"]').forEach(function(w){
+    var r = ANES.readDob(w.getAttribute('data-dobp'));
+    v.date_of_birth = r.date_of_birth;
+    v.age_value     = r.age_value;
+    v.age_unit      = r.age_unit;
+  });
   return v;
+}
+
+/* The reason a form cannot be saved yet, or null. */
+function dobError(spec){
+  var bad = null;
+  document.querySelectorAll('[data-dobfor="' + spec + '"]').forEach(function(w){
+    if(bad) return;
+    var r = ANES.readDob(w.getAttribute('data-dobp'));
+    if(r.error) bad = r.error;
+  });
+  return bad;
 }
 function fSet(spec, k, val){
   captureInputs(spec);
@@ -328,7 +349,7 @@ function visible(field, v){
 function renderField(spec, f, v){
   var id = 'f-' + spec + '-' + f.k;
   var val = v[f.k];
-  var out = '<div class="fld' + (f.type === 'area' || f.type === 'multi' ? ' wide' : '') + '">' +
+  var out = '<div class="fld' + (f.type === 'area' || f.type === 'multi' || f.type === 'dob' ? ' wide' : '') + '">' +
             '<span class="flab">' + esc(f.label) + '</span>';
 
   if(f.type === 'choice'){
@@ -372,6 +393,10 @@ function renderField(spec, f, v){
     out += '<textarea id="' + id + '" data-f="' + spec + '" data-k="' + f.k + '">' + esc(val || '') + '</textarea>';
   } else if(f.type === 'date'){
     out += '<input type="date" id="' + id + '" data-f="' + spec + '" data-k="' + f.k + '" value="' + esc(val || '') + '">';
+  } else if(f.type === 'dob'){
+    /* Reads and writes three columns at once, so it takes the whole value bag
+       rather than one field, and registers itself for captureInputs. */
+    out += ANES.dobFieldHtml(id, v, { spec: spec });
   } else {
     out += '<input type="' + (f.type === 'num' ? 'number' : 'text') + '"' +
       (f.type === 'num' ? ' step="any"' : '') + ' id="' + id + '" data-f="' + spec +
@@ -598,7 +623,31 @@ function secOverview(){
           esc(a.target_area) + ' · ' + esc(a.reason) + '</div></div></div>'; }), '') +
       '</div></div>' : '';
 
+  /* Who is on the table. The date of birth and the age are shown as two
+     separate lines on purpose: one is what the record holds, the other is what
+     it means today. When only an age was ever known, the birth date line says
+     so rather than showing a blank that reads like an oversight. */
+  var c = _case;
+  var known = !!c.date_of_birth;
+  var ageTxt = ANES.ageLabel(c);
+  var demo = [
+    ['Name', esc(c.display_name || '—')],
+    ['MRN', esc(c.mrn || '—')],
+    ['Date of birth', known ? esc(c.date_of_birth) : 'Not known'],
+    ['Age', ageTxt ? esc(ageTxt) + (known ? ' <span style="color:var(--muted)">(from date of birth)</span>'
+                                          : ' <span style="color:var(--muted)">(as recorded)</span>') : '—'],
+    ['Sex', esc(c.sex || '—')],
+    ['Weight', c.weight_kg ? esc(c.weight_kg) + ' kg' : '—'],
+    ['Height', c.height_cm ? esc(c.height_cm) + ' cm' : '—'],
+    ['ASA', esc(c.asa_class || '—') + (ANES.yes(c.asa_emergency) ? 'E' : '')]
+  ].map(function(i){ return '<div><dt>' + i[0] + '</dt><dd>' + i[1] + '</dd></div>'; }).join('');
+
   return sectionError('case','The case') + sectionError('times','Milestones') +
+    '<div class="card"><div class="card-h"><span class="card-t">Patient</span>' +
+    '<button class="btn ghost" style="padding:6px 12px;font-size:13px" ' +
+      'onclick="goSection(\'anesthesia\')">Edit details</button></div>' +
+    '<div class="card-b"><dl class="totals">' + demo + '</dl></div></div>' +
+
     '<div class="card"><div class="card-h"><span class="card-t">Milestones</span>' +
     '<span class="card-t" style="color:var(--muted)">one tap stamps now</span></div>' +
     '<div class="card-b">' + milestones + '<div class="msg msg-err" id="rec-err"></div>' +
@@ -1372,6 +1421,11 @@ async function savePre(spec){
 }
 async function save_caseHeader(){
   var v = captureInputs('caseHeader');
+  /* Caught before the round trip so the message names the field. The database
+     refuses the same things, but "check constraint anes_case_age_pair_chk" is
+     not something to read in an anesthetic room. */
+  var bad = dobError('caseHeader');
+  if(bad){ setSaveState('caseHeader', 'err', bad); return; }
   var ok = await runSave('caseHeader', function(){ return ANES.updateCase(CASE_ID, v); }, 'Saved');
   if(ok) await reload();
 }
@@ -1420,7 +1474,10 @@ function renderHeader(){
   el('h-name').textContent = c.display_name || 'Unnamed case';
   var bits = [];
   if(c.mrn) bits.push('MRN ' + c.mrn);
-  if(c.date_of_birth) bits.push(ANES.ageFrom(c.date_of_birth));
+  // Derived from the birthday when there is one, and otherwise exactly the age
+  // that was entered. ageLabel never shows both.
+  var ageBit = ANES.ageLabel(c);
+  if(ageBit) bits.push(ageBit);
   if(c.sex) bits.push(c.sex);
   if(c.operating_room) bits.push(c.operating_room);
   if(c.planned_procedure) bits.push(c.planned_procedure);
@@ -1507,6 +1564,10 @@ function seedForms(){
   });
   var ch = ANES.toForm('anesthesia_cases', _case), v = {};
   ANES.FORMS.caseHeader.fields.forEach(function(f){ if(ch[f.k] != null) v[f.k] = ch[f.k]; });
+  /* age_value and age_unit have no field of their own — the date-of-birth
+     control owns them — so they are seeded by name, or the form opens in
+     Date-of-birth mode for a patient recorded only as "4 days old". */
+  ['age_value','age_unit'].forEach(function(k){ if(ch[k] != null) v[k] = ch[k]; });
   _forms.caseHeader = v;
   var h0 = (D.handoffs || [])[0];
   if(h0){

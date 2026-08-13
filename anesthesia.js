@@ -175,16 +175,225 @@ ANES.HANDOFF_DESTINATIONS = ['PACU','ICU','ward','NICU','CCU','other'];
    ageFrom returns a human age. Neonates are documented in days and infants in
    months because "0 years old" is useless on a chart where the dose depends on
    exactly how old this baby is. */
-ANES.ageFrom = function(dob){
+/* ═══════════ AGE ══════════════════════════════════════════════════════════
+   A patient has an age. They do not always have a birthday you know.
+
+   Anesthesia charts the situation as it is: an unidentified trauma patient, a
+   neonate transferred without notes, an emergency where the team knows only
+   "about seventy". The record can hold a date of birth, or an age, or —
+   honestly — neither. What it must never hold is a birthday computed backwards
+   from an estimate, because once stored, a derived date is indistinguishable
+   from a known one and reads as identity to everyone downstream.
+
+   So the two are mutually exclusive by construction here and by CHECK
+   constraint in the database. When the birthday is known the age is arithmetic
+   and is never written down; when only the age is known the birthday stays
+   NULL. The limits below are the same numbers as anes_case_age_range_chk — if
+   you change one, change the other. */
+ANES.AGE_UNITS = ['years','months','days'];
+ANES.AGE_MAX   = { years:150, months:36, days:400 };
+
+/* Age from a birthday, in the unit that tells a clinician something. "0 years"
+   is not an age for a neonate: under a month say days, under two years say
+   months, and only then years. */
+ANES.ageFrom = function(dob, asOf){
   if(!dob) return '';
-  var b = new Date(dob), now = new Date();
+  var b = new Date(dob + 'T00:00:00'), now = asOf ? new Date(asOf) : new Date();
+  if(isNaN(b)) return '';
   var days = Math.floor((now - b) / 86400000);
   if(days < 0) return '';
   if(days < 31) return days + (days === 1 ? ' day' : ' days');
   var months = (now.getFullYear()-b.getFullYear())*12 + (now.getMonth()-b.getMonth());
   if(now.getDate() < b.getDate()) months--;
-  if(months < 24) return months + ' months';
-  return Math.floor(months/12) + 'y';
+  if(months < 24) return months + (months === 1 ? ' month' : ' months');
+  var years = Math.floor(months/12);
+  return years + (years === 1 ? ' year' : ' years');
+};
+
+/* What to show for a case: derived from the birthday if there is one, and
+   otherwise exactly what was entered. Never both — a chart that states an age
+   its own date of birth contradicts is worse than one that states neither. */
+ANES.ageLabel = function(row){
+  if(!row) return '';
+  if(row.date_of_birth) return ANES.ageFrom(row.date_of_birth);
+  if(row.age_value == null || !row.age_unit) return '';
+  var n = +row.age_value, u = String(row.age_unit);
+  if(n === 1) u = u.replace(/s$/, '');
+  return n + ' ' + u;
+};
+
+/* ── The control ──────────────────────────────────────────────────────────
+   A native date input is the wrong instrument for this. On an iPad it opens on
+   today and turns 1958 into a long scroll, which is how a birth year gets
+   abandoned or guessed in an anesthetic room. Day, month and year are three
+   separate fields, and the year is a plain numeric text box you can simply
+   type into.
+
+   Rendered from here rather than from each page so the new-record form and the
+   chart's own demographics cannot drift apart. */
+function dobPad(n){ return (n < 10 ? '0' : '') + n; }
+var DOB_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function dobStyles(){
+  if(document.getElementById('anes-dob-css')) return;
+  var s = document.createElement('style');
+  s.id = 'anes-dob-css';
+  s.textContent =
+    '.dobctl{display:flex;flex-direction:column;gap:8px}' +
+    '.dobtabs{display:flex;gap:6px}' +
+    '.dobtab{flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:10px;cursor:pointer;' +
+      'border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:inherit;' +
+      'font:inherit;font-size:14px}' +
+    '.dobtab.on{background:rgba(126,207,192,.18);border-color:rgba(126,207,192,.6);color:#7ECFC0}' +
+    '.dobrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}' +
+    '.dobrow input,.dobrow select{min-height:44px;border-radius:10px;padding:0 10px;font:inherit;' +
+      'font-size:16px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);color:inherit}' +
+    '.dob-d{width:74px}.dob-y{width:96px}.dob-av{width:96px}' +
+    '.dobhint{font-size:13px;opacity:.85;min-height:18px}' +
+    '.dobhint.bad{color:#FF9A8B;opacity:1}';
+  document.head.appendChild(s);
+}
+
+/* prefix namespaces the ids so the new-record form and the chart's edit form
+   can both be on screen without colliding. */
+ANES.dobFieldHtml = function(prefix, row, opts){
+  dobStyles();
+  opts = opts || {};
+  row = row || {};
+  var mode = (row.age_value != null && row.age_unit) ? 'age' : 'dob';
+  var p = String(prefix);
+  var d = '', m = '', y = '';
+  if(row.date_of_birth){
+    var bits = String(row.date_of_birth).slice(0,10).split('-');
+    if(bits.length === 3){ y = bits[0]; m = bits[1]; d = bits[2]; }
+  }
+  var esc2 = function(x){ return String(x == null ? '' : x).replace(/[&<>"]/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); };
+  /* Single-quoted: these go inside double-quoted HTML attributes, and a
+     JSON.stringify'd prefix would close the attribute on its own opening
+     quote and silently truncate the control. */
+  var js = "'" + p.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "'";
+  var call = function(fn){ return 'ANES.' + fn + '(' + js + ')'; };
+
+  var h = '<div class="dobctl" id="' + p + '-wrap" data-mode="' + mode + '"' +
+          (opts.spec ? ' data-dobfor="' + esc2(opts.spec) + '" data-dobp="' + esc2(p) + '"' : '') + '>';
+  h += '<div class="dobtabs" role="group" aria-label="How the patient\'s age is known">' +
+       '<button type="button" class="dobtab' + (mode === 'dob' ? ' on' : '') + '" id="' + p + '-tab-dob" ' +
+         'aria-pressed="' + (mode === 'dob') + '" onclick="ANES.dobMode(' + js + ',\'dob\')">Date of birth</button>' +
+       '<button type="button" class="dobtab' + (mode === 'age' ? ' on' : '') + '" id="' + p + '-tab-age" ' +
+         'aria-pressed="' + (mode === 'age') + '" onclick="ANES.dobMode(' + js + ',\'age\')">Age</button>' +
+       '</div>';
+
+  // Day / month / year. inputmode="numeric" gives the iPad a number pad while
+  // staying a text field, so the year is four keystrokes and not a wheel.
+  h += '<div class="dobrow" id="' + p + '-row-dob"' + (mode === 'dob' ? '' : ' style="display:none"') + '>' +
+       '<input class="dob-d" id="' + p + '-d" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" ' +
+         'placeholder="DD" aria-label="Day of birth" autocomplete="off" value="' + esc2(d) + '" oninput="' + call('dobTouch') + '">' +
+       '<select id="' + p + '-m" aria-label="Month of birth" onchange="' + call('dobTouch') + '">' +
+         '<option value="">Month</option>' +
+         DOB_MONTHS.map(function(nm, i){
+           var vv = dobPad(i+1);
+           return '<option value="' + vv + '"' + (m === vv ? ' selected' : '') + '>' + nm + '</option>';
+         }).join('') +
+       '</select>' +
+       '<input class="dob-y" id="' + p + '-y" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" ' +
+         'placeholder="YYYY" aria-label="Year of birth" autocomplete="off" value="' + esc2(y) + '" oninput="' + call('dobTouch') + '">' +
+       '</div>';
+
+  h += '<div class="dobrow" id="' + p + '-row-age"' + (mode === 'age' ? '' : ' style="display:none"') + '>' +
+       '<input class="dob-av" id="' + p + '-av" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" ' +
+         'placeholder="Age" aria-label="Age" autocomplete="off" value="' +
+         esc2(row.age_value == null ? '' : row.age_value) + '" oninput="' + call('dobTouch') + '">' +
+       '<select id="' + p + '-au" aria-label="Age unit" onchange="' + call('dobTouch') + '">' +
+         ANES.AGE_UNITS.map(function(u){
+           return '<option value="' + u + '"' + (row.age_unit === u ? ' selected' : '') + '>' + u + '</option>';
+         }).join('') +
+       '</select></div>';
+
+  h += '<div class="dobhint" id="' + p + '-hint" aria-live="polite"></div></div>';
+  return h;
+};
+
+/* Switching mode never carries a value across. An age is not a birthday and
+   converting between them is the one thing this control exists to prevent. */
+ANES.dobMode = function(p, mode){
+  var wrap = document.getElementById(p + '-wrap');
+  if(!wrap) return;
+  wrap.setAttribute('data-mode', mode);
+  var rd = document.getElementById(p + '-row-dob'), ra = document.getElementById(p + '-row-age');
+  if(rd) rd.style.display = (mode === 'dob') ? '' : 'none';
+  if(ra) ra.style.display = (mode === 'age') ? '' : 'none';
+  [['dob', p + '-tab-dob'], ['age', p + '-tab-age']].forEach(function(t){
+    var b = document.getElementById(t[1]);
+    if(!b) return;
+    if(t[0] === mode) b.classList.add('on'); else b.classList.remove('on');
+    b.setAttribute('aria-pressed', String(t[0] === mode));
+  });
+  var focus = document.getElementById(mode === 'dob' ? (p + '-d') : (p + '-av'));
+  if(focus) try { focus.focus(); } catch(e){}
+  ANES.dobTouch(p);
+};
+
+/* Read the control. Returns the three columns exactly as the database wants
+   them, plus the reason it cannot, if it cannot. */
+ANES.readDob = function(p){
+  var g = function(s){ return document.getElementById(p + s); };
+  var none = { date_of_birth:null, age_value:null, age_unit:null, error:null };
+  var wrap = g('-wrap');
+  if(!wrap) return none;
+  var val = function(s){ var n = g(s); return n ? String(n.value).trim() : ''; };
+
+  if(wrap.getAttribute('data-mode') === 'age'){
+    var raw = val('-av'), unit = val('-au');
+    if(raw === '') return none;                       // blank is a valid answer
+    if(!/^\d{1,3}$/.test(raw))
+      return { date_of_birth:null, age_value:null, age_unit:null, error:'Age must be a whole number.' };
+    if(ANES.AGE_UNITS.indexOf(unit) < 0)
+      return { date_of_birth:null, age_value:null, age_unit:null, error:'Choose years, months or days.' };
+    var n = parseInt(raw, 10);
+    if(n > ANES.AGE_MAX[unit])
+      return { date_of_birth:null, age_value:null, age_unit:null,
+               error:'That is beyond ' + ANES.AGE_MAX[unit] + ' ' + unit + '. Use a larger unit.' };
+    return { date_of_birth:null, age_value:n, age_unit:unit, error:null };
+  }
+
+  var d = val('-d'), m = val('-m'), y = val('-y');
+  if(!d && !m && !y) return none;                     // blank is a valid answer
+  /* A partial date is never completed silently. Half a birthday is not a
+     birthday, and guessing the missing part invents the patient. */
+  if(!d || !m || !y)
+    return { date_of_birth:null, age_value:null, age_unit:null,
+             error:'Enter day, month and year — or switch to Age.' };
+  if(!/^\d{1,2}$/.test(d) || !/^\d{4}$/.test(y))
+    return { date_of_birth:null, age_value:null, age_unit:null, error:'Enter the date as DD, month and YYYY.' };
+
+  var dn = parseInt(d,10), mn = parseInt(m,10), yn = parseInt(y,10);
+  var probe = new Date(yn, mn-1, dn);
+  if(probe.getFullYear() !== yn || probe.getMonth() !== mn-1 || probe.getDate() !== dn)
+    return { date_of_birth:null, age_value:null, age_unit:null, error:'That date does not exist.' };
+
+  var today = new Date();
+  var todayN = today.getFullYear()*10000 + (today.getMonth()+1)*100 + today.getDate();
+  if(yn*10000 + mn*100 + dn > todayN)
+    return { date_of_birth:null, age_value:null, age_unit:null, error:'A date of birth cannot be in the future.' };
+  if(yn < today.getFullYear() - ANES.AGE_MAX.years)
+    return { date_of_birth:null, age_value:null, age_unit:null, error:'Check the year of birth.' };
+
+  return { date_of_birth: yn + '-' + dobPad(mn) + '-' + dobPad(dn),
+           age_value:null, age_unit:null, error:null };
+};
+
+/* Live feedback as the clinician types: the derived age, or the reason there
+   is not one yet. */
+ANES.dobTouch = function(p){
+  var hint = document.getElementById(p + '-hint');
+  if(!hint) return;
+  var r = ANES.readDob(p);
+  if(r.error){ hint.className = 'dobhint bad'; hint.textContent = r.error; return; }
+  hint.className = 'dobhint';
+  if(r.date_of_birth) hint.textContent = 'Age ' + ANES.ageFrom(r.date_of_birth) + ' — derived, not stored.';
+  else if(r.age_value != null) hint.textContent = 'No date of birth recorded.';
+  else hint.textContent = '';
 };
 ANES.bmi = function(kg, cm){
   if(!kg || !cm) return null;
@@ -552,6 +761,7 @@ ANES.createCase = async function(data){
     var row = clean(ANES.fromForm('anesthesia_cases', {
       display_name: data.display_name, mrn: data.mrn,
       date_of_birth: data.date_of_birth, sex: data.sex,
+      age_value: data.age_value, age_unit: data.age_unit,
       weight_kg: data.weight_kg, height_cm: data.height_cm,
       asa_class: data.asa_class, allergies: data.allergies,
       diagnosis: data.diagnosis, planned_procedure: data.planned_procedure,
@@ -1015,7 +1225,9 @@ ANES.FORMS.caseHeader = {
   fields: [
     F('display_name','Patient name','text'),
     F('mrn','MRN','text'),
-    F('date_of_birth','Date of birth','date'),
+    /* One control for both columns: it writes date_of_birth, or age_value and
+       age_unit, and clears whichever it is not. */
+    F('date_of_birth','Date of birth / age','dob'),
     F('sex','Sex','choice',{ options:['female','male','other','unknown'] }),
     F('weight_kg','Weight (kg)','num'),
     F('height_cm','Height (cm)','num'),

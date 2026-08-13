@@ -696,10 +696,17 @@ function setAuth(){
 
 // Fill avatar + dropdown from profile
 function populateMenu(user, profile){
+  /* Clinical role and platform privilege are two different facts about a
+     person. Overwriting the first with the second used to erase the doctor in
+     an anesthesiologist who also administers the platform: they were labelled
+     "Administrator", lost the doctor navigation, and were shown an admin-only
+     identity that their own database row contradicted.
+
+     So isAdmin no longer touches role. It adds a privilege on top of whatever
+     the person clinically is. */
   var role    = profile ? (profile.role || 'patient') : 'patient';
   var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
   _nbAuthed = true; _nbRole = isAdmin ? 'admin' : role;
-  if(isAdmin) role = 'admin';
 
   var fullName = (profile && profile.full_name) ? profile.full_name : '';
   var parts    = fullName.trim().split(' ').filter(Boolean);
@@ -721,16 +728,21 @@ function populateMenu(user, profile){
   var nmEl = ge('nb-menu-name');  if(nmEl) nmEl.textContent = displayName;
   var emEl = ge('nb-menu-email'); if(emEl) emEl.textContent = user.email;
 
-  // Role line in menu head
+  // Role line in menu head. Someone who is both is described as both, in that
+  // order: what they do clinically, then what they may administer.
   var roleLabels = {doctor:'Anesthesiologist', admin:'Administrator', patient:'Patient', other:'Healthcare Professional'};
-  var rlEl = ge('nb-menu-role'); if(rlEl) rlEl.textContent = roleLabels[role] || '';
+  var roleText = roleLabels[role] || '';
+  if(isAdmin && role !== 'admin') roleText = roleText ? roleText + ' · Administrator' : 'Administrator';
+  var rlEl = ge('nb-menu-role'); if(rlEl) rlEl.textContent = roleText;
 
-  var isStaff = (role !== 'patient');
+  var isStaff = (role !== 'patient') || isAdmin;
   var isPatient = !isStaff;
   var isDoctor = (role === 'doctor');
-  var isAdminRole = (role === 'admin');
-  // Which workspace set this account gets. Only doctors and admins have one;
-  // "other" staff (nurse/student) keep the public nav and no switcher.
+  // Admin surfaces are keyed on the PRIVILEGE, not on the role column.
+  var isAdminRole = !!isAdmin;
+  // Which workspace set this account gets. The admin set already contains
+  // Doctor Workspace and Live Tools, so a doctor who administers keeps every
+  // clinical destination and gains the Admin Center.
   var wsRole = isAdminRole ? 'admin' : (isDoctor ? 'doctor' : null);
 
   // Dropdown: staff get a "My Patient Journey" switch (same account, no logout);
@@ -745,11 +757,13 @@ function populateMenu(user, profile){
   var isPublicNav = !isPatient && !isDoctor && !isAdminRole;
   var navPublic  = ge('nb-nav-links');   if(navPublic)  navPublic.style.display  = isPublicNav ? '' : 'none';
   var navDoctor  = ge('nb-nav-doctor');  if(navDoctor)  navDoctor.style.display  = isDoctor ? '' : 'none';
-  var navAdmin   = ge('nb-nav-admin');   if(navAdmin)   navAdmin.style.display   = isAdminRole ? '' : 'none';
+  // A doctor keeps the doctor content nav; the admin one is for administrators
+  // who are not clinicians. Showing both would print Home and Videos twice.
+  var navAdmin   = ge('nb-nav-admin');   if(navAdmin)   navAdmin.style.display   = (isAdminRole && !isDoctor) ? '' : 'none';
   var navPatient = ge('nb-nav-patient'); if(navPatient) navPatient.style.display = isPatient ? '' : 'none';
   var mobPublic  = ge('nb-mob-public');      if(mobPublic)  mobPublic.style.display  = isPublicNav ? 'block' : 'none';
   var mobDoctor  = ge('nb-mob-doctor-nav');  if(mobDoctor)  mobDoctor.style.display  = isDoctor ? 'block' : 'none';
-  var mobAdmin   = ge('nb-mob-admin-nav');   if(mobAdmin)   mobAdmin.style.display   = isAdminRole ? 'block' : 'none';
+  var mobAdmin   = ge('nb-mob-admin-nav');   if(mobAdmin)   mobAdmin.style.display   = (isAdminRole && !isDoctor) ? 'block' : 'none';
   var mobPatient = ge('nb-mob-patient-nav'); if(mobPatient) mobPatient.style.display = isPatient ? 'block' : 'none';
   // Same rule on mobile: the switcher owns Dashboard for doctors and admins.
   var mobWs  = ge('nb-mob-workspace'); if(mobWs)  mobWs.style.display  = (isStaff && !wsRole) ? 'block' : 'none';

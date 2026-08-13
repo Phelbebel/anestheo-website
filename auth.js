@@ -82,9 +82,12 @@ async function requireRole(allowed, opts) {
   var auth = await requireAuth(opts);              // unauthenticated → /index.html
   if (!auth) return null;
   var p = auth.profile || {};
+  /* Clinical role and platform privilege are orthogonal. Collapsing the role
+     into 'admin' whenever is_admin was set meant an approved anesthesiologist
+     who also administers the platform stopped counting as a doctor for
+     routing — including on the pages where they do clinical work. */
   var role = p.role || 'patient';
   var isAdmin = (p.is_admin === true || role === 'admin');
-  if (isAdmin) role = 'admin';
 
   /* An unapproved doctor is not staff for routing purposes. Before this,
      isStaff was true for role='doctor' regardless of verification_status, so a
@@ -93,13 +96,16 @@ async function requireRole(allowed, opts) {
      on a workspace that silently renders nothing — the worst of both. Send
      them somewhere that explains itself instead.
 
-     Admins are never gated: is_admin short-circuits above. */
-  if (role === 'doctor' && (p.verification_status || '') !== 'approved') {
+     Administrators are exempt, and that is now stated rather than inherited
+     from a role collapse: an anesthesiologist whose verification lapses must
+     still reach the Admin Center. It does not let them chart — the database
+     decides that, and is_verified_doctor() is false for them. */
+  if (role === 'doctor' && (p.verification_status || '') !== 'approved' && !isAdmin) {
     window.location.replace('/doctor-pending.html');
     return null;
   }
 
-  var isStaff = (role === 'doctor' || role === 'admin');
+  var isStaff = (role === 'doctor' || role === 'admin' || isAdmin);
   var allow = Array.isArray(allowed) ? allowed : [allowed];
   var ok;
   if (allow.indexOf('staff') >= 0) ok = isStaff;
