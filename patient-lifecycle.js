@@ -124,10 +124,10 @@ function purgeEligibility(kind, id){
   var bad = guard(kind, id); if (bad) return Promise.resolve(bad);
   return rpc('patient_purge_eligibility', { p_kind:kind, p_id:id });
 }
-function purgeDependencies(kind, id){
-  var bad = guard(kind, id); if (bad) return Promise.resolve(bad);
-  return rpc('patient_purge_dependencies', { p_kind:kind, p_id:id });
-}
+/* There is deliberately no purgeDependencies() wrapper. The dependency preview
+   arrives inside patient_purge_eligibility()'s answer, and the underlying RPC is
+   administrator-only and revoked from authenticated — a wrapper here could only
+   ever fail, which is a trap rather than an API. */
 
 /* recycle_bin_list() is authorization-positive: a patient or a pending doctor
    receives an empty set rather than an error, so an empty bin is a normal
@@ -297,7 +297,6 @@ global.PatientLifecycle = {
   act: act,
   setStarred: setStarred,
   purgeEligibility: purgeEligibility,
-  purgeDependencies: purgeDependencies,
   purge: purge,
   recycleBin: recycleBin,
   stateOf: stateOf,
