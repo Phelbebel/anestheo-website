@@ -276,7 +276,7 @@ async function getActiveSurgeryId(patientId) {
     var r = await window.sb.from('patient_surgeries')
       .select('id,created_at')
       .eq('patient_id', patientId)
-      .is('archived_at', null).is('completed_at', null)
+      .is('deleted_at', null).is('archived_at', null).is('completed_at', null)
       .order('created_at', { ascending: false }).limit(1);
     if (r.error || !r.data || !r.data.length) return null;
     return r.data[0].id;
@@ -288,17 +288,19 @@ async function _journeyRow(table, patientId, surgeryId) {
   try {
     // Pre-migration: surgery_id does not exist -> legacy one-row-per-patient.
     if (!(await supportsJourneys())) {
-      var lg = await window.sb.from(table).select('*').eq('patient_id', patientId).limit(1);
+      var lg = await window.sb.from(table).select('*').eq('patient_id', patientId).is('deleted_at', null).limit(1);
       if (lg.error) { console.warn(table + ' legacy read:', lg.error.message); return null; }
       return (lg.data && lg.data[0]) || null;
     }
     if (surgeryId) {
-      var s = await window.sb.from(table).select('*').eq('surgery_id', surgeryId).limit(1);
+      var s = await window.sb.from(table).select('*').eq('surgery_id', surgeryId).is('deleted_at', null).limit(1);
       if (!s.error && s.data && s.data.length) return s.data[0];
     }
     // legacy / not-yet-scoped row for this patient
+    // Soft-deleted questionnaires and checklists are Recycle Bin content, not
+    // the row a patient is still filling in.
     var r = await window.sb.from(table).select('*')
-      .eq('patient_id', patientId).is('surgery_id', null)
+      .eq('patient_id', patientId).is('deleted_at', null).is('surgery_id', null)
       .order('updated_at', { ascending: false, nullsFirst: false }).limit(1);
     if (!r.error && r.data && r.data.length) return r.data[0];
     return null;

@@ -1175,18 +1175,20 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   async function loadDoctor(uid){
     // Real data only. Each read degrades independently; nothing is fabricated.
     var clinics=[], crs=[], surgById={}, surgByPid={}, pqByPid={}, qPids={};
-    try{ var cp=await sb.from('clinic_patients').select('*').eq('doctor_id',uid); clinics=((cp&&cp.data)||[]); }catch(e){}
+    // Counters obey the same lifecycle rule as the lists they summarise: a
+    // deleted patient is in the Recycle Bin and is counted nowhere else.
+    try{ var cp=await sb.from('clinic_patients').select('*').eq('doctor_id',uid).is('deleted_at',null); clinics=((cp&&cp.data)||[]); }catch(e){}
     // Accepted surgical relationships = this doctor's patients (same lane the
     // dashboard's My Patients board uses). Pending care_requests are NOT surfaced:
     // the data model cannot mark a pending request as a "consultation" (see report).
-    try{ var cr=await sb.from('care_requests').select('patient_id,surgery_id,status,is_consultation').eq('doctor_id',uid).in('status',['accepted']);
+    try{ var cr=await sb.from('care_requests').select('patient_id,surgery_id,status,is_consultation').eq('doctor_id',uid).is('deleted_at',null).in('status',['accepted']);
       crs=((cr&&cr.data)||[]).filter(function(c){return !c.is_consultation;}); }catch(e){}
-    try{ var s=await sb.from('patient_surgeries').select('id,patient_id,patient_name,surgery_date,updated_at,archived_at,completed_at').eq('assigned_doctor_id',uid);
+    try{ var s=await sb.from('patient_surgeries').select('id,patient_id,patient_name,surgery_date,updated_at,archived_at,completed_at').eq('assigned_doctor_id',uid).is('deleted_at',null);
       ((s&&s.data)||[]).forEach(function(x){ surgById[x.id]=x; if(x.patient_id) surgByPid[x.patient_id]=x; }); }catch(e){}
     var pids=crs.map(function(c){return c.patient_id;}).filter(Boolean);
     if(pids.length){
       try{ var pq=await sb.from('preop_questionnaires').select('patient_id,review_state').in('patient_id',pids); ((pq&&pq.data)||[]).forEach(function(x){ pqByPid[x.patient_id]=x.review_state; }); }catch(e){}
-      try{ var qq=await sb.from('questions').select('patient_id,status').in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){ var st=x.status||'new'; if(st!=='answered'&&st!=='closed') qPids[x.patient_id]=true; }); }catch(e){}
+      try{ var qq=await sb.from('questions').select('patient_id,status').is('deleted_at',null).in('patient_id',pids); ((qq&&qq.data)||[]).forEach(function(x){ var st=x.status||'new'; if(st!=='answered'&&st!=='closed') qPids[x.patient_id]=true; }); }catch(e){}
     }
     // Documents awaiting review (bridge surgeries only), grouped per surgery.
     var docBySurg={}, surgeryIds=Object.keys(surgById);
@@ -1452,7 +1454,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       ? (await window.supportsJourneys()) === true : false; }
     catch(e){ _journeys.caps=false; }
     try{ quest=(typeof getQuestionnaire==='function')?await getQuestionnaire(uid):((await sb.from('preop_questionnaires').select('*').eq('patient_id',uid).order('updated_at',{ascending:false,nullsFirst:false}).limit(1)).data||[])[0]; }catch(e){}
-    try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).order('surgery_date',{ascending:true,nullsFirst:false});
+    try{ var r=await sb.from('patient_surgeries').select('*').eq('patient_id',uid).is('deleted_at',null).order('surgery_date',{ascending:true,nullsFirst:false});
       var rows=((r&&r.data)||[]); var act=rows.filter(function(x){return !x.archived_at&&!x.completed_at;});
       surgery=act[0]||rows[0]||null;
       // Journey management: one row = one journey (Active + Archived #1..#n).

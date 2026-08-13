@@ -207,8 +207,10 @@ function isStaff(p){ return !!(p && (p.is_admin===true || p.role==='admin' || p.
     // Most imminent active surgery for the snapshot (main schema; tolerant of 0..n rows)
     var s = null;
     try {
+      // Lifecycle: a deleted journey is in the Recycle Bin, not on the
+      // patient's home screen. Archived ones are filtered just below.
       var r = await window.sb.from('patient_surgeries').select('*')
-        .eq('patient_id', uid)
+        .eq('patient_id', uid).is('deleted_at', null)
         .order('surgery_date', { ascending: true, nullsFirst: false });
       if(r && r.error){ console.warn('snapshot load error:', r.error.message); }
       var list = ((r && r.data) || []).filter(function(x){ return !x.archived_at; });
@@ -223,7 +225,7 @@ function isStaff(p){ return !!(p && (p.is_admin===true || p.role==='admin' || p.
     try { quest = await window.getQuestionnaire(uid); } catch(e){}
     try {
       var cq = await window.sb.from('care_requests').select('*')
-        .eq('patient_id', uid).in('status', ['requested','accepted'])
+        .eq('patient_id', uid).is('deleted_at', null).in('status', ['requested','accepted'])
         .order('requested_at', { ascending: false }).maybeSingle();
       cr = (cq && cq.data) || null;
     } catch(e){}

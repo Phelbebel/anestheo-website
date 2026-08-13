@@ -893,7 +893,11 @@ var CAPS = [
           'deleted_at','deleted_by','delete_reason'] },
   { key:'clinics',   table:'clinic_patients', label:'Clinic patients',
     cols:['id','doctor_id','patient_name','phone_number','procedure','hospital','surgery_date',
-          'questionnaire_status','consultation_status','patient_status','created_at','updated_at'] },
+          'questionnaire_status','consultation_status','patient_status','created_at','updated_at',
+          // Lifecycle columns are probed, not assumed: a database without the
+          // v4 migration simply reports them missing and the console degrades
+          // instead of erroring.
+          'archived_at','archived_by','deleted_at','deleted_by','delete_reason','is_starred'] },
   { key:'requests',  table:'care_requests', label:'Care requests',
     cols:['id','patient_id','doctor_id','surgery_id','origin_method','status','is_consultation',
           'decline_reason','requested_at','responded_at','archived_at','archived_by','deleted_at','deleted_by','delete_reason'] },
@@ -1027,8 +1031,14 @@ async function loadAll(){
       'created_at').then(function(d){ AC.db.surgeries = d; }),
     fetchTable('clinics','clinic_patients',
       ['id','doctor_id','patient_name','phone_number','procedure','hospital','surgery_date',
-       'questionnaire_status','consultation_status','patient_status','created_at','updated_at'],
+       'questionnaire_status','consultation_status','patient_status','created_at','updated_at',
+       'archived_at','archived_by','deleted_at','deleted_by','delete_reason','is_starred'],
       'created_at').then(function(d){ AC.db.clinics = d; }),
+    // The bin is read through recycle_bin_list(), not by filtering the tables
+    // above: that RPC answers the authorization question positively and carries
+    // per-row purge eligibility, so the console never has to re-derive either.
+    acRpc('recycle_bin_list').then(function(d){ AC.db.bin = d || []; },
+                                   function(){ AC.db.bin = []; }),
     fetchTable('requests','care_requests',
       ['id','patient_id','doctor_id','surgery_id','origin_method','status','is_consultation',
        'decline_reason','requested_at','responded_at','archived_at','archived_by','deleted_at','deleted_by','delete_reason'],
@@ -1376,7 +1386,7 @@ function tblDoctors(list, compact){
     (compact?'':'<th>Journeys</th><th>Clinic pts</th><th>Created</th>')+'<th></th></tr>';
   var rows = list.map(function(p){
     var jn = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===p.id; }).length;
-    var cn = (AC.db.clinics||[]).filter(function(c){ return c.doctor_id===p.id; }).length;
+    var cn = (AC.db.clinics||[]).filter(function(c){ return c.doctor_id===p.id && !c.deleted_at; }).length;
     return '<tr>'+
       (mod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+p.id+'" aria-label="Select '+esc(pname(p))+'" onchange="AC.selToggle(\'doctor\',\''+p.id+'\',this.checked)"></td>':'')+
       '<td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
@@ -1457,12 +1467,11 @@ var BULK_ACTS = {
   delete:   { label:'Soft delete', imp:impAccounts, reason:false, danger:true, hint:REASON_DELETE,
               run:function(id,v){ return acRpc('admin_soft_delete_account',{p_target:id,p_reason:reasonOr(v.reason,REASON_DELETE)}); } },
   jarchive: { label:'Archive',  imp:impPlain('journey'), reason:false,
-              run:function(id,v){ return acRpc('archive_patient',{p_surgery_id:id,p_reason:v.reason||null}); } },
+              run:function(id,v){ return acLifecycle('journey',id,'archive',v.reason||null); } },
   junarchive:{ label:'Restore from archive', imp:impPlain('journey'), reason:false,
-              run:function(id){ return acRpc('restore_patient',{p_surgery_id:id}); } },
+              run:function(id){ return acLifecycle('journey',id,'restore_archive',null); } },
   jdelete:  { label:'Soft delete', imp:impPlain('journey'), reason:false, danger:true, hint:REASON_DELETE,
-              run:function(id,v){ return acRpc('admin_record_action',{p_entity:'journey',p_id:id,p_action:'soft_delete',
-                                    p_reason:reasonOr(v.reason,REASON_DELETE),p_confirm:null}); } },
+              run:function(id,v){ return acLifecycle('journey',id,'delete',reasonOr(v.reason,REASON_DELETE)); } },
   rcomplete:{ label:'Mark completed', imp:impPlain('care request'), reason:false,
               run:function(id,v){ return acRpc('admin_care_request_action',{p_request:id,p_action:'complete',p_reason:v.reason||null,p_doctor:null}); } },
   rreject:  { label:'Reject',   imp:impPlain('care request'), reason:true, danger:true,
@@ -1480,10 +1489,12 @@ var BULK_ACTS = {
               run:function(id,v){ return acRpc('admin_report_action',{p_report:id,p_action:'soft_delete',
                                     p_reason:reasonOr(v.reason,REASON_DELETE),p_assignee:null}); } },
   binrestore:{ label:'Restore', imp:impPlain('item'), reason:false,
-              run:function(id,v,row){ return row && row.entity==='account'
-                  ? acRpc('admin_restore_account',{p_target:id,p_reason:v.reason||null})
-                  : acRpc('admin_record_action',{p_entity:(row?row.entity:'journey'),p_id:id,p_action:'restore',
-                          p_reason:v.reason||null,p_confirm:null}); } },
+              run:function(id,v,row){
+                var ent = row ? row.entity : 'journey';
+                if(ent==='account') return acRpc('admin_restore_account',{p_target:id,p_reason:v.reason||null});
+                if(ent==='journey'||ent==='clinic_patient') return acLifecycle(ent,id,'restore_delete',v.reason||null);
+                return acRpc('admin_record_action',{p_entity:ent,p_id:id,p_action:'restore',
+                        p_reason:v.reason||null,p_confirm:null}); } },
   /* Permanent deletion is never casual: the server refuses anything that is
      not already soft deleted, a typed word is required, and every target gets
      its own audit row written before the data is destroyed. */
@@ -1693,7 +1704,7 @@ function vDoctor(id, qs){
     '<a class="lnk" href="#/doctors">Back to doctors</a></div>';
   var tab = qs.t || 'overview';
   var journeys = (AC.db.surgeries||[]).filter(function(s){ return s.assigned_doctor_id===id; });
-  var clinics  = (AC.db.clinics||[]).filter(function(c){ return c.doctor_id===id; });
+  var clinics  = (AC.db.clinics||[]).filter(function(c){ return c.doctor_id===id && !c.deleted_at; });
   var reqs     = (AC.db.requests||[]).filter(function(r){ return r.doctor_id===id; });
   var reviewed = (AC.db.quests||[]).filter(function(q){ return q.reviewed_by===id; });
   var docsRev  = (AC.db.documents||[]).filter(function(d){ return d.reviewed_by===id; });
@@ -1984,10 +1995,14 @@ function vPatient(id, qs){
 /* A journey is a record in its own right. Every action below targets
    patient_surgeries.id — never patient_id, which is legitimately NULL for a
    clinic-created journey that has not been claimed.
-     archive / restore  -> archive_patient() / restore_patient()  (shipped, admin-capable)
-     soft delete / restore / purge -> admin_record_action('journey', ...)  (phase 3)
-     assign / reassign  -> admin_assign_doctor()                  (phase 2)
-   No new RPC was required. */
+     archive / restore / soft delete / restore -> patient_lifecycle_action()
+     permanent deletion                        -> patient_purge()
+     assign / reassign                         -> admin_assign_doctor()
+
+   The lifecycle calls are the SAME ones the doctor workspace makes. The admin
+   console is not a second implementation with its own rules — it is the same
+   authority with a wider audience, which is why an admin cannot destroy a
+   patient the purge rule refuses either. */
 function jClaimed(s){ return !!(s && s.patient_id); }
 function jDeleted(s){ return !!(s && s.deleted_at); }
 function jArchived(s){ return !!(s && s.archived_at); }
@@ -2027,7 +2042,7 @@ function acArchiveJourney(s){
     fields:[{ key:'reason', label:'Note (optional)', type:'textarea',
               ph:'Recorded in the audit log.' }],
     onConfirm: async function(v){
-      await acRpc('archive_patient', { p_surgery_id:s.id, p_reason:v.reason||null });
+      await acLifecycle('journey', s.id, 'archive', v.reason||null);
       await acAfter('Journey archived');
     }});
 }
@@ -2035,7 +2050,7 @@ function acRestoreJourney(s){
   acDialog({ title:'Restore from archive — '+jLabel(s), confirmLabel:'Restore journey',
     body:'The journey returns to its active state, derived from its own clinical columns.',
     onConfirm: async function(){
-      await acRpc('restore_patient', { p_surgery_id:s.id });
+      await acLifecycle('journey', s.id, 'restore_archive', null);
       await acAfter('Journey restored from archive');
     }});
 }
@@ -2052,8 +2067,7 @@ function acSoftDeleteJourney(s){
     fields:[{ key:'reason', label:'Reason (optional)', type:'textarea',
               ph:'Recorded in the audit log. Leave blank for "' + REASON_DELETE + '".' }],
     onConfirm: async function(v){
-      await acRpc('admin_record_action', { p_entity:'journey', p_id:s.id, p_action:'soft_delete',
-        p_reason:reasonOr(v.reason, REASON_DELETE), p_confirm:null });
+      await acLifecycle('journey', s.id, 'delete', reasonOr(v.reason, REASON_DELETE));
       await acAfter('Journey moved to the Recycle Bin');
     }});
 }
@@ -2063,8 +2077,7 @@ function acJourneyUndelete(s){
       (jClaimed(s) ? '' : 'It has no linked account, so it returns to <b>Journeys with no linked account</b>.'),
     fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
     onConfirm: async function(v){
-      await acRpc('admin_record_action', { p_entity:'journey', p_id:s.id, p_action:'restore',
-        p_reason:v.reason||null, p_confirm:null });
+      await acLifecycle('journey', s.id, 'restore_delete', v.reason||null);
       await acAfter('Journey restored');
     }});
 }
@@ -2322,7 +2335,7 @@ function tblQuestions(list){
 function vQuestions(qs){
   var h = head('Clinical','Questions','');
   if(!has('questions')) return h + capNote('questions');
-  var c = AC.cap.questions, all = AC.db.questions||[];
+  var c = AC.cap.questions, all = (AC.db.questions||[]).filter(function(q){ return !q.deleted_at; });
   // Only the fields this deployment actually holds are rendered. Which fields
   // those are is an internal detail and is never described to the user.
   h += questionsRlsNotice() + hlNote(qs.id, 'the selected question');
@@ -2966,13 +2979,18 @@ var BIN = [
     rows:function(){ return (AC.db.profiles||[]).filter(isDeleted).map(function(p){
       return { id:p.id, label:pname(p), sub:p.email, kind:p.role, at:p.deleted_at, by:p.deleted_by,
                why:p.delete_reason, entity:'account', href:(p.role==='doctor'?'#/doctor/':'#/patient/')+p.id }; }); } },
-  { k:'journeys',  label:'Journeys',   need:function(){ return has('surgeries','deleted_at'); },
-    rows:function(){ return (AC.db.surgeries||[]).filter(function(s){ return s.deleted_at; }).map(function(s){
-      return { id:s.id, label:(s.patient_name||'Journey')+(s.patient_id?'':' — unclaimed'),
-               sub:[s.procedure_type, s.assigned_doctor_id?('Dr '+docName(s.assigned_doctor_id)):'no doctor']
-                     .filter(Boolean).join(' · '),
-               kind:'journey', at:s.deleted_at, by:s.deleted_by, why:s.delete_reason,
-               entity:'journey', href:'#/journey/'+s.id }; }); } },
+  /* Journeys AND doctor-created clinic patients, from recycle_bin_list(). One
+     category because they are one thing to an administrator — a deleted patient
+     record — and because the RPC already tells us, per row, whether permanent
+     deletion is even possible. */
+  { k:'journeys',  label:'Patients',   need:function(){ return true; },
+    rows:function(){ return (AC.db.bin||[]).map(function(r){
+      return { id:r.id, label:r.label || (r.kind==='journey'?'Journey':'Patient'),
+               sub:[r.detail, (r.kind==='journey'?'journey':'clinic patient')].filter(Boolean).join(' · '),
+               kind:(r.kind==='journey'?'journey':'clinic patient'),
+               at:r.deleted_at, by:r.deleted_by, why:r.delete_reason,
+               entity:r.kind, purgeOk:!!r.purge_eligible, purgeWhy:r.purge_reason, purgeCode:r.purge_code,
+               href:(r.kind==='journey'?('#/journey/'+r.id):'') }; }); } },
   { k:'requests',  label:'Consultation requests', need:function(){ return has('requests','deleted_at'); },
     rows:function(){ return (AC.db.requests||[]).filter(function(r){ return r.deleted_at; }).map(function(r){
       var p=AC.profById[r.patient_id];
@@ -3033,26 +3051,67 @@ function vRecycle(qs){
         '<td>'+esc(fdt(r.at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(r.at))+'</div></td>'+
         '<td>'+(r.by?esc(docName(r.by)):'<span class="mut">—</span>')+'</td>'+
         '<td>'+dash(r.why)+'</td>'+
+        // Permanent deletion is offered only where the server has already said
+        // it is possible. Where it is not, the row says why — an administrator
+        // deciding what to do next needs the reason, not a button that fails.
         '<td class="rowact"><button class="rowbtn" onclick="AC.binRestore(\''+esc(r.entity)+'\',\''+r.id+'\')">Restore</button>'+
-          ' <button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
-          'onclick="AC.binPurge(\''+esc(r.entity)+'\',\''+r.id+'\')">Permanently delete&hellip;</button></td></tr>';
+          (r.purgeOk === false
+            ? ' <span class="mut" style="font-size:11.5px;" title="'+esc(r.purgeWhy||'')+'">&#128274; '+
+                esc(acPurgeBlockTitle(r.purgeCode))+'</span>'
+            : ' <button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
+              'onclick="AC.binPurge(\''+esc(r.entity)+'\',\''+r.id+'\')">Permanently delete&hellip;</button>')+
+        '</td></tr>';
     }).join('')+'</tbody></table></div>';
   return h;
 }
 AC.binRestore = function(entity, id){
   if(entity === 'account'){ var p = AC.profById[id]; if(p) acRestore(p); return; }
-  acDialog({ title:'Restore '+esc(entity), confirmLabel:'Restore',
-    body:'The record returns to its normal list with every relationship intact.',
+  var isPatient = (entity === 'journey' || entity === 'clinic_patient');
+  acDialog({ title:'Restore '+esc(entity==='clinic_patient'?'patient':entity), confirmLabel:'Restore',
+    body: isPatient
+      ? 'The record leaves the Recycle Bin and returns to the state it was in when it was deleted — '+
+        'active, or archived if it was archived at the time. Children that were hidden because this '+
+        'record was deleted become visible again; anything deleted in its own right stays deleted.'
+      : 'The record returns to its normal list with every relationship intact.',
     fields:[{ key:'reason', label:'Reason (optional)', type:'textarea' }],
     onConfirm: async function(v){
-      await acRpc('admin_record_action', { p_entity:entity, p_id:id, p_action:'restore', p_reason:v.reason||null, p_confirm:null });
+      if(isPatient) await acLifecycle(entity, id, 'restore_delete', v.reason||null);
+      else await acRpc('admin_record_action', { p_entity:entity, p_id:id, p_action:'restore', p_reason:v.reason||null, p_confirm:null });
       await acAfter('Restored');
     }});
 };
-AC.binPurge = function(entity, id){
+AC.binPurge = async function(entity, id){
   var label = entity;
   BIN.forEach(function(bn){ if(!bn.need()) return;
     bn.rows().forEach(function(r){ if(r.id === id) label = r.label || entity; }); });
+
+  /* Patient records go through patient_purge(), the same authority the doctor
+     workspace uses. There is deliberately no second implementation here: the
+     admin console cannot destroy something the purge rule refuses, and it does
+     not get to invent a weaker confirmation. */
+  if(entity === 'journey' || entity === 'clinic_patient'){
+    var e = await acPurgeEligibility(entity, id);
+    if(!e || e.eligible !== true){
+      acDialog({ title:'Cannot permanently delete '+esc(label), confirmLabel:'Close',
+        body:'<b>'+esc(acPurgeBlockTitle(e && e.code))+'</b><p style="margin-top:8px;">'+
+             esc((e && e.reason) || 'The server refused this deletion.')+'</p>'+
+             acBlockingHtml(e),
+        onConfirm: function(){} });
+      return;
+    }
+    acDialog({ title:'Permanently delete '+esc(label), danger:true,
+      confirmWord: PURGE_WORD, confirmLabel:'Permanently delete',
+      body:'<b>This cannot be undone.</b> The record is destroyed, not hidden, and it will not be '+
+           'in the Recycle Bin afterwards.',
+      impact: acDepsHtml(e.dependencies),
+      onConfirm: async function(v){
+        var r = await acRpc('patient_purge', { p_kind:entity, p_id:id, p_confirm:v.__word });
+        if(!r || r.ok !== true) throw new Error((r && r.reason) || 'Permanent deletion was refused.');
+        await acAfter('Permanently deleted');
+      }});
+    return;
+  }
+
   acDialog({ title:'Permanently delete '+esc(label), danger:true, confirmWord:'DELETE',
     confirmLabel:'Permanently delete',
     body:'This erases the record. The audit entry is written first and survives.',
@@ -3064,6 +3123,55 @@ AC.binPurge = function(entity, id){
       await acAfter('Permanently deleted');
     }});
 };
+
+/* ── The shared purge vocabulary ────────────────────────────────────────── */
+var PURGE_WORD = 'PERMANENTLY DELETE';
+
+async function acLifecycle(kind, id, action, reason){
+  var r = await acRpc('patient_lifecycle_action',
+                      { p_kind:kind, p_id:id, p_action:action, p_reason:reason||null });
+  // The RPC answers with a structured refusal rather than an exception, so an
+  // ineligible action must be turned into one here or the console would report
+  // success for something that did not happen.
+  if(!r || r.ok !== true) throw new Error((r && r.reason) || 'That action was refused.');
+  return r;
+}
+async function acPurgeEligibility(kind, id){
+  try { return await acRpc('patient_purge_eligibility', { p_kind:kind, p_id:id }); }
+  catch(e){ return { eligible:false, code:'rpc_error', reason:e.message }; }
+}
+function acPurgeBlockTitle(code){
+  return { retained_clinical_record:'A signed anesthesia record references this patient',
+           active_clinical_record:'A Live Chart is still open for this patient',
+           clinical_dependencies:'Clinical records are still attached',
+           not_deleted:'This record is not in the Recycle Bin',
+           not_authorized:'Permanent deletion is an administrator action',
+           record_not_found:'This record no longer exists',
+           invalid_input:'That record type cannot be deleted this way' }[code]
+         || 'This deletion was refused';
+}
+function acBlockingHtml(e){
+  var b = (e && e.blocking_records) || [];
+  if(!b.length) return '';
+  return '<ul style="margin:10px 0 0 18px;font-size:12.5px;">'+ b.map(function(x){
+    return '<li>'+esc(String(x.table||'').replace('public.',''))+' &mdash; '+(x.rows||0)+
+           ' row'+((x.rows===1)?'':'s')+(x.state?(' ('+esc(x.state)+')'):'')+'</li>'; }).join('') +'</ul>';
+}
+/* The preview is computed by the server from live foreign keys, so it says what
+   will actually happen rather than what someone assumed when writing the UI.
+   Two lists, because destroyed and orphaned are two different fates. */
+function acDepsHtml(deps){
+  if(!deps) return '<b>Nothing else references this record.</b>';
+  function ul(title, arr){
+    if(!arr || !arr.length) return '';
+    return '<div style="margin-top:8px;"><b>'+title+'</b><ul style="margin:4px 0 0 18px;">'+
+      arr.map(function(d){ return '<li>'+(d.rows||0)+' &times; '+
+        esc(String(d.table||'').replace('public.',''))+'</li>'; }).join('')+'</ul></div>';
+  }
+  var a = ul('Destroyed with it', deps.records_to_delete);
+  var b = ul('Left without a patient', deps.records_to_detach);
+  return (a||b) ? (a+b) : '<b>Nothing else references this record.</b>';
+}
 
 /* ============================================================
    PHASE F — ACTIVITY CENTER  (real timestamps only)
@@ -3533,10 +3641,20 @@ function vSettings(){
 }
 function vDanger(){
   var h = head('Danger Zone','Danger Zone',
-    'Irreversible operations live here and nowhere else. Everything on this page erases data permanently.');
+    'Destructive administration. Ordinary recovery — restoring a patient, or removing one that has '+
+    'nothing clinical attached — belongs in the Recycle Bin.');
   if(!p2()) return h + featureNote();
 
   var del = (AC.db.profiles||[]).filter(isDeleted);
+  /* The two pages are not duplicates and should not read like it. The Recycle
+     Bin is where an administrator goes to undo something; the Danger Zone is
+     where they go to destroy it. Both call patient_purge() for patient records
+     — the same eligibility, the same typed confirmation, the same refusals —
+     so there is nothing here that the Recycle Bin would decide differently. */
+  h += '<div class="notice n-info"><b>Looking for a deleted patient?</b> '+
+    '<a class="lnk" href="#/recycle">The Recycle Bin</a> lists everything that was soft deleted and '+
+    'is where restoring happens. Permanent deletion of a patient record uses the same rules on both '+
+    'pages, so nothing is possible here that is refused there.</div>';
   h += '<div class="notice n-bad"><b>Permanent deletion cannot be undone.</b> '+
     'An account must be soft deleted first — the server refuses to purge anything that is still live. '+
     'The audit entry is written before the data is destroyed, so the record survives.</div>';
@@ -3584,8 +3702,13 @@ function vDanger(){
     recs.map(function(r){
       return '<tr><td class="nm">'+dash(r.label)+'</td><td>'+dash(r.kind)+'</td>'+
         '<td>'+esc(fdate(r.at))+'</td><td>'+dash(r.why)+'</td>'+
-        '<td class="rowact"><button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
-          'onclick="AC.binPurge(\''+esc(r.entity)+'\',\''+r.id+'\')">Permanently delete…</button></td></tr>';
+        // Same rule as the Recycle Bin, because it is the same server answer.
+        '<td class="rowact">'+(r.purgeOk === false
+          ? '<span class="mut" style="font-size:11.5px;" title="'+esc(r.purgeWhy||'')+'">&#128274; '+
+              esc(acPurgeBlockTitle(r.purgeCode))+'</span>'
+          : '<button class="rowbtn" style="border-color:rgba(192,57,43,.4);color:rgba(255,150,130,.95)" '+
+            'onclick="AC.binPurge(\''+esc(r.entity)+'\',\''+r.id+'\')">Permanently delete…</button>')+
+        '</td></tr>';
     }).join('')+'</tbody></table></div>';
   h += '</div>';
 

@@ -1209,7 +1209,7 @@ var _directory = [];
 async function reloadCareRequest(){
   try {
     var crq = await window.sb.from('care_requests').select('*')
-      .eq('patient_id', _uid).in('status', ['requested','accepted'])
+      .eq('patient_id', _uid).is('deleted_at', null).in('status', ['requested','accepted'])
       .order('requested_at', { ascending: false }).maybeSingle();
     _careRequest = crq.data || null;
   } catch(e){ /* graceful */ }
@@ -1486,8 +1486,10 @@ function closeSurgery(){ ge('surgery-modal').classList.remove('open'); }
 window.openSurgery=openSurgery; window.closeSurgery=closeSurgery;
 async function loadSurgeries(){
   try {
+    // A journey in the Recycle Bin is not part of the patient's own view of
+    // their care any more than it is part of the doctor's.
     var r = await window.sb.from('patient_surgeries').select('*')
-      .eq('patient_id', _uid).order('surgery_date', { ascending: true, nullsFirst: false });
+      .eq('patient_id', _uid).is('deleted_at', null).order('surgery_date', { ascending: true, nullsFirst: false });
     _surgeries = (r && r.data) || [];
   } catch(e){ _surgeries = []; }
   // Deterministic nearest-first ordering (dated soonest first, undated last),
@@ -2008,7 +2010,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     try {
       var crq = await window.sb.from('care_requests').select('*')
-        .eq('patient_id', _uid).in('status', ['requested','accepted'])
+        .eq('patient_id', _uid).is('deleted_at', null).in('status', ['requested','accepted'])
         .order('requested_at', { ascending: false }).maybeSingle();
       _careRequest = crq.data || null;
     } catch(e){ _careRequest = null; }
@@ -2016,7 +2018,7 @@ document.addEventListener('DOMContentLoaded', async function(){
 
     // Consultations (questions/replies)
     try {
-      var qr = await window.sb.from('questions').select('*').eq('patient_id', _uid).order('created_at',{ascending:false});
+      var qr = await window.sb.from('questions').select('*').eq('patient_id', _uid).is('deleted_at',null).order('created_at',{ascending:false});
       _questions = qr.data || [];
       if(_questions.length) _signals.questions = true;
       try {

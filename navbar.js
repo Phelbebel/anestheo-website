@@ -942,7 +942,8 @@ window.nbOpenModal = function(){
 // authenticated user (patient data is keyed by auth.uid()). No second login.
 function _nbPatientOptKey(uid){ return 'anestheo-patient-optin-' + uid; }
 async function _nbHasPatientData(uid){
-  try { var r = await window.sb.from('patient_surgeries').select('id').eq('patient_id', uid).limit(1);
+  // A deleted journey is not "patient data the person still has".
+  try { var r = await window.sb.from('patient_surgeries').select('id').eq('patient_id', uid).is('deleted_at', null).limit(1);
         if (r && r.data && r.data.length) return true; } catch(e){}
   try { if (typeof window.getQuestionnaire === 'function') { var q = await window.getQuestionnaire(uid); if (q) return true; } } catch(e){}
   return false;

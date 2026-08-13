@@ -11,6 +11,7 @@
 <script src="/clinical-index.js?v=2026.08.07-18"></script>
 <script src="/clinical-search.js?v=2026.08.07-18"></script>
 <script src="/clinical-open.js?v=2026.08.07-18"></script>
+<script src="/patient-lifecycle.js?v=2026.08.07-18"></script>
 <script src="/navbar.js?v=2026.08.07-18"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -353,12 +354,6 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 
 
 /* ── Phase 1: Action Center + Active Cases ── */
-.ws-need-badge{margin-left:auto;align-self:center;font-size:12px;font-weight:700;color:#ff9b86;background:rgba(192,57,43,.16);border:1px solid rgba(192,57,43,.4);border-radius:20px;padding:4px 12px;}
-.ac-head,.acs-head{display:flex;align-items:center;gap:10px;margin:6px 0 10px;}
-.ac-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#fff;}
-.ac-count{font-size:12px;font-weight:700;color:#fff;background:rgba(192,57,43,.5);border-radius:20px;padding:2px 9px;}
-.acs-n{font-size:12px;color:var(--hint);background:rgba(255,255,255,.08);border-radius:20px;padding:2px 9px;}
-.ac-empty{font-size:13px;color:var(--muted);padding:14px 4px;}
 /* whole-card clickable affordance (tap anywhere to open) */
 .ac-card.clickable,.acs-card.clickable{cursor:pointer;transition:border-color .12s ease,box-shadow .12s ease,transform .06s ease;}
 .ac-card.clickable:hover,.acs-card.clickable:hover{border-color:rgba(126,207,192,.55);box-shadow:0 6px 18px rgba(0,0,0,.28);}
@@ -366,55 +361,31 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ac-card.clickable:focus-visible,.acs-card.clickable:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;}
 .ac-card.clickable .ws-btn{pointer-events:auto;}
 /* action cards */
-.ac-card{position:relative;display:flex;flex-direction:column;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;margin-bottom:9px;overflow:hidden;}
-.ac-row{display:flex;align-items:stretch;gap:14px;padding:12px 15px 13px 18px;}
-.ac-rail{position:absolute;left:0;top:0;bottom:0;width:5px;z-index:1;}
 /* source ribbon — primary visual element */
 /* source = small secondary chip inside the card body */
-.ac-chip{display:inline-block;margin-top:8px;font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:2px 9px;border-radius:20px;}
 .ac-chip.src-clinic{color:#dcc3f4;background:rgba(150,100,200,.16);border:1px solid rgba(150,100,200,.32);}
 .ac-chip.src-patient{color:#a4e6d6;background:rgba(42,138,116,.16);border:1px solid rgba(42,138,116,.32);}
 /* source filter tabs */
-.ws-src-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;}
-.ws-src-tab{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:#cfe;font-size:13px;font-weight:600;border-radius:10px;padding:9px 15px;cursor:pointer;font-family:inherit;}
-.ws-src-tab:hover{background:rgba(255,255,255,.1);}
 .ws-src-tab.on{background:#1B6B5A;border-color:#2A8A74;color:#fff;}
-.ws-src-n{font-size:11px;font-weight:700;background:rgba(255,255,255,.16);border-radius:20px;padding:1px 8px;}
 .rail-red .ac-rail{background:#e0533f;} .rail-blue .ac-rail{background:#3d8bdc;}
 .rail-green .ac-rail{background:#37b86a;} .rail-yellow .ac-rail{background:#E8A838;} .rail-urg .ac-rail{background:#E8A838;}
 .ac-card.rail-red{background:rgba(224,83,63,.07);border-color:rgba(224,83,63,.32);}
 .ac-card.rail-blue{background:rgba(61,139,220,.07);border-color:rgba(61,139,220,.32);}
 .ac-card.rail-urg{background:rgba(232,168,56,.09);border-color:rgba(232,168,56,.45);}
 .ac-card.is-new{box-shadow:0 0 0 1px rgba(224,83,63,.4),0 4px 18px rgba(224,83,63,.14);}
-.ac-body{flex:1 1 auto;min-width:0;}
-.ac-top{display:flex;align-items:center;gap:9px;margin-bottom:4px;}
-.ac-headline{font-size:12.5px;font-weight:800;letter-spacing:.03em;color:#fff;}
-.ac-new{font-size:10px;font-weight:800;letter-spacing:.05em;color:#fff;background:#c0392b;border-radius:20px;padding:2px 8px;}
 .ac-new.pulse{animation:acpulse 1.6s ease-in-out infinite;}
 @keyframes acpulse{0%,100%{box-shadow:0 0 0 0 rgba(224,83,63,.55);}50%{box-shadow:0 0 0 6px rgba(224,83,63,0);}}
-.ac-name{font-size:15px;font-weight:700;color:#fff;}
-.ac-proc{font-size:13px;color:var(--muted);margin-top:1px;}
-.ac-surg{font-size:12.5px;color:#cfe;margin-top:5px;}
 .ac-surg.soon{color:#E8C16b;font-weight:600;} .ac-surg.none{color:var(--hint);}
-.ac-sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
 .ac-sub.urg{color:#E8C16b;font-weight:600;}
-.ac-when{font-size:11.5px;color:var(--hint);margin-top:3px;}
 .ac-tag{display:inline-block;font-size:10.5px;font-weight:600;margin-top:7px;padding:2px 9px;border-radius:20px;}
 .ac-tag.patient{color:#7ECFC0;background:rgba(42,138,116,.16);border:1px solid rgba(42,138,116,.35);}
 .ac-tag.clinic{color:#c9a6e8;background:rgba(150,100,200,.16);border:1px solid rgba(150,100,200,.35);}
-.ac-action{display:flex;flex-direction:column;gap:7px;justify-content:center;align-items:flex-end;flex:0 0 auto;}
 .ac-reqgroup{margin-top:8px;border-top:1px dashed rgba(255,255,255,.14);padding-top:12px;}
 .ac-reqhead{font-size:12.5px;font-weight:700;color:#7ECFC0;margin-bottom:8px;}
 .ac-req{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:7px;}
 /* active cases grid */
 .acs-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;}
-.acs-chip{background:rgba(255,255,255,.06);border:1px solid var(--border);color:#cfe;font-size:12px;border-radius:20px;padding:6px 13px;cursor:pointer;font-family:inherit;}
 .acs-chip.on{background:#1B6B5A;border-color:#1B6B5A;color:#fff;font-weight:600;}
-.acs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:11px;}
-.acs-card{position:relative;display:flex;flex-direction:column;background:rgba(255,255,255,.045);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-.acs-card .ac-row{flex-direction:column;gap:10px;}
-.acs-card .ac-action{flex-direction:row;align-items:stretch;}
-.acs-status{font-size:11.5px;font-weight:800;letter-spacing:.04em;color:#fff;}
 /* SECTION 1 — My Surgical Patients (primary, dominant) */
 .ws-surg-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:4px 0 14px;}
 .ws-surg-t{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:#fff;}
@@ -488,6 +459,44 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-mp-row.ws-mp-noopen:hover{border-color:var(--border);background:rgba(255,255,255,.035);}
 .ws-noopen{cursor:default !important;}
 .ws-noopen:hover{transform:none !important;}
+/* ── Lifecycle three-dot menu — one component, every surface ────────────── */
+.ws-lc{position:relative;flex:0 0 auto;}
+.ws-lc-btn{padding:8px 10px;font-size:17px;line-height:1;min-width:38px;min-height:38px;color:var(--muted);}
+.ws-lc-btn.big{min-width:42px;min-height:42px;}
+.ws-lc-btn:hover{color:#fff;}
+.ws-lc-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:60;min-width:252px;max-width:calc(100vw - 32px);
+  background:#132218;border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 16px 44px rgba(0,0,0,.55);}
+.ws-lc-menu.open{display:block;}
+.ws-lc-item{display:block;width:100%;text-align:left;background:none;border:none;color:#fff;font-family:inherit;
+  font-size:13.5px;font-weight:600;padding:11px 10px;border-radius:8px;cursor:pointer;min-height:44px;}
+.ws-lc-item:hover:not(:disabled){background:rgba(126,207,192,.12);}
+.ws-lc-item:disabled{color:rgba(255,255,255,.34);cursor:not-allowed;}
+.ws-lc-item.danger{color:#FF9B86;}
+.ws-lc-item.danger:hover:not(:disabled){background:rgba(192,57,43,.16);}
+.ws-lc-hint{font-size:11.5px;color:var(--hint);padding:0 10px 8px;line-height:1.45;}
+.ws-lc-hint.warn,.ws-lc-hint.tone-block{color:#FFB98A;}
+.ws-lc-hint.tone-auth{color:#FF9B86;}
+.ws-lc-hint.tone-gone{color:#FF9B86;}
+.ws-lc-hint.tone-state{color:var(--hint);}
+.ws-star{font-size:13px;color:#FFCD66;line-height:1;}
+.ws-d-acts{display:flex;align-items:flex-start;gap:8px;flex:0 0 auto;}
+.wsx-archchip.star{color:#FFCD66;border-color:rgba(255,205,102,.4);background:rgba(255,205,102,.1);}
+.ws-stab-badge.s6{background:#FFCD66;}
+/* Recycle Bin rows */
+.ws-bin-note{font-size:12.5px;color:var(--hint);line-height:1.5;margin:0 0 10px;}
+.ws-bin-row .ws-mp-right{flex-direction:column;align-items:stretch;gap:6px;}
+.ws-bin-why{font-size:12px;color:var(--muted);font-style:italic;margin-top:3px;}
+.ws-bin-reason{font-size:11.5px;color:#FFB98A;margin-top:4px;line-height:1.45;}
+.ws-bin-block{font-size:11.5px;font-weight:700;color:rgba(255,255,255,.55);text-align:center;padding:8px 10px;
+  border:1px dashed var(--border);border-radius:9px;white-space:nowrap;}
+/* Confirmation dialog extras */
+.ws-confirm-lbl{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 6px;}
+.ws-confirm-in{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;
+  padding:10px 12px;color:#fff;font-family:inherit;font-size:13.5px;margin-bottom:16px;resize:vertical;}
+.ws-confirm-in:focus{outline:none;border-color:rgba(126,207,192,.5);}
+.ws-confirm-warn{margin-top:10px;font-size:12.5px;color:#FFB98A;line-height:1.5;}
+.ws-confirm-sub{font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em;}
+.ws-confirm-ul{margin:0 0 4px 18px;font-size:12.5px;color:var(--muted);line-height:1.6;}
 .ws-mp-ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#15414f,#1c6e5a);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#bff5df;flex:0 0 auto;}
 .ws-mp-main{flex:1;min-width:0;}
 .ws-mp-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
@@ -965,8 +974,8 @@ function wsDeriveStatus(p){
 // review, approval) are reused unchanged.
 // ============================================================
 var URGENCY_CRITICAL=2, URGENCY_SOON=7;
-var _wsCases=[], _wsRequests=[], _wsConsults=[], _wsCaseFilter='all', _wsActiveClinicIds={}, _wsMyPatients=[];
-var _wsSurgByClinic={};
+var _wsRequests=[], _wsConsults=[], _wsActiveClinicIds={}, _wsMyPatients=[];
+var _wsSurgByClinic={}, _wsHiddenSurgIds={};
 // iPad especially: opening a record must not cost the doctor their place in a
 // long list. Filter/tab/search already persist (wsMpStateSet); scroll does not,
 // so it is captured on open and restored on close.
@@ -977,9 +986,6 @@ function wsRestoreScroll(){
   var y=_wsScrollY; _wsScrollY=null;
   try{ window.scrollTo(0,y); }catch(e){}
 }
-function wsSeenKey(){ return 'anestheo_seen_'+(window.__wsUserId||'x'); }
-function wsSeenGet(){ try{ return JSON.parse(localStorage.getItem(wsSeenKey())||'{}'); }catch(e){ return {}; } }
-function wsSeenSet(id, ts){ try{ var m=wsSeenGet(); m[id]=ts||Date.now(); localStorage.setItem(wsSeenKey(), JSON.stringify(m)); }catch(e){} }
 // Remember the doctor's last working state on the My Patients dashboard (UI only).
 function wsMpStateKey(){ return 'anestheo_mpstate_'+(window.__wsUserId||'x'); }
 function wsMpStateGet(){ try{ return JSON.parse(localStorage.getItem(wsMpStateKey())||'{}'); }catch(e){ return {}; } }
@@ -987,14 +993,6 @@ function wsMpStateSet(patch){ try{ var m=wsMpStateGet(); for(var k in patch){ m[
 function wsFmtDate(d){ if(!d) return '—'; var dt=new Date(d); if(isNaN(dt.getTime())) return '—';
   var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return dt.getDate()+' '+mo[dt.getMonth()]+' '+dt.getFullYear(); }
-function wsTimeAgo(ts){
-  if(!ts) return '';
-  var s=(Date.now()-ts)/1000;
-  if(s<60) return 'just now';
-  if(s<3600) return Math.max(1,Math.floor(s/60))+' min ago';
-  if(s<86400) return Math.floor(s/3600)+'h ago';
-  return Math.floor(s/86400)+'d ago';
-}
 function wsUrgency(date){
   if(!date) return {days:null,label:'',critical:false,soon:false};
   var days=Math.round((new Date(date).setHours(0,0,0,0)-new Date().setHours(0,0,0,0))/86400000);
@@ -1007,12 +1005,6 @@ function wsUrgency(date){
   else if(days<=60) label='Surgery in ~'+Math.round(days/7)+' weeks';
   else label='Surgery in ~'+Math.round(days/30)+' months';
   return {days:days, label:label, critical:(days>=0&&days<=URGENCY_CRITICAL), soon:(days>=0&&days<=URGENCY_SOON)};
-}
-function wsColorIcon(c){ return {red:'&#128308;',blue:'&#128309;',green:'&#128994;',yellow:'&#128993;'}[c]||'&#9899;'; }
-function wsIsNew(o){
-  if(!o.eventTs) return false;
-  var id=(o.source==='clinic'?'c'+o.clinicId:o.patientId);
-  return o.eventTs>(wsSeenGet()[id]||0) && (Date.now()-o.eventTs)<86400000;
 }
 
 // Lane rule (pre-migration safe): care_state if present, else is_consultation.
@@ -1032,11 +1024,19 @@ function wsClinicStage(p){
 }
 function wsStageLabel(s){ return {awaiting:'Awaiting questionnaire', review:'Questionnaire submitted — awaiting your review', approved:'Plan approved', scheduled:'Scheduled for surgery', completed:'Completed'}[s]||s; }
 var WS_MP_STAGES=['awaiting','review','approved','scheduled','completed'];
+// Views that are NOT workflow stages. They slice the same list by the other
+// two dimensions — organization (important) and lifecycle (archived, deleted)
+// — and are listed separately so nothing ever treats them as a stage.
+var WS_MP_VIEWS=['important','archived','deleted'];
+function wsMpIsView(v){ return WS_MP_VIEWS.indexOf(v)>=0; }
 
 async function wsLoadCases(){
   var uid=window.__wsUserId; if(!uid) return;
   var crs=[];
-  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).in('status',['requested','accepted','closed']); crs=(r&&r.data)||[]; }catch(e){}
+  // A care request that was deleted in its own right stays hidden even if its
+  // journey is restored — its own deleted_at is the last word. The parent rule
+  // is applied below, once the journeys are known.
+  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).is('deleted_at',null).in('status',['requested','accepted','closed']); crs=(r&&r.data)||[]; }catch(e){}
   var surgById={}, surgByClinic={};
   try { var s=await window.sb.from('patient_surgeries').select('*').eq('assigned_doctor_id',uid);
     ((s&&s.data)||[]).forEach(function(x){ surgById[x.id]=x; if(x.clinic_patient_id) surgByClinic[x.clinic_patient_id]=x; }); }catch(e){}
@@ -1059,10 +1059,15 @@ async function wsLoadCases(){
       if(x.clinic_patient_id) delete surgByClinic[x.clinic_patient_id];
     }
   });
+  // care_request_visible(): hidden when the request itself is deleted (already
+  // filtered server-side above) OR when the journey it belongs to is. Restoring
+  // the journey brings an intact request back, because nothing was written to
+  // the request when the parent was deleted.
   crs=crs.filter(function(c){ return !(c.surgery_id && hiddenSurgIds[c.surgery_id]); });
   // Shared with the canonical opener so following a clinic patient to its journey
-  // costs no extra query on the common path.
-  _wsSurgByClinic=surgByClinic;
+  // costs no extra query on the common path. _wsHiddenSurgIds is shared with the
+  // other lists so one definition of "hidden" serves every surface.
+  _wsSurgByClinic=surgByClinic; _wsHiddenSurgIds=hiddenSurgIds;
 
   // ── Consultation Requests workflow (care_requests only) ──
   _wsRequests=[]; _wsConsults=[]; _wsConsultsDone=[]; var surgicalReqs=[];
@@ -1097,6 +1102,9 @@ async function wsLoadCases(){
       statusText:wsStageLabel(stage), patientId:c.patient_id, surgeryId:c.surgery_id,
       archived:!!sg.archived_at, archivedAt:sg.archived_at||null, archivedBy:sg.archived_by||null,
       updatedAt:(sg.updated_at||c.responded_at||c.requested_at||null),
+      // Lifecycle and organization travel with the row so a menu can be built
+      // without another read. Star is independent of both workflow and state.
+      starred:!!sg.is_starred, lcState:window.PatientLifecycle.stateOf(sg),
       // A patient-requested row IS a journey. If the care request has no
       // surgery yet there is nothing clinical to open, and the row renders no
       // control rather than a button that silently does nothing.
@@ -1109,7 +1117,15 @@ async function wsLoadCases(){
     mp.push({ key:'c'+p.id, origin:'clinic', stage:stage, name:p.patient_name||'Patient',
       procedure:p.procedure||'', hospital:p.hospital||'', surgeryDate:p.surgery_date||null,
       progress:wsProgressPct(p), statusText:wsStageLabel(stage), clinicId:p.id, sent_at:p.sent_at,
-      surgeryId:(sgc?sgc.id:null), archived:!!(sgc&&sgc.archived_at), archivedAt:(sgc&&sgc.archived_at)||null, archivedBy:(sgc&&sgc.archived_by)||null,
+      // Archive state is read from the clinic patient itself. The journey
+      // mirror is a fallback for rows archived before clinic_patients had
+      // lifecycle columns; the record's own state wins when it has one.
+      surgeryId:(sgc?sgc.id:null),
+      archived:!!(p.archived_at||(sgc&&sgc.archived_at)),
+      archivedAt:(p.archived_at||(sgc&&sgc.archived_at)||null),
+      archivedBy:(p.archived_by||(sgc&&sgc.archived_by)||null),
+      starred:!!p.is_starred,
+      lcState:window.PatientLifecycle.stateOf({archived_at:(p.archived_at||(sgc&&sgc.archived_at)||null), deleted_at:p.deleted_at}),
       updatedAt:(p.updated_at||p.questionnaire_submitted_at||p.sent_at||p.created_at||null),
       // A clinic-patient row IS a clinic patient — always, including when it has
       // no journey yet. It must never be opened as {kind:'journey', id:''}.
@@ -1177,7 +1193,7 @@ async function wsLoadOpList(){
     Object.keys(best).forEach(function(sid){ var reqs=(best[sid].plan&&best[sid].plan.requirements)||[];
       _wsOlPlan[sid]=reqs.filter(function(r){return r&&r.checked;}).map(function(r){return r.key;}).filter(Boolean); }); } }catch(e){}
   // Unanswered patient questions (status not answered/closed) — a one-click-approve blocker.
-  try{ if(pids.length){ var qn=await window.sb.from('questions').select('patient_id,status').in('patient_id',pids);
+  try{ if(pids.length){ var qn=await window.sb.from('questions').select('patient_id,status').is('deleted_at',null).in('patient_id',pids);
     ((qn&&qn.data)||[]).forEach(function(x){ var st=x.status||'new'; if(st!=='answered'&&st!=='closed') _wsOlQ[x.patient_id]=(_wsOlQ[x.patient_id]||0)+1; }); } }catch(e){}
   wsRenderOpList(cases);
 }
@@ -1471,18 +1487,32 @@ function wsRenderMyPatients(){
   });
   var an=document.getElementById('ws-mp-archived-n');
   if(an) an.textContent=_wsMyPatients.filter(function(p){return p.archived;}).length||0;
+  // Important counts ACTIVE starred patients only: a star on an archived record
+  // is remembered, but Important is a working list, not a memorial.
+  var imp=document.getElementById('ws-mp-important-n');
+  if(imp) imp.textContent=_wsMyPatients.filter(function(p){return p.starred && !p.archived;}).length||0;
+  var del=document.getElementById('ws-mp-deleted-n');
+  if(del) del.textContent=(_wsRecycle?_wsRecycle.length:0)||0;
   wsRenderMpStats();
   var box=document.getElementById('ws-mp-list'); if(!box) return;
+  // The Recycle Bin is a different read entirely (recycle_bin_list), not a
+  // filter over the active list, because a deleted record is deliberately not
+  // in the active list at all.
+  if(_wsMpStage==='deleted'){ wsRenderRecycleBin(box); return; }
   var term=(_wsMpSearch||'').trim().toLowerCase();
-  var archView=(_wsMpStage==='archived');
+  var archView=(_wsMpStage==='archived'), impView=(_wsMpStage==='important');
   var list=_wsMyPatients.filter(function(p){
-    // Archived rows appear ONLY under the Archived filter; every other filter
-    // shows active patients in the matching stage.
+    // Archived rows appear ONLY under Archived. Important shows active starred
+    // patients across every stage. Every other filter is a workflow stage.
     if(archView){ if(!p.archived) return false; }
+    else if(impView){ if(p.archived || !p.starred) return false; }
     else { if(p.archived) return false; if(p.stage!==_wsMpStage) return false; }
     if(!term) return true;
     return [p.name,p.procedure,p.hospital].filter(Boolean).join(' ').toLowerCase().indexOf(term)>=0;
   }).sort(wsMpComparator(_wsMpSort));
+  // Starred first within the chosen order — the star is a priority marker, so
+  // it should shorten the search, not just decorate the row.
+  list.sort(function(a,b){ return (b.starred?1:0)-(a.starred?1:0); });
   if(!list.length){
     if(term){
       box.innerHTML='<div class="ws-mp-empty"><div class="emo">&#128269;</div>'+
@@ -1524,26 +1554,140 @@ function wsRenderMyPatients(){
       : wsEsc(p.statusText);
     // Say so, rather than leaving a row that looks clickable and is not.
     if(!openable) sub += ' &middot; <span style="color:var(--hint);">No record to open yet</span>';
+    // Every row carries the same three-dot menu, built from the same ref.
+    var lcMenu = openable ? wsLcMenuHtml(ref, (p.archived?'archived':'active'), !!p.starred) : '';
     var right = p.archived
-      ? (p.surgeryId
-          ? '<button class="ws-btn ws-mp-act wsx-restore" onclick="event.stopPropagation();wsRestorePatient(\''+p.surgeryId+'\')">&#8630; Restore</button>'
+      ? (openable
+          ? '<button class="ws-btn ws-mp-act wsx-restore" onclick="event.stopPropagation();wsLcAct(\''+ref.kind+'\',\''+ref.id+'\',\'restore_archive\')">&#8630; Restore</button>'+lcMenu
           : '')
       : (openable
-          ? '<button class="ws-btn pc-green ws-mp-act"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>'+action+'</button>'
+          ? '<button class="ws-btn pc-green ws-mp-act"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>'+action+'</button>'+lcMenu
           : '');
     var progOrArch = p.archived
       ? '<div class="ws-mp-sub" style="margin-top:2px;color:var(--hint);">Data preserved &middot; can be restored</div>'
       : '<div class="ws-mp-prog"><div class="ws-mp-bar"><div class="ws-mp-fill" style="width:'+pct+'%"></div></div><span class="ws-mp-pct">'+pct+'%</span></div>'+qActions;
     return '<div class="ws-mp-row'+(p.archived?' arch':'')+(openable?'':' ws-mp-noopen')+'"'+(openable?window.ClinicalOpen.refAttr(ref):'')+'>'+
       '<div class="ws-mp-ava '+(p.archived?'r4':(ringMap[p.stage]||'r4'))+'"><span class="av-in">'+wsEsc(initial)+'</span></div>'+
-      '<div class="ws-mp-main"><div class="ws-mp-top">'+origChip+'<span class="ws-mp-nm">'+wsEsc(p.name)+'</span>'+(meta?'<span class="ws-mp-meta">'+meta+'</span>':'')+'</div>'+
+      '<div class="ws-mp-main"><div class="ws-mp-top">'+origChip+
+        (p.starred?'<span class="ws-star on" title="Important">&#9733;</span>':'')+
+        '<span class="ws-mp-nm">'+wsEsc(p.name)+'</span>'+(meta?'<span class="ws-mp-meta">'+meta+'</span>':'')+'</div>'+
         '<div class="ws-mp-sub">'+sub+'</div>'+
         progOrArch+'</div>'+
       '<div class="ws-mp-right">'+dateChip+right+'</div>'+
     '</div>';
   }).join('');
 }
-function wsMpEmpty(st){ return {awaiting:'No patients awaiting questionnaire.',review:'Nothing awaiting your review.',approved:'No approved patients.',scheduled:'No scheduled surgeries.',completed:'No completed patients yet.',archived:'No archived patients. Archive a completed or inactive patient from their record.'}[st]||'No patients in this stage.'; }
+function wsMpEmpty(st){ return {awaiting:'No patients awaiting questionnaire.',review:'Nothing awaiting your review.',approved:'No approved patients.',scheduled:'No scheduled surgeries.',completed:'No completed patients yet.',archived:'No archived patients. Archive a completed or inactive patient from their record.',important:'Nothing marked Important. Use the &#8942; menu on any patient to mark them.'}[st]||'No patients in this stage.'; }
+
+/* ══════════ Recycle Bin ══════════════════════════════════════════════════
+   Read through recycle_bin_list(), which answers the authorization question
+   positively — a patient or a pending doctor receives an empty set rather than
+   an error. It is deliberately NOT a filter over the active list: a deleted
+   record is not in the active list at all, which is the whole point.
+
+   Permanent deletion is offered only where the server has already said it is
+   eligible. Where it is not, the row states the reason instead, because "there
+   is a signed anesthesia record" is information the doctor needs. */
+var _wsRecycle=[], _wsRecycleErr=null, _wsRecycleLoaded=false, _wsDetailId=null;
+
+async function wsLoadRecycleBin(){
+  var r=await window.PatientLifecycle.recycleBin();
+  _wsRecycleLoaded=true;
+  if(!r.ok){ _wsRecycle=[]; _wsRecycleErr=r.reason||'The Recycle Bin could not be read.'; }
+  else { _wsRecycle=r.rows||[]; _wsRecycleErr=null; }
+  _wsRecycle.sort(function(a,b){ return new Date(b.deleted_at||0)-new Date(a.deleted_at||0); });
+  var del=document.getElementById('ws-mp-deleted-n'); if(del) del.textContent=_wsRecycle.length||0;
+  if(_wsMpStage==='deleted'){ var box=document.getElementById('ws-mp-list'); if(box) wsRenderRecycleBin(box); }
+}
+window.wsLoadRecycleBin=wsLoadRecycleBin;
+
+function wsRenderRecycleBin(box){
+  if(!_wsRecycleLoaded){ box.innerHTML='<div class="ws-empty">Loading the Recycle Bin&hellip;</div>'; wsLoadRecycleBin(); return; }
+  if(_wsRecycleErr){ box.innerHTML='<div class="ws-empty">'+wsEsc(_wsRecycleErr)+'</div>'; return; }
+  var term=(_wsMpSearch||'').trim().toLowerCase();
+  var rows=_wsRecycle.filter(function(r){
+    if(!term) return true;
+    return [r.label,r.detail].filter(Boolean).join(' ').toLowerCase().indexOf(term)>=0;
+  });
+  if(!rows.length){
+    box.innerHTML='<div class="ws-empty">'+(term
+      ? 'Nothing in the Recycle Bin matches &ldquo;'+wsEsc(_wsMpSearch.trim())+'&rdquo;.'
+      : 'The Recycle Bin is empty. Deleted patients stay here until they are restored or permanently deleted.')+'</div>';
+    return;
+  }
+  box.innerHTML='<div class="ws-bin-note">Deleted patients are kept here. Nothing has been destroyed &mdash; restore returns a record to exactly the state it was in when it was deleted.</div>'+
+    rows.map(function(r){
+      var kindLabel=(r.kind==='journey')?'Journey':'Patient';
+      var who=r.deleted_by_name||'';
+      var when=r.deleted_at?wsFmtDate(r.deleted_at):'';
+      var sub=['Deleted'+(when?' on '+wsEsc(when):''),(who?'by '+wsEsc(who):'')].filter(Boolean).join(' ');
+      var why=r.delete_reason?'<div class="ws-bin-why">&ldquo;'+wsEsc(r.delete_reason)+'&rdquo;</div>':'';
+      var purge=r.purge_eligible
+        ? '<button class="ws-btn pc-danger ws-mp-act" onclick="wsBinPurge(\''+r.kind+'\',\''+r.id+'\')">Permanently delete&hellip;</button>'
+        : '<div class="ws-bin-block" title="'+wsEsc(r.purge_reason||'')+'">&#128274; '+wsEsc(wsBinBlockShort(r.purge_code))+'</div>';
+      return '<div class="ws-mp-row ws-bin-row">'+
+        '<div class="ws-mp-ava r5"><span class="av-in">&#128465;</span></div>'+
+        '<div class="ws-mp-main"><div class="ws-mp-top"><span class="ws-orig doc">'+kindLabel+'</span>'+
+          '<span class="ws-mp-nm">'+wsEsc(r.label||'Record')+'</span>'+
+          (r.detail?'<span class="ws-mp-meta">'+wsEsc(r.detail)+'</span>':'')+'</div>'+
+          '<div class="ws-mp-sub">'+sub+'</div>'+why+
+          (r.purge_eligible?'':'<div class="ws-bin-reason">'+wsEsc(r.purge_reason||'')+'</div>')+
+        '</div>'+
+        '<div class="ws-mp-right">'+
+          '<button class="ws-btn pc-green ws-mp-act" onclick="wsLcAct(\''+r.kind+'\',\''+r.id+'\',\'restore_delete\')">&#8630; Restore</button>'+
+          purge+
+        '</div></div>';
+    }).join('');
+}
+
+// Short label for the lock chip; the full server reason is shown beneath it.
+function wsBinBlockShort(code){
+  return { retained_clinical_record:'Signed record retained',
+           active_clinical_record:'Live Chart still open',
+           clinical_dependencies:'Clinical records attached',
+           not_authorized:'Administrator action',
+           not_deleted:'Not deleted',
+           record_not_found:'No longer available' }[code] || 'Cannot be deleted';
+}
+
+/* Permanent deletion. The preview is computed by the server from live foreign
+   keys, so it describes what will actually happen rather than what the code
+   assumed when it was written. Two lists, because they are two fates. */
+async function wsBinPurge(kind, id){
+  var e=await window.PatientLifecycle.purgeEligibility(kind, id);
+  if(!e || e.eligible!==true){
+    var f=window.PatientLifecycle.refusal(e, 'This record cannot be permanently deleted.');
+    wsToast(f.text); await wsLoadRecycleBin(); return;
+  }
+  var lines=window.PatientLifecycle.dependencyLines(e.dependencies);
+  var destroyed=lines.filter(function(l){ return l.fate==='destroyed'; });
+  var detached=lines.filter(function(l){ return l.fate==='detached'; });
+  function list(t, arr){
+    if(!arr.length) return '';
+    return '<div class="ws-confirm-sub">'+t+'</div><ul class="ws-confirm-ul">'+
+      arr.map(function(l){ return '<li>'+l.rows+' &times; '+wsEsc(l.table)+'</li>'; }).join('')+'</ul>';
+  }
+  var preview=(destroyed.length||detached.length)
+    ? list('Destroyed with it', destroyed)+list('Left without a patient', detached)
+    : '<div class="ws-confirm-sub">Nothing else references this record.</div>';
+  wsConfirmDialog({
+    title:'Permanently delete this record?',
+    body:'<b>This cannot be undone.</b> The record is destroyed, not hidden. '+
+         'It will not be in the Recycle Bin afterwards and it cannot be restored.'+preview,
+    confirmLabel:'Permanently delete', danger:true,
+    confirmWord:window.PatientLifecycle.CONFIRM_WORD,
+    onConfirm: async function(v){
+      var r=await window.PatientLifecycle.purge(kind, id, v.word);
+      if(!r || r.ok!==true){
+        var f2=window.PatientLifecycle.refusal(r, 'Permanent deletion was refused.');
+        wsToast(f2.text); await wsLoadRecycleBin(); return;
+      }
+      wsToast('Permanently deleted.');
+      await wsLoadRecycleBin(); await wsLoadPatients(); await wsLoadCases();
+    }
+  });
+}
+window.wsBinPurge=wsBinPurge;
 window.wsRenderMyPatients=wsRenderMyPatients;
 // Top-level Consultation Requests badge = new requests + active + completed.
 function wsUpdateCrTotal(){
@@ -1555,8 +1699,12 @@ function wsUpdateCrTotal(){
 var _wsConsultsDone=[];
 async function wsLoadConsultsDone(){
   var uid=window.__wsUserId; if(!uid) return;
-  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).eq('status','closed');
-    _wsConsultsDone=((r&&r.data)||[]).sort(function(a,b){ return new Date(b.responded_at||0)-new Date(a.responded_at||0); }); }
+  try { var r=await window.sb.from('care_requests').select('*').eq('doctor_id',uid).is('deleted_at',null).eq('status','closed');
+    // Same parent rule as the active list: a completed consultation whose
+    // journey is in the Recycle Bin is not part of the ordinary record either.
+    _wsConsultsDone=((r&&r.data)||[])
+      .filter(function(c){ return !(c.surgery_id && _wsHiddenSurgIds[c.surgery_id]); })
+      .sort(function(a,b){ return new Date(b.responded_at||0)-new Date(a.responded_at||0); }); }
   catch(e){ _wsConsultsDone=[]; }
   wsRenderConsultsDone(); wsUpdateCrTotal();
 }
@@ -1574,107 +1722,6 @@ function wsRenderConsultsDone(){
   }).join('');
 }
 window.wsLoadConsultsDone=wsLoadConsultsDone;
-function wsDeriveBridge(c, sg, qd, prepN, docG){
-  var rs=qd.review_state||'not_submitted', urg=wsUrgency(sg.surgery_date);
-  // source = routing (bridge -> full workspace);  origin = display/filter
-  // (clinic-invited converted patients carry origin='clinic' on the surgery).
-  var origin=(sg.origin==='clinic')?'clinic':'patient';
-  var o={source:'bridge', origin:origin, patientId:c.patient_id, surgeryId:c.surgery_id, name:c.patient_name||'Patient',
-    procedure:c.procedure||sg.procedure_type||'Procedure', hospital:sg.hospital||'', surgeryDate:sg.surgery_date||null, urgency:urg,
-    prepN:prepN, reviewState:rs, sourceTag:(origin==='clinic'?'Clinic invited':'Patient requested'), unreviewedDocs:docG.names||[],
-    // patient_id here is an auth.users id — a THIRD id space. It is never used
-    // as a journey id; the patient-account opener resolves it explicitly.
-    openKind:'patient_account', openId:(c.patient_id||null)};
-  if(rs==='pending'){ o.color='red'; o.bucket='action'; o.headline='New questionnaire submitted'; o.actionLabel='Review Now'; o.priority=1; o.eventTs=qd.updated_at?new Date(qd.updated_at).getTime():null; o.eventLine='Submitted '+wsTimeAgo(o.eventTs); }
-  else if(docG.count>0){ o.color='blue'; o.bucket='action'; o.headline=docG.count+' document'+(docG.count>1?'s':'')+' received'; o.actionLabel='Review Documents'; o.priority=2; o.eventTs=docG.ts||null; o.eventLine=(o.unreviewedDocs.slice(0,4).join(' + ')||'Documents')+' uploaded '+wsTimeAgo(o.eventTs); }
-  else if(rs==='in_review'){ o.color='green'; o.bucket='action'; o.headline='Ready to approve'; o.actionLabel='Review / Approve'; o.priority=3; o.eventTs=qd.updated_at?new Date(qd.updated_at).getTime():null; o.eventLine='In review · awaiting your approval'; }
-  else if(rs==='changes_requested'){ o.color='yellow'; o.bucket='active'; o.headline='Waiting on patient'; o.actionLabel='Open Case'; }
-  else if(rs==='approved'){ o.color='green'; o.bucket='active'; o.headline='Approved'; o.actionLabel='Open Case'; }
-  else { o.color='yellow'; o.bucket='active'; o.headline='Awaiting questionnaire'; o.actionLabel='Open Case'; }
-  if(urg.critical){ o.bucket='action'; o.priority=0;
-    o.urgentSub=(rs==='pending'?'Patient not reviewed':rs==='in_review'?'Patient waiting for approval':rs==='changes_requested'?'Waiting on patient documents':rs==='approved'?'Approved · confirm readiness':'Questionnaire not completed'); }
-  o.isNew=wsIsNew(o);
-  return o;
-}
-function wsDeriveClinic(p){
-  // Converted clinic patients are represented by their bridge case (care_requests);
-  // skip the legacy derivation so they appear ONCE, not twice.
-  if(p.auth_user_id) return null;
-  if(!(p.questionnaire_status==='completed' && p.consultation_status!=='reviewed' && p.patient_status!=='completed')) return null;
-  var urg=wsUrgency(p.surgery_date);
-  var o={source:'clinic', origin:'clinic', clinicId:p.id, name:p.patient_name||'Patient', procedure:p.procedure||'Procedure',
-    hospital:p.hospital||'', surgeryDate:p.surgery_date||null, urgency:urg, sourceTag:'Clinic invited', unreviewedDocs:[],
-    color:'red', bucket:'action', headline:'New questionnaire submitted', actionLabel:'Review Now', priority:1,
-    openKind:'clinic_patient', openId:p.id,
-    eventTs:p.completed_at?new Date(p.completed_at).getTime():(p.updated_at?new Date(p.updated_at).getTime():null)};
-  o.eventLine='Submitted '+wsTimeAgo(o.eventTs);
-  if(urg.critical){ o.priority=0; o.urgentSub='Patient not reviewed'; }
-  o.isNew=wsIsNew(o);
-  return o;
-}
-function wsBadge(n){ var el=document.getElementById('ws-need-badge'); if(!el) return; el.textContent=n?('▢ '+n+' need you'):''; el.style.display=n?'inline-block':'none'; }
-// Source is now a PRIMARY visual element: a coloured ribbon at the top of every card.
-// Source is secondary now: a small chip inside the card, not a full ribbon.
-function wsSrcChip(origin){
-  var clinic=(origin==='clinic');
-  return '<span class="ac-chip '+(clinic?'src-clinic':'src-patient')+'">'+
-    (clinic?'&#128104;&#8205;&#9877;&#65039; Invited by me':'&#128233; Requested me')+'</span>';
-}
-function wsCaseLine(c){ return [c.procedure, c.hospital].filter(Boolean).map(wsEsc).join(' &middot; '); }
-var _wsSrcFilter='all';
-function wsSrcMatch(c){ return _wsSrcFilter==='all' || (_wsSrcFilter==='mine'&&c.origin==='clinic') || (_wsSrcFilter==='requests'&&c.origin==='patient'); }
-// Whole-card click target: the SAME {kind,id} ref the CTA uses. The kind is
-// carried in the markup, never re-derived from the id when the click arrives.
-function wsCardRef(c){ return {kind:c.openKind, id:c.openId}; }
-function wsCardOpenable(c){ return !!(window.ClinicalOpen && window.ClinicalOpen.isOpenable(wsCardRef(c))); }
-function wsCardAttrs(c){
-  if(!wsCardOpenable(c)) return '';
-  return 'tabindex="0" role="button" aria-label="Open '+wsEsc(c.name||'case')+'" data-open-kind="'+c.openKind+'" data-open-id="'+c.openId+'"';
-}
-function wsCardDispatch(card){
-  if(!card) return;
-  var kind=card.getAttribute('data-open-kind'), id=card.getAttribute('data-open-id');
-  if(!kind || !id) return;
-  window.coOpen(kind, id);
-}
-// Bulletproof card activation: ONE document-level delegated listener, attached
-// once at script load. document always exists and is never re-created, so this
-// survives every innerHTML re-render and any async timing. Real controls
-// (CTA / Accept / Decline) are excluded, so nothing double-fires. The card
-// carries data-open-kind + data-open-id and hands both to the canonical opener.
-document.addEventListener('click', function(e){
-  if(e.target.closest('button,a,input,select,textarea,label')) return;
-  var c=e.target.closest('.ac-card.clickable, .acs-card.clickable');
-  if(c) wsCardDispatch(c);
-});
-document.addEventListener('keydown', function(e){
-  if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
-  var el=document.activeElement; if(!el || !el.closest) return;
-  var c=el.closest('.ac-card.clickable, .acs-card.clickable');
-  if(c){ e.preventDefault(); wsCardDispatch(c); }
-});
-function wsActionCardHtml(c){
-  var urgent=c.urgency&&c.urgency.critical;
-  var rail=urgent?'urg':c.color;
-  var head=urgent?('&#9888; '+(c.urgency.label||'Surgery approaching').toUpperCase()):(wsColorIcon(c.color)+' '+c.headline.toUpperCase());
-  var newBadge=c.isNew?'<span class="ac-new pulse">&#9679; NEW</span>':'';
-  var surg=c.surgeryDate?('<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+wsEsc(c.urgency.label)+'</div>'):'<div class="ac-surg none">No surgery date set</div>';
-  var subUrg=urgent&&c.urgentSub?'<div class="ac-sub urg">'+wsEsc(c.urgentSub)+'</div>':'';
-  var when=c.eventLine?'<div class="ac-when">'+wsEsc(c.eventLine)+'</div>':'';
-  var ref=wsCardRef(c), openable=wsCardOpenable(c);
-  return '<div class="ac-card'+(openable?' clickable':'')+' rail-'+rail+(c.isNew?' is-new':'')+'" '+wsCardAttrs(c)+'>'+
-    '<div class="ac-row"><span class="ac-rail"></span>'+
-      '<div class="ac-body">'+
-        '<div class="ac-top"><span class="ac-headline">'+head+'</span>'+newBadge+'</div>'+
-        '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
-        '<div class="ac-proc">'+wsCaseLine(c)+'</div>'+
-        surg+subUrg+when+
-        wsSrcChip(c.origin)+
-      '</div>'+
-      (openable?'<div class="ac-action"><button class="ws-btn pc-green"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>'+wsEsc(c.actionLabel)+' &rarr;</button></div>':'')+
-    '</div>'+
-  '</div>';
-}
 // SECTION 2 (secondary): consultation requests render into their own block,
 // NEVER inside the surgical Action Center. Not card-clickable; only the
 // Accept/Decline buttons act. _wsRequests = care_requests status='requested'.
@@ -1758,7 +1805,10 @@ async function wsOpenConsult(id){
   if(!cr) return;
   var surgeryId=cr.surgery_id, patientId=cr.patient_id;
   var surgery={}, quest={}, docs=[];
-  try{ if(surgeryId){ var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).maybeSingle(); surgery=s.data||{}; } }catch(e){}
+  // The consultation list is already parent-filtered, but this read stands on
+  // its own too: a consultation whose journey is in the Recycle Bin does not
+  // open a journey.
+  try{ if(surgeryId){ var s=await window.sb.from('patient_surgeries').select('*').eq('id',surgeryId).is('deleted_at',null).maybeSingle(); surgery=s.data||{}; } }catch(e){}
   // Journey-aware: a patient may hold several journeys, so never .maybeSingle()
   // on patient_id (it throws with >1 row). Prefer this journey's questionnaire.
   try{ if(patientId){ var q=await window.sb.from('preop_questionnaires').select('*').eq('patient_id',patientId).order('updated_at',{ascending:false,nullsFirst:false}).limit(1); quest=(q.data&&q.data[0])||{}; } }catch(e){}
@@ -1853,7 +1903,7 @@ function wsRenderWorkspaceUnified(){
       '<span class="wsx-pill '+(cs==='consultation'?'con':'sur')+'">'+(cs==='consultation'?'&#128172; Consultation':'&#127973; Surgical')+'</span></div>'+
       nav+'<div class="wsx-railsec">Tools</div>'+toolsNav+journey+'</div>'+
     '<div class="wsx-main">'+archBanner+
-      '<div class="wsx-actbar"><span class="lane">'+(cs==='consultation'?'Advice-only status':'In the pre-operative pipeline')+idchip+'</span>'+actions+wsArchiveCtlHtml(c.surgeryId||s.id, s)+'</div>'+
+      '<div class="wsx-actbar"><span class="lane">'+(cs==='consultation'?'Advice-only status':'In the pre-operative pipeline')+idchip+'</span>'+actions+wsWsLifecycleCtl(c)+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='overview'?' on':'')+'" data-tab="overview">'+pOverview+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='questionnaire'?' on':'')+'" data-tab="questionnaire">'+pQuest+'</div>'+
       '<div class="wsx-panel'+(_wsTab==='documents'?' on':'')+'" data-tab="documents">'+pDocs+'</div>'+
@@ -1865,91 +1915,207 @@ function wsRenderWorkspaceUnified(){
   wsRenderDocs(); wsRenderRecs();
   if(cs==='surgical' && !locked){ wsRenderPlanSummary(); wsRenderHistory(); wsSetSaveState(); }
   else if(cs==='surgical'){ wsRenderPlanSummary(); wsRenderHistory(); }
-  var _sid=c.surgeryId||s.id;
-  if(_sid && !(s && s.archived_at)) wsRefreshArchiveElig(_sid);
+}
+// The opened patient carries the same lifecycle menu as its row, on the same
+// {kind,id} ref, so Archive / Delete / Star are one tap away from the record
+// itself instead of requiring the doctor to close it and search again.
+function wsWsLifecycleCtl(c){
+  var ref = c.clinicId ? {kind:'clinic_patient', id:c.clinicId}
+                       : {kind:'journey', id:(c.surgeryId||(c.surgery&&c.surgery.id)||null)};
+  if(!ref.id) return '';
+  var state = c.lifecycle==='archived' ? 'archived' : 'active';
+  var starChip = c.starred ? '<span class="wsx-archchip star">&#9733; Important</span>' : '';
+  var archChip = '';
+  if(state==='archived'){
+    var by=(c.surgery&&c.surgery.archived_by===window.__wsUserId)?' by you':'';
+    archChip='<span class="wsx-archchip">&#128451; Archived'+by+'</span>';
+  }
+  return '<div class="wsx-arch">'+starChip+archChip+
+    wsLcMenuHtml(ref, state, !!c.starred, {big:true})+'</div>';
 }
 window.wsWsTab=wsWsTab; window.wsRenderWorkspaceUnified=wsRenderWorkspaceUnified;
 
-// ── Patient archiving — secondary action, server-gated ──────────────────────
-// The archive control lives in an overflow menu (never beside the primary
-// clinical actions). Eligibility is decided by the server RPC, not the client;
-// archive_patient re-checks it before writing.
-function wsArchiveCtlHtml(sid, s){
-  if(!sid) return '';
-  if(s && s.archived_at){
-    var by=(s.archived_by && s.archived_by===window.__wsUserId)?' by you':'';
-    return '<div class="wsx-arch"><span class="wsx-archchip">&#128451; Archived'+by+'</span>'+
-      '<button class="ws-btn wsx-arch-restore" onclick="wsRestorePatient(\''+sid+'\')">&#8630; Restore patient</button></div>';
+/* ══════════ Patient lifecycle UI — ONE menu, every surface ══════════════════
+   A card, a list row and the opened patient detail all render the same items
+   from PatientLifecycle.menuFor(), and all act through the same functions, so
+   the doctor never has to close a patient and find them again to archive them.
+
+   Eligibility is the server's answer, fetched when the menu opens. A refused
+   action stays visible but disabled WITH ITS REASON, because "why can't I?" is
+   the question a hidden control never answers. The one exception is permanent
+   deletion, which is not offered at all until the server says it is eligible —
+   an irreversible action should not advertise itself.                        */
+
+var _wsLcSeq = 0;                 // one id per rendered menu
+var _wsLcOpen = null;             // the open menu's id
+
+// A menu is a button plus a panel. Both carry the kind and id, so the click
+// handler never has to guess which record it belongs to (Task 2's rule).
+function wsLcMenuHtml(ref, state, starred, opts){
+  opts = opts || {};
+  if(!ref || !ref.kind || !ref.id) return '';
+  var id = 'wslc' + (++_wsLcSeq);
+  return '<div class="ws-lc" id="'+id+'">'+
+    '<button class="ws-btn ws-lc-btn'+(opts.big?' big':'')+'" aria-haspopup="menu" aria-expanded="false" '+
+      'aria-label="Patient actions" onclick="event.stopPropagation();wsLcToggle(\''+id+'\',\''+ref.kind+'\',\''+ref.id+'\',\''+state+'\','+(starred?'true':'false')+')">&#8942;</button>'+
+    '<div class="ws-lc-menu" role="menu"></div></div>';
+}
+
+function wsLcCloseAll(){
+  document.querySelectorAll('.ws-lc-menu.open').forEach(function(m){ m.classList.remove('open'); });
+  document.querySelectorAll('.ws-lc-btn[aria-expanded="true"]').forEach(function(b){ b.setAttribute('aria-expanded','false'); });
+  _wsLcOpen = null;
+}
+document.addEventListener('click', function(){ if(_wsLcOpen) wsLcCloseAll(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape' && _wsLcOpen) wsLcCloseAll(); });
+
+async function wsLcToggle(domId, kind, id, state, starred){
+  var host=document.getElementById(domId); if(!host) return;
+  var menu=host.querySelector('.ws-lc-menu'), btn=host.querySelector('.ws-lc-btn');
+  if(_wsLcOpen===domId){ wsLcCloseAll(); return; }
+  wsLcCloseAll();
+  _wsLcOpen=domId; menu.classList.add('open'); btn.setAttribute('aria-expanded','true');
+
+  var items=window.PatientLifecycle.menuFor({state:state, starred:starred, canOpen:!opts_noOpen(host)});
+  menu.innerHTML=items.map(function(it){
+    return '<button class="ws-lc-item'+(it.danger?' danger':'')+'" role="menuitem" data-key="'+it.key+'"'+
+      (it.needsEligibility?' disabled':'')+'>'+it.icon+' '+wsEsc(it.label)+'</button>'+
+      (it.needsEligibility?'<div class="ws-lc-hint" data-hint="'+it.key+'">Checking&hellip;</div>':'');
+  }).join('');
+  menu.querySelectorAll('.ws-lc-item[data-key="open"],.ws-lc-item[data-key="star"]').forEach(function(b){
+    b.disabled=false;
+    b.onclick=function(ev){ ev.stopPropagation(); wsLcCloseAll();
+      if(b.getAttribute('data-key')==='open') window.coOpen(kind,id);
+      else wsLcStar(kind,id,!starred);
+    };
+  });
+
+  // Ask the server about every action this state offers, in one wait.
+  var need=window.PatientLifecycle.actionsForState(state);
+  var map=await window.PatientLifecycle.eligibilityFor(kind, id, need);
+  if(_wsLcOpen!==domId) return;                 // the doctor moved on; do not fight them
+  items.forEach(function(it){
+    if(!it.needsEligibility) return;
+    var b=menu.querySelector('.ws-lc-item[data-key="'+it.key+'"]');
+    var h=menu.querySelector('.ws-lc-hint[data-hint="'+it.key+'"]');
+    if(!b||!h) return;
+    var e=map[it.action]||{code:'rpc_error'};
+    if(e.eligible){
+      b.disabled=false; h.className='ws-lc-hint';
+      h.textContent=e.reason||'';
+      var warn=(e.warnings&&e.warnings.length)?e.warnings.join(' '):'';
+      if(warn){ h.textContent=(h.textContent?h.textContent+' ':'')+warn; h.className='ws-lc-hint warn'; }
+      b.onclick=function(ev){ ev.stopPropagation(); wsLcCloseAll(); wsLcAct(kind,id,it.action,e); };
+    } else {
+      var r=window.PatientLifecycle.refusal(e);
+      b.disabled=true; h.textContent=r.text; h.className='ws-lc-hint tone-'+r.tone;
+    }
+  });
+}
+function opts_noOpen(host){ return host.getAttribute('data-noopen')==='1'; }
+window.wsLcToggle=wsLcToggle; window.wsLcCloseAll=wsLcCloseAll;
+
+// Star is instant and needs no confirmation: it changes nothing clinical and
+// is trivially reversible.
+async function wsLcStar(kind, id, starred){
+  var r=await window.PatientLifecycle.setStarred(kind, id, starred);
+  if(!r || r.ok!==true){
+    var f=window.PatientLifecycle.refusal(r, 'Could not change this.');
+    wsToast(f.text); return;
   }
-  return '<div class="wsx-arch"><div class="wsx-more">'+
-      '<button class="ws-btn wsx-morebtn" onclick="wsToggleMore(event)" aria-haspopup="true" aria-label="More actions">&#8942;</button>'+
-      '<div class="wsx-moremenu" id="ws-moremenu">'+
-        '<button class="wsx-moreitem" id="ws-arch-item" onclick="wsArchiveClick(\''+sid+'\')" disabled>&#128451; Archive patient</button>'+
-        '<div class="wsx-morehint" id="ws-arch-hint">Checking eligibility&hellip;</div>'+
-      '</div>'+
-    '</div></div>';
+  wsToast(starred?'Marked as Important.':'Removed from Important.');
+  wsLcApplyLocalStar(kind, id, starred);
+  wsRenderMyPatients();
 }
-window.wsArchiveCtlHtml=wsArchiveCtlHtml;
-function wsToggleMore(ev){ if(ev){ev.stopPropagation();} var m=document.getElementById('ws-moremenu'); if(!m) return; var open=m.classList.toggle('open'); if(open){ setTimeout(function(){ document.addEventListener('click', wsCloseMoreOnce, {once:true}); },0); } }
-function wsCloseMoreOnce(){ var m=document.getElementById('ws-moremenu'); if(m) m.classList.remove('open'); }
-window.wsToggleMore=wsToggleMore;
-async function wsRefreshArchiveElig(sid){
-  var item=document.getElementById('ws-arch-item'), hint=document.getElementById('ws-arch-hint');
-  if(!item||!hint) return;
-  try{
-    var r=await window.sb.rpc('patient_archive_eligibility',{ p_surgery_id: sid });
-    if(r&&r.error) throw r.error;
-    var e=(r&&r.data)||null;
-    if(e && e.eligible){ item.disabled=false; hint.textContent='Moves the patient to Archived. Nothing is deleted.'; hint.classList.remove('block'); }
-    else { item.disabled=true; hint.textContent=(e&&e.reason)||'This patient cannot be archived yet.'; hint.classList.add('block'); }
-  }catch(err){ item.disabled=true; hint.textContent='Could not check eligibility right now.'; hint.classList.add('block'); }
+window.wsLcStar=wsLcStar;
+
+// Update what is already on screen rather than re-reading everything: the
+// doctor's filter, search, scroll and open patient all survive.
+function wsLcApplyLocalStar(kind, id, starred){
+  (_wsMyPatients||[]).forEach(function(p){
+    if(p.openKind===kind && p.openId===id) p.starred=starred;
+    if(kind==='journey' && p.surgeryId===id) p.starred=starred;
+  });
+  if(_wsCtx && _wsCtx.surgeryId===id) _wsCtx.starred=starred;
 }
-window.wsRefreshArchiveElig=wsRefreshArchiveElig;
-function wsArchiveClick(sid){
-  var item=document.getElementById('ws-arch-item'); if(item&&item.disabled) return;
-  wsCloseMoreOnce();
-  var name=(_wsCtx&&_wsCtx.name)||'this patient';
-  wsConfirmDialog('Archive '+wsEsc(name)+'?',
-    'The record moves to your Archived list and is hidden from active patients. All history &mdash; consultations, questions, questionnaire, journey, notes &mdash; is preserved, and you can restore it at any time.',
-    'Archive patient', false, async function(){
-      try{
-        var r=await window.sb.rpc('archive_patient',{ p_surgery_id: sid, p_reason: null });
-        if(r&&r.error) throw r.error;
-        wsToast('Patient archived.'); wsCloseWorkspace(); wsLoadCases();
-      }catch(err){ wsToast((err&&err.message)||'Could not archive.'); }
-    });
+
+// Archive / restore / delete. Confirmation copy comes from the shared module,
+// so the workspace and the list cannot describe the same action differently.
+function wsLcAct(kind, id, action, elig){
+  var copy=window.PatientLifecycle.confirmCopy(action);
+  var warn=(elig&&elig.warnings&&elig.warnings.length)
+    ? '<div class="ws-confirm-warn">&#9888; '+elig.warnings.map(wsEsc).join(' ')+'</div>' : '';
+  wsConfirmDialog({
+    title: copy.title,
+    body: copy.body + warn,
+    confirmLabel: copy.verb,
+    danger: copy.danger,
+    reason: (action==='delete' || action==='archive'),
+    reasonLabel: (action==='delete'?'Why are you removing this patient? (optional)':'Reason (optional)'),
+    onConfirm: async function(v){
+      var r=await window.PatientLifecycle.act(kind, id, action, v.reason||null);
+      if(!r || r.ok!==true){
+        var f=window.PatientLifecycle.refusal(r, 'That action was refused.');
+        wsToast(f.text); return;
+      }
+      wsToast(copy.done);
+      // The record has left this view: close the workspace if it was showing
+      // this patient, then refresh the lists in place.
+      if(_wsCtx && (_wsCtx.surgeryId===id || _wsCtx.clinicId===id)) wsCloseWorkspace();
+      wsCloseDetailIfShowing(id);
+      await wsLoadPatients(); await wsLoadCases();
+      // Any lifecycle action can change what is in the bin — a delete puts a
+      // record in, a restore takes one out — so the bin and its badge are
+      // refreshed whenever they have been read at all, not only when visible.
+      if(_wsRecycleLoaded) await wsLoadRecycleBin();
+    }
+  });
 }
-window.wsArchiveClick=wsArchiveClick;
-function wsRestorePatient(sid){
-  if(!sid){ wsToast('This patient has no linked record to restore.'); return; }
-  wsConfirmDialog('Restore this patient?',
-    'The patient returns to your active list in their correct current stage, derived from their existing clinical status. No clinical status is changed.',
-    'Restore patient', false, async function(){
-      try{
-        var r=await window.sb.rpc('restore_patient',{ p_surgery_id: sid });
-        if(r&&r.error) throw r.error;
-        wsToast('Patient restored.'); wsCloseWorkspace(); wsLoadCases();
-      }catch(err){ wsToast((err&&err.message)||'Could not restore.'); }
-    });
-}
-window.wsRestorePatient=wsRestorePatient;
-// Lightweight confirmation dialog (title, body-HTML, confirm label, danger?, onConfirm).
-function wsConfirmDialog(title, bodyHtml, confirmLabel, danger, onConfirm){
+window.wsLcAct=wsLcAct;
+
+/* Confirmation dialog. Accepts an options object; the old positional form is
+   still honoured because several call sites predate the lifecycle work.
+   Supports an optional reason field and a typed confirmation word. */
+function wsConfirmDialog(opts, bodyHtml, confirmLabel, danger, onConfirm){
+  if(typeof opts==='string') opts={title:opts, body:bodyHtml, confirmLabel:confirmLabel,
+                                   danger:danger, onConfirm:function(){ if(onConfirm) onConfirm(); }};
   var old=document.getElementById('ws-confirm-bg'); if(old) old.remove();
   var bg=document.createElement('div'); bg.className='ws-confirm-bg'; bg.id='ws-confirm-bg';
-  bg.innerHTML='<div class="ws-confirm"><div class="ws-confirm-t">'+wsEsc(title)+'</div>'+
-    '<div class="ws-confirm-b">'+bodyHtml+'</div>'+
+  var reasonHtml=opts.reason
+    ? '<label class="ws-confirm-lbl" for="ws-confirm-reason">'+wsEsc(opts.reasonLabel||'Reason (optional)')+'</label>'+
+      '<textarea class="ws-confirm-in" id="ws-confirm-reason" rows="2" placeholder="Recorded with the record."></textarea>' : '';
+  var wordHtml=opts.confirmWord
+    ? '<label class="ws-confirm-lbl" for="ws-confirm-word">Type <b>'+wsEsc(opts.confirmWord)+'</b> to confirm</label>'+
+      '<input class="ws-confirm-in" id="ws-confirm-word" autocomplete="off" spellcheck="false">' : '';
+  bg.innerHTML='<div class="ws-confirm"><div class="ws-confirm-t">'+wsEsc(opts.title||'Confirm')+'</div>'+
+    '<div class="ws-confirm-b">'+(opts.body||'')+'</div>'+reasonHtml+wordHtml+
     '<div class="ws-confirm-acts">'+
       '<button class="ws-btn" id="ws-confirm-cancel">Cancel</button>'+
-      '<button class="ws-btn '+(danger?'pc-danger':'pc-green')+'" id="ws-confirm-ok">'+wsEsc(confirmLabel)+'</button>'+
+      '<button class="ws-btn '+(opts.danger?'pc-danger':'pc-green')+'" id="ws-confirm-ok"'+(opts.confirmWord?' disabled':'')+'>'+
+        wsEsc(opts.confirmLabel||'Confirm')+'</button>'+
     '</div></div>';
   document.body.appendChild(bg);
   function close(){ bg.remove(); }
   bg.addEventListener('click', function(e){ if(e.target===bg) close(); });
   document.getElementById('ws-confirm-cancel').onclick=close;
-  document.getElementById('ws-confirm-ok').onclick=function(){ close(); if(onConfirm) onConfirm(); };
+  var ok=document.getElementById('ws-confirm-ok');
+  if(opts.confirmWord){
+    var w=document.getElementById('ws-confirm-word');
+    w.addEventListener('input', function(){ ok.disabled = (w.value.trim()!==opts.confirmWord); });
+    setTimeout(function(){ w.focus(); },0);
+  }
+  ok.onclick=function(){
+    var v={ reason:(document.getElementById('ws-confirm-reason')||{}).value||'',
+            word:(document.getElementById('ws-confirm-word')||{}).value||'' };
+    close(); if(opts.onConfirm) opts.onConfirm(v);
+  };
 }
 window.wsConfirmDialog=wsConfirmDialog;
+
+function wsCloseDetailIfShowing(id){
+  var m=document.getElementById('ws-detail-modal');
+  if(m && m.classList.contains('open') && _wsDetailId===id) wsCloseDetail();
+}
 function wsRenderConsultWorkspace(){
   var c=_wsCtx; if(!c) return;
   var a=(c.quest&&c.quest.answers)||{}, s=c.surgery||{};
@@ -1999,65 +2165,6 @@ function wsRenderRequests(){
       '</div></div>';
   }).join('');
 }
-function wsRenderSrcTabs(){
-  var box=document.getElementById('ws-src-tabs'); if(!box) return;
-  var mine=_wsCases.filter(function(c){return c.origin==='clinic';}).length;
-  var req=_wsCases.filter(function(c){return c.origin==='patient';}).length+_wsRequests.length;
-  var tabs=[['all','All',mine+req],['mine','&#128104;&#8205;&#9877;&#65039; My Patients',mine],['requests','&#128233; Consultation Requests',req]];
-  box.innerHTML=tabs.map(function(t){ return '<button class="ws-src-tab'+(_wsSrcFilter===t[0]?' on':'')+'" onclick="wsSrcFilter(\''+t[0]+'\')">'+t[1]+' <span class="ws-src-n">'+t[2]+'</span></button>'; }).join('');
-}
-function wsSrcFilter(f){ _wsSrcFilter=f; wsRenderSrcTabs(); wsRenderActionCenter(); wsRenderActiveCases(); }
-function wsRenderActionCenter(){
-  var box=document.getElementById('ws-action-center'); if(!box) return;
-  var items=_wsCases.filter(function(c){return c.bucket==='action';});   // surgical only
-  wsBadge(items.length+_wsRequests.length);
-  items.sort(function(a,b){
-    if(a.priority!==b.priority) return a.priority-b.priority;
-    var ad=(a.urgency&&a.urgency.days!=null)?a.urgency.days:9999, bd=(b.urgency&&b.urgency.days!=null)?b.urgency.days:9999;
-    if(ad!==bd) return ad-bd;
-    return (b.eventTs||0)-(a.eventTs||0);
-  });
-  if(!items.length){ box.innerHTML='<div class="ac-empty">&#9989; No surgical patients need your attention right now.</div>'; return; }
-  box.innerHTML='<div class="ac-head"><span class="ac-title">&#9889; Action center</span><span class="ac-count">'+items.length+'</span></div>'+
-    items.map(wsActionCardHtml).join('');
-}
-function wsActiveCardHtml(c){
-  var word=c.color==='yellow'?'WAITING ON PATIENT':(c.color==='green'?'APPROVED':c.headline.toUpperCase());
-  var surg=c.surgeryDate?wsEsc(c.urgency.label):'No surgery date';
-  var ref=wsCardRef(c), openable=wsCardOpenable(c);
-  return '<div class="acs-card'+(openable?' clickable':'')+' rail-'+c.color+'" '+wsCardAttrs(c)+'>'+
-    '<div class="ac-row"><span class="ac-rail"></span><div class="ac-body">'+
-    '<div class="acs-status">'+wsColorIcon(c.color)+' '+word+'</div>'+
-    '<div class="ac-name">'+wsEsc(c.name)+'</div>'+
-    '<div class="ac-proc">'+wsCaseLine(c)+'</div>'+
-    '<div class="ac-surg'+(c.urgency.soon?' soon':'')+'">&#128197; '+surg+'</div>'+
-    wsSrcChip(c.origin)+
-    '</div>'+(openable?'<div class="ac-action"><button class="ws-btn"'+window.ClinicalOpen.refAttr(ref,'event.stopPropagation();')+'>Open Case &rarr;</button></div>':'')+'</div></div>';
-}
-function wsRenderActiveCases(){
-  var box=document.getElementById('ws-active-cases'); if(!box) return;
-  var items=_wsCases.filter(function(c){return c.bucket==='active';});
-  var f=_wsCaseFilter;
-  var shown=items.filter(function(c){ return f==='all'||(f==='waiting'&&c.color==='yellow')||(f==='approved'&&c.color==='green'); });
-  shown.sort(function(a,b){ var ad=a.surgeryDate?new Date(a.surgeryDate).getTime():Infinity, bd=b.surgeryDate?new Date(b.surgeryDate).getTime():Infinity; return ad-bd; });
-  var chips='<div class="acs-chips">'+[['all','All'],['waiting','Waiting on patient'],['approved','Approved']].map(function(x){
-    return '<button class="acs-chip'+(f===x[0]?' on':'')+'" onclick="wsCaseFilter(\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>';
-  var grid=shown.length?('<div class="acs-grid">'+shown.map(wsActiveCardHtml).join('')+'</div>'):'<div class="ac-empty" style="margin-top:6px;">No cases in this view.</div>';
-  box.innerHTML='<div class="acs-head"><span class="ac-title">Active cases</span><span class="acs-n">'+items.length+'</span></div>'+chips+grid;
-}
-function wsCaseFilter(f){ _wsCaseFilter=f; wsRenderActiveCases(); }
-// Action Center bookkeeping only: clear the NEW dot for the card being opened.
-// Routing is not decided here — the canonical opener owns that.
-function wsMarkCaseSeen(kind, id){
-  var c=null;
-  if(kind==='patient_account') c=_wsCases.filter(function(x){return x.source==='bridge'&&x.patientId===id;})[0];
-  else if(kind==='clinic_patient') c=_wsCases.filter(function(x){return x.source==='clinic'&&x.clinicId===id;})[0];
-  if(!c) return;
-  wsSeenSet(kind==='clinic_patient'?('c'+id):id, c.eventTs);
-  c.isNew=false;
-  wsRenderActionCenter();
-}
-window.wsCaseFilter=wsCaseFilter; window.wsSrcFilter=wsSrcFilter;
 
 // ── Active Patients + in-page workspace (Epic E) ──
 var WS_PREPARE=['Confirm your surgery date, arrival time, and where to check in','Write down a full list of your medications, doses, and supplements','Note any allergies and past reactions to anesthesia','Arrange a responsible adult to take you home and stay with you','Prepare comfortable, loose clothing and flat shoes for the day','Write down questions you want to ask your anesthesiologist'];
@@ -2282,7 +2389,6 @@ async function wsClinicJourneyId(clinicPatientId){
 }
 
 window.ClinicalOpen.registerPresenters({
-  beforeOpen: function(ref){ if(ref) wsMarkCaseSeen(ref.kind, ref.id); },
   resolvePatientAccount: wsResolvePatientAccount,
   onFailure: function(o){ wsToast(o.message); },
   journey: function(ctx){ return wsPresentJourney(ctx); },
@@ -2343,7 +2449,7 @@ async function wsPresentJourney(ctx){
   // For a patient-requested consultation, resolve the care_request (Close + reason).
   var careId=null, careMsg='';
   if(patientId){
-    try{ var crq=await window.sb.from('care_requests').select('id,message').eq('surgery_id',surgeryId).in('status',['accepted','requested']).maybeSingle();
+    try{ var crq=await window.sb.from('care_requests').select('id,message').eq('surgery_id',surgeryId).is('deleted_at',null).in('status',['accepted','requested']).maybeSingle();
       if(crq&&crq.data){ careId=crq.data.id; careMsg=crq.data.message||''; } }catch(e){}
   }
   _wsCtx={ mode:(surgery.care_state==='consultation'?'consult':'surgical'), origin:(clinic?'doctor':'patient'),
@@ -2353,7 +2459,10 @@ async function wsPresentJourney(ctx){
     history:(Array.isArray(plan.history)?plan.history:[]), modifiedBy:plan.modified_by||'', docs:docs, recs:recs,
     message:(clinic&&clinic.notes)||careMsg||'', consultNotes:(surgery.doctor_notes||''),
     savedNotes:(plan.notes||''), savedReqs:wsCloneReqs(reqMap),
-    lifecycle:ctx.lifecycle, archivedNotice:ctx.archivedNotice };
+    lifecycle:ctx.lifecycle, archivedNotice:ctx.archivedNotice,
+    // Star lives on whichever record the doctor is actually acting on: the
+    // clinic patient when there is one, otherwise the journey.
+    starred:!!(clinic ? clinic.is_starred : surgery.is_starred) };
   _wsTab='overview'; wsRenderWorkspaceUnified();
   document.getElementById('ws-ws').classList.add('open');
 }
@@ -2612,6 +2721,7 @@ function wsMpStage(s){
   _wsMpStage=s; wsMpStateSet({mpStage:s});
   var wf=document.querySelector('#sec-patients .ws-wf[data-wf="mypatients"]');
   if(wf) wf.querySelectorAll('.ws-stab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-s')===s); });
+  if(s==='deleted' && !_wsRecycleLoaded) wsLoadRecycleBin();
   wsRenderMyPatients();
 }
 function wsCrStage(s){ _wsCrStage=s; wsMpStateSet({crStage:s}); wsStageSwitch('consults', s); }
@@ -2633,7 +2743,7 @@ function wsMpSort(v){ _wsMpSort=v||'surgery'; wsMpStateSet({sort:_wsMpSort}); ws
 function wsMpRestoreState(){
   var st=wsMpStateGet();
   if(st.wf==='mypatients'||st.wf==='consults') _wsWf=st.wf;
-  if(WS_MP_STAGES.indexOf(st.mpStage)>=0) _wsMpStage=st.mpStage;
+  if(WS_MP_STAGES.indexOf(st.mpStage)>=0 || wsMpIsView(st.mpStage)) _wsMpStage=st.mpStage;
   if(st.crStage==='new'||st.crStage==='active'||st.crStage==='done') _wsCrStage=st.crStage;
   _wsMpSearch=(typeof st.search==='string')?st.search:'';
   _wsMpSort=(st.sort==='surgery'||st.sort==='updated'||st.sort==='name')?st.sort:'surgery';
@@ -2695,7 +2805,8 @@ function wsRenderPatients(){
     return '<div class="ws-inv-row" onclick="wsOpenClinicRecord(\''+p.id+'\')">'+
       '<div class="ws-inv-ava">'+wsEsc(initial)+'</div>'+
       '<div class="ws-inv-main">'+
-        '<div class="ws-inv-top"><span class="ws-inv-nm">'+wsEsc(p.patient_name||'Patient')+'</span>'+(proc?'<span class="ws-inv-meta">'+proc+'</span>':'')+'</div>'+
+        '<div class="ws-inv-top">'+(p.is_starred?'<span class="ws-star on" title="Important">&#9733;</span>':'')+
+          '<span class="ws-inv-nm">'+wsEsc(p.patient_name||'Patient')+'</span>'+(proc?'<span class="ws-inv-meta">'+proc+'</span>':'')+'</div>'+
         '<div class="ws-inv-sub">'+sentTxt+' &middot; <span class="ws-inv-st '+stCls+'">'+stLabel+'</span></div>'+
         '<div class="ws-inv-bar"><div class="ws-inv-fill" style="width:'+pct+'%"></div></div>'+
       '</div>'+
@@ -2704,16 +2815,32 @@ function wsRenderPatients(){
         '<button class="ws-btn" onclick="wsOpenClinicRecord(\''+p.id+'\')">Open</button>'+
         '<button class="ws-btn" onclick="wsSend(\''+p.id+'\')">Resend</button>'+
         '<button class="ws-btn ws-inv-cancel" onclick="wsCancelInvite(\''+p.id+'\')">Cancel</button>'+
+        wsLcMenuHtml({kind:'clinic_patient',id:p.id}, window.PatientLifecycle.stateOf(p), !!p.is_starred)+
       '</div></div>';
   }).join('');
 }
-// Cancel an invitation (doctor owns the clinic_patients row; cp_delete RLS).
+// Cancel an invitation. This used to be a physical DELETE through the cp_delete
+// policy — the same policy that let a doctor destroy a patient carrying an open
+// Live Chart. It is now an ordinary soft delete: the invitation leaves every
+// working list and waits in the Recycle Bin, where an unengaged invite has no
+// clinical dependencies and so can be permanently removed by an administrator
+// through the one authorized path.
 async function wsCancelInvite(id){
-  if(!window.confirm('Cancel this invitation and remove the patient from your list?')) return;
-  try { var r=await window.sb.from('clinic_patients').delete().eq('id', id); if(r&&r.error) throw new Error(r.error.message);
-    wsToast('Invitation cancelled'); }
-  catch(e){ wsToast('Cancel failed: '+(e.message||'error')); return; }
-  await wsLoadPatients(); wsLoadCases();
+  wsConfirmDialog({
+    title:'Cancel this invitation?',
+    body:'The patient leaves your lists and moves to the Recycle Bin. Nothing is destroyed, and you can restore the invitation from there if you cancelled it by mistake.',
+    confirmLabel:'Cancel invitation', danger:true, reason:true,
+    reasonLabel:'Reason (optional)',
+    onConfirm: async function(v){
+      var r=await window.PatientLifecycle.act('clinic_patient', id, 'delete', v.reason||'Invitation cancelled');
+      if(!r || r.ok!==true){
+        wsToast(window.PatientLifecycle.refusal(r,'Could not cancel the invitation.').text); return;
+      }
+      wsToast('Invitation cancelled.');
+      await wsLoadPatients(); await wsLoadCases();
+      if(_wsRecycleLoaded) await wsLoadRecycleBin();
+    }
+  });
 }
 window.wsCancelInvite=wsCancelInvite;
 function wsPreview(){ window.open('/q.html?preview=1', '_blank'); }
@@ -2981,6 +3108,7 @@ function wsDetail(id, row, archivedNotice){
   var p = row || _wsPatients.find(function(x){ return x.id === id; });
   if(!p){ wsToast(window.ClinicalOpen.COPY.unavailable); return; }
   wsRememberScroll();
+  _wsDetailId = id;
   var a = p.questionnaire_answers || {};
   var scores = a._scores || {};
   var flags = a._flags || [];
@@ -3028,10 +3156,15 @@ function wsDetail(id, row, archivedNotice){
     scoreBlock = ''; answersBlock = '';
   }
 
+  // The same lifecycle menu as the row this was opened from. A doctor looking
+  // at a patient can act on that patient without going back to find them.
+  var lcState = window.PatientLifecycle.stateOf(p);
   var body =
-    '<div class="ws-d-head"><div><div class="ws-d-name">'+wsEsc(p.patient_name)+'</div>' +
+    '<div class="ws-d-head"><div><div class="ws-d-name">'+
+        (p.is_starred?'<span class="ws-star on" title="Important">&#9733;</span> ':'')+wsEsc(p.patient_name)+'</div>' +
       '<div class="ws-d-sub">'+wsDeriveStatus(p)+'</div></div>' +
-      '<button class="ws-btn" onclick="wsCloseDetail()">Close &times;</button></div>' +
+      '<div class="ws-d-acts">'+wsLcMenuHtml({kind:'clinic_patient',id:id}, lcState, !!p.is_starred, {big:true})+
+      '<button class="ws-btn" onclick="wsCloseDetail()">Close &times;</button></div></div>' +
     (archivedNotice?'<div class="wsx-archbanner">&#128451; '+wsEsc(archivedNotice)+'</div>':'') +
     '<div class="ws-d-grid">' +
       srow('Phone', p.phone_number) + srow('Procedure', p.procedure) + srow('Hospital', p.hospital) + srow('Surgery date', dateFmt) +
@@ -3048,7 +3181,7 @@ function wsDetail(id, row, archivedNotice){
   document.getElementById('ws-detail-body').innerHTML = body;
   document.getElementById('ws-detail-modal').classList.add('open');
 }
-function wsCloseDetail(){ document.getElementById('ws-detail-modal').classList.remove('open'); wsRestoreScroll(); }
+function wsCloseDetail(){ document.getElementById('ws-detail-modal').classList.remove('open'); _wsDetailId=null; wsRestoreScroll(); }
 async function wsSaveNotes(id){
   var v = document.getElementById('ws-d-notes').value;
   try { await window.sb.from('clinic_patients').update({ doctor_notes: v }).eq('id', id); wsToast('Notes saved');
@@ -3073,7 +3206,7 @@ function wsInjectModals(){
 var _wsAsk = [], _wsAskFilter = 'pending';
 async function wsLoadAsk(){
   try {
-    var r = await window.sb.from('questions').select('*').order('created_at',{ascending:false});
+    var r = await window.sb.from('questions').select('*').is('deleted_at',null).order('created_at',{ascending:false});
     _wsAsk = (r && r.data) || [];
     wsRenderAsk();
   } catch(e){
@@ -3273,7 +3406,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       '<div class="ws-sec active" id="sec-patients">' +
         '<div class="ws-sec-head"><div><div class="ws-sec-title">Patient management</div>' +
           '<div class="ws-sec-sub">Two workflows &mdash; My Patients (you create) and Consultation Requests (they ask)</div></div>' +
-          '<span class="ws-need-badge" id="ws-need-badge" style="display:none;"></span></div>' +
+          '</div>' +
 
         // ── Top-level workflow tabs ──
         '<div class="ws-wftabs">' +
@@ -3296,7 +3429,9 @@ document.addEventListener('DOMContentLoaded', async function(){
             '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')"><span class="ws-stab-badge s2" id="ws-mp-approved-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Approved</span><span class="ws-stab-sub">Ready for scheduling</span></span></button>' +
             '<button class="ws-stab acc-up" data-s="scheduled" onclick="wsMpStage(\'scheduled\')"><span class="ws-stab-badge s3" id="ws-mp-scheduled-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Scheduled</span><span class="ws-stab-sub">Upcoming surgery</span></span></button>' +
             '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')"><span class="ws-stab-badge s4" id="ws-mp-completed-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Completed</span><span class="ws-stab-sub">Finished</span></span></button>' +
+            '<button class="ws-stab ws-stab-imp" data-s="important" onclick="wsMpStage(\'important\')"><span class="ws-stab-badge s6" id="ws-mp-important-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Important</span><span class="ws-stab-sub">Starred by you</span></span></button>' +
             '<button class="ws-stab ws-stab-arch" data-s="archived" onclick="wsMpStage(\'archived\')"><span class="ws-stab-badge s5" id="ws-mp-archived-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Archived</span><span class="ws-stab-sub">Hidden from active list</span></span></button>' +
+            '<button class="ws-stab ws-stab-bin" data-s="deleted" onclick="wsMpStage(\'deleted\')"><span class="ws-stab-badge s5" id="ws-mp-deleted-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Recycle Bin</span><span class="ws-stab-sub">Deleted &middot; restorable</span></span></button>' +
           '</div>' +
           // Search + sort toolbar
           '<div class="ws-mp-tools">' +
@@ -3413,6 +3548,9 @@ document.addEventListener('DOMContentLoaded', async function(){
     wsLoadPatients();
     wsLoadCases();
     wsLoadAsk();
+    // The bin badge has to be right before the tab is opened, or a count of 0
+    // over a bin that is not empty is worse than no badge at all.
+    wsLoadRecycleBin();
     if(isAdminRole){ wsLoadAdmin(); }
 
     _dashDone = true; clearTimeout(_dashWatchdog);
