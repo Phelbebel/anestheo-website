@@ -14,7 +14,7 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;--panel:rgba(255,255,255,.04);
-  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.45);--warn:#E8A838;}
+  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.45);--hint:rgba(255,255,255,.32);--warn:#E8A838;--bad:#FF8A80;}
 body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
   -webkit-font-smoothing:antialiased;padding-bottom:40px;}
 #loader{position:fixed;inset:0;background:var(--dark);z-index:99;display:flex;align-items:center;justify-content:center;}
@@ -25,14 +25,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
 
 /* ── Persistent case header. Sticky because in theatre you must be able to see
       who this is and how long they have been under, at any scroll position. ── */
-.hdr{position:sticky;top:0;z-index:20;background:rgba(6,16,11,.985);
+.hdr{position:sticky;top:0;z-index:30;background:rgba(6,16,11,.985);
   border-bottom:1px solid var(--border);backdrop-filter:blur(8px);}
-.hdr-in{max-width:1400px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;
-  gap:18px;flex-wrap:wrap;}
-.hdr-id{min-width:180px;}
+.hdr-in{max-width:1600px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.hdr-id{min-width:170px;}
 .hdr-name{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;line-height:1.2;}
 .hdr-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;min-width:0;}
 .chip{font-size:11.5px;font-weight:600;border-radius:6px;padding:4px 9px;
   background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.3);color:var(--accent);white-space:nowrap;}
 .chip.k{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.75);}
@@ -41,21 +40,96 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
 /* Weight is the single most dangerous number to get wrong in a child. */
 .chip.weight{font-size:14px;padding:5px 12px;font-weight:700;}
 .chip.weight.peds{background:rgba(232,168,56,.16);border-color:var(--warn);color:#FFD9A0;font-size:16px;}
-.clock{margin-left:auto;text-align:right;}
+.chip.da{background:rgba(192,57,43,.2);border-color:#C0392B;color:#FFC9C0;font-weight:800;
+  animation:pulse 2.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.72;}}
+.clock{text-align:right;margin-left:auto;}
 .clock-t{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
 .clock-l{font-size:10.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px;}
+.banner{margin:0;padding:10px 18px;font-size:13px;line-height:1.55;}
+.banner.locked{background:rgba(232,168,56,.09);border-top:1px solid rgba(232,168,56,.25);color:#FFD9A0;}
 
-.wrap{max-width:1400px;margin:0 auto;padding:18px;display:grid;
-  grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start;}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+/* ── Layout: rail + content ── */
+.shell{max-width:1600px;margin:0 auto;padding:16px 18px;display:grid;
+  grid-template-columns:212px minmax(0,1fr);gap:18px;align-items:start;}
+.rail{position:sticky;top:96px;display:flex;flex-direction:column;gap:3px;}
+.rnav{display:flex;align-items:center;gap:9px;background:none;border:1px solid transparent;border-radius:10px;
+  padding:10px 11px;font-family:inherit;font-size:13.5px;color:rgba(255,255,255,.62);cursor:pointer;
+  text-align:left;min-height:44px;width:100%;}
+.rnav:hover{color:#fff;background:rgba(255,255,255,.04);}
+.rnav.on{background:rgba(27,107,90,.26);border-color:var(--teal2);color:#fff;font-weight:600;}
+.rnav .ic{font-size:15px;width:20px;text-align:center;flex:0 0 auto;}
+.rnav .n{margin-left:auto;font-size:10.5px;font-weight:800;color:#06140f;background:var(--accent);
+  border-radius:20px;padding:1px 7px;min-width:18px;text-align:center;}
+.sec{display:none;} .sec.on{display:block;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
 .card-h{padding:11px 15px;border-bottom:1px solid rgba(27,107,90,.16);display:flex;
-  align-items:center;justify-content:space-between;gap:10px;}
-.card-t{font-size:12.5px;font-weight:700;color:var(--accent);letter-spacing:.03em;}
+  align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.card-t{font-size:12.5px;font-weight:700;color:var(--accent);letter-spacing:.03em;text-transform:uppercase;}
 .card-b{padding:14px 15px;}
+.lead{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px;}
 
-/* ── Timeline: the chart itself. ── */
+/* ── Forms ── */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 14px;}
+.fld{min-width:0;}
+.fld.wide{grid-column:1/-1;}
+label,.flab{display:block;font-size:10px;color:var(--hint);letter-spacing:.06em;
+  text-transform:uppercase;font-weight:700;margin:0 0 5px;}
+input,select,textarea{width:100%;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);
+  border-radius:8px;padding:9px 11px;color:#fff;font-family:inherit;font-size:14px;min-height:44px;outline:none;}
+textarea{min-height:66px;resize:vertical;}
+input:focus,select:focus,textarea:focus{border-color:var(--teal2);}
+select option{background:#132218;}
+.opts{display:flex;gap:6px;flex-wrap:wrap;}
+.opt{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:9px;
+  padding:10px 13px;font-family:inherit;font-size:13.5px;color:rgba(255,255,255,.78);cursor:pointer;
+  min-height:44px;line-height:1.2;}
+.opt:hover{background:rgba(126,207,192,.1);border-color:rgba(126,207,192,.4);}
+.opt.on{background:rgba(27,107,90,.34);border-color:var(--teal2);color:#fff;font-weight:600;}
+.opt.on.no{background:rgba(192,57,43,.22);border-color:rgba(192,57,43,.5);}
+.opt.on.flag{background:rgba(192,57,43,.3);border-color:#C0392B;color:#FFC9C0;font-weight:800;}
+.elapsed{font-size:11.5px;color:var(--warn);margin-top:4px;}
+.timerow{display:grid;grid-template-columns:1fr auto;gap:6px;}
+.nowbtn{min-height:44px;padding:0 13px;border-radius:8px;border:1px solid rgba(126,207,192,.4);
+  background:rgba(126,207,192,.1);color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+.btn{padding:11px 16px;border-radius:9px;border:none;font-family:inherit;font-size:14px;
+  font-weight:600;cursor:pointer;background:var(--teal);color:#fff;min-height:44px;}
+.btn:hover:not(:disabled){background:var(--teal2);}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.btn.ghost{background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);}
+.btn.danger{background:none;border:1px solid rgba(192,57,43,.45);color:#FFB4A8;}
+.btn.full{width:100%;}
+.acts{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+.savest{font-size:12.5px;color:var(--muted);}
+.savest.ok{color:var(--accent);} .savest.err{color:var(--bad);} .savest.busy{color:var(--warn);}
+
+/* ── Quick tap grids ── */
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;}
+.qbtn{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);border-radius:9px;
+  padding:10px 11px;font-family:inherit;font-size:13px;color:#fff;cursor:pointer;text-align:left;
+  min-height:48px;line-height:1.3;}
+.qbtn:hover:not(:disabled){background:rgba(126,207,192,.13);border-color:rgba(126,207,192,.45);}
+.qbtn:disabled{opacity:.5;cursor:not-allowed;}
+.qbtn b{display:block;font-weight:600;} .qbtn small{display:block;color:var(--muted);font-size:11px;margin-top:1px;}
+.qbtn.done{opacity:.42;}
+
+/* ── Lists ── */
+.rows{display:flex;flex-direction:column;gap:7px;}
+.row{display:flex;gap:11px;align-items:flex-start;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:10px 12px;}
+.row-t{font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:var(--accent);
+  flex:0 0 46px;padding-top:1px;}
+.row-m{flex:1;min-width:0;}
+.row-x{font-size:14px;line-height:1.45;}
+.row-s{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.5;}
+.row.bad{border-color:rgba(192,57,43,.4);background:rgba(192,57,43,.07);}
+.empty{font-size:13.5px;color:var(--muted);text-align:center;padding:22px 12px;line-height:1.6;}
+.secerr{font-size:13px;color:#FFB4A8;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);
+  border-radius:9px;padding:10px 12px;line-height:1.55;margin-bottom:12px;}
+
+/* ── Timeline ── */
 .tl{list-style:none;}
-.tl-row{display:grid;grid-template-columns:64px 14px 1fr;gap:10px;align-items:start;padding:7px 0;}
+.tl-row{display:grid;grid-template-columns:56px 14px 1fr;gap:10px;align-items:start;padding:7px 0;}
 .tl-row+.tl-row{border-top:1px solid rgba(255,255,255,.05);}
 .tl-time{font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:600;color:var(--accent);padding-top:1px;}
 .tl-dot{position:relative;height:100%;}
@@ -63,55 +137,43 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
   background:var(--teal2);box-shadow:0 0 0 3px rgba(42,138,116,.18);}
 .tl-dot::after{content:'';position:absolute;left:7px;top:16px;bottom:-9px;width:1px;background:rgba(255,255,255,.08);}
 .tl-row:last-child .tl-dot::after{display:none;}
-.tl-row.ev .tl-dot::before{background:var(--warn);box-shadow:0 0 0 3px rgba(232,168,56,.18);}
+.tl-row.ev .tl-dot::before{background:#C0392B;box-shadow:0 0 0 3px rgba(192,57,43,.22);}
 .tl-row.milestone .tl-dot::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.14);}
-.tl-txt{font-size:14px;line-height:1.45;}
-.tl-meta{font-size:11.5px;color:var(--muted);margin-top:1px;}
-.empty{font-size:13.5px;color:var(--muted);text-align:center;padding:26px 12px;line-height:1.6;}
+.tl-row.inf .tl-dot::before{background:#CE93D8;box-shadow:0 0 0 3px rgba(206,147,216,.18);}
+.tl-row.vit .tl-dot::before{background:rgba(255,255,255,.3);box-shadow:none;}
+.tl-txt{font-size:14px;line-height:1.45;} .tl-meta{font-size:11.5px;color:var(--muted);margin-top:1px;}
 
-/* ── Quick panel ── */
-.qtabs{display:flex;gap:5px;flex-wrap:wrap;padding:11px 13px 0;}
-.qtab{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:7px;
-  padding:6px 10px;font-size:12px;font-family:inherit;color:rgba(255,255,255,.62);cursor:pointer;min-height:32px;}
-.qtab.on{background:rgba(27,107,90,.24);border-color:var(--teal2);color:#fff;font-weight:600;}
-.qpane{display:none;padding:13px;} .qpane.on{display:block;}
-.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
-.qbtn{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);border-radius:9px;
-  padding:10px 9px;font-family:inherit;font-size:13px;color:#fff;cursor:pointer;text-align:left;
-  min-height:46px;line-height:1.3;transition:all .15s;}
-.qbtn:hover{background:rgba(126,207,192,.13);border-color:rgba(126,207,192,.45);}
-.qbtn:active{transform:scale(.985);}
-.qbtn b{display:block;font-weight:600;}
-.qbtn small{display:block;color:var(--muted);font-size:11px;margin-top:1px;}
-.qbtn.wide{grid-column:1/-1;}
-.qbtn.done{opacity:.45;}
-.fieldrow{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:9px;}
-input,select,textarea{width:100%;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);
-  border-radius:8px;padding:9px 11px;color:#fff;font-family:inherit;font-size:14px;min-height:42px;outline:none;}
-input:focus,select:focus,textarea:focus{border-color:var(--teal2);}
-select option{background:#132218;}
-label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.06em;
-  text-transform:uppercase;font-weight:600;margin:9px 0 4px;}
-.btn{width:100%;padding:11px;border-radius:9px;border:none;font-family:inherit;font-size:14px;
-  font-weight:600;cursor:pointer;background:var(--teal);color:#fff;min-height:44px;margin-top:10px;}
-.btn:hover{background:var(--teal2);}
-.btn.ghost{background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);}
-.btn.danger{background:none;border:1px solid rgba(192,57,43,.4);color:#FFB4A8;}
-.totals{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;font-size:13px;}
-.totals dt{color:var(--muted);font-size:11px;letter-spacing:.05em;text-transform:uppercase;}
-.totals dd{font-weight:600;font-variant-numeric:tabular-nums;margin-bottom:5px;}
-.banner{margin:0;padding:10px 15px;font-size:13px;line-height:1.55;}
-.banner.locked{background:rgba(232,168,56,.09);border-bottom:1px solid rgba(232,168,56,.25);color:#FFD9A0;}
-.msg{display:none;border-radius:8px;padding:9px 12px;font-size:13px;margin-top:10px;}
+/* ── Totals ── */
+.totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 14px;font-size:13px;}
+.totals dt{color:var(--muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;}
+.totals dd{font-weight:700;font-variant-numeric:tabular-nums;font-size:15px;margin-top:2px;}
+
+/* ── Vitals graph ── */
+.gwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.glegend{display:flex;gap:11px;flex-wrap:wrap;margin-top:9px;font-size:11.5px;color:var(--muted);}
+.gkey{display:inline-flex;align-items:center;gap:5px;}
+.gdot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+.msg{display:none;border-radius:8px;padding:9px 12px;font-size:13px;margin-top:10px;line-height:1.5;}
 .msg-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#FFB4A8;}
 .msg-ok{background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.3);color:var(--accent);}
+
 @media(max-width:1000px){
-  .wrap{grid-template-columns:1fr;}
+  .shell{grid-template-columns:1fr;padding:13px;}
+  /* On a phone the rail becomes a horizontally scrollable strip: every section
+     stays one tap away instead of being buried in a menu. */
+  .rail{position:sticky;top:0;z-index:25;flex-direction:row;overflow-x:auto;gap:6px;
+    padding:9px 0;background:var(--dark);border-bottom:1px solid var(--border);
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .rail::-webkit-scrollbar{display:none;}
+  .rnav{width:auto;white-space:nowrap;flex:0 0 auto;padding:9px 13px;}
+  .rnav .n{margin-left:6px;}
   .clock{margin-left:0;text-align:left;}
 }
-@media(max-width:520px){
-  .hdr-in{padding:9px 13px;gap:11px;} .wrap{padding:13px;}
-  .qgrid{grid-template-columns:1fr;}
+@media(max-width:560px){
+  .hdr-in{padding:9px 13px;gap:10px;}
+  .fgrid{grid-template-columns:1fr;}
+  .qgrid{grid-template-columns:1fr 1fr;}
 }
 </style>
 </head>
@@ -119,7 +181,6 @@ label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.0
 <div id="loader"><div class="spin"></div></div>
 
 <div id="app">
-  <!-- Persistent header: identity, the numbers you must never misread, and the clock -->
   <header class="hdr">
     <div class="hdr-in">
       <div class="hdr-id">
@@ -138,82 +199,1119 @@ label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.0
     </div>
   </header>
 
-  <div class="wrap">
-    <!-- CENTRE: the chart -->
-    <div>
-      <div class="card">
-        <div class="card-h">
-          <span class="card-t">ANESTHESIA TIMELINE</span>
-          <span class="card-t" id="tl-count" style="color:var(--muted);font-weight:500"></span>
-        </div>
-        <div class="card-b" style="padding:6px 15px 14px;">
-          <ul class="tl" id="timeline"></ul>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><span class="card-t">CASE TOTALS</span></div>
-        <div class="card-b"><dl class="totals" id="totals"></dl></div>
-      </div>
-
-      <div class="card" id="amend-card" style="display:none">
-        <div class="card-h"><span class="card-t">AMENDMENTS</span></div>
-        <div class="card-b" id="amend-list"></div>
-      </div>
-    </div>
-
-    <!-- SIDE: one-tap documentation -->
-    <div>
-      <div class="card">
-        <div class="qtabs" id="qtabs"></div>
-        <div id="qpanes"></div>
-      </div>
-      <div class="card">
-        <div class="card-h"><span class="card-t">RECORD</span></div>
-        <div class="card-b">
-          <button class="btn" id="btn-finalize" onclick="finalizeCase()">Sign &amp; finalize record</button>
-          <button class="btn ghost" id="btn-amend" onclick="openAmend()" style="display:none">Record an amendment</button>
-          <a class="btn ghost" href="/anesthesia-cases.html" style="display:block;text-align:center;text-decoration:none;line-height:22px;">Back to Live Chart</a>
-          <div class="msg msg-err" id="rec-err"></div>
-          <div class="msg msg-ok"  id="rec-ok"></div>
-        </div>
-      </div>
-    </div>
+  <div class="shell">
+    <nav class="rail" id="rail"></nav>
+    <div id="sections"></div>
   </div>
 </div>
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
-   THE INTRAOPERATIVE RECORD
+   THE LIVE CHART
 
    Everything on this page writes a row with a case_id, a clinical timestamp
    and entered_by. There is no free-text "notes" blob standing in for the
    chart, because a record you cannot query is a record you cannot audit.
 
-   The quick panel exists because the alternative to one tap is a clinician
-   writing on a paper towel and transcribing it later from memory. Every
-   one-tap action stamps NOW and remains editable afterwards: retrospective
-   correction is normal practice, and a chart that forbids it just becomes a
-   tidy chart that is wrong.
-
    Authorization is NOT here. RLS decides who may read or write this case;
    this page only decides what to show. If someone forged their way onto this
    URL the queries would return nothing and the writes would be refused.
+
+   Two rules the whole page obeys:
+
+   1. A write is never silent. It shows saving, then saved, or it shows the
+      server's own refusal. It never discards what the clinician typed, and a
+      double tap cannot produce two clinical records.
+
+   2. A section that failed to load says so. "No airway recorded" and "the
+      airway could not be read" are different facts, and showing the first
+      when the second is true is how a chart loses information quietly.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 var CASE_ID = new URLSearchParams(location.search).get('case');
-var _case = null, _locked = false, _clockBase = null;
+var D = null;              // the whole case, as last read from the server
+var _case = null, _locked = false, _clockBase = null, _sec = 'overview';
+var _forms = {};           // spec -> in-progress values, so a re-render never loses typing
+var _busy = {};            // spec -> true while a write is in flight
 
 function el(id){ return document.getElementById(id); }
-function msg(id, text){ var e = el(id); e.textContent = text; e.style.display = 'block';
-  setTimeout(function(){ e.style.display = 'none'; }, 6000); }
 function esc(s){ return String(s == null ? '' : s)
   .replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function hhmm(ts){ if(!ts) return '--:--';
   var d = new Date(ts);
   return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+function dmy(ts){ if(!ts) return ''; var d = new Date(ts);
+  return d.toLocaleDateString(undefined,{day:'numeric',month:'short'}); }
+/* datetime-local wants local time without a zone; the database wants an ISO
+   instant. Converting in one place keeps every timestamp on the chart honest. */
+function toLocalInput(iso){
+  if(!iso) return '';
+  var d = new Date(iso), p = function(n){ return String(n).padStart(2,'0'); };
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());
+}
+function fromLocalInput(v){ return v ? new Date(v).toISOString() : null; }
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
+/* ── Sections ─────────────────────────────────────────────────────────────
+   Twelve, in the order a case happens. Each knows how to render itself and
+   how many entries it currently holds, so the rail doubles as a summary of
+   what has been documented and what has not. */
+var SECTIONS = [
+  { id:'overview',  ic:'▤', label:'Overview',        render:secOverview,  count:function(){ return (D.times||[]).length; } },
+  { id:'preop',     ic:'✚', label:'Pre-op',          render:secPreop,     count:function(){ return (D.history||[]).filter(function(h){return h.reviewed;}).length; } },
+  { id:'airway',    ic:'◔', label:'Airway',          render:secAirway,    count:function(){ return (D.airway||[]).length; } },
+  { id:'access',    ic:'◈', label:'Access & Monitoring', render:secAccess, count:function(){ return (D.access||[]).length + (D.devices||[]).length; } },
+  { id:'anesthesia',ic:'◉', label:'Anesthesia',      render:secAnesthesia,count:function(){ return (D.positioning||[]).length; } },
+  { id:'vent',      ic:'≋', label:'Ventilation',     render:secVent,      count:function(){ return (D.ventilation||[]).length; } },
+  { id:'drugs',     ic:'💉',label:'Drugs',           render:secDrugs,     count:function(){ return (D.medications||[]).length + (D.infusions||[]).length; } },
+  { id:'fluids',    ic:'💧',label:'Fluids & Blood',  render:secFluids,    count:function(){ return (D.fluids||[]).length + (D.blood||[]).length + (D.outputs||[]).length; } },
+  { id:'regional',  ic:'⌖', label:'Regional',        render:secRegional,  count:function(){ return (D.regional||[]).length; } },
+  { id:'vitals',    ic:'📈',label:'Vitals & Labs',   render:secVitals,    count:function(){ return (D.vitals||[]).length + (D.labs||[]).length; } },
+  { id:'events',    ic:'⚠', label:'Events',          render:secEvents,    count:function(){ return (D.events||[]).length; } },
+  { id:'handoff',   ic:'➜', label:'Emergence & Handoff', render:secHandoff, count:function(){ return (D.handoffs||[]).length; } }
+];
+
+/* ═══════════ FORM RENDERER ═════════════════════════════════════════════════
+   One renderer for every field on the chart. Four hundred hand-built inputs
+   drift — one loses its label, one is too small to tap, one silently stops
+   saving. Described fields cannot drift: a fix reaches all of them.
+
+   Choices are chips rather than dropdowns because a dropdown on an iPad is
+   two taps and a scroll, and the common answer should be one tap. */
+function fvals(spec){ return (_forms[spec] = _forms[spec] || {}); }
+
+/* Text the clinician has typed is captured before any re-render, so opening a
+   conditional field never costs them a sentence they already wrote. */
+function captureInputs(spec){
+  var v = fvals(spec);
+  document.querySelectorAll('[data-f="' + spec + '"]').forEach(function(node){
+    var k = node.getAttribute('data-k');
+    if(node.type === 'datetime-local') v[k] = fromLocalInput(node.value);
+    else if(node.type === 'number') v[k] = node.value === '' ? null : parseFloat(node.value);
+    else v[k] = node.value;
+  });
+  return v;
+}
+function fSet(spec, k, val){
+  captureInputs(spec);
+  var v = fvals(spec);
+  v[k] = (v[k] === val) ? null : val;   // tapping the chosen option clears it
+  redrawSection();
+}
+function fToggle(spec, k, val){
+  captureInputs(spec);
+  var v = fvals(spec);
+  var arr = Array.isArray(v[k]) ? v[k].slice() : [];
+  var i = arr.indexOf(val);
+  if(i >= 0) arr.splice(i,1); else arr.push(val);
+  v[k] = arr;
+  redrawSection();
+}
+function fNow(spec, k){
+  captureInputs(spec);
+  fvals(spec)[k] = ANES.nowIso();
+  redrawSection();
+}
+window.fSet = fSet; window.fToggle = fToggle; window.fNow = fNow;
+
+function visible(field, v){
+  if(!field.only) return true;
+  return Object.keys(field.only).every(function(k){
+    return field.only[k].indexOf(v[k]) >= 0;
+  });
+}
+
+function renderField(spec, f, v){
+  var id = 'f-' + spec + '-' + f.k;
+  var val = v[f.k];
+  var out = '<div class="fld' + (f.type === 'area' || f.type === 'multi' ? ' wide' : '') + '">' +
+            '<span class="flab">' + esc(f.label) + '</span>';
+
+  if(f.type === 'choice'){
+    out += '<div class="opts">' + (f.options || []).map(function(o){
+      return '<button type="button" class="opt' + (val === o ? ' on' : '') +
+        (f.flag && val === o && o === 'yes' ? ' flag' : '') +
+        '" onclick="fSet(\'' + spec + '\',\'' + f.k + '\',' + JSON.stringify(o).replace(/"/g,'&quot;') + ')">' +
+        esc(o) + '</button>';
+    }).join('') + '</div>';
+  } else if(f.type === 'tri' || f.type === 'bool'){
+    var opts = f.type === 'tri' ? ['yes','no','unknown'] : ['yes','no'];
+    out += '<div class="opts">' + opts.map(function(o){
+      return '<button type="button" class="opt' + (val === o ? ' on' : '') +
+        (val === o && o === 'no' ? ' no' : '') +
+        (f.flag && val === o && o === 'yes' ? ' flag' : '') +
+        '" onclick="fSet(\'' + spec + '\',\'' + f.k + '\',\'' + o + '\')">' + o + '</button>';
+    }).join('') + '</div>';
+  } else if(f.type === 'multi'){
+    var arr = Array.isArray(val) ? val : [];
+    out += '<div class="opts">' + (f.options || []).map(function(o){
+      return '<button type="button" class="opt' + (arr.indexOf(o) >= 0 ? ' on' : '') +
+        '" onclick="fToggle(\'' + spec + '\',\'' + f.k + '\',' + JSON.stringify(o).replace(/"/g,'&quot;') + ')">' +
+        esc(o) + '</button>';
+    }).join('') + '</div>';
+  } else if(f.type === 'time'){
+    out += '<div class="timerow">' +
+      '<input type="datetime-local" id="' + id + '" data-f="' + spec + '" data-k="' + f.k + '" value="' +
+        esc(toLocalInput(val)) + '">' +
+      '<button type="button" class="nowbtn" onclick="fNow(\'' + spec + '\',\'' + f.k + '\')">Now</button></div>';
+    // Elapsed time is a convenience for the clinician reading the chart. It
+    // describes the interval and nothing more: this page never decides that a
+    // patient is adequately fasted.
+    if(f.elapsed && val){
+      var e = ANES.elapsedSince(val);
+      if(e) out += '<div class="elapsed">' + esc(e) + '</div>';
+    }
+  } else if(f.type === 'area'){
+    out += '<textarea id="' + id + '" data-f="' + spec + '" data-k="' + f.k + '">' + esc(val || '') + '</textarea>';
+  } else if(f.type === 'date'){
+    out += '<input type="date" id="' + id + '" data-f="' + spec + '" data-k="' + f.k + '" value="' + esc(val || '') + '">';
+  } else {
+    out += '<input type="' + (f.type === 'num' ? 'number' : 'text') + '"' +
+      (f.type === 'num' ? ' step="any"' : '') + ' id="' + id + '" data-f="' + spec +
+      '" data-k="' + f.k + '" value="' + esc(val == null ? '' : val) + '">';
+  }
+  return out + '</div>';
+}
+
+function renderForm(spec, form, opts){
+  opts = opts || {};
+  var v = fvals(spec);
+  /* A row with no clinical time never appears on the timeline, which means a
+     carefully documented airway can be invisible on the chart. The time is
+     therefore seeded to now and SHOWN, so the clinician sees the value that
+     will be saved and can correct it — rather than discovering afterwards that
+     the entry has no place in the record. */
+  if(form.timeKey && v[form.timeKey] === undefined) v[form.timeKey] = ANES.nowIso();
+  var shown = (form.fields || []).filter(function(f){
+    if(!visible(f, v)) return false;
+    // Access shows only the fields that mean something for the chosen type:
+    // a lumen count on a peripheral cannula teaches the clinician to ignore
+    // the form.
+    if(opts.fieldFilter && !opts.fieldFilter(f, v)) return false;
+    return true;
+  });
+  var groups = {};
+  var order = [];
+  shown.forEach(function(f){
+    var g = f.group || '';
+    if(!groups[g]){ groups[g] = []; order.push(g); }
+    groups[g].push(f);
+  });
+  return order.map(function(g){
+    return (g ? '<div class="card-t" style="margin:6px 0 10px">' + esc(g) + '</div>' : '') +
+      '<div class="fgrid">' + groups[g].map(function(f){ return renderField(spec, f, v); }).join('') + '</div>';
+  }).join('');
+}
+
+/* ── Saving ───────────────────────────────────────────────────────────────
+   One path for every write. It shows its state, refuses to run twice, and
+   surfaces the server's own message when the server says no. */
+/* The saved / failed state has to SURVIVE the redraw that follows a successful
+   write, or the clinician taps Save, the section repaints, and the only
+   confirmation they get is that the form emptied. Kept per section and
+   re-applied after every render. */
+var _saveMsg = {};
+function setSaveState(spec, cls, text){
+  _saveMsg[spec] = { cls:cls, text:text };
+  applySaveStates();
+}
+function applySaveStates(){
+  Object.keys(_saveMsg).forEach(function(spec){
+    var n = el('save-' + spec);
+    if(n){ n.className = 'savest ' + _saveMsg[spec].cls; n.textContent = _saveMsg[spec].text; }
+  });
+}
+async function runSave(spec, fn, okText){
+  if(_busy[spec]) return;                    // a second tap must not write twice
+  if(_locked){ setSaveState(spec, 'err', 'This record is finalized. Record an amendment instead.'); return; }
+  _busy[spec] = true;
+  document.querySelectorAll('[data-save="' + spec + '"]').forEach(function(b){ b.disabled = true; });
+  setSaveState(spec, 'busy', 'Saving…');
+  var r;
+  try { r = await fn(); }
+  catch(e){ r = { error:{ message:e.message } }; }
+  _busy[spec] = false;
+  if(r && r.error){
+    // The typed values are deliberately kept in _forms so nothing is lost and
+    // the clinician can correct and retry rather than start again.
+    setSaveState(spec, 'err', r.error.message || 'The server refused this change.');
+    document.querySelectorAll('[data-save="' + spec + '"]').forEach(function(b){ b.disabled = false; });
+    return false;
+  }
+  setSaveState(spec, 'ok', okText || 'Saved');
+  return true;
+}
+
+/* Save a described form as a NEW row, then clear it for the next entry. */
+async function saveNew(spec, table, extra){
+  var v = captureInputs(spec);
+  var row = {};
+  Object.keys(v).forEach(function(k){ row[k] = v[k]; });
+  if(extra) Object.keys(extra).forEach(function(k){ row[k] = extra[k]; });
+  // Belt as well as braces: if the time was cleared, the row is still stamped
+  // with when it was recorded rather than saved without a place in the case.
+  var tk = (ANES.FORMS[spec] || {}).timeKey;
+  if(tk && !row[tk]) row[tk] = ANES.nowIso();
+  var ok = await runSave(spec, function(){ return ANES.insert(table, CASE_ID, row); }, 'Recorded');
+  if(ok){ _forms[spec] = {}; await reload(); }
+}
+
+/* ═══════════ SECTIONS ═════════════════════════════════════════════════════ */
+function sectionError(key, what){
+  if(!D.errors || !D.errors[key]) return '';
+  return '<div class="secerr"><strong>' + esc(what) + ' could not be loaded.</strong> ' +
+    esc(D.errors[key]) + ' Nothing here is necessarily empty — this section is unread, ' +
+    'and anything you add now may not be the whole picture.</div>';
+}
+function listOr(rows, emptyText){
+  return rows.length ? '<div class="rows">' + rows.join('') + '</div>'
+                     : '<div class="empty">' + emptyText + '</div>';
+}
+/* The save bar is always rendered, even when the action is not yet available.
+   If it were conditional it would vanish the moment the form reset after a
+   successful write, taking the confirmation with it — the clinician would tap
+   Save and see only an empty form. Disabled-with-a-reason instead. */
+function saveBar(spec, label, disabledWhy){
+  return '<div class="acts"><button class="btn" data-save="' + spec + '"' +
+    (disabledWhy ? ' disabled title="' + esc(disabledWhy) + '"' : '') +
+    ' onclick="save_' + spec + '()">' + esc(label) + '</button>' +
+    '<span class="savest" id="save-' + spec + '">' + (disabledWhy ? esc(disabledWhy) : '') + '</span></div>';
+}
+
+/* ── 1. Overview ─────────────────────────────────────────────────────────── */
+function secOverview(){
+  var t = ANES.totals(D);
+  var dur = function(v){ return v == null ? '—' : Math.floor(v/60) + 'h ' + (v%60) + 'm'; };
+  var ml = function(v){ return v ? v + ' mL' : '—'; };
+  var rows = ANES.buildTimeline(D);
+
+  var totals = [
+    ['Anesthesia time', dur(t.anesMin)], ['Surgical time', dur(t.surgMin)],
+    ['Crystalloid', ml(t.crystalloid)], ['Colloid', ml(t.colloid)],
+    ['Total fluids', ml(t.fluidsTotal)], ['Blood', t.bloodMl ? t.bloodMl + ' mL' : (t.bloodUnits ? t.bloodUnits + ' u' : '—')],
+    ['Blood loss', ml(t.ebl)], ['Urine', ml(t.urine)],
+    ['Total output', ml(t.outputsTotal)], ['Balance', (t.fluidsTotal||t.outputsTotal) ? t.balance + ' mL' : '—'],
+    ['Medications', t.medications || '—'], ['Complications', t.complications || '—']
+  ].map(function(i){ return '<div><dt>' + i[0] + '</dt><dd>' + i[1] + '</dd></div>'; }).join('');
+
+  var milestones = '<div class="qgrid">' + ANES.MILESTONES.map(function(m){
+    var done = D.milestones[m.key];
+    return '<button class="qbtn' + (done ? ' done' : '') + '" ' + (_locked ? 'disabled ' : '') +
+      'onclick="markMilestone(\'' + m.key + '\')"><b>' + esc(m.label) + '</b><small>' +
+      (done ? hhmm(done) : 'stamps now') + '</small></button>';
+  }).join('') + '</div>';
+
+  var amend = (D.amendments || []).length
+    ? '<div class="card"><div class="card-h"><span class="card-t">Amendments</span></div><div class="card-b">' +
+      listOr((D.amendments||[]).map(function(a){
+        return '<div class="row"><div class="row-t">' + hhmm(a.amended_at) + '</div><div class="row-m">' +
+          '<div class="row-x">' + esc(a.amendment) + '</div><div class="row-s">' +
+          esc(a.target_area) + ' · ' + esc(a.reason) + '</div></div></div>'; }), '') +
+      '</div></div>' : '';
+
+  return sectionError('case','The case') + sectionError('times','Milestones') +
+    '<div class="card"><div class="card-h"><span class="card-t">Milestones</span>' +
+    '<span class="card-t" style="color:var(--muted)">one tap stamps now</span></div>' +
+    '<div class="card-b">' + milestones + '<div class="msg msg-err" id="rec-err"></div>' +
+    '<div class="msg msg-ok" id="rec-ok"></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Case totals</span></div>' +
+    '<div class="card-b"><dl class="totals">' + totals + '</dl></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Live timeline</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' +
+    (rows.length ? rows.length + ' entries' : '') + '</span></div>' +
+    '<div class="card-b" style="padding:6px 15px 14px">' +
+    (rows.length ? '<ul class="tl">' + rows.map(function(r){
+      return '<li class="tl-row ' + r.cls + '"><div class="tl-time">' + hhmm(r.at) + '</div>' +
+        '<div class="tl-dot"></div><div><div class="tl-txt">' + esc(r.text) + '</div>' +
+        (r.meta ? '<div class="tl-meta">' + esc(r.meta) + '</div>' : '') + '</div></li>';
+    }).join('') + '</ul>'
+    : '<div class="empty">Nothing recorded yet.<br>Every entry you make anywhere in the chart appears here, in order.</div>') +
+    '</div></div>' + amend +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record</span></div><div class="card-b">' +
+    '<div class="acts">' +
+    (_locked ? '<button class="btn ghost" onclick="openAmend()">Record an amendment</button>'
+             : '<button class="btn" onclick="finalizeCase()">Sign &amp; finalize record</button>') +
+    '<a class="btn ghost" href="/anesthesia-cases.html" style="text-decoration:none;line-height:22px">Back to Live Chart</a>' +
+    '</div></div></div>';
+}
+
+/* ── 2. Pre-op ───────────────────────────────────────────────────────────── */
+function secPreop(){
+  var pre = D.preassessment || {};
+  var peds = (_case.case_modes || []).some(function(m){ return m === 'pediatric' || m === 'neonatal'; });
+
+  // History: one row per topic, each reviewed independently.
+  var byTopic = {};
+  (D.history || []).forEach(function(h){ byTopic[h.topic] = h; });
+  var hist = ANES.HISTORY_TOPICS.map(function(topic){
+    var h = byTopic[topic] || {};
+    var sid = 'h-' + topic.replace(/[^a-z]/gi,'');
+    return '<div class="row' + (h.significant ? ' bad' : '') + '">' +
+      '<div class="row-m"><div class="row-x" style="font-weight:600">' + esc(topic) +
+      (h.significant ? ' <span class="chip stop">significant</span>' : '') + '</div>' +
+      (h.finding ? '<div class="row-s">' + esc(h.finding) + '</div>' : '') +
+      '<div class="opts" style="margin-top:8px">' +
+        '<button type="button" class="opt' + (h.reviewed && !h.finding ? ' on' : '') + '"' +
+          (_locked ? ' disabled' : '') + ' onclick="histSet(' + JSON.stringify(topic).replace(/"/g,'&quot;') + ',\'clear\')">No significant finding</button>' +
+        '<button type="button" class="opt' + (h.finding ? ' on' : '') + '"' +
+          (_locked ? ' disabled' : '') + ' onclick="histFinding(' + JSON.stringify(topic).replace(/"/g,'&quot;') + ')">Finding…</button>' +
+        (h.finding ? '<button type="button" class="opt' + (h.significant ? ' on flag' : '') + '"' +
+          (_locked ? ' disabled' : '') + ' onclick="histSet(' + JSON.stringify(topic).replace(/"/g,'&quot;') + ',\'sig\')">Significant</button>' : '') +
+      '</div></div></div>';
+  }).join('');
+
+  return sectionError('preassessment','The pre-assessment') + sectionError('history','The history review') +
+    '<div class="card"><div class="card-h"><span class="card-t">Fasting / NPO</span></div><div class="card-b">' +
+    '<div class="lead">Record what the patient took and when. Anestheo shows how long ago that was, ' +
+    'and stops there — whether the interval is adequate for this patient, this airway and this ' +
+    'operation is your judgement, and it belongs in the plan below.' +
+    (peds ? ' Breast milk and formula are shown because this is a paediatric case.' : '') + '</div>' +
+    renderForm('fasting', ANES.FORMS.fasting, { fieldFilter:function(f){ return peds || !f.peds; } }) +
+    saveBar('fasting','Save fasting assessment') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">History</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' +
+    (D.history||[]).filter(function(h){ return h.reviewed; }).length + ' of ' + ANES.HISTORY_TOPICS.length + ' reviewed</span>' +
+    '</div><div class="card-b"><div class="rows">' + hist + '</div>' +
+    '<div class="savest" id="save-history" style="margin-top:10px"></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Investigations</span></div><div class="card-b">' +
+    renderForm('investigations', ANES.FORMS.investigations) +
+    saveBar('investigations','Save investigations') + '</div></div>';
+}
+
+/* ── 3. Airway ───────────────────────────────────────────────────────────── */
+function secAirway(){
+  var recs = (D.airway || []).map(function(a){
+    return '<div class="row' + (a.difficult_airway === 'yes' ? ' bad' : '') + '">' +
+      '<div class="row-t">' + hhmm(a.occurred_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc([a.device, a.device_size].filter(Boolean).join(' ') || 'Airway') +
+      (a.technique ? ' — ' + esc(a.technique) : '') +
+      (a.difficult_airway === 'yes' ? ' <span class="chip stop">DIFFICULT AIRWAY</span>' : '') + '</div>' +
+      '<div class="row-s">' + esc([
+        a.mask_ventilation ? 'mask ' + a.mask_ventilation : null,
+        a.cormack_lehane ? 'Cormack-Lehane ' + a.cormack_lehane : null,
+        a.attempts ? a.attempts + ' attempt(s)' : null,
+        a.depth_cm ? a.depth_cm + ' cm' : null,
+        a.etco2_confirmed === 'yes' ? 'EtCO₂ confirmed' : null,
+        a.complication ? 'complication: ' + a.complication : null
+      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+
+  return sectionError('airway','Airway records') +
+    '<div class="card"><div class="card-h"><span class="card-t">Pre-operative airway assessment</span></div>' +
+    '<div class="card-b">' + renderForm('airwayAssessment', ANES.FORMS.airwayAssessment) +
+    saveBar('airwayAssessment','Save airway assessment') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Airway management</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' + recs.length + ' recorded</span></div>' +
+    '<div class="card-b">' + listOr(recs, 'No airway management recorded yet.') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record airway management</span></div>' +
+    '<div class="card-b">' + renderForm('airway', ANES.FORMS.airway) +
+    saveBar('airway','Record airway') + '</div></div>';
+}
+
+/* ── 4. Access & Monitoring ──────────────────────────────────────────────── */
+function secAccess(){
+  var devs = (D.devices || []).map(function(v){
+    return '<div class="row"><div class="row-t">' + hhmm(v.started_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(v.label || v.kind) + '</div><div class="row-s">' +
+      esc(v.category || '') + (v.stopped_at ? ' · stopped ' + hhmm(v.stopped_at) : ' · running') + '</div></div>' +
+      (v.stopped_at || _locked ? '' : '<button class="btn ghost" style="padding:6px 11px;min-height:38px;font-size:12px" ' +
+        'onclick="stopDevice(\'' + v.id + '\')">Stop</button>') + '</div>';
+  });
+  var acc = (D.access || []).map(function(a){
+    return '<div class="row"><div class="row-t">' + hhmm(a.inserted_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc([a.gauge, a.kind].filter(Boolean).join(' ')) +
+      (a.site ? ' — ' + esc(a.site) : '') + (a.side ? ' (' + esc(a.side) + ')' : '') + '</div>' +
+      '<div class="row-s">' + esc([
+        a.placed_before_or === 'yes' ? 'pre-existing' : null,
+        a.lumens ? a.lumens + ' lumen' : null,
+        a.ultrasound === 'yes' ? 'ultrasound' : null,
+        a.attempts ? a.attempts + ' attempt(s)' : null,
+        a.waveform_confirmed === 'yes' ? 'waveform confirmed' : null,
+        a.complications ? 'complication: ' + a.complications : null
+      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+
+  var quick = Object.keys(ANES.MONITORS).map(function(cat){
+    return '<div style="margin-top:12px"><span class="flab">' + esc(cat.replace(/_/g,' ')) + '</span>' +
+      '<div class="qgrid">' + ANES.MONITORS[cat].map(function(k){
+        var on = (D.devices||[]).some(function(v){ return v.kind === k && !v.stopped_at; });
+        return '<button class="qbtn' + (on ? ' done' : '') + '"' + (_locked || on ? ' disabled' : '') +
+          ' onclick="startDevice(' + JSON.stringify(cat).replace(/"/g,'&quot;') + ',' +
+          JSON.stringify(k).replace(/"/g,'&quot;') + ')"><b>' + esc(k) + '</b><small>' +
+          (on ? 'running' : 'start now') + '</small></button>';
+      }).join('') + '</div></div>';
+  }).join('');
+
+  var kind = fvals('access').kind;
+  var allowed = kind ? (ANES.ACCESS_FIELDS[kind] || []) : [];
+
+  return sectionError('devices','Monitoring') + sectionError('access','Vascular access') +
+    '<div class="card"><div class="card-h"><span class="card-t">Monitoring &amp; devices</span></div>' +
+    '<div class="card-b"><div class="lead">One tap starts a device session and stamps the time. ' +
+    'Tap Stop when it comes off.</div>' + quick +
+    '<div class="savest" id="save-device" style="margin-top:10px"></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Device sessions</span></div>' +
+    '<div class="card-b">' + listOr(devs, 'No devices recorded yet.') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Vascular access</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' + acc.length + ' recorded</span></div>' +
+    '<div class="card-b">' + listOr(acc, 'No access recorded yet.') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Add access</span></div><div class="card-b">' +
+    // Only the fields that mean something for the chosen type are shown.
+    renderForm('access', ANES.FORMS.access, { fieldFilter:function(f){
+      if(f.k === 'kind' || f.k === 'inserted_at' || f.k === 'note' || f.k === 'complications' ||
+         f.k === 'placed_before_or') return true;
+      return allowed.indexOf(f.k) >= 0;
+    }}) +
+    saveBar('access','Record access', kind ? null : 'Choose a type to see the fields that apply to it.') +
+    '</div></div>';
+}
+
+/* ── 5. Anesthesia (technique, case detail, positioning) ─────────────────── */
+function secAnesthesia(){
+  var pos = (D.positioning || []).map(function(p){
+    return '<div class="row"><div class="row-t">' + hhmm(p.occurred_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(p.position) + '</div><div class="row-s">' + esc([
+        p.arms ? 'arms ' + p.arms : null,
+        p.eyes_protected === 'yes' ? 'eyes protected' : null,
+        p.pressure_points_checked === 'yes' ? 'pressure points checked' : null,
+        p.scds === 'yes' ? 'SCDs' : null, p.precautions
+      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+  return sectionError('positioning','Positioning') +
+    '<div class="card"><div class="card-h"><span class="card-t">Case details</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' +
+    (_locked ? 'finalized — read only' : 'editable while the record is open') + '</span></div>' +
+    '<div class="card-b"><div class="lead">Anesthesia technique is not exclusive: a case can be general ' +
+    'and epidural at once, and the chart records both.</div>' +
+    renderForm('caseHeader', ANES.FORMS.caseHeader) +
+    saveBar('caseHeader','Save case details') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Positioning</span></div>' +
+    '<div class="card-b">' + listOr(pos, 'No position recorded yet.') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record position</span></div><div class="card-b">' +
+    renderForm('positioning', ANES.FORMS.positioning) +
+    saveBar('positioning','Record position') + '</div></div>';
+}
+
+/* ── 6. Ventilation ─────────────────────────────────────────────────────── */
+function secVent(){
+  var cur = ANES.currentVentilation(D);
+  var summary = cur ? '<dl class="totals">' + [
+      ['Mode', cur.mode || '—'], ['VT', cur.tidal_volume_ml ? cur.tidal_volume_ml + ' mL' : '—'],
+      ['RR', cur.respiratory_rate || '—'], ['PEEP', cur.peep_cmh2o != null ? cur.peep_cmh2o : '—'],
+      ['FiO₂', cur.fio2_pct ? cur.fio2_pct + '%' : '—'], ['I:E', cur.ie_ratio || '—'],
+      ['Peak', cur.peak_pressure_cmh2o || '—'], ['Plateau', cur.plateau_pressure_cmh2o || '—'],
+      ['MV', cur.minute_ventilation_l ? cur.minute_ventilation_l + ' L' : '—']
+    ].map(function(i){ return '<div><dt>' + i[0] + '</dt><dd>' + esc(i[1]) + '</dd></div>'; }).join('') + '</dl>'
+    : '<div class="empty">No ventilation recorded yet.</div>';
+
+  var hist = (D.ventilation || []).slice().reverse().map(function(v){
+    return '<div class="row"><div class="row-t">' + hhmm(v.occurred_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(v.mode || 'Settings') + '</div><div class="row-s">' + esc([
+        v.tidal_volume_ml ? 'VT ' + v.tidal_volume_ml : null,
+        v.respiratory_rate ? 'RR ' + v.respiratory_rate : null,
+        v.peep_cmh2o != null ? 'PEEP ' + v.peep_cmh2o : null,
+        v.fio2_pct ? 'FiO₂ ' + v.fio2_pct + '%' : null,
+        v.peak_pressure_cmh2o ? 'Ppeak ' + v.peak_pressure_cmh2o : null
+      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+
+  return sectionError('ventilation','Ventilation') +
+    '<div class="card"><div class="card-h"><span class="card-t">Current ventilation</span>' +
+    (cur ? '<span class="card-t" style="color:var(--muted);font-weight:500">set ' + hhmm(cur.occurred_at) + '</span>' : '') +
+    '</div><div class="card-b">' + summary + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record settings</span></div><div class="card-b">' +
+    '<div class="lead">Each meaningful change is a new row, so the history of how the settings got here ' +
+    'is preserved rather than overwritten.</div>' +
+    renderForm('ventilation', ANES.FORMS.ventilation) +
+    saveBar('ventilation','Record settings') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">History</span></div>' +
+    '<div class="card-b">' + listOr(hist, 'No changes recorded.') + '</div></div>';
+}
+
+/* ── 7. Drugs & infusions ────────────────────────────────────────────────── */
+function secDrugs(){
+  var favs = '<div class="qgrid">' + ANES.FAVOURITES.map(function(f, i){
+    return '<button class="qbtn"' + (_locked ? ' disabled' : '') + ' onclick="giveFav(' + i + ')">' +
+      '<b>' + esc(f.name) + '</b><small>' + f.dose + ' ' + f.unit + ' IV</small></button>';
+  }).join('') + '</div>';
+
+  var meds = (D.medications || []).slice().reverse().map(function(m){
+    return '<div class="row"><div class="row-t">' + hhmm(m.administered_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(m.medication) + ' ' + (+m.dose) + ' ' + esc(m.unit) +
+      (m.route ? ' ' + esc(String(m.route).toUpperCase()) : '') + '</div>' +
+      '<div class="row-s">' + esc([m.category, m.indication, m.is_redose ? 'redose' : null,
+        m.line, m.note].filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+
+  var infs = (D.infusions || []).map(function(inf){
+    var rates = (D.infusionRates || []).filter(function(r){ return r.infusion_id === inf.id; });
+    return '<div class="row"><div class="row-t">' + hhmm(inf.started_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(inf.medication) + (inf.stopped_at ? '' : ' <span class="chip">running</span>') + '</div>' +
+      '<div class="row-s">' + esc([inf.concentration, inf.rate_unit, inf.line,
+        inf.tci_model ? 'TCI ' + inf.tci_model + (inf.tci_target_kind ? ' (' + inf.tci_target_kind + ')' : '') : null,
+        inf.stopped_at ? 'stopped ' + hhmm(inf.stopped_at) : null,
+        inf.total_given ? 'total ' + inf.total_given + ' ' + (inf.total_unit||'') : null
+      ].filter(Boolean).join(' · ')) +
+      (rates.length ? '<br>rates: ' + rates.map(function(r){ return hhmm(r.occurred_at) + ' → ' + (+r.rate); }).join(', ') : '') +
+      '</div>' +
+      (inf.stopped_at || _locked ? '' :
+        '<div class="acts" style="margin-top:8px">' +
+        '<input type="number" step="any" id="rate-' + inf.id + '" placeholder="New rate" style="max-width:130px">' +
+        '<button class="btn ghost" style="min-height:40px;padding:8px 12px" onclick="changeRate(\'' + inf.id + '\')">Rate change</button>' +
+        '<button class="btn ghost" style="min-height:40px;padding:8px 12px" onclick="stopInfusion(\'' + inf.id + '\')">Stop</button>' +
+        '</div>') +
+      '</div></div>';
+  });
+
+  return sectionError('medications','Medications') + sectionError('infusions','Infusions') +
+    '<div class="card"><div class="card-h"><span class="card-t">Favourites</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">one tap · stamps now</span></div>' +
+    '<div class="card-b">' + favs + '<div class="savest" id="save-fav" style="margin-top:10px"></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record an administration</span></div>' +
+    '<div class="card-b"><div class="fgrid">' +
+      fldText('m-name','Medication') + fldNum('m-dose','Dose') +
+      fldSelect('m-unit','Unit', ANES.DOSE_UNITS) + fldSelect('m-route','Route', ANES.ROUTES) +
+      fldSelect('m-cat','Category', ANES.DRUG_CATEGORIES) + fldText('m-conc','Concentration') +
+      fldText('m-line','Line') + fldText('m-ind','Indication') +
+      fldText('m-by','Administered by') +
+    '</div>' +
+    '<div class="opts" style="margin-top:11px"><button type="button" class="opt" id="m-redose" ' +
+      'onclick="this.classList.toggle(\'on\')">Redose</button></div>' +
+    '<div class="acts"><button class="btn" data-save="med" onclick="giveCustom()">Record administration</button>' +
+    '<span class="savest" id="save-med"></span></div>' +
+    '<div class="lead" style="margin:12px 0 0">Anestheo never suggests a dose. What is recorded is what you gave.</div>' +
+    '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Infusions</span></div>' +
+    '<div class="card-b">' + listOr(infs, 'No infusions recorded.') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Start an infusion</span></div>' +
+    '<div class="card-b"><div class="fgrid">' +
+      fldText('i-med','Medication') + fldText('i-conc','Concentration') +
+      fldSelect('i-unit','Rate unit', ['mL/h','mg/h','mcg/kg/min','mcg/min','mg/kg/h','units/h','ng/mL']) +
+      fldText('i-line','Line') + fldText('i-tci','TCI model') +
+      fldSelect('i-tcik','TCI target', ['','plasma','effect-site']) +
+      fldNum('i-rate','Starting rate') +
+    '</div>' +
+    '<div class="acts"><button class="btn" data-save="inf" onclick="startInfusion()">Start infusion</button>' +
+    '<span class="savest" id="save-inf"></span></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Given this case</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' + meds.length + '</span></div>' +
+    '<div class="card-b">' + listOr(meds, 'No medications recorded yet.') + '</div></div>';
+}
+
+/* ── 8. Fluids, blood, outputs ──────────────────────────────────────────── */
+function secFluids(){
+  var t = ANES.totals(D);
+  var favs = '<div class="qgrid">' + ANES.FLUID_FAVOURITES.map(function(f, i){
+    return '<button class="qbtn"' + (_locked ? ' disabled' : '') + ' onclick="addFluidFav(' + i + ')">' +
+      '<b>' + esc(f.name) + '</b><small>' + f.volume_ml + ' mL</small></button>';
+  }).join('') + '</div>';
+
+  var rows = function(arr, fn){ return arr.slice().reverse().map(fn); };
+  var fl = rows(D.fluids || [], function(f){
+    return '<div class="row"><div class="row-t">' + hhmm(f.started_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(f.fluid) + ' ' + (+f.volume_ml) + ' mL</div><div class="row-s">' +
+      esc([f.category, f.line, f.warmed ? 'warmed' : null].filter(Boolean).join(' · ')) + '</div></div></div>'; });
+  var bl = rows(D.blood || [], function(b){
+    return '<div class="row' + (b.reaction ? ' bad' : '') + '"><div class="row-t">' + hhmm(b.started_at) + '</div>' +
+      '<div class="row-m"><div class="row-x">' + esc(String(b.product).toUpperCase()) +
+      (b.units ? ' × ' + (+b.units) : '') + (b.volume_ml ? ' · ' + (+b.volume_ml) + ' mL' : '') + '</div>' +
+      '<div class="row-s">' + esc([b.unit_identifier, b.warmed ? 'warmed' : null,
+        b.reaction ? 'REACTION: ' + b.reaction : null].filter(Boolean).join(' · ')) + '</div></div></div>'; });
+  var op = rows(D.outputs || [], function(o){
+    return '<div class="row"><div class="row-t">' + hhmm(o.recorded_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(String(o.kind).toUpperCase()) + ' ' + (+o.volume_ml) + ' mL</div>' +
+      (o.label ? '<div class="row-s">' + esc(o.label) + '</div>' : '') + '</div></div>'; });
+
+  var totals = [
+    ['Crystalloid', t.crystalloid], ['Colloid', t.colloid], ['Glucose', t.glucose],
+    ['Total fluids', t.fluidsTotal], ['Blood', t.bloodMl], ['Blood units', t.bloodUnits],
+    ['Blood loss', t.ebl], ['Urine', t.urine], ['Total output', t.outputsTotal],
+    ['Balance', t.balance]
+  ].map(function(i){ return '<div><dt>' + i[0] + '</dt><dd>' + (i[1] || i[1] === 0 ? i[1] : '—') + '</dd></div>'; }).join('');
+
+  return sectionError('fluids','Fluids') + sectionError('blood','Blood products') + sectionError('outputs','Outputs') +
+    '<div class="card"><div class="card-h"><span class="card-t">Running totals</span></div>' +
+    '<div class="card-b"><dl class="totals">' + totals + '</dl></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Fluids</span></div><div class="card-b">' +
+    favs + '<div class="fgrid" style="margin-top:12px">' +
+      fldText('f-name','Other fluid') + fldSelect('f-cat','Category', ANES.FLUID_CATEGORIES) +
+      fldNum('f-vol','Volume (mL)') + fldText('f-line','Line') +
+    '</div>' +
+    '<div class="opts" style="margin-top:11px"><button type="button" class="opt" id="f-warm" onclick="this.classList.toggle(\'on\')">Warmed</button></div>' +
+    '<div class="acts"><button class="btn" data-save="fluid" onclick="addFluidCustom()">Add fluid</button>' +
+    '<span class="savest" id="save-fluid"></span></div>' +
+    (fl.length ? '<div style="margin-top:14px">' + listOr(fl,'') + '</div>' : '') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Blood products</span></div><div class="card-b">' +
+    '<div class="fgrid">' +
+      fldSelect('b-prod','Product', ANES.BLOOD_PRODUCTS) + fldNum('b-units','Units') +
+      fldNum('b-vol','Volume (mL)') + fldText('b-id','Unit identifier') +
+      fldText('b-react','Reaction') +
+    '</div>' +
+    '<div class="opts" style="margin-top:11px"><button type="button" class="opt" id="b-warm" onclick="this.classList.toggle(\'on\')">Warmed</button></div>' +
+    '<div class="acts"><button class="btn" data-save="blood" onclick="addBlood()">Record product</button>' +
+    '<span class="savest" id="save-blood"></span></div>' +
+    (bl.length ? '<div style="margin-top:14px">' + listOr(bl,'') + '</div>' : '') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Output and losses</span></div><div class="card-b">' +
+    '<div class="fgrid">' + fldSelect('o-kind','Kind', ANES.OUTPUT_KINDS) +
+      fldNum('o-vol','Volume (mL)') + fldText('o-label','Label') + '</div>' +
+    '<div class="acts"><button class="btn" data-save="output" onclick="addOutput()">Record output</button>' +
+    '<span class="savest" id="save-output"></span></div>' +
+    (op.length ? '<div style="margin-top:14px">' + listOr(op,'') + '</div>' : '') + '</div></div>';
+}
+
+/* ── 9. Regional ────────────────────────────────────────────────────────── */
+function secRegional(){
+  var recs = (D.regional || []).map(function(r){
+    return '<div class="row' + (r.complications ? ' bad' : '') + '"><div class="row-t">' + hhmm(r.started_at) + '</div>' +
+      '<div class="row-m"><div class="row-x">' + esc(r.block_name || r.kind) +
+      (r.side ? ' (' + esc(r.side) + ')' : '') + '</div><div class="row-s">' + esc([
+        r.kind, r.vertebral_level, r.local_anesthetic,
+        r.la_volume_ml ? r.la_volume_ml + ' mL' : null,
+        r.la_total_mg ? r.la_total_mg + ' mg' : null,
+        r.ultrasound === 'yes' ? 'ultrasound' : null,
+        r.attempts ? r.attempts + ' attempt(s)' : null,
+        r.sensory_level ? 'sensory ' + r.sensory_level : null,
+        r.complications ? 'complication: ' + r.complications : null
+      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+  var kind = fvals('regional').kind;
+  return sectionError('regional','Regional techniques') +
+    '<div class="card"><div class="card-h"><span class="card-t">Blocks performed</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' + recs.length + '</span></div>' +
+    '<div class="card-b">' + listOr(recs, 'No regional technique recorded.') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record a technique</span></div><div class="card-b">' +
+    '<div class="lead">Choose the technique first — only the fields that belong to it are shown.</div>' +
+    renderForm('regional', ANES.FORMS.regional) +
+    saveBar('regional','Record technique', kind ? null : 'Choose a technique first.') + '</div></div>';
+}
+
+/* ── 10. Vitals & labs ──────────────────────────────────────────────────── */
+function secVitals(){
+  var labs = (D.labs || []).slice().reverse().map(function(l){
+    return '<div class="row"><div class="row-t">' + hhmm(l.sampled_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(l.analyte) + ' ' +
+      esc(l.value != null ? (+l.value) : (l.value_text || '')) + (l.unit ? ' ' + esc(l.unit) : '') + '</div>' +
+      '<div class="row-s">' + esc(l.panel || '') + '</div></div></div>';
+  });
+  var recent = (D.vitals || []).slice(-12).reverse().map(function(v){
+    return '<div class="row"><div class="row-t">' + hhmm(v.measured_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(String(v.parameter).toUpperCase()) + ' ' + (+v.value) +
+      (v.unit ? ' ' + esc(v.unit) : '') + '</div><div class="row-s">' + esc(v.source || 'manual') + '</div></div></div>';
+  });
+
+  return sectionError('vitals','Vitals') + sectionError('labs','Labs') +
+    '<div class="card"><div class="card-h"><span class="card-t">Intraoperative chart</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' + (D.vitals||[]).length + ' values</span></div>' +
+    '<div class="card-b">' + vitalsGraph() + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record vitals</span></div><div class="card-b">' +
+    '<div class="fgrid">' +
+      '<div class="fld"><span class="flab">Parameter</span><select id="v-param">' +
+        Object.keys(ANES.VITAL_UNITS).map(function(k){
+          return '<option value="' + k + '">' + k.toUpperCase() + ' (' + (ANES.VITAL_UNITS[k] || 'no unit') + ')</option>';
+        }).join('') + '<option value="__custom">Custom parameter…</option></select></div>' +
+      fldNum('v-value','Value') +
+      fldText('v-custom','Custom parameter name') + fldText('v-unit','Custom unit') +
+    '</div>' +
+    '<div class="acts"><button class="btn" data-save="vital" onclick="addVital()">Record</button>' +
+    '<span class="savest" id="save-vital"></span></div>' +
+    '<div class="lead" style="margin:12px 0 0">Entered by hand and stored as manual. Anestheo has no monitor ' +
+    'integration, and the record will never claim a device produced a number a person typed. When a monitor ' +
+    'is one day connected it writes to this same chart with its own provenance.</div>' +
+    (recent.length ? '<div style="margin-top:14px">' + listOr(recent,'') + '</div>' : '') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Arterial blood gas</span></div><div class="card-b">' +
+    '<div class="lead">Enter what the analyser reported. Anestheo does not interpret it.</div>' +
+    '<div class="fgrid">' + ANES.ABG_ANALYTES.map(function(a){
+      return '<div class="fld"><span class="flab">' + esc(a.k) + (a.unit ? ' (' + esc(a.unit) + ')' : '') + '</span>' +
+        '<input type="number" step="any" id="abg-' + a.k.replace(/[^A-Za-z0-9]/g,'') + '"></div>';
+    }).join('') + '</div>' +
+    '<div class="acts"><button class="btn" data-save="abg" onclick="saveABG()">Save gas panel</button>' +
+    '<span class="savest" id="save-abg"></span></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Other result</span></div><div class="card-b">' +
+    '<div class="fgrid">' + fldSelect('l-panel','Panel', ANES.LAB_PANELS) +
+      fldText('l-analyte','Analyte') + fldText('l-value','Value') + fldText('l-unit','Unit') + '</div>' +
+    '<div class="acts"><button class="btn" data-save="lab" onclick="addLab()">Record result</button>' +
+    '<span class="savest" id="save-lab"></span></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Results</span></div>' +
+    '<div class="card-b">' + listOr(labs, 'No results recorded.') + '</div></div>';
+}
+
+/* ── 11. Events ─────────────────────────────────────────────────────────── */
+function secEvents(){
+  var quick = '<div class="qgrid">' + ANES.EVENTS.map(function(e, i){
+    return '<button class="qbtn"' + (_locked ? ' disabled' : '') + ' onclick="quickEvent(' + i + ')">' +
+      '<b>' + esc(e) + '</b><small>stamps now</small></button>'; }).join('') + '</div>';
+  var recs = (D.events || []).slice().reverse().map(function(e){
+    return '<div class="row bad"><div class="row-t">' + hhmm(e.occurred_at) + '</div><div class="row-m">' +
+      '<div class="row-x">' + esc(e.event_type) + (e.severity ? ' — ' + esc(e.severity) : '') + '</div>' +
+      '<div class="row-s">' + esc([e.description, e.treatment ? 'treated: ' + e.treatment : null,
+        e.response, e.outcome, e.resolved_at ? 'resolved ' + hhmm(e.resolved_at) : null]
+        .filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+  return sectionError('events','Events') +
+    '<div class="card"><div class="card-h"><span class="card-t">Record quickly</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">detail can be added after</span></div>' +
+    '<div class="card-b">' + quick + '<div class="savest" id="save-qev" style="margin-top:10px"></div></div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Record in full</span></div><div class="card-b">' +
+    renderForm('event', ANES.FORMS.event) + saveBar('event','Record event') + '</div></div>' +
+
+    '<div class="card"><div class="card-h"><span class="card-t">Events this case</span>' +
+    '<span class="card-t" style="color:var(--muted);font-weight:500">' + recs.length + '</span></div>' +
+    '<div class="card-b">' + listOr(recs, 'No events recorded.') + '</div></div>';
+}
+
+/* ── 12. Emergence & handoff ────────────────────────────────────────────── */
+function secHandoff(){
+  var h = (D.handoffs || [])[0] || null;
+  var recs = (D.handoffs || []).map(function(x){
+    return '<div class="row"><div class="row-t">' + hhmm(x.handoff_at) + '</div><div class="row-m">' +
+      '<div class="row-x">Handover to ' + esc(x.destination || '—') + '</div><div class="row-s">' + esc([
+        x.extubated === 'yes' ? 'extubated ' + (x.extubation_type || '') : (x.transferred_intubated === 'yes' ? 'transferred intubated' : null),
+        x.reversal_agent && x.reversal_agent !== 'none' ? 'reversal: ' + x.reversal_agent : null,
+        x.recipient_name ? 'to ' + x.recipient_name + (x.recipient_role ? ' (' + x.recipient_role + ')' : '') : null
+      ].filter(Boolean).join(' · ')) + '</div></div></div>';
+  });
+  return sectionError('handoffs','Handover') +
+    (recs.length ? '<div class="card"><div class="card-h"><span class="card-t">Recorded handover</span></div>' +
+      '<div class="card-b">' + listOr(recs,'') + '</div></div>' : '') +
+    '<div class="card"><div class="card-h"><span class="card-t">Emergence &amp; handover</span>' +
+    (h ? '<span class="card-t" style="color:var(--muted);font-weight:500">editing the recorded handover</span>' : '') +
+    '</div><div class="card-b">' + renderForm('handoff', ANES.FORMS.handoff) +
+    saveBar('handoff', h ? 'Update handover' : 'Record handover') + '</div></div>';
+}
+
+/* ── small field helpers for the hand-built quick forms ─────────────────── */
+function fldText(id, label){ return '<div class="fld"><span class="flab">' + esc(label) +
+  '</span><input id="' + id + '"></div>'; }
+function fldNum(id, label){ return '<div class="fld"><span class="flab">' + esc(label) +
+  '</span><input type="number" step="any" id="' + id + '"></div>'; }
+function fldSelect(id, label, opts){ return '<div class="fld"><span class="flab">' + esc(label) +
+  '</span><select id="' + id + '">' + opts.map(function(o){
+    return '<option value="' + esc(o) + '">' + esc(o || '—') + '</option>'; }).join('') + '</select></div>'; }
+function val(id){ var n = el(id); return n ? n.value.trim() : ''; }
+function num(id){ var n = el(id); if(!n || n.value === '') return null; var f = parseFloat(n.value);
+  return (f === f) ? f : null; }
+function on(id){ var n = el(id); return !!(n && n.classList.contains('on')); }
+
+/* ═══════════ VITALS GRAPH ═════════════════════════════════════════════════
+   Plain inline SVG: no chart library, nothing to load, and it redraws the
+   moment a value is entered. Designed so that when a monitor eventually writes
+   to anesthesia_vitals the same axes render the same picture — the graph reads
+   rows, and does not care who produced them. */
+function vitalsGraph(){
+  var vitals = (D.vitals || []).filter(function(v){ return v.measured_at && v.value != null; });
+  if(!vitals.length)
+    return '<div class="empty">No values yet.<br>The chart draws itself as you record vitals below.</div>';
+
+  var series = {};
+  ANES.VITAL_GRAPH.forEach(function(s){ series[s.k] = []; });
+  vitals.forEach(function(v){
+    var k = String(v.parameter).toLowerCase();
+    if(series[k]) series[k].push({ t:new Date(v.measured_at).getTime(), y:+v.value });
+  });
+  var used = ANES.VITAL_GRAPH.filter(function(s){ return series[s.k].length > 0; });
+  if(!used.length)
+    return '<div class="empty">Values recorded, but none of them are plotted parameters yet.</div>';
+
+  var t0 = Math.min.apply(null, vitals.map(function(v){ return new Date(v.measured_at).getTime(); }));
+  var t1 = Math.max.apply(null, vitals.map(function(v){ return new Date(v.measured_at).getTime(); }));
+  if(t1 - t0 < 600000) t1 = t0 + 600000;           // at least ten minutes of axis
+
+  var W = Math.max(680, Math.min(1400, 120 + Math.round((t1-t0)/60000) * 9));
+  var H = 260, PL = 44, PR = 14, PT = 12, PB = 26;
+  var x = function(t){ return PL + (t - t0) / (t1 - t0) * (W - PL - PR); };
+
+  // Two scales: pressures/rates share one, percentages the other. Temperature
+  // rides the percentage axis scaled, because one line on its own axis would
+  // need a third gutter for very little gain.
+  var pressVals = [], pctVals = [];
+  used.forEach(function(s){
+    series[s.k].forEach(function(p){
+      if(s.axis === 'pressure') pressVals.push(p.y);
+      else if(s.axis === 'pct') pctVals.push(p.y);
+    });
+  });
+  var pMax = pressVals.length ? Math.max(160, Math.ceil(Math.max.apply(null, pressVals)/20)*20) : 160;
+  var yP = function(v){ return PT + (1 - v / pMax) * (H - PT - PB); };
+  var yPct = function(v){ return PT + (1 - v / 100) * (H - PT - PB); };
+  var tempVals = series.temp || [];
+  var yTemp = function(v){ return PT + (1 - (v - 32) / 12) * (H - PT - PB); };  // 32–44 °C
+  var yFor = function(s, v){ return s.axis === 'pct' ? yPct(v) : (s.axis === 'temp' ? yTemp(v) : yP(v)); };
+
+  var grid = '';
+  for(var g = 0; g <= 4; g++){
+    var gv = pMax * g / 4, gy = yP(gv);
+    grid += '<line x1="' + PL + '" y1="' + gy + '" x2="' + (W-PR) + '" y2="' + gy +
+      '" stroke="rgba(255,255,255,.07)"/>' +
+      '<text x="' + (PL-6) + '" y="' + (gy+4) + '" text-anchor="end" font-size="10" ' +
+      'fill="rgba(255,255,255,.35)">' + gv + '</text>';
+  }
+  // Time labels every ten minutes.
+  var ticks = '';
+  var step = Math.max(600000, Math.ceil((t1-t0)/8/600000)*600000);
+  for(var tt = t0; tt <= t1; tt += step){
+    ticks += '<text x="' + x(tt) + '" y="' + (H-8) + '" text-anchor="middle" font-size="10" ' +
+      'fill="rgba(255,255,255,.35)">' + hhmm(new Date(tt).toISOString()) + '</text>';
+  }
+
+  var paths = used.map(function(s){
+    var pts = series[s.k].sort(function(a,b){ return a.t - b.t; });
+    var d = pts.map(function(p, i){ return (i ? 'L' : 'M') + x(p.t).toFixed(1) + ' ' + yFor(s, p.y).toFixed(1); }).join(' ');
+    var dots = pts.map(function(p){
+      return '<circle cx="' + x(p.t).toFixed(1) + '" cy="' + yFor(s, p.y).toFixed(1) +
+        '" r="2.6" fill="' + s.colour + '"><title>' + esc(s.label + ' ' + p.y + ' at ' +
+        hhmm(new Date(p.t).toISOString())) + '</title></circle>'; }).join('');
+    return '<path d="' + d + '" fill="none" stroke="' + s.colour + '" stroke-width="1.8" ' +
+      'stroke-linejoin="round" stroke-linecap="round"/>' + dots;
+  }).join('');
+
+  var legend = '<div class="glegend">' + used.map(function(s){
+    return '<span class="gkey"><span class="gdot" style="background:' + s.colour + '"></span>' +
+      esc(s.label) + '</span>'; }).join('') +
+    '<span class="gkey" style="color:var(--hint)">left axis mmHg / bpm · SpO₂ and BIS as %</span></div>';
+
+  return '<div class="gwrap"><svg width="' + W + '" height="' + H + '" role="img" ' +
+    'aria-label="Intraoperative vitals chart">' + grid + ticks + paths + '</svg></div>' + legend;
+}
+
+/* ═══════════ ACTIONS ══════════════════════════════════════════════════════ */
+function msg(id, text){ var e = el(id); if(!e) return; e.textContent = text; e.style.display = 'block';
+  setTimeout(function(){ e.style.display = 'none'; }, 7000); }
+
+async function markMilestone(key){
+  if(_locked) return msg('rec-err','This record is finalized. Record an amendment instead.');
+  var r = await ANES.setMilestone(CASE_ID, key);
+  if(r.error) return msg('rec-err', r.error.message);
+  await reload();
+}
+async function giveFav(i){
+  var f = ANES.FAVOURITES[i]; if(!f) return;
+  var ok = await runSave('fav', function(){
+    return ANES.addMedication(CASE_ID, { medication:f.name, dose:f.dose, unit:f.unit,
+      category:f.cat, route:'iv' }); }, f.name + ' ' + f.dose + ' ' + f.unit + ' recorded');
+  if(ok) await reload();
+}
+async function giveCustom(){
+  var name = val('m-name'), dose = num('m-dose');
+  if(!name || !(dose > 0)) return setSaveState('med','err','Enter a medication and a dose.');
+  var ok = await runSave('med', function(){
+    return ANES.addMedication(CASE_ID, { medication:name, dose:dose, unit:val('m-unit'),
+      route:val('m-route'), category:val('m-cat'), concentration:val('m-conc'), line:val('m-line'),
+      indication:val('m-ind'), administered_by:val('m-by'), is_redose:on('m-redose') }); }, 'Recorded');
+  if(ok) await reload();
+}
+async function startInfusion(){
+  var med = val('i-med');
+  if(!med) return setSaveState('inf','err','Enter a medication.');
+  var rate = num('i-rate');
+  var ok = await runSave('inf', async function(){
+    var r = await ANES.insert('anesthesia_infusions', CASE_ID, {
+      medication:med, concentration:val('i-conc'), rate_unit:val('i-unit'), line:val('i-line'),
+      tci_model:val('i-tci'), tci_target_kind:val('i-tcik'), started_at:ANES.nowIso() });
+    if(r.error || !r.data) return r;
+    if(rate != null) return await ANES.addInfusionRate(CASE_ID, r.data.id, rate);
+    return r;
+  }, 'Infusion started');
+  if(ok) await reload();
+}
+async function changeRate(id){
+  var rate = num('rate-' + id);
+  if(rate == null) return setSaveState('inf','err','Enter the new rate.');
+  var ok = await runSave('inf', function(){ return ANES.addInfusionRate(CASE_ID, id, rate); }, 'Rate recorded');
+  if(ok) await reload();
+}
+async function stopInfusion(id){
+  var ok = await runSave('inf', function(){
+    return ANES.update('anesthesia_infusions', id, { stopped_at:ANES.nowIso() }); }, 'Infusion stopped');
+  if(ok) await reload();
+}
+async function startDevice(category, kind){
+  var ok = await runSave('device', function(){
+    return ANES.insert('anesthesia_device_sessions', CASE_ID,
+      { category:category, kind:kind, label:kind, started_at:ANES.nowIso() }); }, kind + ' started');
+  if(ok) await reload();
+}
+async function stopDevice(id){
+  var ok = await runSave('device', function(){
+    return ANES.update('anesthesia_device_sessions', id, { stopped_at:ANES.nowIso() }); }, 'Stopped');
+  if(ok) await reload();
+}
+async function addFluidFav(i){
+  var f = ANES.FLUID_FAVOURITES[i]; if(!f) return;
+  var ok = await runSave('fluid', function(){
+    return ANES.addFluid(CASE_ID, { fluid:f.name, category:f.category, volume_ml:f.volume_ml }); },
+    f.name + ' recorded');
+  if(ok) await reload();
+}
+async function addFluidCustom(){
+  var name = val('f-name'), v = num('f-vol');
+  if(!name || !(v > 0)) return setSaveState('fluid','err','Enter a fluid and a volume.');
+  var ok = await runSave('fluid', function(){
+    return ANES.addFluid(CASE_ID, { fluid:name, category:val('f-cat'), volume_ml:v,
+      line:val('f-line'), warmed:on('f-warm') }); }, 'Recorded');
+  if(ok) await reload();
+}
+async function addBlood(){
+  var units = num('b-units'), vol = num('b-vol');
+  if(units == null && vol == null) return setSaveState('blood','err','Enter units or a volume.');
+  var ok = await runSave('blood', function(){
+    return ANES.addBlood(CASE_ID, { product:val('b-prod'), units:units, volume_ml:vol,
+      unit_identifier:val('b-id'), reaction:val('b-react'), warmed:on('b-warm') }); }, 'Recorded');
+  if(ok) await reload();
+}
+async function addOutput(){
+  var v = num('o-vol');
+  if(!(v > 0)) return setSaveState('output','err','Enter a volume.');
+  var ok = await runSave('output', function(){
+    return ANES.addOutput(CASE_ID, { kind:val('o-kind'), volume_ml:v, label:val('o-label') }); }, 'Recorded');
+  if(ok) await reload();
+}
+async function addVital(){
+  var p = val('v-param'), v = num('v-value');
+  if(v == null) return setSaveState('vital','err','Enter a value.');
+  var param = p, unit = ANES.VITAL_UNITS[p] || null;
+  if(p === '__custom'){
+    param = val('v-custom'); unit = val('v-unit') || null;
+    if(!param) return setSaveState('vital','err','Name the custom parameter.');
+  }
+  var ok = await runSave('vital', function(){
+    return ANES.addVital(CASE_ID, { parameter:param, value:v, unit:unit }); }, 'Recorded');
+  if(ok) await reload();
+}
+async function saveABG(){
+  var when = ANES.nowIso(), rows = [];
+  ANES.ABG_ANALYTES.forEach(function(a){
+    var n = el('abg-' + a.k.replace(/[^A-Za-z0-9]/g,''));
+    if(n && n.value !== ''){
+      var f = parseFloat(n.value);
+      if(f === f) rows.push({ sampled_at:when, panel:'ABG', analyte:a.k, value:f, unit:a.unit || null });
+    }
+  });
+  if(!rows.length) return setSaveState('abg','err','Enter at least one value.');
+  var ok = await runSave('abg', async function(){
+    for(var i = 0; i < rows.length; i++){
+      var r = await ANES.insert('anesthesia_labs', CASE_ID, rows[i]);
+      if(r.error) return r;
+    }
+    return { error:null };
+  }, rows.length + ' values recorded');
+  if(ok) await reload();
+}
+async function addLab(){
+  var a = val('l-analyte');
+  if(!a) return setSaveState('lab','err','Name the analyte.');
+  var raw = val('l-value'), f = parseFloat(raw);
+  var ok = await runSave('lab', function(){
+    return ANES.insert('anesthesia_labs', CASE_ID, { sampled_at:ANES.nowIso(), panel:val('l-panel'),
+      analyte:a, value:(f === f ? f : null), value_text:(f === f ? null : raw), unit:val('l-unit') }); },
+    'Recorded');
+  if(ok) await reload();
+}
+async function quickEvent(i){
+  var e = ANES.EVENTS[i]; if(!e) return;
+  var ok = await runSave('qev', function(){
+    return ANES.addEvent(CASE_ID, { event_type:e, category:'complication' }); },
+    e + ' recorded — add detail below');
+  if(ok) await reload();
+}
+async function histFinding(topic){
+  var text = prompt('Finding for ' + topic + ':');
+  if(text == null || !text.trim()) return;
+  var r = await ANES.saveHistory(CASE_ID, topic, { reviewed:true, finding:text.trim() });
+  if(r.error){ setSaveState('history','err', r.error.message); return; }
+  setSaveState('history','ok','Saved');
+  await reload();
+}
+async function histSet(topic, what){
+  var cur = (D.history || []).filter(function(h){ return h.topic === topic; })[0] || {};
+  var patch = what === 'clear' ? { reviewed:true, finding:null, significant:false }
+                               : { reviewed:true, significant:!cur.significant };
+  var r = await ANES.saveHistory(CASE_ID, topic, patch);
+  if(r.error){ setSaveState('history','err', r.error.message); return; }
+  setSaveState('history','ok','Saved');
+  await reload();
+}
+
+/* Described-form saves. Each captures its own inputs, so nothing typed is lost
+   if the server refuses. */
+function save_fasting(){ savePre('fasting'); }
+function save_airwayAssessment(){ savePre('airwayAssessment'); }
+function save_investigations(){ savePre('investigations'); }
+async function savePre(spec){
+  var v = captureInputs(spec);
+  var ok = await runSave(spec, function(){ return ANES.savePreassessment(CASE_ID, v); }, 'Saved');
+  if(ok) await reload();
+}
+async function save_caseHeader(){
+  var v = captureInputs('caseHeader');
+  var ok = await runSave('caseHeader', function(){ return ANES.updateCase(CASE_ID, v); }, 'Saved');
+  if(ok) await reload();
+}
+function save_airway(){ saveNew('airway','anesthesia_airway'); }
+function save_access(){ saveNew('access','anesthesia_access'); }
+function save_positioning(){ saveNew('positioning','anesthesia_positioning'); }
+function save_ventilation(){ saveNew('ventilation','anesthesia_ventilation'); }
+function save_regional(){ saveNew('regional','anesthesia_regional'); }
+function save_event(){ saveNew('event','anesthesia_events'); }
+async function save_handoff(){
+  var v = captureInputs('handoff');
+  if(!v.handoff_at) v.handoff_at = ANES.nowIso();
+  var existing = (D.handoffs || [])[0];
+  var ok = await runSave('handoff', function(){
+    return existing ? ANES.update('anesthesia_handoffs', existing.id, v)
+                    : ANES.insert('anesthesia_handoffs', CASE_ID, v); }, 'Saved');
+  if(ok) await reload();
+}
+
+async function finalizeCase(){
+  if(_locked) return;
+  if(!confirm('Sign and finalize this anesthesia record?\n\n' +
+    'The record becomes immutable. Later corrections must be recorded as amendments, ' +
+    'which are appended with your name, the time and the reason.')) return;
+  var r = await ANES.finalize(CASE_ID);
+  if(r.error) return msg('rec-err', r.error.message);
+  msg('rec-ok','Record finalized.');
+  await reload();
+}
+async function openAmend(){
+  var area = prompt('Which part of the record does this amendment concern?\n(e.g. medications, airway, handover)');
+  if(area === null) return;
+  var text = prompt('What is the correction?');
+  if(!text) return;
+  var reason = prompt('Why is it being amended? (required)');
+  if(!reason) return msg('rec-err','An amendment needs a reason.');
+  var r = await ANES.amend(CASE_ID, area || 'general', null, text, reason);
+  if(r.error) return msg('rec-err', r.error.message);
+  msg('rec-ok','Amendment recorded.');
+  await reload();
+}
+
+/* ═══════════ HEADER, NAV, RENDER ══════════════════════════════════════════ */
 function renderHeader(){
   var c = _case;
   el('h-name').textContent = c.display_name || 'Unnamed case';
@@ -222,6 +1320,8 @@ function renderHeader(){
   if(c.date_of_birth) bits.push(ANES.ageFrom(c.date_of_birth));
   if(c.sex) bits.push(c.sex);
   if(c.operating_room) bits.push(c.operating_room);
+  if(c.planned_procedure) bits.push(c.planned_procedure);
+  if(c.surgeon) bits.push('Surg ' + c.surgeon);
   el('h-sub').textContent = bits.join(' · ') || 'No identifiers recorded';
 
   var peds = (c.case_modes || []).some(function(m){ return m === 'pediatric' || m === 'neonatal'; });
@@ -239,179 +1339,93 @@ function renderHeader(){
   chips.push(c.allergies
     ? '<span class="chip stop">⚠ ' + esc(c.allergies) + '</span>'
     : '<span class="chip k">No known allergies recorded</span>');
+  // The one fact from this chart most likely to matter to the next
+  // anesthetist who meets this patient.
+  if(ANES.hasDifficultAirway(D)) chips.push('<span class="chip da">⚠ DIFFICULT AIRWAY</span>');
   (c.anesthesia_types || []).forEach(function(t){ chips.push('<span class="chip k">' + esc(t) + '</span>'); });
   (c.case_modes || []).forEach(function(m){ chips.push('<span class="chip warn">' + esc(m) + '</span>'); });
+  if(c.diagnosis) chips.push('<span class="chip k">' + esc(c.diagnosis) + '</span>');
   el('h-chips').innerHTML = chips.join('');
 
   _locked = (c.status === 'finalized');
   el('h-locked').style.display = _locked ? 'block' : 'none';
-  el('btn-finalize').style.display = _locked ? 'none' : 'block';
-  el('btn-amend').style.display    = _locked ? 'block' : 'none';
 }
 
-/* The running clock counts from anesthesia start, not from page load: the
-   number a clinician wants is "how long has this patient been under". */
+/* The clock counts from anesthesia start, not from page load: the number a
+   clinician wants is "how long has this patient been under". */
 function tickClock(){
-  if(!_clockBase){ el('h-clock').textContent = '--:--'; el('h-clock-l').textContent = 'anesthesia not started'; return; }
+  if(!_clockBase){ el('h-clock').textContent = '--:--';
+    el('h-clock-l').textContent = 'anesthesia not started'; return; }
   var mins = Math.floor((Date.now() - new Date(_clockBase).getTime()) / 60000);
   if(mins < 0) mins = 0;
   el('h-clock').textContent = Math.floor(mins/60) + ':' + String(mins%60).padStart(2,'0');
   el('h-clock-l').textContent = 'since anesthesia start';
 }
 
-/* ── Timeline ───────────────────────────────────────────────────────────── */
-function renderTimeline(rows){
-  el('tl-count').textContent = rows.length ? rows.length + ' entries' : '';
-  if(!rows.length){
-    el('timeline').innerHTML = '<div class="empty">Nothing recorded yet.<br>' +
-      'Use the panel to log the first event — every entry is stamped with the current time.</div>';
-    return;
-  }
-  el('timeline').innerHTML = rows.map(function(r){
-    return '<li class="tl-row ' + r.cls + '">' +
-      '<div class="tl-time">' + hhmm(r.at) + '</div>' +
-      '<div class="tl-dot"></div>' +
-      '<div><div class="tl-txt">' + esc(r.text) + '</div>' +
-      (r.meta ? '<div class="tl-meta">' + esc(r.meta) + '</div>' : '') + '</div></li>';
+function renderRail(){
+  el('rail').innerHTML = SECTIONS.map(function(s){
+    var n = 0; try { n = s.count() || 0; } catch(e){ n = 0; }
+    return '<button class="rnav' + (s.id === _sec ? ' on' : '') + '" onclick="goSection(\'' + s.id + '\')">' +
+      '<span class="ic">' + s.ic + '</span><span>' + esc(s.label) + '</span>' +
+      (n ? '<span class="n">' + n + '</span>' : '') + '</button>';
   }).join('');
 }
+function goSection(id){
+  if(_sec !== id){ _sec = id; _forms = _forms || {}; }
+  renderRail(); redrawSection();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+window.goSection = goSection;
 
-/* ── Quick panel ────────────────────────────────────────────────────────── */
-function buildPanel(){
-  var tabs = ANES.PANELS.map(function(p, i){
-    return '<button class="qtab' + (i===0?' on':'') + '" data-p="' + p.id + '" onclick="showPane(\'' + p.id + '\')">' +
-           esc(p.label) + '</button>'; }).join('');
-  el('qtabs').innerHTML = tabs;
-  el('qpanes').innerHTML = ANES.PANELS.map(function(p, i){
-    return '<div class="qpane' + (i===0?' on':'') + '" id="pane-' + p.id + '">' + p.render() + '</div>';
-  }).join('');
-}
-function showPane(id){
-  [].forEach.call(document.querySelectorAll('.qtab'), function(b){ b.classList.toggle('on', b.dataset.p === id); });
-  [].forEach.call(document.querySelectorAll('.qpane'), function(d){ d.classList.toggle('on', d.id === 'pane-' + id); });
-}
-
-/* ── Writes. Each returns to reload() so the timeline is always the server's
-      version of events, never an optimistic guess. ─────────────────────── */
-async function guard(){
-  if(_locked){ msg('rec-err', 'This record is finalized. Record an amendment instead.'); return false; }
-  return true;
-}
-async function markMilestone(key, label){
-  if(!await guard()) return;
-  var r = await ANES.setMilestone(CASE_ID, key);
-  if(r.error) return msg('rec-err', r.error.message);
-  await reload();
-}
-async function giveDrug(name, dose, unit, category){
-  if(!await guard()) return;
-  var r = await ANES.addMedication(CASE_ID, { medication:name, dose:dose, unit:unit, category:category, route:'iv' });
-  if(r.error) return msg('rec-err', r.error.message);
-  await reload();
-}
-async function giveCustomDrug(){
-  if(!await guard()) return;
-  var name = el('d-name').value.trim(), dose = parseFloat(el('d-dose').value);
-  if(!name || !(dose > 0)) return msg('rec-err', 'Enter a medication and a dose.');
-  var r = await ANES.addMedication(CASE_ID, { medication:name, dose:dose,
-    unit: el('d-unit').value, route: el('d-route').value });
-  if(r.error) return msg('rec-err', r.error.message);
-  el('d-name').value = ''; el('d-dose').value = '';
-  await reload();
-}
-async function addFluid(fluid, category, volume){
-  if(!await guard()) return;
-  var v = volume != null ? volume : parseFloat(el('f-vol').value);
-  if(!(v > 0)) return msg('rec-err', 'Enter a volume.');
-  var r = await ANES.addFluid(CASE_ID, { fluid:fluid || el('f-name').value, category:category || 'crystalloid', volume_ml:v });
-  if(r.error) return msg('rec-err', r.error.message);
-  await reload();
-}
-async function addFluidFav(i){
-  var f = ANES.FLUID_FAVOURITES[i];
-  if(!f) return;
-  await addFluid(f.name, f.category, f.volume_ml);
-}
-async function addOutput(kind){
-  if(!await guard()) return;
-  var v = parseFloat(el('o-vol').value);
-  if(!(v > 0)) return msg('rec-err', 'Enter a volume.');
-  var r = await ANES.addOutput(CASE_ID, { kind:kind, volume_ml:v });
-  if(r.error) return msg('rec-err', r.error.message);
-  el('o-vol').value = '';
-  await reload();
-}
-async function addEvent(type){
-  if(!await guard()) return;
-  var r = await ANES.addEvent(CASE_ID, { category:'complication', event_type:type,
-    description: el('e-desc') ? el('e-desc').value.trim() : null });
-  if(r.error) return msg('rec-err', r.error.message);
-  if(el('e-desc')) el('e-desc').value = '';
-  await reload();
-}
-async function addVital(){
-  if(!await guard()) return;
-  var p = el('v-param').value, v = parseFloat(el('v-value').value);
-  if(!(v === v)) return msg('rec-err', 'Enter a value.');
-  var r = await ANES.addVital(CASE_ID, { parameter:p, value:v, unit: ANES.VITAL_UNITS[p] || null });
-  if(r.error) return msg('rec-err', r.error.message);
-  el('v-value').value = '';
-  await reload();
-}
-
-async function finalizeCase(){
-  if(_locked) return;
-  if(!confirm('Sign and finalize this anesthesia record?\n\n' +
-    'The record becomes immutable. Later corrections must be recorded as amendments, ' +
-    'which are appended with your name, the time and the reason.')) return;
-  var r = await ANES.finalize(CASE_ID);
-  if(r.error) return msg('rec-err', r.error.message);
-  msg('rec-ok', 'Record finalized.');
-  await reload();
-}
-async function openAmend(){
-  var area = prompt('Which part of the record does this amendment concern?\n(e.g. medications, timeline, airway)');
-  if(area === null) return;
-  var text = prompt('What is the correction?');
-  if(!text) return;
-  var reason = prompt('Why is it being amended? (required)');
-  if(!reason) return msg('rec-err', 'An amendment needs a reason.');
-  var r = await ANES.amend(CASE_ID, area || 'general', null, text, reason);
-  if(r.error) return msg('rec-err', r.error.message);
-  msg('rec-ok', 'Amendment recorded.');
-  await reload();
+function redrawSection(){
+  var host = el('sections');
+  if(!host) return;                       // the page has been replaced by an error view
+  var s = SECTIONS.filter(function(x){ return x.id === _sec; })[0] || SECTIONS[0];
+  host.innerHTML = '<div class="sec on">' + s.render() + '</div>';
+  applySaveStates();
 }
 
 /* ── Load ───────────────────────────────────────────────────────────────── */
+function seedForms(){
+  // The single-row forms open showing what is already recorded, so a clinician
+  // adding one field does not silently blank the other thirty.
+  var pre = D.preassessment || {};
+  ['fasting','airwayAssessment','investigations'].forEach(function(spec){
+    var v = {};
+    ANES.FORMS[spec].fields.forEach(function(f){ if(pre[f.k] != null) v[f.k] = pre[f.k]; });
+    _forms[spec] = v;
+  });
+  var v = {};
+  ANES.FORMS.caseHeader.fields.forEach(function(f){ if(_case[f.k] != null) v[f.k] = _case[f.k]; });
+  _forms.caseHeader = v;
+  var h = (D.handoffs || [])[0];
+  if(h){
+    var hv = {};
+    ANES.FORMS.handoff.fields.forEach(function(f){ if(h[f.k] != null) hv[f.k] = h[f.k]; });
+    _forms.handoff = hv;
+  }
+}
+
 async function reload(){
-  var data = await ANES.loadCase(CASE_ID);
-  if(!data.case){
-    document.body.innerHTML = '<div style="max-width:520px;margin:80px auto;padding:24px;font-family:DM Sans,sans-serif;' +
+  D = await ANES.loadCase(CASE_ID);
+  if(!D.case){
+    document.body.innerHTML = '<div style="max-width:560px;margin:80px auto;padding:24px;font-family:DM Sans,sans-serif;' +
       'color:#fff;text-align:center"><h1 style="font-size:20px;margin-bottom:10px">Record not available</h1>' +
-      '<p style="color:rgba(255,255,255,.5);line-height:1.6">This anesthesia record does not exist, or you do not ' +
-      'have access to it. Access is decided by the database, not by this page.</p>' +
-      '<p style="margin-top:18px"><a href="/anesthesia-cases.html" style="color:#7ECFC0">Back to Live Chart</a></p></div>';
+      '<p style="color:rgba(255,255,255,.5);line-height:1.6">' +
+      (D.errors && D.errors.case
+        ? 'The record could not be read: ' + esc(D.errors.case)
+        : 'This anesthesia record does not exist, or you do not have access to it. Access is decided by the ' +
+          'database, not by this page.') +
+      '</p><p style="margin-top:18px"><a href="/anesthesia-cases.html" style="color:#7ECFC0">Back to Live Chart</a></p></div>';
     return;
   }
-  _case = data.case;
+  _case = D.case;
+  seedForms();
   renderHeader();
-  _clockBase = data.milestones.anesthesia_start || null;
+  _clockBase = D.milestones.anesthesia_start || null;
   tickClock();
-  renderTimeline(ANES.buildTimeline(data));
-  el('totals').innerHTML = ANES.renderTotals(data);
-  // Mark milestones already recorded, so a second tap is obviously redundant.
-  [].forEach.call(document.querySelectorAll('[data-milestone]'), function(b){
-    b.classList.toggle('done', !!data.milestones[b.dataset.milestone]);
-  });
-  if(data.amendments.length){
-    el('amend-card').style.display = 'block';
-    el('amend-list').innerHTML = data.amendments.map(function(a){
-      return '<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)">' +
-        '<div style="font-size:13.5px">' + esc(a.amendment) + '</div>' +
-        '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' +
-        esc(a.target_area) + ' · ' + hhmm(a.amended_at) + ' · ' + esc(a.reason) + '</div></div>';
-    }).join('');
-  }
+  renderRail();
+  redrawSection();
 }
 
 (async function(){
@@ -420,7 +1434,6 @@ async function reload(){
   var auth = await window.requireRole('staff');
   if(!auth) return;
   if(!CASE_ID){ location.replace('/anesthesia-cases.html'); return; }
-  buildPanel();
   await reload();
   setInterval(tickClock, 15000);
   el('loader').style.display = 'none';
