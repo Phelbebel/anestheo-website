@@ -11,6 +11,7 @@
 <script src="/auth.js?v=2026.08.14-01"></script>
 <script src="/navbar.js?v=2026.08.14-01"></script>
 <script src="/passport.js?v=2026.08.14-01"></script>
+<script src="/vendor/qrcode-generator-2.0.4.js"></script>
 <script src="/qr.js?v=2026.08.14-01"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -124,7 +125,7 @@ function msg(id, text, ok){
 function clearMsg(id){ var n = el(id); if(n) n.style.display = 'none'; }
 
 /* ── rendering ─────────────────────────────────────────────────────────── */
-function itemCard(i){
+function itemCard(i, readOnly){
   var pv = HP.provenance(i.source_type);
   var crit = HP.isCritical(i.category) || i.severity === 'critical' || i.severity === 'high';
   return '<div class="card' + (crit ? ' crit' : '') + '"><div class="row"><div class="g">' +
@@ -140,12 +141,13 @@ function itemCard(i){
       '<div class="lost">You changed this after a clinician verified it, so the badge was ' +
       'removed. Ask them to check it again.</div>' : '') +
     '</div></div>' +
+    (readOnly ? '' :
     '<div class="acts">' +
       '<button class="btn sm" onclick="startEdit(\'' + i.id + '\')">Edit</button>' +
       '<button class="btn sm" onclick="toggleVisible(\'' + i.id + '\')">' +
         (i.is_emergency_visible ? 'Hide from QR' : 'Show in QR') + '</button>' +
       '<button class="btn sm danger" onclick="removeItem(\'' + i.id + '\')">Delete</button>' +
-    '</div></div>';
+    '</div>') + '</div>';
 }
 
 function itemForm(i){
@@ -175,13 +177,72 @@ function itemForm(i){
     '</div><div class="msg" id="m-item"></div></div>';
 }
 
-function contactCard(c){
+function contactCard(c, readOnly){
   return '<div class="card"><div class="row"><div class="g">' +
     '<div class="it-t">' + esc(c.name) + '</div>' +
     '<div class="it-v">' + esc([c.relationship, c.phone].filter(Boolean).join(' · ')) + '</div>' +
-    '</div></div><div class="acts">' +
+    '<div class="meta">' +
+      (c.is_emergency_visible
+        ? '<span class="tag pv-doc">Shown on QR</span>'
+        : '<span class="tag hid">Hidden from QR</span>') +
+    '</div></div></div>' +
+    (readOnly ? '' :
+    '<div class="acts">' +
+    '<button class="btn sm" onclick="toggleContact(\'' + c.id + '\')">' +
+      (c.is_emergency_visible ? 'Hide from QR' : 'Show in QR') + '</button>' +
     '<button class="btn sm danger" onclick="removeContact(\'' + c.id + '\')">Remove</button>' +
-    '</div></div>';
+    '</div>') + '</div>';
+}
+
+/* WHAT THIS QR WILL SHOW.
+--
+   Shown before a QR is ever minted or replaced, and it lists the actual
+   projection — every item, every contact, and whether the name goes out —
+   rather than a sentence about "your health information". A patient agreeing
+   to share should be able to read the exact thing a stranger will read.
+--
+   Built from HP.projection, the same filters the resolver applies, so this
+   screen cannot promise something different from what the server sends. */
+function shareView(){
+  var pj = HP.projection(D, window.__hpName);
+  var h = '<h2>What this QR will show</h2>' +
+    '<div class="card"><div class="it-v">Anyone who scans this code — including ' +
+    'someone who photographs it — sees exactly this, and nothing else. Anything ' +
+    'not listed here stays private.</div></div>';
+
+  h += '<h2>Your name</h2><div class="card"><div class="row"><div class="g">' +
+    '<div class="it-t">' + (pj.name ? esc(pj.name) : 'Not shared') + '</div>' +
+    '<div class="it-v">' + (pj.name
+      ? 'A scanner will be told who this passport belongs to.'
+      : 'A scanner will see your health information but not your name.') +
+    '</div></div></div><div class="acts">' +
+    '<button class="btn" onclick="toggleShareName()">' +
+      (pj.name ? 'Do not share my name' : 'Share my name') + '</button></div></div>';
+
+  h += '<h2>Health information (' + pj.items.length + ')</h2>';
+  h += pj.items.length ? pj.items.map(function(i){ return itemCard(i, true); }).join('')
+    : '<div class="card"><div class="empty">Nothing. A scanner would see an empty ' +
+      'passport.<br>Mark entries "Show on my emergency QR" to share them.</div></div>';
+
+  h += '<h2>Emergency contacts (' + pj.contacts.length + ')</h2>';
+  h += pj.contacts.length ? pj.contacts.map(function(c){ return contactCard(c, true); }).join('')
+    : '<div class="card"><div class="empty">None. No contact will be shown.</div></div>';
+
+  var hiddenItems = D.items.length - pj.items.length;
+  var hiddenContacts = D.contacts.length - pj.contacts.length;
+  if(hiddenItems || hiddenContacts){
+    h += '<div class="card"><div class="it-v">Staying private: ' +
+      [hiddenItems ? hiddenItems + ' health ' + (hiddenItems === 1 ? 'entry' : 'entries') : null,
+       hiddenContacts ? hiddenContacts + ' contact' + (hiddenContacts === 1 ? '' : 's') : null]
+        .filter(Boolean).join(' and ') + '.</div></div>';
+  }
+
+  h += '<div class="acts" style="margin-top:20px">' +
+    '<button class="btn pri" onclick="confirmShare()">' +
+      (TOK.active ? 'Replace my QR with this' : 'Create my QR with this') + '</button>' +
+    '<button class="btn" onclick="cancelShare()">Cancel</button></div>' +
+    '<div class="msg" id="m-share"></div>';
+  return h;
 }
 
 function qrView(){
@@ -225,7 +286,8 @@ function qrView(){
 }
 
 function previewView(){
-  var vis = HP.previewOf(D.items);
+  var pj = HP.projection(D, window.__hpName);
+  var vis = pj.items;
   var h = '<h2>What a scanner sees</h2>' +
     '<div class="card"><div class="it-v">This is exactly the projection the public page ' +
     'receives — the same entries, in the same order. Anything you have hidden is not ' +
@@ -234,9 +296,10 @@ function previewView(){
     h += '<div class="card"><div class="empty">Nothing is shared on your QR yet. ' +
       'Add health information and mark it "Show on my emergency QR".</div></div>';
   } else {
-    h += vis.map(itemCard).join('');
+    h += vis.map(function(i){ return itemCard(i, true); }).join('');
   }
-  if(D.contacts.length) h += '<h2>Emergency contact</h2>' + D.contacts.map(contactCard).join('');
+  if(pj.contacts.length)
+    h += '<h2>Emergency contact</h2>' + pj.contacts.map(function(c){ return contactCard(c, true); }).join('');
   return h;
 }
 
@@ -261,7 +324,8 @@ function render(){
     tab('passport','My information') + tab('qr','Emergency QR') + tab('preview','Preview') +
     '</div><div class="msg noprint" id="m-main"></div>';
 
-  if(_view === 'qr'){ h += qrView(); }
+  if(_view === 'share'){ h += shareView(); }
+  else if(_view === 'qr'){ h += qrView(); }
   else if(_view === 'preview'){ h += previewView(); }
   else {
     var crit = D.items.filter(function(i){
@@ -285,6 +349,10 @@ function render(){
       '<div><label for="c-name">Name</label><input id="c-name" autocomplete="off"></div>' +
       '<div><label for="c-rel">Relationship</label><input id="c-rel" placeholder="e.g. partner" autocomplete="off"></div>' +
       '</div><label for="c-phone">Phone</label><input id="c-phone" type="tel" autocomplete="off">' +
+      '<label class="chk" for="c-vis"><input type="checkbox" id="c-vis">' +
+        'Show this person on my emergency QR</label>' +
+      '<div class="it-v" style="font-size:12.5px;opacity:.8">Their name and number would be ' +
+        'visible to anyone who scans it. Ask them first — it is their information too.</div>' +
       '<div class="acts"><button class="btn" onclick="addContact()">Add contact</button></div>' +
       '<div class="msg" id="m-contact"></div></div>';
   }
@@ -364,8 +432,16 @@ async function addContact(){
   var r = await HP.addContact(D.passport.id, {
     name: name, relationship: el('c-rel').value.trim() || null,
     phone: el('c-phone').value.trim() || null,
-    is_primary: D.contacts.length === 0 });
+    is_primary: D.contacts.length === 0,
+    is_emergency_visible: el('c-vis').checked });
   if(r.error) return msg('m-contact', r.error.message);
+  await reload(); render();
+}
+async function toggleContact(id){
+  var c = D.contacts.filter(function(x){ return x.id === id; })[0];
+  if(!c) return;
+  var r = await HP.updateContact(id, { is_emergency_visible: !c.is_emergency_visible });
+  if(r.error) return msg('m-main', r.error.message);
   await reload(); render();
 }
 async function removeContact(id){
@@ -374,14 +450,25 @@ async function removeContact(id){
   await reload(); render();
 }
 
-async function rotate(){
+/* Minting a QR always goes through the consent screen. There is no path from
+   a button straight to a live public link. */
+function rotate(){ _view = 'share'; render(); window.scrollTo({ top:0 }); }
+function cancelShare(){ _view = 'qr'; render(); }
+
+async function toggleShareName(){
+  var r = await HP.setShowName(D.passport.id, !D.passport.show_name_on_qr);
+  if(r.error) return msg('m-share', r.error.message);
+  await reload(); render();
+}
+
+async function confirmShare(){
   if(_busy) return;
   if(TOK.active && !confirm('Replace your QR?\n\nAny card you have already printed will ' +
     'stop working immediately. Your health information is not changed.')) return;
   _busy = true;
   var r = await HP.rotateToken();
   _busy = false;
-  if(r.error) return msg('m-main', r.error.message);
+  if(r.error) return msg('m-share', r.error.message);
   _lastToken = r.token;            // memory only, for this tab, until reload
   await reload(); _view = 'qr'; render();
 }
@@ -399,6 +486,8 @@ window.createPassport = createPassport; window.startAdd = startAdd;
 window.startEdit = startEdit; window.cancelForm = cancelForm; window.saveItem = saveItem;
 window.toggleVisible = toggleVisible; window.removeItem = removeItem;
 window.addContact = addContact; window.removeContact = removeContact;
+window.toggleContact = toggleContact; window.confirmShare = confirmShare;
+window.cancelShare = cancelShare; window.toggleShareName = toggleShareName;
 window.rotate = rotate; window.disable = disable; window.go = go;
 
 (async function(){

@@ -90,14 +90,28 @@ function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s == null ? '' : s)
   .replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
-/* Accepts /p/<token> and /p.html?t=<token>. The pretty form needs a rewrite
-   rule on the server; the query form works with no server configuration at
-   all, so a QR that was printed before the rule went live still opens. */
+/* THE TOKEN COMES FROM THE FRAGMENT AND NOWHERE ELSE.
+--
+   A fragment is never transmitted: it is not in the request line, so it cannot
+   land in a Hostinger or LiteSpeed access log, a proxy log, a CDN log, or a
+   Referer header. The server serving this page sees only "GET /p.html".
+--
+   A path or query form is deliberately NOT accepted, even as a fallback. A
+   fallback that works is a fallback someone will link to, and the moment they
+   do, the credential is in a log file. /p.html is a real file, so this also
+   needs no rewrite rule — there is nothing an .htaccess can lose. */
 function tokenFromUrl(){
-  var q = new URLSearchParams(location.search).get('t');
-  if(q) return q;
-  var m = location.pathname.match(/\/p\/([A-Za-z0-9_-]{20,})\/?$/);
-  return m ? m[1] : null;
+  var h = String(location.hash || '').replace(/^#/, '');
+  return /^[A-Za-z0-9_-]{43}$/.test(h) ? h : null;
+}
+
+/* Take it out of the address bar once it has been read. It never reached the
+   server, but it is still a credential sitting in plain sight on a phone held
+   up in a corridor, and in that browser's history afterwards. */
+function scrubHash(){
+  try {
+    if(location.hash) history.replaceState(null, '', location.pathname);
+  } catch(e){}
 }
 
 function unavailable(){
@@ -117,8 +131,11 @@ function render(d){
 
   var h = '<div class="brand"><b>Anestheo Health Passport</b></div>';
 
+  /* A missing name is a choice the patient made, not a gap in the record, and
+     saying "not recorded" would imply otherwise to a clinician. */
   h += '<div class="who"><div class="lab">Patient</div>' +
-       '<h1>' + esc(d.patient_name || 'Name not recorded') + '</h1></div>';
+       '<h1>' + (d.patient_name ? esc(d.patient_name)
+                                : 'Name not shared') + '</h1></div>';
 
   h += '<div class="warn"><b>This Health Passport may contain patient-reported ' +
        'information.</b> Verify clinically before making treatment decisions.</div>';
@@ -170,6 +187,7 @@ function card(i, critical){
 
 (async function(){
   var token = tokenFromUrl();
+  scrubHash();
   if(!token) return unavailable();
   var r;
   try { r = await HP.resolve(token); }

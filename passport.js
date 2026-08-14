@@ -2,22 +2,50 @@
  *
  * Every write goes through the same RLS the database enforces; nothing here is
  * a security boundary. The one thing this file does that the database cannot
- * is generate the QR token, because the raw token must never be something the
- * server stored — it is made here, shown once, and only its sha256 is sent.
+ * is generate the QR token: it is made here from the platform CSPRNG, posted
+ * once to be hashed, and only the hash is kept. See HP.newToken for exactly
+ * what that does and does not guarantee — the raw value is necessarily seen by
+ * the server during rotation and during every scan, and this file does not
+ * pretend otherwise.
  */
 (function(global){
 'use strict';
 var HP = {};
 
-/* The URL a scanner opens. Kept in one place so the QR, the preview and the
-   public page can never disagree about what a passport link looks like. */
+/* The URL a scanner opens. The token lives in the FRAGMENT, and that is the
+   whole point of the shape.
+--
+   A fragment is never sent to the server. It is not in the request line, so it
+   cannot appear in a Hostinger or LiteSpeed access log, in a proxy log, in a
+   CDN log, or in a Referer header on the way to anywhere else. A path or query
+   token would be written into an access log the moment anyone scanned the
+   card, and access logs are backed up, shipped and read by people who have no
+   business holding a key to someone's medical history.
+--
+   It also needs no server configuration. /p.html is a real file; there is no
+   rewrite rule to lose, so a printed card cannot be killed by an .htaccess
+   that goes missing in a migration.
+--
+   Kept in one place so the QR, the preview and the public page can never
+   disagree about what a passport link looks like. */
 HP.ORIGIN = 'https://anestheo.com';
-HP.linkFor = function(token){ return HP.ORIGIN + '/p/' + token; };
+HP.linkFor = function(token){ return HP.ORIGIN + '/p.html#' + token; };
 
-/* 256 bits from the platform CSPRNG, base64url, 43 characters.
+/* 256 bits from the platform CSPRNG, base64url, exactly 43 characters.
    Deliberately unrelated to the patient, the passport, the email or anything
    else: it is a key, not an identifier, and nothing about it should be
-   derivable from something an attacker already knows. */
+   derivable from something an attacker already knows.
+--
+   WHAT IS AND IS NOT TRUE ABOUT THIS VALUE, precisely:
+     * It is NOT stored in any passport table. Only sha256(token) is, so a dump
+       of the whole schema opens nothing.
+     * It IS transmitted to the server twice in its life: once to hp_rotate_token
+       to be hashed, and once per scan to hp_resolve_passport to be looked up.
+       Both are POST request BODIES over TLS, not URLs. It necessarily exists in
+       server memory for the duration of those calls.
+     * It is NOT in any page request URL, because it lives after the '#'.
+     * We do not control what Supabase logs about an RPC call. The honest claim
+       is the first three points, not "the raw token is never logged anywhere". */
 HP.newToken = function(){
   var b = new Uint8Array(32);
   global.crypto.getRandomValues(b);
@@ -126,7 +154,13 @@ HP.addItem = async function(passportId, item){
       passport_id: passportId,
       category: item.category, label: String(item.label || '').trim(),
       value_text: item.value_text || null, severity: item.severity || null,
-      is_emergency_visible: item.is_emergency_visible !== false
+      /* Only shared if the caller SAYS so. The add form always passes this
+         explicitly — its checkbox is pre-ticked and says what it does — so a
+         patient recording an allergy still shares it in one action. But a
+         caller that says nothing gets the private default, matching the
+         column default, so nothing can become public through a path that
+         never asked the question. */
+      is_emergency_visible: item.is_emergency_visible === true
     };
     if(!row.label) return { error:{ message:'Give the entry a name.' } };
     /* source_type is deliberately not sent. The database decides it, and the
@@ -158,7 +192,28 @@ HP.addContact = async function(passportId, c){
     var r = await sb().from('health_passport_contacts').insert({
       passport_id: passportId, name: String(c.name || '').trim(),
       relationship: c.relationship || null, phone: c.phone || null,
-      is_primary: !!c.is_primary });
+      is_primary: !!c.is_primary,
+      /* Default hidden, and never quietly true. A contact's name and phone
+         number are somebody ELSE's personal data — the husband did not agree
+         to be reachable by anyone who photographs a card. Sharing them is a
+         separate, deliberate act. */
+      is_emergency_visible: c.is_emergency_visible === true });
+    return { error: (r && r.error) || null };
+  } catch(e){ return { error:{ message:e.message } }; }
+};
+HP.updateContact = async function(id, patch){
+  try {
+    var row = {};
+    ['name','relationship','phone','is_primary','is_emergency_visible']
+      .forEach(function(k){ if(patch[k] !== undefined) row[k] = patch[k]; });
+    var r = await sb().from('health_passport_contacts').update(row).eq('id', id);
+    return { error: (r && r.error) || null };
+  } catch(e){ return { error:{ message:e.message } }; }
+};
+HP.setShowName = async function(passportId, on){
+  try {
+    var r = await sb().from('health_passports')
+              .update({ show_name_on_qr: !!on }).eq('id', passportId);
     return { error: (r && r.error) || null };
   } catch(e){ return { error:{ message:e.message } }; }
 };
@@ -171,12 +226,17 @@ HP.removeContact = async function(id){
 
 /* ── the QR ────────────────────────────────────────────────────────────── */
 
-/* Mints a token, sends only its hash, and hands the raw value back to the
-   caller ONCE. It is never stored, never logged, and cannot be recovered — if
-   the patient loses the card they generate a new one, which is the same
-   guarantee as a password nobody can read back to them. */
+/* Mints a token, posts it once to be hashed, and hands the raw value back to
+   the caller for as long as the tab is open. Only the hash is kept, so it
+   cannot be shown again later or recovered by anyone — if the patient loses
+   the card they generate a new one, which is the same guarantee as a password
+   nobody can read back to them. */
+HP.TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;   // exactly what newToken() produces
+
 HP.rotateToken = async function(){
   var token = HP.newToken();
+  if(!HP.TOKEN_RE.test(token))
+    return { error:{ message:'Could not generate a secure code. Please try again.' } };
   try {
     var r = await sb().rpc('hp_rotate_token', { p_token: token });
     if(r && r.error) return { error:r.error };
@@ -217,11 +277,20 @@ HP.resolve = async function(token){
   } catch(e){ return { error:{ message:e.message } }; }
 };
 
-/* What the scanner would see, computed from the same rows and the same order
-   the resolver uses — so "Preview emergency view" is a promise the server
-   keeps, not a mock-up. */
+/* What the scanner would see, computed from the same rows, the same filters
+   and the same order the resolver uses — so the consent screen and "Preview"
+   are promises the server keeps, not mock-ups. If this and
+   hp_resolve_passport ever disagree, the tests fail. */
 HP.previewOf = function(items){
   return HP.sort((items || []).filter(function(i){ return i.is_emergency_visible; }));
+};
+HP.projection = function(D, patientName){
+  D = D || {};
+  return {
+    name: (D.passport && D.passport.show_name_on_qr) ? (patientName || null) : null,
+    items: HP.previewOf(D.items),
+    contacts: (D.contacts || []).filter(function(c){ return c.is_emergency_visible; })
+  };
 };
 
 global.HP = HP;

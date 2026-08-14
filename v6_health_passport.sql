@@ -17,6 +17,10 @@
 --     guessed, or walked.
 --   * The database never stores the token. It stores sha256(token). A dump of
 --     every row in this schema does not let anyone open a single passport.
+--   * The token travels in the URL FRAGMENT, so it is never in a request line
+--     and never in a web-server access log. It IS sent in the POST body of
+--     hp_rotate_token and hp_resolve_passport, over TLS, and necessarily
+--     exists in server memory while those run. That is the precise claim.
 --   * The token is revocable and replaceable, and a revoked one dies instantly.
 --   * A scanner sees a projection, chosen item by item by the patient. Never a
 --     table, never a row, never an id.
@@ -49,9 +53,24 @@ CREATE TABLE IF NOT EXISTS public.health_passports (
   patient_id             uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   status                 text NOT NULL DEFAULT 'active',
   emergency_view_enabled boolean NOT NULL DEFAULT true,
+  /* Whether a scanner is told WHO this is. Default false: the QR is designed
+     on the assumption that a stranger photographs it, and a name is the one
+     field that turns a set of conditions into an identified person. The
+     consent screen asks for it explicitly before any QR is generated, so
+     nearly everyone will turn it on deliberately — which is the point. */
+  show_name_on_qr        boolean NOT NULL DEFAULT false,
   created_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now()
 );
+/* Additive, so an installation created before this hardening pass gains the
+   columns with the safe default rather than needing a rebuild. */
+ALTER TABLE public.health_passports
+  ADD COLUMN IF NOT EXISTS show_name_on_qr boolean NOT NULL DEFAULT false;
+ALTER TABLE public.health_passport_contacts
+  ADD COLUMN IF NOT EXISTS is_emergency_visible boolean NOT NULL DEFAULT false;
+ALTER TABLE public.health_passport_items
+  ALTER COLUMN is_emergency_visible SET DEFAULT false;
+
 ALTER TABLE public.health_passports DROP CONSTRAINT IF EXISTS hp_status_chk;
 ALTER TABLE public.health_passports
   ADD CONSTRAINT hp_status_chk CHECK (status IN ('active','revoked'));
@@ -73,7 +92,11 @@ CREATE TABLE IF NOT EXISTS public.health_passport_items (
   verified_by          uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   verified_at          timestamptz,
   verification_lost_at timestamptz,
-  is_emergency_visible boolean NOT NULL DEFAULT true,
+  /* Default false, so nothing can become publicly readable through a code
+     path that never asked. The add form pre-ticks the box and says plainly
+     what it does, so a patient recording an allergy still shares it in one
+     deliberate action — but the DEFAULT is the safe one. */
+  is_emergency_visible boolean NOT NULL DEFAULT false,
   created_at           timestamptz NOT NULL DEFAULT now(),
   updated_at           timestamptz NOT NULL DEFAULT now(),
   deleted_at           timestamptz
@@ -114,6 +137,10 @@ CREATE TABLE IF NOT EXISTS public.health_passport_contacts (
   relationship text,
   phone        text,
   is_primary   boolean NOT NULL DEFAULT false,
+  /* Default false. A contact's name and number are a THIRD PARTY's personal
+     data; that person never agreed to be reachable by anyone who photographs
+     a card. Publishing them is a separate, deliberate act by the patient. */
+  is_emergency_visible boolean NOT NULL DEFAULT false,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),
   deleted_at   timestamptz
@@ -121,9 +148,15 @@ CREATE TABLE IF NOT EXISTS public.health_passport_contacts (
 CREATE INDEX IF NOT EXISTS hp_contacts_passport_idx
   ON public.health_passport_contacts(passport_id) WHERE deleted_at IS NULL;
 
-/* THE TOKEN IS NOT HERE. token_hash is sha256 of the raw token, hex. The raw
-   value exists in the QR image, in the patient's browser at the moment it was
-   made, and nowhere else — not in this table, not in a log, not in a backup.
+/* THE TOKEN IS NOT HERE. token_hash is sha256 of the raw token, hex, so this
+   table and every backup of it are useless to anyone who steals them.
+
+   The raw value lives in the printed QR and in the patient's browser. It also
+   passes through this server, in the body of hp_rotate_token when it is minted
+   and of hp_resolve_passport on every scan — it cannot be looked up without
+   being sent. What is guaranteed is that it is not PERSISTED here and not in a
+   URL; what is not guaranteed is whatever the hosting platform logs about an
+   RPC body, which is not ours to promise.
 
    token_prefix is the first eight characters of the HASH, not of the token. It
    exists so a patient can be shown "ending 3f9a…" to tell two QR cards apart,
@@ -183,14 +216,18 @@ CREATE OR REPLACE FUNCTION public.hp_guard_item_provenance()
 RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    -- Nobody may award themselves a badge on the way in. Verification is only
-    -- ever granted by hp_verify_item(), which runs as the owner.
+    /* Anything a signed-in patient creates is patient_reported. Full stop.
+       Not "unless they asked for document_supported" — a hand-rolled REST call
+       can ask for anything, and document_supported is a claim that a document
+       was checked, which no V1 workflow has done. It is reserved for a future
+       validated-document flow, and clinician_verified for hp_verify_item(),
+       and system_derived for trusted server work. None of those is reachable
+       from a browser. */
     IF current_user IN ('authenticated','anon') THEN
-      NEW.source_type  := CASE WHEN NEW.source_type = 'patient_reported'
-                                 OR NEW.source_type = 'document_supported'
-                               THEN NEW.source_type ELSE 'patient_reported' END;
+      NEW.source_type  := 'patient_reported';
       NEW.verified_by  := NULL;
       NEW.verified_at  := NULL;
+      NEW.verification_lost_at := NULL;
       NEW.reported_by  := auth.uid();
     END IF;
     RETURN NEW;
@@ -202,13 +239,11 @@ BEGIN
     RETURN NEW;                       -- hp_verify_item and admin paths
   END IF;
 
-  -- A patient can never write these three columns directly, in either
-  -- direction: not to grant verification, and not to forge who granted it.
-  NEW.source_type := CASE WHEN OLD.source_type = 'clinician_verified'
-                          THEN OLD.source_type
-                          WHEN NEW.source_type IN ('patient_reported','document_supported')
-                          THEN NEW.source_type
-                          ELSE OLD.source_type END;
+  /* A patient can never write these columns directly, in either direction:
+     not to grant a badge, not to forge who granted it, and not to move an
+     entry sideways into document_supported. The value is simply carried over
+     from the existing row, whatever the request asked for. */
+  NEW.source_type := OLD.source_type;
   NEW.verified_by := OLD.verified_by;
   NEW.verified_at := OLD.verified_at;
 
@@ -310,9 +345,11 @@ CREATE POLICY hp_item_select ON public.health_passport_items FOR SELECT
   USING (hp_owns(passport_id) OR hp_clinician_may_read(passport_id));
 
 DROP POLICY IF EXISTS hp_item_insert ON public.health_passport_items;
+/* Belt as well as braces: the trigger already forces patient_reported, and
+   this refuses anything else outright. Either alone would hold; a direct REST
+   insert asking for clinician_verified now meets both. */
 CREATE POLICY hp_item_insert ON public.health_passport_items FOR INSERT
-  WITH CHECK (hp_owns(passport_id)
-              AND source_type IN ('patient_reported','document_supported'));
+  WITH CHECK (hp_owns(passport_id) AND source_type = 'patient_reported');
 
 DROP POLICY IF EXISTS hp_item_update ON public.health_passport_items;
 CREATE POLICY hp_item_update ON public.health_passport_items FOR UPDATE
@@ -363,8 +400,11 @@ BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
   END IF;
-  IF p_token IS NULL OR p_token !~ '^[A-Za-z0-9_-]{43,}$' THEN
-    RAISE EXCEPTION 'A passport token must be at least 43 url-safe characters'
+  /* Exactly the shape HP.newToken() produces: 43 base64url characters, which
+     is 256 bits. Not "at least" — a longer or differently-shaped value did not
+     come from our generator, and there is no reason to accept one. */
+  IF p_token IS NULL OR p_token !~ '^[A-Za-z0-9_-]{43}$' THEN
+    RAISE EXCEPTION 'A passport token must be exactly 43 url-safe characters'
       USING ERRCODE = '22023';
   END IF;
   SELECT id INTO v_passport FROM public.health_passports WHERE patient_id = auth.uid();
@@ -500,7 +540,9 @@ DECLARE
   v_pass public.health_passports%ROWTYPE; v_name text; v_items jsonb; v_contacts jsonb;
   v_unavailable CONSTANT jsonb := jsonb_build_object('found', false);
 BEGIN
-  IF p_token IS NULL OR length(p_token) < 20 THEN RETURN v_unavailable; END IF;
+  /* Refuse anything that is not shaped like one of our tokens before touching
+     the database. Same generic answer, so this reveals nothing. */
+  IF p_token IS NULL OR p_token !~ '^[A-Za-z0-9_-]{43}$' THEN RETURN v_unavailable; END IF;
   v_hash := public.hp_hash_token(p_token);
 
   SELECT * INTO v_tok FROM public.health_passport_tokens
@@ -514,10 +556,14 @@ BEGIN
     RETURN v_unavailable;
   END IF;
 
-  -- The patient's own name, and nothing else from their account. No email, no
-  -- account id, no role, no metadata.
-  SELECT NULLIF(btrim(COALESCE(pr.full_name, '')), '') INTO v_name
-    FROM public.profiles pr WHERE pr.id = v_pass.patient_id;
+  /* The name only if the patient chose to share it, and nothing else from
+     their account ever: no email, no account id, no role, no metadata. */
+  IF v_pass.show_name_on_qr THEN
+    SELECT NULLIF(btrim(COALESCE(pr.full_name, '')), '') INTO v_name
+      FROM public.profiles pr WHERE pr.id = v_pass.patient_id;
+  ELSE
+    v_name := NULL;
+  END IF;
 
   SELECT COALESCE(jsonb_agg(x ORDER BY x.ord, x.pri DESC, x.label), '[]'::jsonb)
     INTO v_items
@@ -544,7 +590,8 @@ BEGIN
            ORDER BY c.is_primary DESC, c.created_at), '[]'::jsonb)
     INTO v_contacts
     FROM public.health_passport_contacts c
-   WHERE c.passport_id = v_pass.id AND c.deleted_at IS NULL;
+   WHERE c.passport_id = v_pass.id AND c.deleted_at IS NULL
+     AND c.is_emergency_visible;          -- the patient chose, contact by contact
 
   UPDATE public.health_passport_tokens SET last_used_at = now() WHERE id = v_tok.id;
   INSERT INTO public.health_passport_access_log(passport_id, token_id, outcome)
