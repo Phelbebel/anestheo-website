@@ -110,6 +110,23 @@ ALTER TABLE public.health_passport_items
   ADD CONSTRAINT hp_item_severity_chk CHECK (
     severity IS NULL OR severity IN ('critical','high','moderate','low','info'));
 
+/* The public free-text field, bounded.
+--
+   value_text is the one field on a world-readable page with no vocabulary
+   behind it, and an unbounded text box is an invitation to paste a history, an
+   address, or a diagnosis nobody meant to publish. A hundred and twenty
+   characters is enough for "Anaphylaxis — adrenaline 2019" and far too few for
+   a paragraph. The label is capped for the same reason.
+--
+   The cap is on what may be WRITTEN, not on what may be shown: it constrains
+   the field at its source rather than truncating it on the way out, so what a
+   patient reads on the consent screen is exactly what a scanner gets. */
+ALTER TABLE public.health_passport_items DROP CONSTRAINT IF EXISTS hp_item_text_len_chk;
+ALTER TABLE public.health_passport_items
+  ADD CONSTRAINT hp_item_text_len_chk CHECK (
+    (value_text IS NULL OR length(value_text) <= 120)
+    AND length(label) <= 60);
+
 /* Verified means a named clinician stood behind it at a known moment. A row
    claiming verification without either is a badge with nobody behind it. */
 ALTER TABLE public.health_passport_items DROP CONSTRAINT IF EXISTS hp_item_verified_chk;
@@ -185,6 +202,35 @@ CREATE TABLE IF NOT EXISTS public.health_passport_access_log (
 );
 CREATE INDEX IF NOT EXISTS hp_access_passport_idx
   ON public.health_passport_access_log(passport_id, accessed_at DESC);
+
+/* WHAT THE PATIENT AGREED TO PUBLISH, AND WHEN.
+--
+   Consent to publish health data has to be demonstrable, not merely obtained:
+   showing someone a screen proves nothing later if no record survives that it
+   was shown and accepted. This is that record.
+--
+   IT DELIBERATELY CONTAINS NO MEDICAL CONTENT. Not a label, not a value, not a
+   severity — copying the clinical text here would create a second, older copy
+   of exactly the data the patient is trying to control, one that survives them
+   editing or deleting the original. What it stores is the SHAPE of the
+   disclosure: which categories went out, how many entries and contacts, and
+   whether the name was attached.
+--
+   Written by hp_rotate_token from the database itself rather than from
+   anything the browser claims, so it records what was actually published. */
+CREATE TABLE IF NOT EXISTS public.health_passport_consents (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  passport_id     uuid NOT NULL REFERENCES public.health_passports(id) ON DELETE CASCADE,
+  patient_id      uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  consent_version text NOT NULL,
+  granted_at      timestamptz NOT NULL DEFAULT now(),
+  categories      text[] NOT NULL DEFAULT '{}',
+  item_count      integer NOT NULL DEFAULT 0,
+  contact_count   integer NOT NULL DEFAULT 0,
+  name_shared     boolean NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS hp_consents_passport_idx
+  ON public.health_passport_consents(passport_id, granted_at DESC);
 
 -- ═══════════ UPGRADE FROM AN EARLIER INSTALL ═══════════════════════════════
 /* Everything above is CREATE TABLE IF NOT EXISTS, which does nothing at all to
@@ -293,12 +339,14 @@ ALTER TABLE public.health_passport_items       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.health_passport_contacts    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.health_passport_tokens      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.health_passport_access_log  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.health_passport_consents    ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.health_passports            FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.health_passport_items       FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.health_passport_contacts    FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.health_passport_tokens      FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.health_passport_access_log  FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.health_passport_consents    FORCE ROW LEVEL SECURITY;
 
 /* anon gets nothing, anywhere. The public view is the resolver function and
    only the resolver function. These REVOKEs are belt as well as braces —
@@ -309,6 +357,7 @@ REVOKE ALL ON public.health_passport_items      FROM anon;
 REVOKE ALL ON public.health_passport_contacts   FROM anon;
 REVOKE ALL ON public.health_passport_tokens     FROM anon;
 REVOKE ALL ON public.health_passport_access_log FROM anon;
+REVOKE ALL ON public.health_passport_consents   FROM anon;
 
 /* The tokens table and the access log are not client-readable by ANYONE, not
    even their owner. Everything a patient needs from them arrives through a
@@ -316,6 +365,8 @@ REVOKE ALL ON public.health_passport_access_log FROM anon;
    cannot be tricked into querying it. */
 REVOKE ALL ON public.health_passport_tokens     FROM authenticated;
 REVOKE ALL ON public.health_passport_access_log FROM authenticated;
+/* A consent record the subject could edit would not be evidence of anything. */
+REVOKE ALL ON public.health_passport_consents   FROM authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.health_passports         TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.health_passport_items    TO authenticated;
@@ -440,11 +491,33 @@ BEGIN
   VALUES (v_passport, v_hash, left(v_hash, 8), 'emergency')
   RETURNING id INTO v_id;
 
+  /* Minting a QR IS the act of consenting to publish, so the record is written
+     in the same statement block — there is no path that produces a live public
+     link without one. Everything below is computed here rather than accepted
+     from the caller: a consent record that repeats whatever the browser said
+     would be evidence of nothing. */
+  INSERT INTO public.health_passport_consents(
+    passport_id, patient_id, consent_version, categories,
+    item_count, contact_count, name_shared)
+  SELECT v_passport, auth.uid(), 'emergency_passport_v1',
+         COALESCE((SELECT array_agg(DISTINCT i.category ORDER BY i.category)
+                     FROM public.health_passport_items i
+                    WHERE i.passport_id = v_passport AND i.deleted_at IS NULL
+                      AND i.is_emergency_visible), '{}'),
+         (SELECT count(*) FROM public.health_passport_items i
+           WHERE i.passport_id = v_passport AND i.deleted_at IS NULL
+             AND i.is_emergency_visible),
+         (SELECT count(*) FROM public.health_passport_contacts c
+           WHERE c.passport_id = v_passport AND c.deleted_at IS NULL
+             AND c.is_emergency_visible),
+         (SELECT p.show_name_on_qr FROM public.health_passports p WHERE p.id = v_passport);
+
   UPDATE public.health_passports
      SET emergency_view_enabled = true, status = 'active', updated_at = now()
    WHERE id = v_passport;
 
   RETURN jsonb_build_object('ok', true, 'token_prefix', left(v_hash, 8),
+                            'consent_version', 'emergency_passport_v1',
                             'created_at', now());
 END $$;
 
@@ -584,11 +657,23 @@ BEGIN
     v_name := NULL;
   END IF;
 
-  SELECT COALESCE(jsonb_agg(x ORDER BY x.ord, x.pri DESC, x.label), '[]'::jsonb)
+  /* Built field by field rather than by aggregating the subquery row. The
+     earlier version aggregated x wholesale, which shipped the two internal
+     sort keys — ord and pri — to every scanner, along with is_verified, which
+     says nothing source_type does not already say. None was sensitive; all
+     three were more than the page needs, on a payload whose entire design
+     principle is to send the minimum. The sort keys still order the result,
+     they simply no longer travel with it. */
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+           'category',    x.category,
+           'label',       x.label,
+           'value_text',  x.value_text,
+           'severity',    x.severity,
+           'source_type', x.source_type)
+         ORDER BY x.ord, x.pri DESC, x.label), '[]'::jsonb)
     INTO v_items
     FROM (
       SELECT i.category, i.label, i.value_text, i.severity, i.source_type,
-             i.verified_at IS NOT NULL AS is_verified,
              i.priority AS pri,
              CASE i.category
                WHEN 'difficult_airway'        THEN 0
@@ -616,8 +701,12 @@ BEGIN
   INSERT INTO public.health_passport_access_log(passport_id, token_id, outcome)
   VALUES (v_pass.id, v_tok.id, 'resolved');
 
+  /* A named shape, so a future projection can change what it sends without
+     a scanner page silently misreading the old one. Anything consuming this
+     should check the version before trusting the field names. */
   RETURN jsonb_build_object(
     'found', true,
+    'projection', 'emergency_passport_v1',
     'patient_name', v_name,
     'items', v_items,
     'contacts', v_contacts,

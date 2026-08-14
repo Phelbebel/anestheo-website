@@ -27,7 +27,8 @@ WITH
    disappearing shows up by name instead of shifting a tally. */
 want_tbl(tbl) AS (VALUES
   ('health_passports'), ('health_passport_items'), ('health_passport_contacts'),
-  ('health_passport_tokens'), ('health_passport_access_log')),
+  ('health_passport_tokens'), ('health_passport_access_log'),
+  ('health_passport_consents')),
 
 want_col(tbl, col) AS (VALUES
   ('health_passports','id'), ('health_passports','patient_id'),
@@ -57,7 +58,12 @@ want_col(tbl, col) AS (VALUES
   ('health_passport_tokens','last_used_at'),
   ('health_passport_access_log','id'), ('health_passport_access_log','passport_id'),
   ('health_passport_access_log','token_id'), ('health_passport_access_log','accessed_at'),
-  ('health_passport_access_log','outcome')),
+  ('health_passport_access_log','outcome'),
+  ('health_passport_consents','id'), ('health_passport_consents','passport_id'),
+  ('health_passport_consents','patient_id'), ('health_passport_consents','consent_version'),
+  ('health_passport_consents','granted_at'), ('health_passport_consents','categories'),
+  ('health_passport_consents','item_count'), ('health_passport_consents','contact_count'),
+  ('health_passport_consents','name_shared')),
 
 want_fn(fn) AS (VALUES
   ('hp_resolve_passport'), ('hp_rotate_token'), ('hp_disable_token'),
@@ -84,7 +90,8 @@ want_pol(tbl, pol) AS (VALUES
 
 want_chk(con) AS (VALUES
   ('hp_status_chk'), ('hp_item_category_chk'), ('hp_item_source_chk'),
-  ('hp_item_severity_chk'), ('hp_item_verified_chk'), ('hp_token_scope_chk')),
+  ('hp_item_severity_chk'), ('hp_item_verified_chk'), ('hp_item_text_len_chk'),
+  ('hp_token_scope_chk')),
 
 /* ── what the database actually contains ─────────────────────────────── */
 have_tbl AS (
@@ -135,8 +142,8 @@ have_chk AS (SELECT conname::text AS con FROM pg_constraint WHERE contype = 'c')
 /* ── the checks ──────────────────────────────────────────────────────── */
 checks(ord, name, pass, detail) AS (
 
-  SELECT 1, 'all five health_passport_* tables exist',
-         (SELECT count(*) FROM have_tbl) = 5,
+  SELECT 1, 'all six health_passport_* tables exist',
+         (SELECT count(*) FROM have_tbl) = 6,
          COALESCE((SELECT string_agg(w.tbl, ', ' ORDER BY w.tbl) FROM want_tbl w
                     WHERE w.tbl NOT IN (SELECT tbl FROM have_tbl)), 'none missing')
 
@@ -166,12 +173,12 @@ checks(ord, name, pass, detail) AS (
          COALESCE((SELECT column_default FROM have_col
                     WHERE tbl = 'health_passport_contacts' AND col = 'is_emergency_visible'), '(no such column)')
 
-  UNION ALL SELECT 6, 'RLS is ENABLED and FORCED on all five tables',
-         (SELECT count(*) FROM have_tbl WHERE rls AND forced) = 5,
+  UNION ALL SELECT 6, 'RLS is ENABLED and FORCED on all six tables',
+         (SELECT count(*) FROM have_tbl WHERE rls AND forced) = 6,
          COALESCE((SELECT string_agg(tbl || ' rls=' || rls::text || ' forced=' || forced::text, ', ')
-                     FROM have_tbl WHERE NOT (rls AND forced)), 'all five enabled and forced')
+                     FROM have_tbl WHERE NOT (rls AND forced)), 'all six enabled and forced')
 
-  UNION ALL SELECT 7, 'anon has ZERO direct privileges on all five tables',
+  UNION ALL SELECT 7, 'anon has ZERO direct privileges on all six tables',
          NOT EXISTS (SELECT 1 FROM have_grant WHERE grantee = 'anon'),
          COALESCE((SELECT string_agg(DISTINCT tbl || ':' || privilege_type, ', ')
                      FROM have_grant WHERE grantee = 'anon'), 'none')
@@ -187,6 +194,29 @@ checks(ord, name, pass, detail) AS (
                       WHERE grantee = 'authenticated' AND tbl = 'health_passport_access_log'),
          COALESCE((SELECT string_agg(DISTINCT privilege_type, ', ') FROM have_grant
                     WHERE grantee = 'authenticated' AND tbl = 'health_passport_access_log'), 'none')
+
+  /* A consent record the subject can edit is not evidence of anything. */
+  UNION ALL SELECT 21, 'authenticated has NO direct privileges on health_passport_consents',
+         NOT EXISTS (SELECT 1 FROM have_grant
+                      WHERE grantee = 'authenticated' AND tbl = 'health_passport_consents'),
+         COALESCE((SELECT string_agg(DISTINCT privilege_type, ', ') FROM have_grant
+                    WHERE grantee = 'authenticated' AND tbl = 'health_passport_consents'), 'none')
+
+  /* The record exists to prove consent, not to become a second copy of the
+     data it is evidence about. */
+  UNION ALL SELECT 22, 'the consent record holds NO medical content',
+         NOT EXISTS (SELECT 1 FROM have_col
+                      WHERE tbl = 'health_passport_consents'
+                        AND col IN ('label','value_text','severity','notes','detail','content')),
+         COALESCE((SELECT string_agg(col, ', ' ORDER BY col) FROM have_col
+                    WHERE tbl = 'health_passport_consents'), '(table missing)')
+
+  UNION ALL SELECT 23, 'the public projection is capped at 120 characters',
+         EXISTS (SELECT 1 FROM pg_constraint
+                  WHERE conname = 'hp_item_text_len_chk'
+                    AND pg_get_constraintdef(oid) LIKE '%120%'),
+         COALESCE((SELECT pg_get_constraintdef(oid) FROM pg_constraint
+                    WHERE conname = 'hp_item_text_len_chk'), '(constraint missing)')
 
   UNION ALL SELECT 10, 'authenticated CAN work with passports, items and contacts',
          (SELECT count(DISTINCT tbl) FROM have_grant
@@ -262,11 +292,13 @@ checks(ord, name, pass, detail) AS (
              ''),
            'all ten present, none extra')
 
-  UNION ALL SELECT 18, 'the tokens table and access log carry NO policy at all',
+  UNION ALL SELECT 18, 'tokens, access log and consents carry NO policy at all',
          NOT EXISTS (SELECT 1 FROM have_pol
-                      WHERE tbl IN ('health_passport_tokens','health_passport_access_log')),
+                      WHERE tbl IN ('health_passport_tokens','health_passport_access_log',
+                                    'health_passport_consents')),
          COALESCE((SELECT string_agg(tbl || '.' || pol, ', ') FROM have_pol
-                    WHERE tbl IN ('health_passport_tokens','health_passport_access_log')),
+                    WHERE tbl IN ('health_passport_tokens','health_passport_access_log',
+                                  'health_passport_consents')),
                   'none, as intended')
 
   UNION ALL SELECT 19, 'hp_item_insert permits only patient_reported',

@@ -83,6 +83,14 @@ HP.isCritical = function(k){
 
 HP.SEVERITIES = ['critical','high','moderate','low','info'];
 
+/* The same limits the database enforces. Checked here too so the refusal names
+   the field while the patient is still looking at it, rather than arriving as
+   a constraint violation. */
+HP.MAX_LABEL = 60;
+HP.MAX_VALUE = 120;
+HP.PUBLIC_WARNING = 'Do not include unrelated medical or personal information. ' +
+  'This information may be visible to anyone scanning your QR.';
+
 /* Provenance, in words a person can act on. "Patient reported" is not a
    criticism — it is most of a passport, and it is the honest label. */
 HP.PROVENANCE = {
@@ -163,6 +171,8 @@ HP.addItem = async function(passportId, item){
       is_emergency_visible: item.is_emergency_visible === true
     };
     if(!row.label) return { error:{ message:'Give the entry a name.' } };
+    var bad = HP.lengthError(row);
+    if(bad) return { error:{ message:bad } };
     /* source_type is deliberately not sent. The database decides it, and the
        only thing a patient may create is a patient-reported entry. */
     var r = await sb().from('health_passport_items').insert(row);
@@ -170,11 +180,22 @@ HP.addItem = async function(passportId, item){
   } catch(e){ return { error:{ message:e.message } }; }
 };
 
+HP.lengthError = function(row){
+  if(row.label && String(row.label).length > HP.MAX_LABEL)
+    return 'Shorten the name to ' + HP.MAX_LABEL + ' characters or fewer.';
+  if(row.value_text && String(row.value_text).length > HP.MAX_VALUE)
+    return 'Shorten the detail to ' + HP.MAX_VALUE + ' characters or fewer. ' +
+           HP.PUBLIC_WARNING;
+  return null;
+};
+
 HP.updateItem = async function(id, patch){
   try {
     var row = {};
     ['category','label','value_text','severity','is_emergency_visible','priority']
       .forEach(function(k){ if(patch[k] !== undefined) row[k] = patch[k]; });
+    var bad = HP.lengthError(row);
+    if(bad) return { error:{ message:bad } };
     var r = await sb().from('health_passport_items').update(row).eq('id', id);
     return { error: (r && r.error) || null };
   } catch(e){ return { error:{ message:e.message } }; }

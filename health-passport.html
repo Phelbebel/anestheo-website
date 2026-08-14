@@ -47,6 +47,9 @@ h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted
 .pv-ver{background:rgba(27,107,90,.35);color:var(--accent);}
 .pv-sys{background:rgba(206,147,216,.2);color:#E6C6EC;}
 .lost{font-size:12.5px;color:#FFD9A0;margin-top:8px;line-height:1.5;}
+.warnline{font-size:12.5px;color:#FFD9A0;line-height:1.5;margin-top:7px;
+  background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.3);
+  border-radius:8px;padding:9px 11px;}
 button,.btn{font-family:inherit;cursor:pointer;}
 .btn{min-height:46px;padding:0 17px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
   background:rgba(255,255,255,.05);color:#fff;font-size:14.5px;display:inline-flex;
@@ -159,10 +162,18 @@ function itemForm(i){
       return '<option value="' + c.k + '"' + (i.category === c.k ? ' selected' : '') + '>' +
         esc(c.label) + '</option>'; }).join('') + '</select>' +
     '<label for="f-label">Name it</label>' +
-    '<input id="f-label" placeholder="e.g. Penicillin" value="' + esc(i.label || '') + '" autocomplete="off">' +
+    '<input id="f-label" maxlength="60" placeholder="e.g. Penicillin" value="' +
+      esc(i.label || '') + '" autocomplete="off">' +
     '<label for="f-value">Anything a doctor should know about it</label>' +
-    '<textarea id="f-value" placeholder="e.g. Anaphylaxis — needed adrenaline in 2019">' +
+    '<textarea id="f-value" maxlength="120" rows="3" ' +
+      'placeholder="e.g. Anaphylaxis — needed adrenaline in 2019">' +
       esc(i.value_text || '') + '</textarea>' +
+    /* Said at the moment of typing, not buried in a policy. The field is
+       capped at 120 characters as well, because a warning nobody reads is
+       not a control. */
+    '<div class="warnline">Do not include unrelated medical or personal ' +
+      'information. This information may be visible to anyone scanning your QR.' +
+      '<br><span style="opacity:.75">120 characters maximum.</span></div>' +
     '<label for="f-sev">How serious is it</label>' +
     '<select id="f-sev"><option value="">Not sure</option>' +
       HP.SEVERITIES.map(function(s){
