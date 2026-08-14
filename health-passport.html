@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Health Passport — Anestheo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase.js?v=2026.08.14-01"></script>
+<script src="/auth.js?v=2026.08.14-01"></script>
+<script src="/navbar.js?v=2026.08.14-01"></script>
+<script src="/passport.js?v=2026.08.14-01"></script>
+<script src="/qr.js?v=2026.08.14-01"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
+  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.5);}
+body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
+  -webkit-font-smoothing:antialiased;}
+#loader{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;z-index:99;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);
+  border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+#app{display:none;max-width:820px;margin:0 auto;padding:26px 18px 80px;}
+h1{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;}
+.sub{font-size:14.5px;color:var(--muted);margin:5px 0 22px;line-height:1.6;}
+h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  margin:26px 0 10px;font-weight:700;}
+.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;
+  padding:16px;margin-bottom:11px;}
+.card.crit{background:rgba(192,57,43,.13);border-color:rgba(192,57,43,.45);}
+.row{display:flex;align-items:flex-start;gap:12px;}
+.row .g{flex:1;min-width:0;}
+.it-t{font-size:16px;font-weight:700;line-height:1.3;}
+.card.crit .it-t{color:#FFC9C0;}
+.it-v{font-size:14px;color:rgba(255,255,255,.8);margin-top:3px;}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  border-radius:5px;padding:3px 7px;white-space:nowrap;}
+.tag.cat{background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);}
+.tag.sev{background:rgba(192,57,43,.28);color:#FFC9C0;}
+.tag.hid{background:rgba(255,255,255,.06);color:rgba(255,255,255,.45);}
+.pv-pat{background:rgba(255,255,255,.09);color:rgba(255,255,255,.72);}
+.pv-doc{background:rgba(130,177,255,.18);color:#B9D3FF;}
+.pv-ver{background:rgba(27,107,90,.35);color:var(--accent);}
+.pv-sys{background:rgba(206,147,216,.2);color:#E6C6EC;}
+.lost{font-size:12.5px;color:#FFD9A0;margin-top:8px;line-height:1.5;}
+button,.btn{font-family:inherit;cursor:pointer;}
+.btn{min-height:46px;padding:0 17px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.05);color:#fff;font-size:14.5px;display:inline-flex;
+  align-items:center;justify-content:center;gap:7px;text-decoration:none;}
+.btn:hover{background:rgba(126,207,192,.13);border-color:var(--teal2);}
+.btn.pri{background:var(--teal);border-color:var(--teal);font-weight:600;}
+.btn.pri:hover{background:var(--teal2);}
+.btn.danger{border-color:rgba(192,57,43,.45);color:#FFB4A8;}
+.btn.sm{min-height:40px;padding:0 12px;font-size:13px;}
+.acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px;}
+label{display:block;font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.06em;
+  text-transform:uppercase;font-weight:600;margin:12px 0 5px;}
+input,select,textarea{width:100%;background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:11px 12px;color:#fff;
+  font-family:inherit;font-size:15px;min-height:46px;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--teal2);}
+select option{background:#132218;}
+textarea{min-height:80px;resize:vertical;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.chk{display:flex;align-items:center;gap:10px;min-height:46px;font-size:14.5px;cursor:pointer;}
+.chk input{width:22px;height:22px;min-height:0;flex:0 0 auto;accent-color:var(--teal2);}
+.msg{display:none;border-radius:9px;padding:11px 13px;font-size:13.5px;margin-top:11px;line-height:1.55;}
+.msg-err{background:rgba(192,57,43,.13);border:1px solid rgba(192,57,43,.32);color:#FFB4A8;}
+.msg-ok{background:rgba(27,107,90,.17);border:1px solid rgba(42,138,116,.32);color:var(--accent);}
+.empty{text-align:center;padding:30px 18px;color:var(--muted);font-size:14.5px;line-height:1.7;}
+
+/* The QR card — meant to be printed and carried. */
+.qrcard{background:#fff;color:#0A1A15;border-radius:16px;padding:22px;text-align:center;
+  max-width:340px;margin:0 auto;}
+.qrcard .qb{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#1B6B5A;font-weight:700;}
+.qrcard .qn{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;margin:7px 0 3px;}
+.qrcard .qs{font-size:12.5px;color:#4a5b55;margin-bottom:14px;}
+.qrcard svg{display:block;margin:0 auto;width:220px;height:220px;}
+.qrcard .qf{font-size:11px;color:#4a5b55;margin-top:13px;line-height:1.5;}
+.qroff{text-align:center;padding:34px 18px;color:var(--muted);font-size:14.5px;line-height:1.7;}
+@media print{
+  body{background:#fff;}
+  #app{padding:0;max-width:none;}
+  .noprint, nav, header, h1, .sub, h2:not(.qh){display:none !important;}
+  .qrcard{max-width:none;box-shadow:none;}
+}
+@media(max-width:560px){ .g2{grid-template-columns:1fr;} #app{padding:18px 14px 70px;} }
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div></div>
+<div id="app"></div>
+
+<script>
+/* The patient's own Health Passport.
+ *
+ * Everything here is the patient's to change except one thing: they cannot
+ * make an entry say "clinician verified". That badge means a named doctor
+ * stood behind a specific wording at a known time, and it is granted only by
+ * hp_verify_item() with a treating relationship. This page never sends
+ * source_type at all.
+ */
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s)
+  .replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+var D = { passport:null, items:[], contacts:[] };
+var TOK = { active:false };
+var _lastToken = null;     // held in memory only, for as long as the tab is open
+var _view = 'passport';    // passport | qr | preview
+var _editing = null;
+var _adding = false;
+var _busy = false;
+
+function msg(id, text, ok){
+  var n = el(id); if(!n) return;
+  n.className = 'msg ' + (ok ? 'msg-ok' : 'msg-err');
+  n.textContent = text;
+  n.style.display = 'block';
+}
+function clearMsg(id){ var n = el(id); if(n) n.style.display = 'none'; }
+
+/* ── rendering ─────────────────────────────────────────────────────────── */
+function itemCard(i){
+  var pv = HP.provenance(i.source_type);
+  var crit = HP.isCritical(i.category) || i.severity === 'critical' || i.severity === 'high';
+  return '<div class="card' + (crit ? ' crit' : '') + '"><div class="row"><div class="g">' +
+    '<div class="it-t">' + esc(i.label) + '</div>' +
+    (i.value_text ? '<div class="it-v">' + esc(i.value_text) + '</div>' : '') +
+    '<div class="meta">' +
+      '<span class="tag cat">' + esc(HP.catLabel(i.category)) + '</span>' +
+      (i.severity ? '<span class="tag sev">' + esc(i.severity) + '</span>' : '') +
+      '<span class="tag ' + pv.cls + '">' + esc(pv.label) + '</span>' +
+      (i.is_emergency_visible ? '' : '<span class="tag hid">Hidden from QR</span>') +
+    '</div>' +
+    (i.verification_lost_at ?
+      '<div class="lost">You changed this after a clinician verified it, so the badge was ' +
+      'removed. Ask them to check it again.</div>' : '') +
+    '</div></div>' +
+    '<div class="acts">' +
+      '<button class="btn sm" onclick="startEdit(\'' + i.id + '\')">Edit</button>' +
+      '<button class="btn sm" onclick="toggleVisible(\'' + i.id + '\')">' +
+        (i.is_emergency_visible ? 'Hide from QR' : 'Show in QR') + '</button>' +
+      '<button class="btn sm danger" onclick="removeItem(\'' + i.id + '\')">Delete</button>' +
+    '</div></div>';
+}
+
+function itemForm(i){
+  i = i || {};
+  return '<div class="card"><h2 style="margin-top:0">' +
+    (i.id ? 'Edit entry' : 'Add health information') + '</h2>' +
+    '<label for="f-cat">What kind of information</label>' +
+    '<select id="f-cat">' + HP.CATEGORIES.map(function(c){
+      return '<option value="' + c.k + '"' + (i.category === c.k ? ' selected' : '') + '>' +
+        esc(c.label) + '</option>'; }).join('') + '</select>' +
+    '<label for="f-label">Name it</label>' +
+    '<input id="f-label" placeholder="e.g. Penicillin" value="' + esc(i.label || '') + '" autocomplete="off">' +
+    '<label for="f-value">Anything a doctor should know about it</label>' +
+    '<textarea id="f-value" placeholder="e.g. Anaphylaxis — needed adrenaline in 2019">' +
+      esc(i.value_text || '') + '</textarea>' +
+    '<label for="f-sev">How serious is it</label>' +
+    '<select id="f-sev"><option value="">Not sure</option>' +
+      HP.SEVERITIES.map(function(s){
+        return '<option value="' + s + '"' + (i.severity === s ? ' selected' : '') + '>' +
+          esc(s) + '</option>'; }).join('') + '</select>' +
+    '<label class="chk" for="f-vis"><input type="checkbox" id="f-vis"' +
+      (i.is_emergency_visible === false ? '' : ' checked') + '>' +
+      'Show this on my emergency QR</label>' +
+    '<div class="acts">' +
+      '<button class="btn pri" onclick="saveItem()">' + (i.id ? 'Save changes' : 'Add to passport') + '</button>' +
+      '<button class="btn" onclick="cancelForm()">Cancel</button>' +
+    '</div><div class="msg" id="m-item"></div></div>';
+}
+
+function contactCard(c){
+  return '<div class="card"><div class="row"><div class="g">' +
+    '<div class="it-t">' + esc(c.name) + '</div>' +
+    '<div class="it-v">' + esc([c.relationship, c.phone].filter(Boolean).join(' · ')) + '</div>' +
+    '</div></div><div class="acts">' +
+    '<button class="btn sm danger" onclick="removeContact(\'' + c.id + '\')">Remove</button>' +
+    '</div></div>';
+}
+
+function qrView(){
+  var h = '<h2 class="qh">Your emergency QR</h2>';
+  if(!TOK.active){
+    h += '<div class="card"><div class="qroff">Your QR is switched off, so the link on any ' +
+      'card you have printed no longer opens.<br>Generating a new one turns it back on.</div>' +
+      '<div class="acts noprint" style="justify-content:center">' +
+      '<button class="btn pri" onclick="rotate()">Generate a QR</button></div></div>';
+    return h;
+  }
+  if(!_lastToken){
+    /* The raw token is never stored, so it cannot be shown again after a
+       reload. Saying so plainly is better than rendering a QR we cannot
+       actually produce, or worse, inventing one. */
+    h += '<div class="card"><div class="qroff">Your QR is active' +
+      (TOK.status && TOK.status.last_used_at ? ', last scanned ' +
+        esc(new Date(TOK.status.last_used_at).toLocaleString()) : '') + '.<br><br>' +
+      'The code itself is not kept on our servers, so it cannot be shown again ' +
+      'after you leave this page — that is what stops anyone else retrieving it. ' +
+      'If you need a new card, replace the QR below.</div>' +
+      '<div class="acts noprint" style="justify-content:center">' +
+      '<button class="btn pri" onclick="rotate()">Replace QR</button>' +
+      '<button class="btn danger" onclick="disable()">Switch QR off</button></div></div>';
+    return h;
+  }
+  var name = (window.__hpName || 'Anestheo patient');
+  h += '<div class="qrcard" id="qr-card">' +
+    '<div class="qb">Anestheo Health Passport</div>' +
+    '<div class="qn">' + esc(name) + '</div>' +
+    '<div class="qs">Scan for emergency health information</div>' +
+    QR.svg(HP.linkFor(_lastToken), { size:220, label:'Anestheo Health Passport for ' + name }) +
+    '<div class="qf">Shows allergies and critical alerts only.<br>' +
+    'No medical information is stored in this code.</div></div>' +
+    '<div class="acts noprint" style="justify-content:center;margin-top:16px">' +
+    '<button class="btn" onclick="window.print()">Print this card</button>' +
+    '<button class="btn" onclick="rotate()">Replace QR</button>' +
+    '<button class="btn danger" onclick="disable()">Switch QR off</button></div>' +
+    '<div class="msg noprint" id="m-qr"></div>';
+  return h;
+}
+
+function previewView(){
+  var vis = HP.previewOf(D.items);
+  var h = '<h2>What a scanner sees</h2>' +
+    '<div class="card"><div class="it-v">This is exactly the projection the public page ' +
+    'receives — the same entries, in the same order. Anything you have hidden is not ' +
+    'sent to the server at all.</div></div>';
+  if(!vis.length){
+    h += '<div class="card"><div class="empty">Nothing is shared on your QR yet. ' +
+      'Add health information and mark it "Show on my emergency QR".</div></div>';
+  } else {
+    h += vis.map(itemCard).join('');
+  }
+  if(D.contacts.length) h += '<h2>Emergency contact</h2>' + D.contacts.map(contactCard).join('');
+  return h;
+}
+
+function render(){
+  var h = '<div id="nb-root"></div>';
+  h += '<h1>Health Passport</h1>' +
+    '<p class="sub">The few things an anesthetist needs to know about you before ' +
+    'an operation — and, if you want it, a QR code you can carry so they can ' +
+    'find them in an emergency.</p>';
+
+  if(!D.passport){
+    h += '<div class="card"><div class="empty">You do not have a Health Passport yet.<br>' +
+      'It takes a minute to start one, and nothing is shared until you choose to share it.' +
+      '</div><div class="acts" style="justify-content:center">' +
+      '<button class="btn pri" onclick="createPassport()">Create my Health Passport</button>' +
+      '</div><div class="msg" id="m-main"></div></div>';
+    el('app').innerHTML = h;
+    return;
+  }
+
+  h += '<div class="acts noprint" style="margin-bottom:6px">' +
+    tab('passport','My information') + tab('qr','Emergency QR') + tab('preview','Preview') +
+    '</div><div class="msg noprint" id="m-main"></div>';
+
+  if(_view === 'qr'){ h += qrView(); }
+  else if(_view === 'preview'){ h += previewView(); }
+  else {
+    var crit = D.items.filter(function(i){
+      return HP.isCritical(i.category) || i.severity === 'critical' || i.severity === 'high'; });
+    var rest = D.items.filter(function(i){ return crit.indexOf(i) < 0; });
+
+    if(_adding || _editing) h += itemForm(_editing);
+    else h += '<div class="acts" style="margin:14px 0 4px">' +
+      '<button class="btn pri" onclick="startAdd()">+ Add health information</button></div>';
+
+    if(crit.length){ h += '<h2>Critical — shown first in an emergency</h2>' + crit.map(itemCard).join(''); }
+    if(rest.length){ h += '<h2>Other information</h2>' + rest.map(itemCard).join(''); }
+    if(!D.items.length && !_adding && !_editing){
+      h += '<div class="card"><div class="empty">Nothing recorded yet.<br>' +
+        'Start with an allergy, a regular medicine, or anything that has gone wrong ' +
+        'with an anesthetic before.</div></div>';
+    }
+
+    h += '<h2>Emergency contact</h2>' + D.contacts.map(contactCard).join('') +
+      '<div class="card"><div class="g2">' +
+      '<div><label for="c-name">Name</label><input id="c-name" autocomplete="off"></div>' +
+      '<div><label for="c-rel">Relationship</label><input id="c-rel" placeholder="e.g. partner" autocomplete="off"></div>' +
+      '</div><label for="c-phone">Phone</label><input id="c-phone" type="tel" autocomplete="off">' +
+      '<div class="acts"><button class="btn" onclick="addContact()">Add contact</button></div>' +
+      '<div class="msg" id="m-contact"></div></div>';
+  }
+
+  el('app').innerHTML = h;
+}
+function tab(id, label){
+  return '<button class="btn' + (_view === id ? ' pri' : '') + '" onclick="go(\'' + id + '\')">' +
+    esc(label) + '</button>';
+}
+function go(v){ _view = v; _adding = false; _editing = null; render(); }
+
+/* ── actions ───────────────────────────────────────────────────────────── */
+async function reload(){
+  var r = await HP.load();
+  if(r.error){ msg('m-main', r.error.message); return false; }
+  D = { passport:r.passport, items:r.items || [], contacts:r.contacts || [] };
+  var s = await HP.tokenStatus();
+  TOK = { active: !!(s.status && s.status.active), status: s.status || {} };
+  return true;
+}
+
+async function createPassport(){
+  if(_busy) return; _busy = true;
+  var r = await HP.create();
+  _busy = false;
+  if(r.error) return msg('m-main', r.error.message);
+  await reload(); render();
+}
+
+function startAdd(){ _adding = true; _editing = null; render(); }
+function startEdit(id){
+  _editing = D.items.filter(function(i){ return i.id === id; })[0] || null;
+  _adding = false; render();
+}
+function cancelForm(){ _adding = false; _editing = null; render(); }
+
+function formValues(){
+  return {
+    category: el('f-cat').value,
+    label: el('f-label').value.trim(),
+    value_text: el('f-value').value.trim() || null,
+    severity: el('f-sev').value || null,
+    is_emergency_visible: el('f-vis').checked
+  };
+}
+async function saveItem(){
+  if(_busy) return;
+  var v = formValues();
+  if(!v.label) return msg('m-item', 'Give the entry a name.');
+  _busy = true;
+  var r = _editing ? await HP.updateItem(_editing.id, v)
+                   : await HP.addItem(D.passport.id, v);
+  _busy = false;
+  if(r.error) return msg('m-item', r.error.message);
+  _adding = false; _editing = null;
+  await reload(); render();
+}
+async function toggleVisible(id){
+  var i = D.items.filter(function(x){ return x.id === id; })[0];
+  if(!i) return;
+  var r = await HP.updateItem(id, { is_emergency_visible: !i.is_emergency_visible });
+  if(r.error) return msg('m-main', r.error.message);
+  await reload(); render();
+}
+async function removeItem(id){
+  var i = D.items.filter(function(x){ return x.id === id; })[0];
+  if(!i) return;
+  if(!confirm('Remove "' + i.label + '" from your Health Passport?')) return;
+  var r = await HP.removeItem(id);
+  if(r.error) return msg('m-main', r.error.message);
+  await reload(); render();
+}
+async function addContact(){
+  var name = el('c-name').value.trim();
+  if(!name) return msg('m-contact', 'Give the contact a name.');
+  var r = await HP.addContact(D.passport.id, {
+    name: name, relationship: el('c-rel').value.trim() || null,
+    phone: el('c-phone').value.trim() || null,
+    is_primary: D.contacts.length === 0 });
+  if(r.error) return msg('m-contact', r.error.message);
+  await reload(); render();
+}
+async function removeContact(id){
+  var r = await HP.removeContact(id);
+  if(r.error) return msg('m-main', r.error.message);
+  await reload(); render();
+}
+
+async function rotate(){
+  if(_busy) return;
+  if(TOK.active && !confirm('Replace your QR?\n\nAny card you have already printed will ' +
+    'stop working immediately. Your health information is not changed.')) return;
+  _busy = true;
+  var r = await HP.rotateToken();
+  _busy = false;
+  if(r.error) return msg('m-main', r.error.message);
+  _lastToken = r.token;            // memory only, for this tab, until reload
+  await reload(); _view = 'qr'; render();
+}
+async function disable(){
+  if(!confirm('Switch your QR off?\n\nScanning any printed card will stop working. ' +
+    'Your health information stays exactly as it is, and you can generate a new QR ' +
+    'whenever you want.')) return;
+  var r = await HP.disableToken();
+  if(r.error) return msg('m-main', r.error.message);
+  _lastToken = null;
+  await reload(); render();
+}
+
+window.createPassport = createPassport; window.startAdd = startAdd;
+window.startEdit = startEdit; window.cancelForm = cancelForm; window.saveItem = saveItem;
+window.toggleVisible = toggleVisible; window.removeItem = removeItem;
+window.addContact = addContact; window.removeContact = removeContact;
+window.rotate = rotate; window.disable = disable; window.go = go;
+
+(async function(){
+  var auth = await window.requireAuth();
+  if(!auth) return;
+  window.__hpName = (auth.profile && auth.profile.full_name) || 'Anestheo patient';
+  await reload();
+  render();
+  el('loader').style.display = 'none';
+  el('app').style.display = 'block';
+})();
+</script>
+</body>
+</html>

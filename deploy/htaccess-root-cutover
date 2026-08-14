@@ -93,6 +93,18 @@ DirectoryIndex index.html
   RewriteRule ^videos\.html$     videos-v1/index.html  [L]
   RewriteRule ^videos-v1\.html$  videos-v1/index.html  [L]
 
+  # ── HEALTH PASSPORT ────────────────────────────────────────────────────
+  # /p/<token> is what a printed QR points at. The token is base64url, so the
+  # character class is exact rather than a catch-all: a request that is not
+  # shaped like a token falls through to the normal 404 instead of loading the
+  # passport page to be told no.
+  #
+  # p.html also accepts /p.html?t=<token>, and that form needs no server
+  # configuration at all. If this rule is ever lost — a fresh .htaccess, a
+  # migration to another host — printed cards stop working, so it belongs in
+  # any deployment checklist rather than being assumed.
+  RewriteRule ^p/([A-Za-z0-9_-]{20,})/?$  p.html?t=$1  [L,QSA]
+
 
   # ── 3. Legacy V1 URLs ─────────────────────────────────────────────────────
   #
