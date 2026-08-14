@@ -62,15 +62,6 @@ CREATE TABLE IF NOT EXISTS public.health_passports (
   created_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now()
 );
-/* Additive, so an installation created before this hardening pass gains the
-   columns with the safe default rather than needing a rebuild. */
-ALTER TABLE public.health_passports
-  ADD COLUMN IF NOT EXISTS show_name_on_qr boolean NOT NULL DEFAULT false;
-ALTER TABLE public.health_passport_contacts
-  ADD COLUMN IF NOT EXISTS is_emergency_visible boolean NOT NULL DEFAULT false;
-ALTER TABLE public.health_passport_items
-  ALTER COLUMN is_emergency_visible SET DEFAULT false;
-
 ALTER TABLE public.health_passports DROP CONSTRAINT IF EXISTS hp_status_chk;
 ALTER TABLE public.health_passports
   ADD CONSTRAINT hp_status_chk CHECK (status IN ('active','revoked'));
@@ -194,6 +185,34 @@ CREATE TABLE IF NOT EXISTS public.health_passport_access_log (
 );
 CREATE INDEX IF NOT EXISTS hp_access_passport_idx
   ON public.health_passport_access_log(passport_id, accessed_at DESC);
+
+-- ═══════════ UPGRADE FROM AN EARLIER INSTALL ═══════════════════════════════
+/* Everything above is CREATE TABLE IF NOT EXISTS, which does nothing at all to
+   a table that already exists — so a database installed before this hardening
+   pass would keep the old, less private column definitions. These statements
+   bring it up to date.
+--
+   THEY LIVE HERE, BELOW EVERY CREATE TABLE, ON PURPOSE. An earlier version of
+   this file put them near the top, immediately after health_passports, where
+   they referred to health_passport_contacts and health_passport_items dozens
+   of lines before those tables were created. On a database that already had
+   the tables — every database anyone had tested on — it worked. On a fresh
+   one, which is to say production, it would have failed outright with
+   "relation does not exist". Additive upgrade statements belong after the
+   creates, always.
+--
+   Each is a no-op on a fresh install, because the CREATE TABLE above already
+   states the same thing. */
+ALTER TABLE public.health_passports
+  ADD COLUMN IF NOT EXISTS show_name_on_qr boolean NOT NULL DEFAULT false;
+ALTER TABLE public.health_passport_contacts
+  ADD COLUMN IF NOT EXISTS is_emergency_visible boolean NOT NULL DEFAULT false;
+
+/* The DEFAULT changes for rows created from now on. Rows that already exist
+   keep whatever they have: a patient who deliberately shared an allergy last
+   week must not silently stop sharing it because we changed a default. */
+ALTER TABLE public.health_passport_items
+  ALTER COLUMN is_emergency_visible SET DEFAULT false;
 
 -- ═══════════ PROVENANCE GUARD ══════════════════════════════════════════════
 
