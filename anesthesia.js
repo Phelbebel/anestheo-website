@@ -1373,5 +1373,284 @@ ANES.currentVentilation = function(d){
   return v[0] || null;
 };
 
+/* ═══════════ THE CHART, AS A MODEL ════════════════════════════════════════
+   An anesthesia record is not twelve forms. It is one sheet of paper with time
+   running left to right, and everything that happened to the patient printed
+   in a column above the minute it happened in. A clinician reads it by looking
+   down a vertical line: this pressure, at that moment, while that infusion was
+   running, two minutes after that drug.
+
+   That is the artefact this builds. It invents nothing and stores nothing —
+   every lane below is a projection of rows that already exist, so the chart
+   and the detailed sections can never disagree. If a row is not in the
+   database it is not on the chart.
+
+   Kept here, away from the DOM, because the arithmetic of a time axis is worth
+   testing without a browser: which minute a mark lands in is a clinical fact.  */
+
+/* The scale IS the major division: on the 5-minute scale a labelled gridline
+   every five minutes, which is how anesthesia has been charted on paper for a
+   century. Widths are chosen so one division stays comfortably tappable. */
+ANES.CHART_SCALES = [
+  { id:'1',  label:'1 min',  major:1,  minor:0, pxPerMin:34  },
+  { id:'5',  label:'5 min',  major:5,  minor:1, pxPerMin:11  },
+  { id:'10', label:'10 min', major:10, minor:5, pxPerMin:5.5 }
+];
+ANES.CHART_DEFAULT_SCALE = '5';
+
+/* Which lanes exist, in the order they belong on the sheet. Physiology first,
+   then what was given, then what came out, then what was done, then what went
+   wrong, and the case's own milestones last as the spine everything else is
+   read against. */
+ANES.CHART_LANES = [
+  { id:'drugs',      label:'Drugs' },
+  { id:'infusions',  label:'Infusions' },
+  { id:'fluids',     label:'Fluids' },
+  { id:'blood',      label:'Blood' },
+  { id:'outputs',    label:'Output' },
+  { id:'airway',     label:'Airway' },
+  { id:'ventilation',label:'Ventilation' },
+  { id:'regional',   label:'Regional' },
+  { id:'labs',       label:'Labs' },
+  { id:'events',     label:'Events' },
+  { id:'milestones', label:'Milestones' }
+];
+
+function tms(x){ var t = x ? new Date(x).getTime() : NaN; return isNaN(t) ? null : t; }
+function floorTo(ms, minutes){ var m = minutes*60000; return Math.floor(ms/m)*m; }
+function ceilTo(ms, minutes){ var m = minutes*60000; return Math.ceil(ms/m)*m; }
+
+ANES.chartModel = function(d, opts){
+  d = d || {}; opts = opts || {};
+  var scale = null;
+  ANES.CHART_SCALES.forEach(function(s){ if(s.id === String(opts.scaleId)) scale = s; });
+  if(!scale) ANES.CHART_SCALES.forEach(function(s){ if(s.id === ANES.CHART_DEFAULT_SCALE) scale = s; });
+  var now = opts.now ? new Date(opts.now).getTime() : Date.now();
+
+  var stamps = [];
+  var mark = function(x){ var t = tms(x); if(t != null) stamps.push(t); };
+
+  (d.times||[]).forEach(function(r){ mark(r.occurred_at); });
+  (d.medications||[]).forEach(function(r){ mark(r.administered_at); });
+  (d.infusions||[]).forEach(function(r){ mark(r.started_at); mark(r.stopped_at); });
+  (d.infusionRates||[]).forEach(function(r){ mark(r.occurred_at); });
+  (d.fluids||[]).forEach(function(r){ mark(r.started_at); mark(r.finished_at); });
+  (d.blood||[]).forEach(function(r){ mark(r.started_at); mark(r.finished_at); });
+  (d.outputs||[]).forEach(function(r){ mark(r.recorded_at); });
+  (d.airway||[]).forEach(function(r){ mark(r.occurred_at); mark(r.olv_started_at); mark(r.olv_ended_at); });
+  (d.ventilation||[]).forEach(function(r){ mark(r.occurred_at); });
+  (d.regional||[]).forEach(function(r){ mark(r.started_at); });
+  (d.labs||[]).forEach(function(r){ mark(r.sampled_at); });
+  (d.events||[]).forEach(function(r){ mark(r.occurred_at); mark(r.resolved_at); });
+  (d.vitals||[]).forEach(function(r){ mark(r.measured_at); });
+  (d.handoffs||[]).forEach(function(r){ mark(r.extubation_at); mark(r.handoff_at); });
+
+  var live = !(d.case && d.case.status === 'finalized');
+  var t0, t1;
+  if(stamps.length){
+    t0 = Math.min.apply(null, stamps);
+    t1 = Math.max.apply(null, stamps);
+  } else {
+    t0 = t1 = tms(d.case && d.case.created_at) || now;
+  }
+  /* A case in progress runs up to the present moment, so "now" always has
+     somewhere to be drawn even before anything has been recorded.
+
+     But only while the present moment is still plausibly part of the case. A
+     record left open overnight — or for a week — would otherwise stretch the
+     axis across every empty hour since, producing a sheet hundreds of
+     thousands of pixels wide in which the anesthetic itself is an invisible
+     sliver. Past that, the chart shows the case that was actually recorded and
+     stops drawing a "now" that has nothing to do with it. */
+  var LIVE_WINDOW = 12*3600000;
+  if(live && now > t1 && now - t1 < LIVE_WINDOW) t1 = now;
+  t0 = floorTo(t0, scale.major);
+  t1 = ceilTo(t1 + scale.major*60000, scale.major);            // one clear division of headroom
+  if(t1 - t0 < 30*60000) t1 = t0 + 30*60000;                   // never a chart too short to read
+
+  var pxPerMin = scale.pxPerMin;
+  var spanMin  = (t1 - t0) / 60000;
+  var width    = Math.round(spanMin * pxPerMin);
+  var xOf = function(x){
+    var t = tms(x); if(t == null) return null;
+    return ((t - t0) / 60000) * pxPerMin;
+  };
+
+  var ticks = [];
+  for(var t = t0; t <= t1; t += scale.major*60000){
+    ticks.push({ t:t, x:((t - t0)/60000)*pxPerMin, major:true,
+                 label:ANES.hhmmOf(t) });
+    if(scale.minor){
+      for(var s = t + scale.minor*60000; s < t + scale.major*60000 && s <= t1; s += scale.minor*60000)
+        ticks.push({ t:s, x:((s - t0)/60000)*pxPerMin, major:false, label:'' });
+    }
+  }
+
+  /* ── physiology ──────────────────────────────────────────────────────── */
+  var series = {};
+  (d.vitals||[]).forEach(function(v){
+    var t = tms(v.measured_at), val = v.value == null ? null : +v.value;
+    if(t == null || val == null || isNaN(val)) return;
+    var k = String(v.parameter||'').toLowerCase();
+    (series[k] = series[k] || []).push({ t:t, x:((t-t0)/60000)*pxPerMin, v:val, id:v.id, unit:v.unit });
+  });
+  Object.keys(series).forEach(function(k){ series[k].sort(function(a,b){ return a.t - b.t; }); });
+
+  /* ── everything that was done, aligned to the same axis ──────────────── */
+  var lanes = {};
+  ANES.CHART_LANES.forEach(function(l){ lanes[l.id] = []; });
+  var put = function(lane, o){
+    if(o.x == null) return;
+    o.lane = lane;
+    lanes[lane].push(o);
+  };
+  var num = function(n){ return n == null ? '' : String(+n); };
+
+  (d.medications||[]).forEach(function(m){
+    put('drugs', { id:m.id, list:'medications', at:m.administered_at, x:xOf(m.administered_at),
+      short:m.medication + ' ' + num(m.dose) + (m.unit || ''),
+      label:m.medication + ' ' + num(m.dose) + ' ' + (m.unit||''),
+      detail:[m.route ? String(m.route).toUpperCase() : null,
+              ANES.yes(m.is_redose) ? 'redose' : null, m.indication].filter(Boolean).join(' · '),
+      cls:'drug' });
+  });
+
+  /* An infusion is the one thing on the sheet with duration: a bar from the
+     moment it started to the moment it stopped, or to now while it is still
+     running, with each rate change marked on the bar it belongs to. */
+  (d.infusions||[]).forEach(function(i){
+    var x1 = xOf(i.started_at); if(x1 == null) return;
+    var endT = tms(i.stopped_at);
+    var running = endT == null;
+    var x2 = running ? ((Math.min(now, t1) - t0)/60000)*pxPerMin : xOf(i.stopped_at);
+    var rates = (d.infusionRates||[]).filter(function(r){ return String(r.infusion_id) === String(i.id); })
+      .map(function(r){ return { at:r.occurred_at, x:xOf(r.occurred_at), rate:+r.rate, id:r.id }; })
+      .filter(function(r){ return r.x != null; })
+      .sort(function(a,b){ return a.x - b.x; });
+    put('infusions', { id:i.id, list:'infusions', at:i.started_at, endAt:i.stopped_at,
+      x:x1, w:Math.max(4, (x2 == null ? x1 : x2) - x1), running:running, rates:rates,
+      short:i.medication + (i.rate != null ? ' ' + num(i.rate) + ' ' + (i.rate_unit||'') : ''),
+      label:i.medication + ' infusion',
+      detail:[i.concentration, i.rate_unit ? 'rate in ' + i.rate_unit : null,
+              running ? 'running' : 'stopped ' + ANES.hhmmOf(endT),
+              i.total_given != null ? 'total ' + num(i.total_given) + ' ' + (i.total_unit||'') : null
+             ].filter(Boolean).join(' · '),
+      cls:'inf' });
+  });
+
+  (d.fluids||[]).forEach(function(f){
+    put('fluids', { id:f.id, list:'fluids', at:f.started_at, x:xOf(f.started_at),
+      short:f.fluid + ' ' + num(f.volume_ml) + ' mL', label:f.fluid + ' ' + num(f.volume_ml) + ' mL',
+      detail:[f.category, ANES.yes(f.warmed) ? 'warmed' : null, f.route].filter(Boolean).join(' · '),
+      cls:'fluid' });
+  });
+  (d.blood||[]).forEach(function(b){
+    put('blood', { id:b.id, list:'blood', at:b.started_at, x:xOf(b.started_at),
+      short:String(b.product||'').toUpperCase() + (b.units != null ? ' ' + num(b.units) + 'u' : ''),
+      label:String(b.product||'').toUpperCase() + (b.units != null ? ' ' + num(b.units) + ' unit(s)' : ''),
+      detail:[b.unit_identifier, b.volume_ml != null ? num(b.volume_ml) + ' mL' : null,
+              b.reaction ? 'REACTION: ' + b.reaction : null].filter(Boolean).join(' · '),
+      cls:b.reaction ? 'bad' : 'blood' });
+  });
+  (d.outputs||[]).forEach(function(o){
+    put('outputs', { id:o.id, list:'outputs', at:o.recorded_at, x:xOf(o.recorded_at),
+      short:String(o.kind||'').toUpperCase() + ' ' + num(o.volume_ml),
+      label:String(o.kind||'').toUpperCase() + ' ' + num(o.volume_ml) + ' mL',
+      detail:o.label || '', cls:String(o.kind).toLowerCase() === 'ebl' ? 'bad' : 'out' });
+  });
+  (d.airway||[]).forEach(function(a){
+    var diff = ANES.yes(a.difficult_airway);
+    put('airway', { id:a.id, list:'airway', at:a.occurred_at, x:xOf(a.occurred_at),
+      short:[a.device, a.device_size].filter(Boolean).join(' ') || 'airway',
+      label:'Airway — ' + ([a.device, a.device_size].filter(Boolean).join(' ') || 'record'),
+      detail:[a.technique, a.cormack_lehane ? 'CL ' + a.cormack_lehane : null,
+              a.attempts ? a.attempts + ' attempt(s)' : null,
+              diff ? 'DIFFICULT AIRWAY' : null].filter(Boolean).join(' · '),
+      cls:diff ? 'bad' : 'airway' });
+    if(a.olv_started_at) put('airway', { id:a.id + ':olv0', list:'airway', at:a.olv_started_at,
+      x:xOf(a.olv_started_at), short:'OLV start', label:'One-lung ventilation started', detail:'', cls:'airway' });
+    if(a.olv_ended_at) put('airway', { id:a.id + ':olv1', list:'airway', at:a.olv_ended_at,
+      x:xOf(a.olv_ended_at), short:'OLV end', label:'One-lung ventilation ended', detail:'', cls:'airway' });
+  });
+  (d.ventilation||[]).forEach(function(v){
+    var bits = [v.tidal_volume_ml ? 'VT ' + num(v.tidal_volume_ml) : null,
+                v.respiratory_rate ? 'RR ' + num(v.respiratory_rate) : null,
+                v.peep_cmh2o != null ? 'PEEP ' + num(v.peep_cmh2o) : null,
+                v.fio2_pct ? 'FiO₂ ' + num(v.fio2_pct) + '%' : null].filter(Boolean);
+    put('ventilation', { id:v.id, list:'ventilation', at:v.occurred_at, x:xOf(v.occurred_at),
+      short:(v.mode || 'vent') + (bits.length ? ' ' + bits[0] : ''),
+      label:'Ventilation — ' + (v.mode || 'settings'),
+      detail:bits.join(' · '), cls:'vent' });
+  });
+  (d.regional||[]).forEach(function(r){
+    put('regional', { id:r.id, list:'regional', at:r.started_at, x:xOf(r.started_at),
+      short:(r.block_name || r.kind || 'block') + (r.side ? ' ' + r.side : ''),
+      label:(r.block_name || r.kind || 'Regional block'),
+      detail:[r.approach, r.local_anesthetic,
+              r.la_volume_ml != null ? num(r.la_volume_ml) + ' mL' : null,
+              r.catheter ? 'catheter' : null, r.complications].filter(Boolean).join(' · '),
+      cls:r.complications ? 'bad' : 'reg' });
+  });
+  (d.labs||[]).forEach(function(l){
+    var val = l.value != null ? num(l.value) : (l.value_text || '');
+    put('labs', { id:l.id, list:'labs', at:l.sampled_at, x:xOf(l.sampled_at),
+      short:l.analyte + ' ' + val, label:(l.panel ? l.panel + ' — ' : '') + l.analyte + ' ' + val + ' ' + (l.unit||''),
+      detail:[l.specimen, l.unit].filter(Boolean).join(' · '),
+      cls:ANES.yes(l.abnormal) ? 'bad' : 'lab' });
+  });
+  (d.events||[]).forEach(function(e){
+    var xr = xOf(e.resolved_at), x1 = xOf(e.occurred_at);
+    put('events', { id:e.id, list:'events', at:e.occurred_at, endAt:e.resolved_at,
+      x:x1, w:(xr != null && x1 != null && xr > x1) ? xr - x1 : 0,
+      short:e.event_type + (e.severity ? ' (' + e.severity + ')' : ''),
+      label:e.event_type, detail:[e.severity, e.description, e.treatment, e.outcome]
+        .filter(Boolean).join(' · '), cls:'bad' });
+  });
+
+  var mlabel = {};
+  ANES.MILESTONES.forEach(function(m){ mlabel[m.key] = m.label; });
+  (d.times||[]).forEach(function(m){
+    put('milestones', { id:m.id, list:'times', at:m.occurred_at, x:xOf(m.occurred_at),
+      short:mlabel[m.milestone] || m.milestone, label:mlabel[m.milestone] || m.milestone,
+      detail:m.note || '', cls:'ms', milestone:m.milestone });
+  });
+  (d.handoffs||[]).forEach(function(h){
+    if(h.extubation_at) put('milestones', { id:h.id + ':ext', list:'handoffs', at:h.extubation_at,
+      x:xOf(h.extubation_at), short:'Extubated', label:'Extubated',
+      detail:h.extubation_type || '', cls:'ms' });
+    if(h.handoff_at) put('milestones', { id:h.id + ':ho', list:'handoffs', at:h.handoff_at,
+      x:xOf(h.handoff_at), short:'Handover ' + (h.destination||''), label:'Handover',
+      detail:[h.destination, h.recipient_name].filter(Boolean).join(' · '), cls:'ms' });
+  });
+
+  Object.keys(lanes).forEach(function(k){
+    lanes[k].sort(function(a,b){ return a.x - b.x; });
+  });
+
+  return {
+    scale:scale, t0:t0, t1:t1, spanMin:spanMin, pxPerMin:pxPerMin, width:width,
+    ticks:ticks, series:series, lanes:lanes, live:live,
+    now:now, nowX:(now >= t0 && now <= t1) ? ((now - t0)/60000)*pxPerMin : null,
+    xOf:xOf,
+    /* The inverse, for tapping a place on the sheet and meaning a time. */
+    timeAt:function(px){ return new Date(t0 + (px / pxPerMin) * 60000).toISOString(); }
+  };
+};
+
+ANES.hhmmOf = function(t){
+  var d = new Date(t);
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+};
+
+/* The bands the graph is drawn in. Pressures and rate share one scale because
+   reading a heart rate against a blood pressure is the entire point; the
+   percentages and the temperature cannot share it and get their own band with
+   their own domains. */
+ANES.CHART_BANDS = {
+  pressure: { lo:0,  hi:220 },
+  pct:      { lo:40, hi:100 },
+  temp:     { lo:32, hi:42  }
+};
+
 window.ANES = ANES;
 })();

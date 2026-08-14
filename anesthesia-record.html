@@ -52,6 +52,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
 /* ── Layout: rail + content ── */
 .shell{max-width:1600px;margin:0 auto;padding:16px 18px;display:grid;
   grid-template-columns:212px minmax(0,1fr);gap:18px;align-items:start;}
+/* The chart is wider than the screen by design. Every ancestor between it and
+   the viewport must therefore be allowed to be narrower than its content, or
+   the width escapes and the whole page scrolls instead of the chart. */
+#sections{min-width:0;}
 .rail{position:sticky;top:96px;display:flex;flex-direction:column;gap:3px;}
 .rnav{display:flex;align-items:center;gap:9px;background:none;border:1px solid transparent;border-radius:10px;
   padding:10px 11px;font-family:inherit;font-size:13.5px;color:rgba(255,255,255,.62);cursor:pointer;
@@ -163,8 +167,139 @@ select option{background:#132218;}
 .msg-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#FFB4A8;}
 .msg-ok{background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.3);color:var(--accent);}
 
+/* ── THE CHART ────────────────────────────────────────────────────────────
+   One sheet, time running left to right, every lane sharing the axis. The
+   label column is sticky so you never lose track of which row you are reading
+   when the sheet is scrolled into the middle of a long case. */
+.ctop{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.ctop-sp{margin-left:auto;}
+.cbtn{min-height:44px;padding:0 13px;border-radius:9px;border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.04);color:rgba(255,255,255,.72);font-family:inherit;font-size:13px;
+  cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.cbtn:hover{color:#fff;background:rgba(126,207,192,.1);}
+.cbtn.on{background:rgba(27,107,90,.32);border-color:var(--teal2);color:#fff;font-weight:600;}
+.cbtn.pri{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600;}
+.cscale{display:inline-flex;gap:4px;align-items:center;}
+.clegend{display:flex;gap:5px;flex-wrap:wrap;}
+.cleg{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 9px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);font-size:12px;
+  font-family:inherit;color:rgba(255,255,255,.45);cursor:pointer;}
+.cleg.on{color:#fff;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.22);}
+.cleg i{width:10px;height:10px;border-radius:50%;display:inline-block;flex:0 0 auto;}
+.cleg b{font-variant-numeric:tabular-nums;font-weight:700;}
+
+.chartwrap{overflow-x:auto;overflow-y:hidden;border:1px solid var(--border);border-radius:12px;
+  background:rgba(255,255,255,.02);-webkit-overflow-scrolling:touch;}
+.chartin{position:relative;min-width:100%;}
+.crow{display:flex;align-items:stretch;border-bottom:1px solid rgba(255,255,255,.06);}
+.crow:last-child{border-bottom:none;}
+.clbl{position:sticky;left:0;z-index:4;flex:0 0 106px;width:106px;background:#08160F;
+  border-right:1px solid rgba(255,255,255,.13);padding:7px 9px;font-size:11.5px;font-weight:600;
+  color:rgba(255,255,255,.66);display:flex;align-items:center;}
+.ctrack{position:relative;flex:0 0 auto;min-height:36px;}
+.caxis{background:rgba(255,255,255,.03);}
+.caxis .clbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+.caxis .ctrack{height:32px;cursor:crosshair;}
+.ctick{position:absolute;top:0;bottom:0;border-left:1px solid rgba(255,255,255,.055);}
+.ctick.maj{border-left-color:rgba(255,255,255,.15);}
+.ctlab{position:absolute;top:8px;font-size:10.5px;color:rgba(255,255,255,.55);padding-left:4px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;}
+.cnow{position:absolute;top:0;bottom:0;width:2px;background:#FF5252;z-index:6;pointer-events:none;}
+.cnow b{position:absolute;top:1px;left:4px;font-size:9px;font-weight:800;color:#FF5252;letter-spacing:.08em;}
+/* Every entry's LEFT edge is its moment; the accent bar marks it so a wide
+   label can never be mistaken for a wide event. */
+.citem{position:absolute;height:26px;display:flex;align-items:center;padding:0 7px 0 8px;
+  border-radius:7px;font-size:11.5px;white-space:nowrap;cursor:pointer;font-family:inherit;
+  border:1px solid rgba(255,255,255,.16);border-left:3px solid var(--accent);
+  background:rgba(255,255,255,.08);color:#fff;overflow:hidden;text-overflow:ellipsis;}
+.citem:hover{background:rgba(126,207,192,.18);}
+.citem.drug{border-left-color:#7ECFC0;}
+.citem.inf{border-left-color:#CE93D8;background:rgba(206,147,216,.16);}
+.citem.fluid{border-left-color:#82B1FF;}
+.citem.blood{border-left-color:#FF8A80;}
+.citem.out{border-left-color:#FFD180;}
+.citem.airway{border-left-color:#A5D6A7;}
+.citem.vent{border-left-color:#80DEEA;}
+.citem.reg{border-left-color:#F48FB1;}
+.citem.lab{border-left-color:#FFF59D;}
+.citem.ms{border-left-color:#fff;background:rgba(255,255,255,.13);font-weight:600;}
+.citem.bad{border-left-color:#FF5252;background:rgba(192,57,43,.24);color:#FFC9C0;font-weight:600;}
+.cbar{position:absolute;height:22px;border-radius:6px;border:1px solid rgba(206,147,216,.5);
+  background:linear-gradient(180deg,rgba(206,147,216,.30),rgba(206,147,216,.16));
+  display:flex;align-items:center;padding:0 7px;font-size:11px;color:#fff;cursor:pointer;
+  white-space:nowrap;overflow:hidden;font-family:inherit;}
+.cbar.run{border-style:dashed;}
+.cbar:hover{background:rgba(206,147,216,.35);}
+.crate{position:absolute;width:2px;top:0;bottom:0;background:#fff;opacity:.75;}
+.crate b{position:absolute;top:-1px;left:3px;font-size:9.5px;font-weight:700;color:#fff;
+  background:rgba(0,0,0,.45);border-radius:3px;padding:0 3px;}
+.cempty{position:absolute;left:8px;top:9px;font-size:11.5px;color:rgba(255,255,255,.25);}
+
+/* Tap an entry: what it is, and what may be done about it. */
+.cpop{position:fixed;z-index:60;left:50%;bottom:18px;transform:translateX(-50%);width:min(520px,94vw);
+  background:#0C1F18;border:1px solid var(--teal2);border-radius:14px;padding:15px 16px;
+  box-shadow:0 18px 50px rgba(0,0,0,.6);}
+.cpop h4{font-size:15px;font-weight:700;margin-bottom:3px;}
+.cpop .t{font-size:12.5px;color:var(--accent);font-variant-numeric:tabular-nums;margin-bottom:7px;}
+.cpop .d{font-size:13px;color:rgba(255,255,255,.75);line-height:1.55;}
+.cpop .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px;}
+
+/* Quick entry. On a wide screen a right-hand drawer; on an iPad held in
+   portrait or a phone, a bottom sheet — because a thumb reaches the bottom. */
+.cdrawer{position:fixed;z-index:55;right:0;top:0;bottom:0;width:min(430px,92vw);
+  background:#0A1B14;border-left:1px solid var(--teal2);box-shadow:-14px 0 44px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;}
+.cdrawer-h{display:flex;align-items:center;gap:10px;padding:13px 15px;
+  border-bottom:1px solid var(--border);}
+.cdrawer-t{font-size:14.5px;font-weight:700;flex:1;}
+.cdrawer-b{padding:15px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.cgrid button{min-height:56px;border-radius:11px;border:1px solid rgba(255,255,255,.13);
+  background:rgba(255,255,255,.045);color:#fff;font-family:inherit;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;font-weight:600;}
+.cgrid button:hover{background:rgba(126,207,192,.14);border-color:var(--teal2);}
+.cfab{position:fixed;z-index:50;right:18px;bottom:18px;min-height:56px;padding:0 22px;border-radius:28px;
+  border:none;background:var(--teal);color:#fff;font-family:inherit;font-size:15.5px;font-weight:700;
+  cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.45);}
+.cfab:hover{background:var(--teal2);}
+.cscrim{position:fixed;inset:0;z-index:54;background:rgba(0,0,0,.45);}
+
+/* ── Record view: one continuous anesthetic, not twelve forms ───────────── */
+.rv{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.rv h3{font-family:'Playfair Display',serif;font-size:17px;margin:22px 0 9px;}
+.rv h3:first-child{margin-top:0;}
+.rvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;}
+.rvgrid div{font-size:13px;}
+.rvgrid dt{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);}
+.rvgrid dd{margin-top:2px;}
+table.rvt{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.rvt th{text-align:left;font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--border);font-weight:600;}
+table.rvt td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top;}
+table.rvt td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--accent);}
+
+@media print{
+  /* The chart is the record. Everything that exists to operate the app goes. */
+  .hdr, .rail, .ctop, .cdrawer, .cscrim, .cfab, .cpop, .rowbtn, .acts, .savest { display:none !important; }
+  body{background:#fff;color:#000;}
+  #app{display:block !important;}
+  .shell{display:block;padding:0;max-width:none;}
+  .rv, .card{background:#fff;border-color:#999;color:#000;}
+  .chartwrap{overflow:visible;border-color:#999;}
+  table.rvt td:first-child{color:#000;}
+  .rv h3{page-break-after:avoid;}
+  table.rvt{page-break-inside:auto;}
+  tr{page-break-inside:avoid;}
+}
+
 @media(max-width:1000px){
-  .shell{grid-template-columns:1fr;padding:13px;}
+  /* minmax(0,…), not 1fr: a grid track sized to its content lets the chart's
+     own width push the whole page sideways, and a page that scrolls sideways
+     on an iPad is a page you cannot hold. The chart scrolls; the page does not. */
+  .shell{grid-template-columns:minmax(0,1fr);padding:13px;}
+  .cdrawer{left:0;right:0;top:auto;bottom:0;width:auto;max-height:82vh;border-left:none;
+    border-top:1px solid var(--teal2);border-radius:16px 16px 0 0;box-shadow:0 -14px 44px rgba(0,0,0,.5);}
+  .cfab{right:14px;bottom:14px;}
   /* On a phone the rail becomes a horizontally scrollable strip: every section
      stays one tap away instead of being buried in a menu. */
   .rail{position:sticky;top:0;z-index:25;flex-direction:row;overflow-x:auto;gap:6px;
@@ -173,7 +308,14 @@ select option{background:#132218;}
   .rail::-webkit-scrollbar{display:none;}
   .rnav{width:auto;white-space:nowrap;flex:0 0 auto;padding:9px 13px;}
   .rnav .n{margin-left:6px;}
-  .clock{margin-left:0;text-align:left;}
+  /* Below this width there is not room for identity, chips and clock on one
+     line: flex:1 squeezed the chips into a column fifty pixels wide, so the
+     weight, the ASA and the allergy — the things you look at fastest — became
+     the hardest to read. Name and clock keep the first line; the chips get a
+     full line of their own underneath. */
+  .hdr-id{flex:1 1 auto;min-width:0;}
+  .clock{flex:0 0 auto;margin-left:auto;text-align:right;}
+  .chips{flex:1 1 100%;}
 }
 @media(max-width:560px){
   .hdr-in{padding:9px 13px;gap:10px;}
@@ -235,7 +377,7 @@ select option{background:#132218;}
 
 var CASE_ID = new URLSearchParams(location.search).get('case');
 var D = null;              // the whole case, as last read from the server
-var _case = null, _locked = false, _clockBase = null, _sec = 'overview';
+var _case = null, _locked = false, _clockBase = null, _sec = 'chart';
 var _forms = {};           // spec -> in-progress values, so a re-render never loses typing
 var _busy = {};            // spec -> true while a write is in flight
 
@@ -261,6 +403,10 @@ function fromLocalInput(v){ return v ? new Date(v).toISOString() : null; }
    how many entries it currently holds, so the rail doubles as a summary of
    what has been documented and what has not. */
 var SECTIONS = [
+  /* The chart is the record; the twelve panels below it are where the detail
+     of each part is written and read. Opening a case lands here, on the
+     anesthetic itself, rather than on a form. */
+  { id:'chart',     ic:'▦', label:'Chart',           render:secChart,     count:function(){ return 0; } },
   { id:'overview',  ic:'▤', label:'Overview',        render:secOverview,  count:function(){ return (D.times||[]).length; } },
   { id:'preop',     ic:'✚', label:'Pre-op',          render:secPreop,     count:function(){ return (D.history||[]).filter(function(h){ return ANES.yes(h.reviewed); }).length; } },
   { id:'airway',    ic:'◔', label:'Airway',          render:secAirway,    count:function(){ return (D.airway||[]).length; } },
@@ -272,7 +418,8 @@ var SECTIONS = [
   { id:'regional',  ic:'⌖', label:'Regional',        render:secRegional,  count:function(){ return (D.regional||[]).length; } },
   { id:'vitals',    ic:'📈',label:'Vitals & Labs',   render:secVitals,    count:function(){ return (D.vitals||[]).length + (D.labs||[]).length; } },
   { id:'events',    ic:'⚠', label:'Events',          render:secEvents,    count:function(){ return (D.events||[]).length; } },
-  { id:'handoff',   ic:'➜', label:'Emergence & Handoff', render:secHandoff, count:function(){ return (D.handoffs||[]).length; } }
+  { id:'handoff',   ic:'➜', label:'Emergence & Handoff', render:secHandoff, count:function(){ return (D.handoffs||[]).length; } },
+  { id:'record',    ic:'🖨', label:'Record view',     render:secRecord,    count:function(){ return 0; } }
 ];
 
 /* ═══════════ FORM RENDERER ═════════════════════════════════════════════════
@@ -568,6 +715,525 @@ function editCard(section){
     '<button class="btn ghost" onclick="cancelEdit()">Cancel</button>' +
     '<button class="btn danger" onclick="removeRow()">Remove entry</button>' +
     '<span class="savest" id="save-edit"></span></div></div></div>';
+}
+
+/* ═══════════ THE CHART ════════════════════════════════════════════════════
+   The first thing a clinician sees. Not a form — the anesthetic itself, drawn
+   the way it has been drawn on paper for a century: time along the bottom,
+   physiology above, everything that was given or done lined up underneath in
+   the minute it belongs to.
+
+   It reads from ANES.chartModel, which is a projection of the same rows the
+   detailed sections show. There is no chart table. Nothing here can be true
+   while the sections say otherwise, because there is only one set of facts. */
+
+var CH_GUTTER = 106;                    // must match .clbl width
+var _chartScale = ANES.CHART_DEFAULT_SCALE;
+var _vitOn = null;
+var _pop = null;                        // the tapped entry, if any
+var _drawer = null;                     // { mode, spec, table, at }
+var _followNow = true;
+
+/* Which band each parameter is drawn in and against what domain. Deliberately
+   local: the pressures and the heart rate share a scale because reading one
+   against the other is the point, and a saturation cannot share it. */
+var VIT_BAND   = { hr:'A', sbp:'A', dbp:'A', map:'A', spo2:'B', etco2:'B', bis:'B', temp:'B' };
+var VIT_DOMAIN = { hr:[0,220], sbp:[0,220], dbp:[0,220], map:[0,220],
+                   spo2:[40,100], etco2:[0,60], bis:[0,100], temp:[32,42] };
+var CH_H = { A:[12,196], B:[214,292], total:302 };   // y bands inside the graph
+
+function vitOn(){
+  if(!_vitOn){ _vitOn = {}; ANES.VITAL_GRAPH.forEach(function(g){ _vitOn[g.k] = true; }); }
+  return _vitOn;
+}
+function toggleVit(k){ var o = vitOn(); o[k] = !o[k]; redrawSection(); }
+function setScale(id){ _chartScale = id; redrawSection(); jumpToNow(true); }
+
+function chartModel(){
+  return ANES.chartModel(D, { scaleId:_chartScale });
+}
+function yFor(k, v){
+  var b = VIT_BAND[k] || 'B', dom = VIT_DOMAIN[k] || [0,100];
+  var top = CH_H[b][0], bot = CH_H[b][1];
+  var f = (v - dom[0]) / (dom[1] - dom[0]);
+  f = Math.max(0, Math.min(1, f));
+  return bot - f * (bot - top);
+}
+
+/* Entries close together in time would sit on top of each other, so each lane
+   stacks into as many sub-rows as it needs. A chart that hides an entry behind
+   another entry is worse than one that is tall. */
+function packLane(items){
+  var rows = [];
+  items.forEach(function(it){
+    var w = it.w && it.w > 4 ? it.w : Math.max(34, String(it.short||'').length * 6.4 + 20);
+    it._w = w;
+    var r = 0;
+    while(rows[r] != null && rows[r] > it.x - 3) r++;
+    rows[r] = it.x + w;
+    it._row = r;
+  });
+  return Math.max(1, rows.length);
+}
+
+function chartTicks(m){
+  return m.ticks.map(function(t){
+    return '<div class="ctick' + (t.major ? ' maj' : '') + '" style="left:' + t.x.toFixed(1) + 'px"></div>';
+  }).join('');
+}
+
+function chartAxis(m){
+  var labs = m.ticks.filter(function(t){ return t.major; }).map(function(t){
+    return '<span class="ctlab" style="left:' + t.x.toFixed(1) + 'px">' + t.label + '</span>';
+  }).join('');
+  return '<div class="crow caxis"><div class="clbl">Time</div>' +
+    '<div class="ctrack" style="width:' + m.width + 'px" onclick="chartAxisTap(event)">' +
+    chartTicks(m) + labs + '</div></div>';
+}
+
+/* ── the physiological trend ─────────────────────────────────────────────
+   Blood pressure keeps its paper notation — ▼ systolic, ▲ diastolic, joined
+   by the line between them — because that is the shape an anesthetist reads
+   without thinking. */
+function chartVitals(m){
+  var on = vitOn(), parts = [], H = CH_H.total;
+
+  // horizontal reference lines, hemodynamic band
+  [0,40,80,120,160,200].forEach(function(v){
+    var y = yFor('sbp', v);
+    parts.push('<line x1="0" y1="' + y.toFixed(1) + '" x2="' + m.width + '" y2="' + y.toFixed(1) +
+      '" stroke="rgba(255,255,255,' + (v === 0 ? '.16' : '.07') + ')" stroke-width="1"/>');
+  });
+  [50,100].forEach(function(v){
+    var y = yFor('spo2', v);
+    parts.push('<line x1="0" y1="' + y.toFixed(1) + '" x2="' + m.width + '" y2="' + y.toFixed(1) +
+      '" stroke="rgba(255,255,255,.07)" stroke-width="1"/>');
+  });
+  // vertical time grid, identical to every lane below
+  m.ticks.forEach(function(t){
+    parts.push('<line x1="' + t.x.toFixed(1) + '" y1="0" x2="' + t.x.toFixed(1) + '" y2="' + H +
+      '" stroke="rgba(255,255,255,' + (t.major ? '.10' : '.045') + ')" stroke-width="1"/>');
+  });
+
+  var col = {};
+  ANES.VITAL_GRAPH.forEach(function(g){ col[g.k] = g.colour; });
+
+  // The systolic/diastolic pair, drawn at the moments both were measured.
+  if(on.sbp || on.dbp){
+    var byT = {};
+    ['sbp','dbp'].forEach(function(k){
+      (m.series[k]||[]).forEach(function(p){ (byT[p.t] = byT[p.t] || {})[k] = p; });
+    });
+    Object.keys(byT).forEach(function(tk){
+      var s = byT[tk].sbp, dd = byT[tk].dbp;
+      var x = (s || dd).x;
+      if(s && dd) parts.push('<line x1="' + x.toFixed(1) + '" y1="' + yFor('sbp',s.v).toFixed(1) +
+        '" x2="' + x.toFixed(1) + '" y2="' + yFor('dbp',dd.v).toFixed(1) +
+        '" stroke="' + col.sbp + '" stroke-width="1.4" opacity=".75"/>');
+      if(s && on.sbp) parts.push(mark(x, yFor('sbp', s.v), 'down', col.sbp));
+      if(dd && on.dbp) parts.push(mark(x, yFor('dbp', dd.v), 'up', col.dbp));
+    });
+  }
+
+  ANES.VITAL_GRAPH.forEach(function(g){
+    if(!on[g.k]) return;
+    if(g.k === 'sbp' || g.k === 'dbp') return;         // already drawn as the pair
+    var pts = m.series[g.k] || [];
+    if(!pts.length) return;
+    var dash = (g.k === 'map') ? ' stroke-dasharray="4 3"' : '';
+    if(pts.length > 1)
+      parts.push('<polyline fill="none" stroke="' + g.colour + '" stroke-width="1.8"' + dash +
+        ' points="' + pts.map(function(p){ return p.x.toFixed(1) + ',' + yFor(g.k,p.v).toFixed(1); }).join(' ') + '"/>');
+    pts.forEach(function(p){
+      parts.push('<circle cx="' + p.x.toFixed(1) + '" cy="' + yFor(g.k,p.v).toFixed(1) +
+        '" r="2.6" fill="' + g.colour + '"/>');
+    });
+  });
+
+  function mark(x, y, dir, c){
+    var h = 5;
+    return dir === 'down'
+      ? '<polygon points="' + (x-5) + ',' + (y-h) + ' ' + (x+5) + ',' + (y-h) + ' ' + x + ',' + y +
+        '" fill="' + c + '"/>'
+      : '<polygon points="' + (x-5) + ',' + (y+h) + ' ' + (x+5) + ',' + (y+h) + ' ' + x + ',' + y +
+        '" fill="' + c + '"/>';
+  }
+
+  // The y-axis lives in the sticky label column, so the scale never scrolls away.
+  var ax = [];
+  [0,40,80,120,160,200].forEach(function(v){
+    ax.push('<text x="98" y="' + (yFor('sbp',v)+3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" ' +
+      'fill="rgba(255,255,255,.45)">' + v + '</text>');
+  });
+  ax.push('<text x="98" y="' + (yFor('spo2',100)+3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" ' +
+    'fill="rgba(255,255,255,.45)">100%</text>');
+  ax.push('<text x="98" y="' + (yFor('spo2',40)+3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" ' +
+    'fill="rgba(255,255,255,.45)">40%</text>');
+
+  return '<div class="crow"><div class="clbl" style="align-items:flex-start;padding:0">' +
+      '<svg width="106" height="' + H + '" aria-hidden="true">' + ax.join('') + '</svg></div>' +
+    '<div class="ctrack" id="ch-vitals" style="width:' + m.width + 'px;height:' + H + 'px">' +
+      '<svg width="' + m.width + '" height="' + H + '" role="img" ' +
+      'aria-label="Vital signs plotted against time">' + parts.join('') + '</svg></div></div>';
+}
+
+function chartLane(m, lane){
+  var items = m.lanes[lane.id] || [];
+  var rows = packLane(items);
+  var h = rows * 30 + 6;
+  var body = chartTicks(m);
+  if(!items.length) body += '<span class="cempty">—</span>';
+  items.forEach(function(it){
+    var top = it._row * 30 + 4;
+    if(lane.id === 'infusions'){
+      body += '<button class="cbar' + (it.running ? ' run' : '') + '" style="left:' + it.x.toFixed(1) +
+        'px;width:' + it._w.toFixed(1) + 'px;top:' + (top+2) + 'px" ' +
+        'onclick="chartTap(\'' + esc(it.lane) + '\',\'' + esc(String(it.id)) + '\')">' +
+        esc(it.short) + '</button>';
+      it.rates.forEach(function(r){
+        body += '<span class="crate" style="left:' + r.x.toFixed(1) + 'px;top:' + top +
+          'px;height:26px"><b>' + esc(String(r.rate)) + '</b></span>';
+      });
+      return;
+    }
+    body += '<button class="citem ' + esc(it.cls || '') + '" style="left:' + it.x.toFixed(1) +
+      'px;top:' + top + 'px;max-width:' + Math.max(60, it._w) + 'px" ' +
+      'onclick="chartTap(\'' + esc(it.lane) + '\',\'' + esc(String(it.id)) + '\')" ' +
+      'title="' + esc(hhmm(it.at) + ' ' + it.label) + '">' + esc(it.short) + '</button>';
+  });
+  return '<div class="crow"><div class="clbl">' + esc(lane.label) +
+    '</div><div class="ctrack" style="width:' + m.width + 'px;height:' + h + 'px">' + body + '</div></div>';
+}
+
+function chartLegend(m){
+  var on = vitOn();
+  return '<div class="clegend">' + ANES.VITAL_GRAPH.map(function(g){
+    var pts = m.series[g.k] || [], last = pts[pts.length-1];
+    return '<button class="cleg' + (on[g.k] ? ' on' : '') + '" aria-pressed="' + !!on[g.k] + '" ' +
+      'onclick="toggleVit(\'' + g.k + '\')"><i style="background:' + g.colour + '"></i>' +
+      g.label + (last ? ' <b>' + (+last.v) + '</b>' : '') + '</button>';
+  }).join('') + '</div>';
+}
+
+function secChart(){
+  var m = _chartModel = chartModel();
+  var scales = ANES.CHART_SCALES.map(function(s){
+    return '<button class="cbtn' + (s.id === _chartScale ? ' on' : '') + '" ' +
+      'onclick="setScale(\'' + s.id + '\')">' + s.label + '</button>';
+  }).join('');
+
+  var body = chartAxis(m) + chartVitals(m) +
+    ANES.CHART_LANES.map(function(l){ return chartLane(m, l); }).join('') +
+    chartAxis(m);                       // repeated at the foot, as on paper
+
+  var nowMark = m.nowX == null ? '' :
+    '<div class="cnow" id="ch-now" style="left:' + (CH_GUTTER + m.nowX).toFixed(1) + 'px"><b>NOW</b></div>';
+
+  return sectionError('case','The case') + sectionError('vitals','Vitals') +
+    '<div class="ctop"><span class="cscale">' + scales + '</span>' +
+    '<button class="cbtn" onclick="jumpToNow()">Jump to now</button>' +
+    '<span class="ctop-sp"></span>' +
+    /* Signing the record, and the way out, used to live only at the foot of
+       Overview. The chart is where a clinician now lands and finishes, so the
+       actions that end a case have to be reachable from it. */
+    (_locked ? '<button class="cbtn" onclick="openAmend()">Record an amendment</button>'
+             : '<button class="cbtn" onclick="finalizeCase()">Sign &amp; finalize</button>') +
+    '<button class="cbtn" onclick="goSection(\'record\')">Record view</button>' +
+    '<a class="cbtn" href="/anesthesia-cases.html" style="text-decoration:none">Back to Live Chart</a></div>' +
+    '<div class="ctop">' + chartLegend(m) + '</div>' +
+    '<div class="chartwrap" id="chartwrap"><div class="chartin" style="width:' +
+      (CH_GUTTER + m.width) + 'px">' + body + nowMark + '</div></div>' +
+    '<div class="msg msg-err" id="rec-err"></div><div class="msg msg-ok" id="rec-ok"></div>' +
+    (_locked ? '' : '<button class="cfab" onclick="openDrawer()">+ Record</button>') +
+    drawerHtml() + popHtml();
+}
+
+function jumpToNow(quiet){
+  var w = el('chartwrap');
+  if(!w || !_chartModel || _chartModel.nowX == null) return;
+  var target = CH_GUTTER + _chartModel.nowX - w.clientWidth * 0.62;
+  w.scrollLeft = Math.max(0, target);
+  _followNow = true;
+  if(!quiet) return;
+}
+
+/* Tapping the axis means "something happened about then". The time is offered
+   as a starting point, never silently applied: the drawer opens with it
+   filled in and visible, and the clinician can correct it. */
+function chartAxisTap(ev){
+  if(_locked) return;
+  var track = ev.currentTarget, r = track.getBoundingClientRect();
+  var px = ev.clientX - r.left;
+  if(!_chartModel) return;
+  openDrawer(_chartModel.timeAt(px));
+}
+
+function chartTap(lane, id){
+  var m = _chartModel || chartModel();
+  var it = (m.lanes[lane] || []).filter(function(x){ return String(x.id) === String(id); })[0];
+  if(!it) return;
+  _pop = it;
+  redrawSection();
+}
+function closePop(){ _pop = null; redrawSection(); }
+
+function popHtml(){
+  if(!_pop) return '';
+  var it = _pop;
+  var cfg = ANES.EDITABLE[it.list];
+  // Composite marks (one-lung ventilation, a handover) carry a synthetic id and
+  // are not rows of their own, so they are shown but not offered for edit.
+  var editable = !_locked && cfg && String(it.id).indexOf(':') < 0;
+  var acts = '';
+  if(editable) acts =
+    '<button class="cbtn pri" onclick="chartEdit(\'' + esc(it.list) + '\',\'' + esc(String(it.id)) + '\')">Correct</button>' +
+    '<button class="cbtn" onclick="chartRemove(\'' + esc(it.list) + '\',\'' + esc(String(it.id)) + '\')">Remove</button>';
+  else if(_locked) acts =
+    '<button class="cbtn" onclick="closePop();openAmend()">Record an amendment</button>';
+  return '<div class="cscrim" onclick="closePop()"></div>' +
+    '<div class="cpop" role="dialog" aria-label="Chart entry">' +
+    '<h4>' + esc(it.label) + '</h4><div class="t">' + hhmm(it.at) +
+    (it.endAt ? ' → ' + hhmm(it.endAt) : (it.running ? ' → running' : '')) + '</div>' +
+    (it.detail ? '<div class="d">' + esc(it.detail) + '</div>' : '') +
+    (_locked ? '<div class="d" style="color:#FFD9A0;margin-top:9px">This record is finalized. ' +
+      'It can no longer be edited; a correction is recorded as an amendment.</div>' : '') +
+    '<div class="acts">' + acts +
+    '<button class="cbtn" onclick="closePop()">Close</button></div></div>';
+}
+
+/* ── Quick entry ─────────────────────────────────────────────────────────
+   Everything documented intraoperatively, without leaving the chart. Each
+   button opens the same described form the detailed section uses, so there is
+   one definition of what a drug entry is. */
+var QUICK = [
+  { id:'medication',  label:'Drug',        table:'anesthesia_medications' },
+  { id:'vital',       label:'Vital',       table:'anesthesia_vitals' },
+  { id:'infusion',    label:'Infusion',    table:'anesthesia_infusions' },
+  { id:'fluid',       label:'Fluid',       table:'anesthesia_fluids' },
+  { id:'blood',       label:'Blood',       table:'anesthesia_blood_products' },
+  { id:'output',      label:'Output',      table:'anesthesia_outputs' },
+  { id:'event',       label:'Event',       table:'anesthesia_events' },
+  { id:'airway',      label:'Airway',      table:'anesthesia_airway' },
+  { id:'ventilation', label:'Ventilation', table:'anesthesia_ventilation' },
+  { id:'regional',    label:'Regional',    table:'anesthesia_regional' },
+  { id:'lab',         label:'Lab',         table:'anesthesia_labs' },
+  { id:'milestone',   label:'Milestone',   table:null }
+];
+
+function openDrawer(at){
+  if(_locked) return;
+  _drawer = { mode:'menu', at:at || null };
+  redrawSection();
+}
+function closeDrawer(){ _drawer = null; redrawSection(); }
+function drawerPick(id){
+  var q = QUICK.filter(function(x){ return x.id === id; })[0];
+  if(!q) return;
+  if(id === 'milestone'){ _drawer = { mode:'milestone', at:_drawer && _drawer.at }; return redrawSection(); }
+  var at = _drawer && _drawer.at;
+  var spec = ANES.FORMS[q.id], tk = spec && spec.timeKey;
+  _forms[q.id] = _forms[q.id] || {};
+  // NOW by default; the tapped time when the clinician asked for one. Either
+  // way it is rendered in the form where it can be seen and corrected.
+  if(tk) _forms[q.id][tk] = at || ANES.nowIso();
+  _drawer = { mode:'form', spec:q.id, table:q.table, label:q.label, at:at };
+  redrawSection();
+}
+
+function drawerHtml(){
+  if(!_drawer) return '';
+  /* Single-quoted: this sits inside a double-quoted HTML attribute, and a
+     JSON.stringify'd timestamp would close the attribute on its own quote. */
+  var atJs = _drawer.at ? "'" + String(_drawer.at).replace(/'/g,'') + "'" : '';
+  var head = function(title, back){
+    return '<div class="cdrawer-h">' +
+      (back ? '<button class="cbtn" onclick="openDrawer(' + atJs + ')" aria-label="Back">←</button>' : '') +
+      '<span class="cdrawer-t">' + esc(title) + '</span>' +
+      '<button class="cbtn" onclick="closeDrawer()" aria-label="Close">✕</button></div>';
+  };
+  var when = _drawer.at ? '<div class="d" style="font-size:12.5px;color:var(--accent);margin-bottom:11px">' +
+    'Starting at ' + hhmm(_drawer.at) + ' — you can change the time in the form.</div>' : '';
+
+  var inner;
+  if(_drawer.mode === 'menu'){
+    inner = head('Record', false) + '<div class="cdrawer-b">' + when +
+      '<div class="cgrid">' + QUICK.map(function(q){
+        return '<button onclick="drawerPick(\'' + q.id + '\')">' + esc(q.label) + '</button>';
+      }).join('') + '</div></div>';
+  } else if(_drawer.mode === 'milestone'){
+    inner = head('Milestone', true) + '<div class="cdrawer-b">' + when +
+      '<div class="qgrid">' + ANES.MILESTONES.map(function(mm){
+        var done = D.milestones[mm.key];
+        return '<button class="qbtn' + (done ? ' done' : '') + '" onclick="chartMilestone(\'' + mm.key + '\')">' +
+          '<b>' + esc(mm.label) + '</b><small>' +
+          (done ? hhmm(done) : (_drawer.at ? 'stamps ' + hhmm(_drawer.at) : 'stamps now')) +
+          '</small></button>';
+      }).join('') + '</div></div>';
+  } else if(_drawer.mode === 'edit'){
+    var cfg = ANES.EDITABLE[_drawer.list], row = rowFor(_drawer.list, _drawer.id);
+    if(!cfg || !row){ return ''; }
+    inner = head('Correcting ' + cfg.label(row), false) + '<div class="cdrawer-b">' +
+      renderForm(EDIT_SPEC, ANES.FORMS[cfg.spec]) +
+      '<div class="acts"><button class="btn" data-save="edit" onclick="saveEdit()">Save correction</button>' +
+      '<button class="btn ghost" onclick="closeDrawer()">Cancel</button>' +
+      '<span class="savest" id="save-edit"></span></div></div>';
+  } else {
+    inner = head(_drawer.label, true) + '<div class="cdrawer-b">' + when +
+      renderForm(_drawer.spec, ANES.FORMS[_drawer.spec]) +
+      '<div class="acts"><button class="btn" data-save="' + _drawer.spec + '" ' +
+      'onclick="drawerSave()">Record</button>' +
+      '<button class="btn ghost" onclick="closeDrawer()">Cancel</button>' +
+      '<span class="savest" id="save-' + _drawer.spec + '"></span></div></div>';
+  }
+  return '<div class="cscrim" onclick="closeDrawer()"></div><div class="cdrawer" role="dialog">' + inner + '</div>';
+}
+
+/* Deliberately does its own write rather than delegating to saveNew, so that
+   whether the drawer closes depends on what the server said and nothing else.
+   Inferring it from the form being empty afterwards does not work: rendering a
+   form re-seeds its clinical time, so a cleared form is never empty for long. */
+async function drawerSave(){
+  if(!_drawer || _drawer.mode !== 'form') return;
+  var spec = _drawer.spec, table = _drawer.table;
+  var v = captureInputs(spec);
+  var tk = (ANES.FORMS[spec] || {}).timeKey;
+  if(tk && !v[tk]) v[tk] = ANES.nowIso();     // an entry with no time has no place on the chart
+  var ok = await runSave(spec, function(){ return ANES.insert(table, CASE_ID, v); }, 'Recorded');
+  if(!ok) return;                             // the refusal stays on screen, with the typing
+  _forms[spec] = {};
+  _drawer = null;
+  await reload();
+}
+
+function chartEdit(list, id){
+  var cfg = ANES.EDITABLE[list], row = rowFor(list, id);
+  if(!cfg || !row) return;
+  _edit = { list:list, id:id };
+  _forms[EDIT_SPEC] = ANES.toForm(cfg.table, row);
+  _pop = null;
+  _drawer = { mode:'edit', list:list, id:id };
+  redrawSection();
+}
+async function chartRemove(list, id){
+  _edit = { list:list, id:id };
+  _pop = null;
+  await removeRow();
+  _drawer = null;
+  redrawSection();
+}
+
+/* A milestone stamped from the chart honours the time the clinician tapped,
+   and the drawer closes on success — the point of a marker is to see it land. */
+async function chartMilestone(key){
+  if(_locked) return;
+  var at = _drawer && _drawer.at;
+  var r = await ANES.setMilestone(CASE_ID, key, at || null);
+  if(r.error) return msg('rec-err', r.error.message);
+  _drawer = null;
+  await reload();
+}
+
+window.chartMilestone = chartMilestone;
+window.toggleVit = toggleVit; window.setScale = setScale; window.jumpToNow = jumpToNow;
+window.chartTap = chartTap; window.closePop = closePop; window.chartAxisTap = chartAxisTap;
+window.openDrawer = openDrawer; window.closeDrawer = closeDrawer; window.drawerPick = drawerPick;
+window.drawerSave = drawerSave; window.chartEdit = chartEdit; window.chartRemove = chartRemove;
+
+/* ═══════════ RECORD VIEW ══════════════════════════════════════════════════
+   A finished anesthetic read as one continuous document rather than twelve
+   forms. The DOM is deliberately plain and sectioned — headings, definition
+   lists, tables — so that turning it into a PDF later is a matter of walking
+   it, not of reverse-engineering a layout. */
+function rvTable(head, rows){
+  if(!rows.length) return '<p style="font-size:12.5px;color:var(--muted)">Nothing recorded.</p>';
+  return '<table class="rvt"><thead><tr>' + head.map(function(h){ return '<th>' + esc(h) + '</th>'; }).join('') +
+    '</tr></thead><tbody>' + rows.map(function(r){
+      return '<tr>' + r.map(function(c){ return '<td>' + esc(c == null ? '' : c) + '</td>'; }).join('') + '</tr>';
+    }).join('') + '</tbody></table>';
+}
+function secRecord(){
+  var c = _case, m = _chartModel = chartModel(), t = ANES.totals(D);
+  var dl = function(k, v){ return '<div><dt>' + esc(k) + '</dt><dd>' + (v == null || v === '' ? '—' : esc(v)) + '</dd></div>'; };
+
+  var idBlock = '<div class="rvgrid">' +
+    dl('Patient', c.display_name) + dl('MRN', c.mrn) +
+    dl('Date of birth', c.date_of_birth || 'Not known') + dl('Age', ANES.ageLabel(c)) +
+    dl('Sex', c.sex) + dl('Weight', c.weight_kg ? c.weight_kg + ' kg' : '') +
+    dl('Height', c.height_cm ? c.height_cm + ' cm' : '') +
+    dl('ASA', (c.asa_class||'') + (ANES.yes(c.asa_emergency) ? 'E' : '')) +
+    dl('Allergies', c.allergies || 'Not documented') +
+    dl('Diagnosis', c.diagnosis) + dl('Procedure', c.actual_procedure || c.planned_procedure) +
+    dl('Surgeon', c.surgeon) + dl('Anesthetist', c.anesthesiologist_name) +
+    dl('Location', c.operating_room) + dl('Urgency', c.urgency) +
+    dl('Status', c.status === 'finalized' ? 'Finalized' : 'In progress') + '</div>';
+
+  var chart = '<div class="chartwrap"><div class="chartin" style="width:' + (CH_GUTTER + m.width) + 'px">' +
+    chartAxis(m) + chartVitals(m) +
+    ANES.CHART_LANES.map(function(l){ return chartLane(m, l); }).join('') + '</div></div>';
+
+  var mrows = (D.times||[]).slice().sort(function(a,b){ return new Date(a.occurred_at) - new Date(b.occurred_at); })
+    .map(function(x){ var lab = {}; ANES.MILESTONES.forEach(function(mm){ lab[mm.key] = mm.label; });
+      return [hhmm(x.occurred_at), lab[x.milestone] || x.milestone, x.note || '']; });
+  var drows = (D.medications||[]).map(function(x){
+    return [hhmm(x.administered_at), x.medication, (+x.dose) + ' ' + (x.unit||''),
+            (x.route||'').toUpperCase(), x.indication || '']; });
+  var irows = (D.infusions||[]).map(function(x){
+    return [hhmm(x.started_at) + (x.stopped_at ? ' → ' + hhmm(x.stopped_at) : ' → running'),
+            x.medication, x.concentration || '',
+            (D.infusionRates||[]).filter(function(r){ return String(r.infusion_id) === String(x.id); })
+              .map(function(r){ return hhmm(r.occurred_at) + ' ' + (+r.rate); }).join(', '),
+            x.total_given != null ? (+x.total_given) + ' ' + (x.total_unit||'') : '']; });
+  var frows = (D.fluids||[]).map(function(x){ return [hhmm(x.started_at), x.fluid, (+x.volume_ml) + ' mL', x.category||'']; })
+    .concat((D.blood||[]).map(function(x){ return [hhmm(x.started_at), String(x.product).toUpperCase(),
+      (x.units != null ? (+x.units) + ' u ' : '') + (x.volume_ml != null ? (+x.volume_ml) + ' mL' : ''),
+      x.reaction ? 'REACTION: ' + x.reaction : '']; }));
+  var orows = (D.outputs||[]).map(function(x){ return [hhmm(x.recorded_at), String(x.kind).toUpperCase(),
+    (+x.volume_ml) + ' mL', x.label || '']; });
+  var vrows = (D.vitals||[]).slice().sort(function(a,b){ return new Date(a.measured_at) - new Date(b.measured_at); })
+    .map(function(x){ return [hhmm(x.measured_at), String(x.parameter).toUpperCase(), (+x.value) + ' ' + (x.unit||'')]; });
+  var lrows = (D.labs||[]).map(function(x){ return [hhmm(x.sampled_at), x.panel || '', x.analyte,
+    (x.value != null ? (+x.value) : (x.value_text||'')) + ' ' + (x.unit||'')]; });
+  var erows = (D.events||[]).map(function(x){ return [hhmm(x.occurred_at), x.event_type, x.severity || '',
+    [x.description, x.treatment, x.outcome].filter(Boolean).join(' · ')]; });
+  var arows = (D.airway||[]).map(function(x){ return [hhmm(x.occurred_at),
+    [x.device, x.device_size].filter(Boolean).join(' '), x.technique || '',
+    [x.cormack_lehane ? 'CL ' + x.cormack_lehane : null, x.attempts ? x.attempts + ' attempt(s)' : null,
+     ANES.yes(x.difficult_airway) ? 'DIFFICULT AIRWAY' : null].filter(Boolean).join(' · ')]; });
+  var nrows = (D.ventilation||[]).map(function(x){ return [hhmm(x.occurred_at), x.mode || '',
+    [x.tidal_volume_ml ? 'VT ' + x.tidal_volume_ml : null, x.respiratory_rate ? 'RR ' + x.respiratory_rate : null,
+     x.peep_cmh2o != null ? 'PEEP ' + x.peep_cmh2o : null, x.fio2_pct ? 'FiO₂ ' + x.fio2_pct + '%' : null]
+      .filter(Boolean).join(' · ')]; });
+  var rrows = (D.regional||[]).map(function(x){ return [hhmm(x.started_at), x.block_name || x.kind,
+    x.side || '', [x.local_anesthetic, x.la_volume_ml != null ? x.la_volume_ml + ' mL' : null].filter(Boolean).join(' ')]; });
+  var arows2 = (D.amendments||[]).map(function(x){ return [hhmm(x.amended_at), x.target_area, x.amendment, x.reason]; });
+
+  var dur = function(v){ return v == null ? '—' : Math.floor(v/60) + 'h ' + (v%60) + 'm'; };
+  var totals = '<div class="rvgrid">' +
+    dl('Anesthesia time', dur(t.anesMin)) + dl('Surgical time', dur(t.surgMin)) +
+    dl('Total fluids', t.fluidsTotal ? t.fluidsTotal + ' mL' : '') +
+    dl('Blood', t.bloodMl ? t.bloodMl + ' mL' : (t.bloodUnits ? t.bloodUnits + ' u' : '')) +
+    dl('Blood loss', t.ebl ? t.ebl + ' mL' : '') + dl('Urine', t.urine ? t.urine + ' mL' : '') +
+    dl('Balance', (t.fluidsTotal || t.outputsTotal) ? t.balance + ' mL' : '') +
+    dl('Medications', t.medications) + dl('Complications', t.complications) + '</div>';
+
+  return '<div class="ctop"><button class="cbtn" onclick="goSection(\'chart\')">← Back to chart</button>' +
+      '<button class="cbtn pri" onclick="window.print()">Print / save as PDF</button></div>' +
+    '<div class="rv" id="record-view">' +
+    '<h3>Anesthesia record</h3>' + idBlock +
+    '<h3>Intraoperative chart</h3>' + chart +
+    '<h3>Milestones</h3>' + rvTable(['Time','Milestone','Note'], mrows) +
+    '<h3>Medications</h3>' + rvTable(['Time','Drug','Dose','Route','Indication'], drows) +
+    '<h3>Infusions</h3>' + rvTable(['Period','Drug','Concentration','Rate changes','Total'], irows) +
+    '<h3>Fluids and blood</h3>' + rvTable(['Time','What','Amount','Note'], frows) +
+    '<h3>Output</h3>' + rvTable(['Time','Kind','Volume','Label'], orows) +
+    '<h3>Airway</h3>' + rvTable(['Time','Device','Technique','Note'], arows) +
+    '<h3>Ventilation</h3>' + rvTable(['Time','Mode','Settings'], nrows) +
+    '<h3>Regional</h3>' + rvTable(['Time','Block','Side','Local anesthetic'], rrows) +
+    '<h3>Vital signs</h3>' + rvTable(['Time','Parameter','Value'], vrows) +
+    '<h3>Laboratory</h3>' + rvTable(['Time','Panel','Analyte','Value'], lrows) +
+    '<h3>Events</h3>' + rvTable(['Time','Event','Severity','Detail'], erows) +
+    (arows2.length ? '<h3>Amendments</h3>' + rvTable(['Time','Area','Amendment','Reason'], arows2) : '') +
+    '<h3>Totals</h3>' + totals + '</div>';
 }
 
 /* ═══════════ SECTIONS ═════════════════════════════════════════════════════ */
@@ -1492,6 +2158,11 @@ function renderHeader(){
   var bmi = ANES.bmi(c.weight_kg, c.height_cm);
   if(bmi) chips.push('<span class="chip k">BMI ' + bmi + '</span>');
   if(c.asa_class) chips.push('<span class="chip">ASA ' + esc(c.asa_class) + (c.asa_emergency ? 'E' : '') + '</span>');
+  // Whether this record is still being written is a fact about the record, and
+  // it belongs beside the patient rather than only in a banner further down.
+  chips.push(c.status === 'finalized'
+    ? '<span class="chip k">Finalized</span>'
+    : '<span class="chip">In progress</span>');
   if(c.urgency && c.urgency !== 'elective')
     chips.push('<span class="chip ' + (c.urgency === 'emergency' ? 'stop' : 'warn') + '">' + esc(c.urgency) + '</span>');
   // An empty allergy field means nobody has written anything, which is NOT the
@@ -1526,7 +2197,8 @@ function tickClock(){
   var mins = Math.floor((Date.now() - new Date(_clockBase).getTime()) / 60000);
   if(mins < 0) mins = 0;
   c.textContent = Math.floor(mins/60) + ':' + String(mins%60).padStart(2,'0');
-  l.textContent = 'since anesthesia start';
+  // The elapsed time means little without the moment it is counted from.
+  l.textContent = 'since anesthesia start ' + hhmm(_clockBase);
 }
 
 function renderRail(){
@@ -1538,8 +2210,12 @@ function renderRail(){
   }).join('');
 }
 function goSection(id){
-  if(_sec !== id){ _sec = id; _forms = _forms || {}; }
+  var moved = (_sec !== id);
+  if(moved){ _sec = id; _forms = _forms || {}; _pop = null; _drawer = null; }
   renderRail(); redrawSection();
+  // Arriving at the chart, put the present moment on screen — that is where a
+  // clinician in a live case needs to be looking.
+  if(moved && id === 'chart') jumpToNow();
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 window.goSection = goSection;
@@ -1547,8 +2223,13 @@ window.goSection = goSection;
 function redrawSection(){
   var host = el('sections');
   if(!host) return;                       // the page has been replaced by an error view
+  /* Where the clinician had scrolled the sheet to is part of what they were
+     looking at. Recording a drug must not throw them back to the start of a
+     three-hour case. */
+  var w0 = el('chartwrap'), keep = w0 ? w0.scrollLeft : null;
   var s = SECTIONS.filter(function(x){ return x.id === _sec; })[0] || SECTIONS[0];
   host.innerHTML = '<div class="sec on">' + s.render() + '</div>';
+  if(keep != null){ var w1 = el('chartwrap'); if(w1) w1.scrollLeft = keep; }
   applySaveStates();
 }
 
