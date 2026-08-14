@@ -248,6 +248,15 @@ function shareView(){
         .filter(Boolean).join(' and ') + '.</div></div>';
   }
 
+  /* Said before the decision, not after it. The replace and switch-off wording
+     already existed, but only in the confirmation dialogs — which a first-time
+     patient reaches after they have already chosen. Someone hesitating over
+     this button should know the choice is reversible, and what replacing costs
+     them, while they are still hesitating. */
+  h += '<div class="card"><div class="it-v">You can replace this QR code or ' +
+    'switch it off at any time. Replacing it will immediately disable ' +
+    'previously printed cards.</div></div>';
+
   h += '<div class="acts" style="margin-top:20px">' +
     '<button class="btn pri" onclick="confirmShare()">' +
       (TOK.active ? 'Replace my QR with this' : 'Create my QR with this') + '</button>' +
