@@ -3524,9 +3524,13 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!sess) return;
     return window.getProfile(sess.user.id).then(function(p){
       if(!p) return;
-      var staff = (p.is_admin === true) || p.role === 'admin' ||
-                  (p.role === 'doctor' && p.verification_status === 'approved');
-      if(staff) slot.innerHTML = window.nbToolsBar('/engine.html');
+      /* Clinical role from the row, platform privilege from the server. */
+      if(p.role === 'doctor' && p.verification_status === 'approved'){
+        slot.innerHTML = window.nbToolsBar('/engine.html'); return;
+      }
+      return window.isPlatformAdmin().then(function(admin){
+        if(admin) slot.innerHTML = window.nbToolsBar('/engine.html');
+      });
     });
   }).catch(function(){});
 });

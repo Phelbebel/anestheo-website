@@ -141,7 +141,7 @@ function row(label, value){
 
   var role  = p.role || 'pending';
   var verif = p.verification_status || '';
-  var admin = (p.is_admin === true) || role === 'admin';
+  var admin = await window.isPlatformAdmin();
 
   /* Anyone who does not belong on this page is sent where they do belong,
      through the same resolver everything else uses. An approved doctor

@@ -695,7 +695,7 @@ function setAuth(){
 }
 
 // Fill avatar + dropdown from profile
-function populateMenu(user, profile){
+async function populateMenu(user, profile){
   /* Clinical role and platform privilege are two different facts about a
      person. Overwriting the first with the second used to erase the doctor in
      an anesthesiologist who also administers the platform: they were labelled
@@ -705,7 +705,9 @@ function populateMenu(user, profile){
      So isAdmin no longer touches role. It adds a privilege on top of whatever
      the person clinically is. */
   var role    = profile ? (profile.role || 'patient') : 'patient';
-  var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
+  /* From is_platform_admin(), not from the profile row — one server-side
+     answer, shared with every other page. */
+  var isAdmin = await window.isPlatformAdmin();
   _nbAuthed = true; _nbRole = isAdmin ? 'admin' : role;
 
   var fullName = (profile && profile.full_name) ? profile.full_name : '';

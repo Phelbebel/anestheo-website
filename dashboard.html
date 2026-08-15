@@ -3261,6 +3261,9 @@ async function wsLoadAdmin(){
     }).join('') : '<div class="ws-empty">No pending doctor approvals.</div>';
     var us = document.getElementById('ws-users');
     us.innerHTML = profs.slice(0,20).map(function(p){
+      /* p is another user in the list, not the viewer: is_platform_admin()
+         answers only about the caller, so the row's own field is the only
+         source for what its dropdown should show. */
       var cur = p.is_admin ? 'admin' : (p.role||'');
       var opts = ['patient','doctor','nurse','student','other','admin'].map(function(rr){ return '<option value="'+rr+'"'+(cur===rr?' selected':'')+'>'+rr+'</option>'; }).join('');
       return '<div class="ws-row"><div class="ws-row-top"><div><div class="ws-row-name">'+wsEsc(p.full_name||'—')+'</div>' +
@@ -3297,7 +3300,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     // Onboarding ONLY for users with no role at all.
     // Admins, and anyone with an existing role, skip onboarding entirely.
     var hasRole = profile && profile.role && profile.role !== '' && profile.role !== 'pending';
-    var isAdmin = profile && (profile.is_admin === true || profile.role === 'admin');
+    var isAdmin = await window.isPlatformAdmin();   // the server's answer, not the row
 
     if(!isAdmin && !hasRole){
       // First, try to apply the role chosen at signup (stored in user metadata).

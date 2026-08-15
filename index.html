@@ -1479,11 +1479,13 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
       : '<div class="pt-j-empty">Your surgery details will appear here once your preparation begins.</div>';
   }
 
-  function renderAppHome(session, profile, role){
+  async function renderAppHome(session, profile, role){
     var ah=document.getElementById('ah'), de=document.documentElement;
     if(!ah){ de.classList.remove('pre-app'); return; }
     de.classList.add('app'); de.classList.remove('pre-app');
-    var isDoc = role==='doctor'||role==='admin'||role==='pending'||(profile&&profile.is_admin);
+    /* Platform privilege from the server; the rest are clinical roles. */
+    var isDoc = role==='doctor'||role==='admin'||role==='pending'||
+                (await window.isPlatformAdmin());
     if(isDoc) buildDoctor(ah, session, profile, role);
     else buildPatient(ah, session, profile);
   }
@@ -1496,7 +1498,7 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     authed = true;
     var p=null;
     try{ p=(typeof getProfile==='function')?await getProfile(s.user.id):null; }catch(e){}
-    renderAppHome(s, p, (p&&p.role)||'patient');
+    await renderAppHome(s, p, (p&&p.role)||'patient');
   })();
 })();
 </script>

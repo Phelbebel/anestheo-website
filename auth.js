@@ -45,6 +45,59 @@ async function getProfile(userId) {
   }
 }
 
+
+// ── isPlatformAdmin ───────────────────────────────────────────────
+/* THE one answer to "is this person a platform administrator", and it comes
+   from the server.
+--
+   Every page used to work this out for itself from the profile row —
+   `p.is_admin === true || p.role === 'admin'` — in eight different places. The
+   profile object is client-side state: it is whatever the last fetch returned,
+   and it is trivially editable in a console. None of those checks was a
+   security boundary (RLS is, and the Admin Center does its own server-side
+   gate), but eight copies of a privilege rule is eight places to get it wrong,
+   and "looks like an admin locally" and "is an admin" should not be separate
+   ideas in this codebase.
+--
+   is_platform_admin() is the same predicate the RLS policies use, so the menu
+   and the database now agree by construction.
+--
+   ANSWERS ONLY ABOUT THE CALLER. It takes no argument and reports on the
+   current session, so it cannot be used to ask whether some OTHER user in a
+   list is an administrator. Those places — the Accounts table badge, the admin
+   filter chips — still read the profile field, because that is the only thing
+   that can answer the question, and they are describing a row rather than
+   granting anything.
+--
+   Cached for the life of the page: one round trip, not one per component.
+   FAILS CLOSED. If the call errors the answer is false, so a transient network
+   fault hides an admin link rather than showing one to the wrong person. It
+   cannot lock a real administrator out: /admin.html gates itself on the same
+   RPC, so the page still opens if reached directly, and a reload re-asks. */
+var _adminAnswer = null;
+
+function isPlatformAdmin() {
+  if (!_adminAnswer) {
+    _adminAnswer = (async function () {
+      try {
+        var session = await getSession();
+        if (!session) return false;
+        var r = await withTimeout(window.sb.rpc('is_platform_admin'), 8000, 'is_platform_admin');
+        if (r.error) { console.warn('is_platform_admin:', r.error.message); return false; }
+        return r.data === true;
+      } catch (e) {
+        console.warn('is_platform_admin failed:', e.message);
+        return false;
+      }
+    })();
+  }
+  return _adminAnswer;
+}
+
+/* Signing out must not leave the next account holding the previous one's
+   answer. */
+function resetPlatformAdmin() { _adminAnswer = null; }
+
 // ── requireAuth ───────────────────────────────────────────────
 // Call on every protected page. Returns { session, user, profile } or null.
 // Redirects to /index.html if no session.
@@ -62,7 +115,10 @@ async function requireAuth(opts) {
     // Never fail a protected page just because the profile row is missing.
     profile = await ensureProfile(user);
   }
-  return { session: session, user: user, profile: profile };
+  /* Resolved once here so every caller gets the server's answer without each
+     page having to remember to ask for it. */
+  var isAdmin = await isPlatformAdmin();
+  return { session: session, user: user, profile: profile, isAdmin: isAdmin };
 }
 
 // Alias
@@ -87,7 +143,7 @@ async function requireRole(allowed, opts) {
      who also administers the platform stopped counting as a doctor for
      routing — including on the pages where they do clinical work. */
   var role = p.role || 'patient';
-  var isAdmin = (p.is_admin === true || role === 'admin');
+  var isAdmin = auth.isAdmin === true;      // from is_platform_admin(), server-side
 
   /* An unapproved doctor is not staff for routing purposes. Before this,
      isStaff was true for role='doctor' regardless of verification_status, so a
@@ -223,13 +279,20 @@ async function ensureProfile(user) {
 
 // ── resetSessionCache ─────────────────────────────────────────
 // Call right after a successful sign-in so the next getSession() is fresh.
-function resetSessionCache() { _sessionPromise = null; }
+function resetSessionCache() {
+  _sessionPromise = null;
+  /* The admin answer belongs to the session that produced it. Clearing one
+     without the other would let a newly signed-in account inherit the previous
+     holder's privileges in the navigation. */
+  _adminAnswer = null;
+}
 window.resetSessionCache = resetSessionCache;
 window.ensureProfile = ensureProfile;
 
 // ── signOut ───────────────────────────────────────────────────
 async function signOut() {
   _sessionPromise = null;
+  _adminAnswer = null;
   try { await window.sb.auth.signOut(); } catch(e) {}
   window.location.href = '/index.html';
 }
@@ -444,7 +507,7 @@ async function resolveAuthDestination() {
 
   var role   = profile.role || 'pending';
   var verif  = profile.verification_status || '';
-  var admin  = (profile.is_admin === true) || role === 'admin';
+  var admin  = await isPlatformAdmin();
 
   // No role yet — a brand-new social user, or a confirmation for an account
   // that never finished onboarding. Send them to the existing chooser.
@@ -485,6 +548,8 @@ window.resolveAuthDestination = resolveAuthDestination;
 
 // ── EXPORTS ───────────────────────────────────────────────────
 window.getSession        = getSession;
+window.isPlatformAdmin   = isPlatformAdmin;
+window.resetPlatformAdmin= resetPlatformAdmin;
 window.getProfile        = getProfile;
 window.requireAuth       = requireAuth;
 window.requireRole       = requireRole;

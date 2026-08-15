@@ -332,7 +332,7 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 
 <script>
 var _userId = null;
-var _curRole = null, _curVerif = '';
+var _curRole = null, _curVerif = '', _isAdmin = false;
 
 /* The old "Request role change" control is gone. It offered Patient / Nurse /
    Doctor as if they were interchangeable settings, and picking Doctor called
@@ -433,7 +433,8 @@ document.addEventListener('DOMContentLoaded', async function(){
     var profile = auth.profile || {};
     _userId = user.id;
 
-    _curRole  = (profile.is_admin ? 'admin' : profile.role) || 'pending';
+    _isAdmin  = await window.isPlatformAdmin();
+    _curRole  = (_isAdmin ? 'admin' : profile.role) || 'pending';
     _curVerif = profile.verification_status || '';
     var isDoctor = (_curRole === 'doctor');
     var isPatient = (_curRole === 'patient');
@@ -505,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     }
 
     // Clinician directory opt-in — doctors and admins only
-    if(isDoctor || _curRole === 'admin' || profile.is_admin === true){
+    if(isDoctor || _isAdmin){
       document.getElementById('directory-section').style.display = 'block';
       document.getElementById('f-accepting').checked = !!profile.accepting_patients;
     }

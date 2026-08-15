@@ -193,7 +193,12 @@ function showHome(profile, user){
 }
 function showGuest(){ ge('ph-loader').style.display='none'; ge('ph-guest').style.display='block'; }
 function showClin(){ ge('ph-loader').style.display='none'; ge('ph-clin').style.display='block'; }
-function isStaff(p){ return !!(p && (p.is_admin===true || p.role==='admin' || p.role==='doctor')); }
+/* Clinical role comes from the row; platform privilege comes from the server.
+   Either makes someone staff for the purpose of previewing this page. */
+async function isStaff(p){
+  if(p && p.role === 'doctor') return true;
+  return await window.isPlatformAdmin();
+}
 
 (async function(){
   try {
@@ -201,7 +206,7 @@ function isStaff(p){ return !!(p && (p.is_admin===true || p.role==='admin' || p.
     if(!session){ showGuest(); return; }
     var uid = session.user.id;
     var profile = await getProfile(uid);
-    if(isStaff(profile)){ showGuest(); return; }   // clinicians preview the patient-facing site (no redirect)
+    if(await isStaff(profile)){ showGuest(); return; }   // clinicians preview the patient-facing site (no redirect)
 
     showHome(profile, session.user);
 

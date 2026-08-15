@@ -1335,7 +1335,9 @@ function profileHref(p){
 function acAccountMenu(p){
   var st = accStatus(p), del = isDeleted(p), doc = (p.role === 'doctor');
   var items = [{ head:'Account' },
-    { label:'Open profile', fn:function(){ location.hash = (doc?'#/doctor/':'#/patient/') + p.id; } }];
+    { label:'Open profile', fn:function(){ location.hash = (doc?'#/doctor/':'#/patient/') + p.id; } },
+    { label:'View audit history', disabled:!has('audit'),
+      fn:function(){ location.hash = '#/audit' + q2s({ id:p.id }); } }];
   if(!del){
     items.push({ label:'Edit safe fields', fn:function(){ acEdit(p); } });
     items.push({ label:'Change role', fn:function(){ acRole(p); } });
@@ -1344,6 +1346,7 @@ function acAccountMenu(p){
       items.push({ label:'Verify', disabled:(p.verification_status==='approved'), fn:function(){ acVerify(p,'approved'); } });
       items.push({ label:'Remove verification', disabled:(p.verification_status!=='approved'), fn:function(){ acVerify(p,'pending'); } });
       items.push({ label:'Reject verification', danger:true, fn:function(){ acVerify(p,'rejected'); } });
+      items.push({ label:'Request documents', disabled:!hasVerif(), fn:function(){ acRequestDocs(p); } });
       items.push({ sep:true }, { head:'Patients' });
       items.push({ label:'Reassign patients', fn:function(){ acReassignAll(p); } });
     } else {
@@ -2485,7 +2488,8 @@ function vAccounts(qs){
         (p2()?'<td>'+badgeStatus(p)+'</td>':'')+
         '<td>'+badgeVerify(p.verification_status)+'</td><td>'+dash(p.country)+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'</td><td class="mono">'+esc(short(p.id))+'</td>'+
-        '<td><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a></td></tr>';
+        '<td class="rowact"><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a>'+
+          (amod ? ' '+acAccountMenu(p) : '')+'</td></tr>';
     }).join('') : '<tr><td colspan="'+(amod?11:10)+'" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
   return h;
 }
