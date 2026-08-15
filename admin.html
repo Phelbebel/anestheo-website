@@ -1309,7 +1309,7 @@ function vOverview(){
         return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
           '<td>'+dash(isAdminRole(p)?'admin':p.role)+'</td><td>'+badgeVerify(p.verification_status)+'</td>'+
           '<td>'+esc(fdate(p.created_at))+'</td>'+
-          '<td><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a></td></tr>';
+          acRowActions(p)+'</tr>';
       }).join('') : '<tr><td colspan="6" class="empty">No accounts</td></tr>')+
       '</tbody></table></div>';
   }
@@ -1330,6 +1330,40 @@ function profileHref(p){
   if(isDoctor(p)) return '#/doctor/'+p.id;
   return '#/patient/'+p.id;
 }
+/* A doctor whose verification is still an open question. Approved and rejected
+   are settled answers; deleted accounts are not decided from a list. */
+function acNeedsDecision(p){
+  if(!p || !isDoctor(p) || isDeleted(p)) return false;
+  var v = vstate(p);
+  return v !== 'approved' && v !== 'rejected';
+}
+
+/* THE row action cell — one builder for every account list, so Doctors,
+   Patients, Accounts and the Overview queue cannot drift into offering
+   different actions for the same person.
+
+   Approve and Reject are INLINE rather than menu entries. A pending
+   verification is a decision someone is waiting on, and putting it one click
+   deeper than "Open" made the queue read as a report instead of a worklist.
+   They are inline only while the answer is genuinely open: once a doctor is
+   approved or rejected, changing that is a considered act and lives in the
+   menu with the rest.
+
+   Both buttons call acVerify through AC.vAct — the SAME audited
+   admin_set_verification() the menu calls, with the same confirmation and the
+   same reason field. There is one approval path, not a fast one and a careful
+   one, and each still repaints the table from the server when it returns. */
+function acRowActions(p, href){
+  var h = '';
+  if(p2() && acNeedsDecision(p)){
+    h += '<button class="rowbtn" onclick="AC.vAct(\'' + p.id + '\',\'approved\')">Approve</button> ' +
+         '<button class="rowbtn danger" onclick="AC.vAct(\'' + p.id + '\',\'rejected\')">Reject</button> ';
+  }
+  h += '<a class="olink" href="' + (href || profileHref(p)) + '">Open &rsaquo;</a>';
+  if(p2()) h += ' ' + acAccountMenu(p);
+  return '<td class="rowact">' + h + '</td>';
+}
+
 /* Row action menu for an account. Only rendered when the Phase 2 migration is
    live; every entry maps to one audited RPC. */
 function acAccountMenu(p){
@@ -1400,8 +1434,7 @@ function tblDoctors(list, compact){
       (compact?'':'<td>'+(has('surgeries')?jn:'<span class="mut">&mdash;</span>')+'</td>'+
                   '<td>'+(has('clinics')?cn:'<span class="mut">&mdash;</span>')+'</td>'+
                   '<td>'+esc(fdate(p.created_at))+'</td>')+
-      '<td class="rowact"><a class="olink" href="#/doctor/'+p.id+'">Open &rsaquo;</a>'+
-        (mod ? ' '+acAccountMenu(p) : '')+'</td></tr>';
+      acRowActions(p, '#/doctor/'+p.id)+'</tr>';
   }).join('');
   return '<div class="tbl-wrap"><table class="tbl"><thead>'+hd+'</thead><tbody>'+rows+'</tbody></table></div>';
 }
@@ -1841,8 +1874,7 @@ function tblPatients(list){
         '<td>'+(q?badgeReview(q.review_state)+' <span class="mut">'+(q.completion!=null?q.completion+'%':'')+'</span>'
                  :'<span class="bdg bdg-mute">none</span>')+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'</td>'+
-        '<td class="rowact"><a class="olink" href="#/patient/'+p.id+'">Open &rsaquo;</a>'+
-          (mod ? ' '+acAccountMenu(p) : '')+'</td></tr>';
+        acRowActions(p, '#/patient/'+p.id)+'</tr>';
     }).join('')+'</tbody></table></div>';
 }
 
@@ -2488,8 +2520,7 @@ function vAccounts(qs){
         (p2()?'<td>'+badgeStatus(p)+'</td>':'')+
         '<td>'+badgeVerify(p.verification_status)+'</td><td>'+dash(p.country)+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'</td><td class="mono">'+esc(short(p.id))+'</td>'+
-        '<td class="rowact"><a class="olink" href="'+profileHref(p)+'">Open &rsaquo;</a>'+
-          (amod ? ' '+acAccountMenu(p) : '')+'</td></tr>';
+        acRowActions(p)+'</tr>';
     }).join('') : '<tr><td colspan="'+(amod?11:10)+'" class="empty">No accounts match</td></tr>')+'</tbody></table></div>';
   return h;
 }
@@ -2672,7 +2703,15 @@ function vVerification(qs){
         '<td>'+(notes===null ? '<span class="mut">&mdash;</span>' : notes)+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'<div class="mut" style="font-size:10.5px;">'+esc(ago(p.created_at))+'</div></td>'+
         '<td>'+badgeVstate(vstate(p))+'</td>'+
-        '<td class="rowact"><a class="olink" href="#/doctor/'+p.id+q2s({t:'verification'})+'">Review &rsaquo;</a>'+
+        /* The verification queue exists to be decided. Both answers sit on the
+           row, ahead of Review, and call the same admin_set_verification()
+           the menu below them calls. */
+        '<td class="rowact">'+
+          (p2() && acNeedsDecision(p)
+            ? '<button class="rowbtn" onclick="AC.vAct(\''+p.id+'\',\'approved\')">Approve</button> '+
+              '<button class="rowbtn danger" onclick="AC.vAct(\''+p.id+'\',\'rejected\')">Reject</button> '
+            : '')+
+          '<a class="olink" href="#/doctor/'+p.id+q2s({t:'verification'})+'">Review &rsaquo;</a>'+
           (p2() ? ' '+acVerifMenu(p) : '')+'</td></tr>';
     }).join('')+'</tbody></table></div>';
   return h;
