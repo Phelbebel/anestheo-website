@@ -438,6 +438,10 @@ function buildHTML(page){
                 '<a href="/dashboard.html" class="nb-menu-item" id="nb-menu-workspace">&#129658; Doctor Workspace</a>' +
                 '<button class="nb-menu-item" id="nb-menu-myjourney" style="display:none;background:none;border:none;width:100%;text-align:left;font-family:inherit;cursor:pointer;" onclick="window.nbStartPatientJourney()">&#129489; My Patient Journey</button>' +
                 '<a href="/patient-dashboard.html" class="nb-menu-item" id="nb-menu-patient" style="display:none">&#10024; My Space</a>' +
+                /* The passport is the patient's own record of what would matter
+                   in an emergency, so it belongs beside their space, not buried
+                   in a marketing page. Staff see it too — they may have one. */
+                '<a href="/health-passport.html" class="nb-menu-item" id="nb-menu-passport">&#127973; Health Passport</a>' +
                 '<a href="/settings.html" class="nb-menu-item">&#9881; Settings</a>' +
                 '<div class="nb-menu-sep"></div>' +
                 '<button class="nb-menu-item nb-menu-danger" onclick="window.nbSignOut()">&#8594; Sign out</button>' +

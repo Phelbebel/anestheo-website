@@ -329,6 +329,17 @@ body{background:var(--bg);color:var(--text);}
 .ms-vfb-main{flex:1;min-width:0;} .ms-vfb-main b{font-size:15.5px;font-weight:700;display:block;} .ms-vfb-main small{font-size:13px;color:var(--muted);}
 .ms-vgrid{align-items:start;}
 
+/* health passport entry card */
+.ms-hp{display:flex;align-items:center;gap:18px;background:linear-gradient(135deg,rgba(126,207,192,.10),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:var(--r-md);padding:22px 24px;text-decoration:none;color:inherit;transition:.18s;box-shadow:var(--shadow-sm);}
+.ms-hp:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.32);box-shadow:0 18px 40px rgba(0,0,0,.34);}
+.ms-hp-ic{width:52px;height:52px;border-radius:15px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--accent);background:rgba(126,207,192,.12);border:1px solid rgba(126,207,192,.28);}
+.ms-hp-ic svg{width:26px;height:26px;}
+.ms-hp-main{flex:1;min-width:0;}
+.ms-hp-main b{font-size:15.5px;font-weight:700;display:block;margin-bottom:4px;}
+.ms-hp-main small{font-size:13px;color:var(--muted);line-height:1.5;}
+.ms-hp-go{flex:0 0 auto;color:var(--accent);display:flex;align-items:center;}
+.ms-hp-go svg{width:20px;height:20px;}
+
 /* recovery (future-ready, reserved) */
 .ms-recovery{background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01));border:1px dashed var(--line);border-radius:var(--r-lg);padding:24px 26px;}
 .ms-rgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
@@ -373,6 +384,7 @@ body{background:var(--bg);color:var(--text);}
   .ms-planbig-title{font-size:23px;}
   .ms-planbig-foot{justify-content:center;}
   .ms-vgrid{grid-template-columns:1fr;}
+  .ms-hp{flex-wrap:wrap;gap:14px;padding:20px;} .ms-hp-main{flex-basis:100%;order:3;} .ms-hp-go{margin-left:auto;}
   .ms-rgrid{grid-template-columns:repeat(2,1fr);}
   .ms-crq{flex-wrap:wrap;gap:13px;} .ms-crq-acts{width:100%;justify-content:flex-start;} .ms-crq-acts .ms-btn{flex:1;justify-content:center;}
   .ms-addtile{min-width:100%;}
@@ -564,6 +576,29 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 
     <!-- Preparation lives ONLY inside the modal, opened from each surgery card's
          state-aware CTA. No preparation panels on the dashboard. -->
+
+    <!-- ⑥ HEALTH PASSPORT — the one thing on this page that is useful when the
+         patient cannot speak for themselves. It was reachable only from the
+         public patients.html tile, which a signed-in patient has no reason to
+         visit again, so the people it is built for could not find it. The card
+         states no medical content: what a patient carries is their business,
+         and this page is not where it gets summarised. -->
+    <section class="ms-sec anim d5" id="passport-sec">
+      <div class="ms-sec-head">
+        <div class="ms-sec-ico brand"><span class="ic-slot" data-ic="shield-check"></span></div>
+        <div><div class="ms-sec-title">Health Passport</div><div class="ms-sec-sub">Allergies and alerts, in a QR you can carry</div></div>
+        <a class="ms-sec-link" href="/health-passport.html">Open <span class="ic-slot" data-ic="arrow-right"></span></a>
+      </div>
+      <a class="ms-hp" href="/health-passport.html">
+        <span class="ms-hp-ic"><span class="ic-slot" data-ic="shield-check"></span></span>
+        <span class="ms-hp-main">
+          <b>What a stranger should know in an emergency</b>
+          <small>Add your allergies, alerts and an emergency contact, then carry them as a QR code.
+            You choose what goes on it, and you can switch it off at any time.</small>
+        </span>
+        <span class="ms-hp-go"><span class="ic-slot" data-ic="arrow-right"></span></span>
+      </a>
+    </section>
 
     <!-- ⑦ VIDEOS — latest from the official Anestheo YouTube channel -->
     <section class="ms-sec anim d6" id="videos-sec">
