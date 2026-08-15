@@ -189,6 +189,13 @@ body.nb-lock{position:fixed;width:100%;overflow:hidden;}
 .nb-modal-msg{font-size:13px;padding:9px 11px;border-radius:7px;margin-top:9px;display:none;}
 .nb-modal-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:rgba(255,160,140,.93);}
 .nb-modal-ok{background:rgba(27,107,90,.15);border:1px solid rgba(42,138,116,.3);color:#7ECFC0;}
+/* An action offered inside a message. A button because it does something,
+   styled as a link because it sits mid-sentence. Inherits the message colour
+   so it reads as part of the sentence in both the error and the ok box. */
+.nb-linkbtn{background:none;border:0;padding:0;font:inherit;color:inherit;
+  text-decoration:underline;cursor:pointer;}
+.nb-linkbtn:hover{opacity:.8;}
+.nb-linkbtn:focus-visible{outline:2px solid #7ECFC0;outline-offset:2px;border-radius:3px;}
 .nb-modal-close{position:absolute;top:12px;right:14px;background:none;border:none;
   color:rgba(255,255,255,.35);font-size:18px;cursor:pointer;line-height:1;padding:4px;}
 .nb-modal-close:hover{color:#fff;}
@@ -554,6 +561,15 @@ function buildHTML(page){
 
 function ge(id){ return document.getElementById(id); }
 
+/* showMsg writes HTML, so anything interpolated into it must be escaped first.
+   The email address is user input: the format check allows '<' and '>' — it
+   only forbids spaces — so "a<img src=x onerror=…>@b.c" passes it. */
+function escHtml(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function showMsg(type, text){
   var err = ge('nb-err'), ok = ge('nb-ok');
   if(err) err.style.display = 'none';
@@ -565,6 +581,37 @@ function showMsg(type, text){
 
 // Auth modal mode: 'signin' or 'register'
 var _authMode = 'signin';
+
+/* The address the last signup attempt concerned, so "send it again" needs no
+   argument in an onclick attribute and the value is never re-parsed out of
+   markup. */
+var _pendingConfirmEmail = null;
+
+/* The one way to get a confirmation link for an account that already exists.
+   Signing up a second time cannot do it — GoTrue answers that with a
+   sanitized user and sends nothing — so without this a person who lost the
+   first email has no route back in at all.
+
+   auth.resend() is rate-limited server-side and says so plainly when it
+   refuses; that refusal is shown rather than swallowed, because "nothing
+   happened" is what sent us looking at SMTP in the first place. */
+window.nbResendConfirm = async function(){
+  var email = _pendingConfirmEmail;
+  if(!email){ showMsg('err', 'Enter your email address and try again.'); return; }
+  showMsg('ok', 'Sending&hellip;');
+  try {
+    var r = await window.sb.auth.resend({
+      type: 'signup',
+      email: email,
+      options: { emailRedirectTo: window.authRedirectTo('auth-callback.html') }
+    });
+    if(r && r.error){ showMsg('err', r.error.message); return; }
+    showMsg('ok', '&#10003; Sent again to <strong>' + escHtml(email) +
+      '</strong>. Check your spam folder too.');
+  } catch(e){
+    showMsg('err', 'Could not reach the server. Check your connection and try again.');
+  }
+};
 // Current auth state (UI only) so the login modal is never shown to an
 // already-authenticated user. Set by setAuth/populateMenu, cleared by setGuest.
 var _nbAuthed = false;
@@ -1152,6 +1199,26 @@ window.nbSubmitAuth = async function(){
       setBtns(false);
       if(rs.error){ showMsg('err', rs.error.message); return; }
 
+      /* AN ADDRESS THAT IS ALREADY REGISTERED LOOKS EXACTLY LIKE SUCCESS.
+         GoTrue answers a signup for an existing address with HTTP 200 and a
+         SANITIZED user — a random id, no identities — and it sends no email.
+         The obfuscation is deliberate: it stops this endpoint being used to
+         test whether somebody has an account here.
+
+         It also means rs.data.user proves nothing. The only signal we get is
+         the empty identities array. Without this check the modal announced
+         "we just sent you a link" on every repeat attempt, no link was ever
+         sent, and an account that simply already existed was indistinguishable
+         from broken email delivery. */
+      var ids = rs.data && rs.data.user && rs.data.user.identities;
+      if(rs.data.user && !rs.data.session && ids && ids.length === 0){
+        _pendingConfirmEmail = email;
+        showMsg('err', 'An account already exists for <strong>' + escHtml(email) + '</strong>. ' +
+          'Sign in with your password &mdash; or, if the confirmation link never arrived, ' +
+          '<button type="button" class="nb-linkbtn" onclick="window.nbResendConfirm()">send it again</button>.');
+        return;
+      }
+
       if(rs.data.user && rs.data.session){
         /* Confirmation is switched off in this project, so the account is live
            immediately. Send them to choose a role exactly like a confirmed or
@@ -1162,8 +1229,11 @@ window.nbSubmitAuth = async function(){
         /* The normal path with confirmation ON: no session until the link is
            clicked. Say what happens next rather than "check your email", which
            leaves people wondering whether they are signed up or not. */
-        showMsg('ok', '&#10003; Account created. Confirm <strong>' + email +
-          '</strong> using the link we just sent, and you will land back here to finish setting up.');
+        _pendingConfirmEmail = email;
+        showMsg('ok', '&#10003; Account created. Confirm <strong>' + escHtml(email) +
+          '</strong> using the link we just sent, and you will land back here to finish setting up. ' +
+          'Nothing after a few minutes? ' +
+          '<button type="button" class="nb-linkbtn" onclick="window.nbResendConfirm()">Send it again</button>.');
       }
     } else {
       // ── Sign in ─────────────────────────────────────────────
