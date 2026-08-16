@@ -6,13 +6,14 @@
 <title>My Space — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.15-02"></script>
-<script src="/auth.js?v=2026.08.15-02"></script>
-<script src="/clinical-index.js?v=2026.08.15-02"></script>
-<script src="/clinical-search.js?v=2026.08.15-02"></script>
-<script src="/navbar.js?v=2026.08.15-02"></script>
-<script src="/journey.js?v=2026.08.15-02"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.15-02">
+<script src="/supabase.js?v=2026.08.15-03"></script>
+<script src="/auth.js?v=2026.08.15-03"></script>
+<script src="/clinical-index.js?v=2026.08.15-03"></script>
+<script src="/clinical-search.js?v=2026.08.15-03"></script>
+<script src="/navbar.js?v=2026.08.15-03"></script>
+<script src="/journey.js?v=2026.08.15-03"></script>
+<script src="/passport.js?v=2026.08.15-03"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.15-03">
 <style>
 /* ============================================================
    MY SPACE — premium patient healthcare home.
@@ -329,17 +330,44 @@ body{background:var(--bg);color:var(--text);}
 .ms-vfb-main{flex:1;min-width:0;} .ms-vfb-main b{font-size:15.5px;font-weight:700;display:block;} .ms-vfb-main small{font-size:13px;color:var(--muted);}
 .ms-vgrid{align-items:start;}
 
-/* health passport entry card */
-.ms-hp{display:flex;align-items:center;gap:18px;background:linear-gradient(135deg,rgba(126,207,192,.10),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:var(--r-md);padding:22px 24px;text-decoration:none;color:inherit;transition:.18s;box-shadow:var(--shadow-sm);}
-.ms-hp:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.32);box-shadow:0 18px 40px rgba(0,0,0,.34);}
-.ms-hp-ic{width:52px;height:52px;border-radius:15px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--accent);background:rgba(126,207,192,.12);border:1px solid rgba(126,207,192,.28);}
-.ms-hp-ic svg{width:26px;height:26px;}
-.ms-hp-main{flex:1;min-width:0;}
-.ms-hp-main b{font-size:15.5px;font-weight:700;display:block;margin-bottom:4px;}
-.ms-hp-main small{font-size:13px;color:var(--muted);line-height:1.5;}
-.ms-hp-go{flex:0 0 auto;color:var(--accent);display:flex;align-items:center;}
-.ms-hp-go svg{width:20px;height:20px;}
-
+/* ── THE TWO PRODUCTS ──────────────────────────────────────────────────────
+   Peers on desktop, stacked on mobile. Health Passport carries the stronger
+   treatment because it is the one that works on its own. */
+.ms-prod{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px;align-items:stretch;}
+.pc{display:flex;flex-direction:column;border-radius:var(--r-lg);padding:26px 26px 24px;
+  border:1px solid var(--line);background:rgba(255,255,255,.025);box-shadow:var(--shadow-sm);}
+.pc-hp{background:linear-gradient(135deg,rgba(126,207,192,.13),rgba(255,255,255,.02));
+  border-color:rgba(42,138,116,.42);}
+.pc-top{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.pc-ic{width:44px;height:44px;border-radius:13px;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;background:rgba(126,207,192,.12);border:1px solid rgba(126,207,192,.28);color:var(--accent);}
+.pc-ic svg{width:22px;height:22px;}
+.pc-ic.j{background:var(--info-bg);border-color:var(--info-bd);color:var(--info);}
+.pc-lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--hint);}
+.pc-pill{margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:5px 10px;border-radius:20px;white-space:nowrap;}
+.pc-pill-on{background:rgba(37,211,102,.15);color:#5ee393;border:1px solid rgba(37,211,102,.3);}
+.pc-pill-off{background:rgba(255,255,255,.06);color:var(--hint);border:1px solid var(--line);}
+.pc-h{font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.3;margin-bottom:8px;}
+.pc-sub{font-size:13.5px;color:var(--muted);line-height:1.6;}
+.pc-facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.pc-fact{font-size:12px;color:var(--muted);background:rgba(255,255,255,.04);
+  border:1px solid var(--line-soft);border-radius:8px;padding:6px 10px;}
+.pc-fact b{color:#fff;font-weight:700;}
+.pc-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:20px;}
+.pc-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:11px;
+  padding:12px 18px;font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;
+  text-decoration:none;border:1px solid transparent;background:#1B6B5A;color:#fff;transition:.16s;}
+.pc-btn:hover{background:#2A8A74;transform:translateY(-1px);}
+.pc-btn.ghost{background:rgba(255,255,255,.05);border-color:var(--line);color:#fff;}
+.pc-btn.ghost:hover{background:rgba(126,207,192,.12);border-color:rgba(126,207,192,.45);}
+.pc-note{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--hint);margin-top:14px;}
+.pc-note svg{width:14px;height:14px;flex:0 0 auto;}
+@media (max-width:820px){
+  .ms-prod{grid-template-columns:1fr;gap:14px;margin-top:28px;}
+  .pc{padding:22px 20px 20px;}
+  .pc-acts .pc-btn{flex:1;min-width:0;}
+}
 /* recovery (future-ready, reserved) */
 .ms-recovery{background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.01));border:1px dashed var(--line);border-radius:var(--r-lg);padding:24px 26px;}
 .ms-rgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
@@ -384,7 +412,6 @@ body{background:var(--bg);color:var(--text);}
   .ms-planbig-title{font-size:23px;}
   .ms-planbig-foot{justify-content:center;}
   .ms-vgrid{grid-template-columns:1fr;}
-  .ms-hp{flex-wrap:wrap;gap:14px;padding:20px;} .ms-hp-main{flex-basis:100%;order:3;} .ms-hp-go{margin-left:auto;}
   .ms-rgrid{grid-template-columns:repeat(2,1fr);}
   .ms-crq{flex-wrap:wrap;gap:13px;} .ms-crq-acts{width:100%;justify-content:flex-start;} .ms-crq-acts .ms-btn{flex:1;justify-content:center;}
   .ms-addtile{min-width:100%;}
@@ -536,6 +563,13 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
     <!-- ② SPOTLIGHT — the ONE prioritized next action -->
     <div class="anim d2" id="spotlight-host"></div>
 
+    <!-- ②b THE TWO PRODUCTS.
+         Health Passport first, and deliberately not downstream of anything:
+         it is useful to somebody with no surgery, no surgeon and no
+         questionnaire. Surgery Journey sits beside it as a peer, summarising
+         the detailed section further down rather than replacing it. -->
+    <div class="ms-prod anim d2" id="prod-band"></div>
+
     <!-- ③ WHAT'S NEW (notification / activity feed) -->
     <section class="ms-sec anim d3" id="whatsnew-sec" style="display:none;">
       <div class="ms-sec-head">
@@ -576,29 +610,6 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
 
     <!-- Preparation lives ONLY inside the modal, opened from each surgery card's
          state-aware CTA. No preparation panels on the dashboard. -->
-
-    <!-- ⑥ HEALTH PASSPORT — the one thing on this page that is useful when the
-         patient cannot speak for themselves. It was reachable only from the
-         public patients.html tile, which a signed-in patient has no reason to
-         visit again, so the people it is built for could not find it. The card
-         states no medical content: what a patient carries is their business,
-         and this page is not where it gets summarised. -->
-    <section class="ms-sec anim d5" id="passport-sec">
-      <div class="ms-sec-head">
-        <div class="ms-sec-ico brand"><span class="ic-slot" data-ic="shield-check"></span></div>
-        <div><div class="ms-sec-title">Health Passport</div><div class="ms-sec-sub">Allergies and alerts, in a QR you can carry</div></div>
-        <a class="ms-sec-link" href="/health-passport.html">Open <span class="ic-slot" data-ic="arrow-right"></span></a>
-      </div>
-      <a class="ms-hp" href="/health-passport.html">
-        <span class="ms-hp-ic"><span class="ic-slot" data-ic="shield-check"></span></span>
-        <span class="ms-hp-main">
-          <b>What a stranger should know in an emergency</b>
-          <small>Add your allergies, alerts and an emergency contact, then carry them as a QR code.
-            You choose what goes on it, and you can switch it off at any time.</small>
-        </span>
-        <span class="ms-hp-go"><span class="ic-slot" data-ic="arrow-right"></span></span>
-      </a>
-    </section>
 
     <!-- ⑦ VIDEOS — latest from the official Anestheo YouTube channel -->
     <section class="ms-sec anim d6" id="videos-sec">
@@ -2005,6 +2016,115 @@ function renderFab(){
   host.innerHTML = FEATURE_COMPANION ?
     ('<div class="ms-fab"><div class="fi">'+ic('sparkles')+'</div><div class="ft">Ask Anesto<small>Your care companion</small></div></div>') : '';
 }
+/* ── THE TWO PRODUCTS ──────────────────────────────────────────────────────
+   Health Passport state is read from the passport itself, never inferred and
+   never invented. If HP.load() cannot answer — signed out mid-session, network
+   gone, the migration not applied on this database — the card falls back to
+   the honest "not set up" state and still offers the way in. It never claims a
+   QR is live, and it never draws a fake one. */
+var _hpState = null;
+
+async function loadPassportState(){
+  if(!window.HP){ _hpState = { known:false }; return; }
+  try{
+    var d = await window.HP.load();
+    if(d.error || !d.passport){ _hpState = { known:true, exists:false }; return; }
+    var shared = window.HP.previewOf(d.items || []).length;
+    var contacts = (d.contacts || []).filter(function(c){ return c.is_emergency_visible; }).length;
+    var st = await window.HP.tokenStatus();
+    _hpState = { known:true, exists:true,
+      items:(d.items || []).length, shared:shared, contacts:contacts,
+      qrActive: !!(st && !st.error && st.status && st.status.active) };
+  }catch(e){ _hpState = { known:false }; }
+}
+
+function pcIcon(name, cls){
+  return '<span class="pc-ic ' + (cls || '') + '"><span class="ic-slot" data-ic="' + name + '"></span></span>';
+}
+function lockNote(text){
+  return '<div class="pc-note"><span class="ic-slot" data-ic="lock"></span><span>' + text + '</span></div>';
+}
+
+function passportCardHtml(){
+  var s = _hpState || { known:false };
+  var live = s.known && s.exists;
+  var pill = (live && s.qrActive)
+    ? '<span class="pc-pill pc-pill-on">Active</span>'
+    : '<span class="pc-pill pc-pill-off">Not set up</span>';
+
+  /* Facts only when there is something real to count. An empty passport says
+     so plainly rather than showing 0 of everything, which reads as broken. */
+  var facts = '';
+  if(live){
+    var f = [];
+    f.push('<span class="pc-fact"><b>' + s.shared + '</b> shared on your QR</span>');
+    if(s.items > s.shared)
+      f.push('<span class="pc-fact"><b>' + (s.items - s.shared) + '</b> kept private</span>');
+    if(s.contacts)
+      f.push('<span class="pc-fact"><b>' + s.contacts + '</b> emergency contact' + (s.contacts === 1 ? '' : 's') + '</span>');
+    facts = '<div class="pc-facts">' + f.join('') + '</div>';
+  }
+
+  var acts = live
+    ? '<a class="pc-btn" href="/health-passport.html">' +
+        (s.qrActive ? 'Show my QR' : 'Create my Health Passport') + '</a>' +
+      '<a class="pc-btn ghost" href="/health-passport.html">Edit passport</a>'
+    : '<a class="pc-btn" href="/health-passport.html">Create my Health Passport</a>';
+
+  return '<section class="pc pc-hp">' +
+    '<div class="pc-top">' + pcIcon('shield-check') +
+      '<span class="pc-lbl">Health Passport</span>' + pill + '</div>' +
+    '<div class="pc-h">Your essential information, when you can\u2019t explain it yourself.</div>' +
+    '<div class="pc-sub">Allergies, medical alerts, important medications and emergency ' +
+      'contacts &mdash; carried as a secure QR code. It works whether or not you have a surgery booked.</div>' +
+    facts +
+    '<div class="pc-acts">' + acts + '</div>' +
+    lockNote('You control what is shared.') +
+    '</section>';
+}
+
+function journeyCardHtml(){
+  var live = (_surgeries || []).filter(function(x){ return !x.archived_at && !x.completed_at; });
+  var has = live.length > 0;
+  var pill = has
+    ? '<span class="pc-pill pc-pill-on">' + live.length + ' active</span>'
+    : '<span class="pc-pill pc-pill-off">No surgery yet</span>';
+  var facts = '';
+  if(has){
+    var n = live[0];
+    var bits = [];
+    if(n.procedure_type) bits.push('<span class="pc-fact">' + esc(n.procedure_type) + '</span>');
+    if(n.surgery_date)   bits.push('<span class="pc-fact"><b>' + esc(fmtDate(n.surgery_date)) + '</b></span>');
+    if(bits.length) facts = '<div class="pc-facts">' + bits.join('') + '</div>';
+  }
+  var acts = has
+    ? '<button class="pc-btn" onclick="goSurgeries()">Open my journey</button>' +
+      '<button class="pc-btn ghost" onclick="openSurgery(null)">Add a surgery</button>'
+    : '<button class="pc-btn" onclick="openSurgery(null)">Add my surgery</button>';
+  return '<section class="pc">' +
+    '<div class="pc-top">' + pcIcon('calendar-check-2', 'j') +
+      '<span class="pc-lbl">Surgery Journey</span>' + pill + '</div>' +
+    '<div class="pc-h">Every step of your surgery, in order.</div>' +
+    '<div class="pc-sub">Preparation, questionnaires, your care team and what happens on the ' +
+      'day &mdash; tracked from first appointment to recovery.</div>' +
+    facts +
+    '<div class="pc-acts">' + acts + '</div>' +
+    '</section>';
+}
+
+function goSurgeries(){
+  var el = document.getElementById('surgeries-sec');
+  if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+window.goSurgeries = goSurgeries;
+
+function renderProducts(){
+  var host = document.getElementById('prod-band');
+  if(!host) return;
+  host.innerHTML = passportCardHtml() + journeyCardHtml();
+  hydrateIcons(host);
+}
+
 function renderRecovery(){
   var sec = ge('recovery-sec'); if(sec) sec.style.display = FEATURE_RECOVERY ? 'block' : 'none';
 }
@@ -2092,9 +2212,15 @@ document.addEventListener('DOMContentLoaded', async function(){
     }
 
     // First full render
+    /* The passport is fetched alongside the rest, but the page must not wait
+       on it: a slow or failing passport read cannot be allowed to hold up
+       somebody's surgery information. renderProducts() draws the honest
+       "not set up" state immediately and repaints when the answer lands. */
     renderHero();
     renderCelebration();
     renderSpotlight();
+    renderProducts();
+    loadPassportState().then(renderProducts);
     renderStatusPanel();
     renderJourney();
     renderQuestions(_questions, _replies);

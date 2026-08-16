@@ -35,7 +35,9 @@ var CSS = `
 .nb-avatar-btn:hover{background:rgba(255,255,255,.06);}
 .nb-avatar{width:32px;height:32px;border-radius:50%;background:#2A8A74;color:#fff;
   display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
-  letter-spacing:.02em;flex-shrink:0;font-family:'DM Sans',sans-serif;}
+  letter-spacing:.02em;flex-shrink:0;font-family:'DM Sans',sans-serif;overflow:hidden;}
+/* Once a photo is in, the teal disc behind it would show as a rim. */
+.nb-avatar[data-avatar]{background:rgba(255,255,255,.06);}
 .nb-chev{font-size:10px;color:rgba(255,255,255,.4);padding-right:4px;}
 .nb-menu{display:none;position:absolute;top:calc(100% + 10px);right:0;min-width:240px;
   background:#0C1F18;border:1px solid rgba(27,107,90,.3);border-radius:13px;
@@ -745,6 +747,15 @@ function setAuth(){
   if(ma) ma.style.display = 'block';
 }
 
+/* Repaint the navbar avatar. Exported so Settings can call it the moment a
+   photo changes — otherwise the picture in the corner disagrees with the one
+   the person is looking at until they reload. */
+window.nbRefreshAvatar = function(profile, user){
+  var el = ge('nb-avatar');
+  if(!el || !window.resolveAvatar) return;
+  window.resolveAvatar(profile, user).then(function(a){ window.setAvatarEl(el, a); });
+};
+
 // Fill avatar + dropdown from profile
 async function populateMenu(user, profile){
   /* Clinical role and platform privilege are two different facts about a
@@ -777,7 +788,14 @@ async function populateMenu(user, profile){
     displayName = fullName || user.email.split('@')[0];
   }
 
-  var avEl = ge('nb-avatar');     if(avEl) avEl.textContent = initials;
+  /* Initials first, so the circle is never empty while the picture resolves,
+     then swapped for the image if there is one. window.setAvatarEl is the one
+     renderer — see auth.js resolveAvatar for the precedence. */
+  var avEl = ge('nb-avatar');
+  if(avEl){
+    avEl.textContent = initials;
+    window.nbRefreshAvatar(profile, user);
+  }
   var nmEl = ge('nb-menu-name');  if(nmEl) nmEl.textContent = displayName;
   var emEl = ge('nb-menu-email'); if(emEl) emEl.textContent = user.email;
 

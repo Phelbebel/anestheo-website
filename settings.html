@@ -6,11 +6,11 @@
 <title>Settings — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.15-02"></script>
-<script src="/auth.js?v=2026.08.15-02"></script>
-<script src="/clinical-index.js?v=2026.08.15-02"></script>
-<script src="/clinical-search.js?v=2026.08.15-02"></script>
-<script src="/navbar.js?v=2026.08.15-02"></script>
+<script src="/supabase.js?v=2026.08.15-03"></script>
+<script src="/auth.js?v=2026.08.15-03"></script>
+<script src="/clinical-index.js?v=2026.08.15-03"></script>
+<script src="/clinical-search.js?v=2026.08.15-03"></script>
+<script src="/navbar.js?v=2026.08.15-03"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -87,6 +87,16 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
   border:1px solid rgba(42,138,116,.35); color:#fff; padding:10px 16px; border-radius:8px;
   font-size:13.5px; font-weight:600; min-height:42px; line-height:22px; }
 .btn-line:hover { background:rgba(126,207,192,.12); border-color:rgba(126,207,192,.5); }
+/* photo */
+.av-row { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.av-disc { width:76px; height:76px; border-radius:50%; flex:0 0 auto; overflow:hidden;
+  background:#2A8A74; color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:26px; font-weight:700; letter-spacing:.02em; }
+.av-disc[data-avatar] { background:rgba(255,255,255,.06); }
+.av-acts { display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-width:0; }
+.av-acts .btn-line { cursor:pointer; font-family:inherit; }
+.av-busy { opacity:.55; pointer-events:none; }
+@media (max-width:480px){ .av-row { gap:14px; } .av-acts { width:100%; } .av-acts .btn-line { width:100%; text-align:center; } }
 .phone-row { display:grid; grid-template-columns:92px 1fr; gap:8px; }
 .phone-row .dial { display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.11); border-radius:8px; font-size:14px; color:#7ECFC0;
@@ -149,6 +159,24 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
         </div>
 
         <!-- ACCOUNT — who you are to us, in words a person uses -->
+        <!-- PHOTO — above Account because it is the one thing on this page a
+             person recognises as themselves. -->
+        <div class="section">
+          <div class="section-head"><div class="section-title">Photo</div></div>
+          <div class="section-body">
+            <div class="av-row">
+              <div class="av-disc" id="av-disc">&mdash;</div>
+              <div class="av-acts">
+                <button class="btn-line" id="av-pick" onclick="avatarPick()">Upload a photo</button>
+                <button class="btn-line" id="av-remove" onclick="avatarRemove()" style="display:none;">Remove photo</button>
+                <div class="kv-note" id="av-note">JPEG, PNG or WebP, up to 5&nbsp;MB.</div>
+              </div>
+            </div>
+            <div class="msg msg-ok"  id="av-ok"></div>
+            <div class="msg msg-err" id="av-err"></div>
+          </div>
+        </div>
+
         <div class="section">
           <div class="section-head"><div class="section-title">Account</div></div>
           <div class="section-body">
@@ -332,6 +360,142 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 
 <script>
 var _userId = null;
+var _authUser = null, _profileRow = null;
+
+/* ── PHOTO ──────────────────────────────────────────────────────────────────
+   The bucket is private and the path is scoped to the signed-in user's own
+   uid, which is what the storage policy enforces. Nothing here is a security
+   boundary: these checks exist so a refusal names the problem while the file
+   picker is still fresh in mind, instead of arriving as a 400 from Storage.
+
+   The DISPLAY precedence lives in auth.js resolveAvatar() and is not repeated
+   here — this page only writes, then asks the resolver what to draw. */
+var AV_MAX = 5 * 1024 * 1024;
+var AV_TYPES = { 'image/jpeg':'jpg', 'image/jpg':'jpg', 'image/png':'png', 'image/webp':'webp' };
+var AV_EXT   = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp' };
+
+function avMsg(kind, text){
+  var ok = document.getElementById('av-ok'), er = document.getElementById('av-err');
+  ok.style.display = 'none'; er.style.display = 'none';
+  if(!kind) return;
+  var el = kind === 'ok' ? ok : er;
+  el.textContent = text; el.style.display = 'block';
+}
+function avBusy(on){
+  var r = document.querySelector('.av-row');
+  if(r) r.classList.toggle('av-busy', !!on);
+}
+
+/* Redraw the disc and decide which buttons make sense. "Remove" is offered
+   only when there is something of OURS to remove — a provider picture is not
+   ours to delete, and offering it would promise something we cannot do. */
+async function avatarRender(){
+  var disc = document.getElementById('av-disc');
+  var a = await window.resolveAvatar(_profileRow, _authUser);
+  window.setAvatarEl(disc, a);
+  document.getElementById('av-remove').style.display = (a.kind === 'upload') ? '' : 'none';
+  document.getElementById('av-pick').textContent =
+    (a.kind === 'upload') ? 'Change photo' : 'Upload a photo';
+  var note = document.getElementById('av-note');
+  if(a.kind === 'provider'){
+    note.textContent = 'Currently showing the photo from the account you sign in with. ' +
+      'Upload one to use your own instead.';
+  } else if(a.kind === 'upload'){
+    note.textContent = 'JPEG, PNG or WebP, up to 5 MB. Remove it to fall back to your ' +
+      'sign-in photo, or your initials.';
+  } else {
+    note.textContent = 'JPEG, PNG or WebP, up to 5 MB.';
+  }
+}
+
+function avatarPick(){
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp';
+  inp.onchange = function(){ var f = inp.files && inp.files[0]; if(f) avatarUpload(f); };
+  inp.click();
+}
+
+async function avatarUpload(file){
+  avMsg(null);
+  var ext = (file.name.split('.').pop() || '').toLowerCase();
+  /* Both must agree. A browser that reports no type falls back to the
+     extension; an extension that contradicts a known type is refused rather
+     than guessed at. */
+  var byType = AV_TYPES[(file.type || '').toLowerCase()];
+  var byExt  = AV_EXT[ext] ? ext.replace('jpeg','jpg') : null;
+  if(!byType && !byExt){ avMsg('err', 'Use a JPEG, PNG or WebP image.'); return; }
+  if(byType && byExt && byType !== byExt){
+    avMsg('err', 'That file’s name and contents disagree. Re-save it and try again.'); return;
+  }
+  if(file.size > AV_MAX){ avMsg('err', 'That image is larger than 5 MB. Try a smaller one.'); return; }
+
+  var kind = byType || byExt;
+  var ctype = AV_EXT[kind] || file.type || 'application/octet-stream';
+  var path = _userId + '/' + Date.now() + '.' + kind;
+  var previous = _profileRow && _profileRow.avatar_url;
+
+  avBusy(true); avMsg('ok', 'Uploading…');
+  try {
+    var up = await window.sb.storage.from('avatars')
+      .upload(path, file, { upsert:false, contentType:ctype });
+    if(up && up.error) throw new Error(up.error.message);
+
+    var sv = await window.sb.from('profiles').update({ avatar_url: path }).eq('id', _userId);
+    if(sv && sv.error) throw new Error(sv.error.message);
+
+    _profileRow = _profileRow || {};
+    _profileRow.avatar_url = path;
+    window.resetAvatarCache();
+
+    /* The old file is only removed once the new one is recorded. Losing the
+       previous photo because the row update failed would be a worse outcome
+       than an orphaned object. */
+    if(previous && previous !== path){
+      try { await window.sb.storage.from('avatars').remove([previous]); } catch(e){}
+    }
+    await avatarRender();
+    avMsg('ok', 'Photo updated.');
+    if(window.nbRefreshAvatar) window.nbRefreshAvatar(_profileRow, _authUser);
+  } catch(e){
+    avMsg('err', avatarWhy(e && e.message));
+  } finally { avBusy(false); }
+}
+
+async function avatarRemove(){
+  if(!window.confirm('Remove your photo? Your sign-in photo or initials will be shown instead.')) return;
+  avMsg(null); avBusy(true);
+  var path = _profileRow && _profileRow.avatar_url;
+  try {
+    var sv = await window.sb.from('profiles').update({ avatar_url: null }).eq('id', _userId);
+    if(sv && sv.error) throw new Error(sv.error.message);
+    if(_profileRow) _profileRow.avatar_url = null;
+    window.resetAvatarCache();
+    if(path){ try { await window.sb.storage.from('avatars').remove([path]); } catch(e){} }
+    await avatarRender();
+    avMsg('ok', 'Photo removed.');
+    if(window.nbRefreshAvatar) window.nbRefreshAvatar(_profileRow, _authUser);
+  } catch(e){
+    avMsg('err', avatarWhy(e && e.message));
+  } finally { avBusy(false); }
+}
+
+/* Storage and PostgREST both answer in their own vocabulary. Translate the two
+   we can actually predict, and pass anything else through rather than
+   inventing a reason. */
+function avatarWhy(m){
+  m = String(m || '');
+  if(/avatar_url/.test(m) && /column|does not exist|42703/.test(m))
+    return 'Photo storage is not switched on for this site yet.';
+  if(/Bucket not found|bucket/i.test(m))
+    return 'Photo storage is not switched on for this site yet.';
+  if(/exceeded|too large|maximum size/i.test(m))
+    return 'That image is larger than 5 MB. Try a smaller one.';
+  if(/mime|content type/i.test(m))
+    return 'Use a JPEG, PNG or WebP image.';
+  return m || 'Could not update your photo.';
+}
+window.avatarPick = avatarPick; window.avatarRemove = avatarRemove;
 var _curRole = null, _curVerif = '', _isAdmin = false;
 
 /* The old "Request role change" control is gone. It offered Patient / Nurse /
@@ -432,6 +596,8 @@ document.addEventListener('DOMContentLoaded', async function(){
     var user    = auth.user;
     var profile = auth.profile || {};
     _userId = user.id;
+    _authUser = user; _profileRow = profile;
+    avatarRender();          // independent of the rest of the page
 
     _isAdmin  = await window.isPlatformAdmin();
     _curRole  = (_isAdmin ? 'admin' : profile.role) || 'pending';

@@ -285,6 +285,10 @@ function resetSessionCache() {
      without the other would let a newly signed-in account inherit the previous
      holder's privileges in the navigation. */
   _adminAnswer = null;
+  /* Signed avatar URLs are minted against a session too, and one person's
+     face must never survive into the next person's navbar. */
+  _avatarSignedCache = {};
+  _avatarPathCache = {};
 }
 window.resetSessionCache = resetSessionCache;
 window.ensureProfile = ensureProfile;
@@ -455,6 +459,156 @@ function authRedirectTo(page) {
   return window.location.origin + '/' + page;
 }
 window.authRedirectTo = authRedirectTo;
+
+/* ── THE AVATAR RESOLVER ────────────────────────────────────────────────────
+   ONE answer to "what picture goes here", used by the navbar, both dashboards
+   and settings. Duplicating this is how three surfaces end up disagreeing
+   about who you are.
+
+   Precedence, highest first:
+     1. an image the person uploaded to Anestheo   (profiles.avatar_url)
+     2. the picture their sign-in provider supplies (Google / Facebook)
+     3. their initials
+
+   WHY THE PROVIDER PICTURE IS READ FROM THE SESSION AND NEVER COPIED INTO THE
+   DATABASE. It is not ours: Facebook's URLs expire, Google's change when the
+   person changes their photo, and a stored copy would go stale while looking
+   authoritative. Reading it live means the fallback is always current and we
+   hold no third-party PII we were not asked to hold.
+
+   WHY IT IS NEVER TRUSTED FOR ANYTHING BUT A PICTURE. user_metadata is
+   writable by the account holder through auth.updateUser, so it is a claim,
+   not a fact. It decides no role, no permission and no identity here — and it
+   is only ever used to draw YOUR OWN avatar, never another person's, so the
+   worst a determined user achieves is choosing their own picture, which is
+   the feature. Anything shown about somebody else must come from the
+   database. */
+
+var AVATAR_META_KEYS = ['avatar_url', 'picture', 'photoURL', 'profile_image_url'];
+
+/* Only an https image URL from the provider is usable. http would be mixed
+   content on an https page, and a data: or javascript: value has no business
+   arriving from a third party. */
+function providerAvatarUrl(user) {
+  if (!user) return null;
+  var sources = [user.user_metadata || {}];
+  var ids = user.identities || [];
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i] && ids[i].identity_data) sources.push(ids[i].identity_data);
+  }
+  for (var s = 0; s < sources.length; s++) {
+    for (var k = 0; k < AVATAR_META_KEYS.length; k++) {
+      var v = sources[s][AVATAR_META_KEYS[k]];
+      if (typeof v === 'string' && /^https:\/\//i.test(v.trim())) return v.trim();
+    }
+  }
+  return null;                       // plenty of accounts have no picture
+}
+
+/* Two letters, from whatever we actually know. Never blank: a circle with
+   nothing in it reads as a broken image. */
+function avatarInitials(profile, user) {
+  var name = (profile && profile.full_name) || '';
+  var parts = String(name).trim().split(/\s+/).filter(Boolean);
+  var out = parts.length >= 2 ? parts[0][0] + parts[parts.length - 1][0]
+          : parts[0]          ? parts[0].slice(0, 2)
+          : (user && user.email) ? user.email.slice(0, 2)
+          : '?';
+  return out.toUpperCase();
+}
+
+/* profiles.avatar_url holds a STORAGE PATH, not a URL — the bucket is private,
+   so the displayable form is a signed URL minted per session. The column may
+   not exist yet on a database that has not had the avatars migration applied;
+   a missing column simply means nobody has uploaded anything, which is the
+   correct reading, so it degrades to the provider picture rather than
+   erroring. */
+var _avatarSignedCache = {};
+var _avatarPathCache = {};
+
+/* WHY avatar_url IS READ SEPARATELY AND NOT ADDED TO getProfile()'s SELECT.
+   getProfile names its columns explicitly, and naming a column that does not
+   exist makes PostgREST fail the whole request with 42703 — which would take
+   out the profile read on EVERY page, for every user, the moment this shipped
+   ahead of the migration. The avatar is not worth that risk.
+
+   So it is fetched on its own and every failure is swallowed: no column, no
+   row, no network — all mean "no uploaded photo", which is the correct
+   reading. The frontend therefore works before the migration is applied and
+   gains uploads the moment it is, in either deployment order. */
+async function ownAvatarPath(userId) {
+  if (!userId) return null;
+  if (userId in _avatarPathCache) return _avatarPathCache[userId];
+  var val = null;
+  try {
+    var r = await withTimeout(
+      window.sb.from('profiles').select('avatar_url').eq('id', userId).maybeSingle(),
+      8000, 'avatarPath');
+    if (!r.error && r.data) val = r.data.avatar_url || null;
+  } catch (e) { /* treated as "no photo", deliberately */ }
+  _avatarPathCache[userId] = val;
+  return val;
+}
+
+async function signedAvatarUrl(path) {
+  if (!path) return null;
+  if (_avatarSignedCache[path]) return _avatarSignedCache[path];
+  try {
+    var r = await withTimeout(
+      window.sb.storage.from('avatars').createSignedUrl(path, 3600), 8000, 'avatar');
+    if (r && r.data && r.data.signedUrl) {
+      _avatarSignedCache[path] = r.data.signedUrl;
+      return r.data.signedUrl;
+    }
+  } catch (e) { console.warn('avatar url:', e.message); }
+  return null;
+}
+function resetAvatarCache() { _avatarSignedCache = {}; _avatarPathCache = {}; }
+
+/* The one call every surface makes. Always resolves — never throws, never
+   leaves a caller without something to draw. */
+async function resolveAvatar(profile, user) {
+  var initials = avatarInitials(profile, user);
+  /* A caller that manages the row itself — Settings, right after an upload —
+     passes the key and is believed. Everyone else gets the tolerant lookup. */
+  var uploaded = (profile && 'avatar_url' in profile)
+    ? profile.avatar_url
+    : await ownAvatarPath(user && user.id);
+  if (uploaded) {
+    var url = await signedAvatarUrl(uploaded);
+    if (url) return { kind: 'upload', url: url, initials: initials };
+  }
+  var prov = providerAvatarUrl(user);
+  if (prov) return { kind: 'provider', url: prov, initials: initials };
+  return { kind: 'initials', url: null, initials: initials };
+}
+
+/* Paint a resolved avatar into an element. Every surface uses this so the
+   fallback behaves identically everywhere: if the image fails to load — an
+   expired Facebook URL, a blocked third-party host, an offline moment — the
+   initials come back rather than leaving an empty circle. */
+function setAvatarEl(el, a) {
+  if (!el || !a) return;
+  if (!a.url) { el.textContent = a.initials; el.removeAttribute('data-avatar'); return; }
+  var img = document.createElement('img');
+  img.alt = '';                          // decorative: the name is beside it
+  img.decoding = 'async';
+  img.referrerPolicy = 'no-referrer';    // do not tell the provider where we are
+  img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;';
+  img.onerror = function () { el.textContent = a.initials; el.removeAttribute('data-avatar'); };
+  img.onload = function () {
+    el.textContent = '';
+    el.setAttribute('data-avatar', a.kind);
+    el.appendChild(img);
+  };
+  img.src = a.url;
+}
+
+window.setAvatarEl        = setAvatarEl;
+window.resolveAvatar      = resolveAvatar;
+window.avatarInitials     = avatarInitials;
+window.providerAvatarUrl  = providerAvatarUrl;
+window.resetAvatarCache   = resetAvatarCache;
 
 async function signInWithProvider(provider) {
   if (AUTH_PROVIDERS.indexOf(provider) < 0) {
