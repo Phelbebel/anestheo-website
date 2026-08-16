@@ -7,8 +7,8 @@
 <title>How will you use Anestheo?</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.15-02"></script>
-<script src="/auth.js?v=2026.08.15-02"></script>
+<script src="/supabase.js?v=2026.08.16-01"></script>
+<script src="/auth.js?v=2026.08.16-01"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -202,7 +202,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
           </select>
         </div>
 
-        <button class="btn" id="d-submit" onclick="submitDoctor()">Submit for verification</button>
+        <button class="btn" id="d-submit" onclick="submitDoctor()">Continue to documents</button>
         <button class="btn btn-ghost" onclick="backToRole()">Back</button>
         <div class="msg msg-err" id="doctor-err"></div>
       </div>
@@ -545,11 +545,11 @@ async function submitDoctor(){
     return;
   }
 
-  btn.disabled = true; btn.textContent = 'Submitting…';
+  btn.disabled = true; btn.textContent = 'Saving…';
 
   var roleRes = await window.setOwnRole('doctor');
   if(roleRes && roleRes.error){
-    btn.disabled = false; btn.textContent = 'Submit for verification';
+    btn.disabled = false; btn.textContent = 'Continue to documents';
     showErr('doctor-err', roleRes.error.message || 'We could not submit your application.');
     return;
   }
@@ -569,11 +569,16 @@ async function submitDoctor(){
     /* The role IS set at this point, so they are a pending doctor with an
        incomplete file rather than a lost account. Say so plainly and send
        them on: an admin can ask for the rest. */
-    btn.disabled = false; btn.textContent = 'Submit for verification';
+    btn.disabled = false; btn.textContent = 'Continue to documents';
     showErr('doctor-err', 'Your application was created but some details did not save: ' +
       (save.error.message || 'unknown error') + ' You can add them from your profile.');
     return;
   }
+  /* Documents come NEXT, not before: doctor_verification_documents' INSERT
+     policy requires is_pending_doctor(), so nothing can be uploaded until
+     set_own_role('doctor') above has run. The pending page is where the upload
+     controls live, and it is the same page that later shows an administrator's
+     requests — one place to maintain, one place to look. */
   window.location.replace('/doctor-pending.html');
 }
 

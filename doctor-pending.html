@@ -7,8 +7,9 @@
 <title>Awaiting verification — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.15-02"></script>
-<script src="/auth.js?v=2026.08.15-02"></script>
+<script src="/supabase.js?v=2026.08.16-01"></script>
+<script src="/auth.js?v=2026.08.16-01"></script>
+<script src="/docverify.js?v=2026.08.16-01"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -46,6 +47,41 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
   border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#fff;min-height:46px;}
 .btn:hover{background:rgba(126,207,192,.1);border-color:rgba(126,207,192,.4);}
 .btn-p{background:var(--teal);border-color:transparent;}
+/* verification documents */
+.dq{background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.26);border-radius:10px;
+  padding:14px 15px;margin-bottom:14px;}
+.dq-t{font-size:13.5px;font-weight:700;color:rgba(255,220,150,.95);margin-bottom:5px;}
+.dq-r{font-size:13px;color:rgba(255,255,255,.66);line-height:1.6;}
+.dq-r b{color:#fff;font-weight:600;}
+.drow{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-top:1px solid rgba(255,255,255,.07);}
+.drow:first-child{border-top:none;}
+.dmark{width:22px;height:22px;border-radius:50%;flex:0 0 auto;margin-top:1px;display:flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.dmark.have{background:rgba(37,211,102,.16);color:#5ee393;border:1px solid rgba(37,211,102,.3);}
+.dmark.want{background:rgba(232,168,56,.13);color:#E8A838;border:1px solid rgba(232,168,56,.3);}
+.dmain{flex:1;min-width:0;}
+.dname{font-size:14px;font-weight:600;color:#fff;}
+.dhint{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.5;}
+.dfile{font-size:12.5px;color:rgba(255,255,255,.6);margin-top:6px;word-break:break-word;}
+.dfile b{color:#7ECFC0;font-weight:600;}
+.dtag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  border-radius:5px;padding:2px 7px;margin-left:7px;vertical-align:1px;}
+.dtag-ok{background:rgba(37,211,102,.14);color:#5ee393;}
+.dtag-w{background:rgba(232,168,56,.12);color:#E8A838;}
+.dacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
+.dbtn{background:rgba(255,255,255,.06);border:1px solid rgba(42,138,116,.35);color:#fff;
+  border-radius:8px;padding:8px 13px;font-size:12.5px;font-weight:600;cursor:pointer;
+  font-family:inherit;min-height:38px;}
+.dbtn:hover{background:rgba(126,207,192,.12);border-color:rgba(126,207,192,.5);}
+.dbtn.del{border-color:rgba(192,57,43,.32);color:rgba(255,150,130,.95);}
+.dbtn:disabled{opacity:.5;cursor:default;}
+.msg-ok,.msg-err{display:none;border-radius:8px;padding:10px 13px;font-size:13px;
+  margin-top:12px;line-height:1.55;}
+.msg-ok{background:rgba(27,107,90,.15);border:1px solid rgba(42,138,116,.3);color:#7ECFC0;}
+.msg-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:rgba(255,160,140,.93);}
+.dsub{margin-top:18px;}
+.dsub .btn-p{margin-bottom:8px;}
+.dnote{font-size:12px;color:rgba(255,255,255,.36);line-height:1.6;}
 .btn-p:hover{background:var(--teal2);}
 @media(max-width:480px){
   .kv{grid-template-columns:1fr;gap:2px 0;}
@@ -66,6 +102,19 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
     <div class="body">
       <div class="sec-h">Submitted details</div>
       <dl class="kv" id="dp-kv"><dd style="color:rgba(255,255,255,.4)">Loading…</dd></dl>
+
+      <!-- VERIFICATION DOCUMENTS.
+           The doctor could previously only be told "check your email" about a
+           document request, because admin_request_documents() recorded it in
+           verification_notes, which they cannot read. Requests now live in
+           doctor_verification_requests, which they can, so this section says
+           what is wanted, why, and gives them the way to supply it. -->
+      <div class="sec-h" style="margin-top:26px;">Verification documents</div>
+      <div id="dp-req"></div>
+      <div id="dp-docs">Loading&hellip;</div>
+      <div id="dp-submit-row"></div>
+      <div class="msg-ok"  id="dp-ok"></div>
+      <div class="msg-err" id="dp-err"></div>
 
       <div class="note" id="dp-note">
         You can sign in at any time — this page is where you will land until your account is
@@ -164,7 +213,7 @@ function row(label, value){
     document.getElementById('dp-pill-t').textContent = 'Changes requested';
     document.getElementById('dp-h').textContent = 'We need something else before we can verify you.';
     document.getElementById('dp-sub').textContent =
-      'An administrator has asked for more information. Check your email for what is needed.';
+      'An administrator has asked for more information. What is needed is listed below.';
   }
 
   var html =
@@ -179,9 +228,172 @@ function row(label, value){
     row('Specialty', p.specialty) +
     row('Submitted', p.created_at ? new Date(p.created_at).toLocaleDateString() : '');
 
+  renderDocs();
+
   document.getElementById('dp-kv').innerHTML =
     html || '<dd style="color:rgba(255,255,255,.4)">No details on file yet.</dd>';
 })();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VERIFICATION DOCUMENTS
+
+   Everything shown here is read from the database: what is on file comes from
+   doctor_verification_documents, what was asked for comes from
+   doctor_verification_requests, and whether the application is complete is
+   decided by doctor_submit_verification() on the server. This page computes a
+   preview of that answer so the button can be disabled with an explanation,
+   but it never decides — a browser is not allowed to say an application is
+   complete.
+   ═══════════════════════════════════════════════════════════════════════════ */
+var _dvState = null, _dvBusy = false;
+
+function dvMsg(kind, text){
+  var ok = document.getElementById('dp-ok'), er = document.getElementById('dp-err');
+  ok.style.display = 'none'; er.style.display = 'none';
+  if(!kind) return;
+  var el = kind === 'ok' ? ok : er;
+  el.textContent = text; el.style.display = 'block';
+}
+function esc(s){ return String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function renderDocs(){
+  var host = document.getElementById('dp-docs');
+  var st = await window.DV.state();
+  if(st.error){
+    host.innerHTML = '<div class="dhint">Could not load your documents: ' +
+      esc(st.error.message) + '</div>';
+    return;
+  }
+  _dvState = st;
+
+  /* What an administrator asked for, in their words. */
+  var rq = document.getElementById('dp-req');
+  if(st.requests.length){
+    rq.innerHTML = st.requests.map(function(r){
+      var types = (r.requested_types || []).map(function(t){
+        return '<b>' + esc(window.DV.label(t)) + '</b>'; }).join(', ');
+      return '<div class="dq"><div class="dq-t">An administrator asked for ' + types + '</div>' +
+        '<div class="dq-r">' + esc(r.reason) + '</div></div>';
+    }).join('');
+  } else { rq.innerHTML = ''; }
+
+  /* Every required type, plus anything requested, plus anything already sent.
+     A type appears once, with what is on file underneath it. */
+  var want = {};
+  window.DV.REQUIRED.forEach(function(t){ want[t] = true; });
+  st.requestedTypes.forEach(function(t){ want[t] = true; });
+  st.docs.forEach(function(d){ want[d.doc_type] = true; });
+  var order = window.DV.TYPES.map(function(x){ return x.k; }).filter(function(t){ return want[t]; });
+
+  host.innerHTML = order.map(function(t){
+    var mine = st.docs.filter(function(d){ return d.doc_type === t; });
+    var have = mine.length > 0;
+    var required = window.DV.REQUIRED.indexOf(t) >= 0;
+    var asked = st.requestedTypes.indexOf(t) >= 0;
+
+    var files = mine.map(function(d){
+      var reviewed = !!d.reviewed_at;
+      var tag = reviewed
+        ? '<span class="dtag dtag-ok">' + esc(d.review_state) + '</span>'
+        : '<span class="dtag dtag-w">awaiting review</span>';
+      var del = reviewed ? ''
+        : '<button class="dbtn del" onclick="dvRemove(\'' + d.id + '\')">Remove</button>';
+      return '<div class="dfile"><b>' + esc(d.file_name) + '</b> &middot; ' +
+        esc(window.DV.fsize(d.file_size)) + ' &middot; ' +
+        esc(new Date(d.uploaded_at).toLocaleDateString()) + tag +
+        (del ? '<div class="dacts">' + del + '</div>' : '') + '</div>';
+    }).join('');
+
+    var mark = have ? '<span class="dmark have">&#10003;</span>'
+                    : '<span class="dmark want">!</span>';
+    var label = esc(window.DV.label(t)) +
+      (required ? ' <span class="dtag dtag-w">required</span>' : '') +
+      (asked ? ' <span class="dtag dtag-w">requested</span>' : '');
+    var hint = window.DV.hint(t);
+
+    return '<div class="drow">' + mark + '<div class="dmain">' +
+      '<div class="dname">' + label + '</div>' +
+      (hint ? '<div class="dhint">' + esc(hint) + '</div>' : '') +
+      files +
+      '<div class="dacts"><button class="dbtn" onclick="dvPick(\'' + t + '\')">' +
+        (have ? 'Upload another' : 'Upload') + '</button></div>' +
+      '</div></div>';
+  }).join('');
+
+  renderSubmit();
+}
+
+function renderSubmit(){
+  var host = document.getElementById('dp-submit-row');
+  var st = _dvState;
+  if(!st){ host.innerHTML = ''; return; }
+  if(st.missing.length){
+    host.innerHTML = '<div class="dsub"><div class="dnote">Still needed before you can submit: <b>' +
+      st.missing.map(function(t){ return esc(window.DV.label(t)); }).join('</b>, <b>') +
+      '</b>.</div></div>';
+    return;
+  }
+  host.innerHTML = '<div class="dsub">' +
+    '<button class="btn btn-p" id="dp-submit" onclick="dvSubmit()">Submit for verification</button>' +
+    '<div class="dnote">Your file is complete. Submitting puts you back in the review queue.</div></div>';
+}
+
+function dvPick(type){
+  if(_dvBusy) return;
+  var inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = window.DV.ACCEPT;
+  inp.onchange = function(){ var f = inp.files && inp.files[0]; if(f) dvUpload(type, f); };
+  inp.click();
+}
+
+async function dvUpload(type, file){
+  dvMsg(null);
+  var bad = window.DV.checkFile(file);
+  if(bad){ dvMsg('err', bad); return; }
+  _dvBusy = true; dvMsg('ok', 'Uploading ' + file.name + '…');
+  var r = await window.DV.upload(type, file);
+  _dvBusy = false;
+  if(r.error){ dvMsg('err', r.error.message); return; }
+  dvMsg('ok', window.DV.label(type) + ' uploaded.');
+  await renderDocs();
+}
+
+async function dvRemove(id){
+  var doc = (_dvState && _dvState.docs || []).filter(function(d){ return d.id === id; })[0];
+  if(!doc) return;
+  if(!window.confirm('Remove ' + doc.file_name + '? You can upload a replacement.')) return;
+  dvMsg(null); _dvBusy = true;
+  var r = await window.DV.remove(doc);
+  _dvBusy = false;
+  if(r.error){ dvMsg('err', r.error.message); return; }
+  dvMsg('ok', 'Removed.');
+  await renderDocs();
+}
+
+async function dvSubmit(){
+  dvMsg(null);
+  var btn = document.getElementById('dp-submit');
+  if(btn){ btn.disabled = true; btn.textContent = 'Submitting…'; }
+  var r = await window.DV.submit();
+  if(r.error){
+    dvMsg('err', r.error.message);
+    if(btn){ btn.disabled = false; btn.textContent = 'Submit for verification'; }
+    return;
+  }
+  /* The server is the authority on completeness; if it refuses, say exactly
+     what it said rather than re-deciding here. */
+  if(r.result && r.result.ok === false){
+    dvMsg('err', r.result.reason || 'Your application is not complete yet.');
+    if(btn){ btn.disabled = false; btn.textContent = 'Submit for verification'; }
+    await renderDocs();
+    return;
+  }
+  dvMsg('ok', 'Submitted. An administrator will review your account.');
+  setTimeout(function(){ location.reload(); }, 1200);
+}
+
+window.dvPick = dvPick; window.dvRemove = dvRemove; window.dvSubmit = dvSubmit;
 </script>
 </body>
 </html>
