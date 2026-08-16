@@ -6,12 +6,13 @@
 <title>Admin Center — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.15-03"></script>
-<script src="/auth.js?v=2026.08.15-03"></script>
-<script src="/clinical-index.js?v=2026.08.15-03"></script>
-<script src="/clinical-search.js?v=2026.08.15-03"></script>
-<script src="/navbar.js?v=2026.08.15-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.15-03">
+<script src="/supabase.js?v=2026.08.15-04"></script>
+<script src="/auth.js?v=2026.08.15-04"></script>
+<script src="/docverify.js?v=2026.08.15-04"></script>
+<script src="/clinical-index.js?v=2026.08.15-04"></script>
+<script src="/clinical-search.js?v=2026.08.15-04"></script>
+<script src="/navbar.js?v=2026.08.15-04"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.15-04">
 <style>
 /* ============================================================
    ADMIN CENTER — platform administration
@@ -522,6 +523,17 @@ function friendlyRpcError(raw){
     return 'This action is not available yet.';
   if(/permission|privilege|not authorized|not authorised|42501|admin/i.test(m))
     return 'You do not have permission to perform this action.';
+  /* The approval gate refuses in the database's vocabulary — "missing
+     passport_id, license". Say it in the administrator's. Handled before the
+     generic fallback because this refusal is ACTIONABLE: it tells them exactly
+     what to request from the doctor. */
+  var miss = m.match(/Cannot approve:\s*missing\s*(.+)/i);
+  if(miss){
+    var names = miss[1].split(/\s*,\s*/).map(function(t){
+      return window.DV ? window.DV.label(t.trim()) : t.trim(); });
+    return 'This doctor cannot be approved yet — no ' + names.join(' and no ') +
+           ' is on file. Use "Request documents" to ask for it.';
+  }
   if(/reason is required/i.test(m))       return 'A reason is required for this action.';
   if(/confirm/i.test(m))                  return 'The confirmation you typed did not match.';
   if(/not found|no data found|P0002/i.test(m)) return 'That record could no longer be found.';
@@ -2732,7 +2744,9 @@ function acRequestDocs(p){
   acDialog({ title:'Request documents — '+pname(p), confirmLabel:'Request documents',
     body:'Moves the account to <b>changes requested</b> and records exactly what was asked for.',
     fields:[{ key:'types', label:'Documents', type:'select', options:[
-                ['diploma','Diploma'],['license','Medical licence'],['passport_id','Passport / ID'],['other','Other']] },
+                ['passport_id','Government ID or passport'],['license','Medical licence'],
+                ['diploma','Medical diploma'],['specialist_certificate','Specialist certificate'],
+                ['other','Other document']] },
             { key:'reason', label:'What is needed and why (required)', type:'textarea' }],
     onConfirm: async function(v){
       await acRpc('admin_request_documents', { p_doctor:p.id, p_types:[v.types], p_reason:v.reason });
@@ -2779,15 +2793,18 @@ function vDoctorVerificationTab(p){
   if(!hasVerif()) h += featureNote();
   else if(!docs.length) h += '<p class="mut" style="font-size:12.5px;">No diploma, licence or ID has been uploaded by this account.</p>';
   else h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Type</th><th>File</th><th>Format</th>'+
-    '<th>Size</th><th>Uploaded</th><th>Review state</th></tr></thead><tbody>'+
+    '<th>Size</th><th>Uploaded</th><th>Review state</th><th></th></tr></thead><tbody>'+
     docs.map(function(d){
-      return '<tr><td class="nm">'+esc(({diploma:'Diploma',license:'Medical licence',passport_id:'Passport / ID',other:'Other'})[d.doc_type]||d.doc_type)+'</td>'+
+      var label = (window.DV ? window.DV.label(d.doc_type) : d.doc_type);
+      return '<tr><td class="nm">'+esc(label)+'</td>'+
         '<td>'+dash(d.file_name)+'</td><td>'+dash(d.mime_type)+'</td>'+
         '<td>'+esc(fsize(d.file_size))+'</td><td>'+esc(fdate(d.uploaded_at))+'</td>'+
-        '<td>'+badgeVerify(d.review_state==='accepted'?'approved':d.review_state)+'</td></tr>';
+        '<td>'+badgeVerify(d.review_state==='accepted'?'approved':d.review_state)+'</td>'+
+        '<td class="rowact"><button class="rowbtn" onclick="AC.docOpen(\''+d.id+'\',this)">Open</button></td></tr>';
     }).join('')+'</tbody></table></div>'+
-    '<p class="mut" style="font-size:12px;margin-top:10px;">Document details only. Downloading an uploaded '+
-    'file is not available from the Admin Center.</p>';
+    '<p class="mut" style="font-size:12px;margin-top:10px;">Opening a document mints a link that '+
+    'expires in five minutes. The link is never stored, never written into this page, and a new '+
+    'one is created each time.</p>';
   h += '</div>';
 
   h += '<div class="gcard"><div class="gcard-h">Admin notes<span class="gh-note">'+
@@ -2806,6 +2823,36 @@ function vDoctorVerificationTab(p){
 }
 AC.vAct  = function(id, state){ var p = AC.profById[id]; if(p) acVerify(p, state); };
 AC.vDocs = function(id){ var p = AC.profById[id]; if(p) acRequestDocs(p); };
+
+/* Open a verification document.
+   The signed URL is minted only on this click, lives five minutes, and is
+   handed straight to the new tab — it is never rendered into the page, never
+   stored and never logged. A URL that sits in the DOM is a URL that ends up in
+   a screenshot or a support ticket, and this one opens somebody's passport.
+
+   The tab is opened BEFORE the await so the browser still attributes it to the
+   click; opening it afterwards is what a popup blocker stops. */
+AC.docOpen = async function(id, btn){
+  var d = (AC.db.vdocs || []).filter(function(x){ return x.id === id; })[0];
+  if(!d){ acToast('That document is no longer on file', true); return; }
+  var tab = window.open('', '_blank', 'noopener');
+  if(btn){ btn.disabled = true; btn.textContent = 'Opening…'; }
+  try {
+    var r = await window.DV.openDocument(d.storage_path);
+    if(r.error || !r.url){
+      if(tab) tab.close();
+      acToast(r.error ? r.error.message : 'Could not open that document', true);
+      return;
+    }
+    if(tab) tab.location.replace(r.url);
+    else window.open(r.url, '_blank', 'noopener');   // popup blocked: try direct
+  } catch(e){
+    if(tab) tab.close();
+    acToast('Could not open that document', true);
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Open'; }
+  }
+};
 AC.vNote = function(id){ var p = AC.profById[id]; if(p) acAddNote(p); };
 
 /* ============================================================
@@ -3906,6 +3953,6 @@ document.addEventListener('keydown', function(e){
 
 })();
 </script>
-<script src="/videos-data.js?v=2026.08.15-03"></script>
+<script src="/videos-data.js?v=2026.08.15-04"></script>
 </body>
 </html>
