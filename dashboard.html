@@ -6,13 +6,13 @@
 <title>Dashboard — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.15-03"></script>
-<script src="/auth.js?v=2026.08.15-03"></script>
-<script src="/clinical-index.js?v=2026.08.15-03"></script>
-<script src="/clinical-search.js?v=2026.08.15-03"></script>
-<script src="/clinical-open.js?v=2026.08.15-03"></script>
-<script src="/patient-lifecycle.js?v=2026.08.15-03"></script>
-<script src="/navbar.js?v=2026.08.15-03"></script>
+<script src="/supabase.js?v=2026.08.16-02"></script>
+<script src="/auth.js?v=2026.08.16-02"></script>
+<script src="/clinical-index.js?v=2026.08.16-02"></script>
+<script src="/clinical-search.js?v=2026.08.16-02"></script>
+<script src="/clinical-open.js?v=2026.08.16-02"></script>
+<script src="/patient-lifecycle.js?v=2026.08.16-02"></script>
+<script src="/navbar.js?v=2026.08.16-02"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -832,19 +832,32 @@ body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min
 .ws-ol-empty{background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:16px;padding:36px;text-align:center;color:var(--muted);font-size:14px;}
 .ws-ol-empty b{color:#fff;font-weight:700;display:block;font-size:15px;margin-bottom:5px;}
 .ws-open .dico{width:15px;height:15px;vertical-align:-2px;margin-right:3px;}
-/* ════════ Live Tools = embedded Anesthesia Workstation ════════ */
+/* ════════ Live Tools launcher ════════
+   The workstation is a full-screen instrument. This is the door to it, not a
+   window into it. */
 #sec-tools{--border:rgba(27,107,90,.24);--muted:rgba(255,255,255,.56);--hint:rgba(255,255,255,.34);}
-.ws-wkbar{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
-.ws-wk-live{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#9FF0CF;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.34);border-radius:30px;padding:7px 13px;flex:0 0 auto;}
-.ws-wk-live .d{width:7px;height:7px;border-radius:50%;background:#34D399;box-shadow:0 0 10px #34D399;animation:wkblink 1.6s ease-in-out infinite;}
-@keyframes wkblink{0%,100%{opacity:1;}50%{opacity:.35;}}
-.ws-wkbar .ws-open{margin-left:auto;flex:0 0 auto;}
-.ws-wkframe-wrap{position:relative;border:1px solid rgba(126,207,192,.22);border-radius:20px;overflow:hidden;
-  background:#06120D;box-shadow:0 30px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);}
-.ws-wkframe-wrap::before{content:'';position:absolute;inset:0;border-radius:20px;pointer-events:none;
-  box-shadow:inset 0 0 90px rgba(0,0,0,.5);z-index:2;}
-.ws-wkframe{width:100%;height:calc(100vh - 150px);min-height:680px;border:none;display:block;background:#0A1A15;position:relative;z-index:1;}
-@media(max-width:760px){.ws-wkframe{height:calc(100vh - 120px);min-height:560px;}}
+.ws-launch{display:flex;align-items:center;gap:20px;text-decoration:none;color:inherit;
+  background:linear-gradient(135deg,rgba(52,211,153,.10),rgba(255,255,255,.02));
+  border:1px solid rgba(126,207,192,.26);border-radius:20px;padding:30px 30px;
+  box-shadow:0 22px 54px rgba(0,0,0,.38);transition:transform .18s,border-color .18s,box-shadow .18s;}
+.ws-launch:hover{transform:translateY(-2px);border-color:rgba(126,207,192,.5);
+  box-shadow:0 28px 66px rgba(0,0,0,.46);}
+.ws-launch-ic{width:58px;height:58px;border-radius:17px;flex:0 0 auto;display:flex;
+  align-items:center;justify-content:center;color:#9FF0CF;background:rgba(52,211,153,.13);
+  border:1px solid rgba(52,211,153,.32);}
+.ws-launch-ic .dico{width:28px;height:28px;}
+.ws-launch-tx{flex:1;min-width:0;}
+.ws-launch-tx b{display:block;font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:5px;}
+.ws-launch-tx i{display:block;font-style:normal;font-size:13.5px;color:var(--muted);line-height:1.6;}
+.ws-launch-go{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  background:#1B6B5A;color:#fff;border-radius:12px;padding:13px 20px;font-size:14px;font-weight:700;}
+.ws-launch-go .dico{width:16px;height:16px;}
+.ws-launch:hover .ws-launch-go{background:#2A8A74;}
+@media(max-width:760px){
+  .ws-launch{flex-wrap:wrap;gap:16px;padding:24px 20px;}
+  .ws-launch-tx{flex-basis:100%;order:3;}
+  .ws-launch-go{width:100%;justify-content:center;order:4;}
+}
 </style>
 </head>
 <body>
@@ -1445,14 +1458,6 @@ async function wsOlApprove(sid, btn){
 window.wsOlApprove=wsOlApprove;
 window.wsLoadOpList=wsLoadOpList;
 
-/* ════════ Live Tools = the integrated Anesthesia Workstation ════════
-   Lazy-embed the existing engine (engine.html) — its monitor, shared patient
-   inputs and reactive panels ARE the workstation. No medical logic here. */
-function wsOpenTools(){
-  var f=document.getElementById('ws-wkframe');
-  if(f && !f.getAttribute('src')) f.setAttribute('src','/engine.html?embed=1');
-}
-window.wsOpenTools=wsOpenTools;
 
 // Row 1 statistics (computed from the full surgical list, independent of stage/search).
 function wsRenderMpStats(){
@@ -3367,7 +3372,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         (isAdminRole ? railTab('admin','shield-check','Admin') : '') +
       '</div>' +
       '<div class="ws-railgrp">' +
-        '<button class="ws-sig" data-sec="tools" onclick="wsShow(\'tools\');wsOpenTools()" aria-label="Live Tools — Anesthesia Workstation">' +
+        '<a class="ws-sig" href="/engine.html" aria-label="Live Tools — open the full anesthesia workstation">' +
           '<span class="ws-sig-wave" aria-hidden="true">' +
             '<svg viewBox="0 0 240 30" preserveAspectRatio="none"><path d="M0,20 L14,20 18,20 22,9 26,27 30,6 34,22 38,20 60,20 74,20 78,20 82,9 86,27 90,6 94,22 98,20 120,20 134,20 138,20 142,9 146,27 150,6 154,22 158,20 180,20 194,20 198,20 202,9 206,27 210,6 214,22 218,20 240,20"/></svg>' +
           '</span>' +
@@ -3376,7 +3381,7 @@ document.addEventListener('DOMContentLoaded', async function(){
             '<span class="ws-sig-tx"><b>Live Tools</b><i>Anesthesia workstation</i></span>' +
             '<span class="ws-sig-live"><span class="dot"></span>LIVE</span>' +
           '</span>' +
-        '</button>' +
+        '</a>' +
       '</div>' +
       '<div class="ws-railgrp">' +
         '<div class="ws-railgrp-lbl">Knowledge</div>' +
@@ -3401,15 +3406,22 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div id="ws-ol-body"></div>' +
       '</div>';
 
-    // SECTION 1 — Live Tools = the integrated Anesthesia Workstation (embedded engine,
-    // full-bleed). One living screen: monitor + shared patient inputs + reactive panels.
+    /* SECTION 1 — Live Tools.
+       This used to embed engine.html?embed=1 in an iframe: a website inside a
+       website, with its own navbar hidden by CSS, at roughly half the usable
+       width. It made the real product look like a preview of itself. The
+       workstation is a full-screen instrument; it is opened, not peeked at.
+       The card below is a launcher and nothing more — clicking it navigates. */
     var secTools =
       '<div class="ws-sec" id="sec-tools">' +
-        '<div class="ws-wkbar">' +
-          '<span class="ws-wk-live"><span class="d"></span> Live workspace</span>' +
-          '<a href="/engine.html" target="_blank" class="ws-open">'+dIcon('external-link')+' Full screen</a>' +
-        '</div>' +
-        '<div class="ws-wkframe-wrap"><iframe class="ws-wkframe" id="ws-wkframe" title="Anesthesia Workstation" loading="lazy"></iframe></div>' +
+        '<a class="ws-launch" href="/engine.html">' +
+          '<span class="ws-launch-ic">'+dIcon('activity')+'</span>' +
+          '<span class="ws-launch-tx">' +
+            '<b>Live Tools</b>' +
+            '<i>Drug dosing &middot; airway &middot; crisis tools &middot; calculators</i>' +
+          '</span>' +
+          '<span class="ws-launch-go">Open Live Tools '+dIcon('arrow-right')+'</span>' +
+        '</a>' +
       '</div>';
 
     // SECTION 2 — Patient Management (board switcher: one workflow at a time)

@@ -6,13 +6,13 @@
 <title>For Patients — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.15-03"></script>
-<script src="/auth.js?v=2026.08.15-03"></script>
-<script src="/clinical-index.js?v=2026.08.15-03"></script>
-<script src="/clinical-search.js?v=2026.08.15-03"></script>
-<script src="/navbar.js?v=2026.08.15-03"></script>
-<script src="/journey.js?v=2026.08.15-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.15-03">
+<script src="/supabase.js?v=2026.08.16-02"></script>
+<script src="/auth.js?v=2026.08.16-02"></script>
+<script src="/clinical-index.js?v=2026.08.16-02"></script>
+<script src="/clinical-search.js?v=2026.08.16-02"></script>
+<script src="/navbar.js?v=2026.08.16-02"></script>
+<script src="/journey.js?v=2026.08.16-02"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.16-02">
 <style>
 /* -- Patient Home (UX ported from surgery-journey; status from derived spine) -- */
 #ph-loader{min-height:50vh;display:flex;align-items:center;justify-content:center;}
@@ -252,21 +252,33 @@ function hpFeatureHtml(signedIn){
       '<div class="hp-art">' + hpArtSvg() + '</div>' +
     '</section>';
 }
-function renderHpFeature(signedIn){
-  var host = ge(signedIn ? 'hp-feat-home' : 'hp-feat-guest');
-  if(host) host.innerHTML = hpFeatureHtml(signedIn);
+/* THE CTA KEYS ON THE SESSION, NOT ON WHICH VIEW IS SHOWING.
+   These are two different questions and conflating them was the bug. A doctor
+   IS signed in but is deliberately shown the guest view (line ~286: clinicians
+   preview the patient-facing site). The guest CTA calls nbOpenModal(), which
+   for an already-authenticated visitor calls nbGoWorkspace() and sends a
+   doctor to /dashboard.html — so "Create my Health Passport" opened the Doctor
+   Dashboard.
+
+   The Health Passport is a personal account feature. Anyone with a session
+   goes straight to their own passport whatever their role; only a genuine
+   visitor is asked to sign in first. Normal role routing elsewhere is
+   untouched — this removes role from the PASSPORT path only. */
+function renderHpFeature(view, hasSession){
+  var host = ge(view === 'home' ? 'hp-feat-home' : 'hp-feat-guest');
+  if(host) host.innerHTML = hpFeatureHtml(!!hasSession);
 }
 
 function showHome(profile, user){
   var first = (profile && profile.full_name) ? profile.full_name.split(' ')[0] : user.email.split('@')[0];
   first = first.charAt(0).toUpperCase() + first.slice(1);
   ge('ph-hi').textContent = 'Welcome back, ' + first;
-  renderHpFeature(true);
+  renderHpFeature('home', true);
   ge('ph-loader').style.display='none';
   ge('ph-home').style.display='block';
 }
-function showGuest(){
-  renderHpFeature(false);
+function showGuest(hasSession){
+  renderHpFeature('guest', hasSession === true);
   ge('ph-loader').style.display='none'; ge('ph-guest').style.display='block';
 }
 function showClin(){ ge('ph-loader').style.display='none'; ge('ph-clin').style.display='block'; }
@@ -280,10 +292,12 @@ async function isStaff(p){
 (async function(){
   try {
     var session = await getSession();
-    if(!session){ showGuest(); return; }
+    if(!session){ showGuest(false); return; }
     var uid = session.user.id;
     var profile = await getProfile(uid);
-    if(await isStaff(profile)){ showGuest(); return; }   // clinicians preview the patient-facing site (no redirect)
+    // Clinicians preview the patient-facing site (no redirect). They ARE
+    // signed in, so their Health Passport link is the direct one.
+    if(await isStaff(profile)){ showGuest(true); return; }
 
     showHome(profile, session.user);
 
@@ -325,8 +339,13 @@ async function isStaff(p){
     });
 
   } catch(e){
+    /* The page failed, but the session did not. Re-ask rather than assume a
+       visitor: getting this wrong sends a signed-in person's passport link
+       through the sign-in modal and out to their workspace. */
     console.error('patient home error:', e.message);
-    showGuest();
+    var s = null;
+    try { s = await window.getSession(); } catch(e2){}
+    showGuest(!!s);
   }
 })();
 </script>
