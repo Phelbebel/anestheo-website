@@ -6,13 +6,13 @@
 <title>Dashboard — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
-<script src="/clinical-index.js?v=2026.08.16-02"></script>
-<script src="/clinical-search.js?v=2026.08.16-02"></script>
-<script src="/clinical-open.js?v=2026.08.16-02"></script>
-<script src="/patient-lifecycle.js?v=2026.08.16-02"></script>
-<script src="/navbar.js?v=2026.08.16-02"></script>
+<script src="/supabase.js?v=2026.08.16-04"></script>
+<script src="/auth.js?v=2026.08.16-04"></script>
+<script src="/clinical-index.js?v=2026.08.16-04"></script>
+<script src="/clinical-search.js?v=2026.08.16-04"></script>
+<script src="/clinical-open.js?v=2026.08.16-04"></script>
+<script src="/patient-lifecycle.js?v=2026.08.16-04"></script>
+<script src="/navbar.js?v=2026.08.16-04"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -1995,9 +1995,28 @@ async function wsLcToggle(domId, kind, id, state, starred){
     };
   });
 
-  // Ask the server about every action this state offers, in one wait.
-  var need=window.PatientLifecycle.actionsForState(state);
-  var map=await window.PatientLifecycle.eligibilityFor(kind, id, need);
+  /* Ask the server about every action this state offers, in one wait.
+
+     WRAPPED, BECAUSE "Checking…" IS NOT AN ACCEPTABLE RESTING STATE. If this
+     await ever rejects, everything below it is skipped and the hints sit on
+     "Checking…" for ever with the actions disabled — which is exactly what
+     production showed. The refusal is now always drawn, and it names what the
+     server said instead of quietly enabling the buttons over a real
+     permission error. */
+  var need, map;
+  try {
+    need = window.PatientLifecycle.actionsForState(state);
+    map  = await window.PatientLifecycle.eligibilityFor(kind, id, need);
+  } catch(err){
+    if(_wsLcOpen!==domId) return;
+    var why = (err && (err.message || err.hint)) || String(err);
+    try { console.error('[dashboard] eligibility failed', kind, id, err); } catch(e){}
+    menu.querySelectorAll('.ws-lc-hint').forEach(function(h){
+      h.textContent = 'Could not check this action: ' + why;
+      h.className = 'ws-lc-hint tone-block';
+    });
+    return;
+  }
   if(_wsLcOpen!==domId) return;                 // the doctor moved on; do not fight them
   items.forEach(function(it){
     if(!it.needsEligibility) return;
