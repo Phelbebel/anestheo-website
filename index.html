@@ -11,12 +11,12 @@
      inside the embedded tool preview (.pv) so it renders as the actual tool. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
-<script src="/clinical-index.js?v=2026.08.16-02"></script>
-<script src="/clinical-search.js?v=2026.08.16-02"></script>
-<script src="/navbar.js?v=2026.08.16-02"></script>
-<script src="/videos-data.js?v=2026.08.16-02"></script>
+<script src="/supabase.js?v=2026.08.18-01"></script>
+<script src="/auth.js?v=2026.08.18-01"></script>
+<script src="/clinical-index.js?v=2026.08.18-01"></script>
+<script src="/clinical-search.js?v=2026.08.18-01"></script>
+<script src="/navbar.js?v=2026.08.18-01"></script>
+<script src="/videos-data.js?v=2026.08.18-01"></script>
 <style>
 /* =========================================================================
    Anestheo homepage — two-path action hero (patient-first).
@@ -1086,7 +1086,10 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   function buildDoctor(ah, session, profile, role){
     var name=stripDr(pickName(session, profile));
     var hello = name ? ('Welcome back, Dr. '+esc(name)) : 'Welcome back, Doctor';
-    var pending=(profile&&profile.verification_status==='pending')||role==='pending';
+    // Only a real doctor account can be awaiting verification. role==='pending'
+    // no longer reaches this function at all (see renderAppHome), and it never
+    // meant "verification pending" — it meant "no role chosen".
+    var pending=(role==='doctor')&&(profile&&profile.verification_status)!=='approved';
     var hr=(new Date()).getHours(); var tod = hr<12?'Good morning':(hr<18?'Good afternoon':'Good evening');
     var greet = name ? (tod+', <span class="nm">Dr. '+esc(name)+'</span>') : tod;
     var h='<div class="ah-wrap">';
@@ -1483,8 +1486,19 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
     var ah=document.getElementById('ah'), de=document.documentElement;
     if(!ah){ de.classList.remove('pre-app'); return; }
     de.classList.add('app'); de.classList.remove('pre-app');
+    /* A ROLELESS ACCOUNT IS NOT A DOCTOR.
+
+       `role==='pending'` used to sit in this list, so a brand-new sign-in —
+       in practice a Google one, because that is the path that can reach this
+       page before the chooser — was shown the clinician home, complete with a
+       "your clinician account is pending verification" banner for an account
+       that had never claimed to be clinical at all. Onboarding is not
+       something to guess at halfway: send them to the chooser, which is where
+       auth-callback.html sends everybody else. */
+    if(!role || role==='pending'){ window.location.replace('/role-select.html'); return; }
+
     /* Platform privilege from the server; the rest are clinical roles. */
-    var isDoc = role==='doctor'||role==='admin'||role==='pending'||
+    var isDoc = role==='doctor'||role==='admin'||
                 (await window.isPlatformAdmin());
     if(isDoc) buildDoctor(ah, session, profile, role);
     else buildPatient(ah, session, profile);

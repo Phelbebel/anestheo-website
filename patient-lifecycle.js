@@ -73,7 +73,19 @@ function rpc(name, args){
     return Promise.resolve({ eligible:false, ok:false, code:'rpc_error',
                              reason:'Not connected. Reload the page and try again.' });
   }
-  return Promise.resolve(client.rpc(name, args)).then(function (r) {
+  /* .catch(), NOT .then(onFulfilled, onRejected).
+     The second argument of .then() only handles a rejection of the PREVIOUS
+     promise — it does not catch a throw from the fulfilment handler beside it.
+     This function threw r.error there, so every RPC that answered with an
+     error object (a missing GRANT, a dropped function, RLS refusing) escaped
+     as an unhandled rejection instead of becoming {code:'rpc_error'}.
+     Callers awaiting it never resumed, which is why the Doctor Dashboard's
+     Archive and Delete sat on "Checking…" for ever rather than reporting the
+     refusal. .catch() sits after the fulfilment handler and catches both. */
+  var call;
+  try { call = Promise.resolve(client.rpc(name, args)); }
+  catch (e) { call = Promise.reject(e); }      // a synchronous throw counts too
+  return call.then(function (r) {
     if (r && r.error) throw r.error;
     var d = r && r.data;
     if (d == null) {
@@ -81,7 +93,7 @@ function rpc(name, args){
                reason:name + ' returned nothing.' };
     }
     return d;
-  }, function (e) {
+  }).catch(function (e) {
     var msg = (e && (e.message || e.hint || e.details)) || String(e);
     try { console.error('[patient-lifecycle] ' + name + ' failed', args, e); } catch (x) {}
     return { eligible:false, ok:false, code:'rpc_error', reason:msg };
@@ -136,10 +148,15 @@ function recycleBin(){
   var client = sb();
   if (!client) return Promise.resolve({ ok:false, code:'rpc_error', rows:[],
                                         reason:'Not connected. Reload the page and try again.' });
-  return Promise.resolve(client.rpc('recycle_bin_list')).then(function (r) {
+  /* Same fault as rpc() above: the throw belongs to the fulfilment handler,
+     so it needs .catch() rather than a sibling rejection handler. */
+  var call;
+  try { call = Promise.resolve(client.rpc('recycle_bin_list')); }
+  catch (e) { call = Promise.reject(e); }
+  return call.then(function (r) {
     if (r && r.error) throw r.error;
     return { ok:true, code:'eligible', rows:(r && r.data) || [] };
-  }, function (e) {
+  }).catch(function (e) {
     var msg = (e && e.message) || String(e);
     try { console.error('[patient-lifecycle] recycle_bin_list failed', e); } catch (x) {}
     return { ok:false, code:'rpc_error', rows:[], reason:msg };

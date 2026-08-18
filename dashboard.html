@@ -6,13 +6,13 @@
 <title>Dashboard — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
-<script src="/clinical-index.js?v=2026.08.16-02"></script>
-<script src="/clinical-search.js?v=2026.08.16-02"></script>
-<script src="/clinical-open.js?v=2026.08.16-02"></script>
-<script src="/patient-lifecycle.js?v=2026.08.16-02"></script>
-<script src="/navbar.js?v=2026.08.16-02"></script>
+<script src="/supabase.js?v=2026.08.18-01"></script>
+<script src="/auth.js?v=2026.08.18-01"></script>
+<script src="/clinical-index.js?v=2026.08.18-01"></script>
+<script src="/clinical-search.js?v=2026.08.18-01"></script>
+<script src="/clinical-open.js?v=2026.08.18-01"></script>
+<script src="/patient-lifecycle.js?v=2026.08.18-01"></script>
+<script src="/navbar.js?v=2026.08.18-01"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -1995,9 +1995,28 @@ async function wsLcToggle(domId, kind, id, state, starred){
     };
   });
 
-  // Ask the server about every action this state offers, in one wait.
-  var need=window.PatientLifecycle.actionsForState(state);
-  var map=await window.PatientLifecycle.eligibilityFor(kind, id, need);
+  /* Ask the server about every action this state offers, in one wait.
+
+     WRAPPED, BECAUSE "Checking…" IS NOT AN ACCEPTABLE RESTING STATE. If this
+     await ever rejects, everything below it is skipped and the hints sit on
+     "Checking…" for ever with the actions disabled — which is exactly what
+     production showed. The refusal is now always drawn, and it names what the
+     server said instead of quietly enabling the buttons over a real
+     permission error. */
+  var need, map;
+  try {
+    need = window.PatientLifecycle.actionsForState(state);
+    map  = await window.PatientLifecycle.eligibilityFor(kind, id, need);
+  } catch(err){
+    if(_wsLcOpen!==domId) return;
+    var why = (err && (err.message || err.hint)) || String(err);
+    try { console.error('[dashboard] eligibility failed', kind, id, err); } catch(e){}
+    menu.querySelectorAll('.ws-lc-hint').forEach(function(h){
+      h.textContent = 'Could not check this action: ' + why;
+      h.className = 'ws-lc-hint tone-block';
+    });
+    return;
+  }
   if(_wsLcOpen!==domId) return;                 // the doctor moved on; do not fight them
   items.forEach(function(it){
     if(!it.needsEligibility) return;
@@ -3327,7 +3346,12 @@ document.addEventListener('DOMContentLoaded', async function(){
     // The role column says what this person does clinically; is_admin says what
     // they may administer. Collapsing the first into the second used to hide
     // the anesthesiologist inside a founder account.
-    var role  = profile.role || (isAdmin ? 'admin' : 'patient');
+    /* The clinical role, and nothing else. The old fallback substituted
+       'admin' whenever the column was empty, which turned an administrator
+       with no clinical role into one that the greeting, the role label and
+       every role test downstream then treated as a clinician. Missing is
+       missing; the privilege is carried by isAdmin, one line below. */
+    var role  = profile.role || 'patient';
 
     // Patients land on the For Patients portal (dashboard is one tool inside it).
     // An administrator is not sent away from their own console.
@@ -3352,10 +3376,31 @@ document.addEventListener('DOMContentLoaded', async function(){
     // administrator whatever their clinical role happens to be.
     var isAdminRole = !!isAdmin;
 
-    // Verification banner for pending doctors
+    /* Verification banner for doctors who are not approved.
+
+       This page now OWNS that message. requireRole() injects a generic sticky
+       notice on staff pages, which is right for Live Tools or the references,
+       but the dashboard is where an unapproved doctor lands and it can say
+       something specific — including which state they are actually in. Two
+       banners saying the same thing on the same screen reads as a fault, so
+       the injected one is removed here.
+
+       Every non-approved state is covered, not just 'pending': 'rejected' and
+       'changes_requested' were previously silent, and a doctor whose
+       application had been rejected saw an ordinary empty workspace. */
     var banner = '';
-    if(role === 'doctor' && verif === 'pending'){
-      banner = '<div class="verify-banner">&#9203; <strong>Verification in progress.</strong> Your license is under review. Usually within 24 hours. Questions? <a href="mailto:support@anestheo.com" style="color:#7ECFC0;">support@anestheo.com</a></div>';
+    if(auth.pendingDoctor){
+      var vb = document.getElementById('auth-pending-doctor-notice');
+      if(vb && vb.parentNode) vb.parentNode.removeChild(vb);
+      var vmsg = {
+        changes_requested: '<strong>Changes requested.</strong> An administrator needs something corrected or resupplied before your account can be approved.',
+        rejected:          '<strong>Verification was not approved.</strong> Patient records stay closed. If you believe this is wrong, reply to us and we will look again.',
+        in_review:         '<strong>Verification under review.</strong> An administrator is checking your details now.'
+      }[verif] || '<strong>Verification in progress.</strong> Your licence is under review — usually within 24 hours.';
+      banner = '<div class="verify-banner">&#9203; ' + vmsg +
+        ' Tools and references are open to you; patient records are not, so those sections will look empty. ' +
+        '<a href="/doctor-pending.html" style="color:#7ECFC0;">What is needed</a> &middot; ' +
+        '<a href="mailto:support@anestheo.com" style="color:#7ECFC0;">support@anestheo.com</a></div>';
     }
 
     // Section rail (switches panels in-place — no navigation away)
