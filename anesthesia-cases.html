@@ -7,10 +7,10 @@
 <title>Live Chart — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-01"></script>
-<script src="/auth.js?v=2026.08.18-01"></script>
-<script src="/navbar.js?v=2026.08.18-01"></script>
-<script src="/anesthesia.js?v=2026.08.18-01"></script>
+<script src="/supabase.js?v=2026.08.18-02"></script>
+<script src="/auth.js?v=2026.08.18-02"></script>
+<script src="/navbar.js?v=2026.08.18-02"></script>
+<script src="/anesthesia.js?v=2026.08.18-02"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -290,20 +290,13 @@ async function createCase(){
      the database gives them nothing) rather than pretending to be broken. */
   var auth = await window.requireRole('staff');
   if(!auth) return;
-  if(auth.pendingDoctor){
-    var box = el('n-go');
-    if(box){
-      box.disabled = true;
-      box.textContent = 'Available once you are verified';
-    }
-    var ne = el('n-err');
-    if(ne){
-      ne.className = 'msg msg-wait';
-      ne.textContent = 'New records open once an administrator has verified your account. ' +
-        'Everything else on this page stays available to you.';
-      ne.style.display = 'block';
-    }
-  }
+  /* NO CREATE RESTRICTION. An earlier pass disabled this form for an
+     unverified doctor, because anes_case_insert demanded is_verified_doctor()
+     and letting them fill in a patient's name and date of birth for an INSERT
+     that was never going to be accepted would have been worse than the old
+     redirect. v9_doctor_access_model.sql re-points that policy to
+     is_doctor_account(), so the INSERT now succeeds and the restriction has
+     nothing left to protect anyone from. Opening a chart is ordinary work. */
   el('tools-bar').innerHTML = window.nbToolsBar('/anesthesia-cases.html');
   // Empty: a new record starts with no date of birth and no age.
   el('n-dobwrap').innerHTML = ANES.dobFieldHtml('n-dob', {});

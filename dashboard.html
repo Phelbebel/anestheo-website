@@ -6,13 +6,13 @@
 <title>Dashboard — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-01"></script>
-<script src="/auth.js?v=2026.08.18-01"></script>
-<script src="/clinical-index.js?v=2026.08.18-01"></script>
-<script src="/clinical-search.js?v=2026.08.18-01"></script>
-<script src="/clinical-open.js?v=2026.08.18-01"></script>
-<script src="/patient-lifecycle.js?v=2026.08.18-01"></script>
-<script src="/navbar.js?v=2026.08.18-01"></script>
+<script src="/supabase.js?v=2026.08.18-02"></script>
+<script src="/auth.js?v=2026.08.18-02"></script>
+<script src="/clinical-index.js?v=2026.08.18-02"></script>
+<script src="/clinical-search.js?v=2026.08.18-02"></script>
+<script src="/clinical-open.js?v=2026.08.18-02"></script>
+<script src="/patient-lifecycle.js?v=2026.08.18-02"></script>
+<script src="/navbar.js?v=2026.08.18-02"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -3376,31 +3376,33 @@ document.addEventListener('DOMContentLoaded', async function(){
     // administrator whatever their clinical role happens to be.
     var isAdminRole = !!isAdmin;
 
-    /* Verification banner for doctors who are not approved.
+    /* THE VERIFIED CLINICIAN PROMPT.
 
-       This page now OWNS that message. requireRole() injects a generic sticky
-       notice on staff pages, which is right for Live Tools or the references,
-       but the dashboard is where an unapproved doctor lands and it can say
-       something specific — including which state they are actually in. Two
-       banners saying the same thing on the same screen reads as a fault, so
-       the injected one is removed here.
+       This was a warning: "patient records stay closed until an administrator
+       approves you". Under v9_doctor_access_model.sql that sentence is simply
+       false — an unverified doctor has their patients, their charts, archive,
+       delete and the Recycle Bin, exactly like anybody else with role='doctor'.
 
-       Every non-approved state is covered, not just 'pending': 'rejected' and
-       'changes_requested' were previously silent, and a doctor whose
-       application had been rejected saw an ordinary empty workspace. */
+       So it is no longer a warning. It names what verification actually adds,
+       because a prompt that cannot say what it is for is just nagging:
+         · the public clinician directory patients search
+         · answering patient questions in the shared inbox
+         · confirming a Health Passport entry as clinician-verified
+         · being named as a co-author on another doctor's chart
+
+       Shown only while it is actionable, and never to an administrator, whose
+       trust surfaces come from the admin privilege instead. */
     var banner = '';
-    if(auth.pendingDoctor){
-      var vb = document.getElementById('auth-pending-doctor-notice');
-      if(vb && vb.parentNode) vb.parentNode.removeChild(vb);
-      var vmsg = {
-        changes_requested: '<strong>Changes requested.</strong> An administrator needs something corrected or resupplied before your account can be approved.',
-        rejected:          '<strong>Verification was not approved.</strong> Patient records stay closed. If you believe this is wrong, reply to us and we will look again.',
-        in_review:         '<strong>Verification under review.</strong> An administrator is checking your details now.'
-      }[verif] || '<strong>Verification in progress.</strong> Your licence is under review — usually within 24 hours.';
-      banner = '<div class="verify-banner">&#9203; ' + vmsg +
-        ' Tools and references are open to you; patient records are not, so those sections will look empty. ' +
-        '<a href="/doctor-pending.html" style="color:#7ECFC0;">What is needed</a> &middot; ' +
-        '<a href="mailto:support@anestheo.com" style="color:#7ECFC0;">support@anestheo.com</a></div>';
+    if(auth.unverifiedDoctor){
+      var vhead = {
+        rejected:          'Your last verification request was not approved.',
+        changes_requested: 'We asked for a change before your verification can go ahead.'
+      }[verif] || 'You are not a Verified Clinician yet.';
+      banner = '<div class="verify-banner">&#9733; <strong>' + vhead + '</strong> ' +
+        'Your workspace, your patients and Live Chart are open as normal. Verification adds ' +
+        'the public directory, the patient question inbox, confirming Health Passport entries, ' +
+        'and joining another clinician&rsquo;s record as co-author. ' +
+        '<a href="/doctor-pending.html" style="color:#7ECFC0;">Become a Verified Clinician</a></div>';
     }
 
     // Section rail (switches panels in-place — no navigation away)

@@ -7,8 +7,8 @@
 <title>How will you use Anestheo?</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-01"></script>
-<script src="/auth.js?v=2026.08.18-01"></script>
+<script src="/supabase.js?v=2026.08.18-02"></script>
+<script src="/auth.js?v=2026.08.18-02"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -111,8 +111,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
         </button>
         <button type="button" class="role-opt" id="ro-doctor" onclick="pickRole('doctor')">
           <div class="ro-name">I&rsquo;m a doctor</div>
-          <div class="ro-desc">Clinical workspace and patient management. Professional verification required.</div>
-          <span class="ro-flag">Verification required</span>
+          <div class="ro-desc">Clinical workspace and patient management. Your workspace opens straight away; becoming a Verified Clinician is a separate, optional step.</div>
+          <span class="ro-flag">Verification optional</span>
         </button>
         <div class="msg msg-err" id="role-err"></div>
       </div>
@@ -202,7 +202,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
           </select>
         </div>
 
-        <button class="btn" id="d-submit" onclick="submitDoctor()">Submit for verification</button>
+        <button class="btn" id="d-submit" onclick="submitDoctor()">Create my doctor account</button>
         <button class="btn btn-ghost" onclick="backToRole()">Back</button>
         <div class="msg msg-err" id="doctor-err"></div>
       </div>
@@ -438,7 +438,7 @@ function openDoctor(){
   el('step-patient').classList.remove('active');
   el('step-doctor').classList.add('active');
   el('rs-h').textContent = 'Tell us about your practice';
-  el('rs-sub').textContent = 'An administrator checks these details before your workspace opens.';
+  el('rs-sub').textContent = 'These open your clinical workspace. You can apply to become a Verified Clinician later.';
   setTimeout(function(){ el('d-name').focus(); }, 60);
 }
 
@@ -450,7 +450,7 @@ function prefillDoctor(p){
   if(hasName(p.full_name)) el('d-name').value = p.full_name;
   if(p.country){ el('d-country').value = p.country; onCountryChange(); }
   if(p.phone) el('d-phone').value = p.phone;
-  el('rs-sub').textContent = 'Your account becomes a doctor account once an administrator approves it.';
+  el('rs-sub').textContent = 'We already have some of this. Check it over and add the rest.';
 }
 
 function backToRole(){
@@ -545,17 +545,20 @@ async function submitDoctor(){
     return;
   }
 
-  btn.disabled = true; btn.textContent = 'Submitting…';
+  btn.disabled = true; btn.textContent = 'Setting up your workspace…';
 
-  var roleRes = await window.setOwnRole('doctor');
-  if(roleRes && roleRes.error){
-    btn.disabled = false; btn.textContent = 'Submit for verification';
-    showErr('doctor-err', roleRes.error.message || 'We could not submit your application.');
-    return;
-  }
+  /* ONE ATOMIC, SERVER-VALIDATED CALL.
 
-  var save = await window.saveProfile(_session.user.id, {
-    email:                  _session.user.email,
+     This used to be setOwnRole('doctor') and THEN saveProfile(). The order was
+     deliberate — the privileged call first — but if the second failed the
+     account was already a doctor with no professional file, the page said so
+     honestly, and nothing ever asked again. It also meant the eight required
+     fields were enforced only by the check above, in the browser.
+
+     submit_doctor_onboarding() validates them server-side and writes the role
+     and the details in one statement: either this account is a doctor with a
+     complete file, or it is unchanged. */
+  var r = await window.submitDoctorOnboarding({
     full_name:              name,
     professional_level:     _level,
     country:                country,
@@ -565,16 +568,37 @@ async function submitDoctor(){
     medical_university:     university,
     specialty:              specialty
   });
-  if(save && save.error){
-    /* The role IS set at this point, so they are a pending doctor with an
-       incomplete file rather than a lost account. Say so plainly and send
-       them on: an admin can ask for the rest. */
-    btn.disabled = false; btn.textContent = 'Submit for verification';
-    showErr('doctor-err', 'Your application was created but some details did not save: ' +
-      (save.error.message || 'unknown error') + ' You can add them from your profile.');
+
+  if(r && r.error){
+    btn.disabled = false; btn.textContent = 'Create my doctor account';
+    showErr('doctor-err', r.error.message);
     return;
   }
-  window.location.replace('/doctor-pending.html');
+
+  /* The server answers with the fields it found missing rather than raising,
+     so a form can name them. This should not normally fire — the check above
+     covers the same ground — but if the two ever disagree, the server wins and
+     says which fields it means. */
+  if(r && r.data && r.data.ok === false){
+    btn.disabled = false; btn.textContent = 'Create my doctor account';
+    var LABEL = { full_name:'your full name', professional_level:'your professional level',
+                  country:'your country', phone:'a telephone number',
+                  medical_license_number:'your licence number', hospital:'your hospital',
+                  medical_university:'your medical university', specialty:'your specialty' };
+    if(r.data.code === 'invalid_field'){
+      showErr('doctor-err', 'Please choose ' + (LABEL[r.data.field] || r.data.field) + ' from the list.');
+    } else {
+      var miss = (r.data.missing || []).map(function(k){ return LABEL[k] || k; });
+      showErr('doctor-err', 'Please add ' + miss.slice(0,3).join(', ') +
+        (miss.length > 3 ? ', and ' + (miss.length - 3) + ' more.' : '.'));
+    }
+    return;
+  }
+
+  /* Straight into the workspace. Verification no longer gates ordinary doctor
+     access, so there is nothing to wait for — the workspace explains that
+     becoming a Verified Clinician is a separate, optional step. */
+  window.location.replace('/dashboard.html');
 }
 
 /* Store something closer to E.164 than free text, without pretending to be a

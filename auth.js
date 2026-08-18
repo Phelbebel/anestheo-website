@@ -126,56 +126,30 @@ function initializeAuth() {
   return requireAuth();
 }
 
-/* ── showPendingDoctorNotice ────────────────────────────────────────────────
-   One banner, injected by requireRole() itself rather than left to each of the
-   eleven pages that call it. A page that forgets it would show an unapproved
-   doctor an empty patient list and no reason for it — which is the failure the
-   old redirect was avoiding, reintroduced one page at a time.
+/* ── THE VERIFICATION NOTICE IS GONE, AND SO IS WHAT IT DESCRIBED ──────────
+   An earlier pass replaced the doctor approval redirect with a sticky banner
+   on all eleven staff pages, warning that patient records were closed until an
+   administrator approved the account. That banner was accurate then: twelve
+   RESTRICTIVE policies plus twenty-one more on the chart really did deny an
+   unverified doctor every clinical table.
 
-   Styles are inline for the same reason: this has to look right on eleven
-   pages that do not share a stylesheet, and a class name would have to exist
-   in all of them. It is one element, injected once, and it never blocks the
-   page underneath.
+   v9_doctor_access_model.sql removes those thirty-three policies and re-points
+   ten predicates from is_verified_doctor() to is_doctor_account(). An
+   unverified doctor now has ordinary doctor access: their patients, their
+   charts, the archive and delete actions, the Recycle Bin. There is nothing
+   left for a banner to warn about, and a persistent warning about a
+   restriction that no longer exists is worse than no banner at all — it would
+   teach people to ignore the one place we do still say something.
 
-   The wording states a fact and offers the next step. It does NOT claim
-   anything is broken: the restriction is real, deliberate and server-side. */
-var PENDING_NOTICE_ID = 'auth-pending-doctor-notice';
-var PENDING_WORDS = {
-  pending:            'Your clinician account is being verified.',
-  in_review:          'Your clinician account is being reviewed.',
-  changes_requested:  'An administrator has asked for changes to your verification.',
-  rejected:           'Your clinician verification was not approved.',
-  not_required:       'Your clinician account is being verified.'
-};
-function showPendingDoctorNotice(status) {
-  try {
-    if (document.getElementById(PENDING_NOTICE_ID)) return;
-    var mount = function () {
-      if (document.getElementById(PENDING_NOTICE_ID) || !document.body) return;
-      var head = PENDING_WORDS[status] || PENDING_WORDS.pending;
-      var bar = document.createElement('div');
-      bar.id = PENDING_NOTICE_ID;
-      bar.setAttribute('role', 'status');
-      bar.style.cssText =
-        'position:sticky;top:0;z-index:9999;box-sizing:border-box;width:100%;' +
-        'padding:11px 16px;background:rgba(232,168,56,.13);' +
-        'border-bottom:1px solid rgba(232,168,56,.34);color:#F0CE8B;' +
-        'font:500 13.5px/1.55 "DM Sans",-apple-system,system-ui,sans-serif;' +
-        'text-align:center;-webkit-font-smoothing:antialiased;';
-      bar.innerHTML =
-        '<strong>' + head + '</strong> ' +
-        'You can use the tools, references and your own account, but patient records ' +
-        'stay closed until an administrator approves you — sections that need them ' +
-        'will look empty. ' +
-        '<a href="/doctor-pending.html" style="color:#7ECFC0;text-decoration:underline">' +
-        'See what is needed</a>';
-      document.body.insertBefore(bar, document.body.firstChild);
-    };
-    if (document.body) mount();
-    else document.addEventListener('DOMContentLoaded', mount);
-  } catch (e) { /* a banner must never be the reason a page fails to load */ }
-}
-window.showPendingDoctorNotice = showPendingDoctorNotice;
+   What remains is an OPPORTUNITY, not a restriction: becoming a Verified
+   Clinician unlocks the public directory, the patient Q&A inbox, verifying
+   Health Passport entries, and being named as a co-author on someone else's
+   chart. That is a prompt, it belongs on the dashboard where there is room to
+   explain it, and dashboard.html owns it.
+
+   auth.unverifiedDoctor is still set, because pages that offer a trust-gated
+   action need to know. It no longer means "blocked". */
+
 
 // ── requireRole ───────────────────────────────────────────────
 // UX guard for staff-only pages. Authorization is still enforced
@@ -196,33 +170,30 @@ async function requireRole(allowed, opts) {
   var role = p.role || 'patient';
   var isAdmin = auth.isAdmin === true;      // from is_platform_admin(), server-side
 
-  /* ── THE APPROVAL WALL IS GONE ──────────────────────────────────────────
-     This used to be `window.location.replace('/doctor-pending.html')`: an
-     unapproved doctor could not open ANY staff page, including the ones that
-     touch no clinical data at all — Live Tools, the clinical references,
-     Settings. They signed up, were bounced to a holding page, and the product
-     they had just joined was invisible to them until an administrator acted.
+  /* IS THIS DOCTOR VERIFIED? — a question about trust surfaces, not access.
 
-     THE REDIRECT WAS NEVER THE SECURITY BOUNDARY, and removing it does not
-     widen access by one row. The boundary is in the database and is untouched
-     here: twelve RESTRICTIVE policies from v2_auth_onboarding.sql AND
-     `NOT is_pending_doctor()` onto every clinical table, and the write paths
-     additionally demand is_verified_doctor(). An unapproved doctor reading
-     patients still reads nothing; writing still fails. What changes is only
-     what they are SHOWN — and being shown an explanation beats being shown a
-     locked door with no handle.
+     Two passes brought this line here. First it was
+     `window.location.replace('/doctor-pending.html')`, which held an
+     unapproved doctor out of every staff page. Then it became a flag plus a
+     sticky banner warning that patient records were closed — accurate at the
+     time, because thirty-three RESTRICTIVE policies really did deny them.
 
-     What replaces it is a flag, not silence. `auth.pendingDoctor` is set, and
-     showPendingDoctorNotice() paints a banner on whatever page they opened, so
-     a section that comes back empty is never mistaken for a section with
-     nothing in it. Pages that want a richer locked state can read the flag.
+     v9_doctor_access_model.sql removes those policies and re-points ten
+     predicates from is_verified_doctor() to is_doctor_account(). Being a
+     doctor account is now what opens the workspace. Verification is what opens
+     the public directory, the patient Q&A inbox, verifying a Health Passport
+     entry, and being named as a co-author on someone else's chart.
 
-     Administrators are exempt from the flag as they were from the redirect:
-     is_pending_doctor() returns false for them in the database too, so the
-     banner would be describing a restriction they do not have. */
-  var pendingDoctor = (role === 'doctor' && (p.verification_status || '') !== 'approved' && !isAdmin);
-  auth.pendingDoctor = pendingDoctor;
-  if (pendingDoctor) showPendingDoctorNotice(p.verification_status || 'pending');
+     So this flag gates nothing here, and it must not. It exists so a page can
+     offer the optional step, or explain one specific trust-gated action,
+     without every page re-deriving the rule from the profile row.
+
+     Administrators are excluded for the same reason they always were: their
+     trust surfaces are governed by the admin privilege, so telling them they
+     are unverified would describe something that does not apply to them. */
+  auth.unverifiedDoctor = (role === 'doctor' &&
+                           (p.verification_status || '') !== 'approved' && !isAdmin);
+  auth.pendingDoctor = auth.unverifiedDoctor;   // previous name; kept for one release
 
   var isStaff = (role === 'doctor' || role === 'admin' || isAdmin);
   var allow = Array.isArray(allowed) ? allowed : [allowed];
@@ -279,6 +250,54 @@ async function saveProfile(userId, data) {
 // So the RPC is now the only path. If it is missing the call fails loudly and
 // onboarding stops — which is the correct outcome, because a database without
 // the hardening cannot safely accept a role write from a browser at all.
+/* ── submitDoctorOnboarding ─────────────────────────────────────────────────
+   Becoming a doctor is now ONE server-validated call rather than
+   setOwnRole('doctor') followed by a separate profile write.
+
+   Two things were wrong with the old pair. First, the field requirements lived
+   only in the browser: `sb.rpc('set_own_role',{p_role:'doctor'})` typed into a
+   console produced a doctor account with an entirely empty professional file.
+   That was survivable while an administrator reviewed every doctor before the
+   account could do anything; granting the workspace immediately removes that
+   backstop, so the check has to be somewhere it cannot be skipped. Second, the
+   two calls were not atomic — if the second failed, the account was already a
+   doctor with no details and nothing ever asked again.
+
+   The RPC answers rather than throws for a missing field, because the caller
+   is a form and "these four are missing" is more useful than an exception
+   carrying the first one. Authorization failures still throw.
+
+   THE SAME CALL SERVES OAUTH AND EMAIL/PASSWORD. There is no second path to
+   keep in step, which is the point: the two used to differ only by which page
+   happened to run first, and that is not a difference worth having. */
+async function submitDoctorOnboarding(fields) {
+  try {
+    var r = await window.sb.rpc('submit_doctor_onboarding', {
+      p_full_name:          fields.full_name || null,
+      p_professional_level: fields.professional_level || null,
+      p_country:            fields.country || null,
+      p_phone:              fields.phone || null,
+      p_license:            fields.medical_license_number || null,
+      p_hospital:           fields.hospital || null,
+      p_university:         fields.medical_university || null,
+      p_specialty:          fields.specialty || null
+    });
+    if (r.error) {
+      var m = r.error.message || '';
+      if (r.error.code === '42883' || r.error.code === 'PGRST202' ||
+          /function .* does not exist|could not find the function|schema cache/i.test(m)) {
+        console.error('submit_doctor_onboarding() is missing — apply v9_1_doctor_onboarding.sql.');
+        return { error: { message: 'Doctor registration is not available on this deployment yet.' } };
+      }
+      return { error: { message: m || 'We could not complete your registration.' } };
+    }
+    return { data: r.data || null, error: null };
+  } catch (e) {
+    return { error: { message: e.message || 'We could not reach the server.' } };
+  }
+}
+window.submitDoctorOnboarding = submitDoctorOnboarding;
+
 async function setOwnRole(role) {
   try {
     var r = await window.sb.rpc('set_own_role', { p_role: role });
