@@ -126,6 +126,57 @@ function initializeAuth() {
   return requireAuth();
 }
 
+/* ── showPendingDoctorNotice ────────────────────────────────────────────────
+   One banner, injected by requireRole() itself rather than left to each of the
+   eleven pages that call it. A page that forgets it would show an unapproved
+   doctor an empty patient list and no reason for it — which is the failure the
+   old redirect was avoiding, reintroduced one page at a time.
+
+   Styles are inline for the same reason: this has to look right on eleven
+   pages that do not share a stylesheet, and a class name would have to exist
+   in all of them. It is one element, injected once, and it never blocks the
+   page underneath.
+
+   The wording states a fact and offers the next step. It does NOT claim
+   anything is broken: the restriction is real, deliberate and server-side. */
+var PENDING_NOTICE_ID = 'auth-pending-doctor-notice';
+var PENDING_WORDS = {
+  pending:            'Your clinician account is being verified.',
+  in_review:          'Your clinician account is being reviewed.',
+  changes_requested:  'An administrator has asked for changes to your verification.',
+  rejected:           'Your clinician verification was not approved.',
+  not_required:       'Your clinician account is being verified.'
+};
+function showPendingDoctorNotice(status) {
+  try {
+    if (document.getElementById(PENDING_NOTICE_ID)) return;
+    var mount = function () {
+      if (document.getElementById(PENDING_NOTICE_ID) || !document.body) return;
+      var head = PENDING_WORDS[status] || PENDING_WORDS.pending;
+      var bar = document.createElement('div');
+      bar.id = PENDING_NOTICE_ID;
+      bar.setAttribute('role', 'status');
+      bar.style.cssText =
+        'position:sticky;top:0;z-index:9999;box-sizing:border-box;width:100%;' +
+        'padding:11px 16px;background:rgba(232,168,56,.13);' +
+        'border-bottom:1px solid rgba(232,168,56,.34);color:#F0CE8B;' +
+        'font:500 13.5px/1.55 "DM Sans",-apple-system,system-ui,sans-serif;' +
+        'text-align:center;-webkit-font-smoothing:antialiased;';
+      bar.innerHTML =
+        '<strong>' + head + '</strong> ' +
+        'You can use the tools, references and your own account, but patient records ' +
+        'stay closed until an administrator approves you — sections that need them ' +
+        'will look empty. ' +
+        '<a href="/doctor-pending.html" style="color:#7ECFC0;text-decoration:underline">' +
+        'See what is needed</a>';
+      document.body.insertBefore(bar, document.body.firstChild);
+    };
+    if (document.body) mount();
+    else document.addEventListener('DOMContentLoaded', mount);
+  } catch (e) { /* a banner must never be the reason a page fails to load */ }
+}
+window.showPendingDoctorNotice = showPendingDoctorNotice;
+
 // ── requireRole ───────────────────────────────────────────────
 // UX guard for staff-only pages. Authorization is still enforced
 // authoritatively by Supabase RLS + backend policies; this only avoids
@@ -145,21 +196,33 @@ async function requireRole(allowed, opts) {
   var role = p.role || 'patient';
   var isAdmin = auth.isAdmin === true;      // from is_platform_admin(), server-side
 
-  /* An unapproved doctor is not staff for routing purposes. Before this,
-     isStaff was true for role='doctor' regardless of verification_status, so a
-     pending doctor reached every staff page. The database now refuses their
-     reads (v2_auth_onboarding.sql), which means without this they would land
-     on a workspace that silently renders nothing — the worst of both. Send
-     them somewhere that explains itself instead.
+  /* ── THE APPROVAL WALL IS GONE ──────────────────────────────────────────
+     This used to be `window.location.replace('/doctor-pending.html')`: an
+     unapproved doctor could not open ANY staff page, including the ones that
+     touch no clinical data at all — Live Tools, the clinical references,
+     Settings. They signed up, were bounced to a holding page, and the product
+     they had just joined was invisible to them until an administrator acted.
 
-     Administrators are exempt, and that is now stated rather than inherited
-     from a role collapse: an anesthesiologist whose verification lapses must
-     still reach the Admin Center. It does not let them chart — the database
-     decides that, and is_verified_doctor() is false for them. */
-  if (role === 'doctor' && (p.verification_status || '') !== 'approved' && !isAdmin) {
-    window.location.replace('/doctor-pending.html');
-    return null;
-  }
+     THE REDIRECT WAS NEVER THE SECURITY BOUNDARY, and removing it does not
+     widen access by one row. The boundary is in the database and is untouched
+     here: twelve RESTRICTIVE policies from v2_auth_onboarding.sql AND
+     `NOT is_pending_doctor()` onto every clinical table, and the write paths
+     additionally demand is_verified_doctor(). An unapproved doctor reading
+     patients still reads nothing; writing still fails. What changes is only
+     what they are SHOWN — and being shown an explanation beats being shown a
+     locked door with no handle.
+
+     What replaces it is a flag, not silence. `auth.pendingDoctor` is set, and
+     showPendingDoctorNotice() paints a banner on whatever page they opened, so
+     a section that comes back empty is never mistaken for a section with
+     nothing in it. Pages that want a richer locked state can read the flag.
+
+     Administrators are exempt from the flag as they were from the redirect:
+     is_pending_doctor() returns false for them in the database too, so the
+     banner would be describing a restriction they do not have. */
+  var pendingDoctor = (role === 'doctor' && (p.verification_status || '') !== 'approved' && !isAdmin);
+  auth.pendingDoctor = pendingDoctor;
+  if (pendingDoctor) showPendingDoctorNotice(p.verification_status || 'pending');
 
   var isStaff = (role === 'doctor' || role === 'admin' || isAdmin);
   var allow = Array.isArray(allowed) ? allowed : [allowed];
@@ -678,24 +741,16 @@ async function resolveAuthDestination() {
      made the OAuth callback disagree with every other entry point. */
   if (role === 'patient') return { ok: true, dest: '/index.html', role: 'patient', verification: verif };
 
-  /* A doctor who is not yet approved goes to the pending page, not the
-     workspace. Until now they were sent to dashboard.html with a banner, which
-     was misleading in both directions: it looked like access had been granted,
-     and — because nothing server-side consulted verification_status — it
-     actually had been.
+  /* An unapproved doctor lands in the workspace, like every other signed-in
+     clinician, and requireRole() paints the verification banner there. They
+     used to be routed to /doctor-pending.html instead — a page with no way
+     onward, reached again on every single sign-in.
 
-     v2_auth_onboarding.sql closes that at the database: a RESTRICTIVE policy
-     on twelve clinical tables now denies every unapproved doctor. So the
-     workspace would render empty for them anyway. Routing here is the honest
-     presentation of a decision the server already enforces, NOT the gate
-     itself — deleting this line would change what they see, never what they
-     can reach.
-
-     Any status other than 'approved' lands here, including 'rejected' and
-     'changes_requested': fail closed, and let the page explain the state. */
-  if (role === 'doctor' && verif !== 'approved') {
-    return { ok: true, dest: '/doctor-pending.html', role: 'doctor', verification: verif };
-  }
+     This is a presentation change and only that. The RESTRICTIVE policies from
+     v2_auth_onboarding.sql still deny them every clinical table, and the write
+     paths still demand is_verified_doctor(); the workspace opens, the patient
+     sections in it do not. /doctor-pending.html remains, linked from the
+     banner, as the page that explains what verification still needs. */
   return { ok: true, dest: '/dashboard.html', role: role, verification: verif };
 }
 window.resolveAuthDestination = resolveAuthDestination;

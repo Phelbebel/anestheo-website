@@ -7,8 +7,8 @@
 <title>Awaiting verification — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
+<script src="/supabase.js?v=2026.08.18-01"></script>
+<script src="/auth.js?v=2026.08.18-01"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -68,13 +68,19 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
       <dl class="kv" id="dp-kv"><dd style="color:rgba(255,255,255,.4)">Loading…</dd></dl>
 
       <div class="note" id="dp-note">
-        You can sign in at any time — this page is where you will land until your account is
-        approved. The clinical workspace and patient data stay closed until then; that
-        restriction is enforced by our database, not by this page.
+        You can sign in and use Anestheo while this is reviewed — the tools, the clinical
+        references and your own account are all open to you. Patient records are not, and
+        the sections that need them will look empty until you are approved. That restriction
+        is enforced by our database, not by this page.
       </div>
 
       <div class="acts">
-        <a class="btn btn-p" href="/doctor-pending.html">Check status again</a>
+        <!-- This page is no longer where an unapproved doctor is held; it is
+             where they come to read what verification still needs. So the
+             first action out of it is the workspace they were bounced away
+             from before, not the homepage. -->
+        <a class="btn btn-p" href="/dashboard.html">Continue to my workspace</a>
+        <a class="btn" href="/doctor-pending.html">Check status again</a>
         <a class="btn" href="/index.html">Go to the homepage</a>
         <a class="btn" href="#" onclick="window.signOut();return false;">Sign out</a>
       </div>
@@ -92,9 +98,14 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
    and whose verification_status is not exactly 'approved'. If this page did
    not exist, they would still be unable to read a single patient record.
 
-   What it does add is an explanation. Before it, an unapproved doctor was sent
-   to the workspace with a banner — which read as "you are in", and (because
-   nothing server-side checked the status) was unfortunately accurate.
+   What it does add is an explanation, in full, of what verification needs and
+   where the account currently stands — more than a banner can carry.
+
+   IT IS NO LONGER A HOLDING PEN. requireRole() used to redirect every
+   unapproved doctor here, on every staff page, so this was the whole product
+   until an administrator acted. It is now reached deliberately: from the
+   verification banner, and once from role-select.html straight after an
+   application is submitted. Every visit offers a way onward.
 
    It also handles the states that are not 'pending'. Rejected and
    changes_requested land here too, and being told "awaiting verification"

@@ -7,10 +7,10 @@
 <title>Live Chart — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
-<script src="/navbar.js?v=2026.08.16-02"></script>
-<script src="/anesthesia.js?v=2026.08.16-02"></script>
+<script src="/supabase.js?v=2026.08.18-01"></script>
+<script src="/auth.js?v=2026.08.18-01"></script>
+<script src="/navbar.js?v=2026.08.18-01"></script>
+<script src="/anesthesia.js?v=2026.08.18-01"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -53,6 +53,10 @@ select option{background:#132218;}
 .btn.ghost{background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);}
 .msg{display:none;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px;
   background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#FFB4A8;}
+/* Waiting is not failing. An account that has not been verified yet is a
+   state, not an error, and painting it in the refusal colour tells a new
+   clinician something went wrong on their first visit. */
+.msg.msg-wait{background:rgba(232,168,56,.1);border-color:rgba(232,168,56,.28);color:rgba(255,220,150,.92);}
 .qrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
 .qrow input{flex:1 1 260px;min-width:0;}
 .tabs{display:flex;gap:5px;flex-wrap:wrap;}
@@ -274,11 +278,32 @@ async function createCase(){
 
 (async function(){
   /* requireRole('staff') is a courtesy, not the boundary: it decides what to
-     render. A pending doctor is sent to their pending page and a patient to
-     their own area, and even if someone reached this URL anyway the queries
-     return nothing and every write is refused. */
+     render. A patient is sent to their own area, and even if someone reached
+     this URL anyway the queries return nothing and every write is refused.
+
+     An unapproved doctor is no longer redirected away — see the note in
+     auth.js. But letting them fill in a patient name, a date of birth and an
+     ASA class only to have the INSERT refused would be worse than the old
+     bounce, not better: they would have typed real patient details into a
+     form that was never going to save. So the form is closed here, with the
+     reason stated, and the record list below still renders (empty, because
+     the database gives them nothing) rather than pretending to be broken. */
   var auth = await window.requireRole('staff');
   if(!auth) return;
+  if(auth.pendingDoctor){
+    var box = el('n-go');
+    if(box){
+      box.disabled = true;
+      box.textContent = 'Available once you are verified';
+    }
+    var ne = el('n-err');
+    if(ne){
+      ne.className = 'msg msg-wait';
+      ne.textContent = 'New records open once an administrator has verified your account. ' +
+        'Everything else on this page stays available to you.';
+      ne.style.display = 'block';
+    }
+  }
   el('tools-bar').innerHTML = window.nbToolsBar('/anesthesia-cases.html');
   // Empty: a new record starts with no date of birth and no age.
   el('n-dobwrap').innerHTML = ANES.dobFieldHtml('n-dob', {});
