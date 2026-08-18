@@ -11,12 +11,12 @@
      inside the embedded tool preview (.pv) so it renders as the actual tool. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
-<script src="/clinical-index.js?v=2026.08.16-02"></script>
-<script src="/clinical-search.js?v=2026.08.16-02"></script>
-<script src="/navbar.js?v=2026.08.16-02"></script>
-<script src="/videos-data.js?v=2026.08.16-02"></script>
+<script src="/supabase.js?v=2026.08.16-03"></script>
+<script src="/auth.js?v=2026.08.16-03"></script>
+<script src="/clinical-index.js?v=2026.08.16-03"></script>
+<script src="/clinical-search.js?v=2026.08.16-03"></script>
+<script src="/navbar.js?v=2026.08.16-03"></script>
+<script src="/videos-data.js?v=2026.08.16-03"></script>
 <style>
 /* =========================================================================
    Anestheo homepage — two-path action hero (patient-first).
@@ -663,6 +663,252 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
   .reveal{opacity:1;transition:none;}
   .btn-text:hover .arr{transform:none;}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PUBLIC HOMEPAGE — dark premium theme.
+
+   SCOPED TO VISITORS ONLY. Every rule below sits under
+   html:not(.pre-app):not(.app), the selector this file already uses to mean
+   "logged-out visitor". A signed-in patient, doctor or admin never renders
+   this markup — renderAppHome() builds into #ah and sets html.app — so the
+   authenticated Home keeps the light system it has always had. Changing
+   :root here instead would have repainted the app Home too.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html:not(.pre-app):not(.app){
+  --bg:#0B1620;              /* deep bluish graphite, never pure black */
+  --bg-2:#0E1C27;
+  --ink:#F2F6F8;             /* primary text */
+  --muted:#93A6B4;           /* muted blue-gray secondary */
+  --faint:#6D8091;
+  --hair:rgba(255,255,255,.09);
+  --hair-2:rgba(255,255,255,.16);
+  --teal:#2FA88C;            /* the Anestheo accent, lifted for dark ground */
+  --teal-2:#7ECFC0;
+  --teal-tint:rgba(47,168,140,.10);
+  --card:rgba(255,255,255,.035);
+  --glass:rgba(255,255,255,.05);
+  --shadow:0 24px 60px rgba(0,0,0,.45);
+}
+html:not(.pre-app):not(.app) body{
+  background:var(--bg); color:var(--ink);
+  /* One very subtle glow behind the fold. No neon, no repeating pattern. */
+  background-image:
+    radial-gradient(ellipse 80% 55% at 72% -8%, rgba(47,168,140,.16), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 8% 4%, rgba(60,110,160,.10), transparent 62%);
+  background-repeat:no-repeat;
+}
+html:not(.pre-app):not(.app) ::selection{background:rgba(47,168,140,.28);}
+html:not(.pre-app):not(.app) .eyebrow{color:var(--teal-2);}
+html:not(.pre-app):not(.app) .sec-h{font-size:clamp(25px,3.4vw,38px);font-weight:650;line-height:1.16;}
+html:not(.pre-app):not(.app) .sec-sub{color:var(--muted);font-size:16px;max-width:56ch;}
+
+/* ── masthead ─────────────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .mast{
+  background:rgba(11,22,32,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--hair);position:sticky;top:0;z-index:40;}
+html:not(.pre-app):not(.app) .mast-in{max-width:var(--maxw);margin:0 auto;padding:0 var(--edge);
+  min-height:64px;display:flex;align-items:center;gap:18px;}
+html:not(.pre-app):not(.app) .brand{font-size:19px;font-weight:700;letter-spacing:-.02em;}
+html:not(.pre-app):not(.app) .brand-accent{color:var(--teal-2);}
+html:not(.pre-app):not(.app) .nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;}
+html:not(.pre-app):not(.app) .nav-r > a{font-size:14px;color:var(--muted);padding:9px 12px;border-radius:9px;}
+html:not(.pre-app):not(.app) .nav-r > a:hover{color:var(--ink);background:var(--glass);}
+html:not(.pre-app):not(.app) .nav-login{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  color:var(--ink);background:var(--glass);border:1px solid var(--hair-2);border-radius:10px;padding:9px 17px;
+  min-height:40px;transition:.16s;}
+html:not(.pre-app):not(.app) .nav-login:hover{border-color:rgba(126,207,192,.5);background:var(--teal-tint);}
+@media(max-width:640px){ html:not(.pre-app):not(.app) .nav-r > a{display:none;} }
+
+/* ── buttons ──────────────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .btn{width:auto;border-radius:11px;padding:14px 26px;font-size:15px;
+  font-weight:650;min-height:50px;background:var(--ink);color:#0B1620;border:1px solid transparent;}
+html:not(.pre-app):not(.app) .btn:hover{background:#fff;}
+html:not(.pre-app):not(.app) .btn-teal{
+  background:linear-gradient(135deg,#2FA88C,#1B6B5A);color:#fff;
+  box-shadow:0 12px 30px rgba(47,168,140,.26);}
+html:not(.pre-app):not(.app) .btn-teal:hover{background:linear-gradient(135deg,#37bd9c,#22826d);}
+html:not(.pre-app):not(.app) .btn-ghost{background:var(--glass);color:var(--ink);border-color:var(--hair-2);}
+html:not(.pre-app):not(.app) .btn-ghost:hover{border-color:rgba(126,207,192,.55);background:var(--teal-tint);}
+html:not(.pre-app):not(.app) .btn-text{color:var(--ink);}
+html:not(.pre-app):not(.app) .btn-text .arr{color:var(--teal-2);}
+html:not(.pre-app):not(.app) .cta-wrap{margin-top:22px;}
+
+/* ── section rhythm ───────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) main > section{
+  padding:var(--sec) var(--edge);max-width:var(--maxw);margin:0 auto;}
+html:not(.pre-app):not(.app) .head{margin-bottom:42px;}
+html:not(.pre-app):not(.app) .head .eyebrow{margin-bottom:12px;}
+html:not(.pre-app):not(.app) .head-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+
+/* ── 1 · hero ─────────────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .hero{padding-top:clamp(56px,8vw,104px);padding-bottom:clamp(48px,7vw,92px);}
+html:not(.pre-app):not(.app) .hero-in{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,72px);align-items:center;}
+html:not(.pre-app):not(.app) .hero-eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--teal-2);margin-bottom:20px;display:inline-flex;align-items:center;gap:10px;}
+html:not(.pre-app):not(.app) .hero-eyebrow::before{content:'';width:26px;height:1px;background:var(--teal);}
+/* The old hero centred its headline and capped it at 16ch. This one is a
+   two-column layout, so the copy reads left-aligned and needs the width. */
+html:not(.pre-app):not(.app) .hero-copy{text-align:left;}
+html:not(.pre-app):not(.app) .hero-h{font-size:clamp(34px,5.2vw,60px);font-weight:700;line-height:1.06;
+  letter-spacing:-.03em;margin-bottom:22px;text-align:left;max-width:none;margin-left:0;margin-right:0;}
+html:not(.pre-app):not(.app) .hero-o{text-align:left;}
+html:not(.pre-app):not(.app) .hero-h-2{
+  background:linear-gradient(100deg,#7ECFC0,#CFE9E2 60%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;}
+html:not(.pre-app):not(.app) .hero-o{font-size:17px;color:var(--muted);line-height:1.75;max-width:54ch;margin-bottom:32px;}
+html:not(.pre-app):not(.app) .hero-cta{display:flex;gap:13px;flex-wrap:wrap;}
+html:not(.pre-app):not(.app) .hero-marks{list-style:none;display:flex;gap:10px;flex-wrap:wrap;margin-top:30px;}
+html:not(.pre-app):not(.app) .hero-marks li{font-size:12.5px;color:var(--muted);background:var(--card);
+  border:1px solid var(--hair);border-radius:30px;padding:7px 15px;}
+
+/* the passport visual */
+html:not(.pre-app):not(.app) .hero-art{position:relative;display:flex;justify-content:center;}
+/* Horizontal inset stays at 0: at tablet width the hero art spans the full
+   column, and a negative side inset pushed the glow past the viewport. */
+html:not(.pre-app):not(.app) .pass-glow{position:absolute;inset:-14% 0;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(47,168,140,.30),transparent 72%);filter:blur(26px);}
+html:not(.pre-app):not(.app) .pass{position:relative;width:100%;max-width:392px;border-radius:24px;padding:26px 26px 20px;
+  background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.035));
+  border:1px solid rgba(255,255,255,.16);box-shadow:var(--shadow);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+html:not(.pre-app):not(.app) .pass-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+html:not(.pre-app):not(.app) .pass-brand{font-size:14px;font-weight:700;letter-spacing:-.01em;}
+html:not(.pre-app):not(.app) .pass-brand-a{color:var(--teal-2);}
+html:not(.pre-app):not(.app) .pass-badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;color:#8FE3C4;background:rgba(52,211,153,.13);
+  border:1px solid rgba(52,211,153,.32);border-radius:20px;padding:5px 11px;}
+html:not(.pre-app):not(.app) .pass-dot{width:6px;height:6px;border-radius:50%;background:#34D399;box-shadow:0 0 8px #34D399;}
+html:not(.pre-app):not(.app) .pass-title{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-bottom:20px;}
+html:not(.pre-app):not(.app) .pass-body{display:flex;gap:20px;align-items:flex-start;}
+html:not(.pre-app):not(.app) .pass-qr{width:118px;flex:0 0 auto;background:#fff;border-radius:13px;padding:9px;
+  box-shadow:0 8px 22px rgba(0,0,0,.35);}
+html:not(.pre-app):not(.app) .pass-qr svg{width:100%;height:auto;display:block;}
+html:not(.pre-app):not(.app) .pass-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:13px;padding-top:2px;}
+html:not(.pre-app):not(.app) .pass-f span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--faint);margin-bottom:6px;}
+html:not(.pre-app):not(.app) .pass-f i{display:block;height:7px;border-radius:4px;
+  background:linear-gradient(90deg,rgba(126,207,192,.42),rgba(255,255,255,.08));}
+html:not(.pre-app):not(.app) .pass-f:nth-child(2) i{width:78%;}
+html:not(.pre-app):not(.app) .pass-f:nth-child(3) i{width:62%;}
+html:not(.pre-app):not(.app) .pass-f:nth-child(4) i{width:70%;}
+html:not(.pre-app):not(.app) .pass-foot{margin-top:20px;padding-top:15px;border-top:1px solid var(--hair);
+  font-size:12px;color:var(--faint);}
+
+/* ── 2 · health passport ──────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .hp{position:relative;}
+html:not(.pre-app):not(.app) .hp-in{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(30px,5vw,64px);
+  align-items:center;background:linear-gradient(140deg,rgba(47,168,140,.10),rgba(255,255,255,.02));
+  border:1px solid rgba(47,168,140,.24);border-radius:26px;padding:clamp(30px,4.4vw,58px);
+  box-shadow:var(--shadow);}
+html:not(.pre-app):not(.app) .hp-cta{margin-top:28px;}
+html:not(.pre-app):not(.app) .hp-art{display:flex;justify-content:center;}
+html:not(.pre-app):not(.app) .hp-scan{position:relative;width:min(230px,72vw);aspect-ratio:1;
+  display:flex;align-items:center;justify-content:center;}
+html:not(.pre-app):not(.app) .hp-scan-card{width:100%;height:100%;border-radius:22px;
+  background:rgba(255,255,255,.06);border:1px solid var(--hair-2);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;box-shadow:var(--shadow);}
+html:not(.pre-app):not(.app) .hp-scan-q{width:56%;aspect-ratio:1;border-radius:10px;background:#fff;
+  /* a QR-ish lattice, not a scannable code */
+  background-image:
+    linear-gradient(90deg,#0B1620 25%,transparent 0 50%,#0B1620 0 62%,transparent 0),
+    linear-gradient(#0B1620 25%,transparent 0 50%,#0B1620 0 62%,transparent 0);
+  background-size:22% 22%;background-position:9% 9%;}
+html:not(.pre-app):not(.app) .hp-scan-l{width:56%;height:6px;border-radius:4px;background:rgba(255,255,255,.14);}
+html:not(.pre-app):not(.app) .hp-beam{position:absolute;left:8%;right:8%;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,transparent,#7ECFC0,transparent);
+  box-shadow:0 0 16px rgba(126,207,192,.8);animation:hpscan 3.4s ease-in-out infinite;}
+@keyframes hpscan{0%,100%{top:16%;opacity:.25;}50%{top:80%;opacity:1;}}
+@media(prefers-reduced-motion:reduce){ html:not(.pre-app):not(.app) .hp-beam{animation:none;top:48%;} }
+
+/* ── 3 · feature cards ────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+html:not(.pre-app):not(.app) .feat{display:flex;flex-direction:column;background:var(--card);
+  border:1px solid var(--hair);border-radius:20px;padding:30px 28px;transition:.2s;color:inherit;}
+html:not(.pre-app):not(.app) .feat:hover{transform:translateY(-3px);border-color:rgba(126,207,192,.36);
+  background:rgba(255,255,255,.055);box-shadow:var(--shadow);}
+html:not(.pre-app):not(.app) .feat-ic{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;color:var(--teal-2);background:var(--teal-tint);border:1px solid rgba(126,207,192,.26);
+  margin-bottom:20px;}
+html:not(.pre-app):not(.app) .feat-ic svg{width:22px;height:22px;}
+html:not(.pre-app):not(.app) .feat h3{font-size:19px;font-weight:650;letter-spacing:-.015em;margin-bottom:9px;}
+html:not(.pre-app):not(.app) .feat p{font-size:14.5px;color:var(--muted);line-height:1.7;flex:1;}
+html:not(.pre-app):not(.app) .feat-go{margin-top:20px;font-size:14px;font-weight:600;color:var(--teal-2);
+  display:inline-flex;align-items:center;gap:.4em;}
+html:not(.pre-app):not(.app) .feat:hover .arr{transform:translateX(3px);}
+
+/* ── 4 · journey ──────────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .jrn-track{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;
+  position:relative;}
+html:not(.pre-app):not(.app) .jrn-track::before{content:'';position:absolute;left:8%;right:8%;top:23px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(126,207,192,.42),rgba(126,207,192,.42),transparent);}
+html:not(.pre-app):not(.app) .jrn-step{position:relative;text-align:center;padding:0 6px;}
+html:not(.pre-app):not(.app) .jrn-n{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;margin:0 auto 18px;font-size:15px;font-weight:700;color:var(--teal-2);
+  background:#12212C;border:1px solid rgba(126,207,192,.34);position:relative;z-index:1;
+  box-shadow:0 0 0 6px rgba(11,22,32,1);}
+html:not(.pre-app):not(.app) .jrn-t{display:block;font-size:16.5px;font-weight:650;margin-bottom:7px;}
+html:not(.pre-app):not(.app) .jrn-d{display:block;font-size:13.5px;color:var(--muted);line-height:1.65;}
+
+/* ── 5 · clinicians (secondary) ───────────────────────────────────────── */
+html:not(.pre-app):not(.app) .clin{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);
+  background:var(--bg-2);max-width:none;}
+html:not(.pre-app):not(.app) .clin-in{max-width:var(--maxw);margin:0 auto;display:grid;
+  grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center;}
+html:not(.pre-app):not(.app) .clin-list{list-style:none;display:flex;flex-direction:column;gap:2px;}
+html:not(.pre-app):not(.app) .clin-list li{padding:16px 18px;border-radius:13px;border:1px solid transparent;
+  transition:.18s;}
+html:not(.pre-app):not(.app) .clin-list li:hover{background:var(--card);border-color:var(--hair);}
+html:not(.pre-app):not(.app) .clin-list b{display:block;font-size:15px;font-weight:650;margin-bottom:3px;}
+html:not(.pre-app):not(.app) .clin-list span{font-size:13.5px;color:var(--muted);}
+
+/* ── 6 · videos ───────────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .vids-all{white-space:nowrap;}
+
+/* ── 7 · final CTA ────────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) .final-in{text-align:center;border-radius:26px;padding:clamp(40px,6vw,76px) clamp(24px,4vw,56px);
+  background:linear-gradient(150deg,rgba(47,168,140,.16),rgba(255,255,255,.02));
+  border:1px solid rgba(47,168,140,.26);box-shadow:var(--shadow);}
+html:not(.pre-app):not(.app) .final-h{font-size:clamp(26px,3.6vw,40px);font-weight:700;letter-spacing:-.025em;
+  line-height:1.14;margin-bottom:14px;}
+html:not(.pre-app):not(.app) .final-p{font-size:16px;color:var(--muted);}
+html:not(.pre-app):not(.app) .final-in .cta-wrap{display:flex;justify-content:center;}
+
+/* ── footer ───────────────────────────────────────────────────────────── */
+html:not(.pre-app):not(.app) footer{border-top:1px solid var(--hair);background:#091219;}
+html:not(.pre-app):not(.app) .fb{font-size:17px;font-weight:700;}
+html:not(.pre-app):not(.app) .discl{color:var(--faint);}
+html:not(.pre-app):not(.app) .foot-links a{color:var(--muted);}
+html:not(.pre-app):not(.app) .foot-links a:hover{color:var(--ink);}
+html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
+
+/* ── responsive ───────────────────────────────────────────────────────── */
+@media(max-width:980px){
+  /* Copy FIRST on narrow screens. The passport card is the proof, not the
+     pitch: a visitor who meets it before the headline has no idea what they
+     are looking at. */
+  html:not(.pre-app):not(.app) .hero-in{grid-template-columns:1fr;gap:38px;}
+  html:not(.pre-app):not(.app) .hero-art{order:1;}
+  html:not(.pre-app):not(.app) .pass{max-width:340px;}
+  html:not(.pre-app):not(.app) .hp-in,
+  html:not(.pre-app):not(.app) .clin-in{grid-template-columns:1fr;}
+  html:not(.pre-app):not(.app) .hp-art{order:1;}
+  html:not(.pre-app):not(.app) .feats{grid-template-columns:repeat(2,1fr);}
+  html:not(.pre-app):not(.app) .jrn-track{grid-template-columns:repeat(2,1fr);gap:30px 18px;}
+  html:not(.pre-app):not(.app) .jrn-track::before{display:none;}
+}
+@media(max-width:620px){
+  html:not(.pre-app):not(.app) .feats{grid-template-columns:1fr;}
+  html:not(.pre-app):not(.app) .jrn-track{grid-template-columns:1fr;gap:22px;text-align:left;}
+  html:not(.pre-app):not(.app) .jrn-step{display:grid;grid-template-columns:46px 1fr;
+    column-gap:16px;text-align:left;align-items:center;}
+  html:not(.pre-app):not(.app) .jrn-n{margin:0;grid-row:span 2;}
+  html:not(.pre-app):not(.app) .jrn-t{margin-bottom:2px;}
+  html:not(.pre-app):not(.app) .hero-cta .btn,
+  html:not(.pre-app):not(.app) .final-in .btn,
+  html:not(.pre-app):not(.app) .hp-cta .btn{width:100%;}
+  html:not(.pre-app):not(.app) .head-row{flex-direction:column;align-items:flex-start;gap:14px;}
+}
+
 </style>
 </head>
 <body data-app-footer="self">
@@ -689,113 +935,251 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 
 <main id="main">
 
-  <!-- ── 1 · Two-path action hero ─────────────────────────────────────── -->
+  <!-- ── 1 · HERO ──────────────────────────────────────────────────────
+       Patient-first. The left column says what Anestheo is in one breath;
+       the right shows the thing that is hardest to describe in words — the
+       Health Passport as a real object with a real QR on it. -->
   <section class="hero" aria-labelledby="hero-h">
-    <h1 class="hero-h" id="hero-h">What do you need help with?</h1>
-    <p class="hero-o">Clear anesthesia preparation for patients. Point-of-care tools for clinicians.</p>
-    <div class="paths">
-      <!-- Patient path: stronger visual priority (filled, dark, first in DOM) -->
-      <div class="path path-patient">
-        <div class="role">Patients</div>
-        <h2>I&rsquo;m preparing for surgery</h2>
-        <p>Understand what to expect, and arrive ready.</p>
-        <div class="cta-wrap"><a class="btn btn-light" href="/patients.html">Start preparation</a></div>
+    <div class="hero-in">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">Anesthesia care, explained</p>
+        <h1 class="hero-h" id="hero-h">
+          Understand your anesthesia.<br>
+          <span class="hero-h-2">Prepare for surgery with confidence.</span>
+        </h1>
+        <p class="hero-o">
+          Anestheo gives you personalized surgery preparation, a digital Health
+          Passport that carries your important medical information, clear patient
+          education, and the clinical tools your anesthesia team relies on.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-teal" href="/patients.html">Prepare for surgery</a>
+          <a class="btn btn-ghost" href="#clinicians">Explore clinician tools</a>
+        </div>
+        <ul class="hero-marks" aria-label="What Anestheo covers">
+          <li>Personalized preparation</li>
+          <li>Health Passport</li>
+          <li>Patient education</li>
+        </ul>
       </div>
-      <!-- Clinician path: secondary (light, outline) -->
-      <div class="path path-clinician">
-        <div class="role">Clinicians</div>
-        <h2>I&rsquo;m a clinician</h2>
-        <p>Calculators and references, ready at the point of care.</p>
-        <div class="cta-wrap"><a class="btn btn-outline" href="/engine.html">See the tools</a></div>
+
+      <!-- The product visual. Drawn, not photographed: a card carrying a real
+           QR lattice, the way the passport actually looks. No medical content
+           is shown on it — the sample fields are labels, never values. -->
+      <div class="hero-art" aria-hidden="true">
+        <div class="pass-glow"></div>
+        <div class="pass">
+          <div class="pass-top">
+            <span class="pass-brand">Anest<span class="pass-brand-a">heo</span></span>
+            <span class="pass-badge"><span class="pass-dot"></span>Active</span>
+          </div>
+          <div class="pass-title">Health Passport</div>
+          <div class="pass-body">
+            <div class="pass-qr">
+              <svg viewBox="0 0 29 29" shape-rendering="crispEdges" role="img" aria-label="QR code illustration">
+                <rect width="29" height="29" fill="#fff"/>
+                <g fill="#0B1620">
+                  <path d="M0 0h7v7H0z"/><path d="M22 0h7v7h-7z"/><path d="M0 22h7v7H0z"/>
+                </g>
+                <g fill="#fff">
+                  <path d="M1 1h5v5H1z"/><path d="M23 1h5v5h-5z"/><path d="M1 23h5v5H1z"/>
+                </g>
+                <g fill="#0B1620">
+                  <path d="M2 2h3v3H2z"/><path d="M24 2h3v3h-3z"/><path d="M2 24h3v3H2z"/>
+                  <path d="M8 0h1v1H8zM10 0h1v1h-1zM12 0h1v1h-1zM9 1h1v1H9zM11 1h1v1h-1z"/>
+                  <path d="M8 2h1v1H8zM10 2h1v1h-1zM13 2h1v1h-1zM9 3h1v1H9zM12 3h1v1h-1z"/>
+                  <path d="M8 4h1v1H8zM11 4h1v1h-1zM13 4h1v1h-1zM10 5h1v1h-1zM12 5h1v1h-1z"/>
+                  <path d="M8 6h1v1H8zM11 6h1v1h-1zM0 8h1v1H0zM2 8h1v1H2zM4 8h1v1H4zM6 8h1v1H6z"/>
+                  <path d="M1 9h1v1H1zM3 9h1v1H3zM5 9h1v1H5zM0 10h1v1H0zM2 10h1v1H2zM5 10h1v1H5z"/>
+                  <path d="M1 11h1v1H1zM4 11h1v1H4zM6 11h1v1H6zM0 12h1v1H0zM3 12h1v1H3zM5 12h1v1H5z"/>
+                  <path d="M22 8h1v1h-1zM24 8h1v1h-1zM27 8h1v1h-1zM23 9h1v1h-1zM26 9h1v1h-1z"/>
+                  <path d="M22 10h1v1h-1zM25 10h1v1h-1zM28 10h1v1h-1zM23 11h1v1h-1zM27 11h1v1h-1z"/>
+                  <path d="M22 12h1v1h-1zM24 12h1v1h-1zM26 12h1v1h-1z"/>
+                  <path d="M8 8h1v1H8zM10 8h1v1h-1zM13 8h1v1h-1zM15 8h1v1h-1zM17 8h1v1h-1zM19 8h1v1h-1z"/>
+                  <path d="M9 9h1v1H9zM12 9h1v1h-1zM14 9h1v1h-1zM16 9h1v1h-1zM18 9h1v1h-1z"/>
+                  <path d="M8 10h1v1H8zM11 10h1v1h-1zM13 10h1v1h-1zM17 10h1v1h-1zM20 10h1v1h-1z"/>
+                  <path d="M10 11h1v1h-1zM12 11h1v1h-1zM15 11h1v1h-1zM18 11h1v1h-1z"/>
+                  <path d="M8 12h1v1H8zM11 12h1v1h-1zM14 12h1v1h-1zM16 12h1v1h-1zM19 12h1v1h-1z"/>
+                  <path d="M9 13h1v1H9zM13 13h1v1h-1zM15 13h1v1h-1zM18 13h1v1h-1zM20 13h1v1h-1z"/>
+                  <path d="M0 14h1v1H0zM2 14h1v1H2zM4 14h1v1H4zM8 14h1v1H8zM10 14h1v1h-1zM12 14h1v1h-1z"/>
+                  <path d="M14 14h1v1h-1zM17 14h1v1h-1zM19 14h1v1h-1zM22 14h1v1h-1zM24 14h1v1h-1zM26 14h1v1h-1zM28 14h1v1h-1z"/>
+                  <path d="M1 15h1v1H1zM3 15h1v1H3zM9 15h1v1H9zM11 15h1v1h-1zM16 15h1v1h-1zM18 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM27 15h1v1h-1z"/>
+                  <path d="M0 16h1v1H0zM4 16h1v1H4zM8 16h1v1H8zM13 16h1v1h-1zM15 16h1v1h-1zM17 16h1v1h-1zM20 16h1v1h-1zM22 16h1v1h-1zM26 16h1v1h-1z"/>
+                  <path d="M2 17h1v1H2zM10 17h1v1h-1zM12 17h1v1h-1zM14 17h1v1h-1zM19 17h1v1h-1zM24 17h1v1h-1zM28 17h1v1h-1z"/>
+                  <path d="M8 18h1v1H8zM11 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM21 18h1v1h-1zM23 18h1v1h-1zM27 18h1v1h-1z"/>
+                  <path d="M9 19h1v1H9zM13 19h1v1h-1zM15 19h1v1h-1zM20 19h1v1h-1zM25 19h1v1h-1z"/>
+                  <path d="M8 20h1v1H8zM12 20h1v1h-1zM17 20h1v1h-1zM19 20h1v1h-1zM22 20h1v1h-1zM26 20h1v1h-1zM28 20h1v1h-1z"/>
+                  <path d="M9 21h1v1H9zM11 21h1v1h-1zM14 21h1v1h-1zM16 21h1v1h-1zM21 21h1v1h-1zM24 21h1v1h-1z"/>
+                  <path d="M8 22h1v1H8zM10 22h1v1h-1zM13 22h1v1h-1zM15 22h1v1h-1zM18 22h1v1h-1zM20 22h1v1h-1zM23 22h1v1h-1zM25 22h1v1h-1zM27 22h1v1h-1z"/>
+                  <path d="M9 23h1v1H9zM12 23h1v1h-1zM16 23h1v1h-1zM19 23h1v1h-1zM22 23h1v1h-1zM26 23h1v1h-1z"/>
+                  <path d="M8 24h1v1H8zM11 24h1v1h-1zM14 24h1v1h-1zM17 24h1v1h-1zM21 24h1v1h-1zM24 24h1v1h-1zM28 24h1v1h-1z"/>
+                  <path d="M10 25h1v1h-1zM13 25h1v1h-1zM15 25h1v1h-1zM18 25h1v1h-1zM20 25h1v1h-1zM23 25h1v1h-1zM27 25h1v1h-1z"/>
+                  <path d="M8 26h1v1H8zM12 26h1v1h-1zM16 26h1v1h-1zM19 26h1v1h-1zM22 26h1v1h-1zM25 26h1v1h-1z"/>
+                  <path d="M9 27h1v1H9zM11 27h1v1h-1zM14 27h1v1h-1zM17 27h1v1h-1zM21 27h1v1h-1zM24 27h1v1h-1zM26 27h1v1h-1zM28 27h1v1h-1z"/>
+                  <path d="M8 28h1v1H8zM13 28h1v1h-1zM15 28h1v1h-1zM18 28h1v1h-1zM20 28h1v1h-1zM23 28h1v1h-1zM27 28h1v1h-1z"/>
+                </g>
+              </svg>
+            </div>
+            <div class="pass-fields">
+              <div class="pass-f"><span>Allergies</span><i></i></div>
+              <div class="pass-f"><span>Medical alerts</span><i></i></div>
+              <div class="pass-f"><span>Medications</span><i></i></div>
+              <div class="pass-f"><span>Emergency contact</span><i></i></div>
+            </div>
+          </div>
+          <div class="pass-foot">You choose what is shared</div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ── 2 · Patient action section (directly below hero) ─────────────── -->
+  <!-- ── 2 · HEALTH PASSPORT ───────────────────────────────────────────
+       The CTA is session-aware: hpCta() in the script below swaps it for a
+       direct link when a session exists. Destination is unchanged —
+       /health-passport.html — and no passport logic is touched here. -->
+  <section class="hp" id="health-passport" aria-labelledby="hp-h">
+    <div class="hp-in">
+      <div class="hp-copy">
+        <p class="eyebrow">Health Passport</p>
+        <h2 class="sec-h" id="hp-h">Your important medical information.<br>One scan away.</h2>
+        <p class="sec-sub">
+          Keep the things that matter before, during and after surgery — allergies,
+          medical alerts, important medications and an emergency contact — in a
+          personal QR code you can carry. You decide what goes on it, and you can
+          switch it off at any time.
+        </p>
+        <div class="hp-cta" id="hp-cta">
+          <a class="btn btn-teal" href="/health-passport.html">Create my Health Passport</a>
+        </div>
+      </div>
+      <div class="hp-art" aria-hidden="true">
+        <div class="hp-scan">
+          <div class="hp-scan-card">
+            <div class="hp-scan-q"></div>
+            <div class="hp-scan-l"></div>
+          </div>
+          <div class="hp-beam"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3 · WHAT ANESTHEO DOES ────────────────────────────────────── -->
   <section id="patient-actions" aria-labelledby="pa-h">
     <div class="head">
-      <p class="eyebrow reveal">Preparing for surgery</p>
-      <h2 class="sec-h reveal" id="pa-h">Three simple steps to feel ready.</h2>
+      <p class="eyebrow reveal">What Anestheo does</p>
+      <h2 class="sec-h reveal" id="pa-h">Everything you need before an operation.</h2>
     </div>
-    <div class="cards cards-3">
-      <div class="card reveal">
-        <h3>Tell us about your surgery</h3>
-        <p>Answer a few questions so your anesthesia team is ready for you.</p>
-        <div class="cta-wrap"><a class="btn" href="/questionnaire.html">Start the questionnaire</a></div>
-      </div>
-      <div class="card reveal">
-        <h3>Understand your anesthesia</h3>
-        <p>Short, clear videos about the anesthesia options you may be offered.</p>
-        <div class="cta-wrap"><a class="btn" href="/videos.html">Watch short videos</a></div>
-      </div>
-      <div class="card reveal">
-        <h3>Get ready for the day</h3>
-        <p>Build a checklist for fasting, medicines, documents, and questions.</p>
-        <div class="cta-wrap"><a class="btn" href="/patient-dashboard.html">Build my checklist</a></div>
-      </div>
+    <div class="feats">
+      <a class="feat reveal" href="/patients.html">
+        <span class="feat-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </span>
+        <h3>Prepare for surgery</h3>
+        <p>Personalized preparation, questionnaires and guidance for your operation.</p>
+        <span class="feat-go">Start preparing <span class="arr">&rarr;</span></span>
+      </a>
+      <a class="feat reveal" href="/health-passport.html">
+        <span class="feat-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+        </span>
+        <h3>Health Passport</h3>
+        <p>Important perioperative information, accessible through a QR code.</p>
+        <span class="feat-go">See how it works <span class="arr">&rarr;</span></span>
+      </a>
+      <a class="feat reveal" href="/procedures.html">
+        <span class="feat-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </span>
+        <h3>Understand your care</h3>
+        <p>Clear information about anesthesia, procedures, recovery and common concerns.</p>
+        <span class="feat-go">Read the guides <span class="arr">&rarr;</span></span>
+      </a>
     </div>
   </section>
 
-  <!-- ── 3 · Clinician section (smaller) ──────────────────────────────── -->
-  <section class="clin" id="clinicians" aria-labelledby="cl-h">
+  <!-- ── 4 · THE JOURNEY ───────────────────────────────────────────── -->
+  <section class="jrn" aria-labelledby="jr-h">
     <div class="head">
-      <p class="eyebrow reveal">For clinicians</p>
-      <h2 class="sec-h reveal" id="cl-h">Clinical tools for anesthesiologists</h2>
+      <p class="eyebrow reveal">How it works</p>
+      <h2 class="sec-h reveal" id="jr-h">From first appointment to recovery.</h2>
     </div>
-    <div class="cards cards-3">
-      <div class="card reveal">
-        <h3>Calculators</h3>
-        <p>Weight-based values and point-of-care calculations, ready in seconds.</p>
-        <div class="cta-wrap"><a class="btn-text" href="/engine.html">Open calculators <span class="arr">&rarr;</span></a></div>
+    <ol class="jrn-track reveal">
+      <li class="jrn-step">
+        <span class="jrn-n">1</span>
+        <span class="jrn-t">Prepare</span>
+        <span class="jrn-d">Tell us about your surgery and get a personalized plan.</span>
+      </li>
+      <li class="jrn-step">
+        <span class="jrn-n">2</span>
+        <span class="jrn-t">Questionnaire</span>
+        <span class="jrn-d">Answer once, so your anesthesia team arrives ready.</span>
+      </li>
+      <li class="jrn-step">
+        <span class="jrn-n">3</span>
+        <span class="jrn-t">Surgery</span>
+        <span class="jrn-d">Know what happens on the day, and what to bring.</span>
+      </li>
+      <li class="jrn-step">
+        <span class="jrn-n">4</span>
+        <span class="jrn-t">Recovery</span>
+        <span class="jrn-d">Pain, healing and warning signs, explained plainly.</span>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ── 5 · CLINICIANS — deliberately secondary ───────────────────── -->
+  <section class="clin" id="clinicians" aria-labelledby="cl-h">
+    <div class="clin-in">
+      <div class="clin-copy">
+        <p class="eyebrow">For clinicians</p>
+        <h2 class="sec-h" id="cl-h">Point-of-care tools for anesthesia teams.</h2>
+        <p class="sec-sub">
+          Live Tools, weight-based calculators, airway and crisis references, and a
+          clinical workspace for managing patients and preparation plans.
+        </p>
+        <div class="cta-wrap"><a class="btn btn-ghost" href="/engine.html">Open Live Tools</a></div>
       </div>
-      <div class="card reveal">
-        <h3>Clinical references</h3>
-        <p>Fast reference summaries that show their sources and review status.</p>
-        <div class="cta-wrap"><a class="btn-text" href="/references.html">Open references <span class="arr">&rarr;</span></a></div>
-      </div>
-      <div class="card reveal">
-        <h3>Assessment workspace</h3>
-        <p>Review a patient&rsquo;s pre-operative information and record the readiness decision.</p>
-        <div class="cta-wrap"><a class="btn-text" href="/dashboard.html">Open workspace <span class="arr">&rarr;</span></a></div>
-      </div>
-    </div>
-    <div class="clin-foot">
-      <!-- Completed tool example (real product face): shows OUTPUT, labelled as an example -->
-      <div class="preview reveal">
-        <div class="lbl">Live Tools preview</div>
-        <div class="pv" role="img" aria-label="Preview of the Anestheo Live Tools clinical workstation: live intraoperative timers, calculators, drug references, and clinical references, with example derived values including ideal body weight 70.5 kilograms and body surface area 1.95 square metres.">
-          <div class="pv-pad">
-            <div class="pv-top"><span class="pv-live"><span class="pv-dot"></span>Live Tools</span><span class="pv-ws">Clinical workstation</span></div>
-            <div class="pv-mods">
-              <div class="pv-mod"><span class="n">Live timers</span><span class="s">Anesthesia &middot; Surgery &middot; Tourniquet</span></div>
-              <div class="pv-mod"><span class="n">Calculators</span><span class="s">Weights &middot; BSA &middot; EBV &middot; MAC</span></div>
-              <div class="pv-mod"><span class="n">Drug references</span><span class="s">Ranges &amp; infusions</span></div>
-              <div class="pv-mod"><span class="n">Clinical references</span><span class="s">Airway, anticoagulation &amp; more</span></div>
-            </div>
-            <div class="pv-secttl mt">Calculator &middot; example</div>
-            <div class="grid" style="grid-template-columns:repeat(3,1fr)">
-              <div class="d"><span class="k">IBW</span><span class="v">70.5</span><span class="u">kg</span></div>
-              <div class="d"><span class="k">BSA</span><span class="v">1.95</span><span class="u">m&sup2;</span></div>
-              <div class="d"><span class="k">EBV</span><span class="v">5460</span><span class="u">mL</span></div>
-            </div>
-            <div class="disc"><b>Reference only.</b> Standard formula outputs for reference and education. This is not clinical decision support. Always apply clinical judgment.</div>
-          </div>
-        </div>
-        <p class="cap">A preview of the Live Tools workstation. Example values, not a real patient.</p>
-      </div>
-      <div class="clin-cta reveal">
-        <a class="btn" href="/engine.html">Open the workstation</a>
-        <p class="sub">Sign in or create an account to continue.</p>
-      </div>
+      <ul class="clin-list">
+        <li><b>Live Tools</b><span>Dosing, airway and crisis support at the bedside.</span></li>
+        <li><b>Calculators</b><span>Weight-based values computed in seconds.</span></li>
+        <li><b>References</b><span>Regional, obstetric, ICU and paediatric guidance.</span></li>
+        <li><b>Clinician workspace</b><span>Patients, questionnaires and preparation plans.</span></li>
+      </ul>
     </div>
   </section>
 
-  <!-- ── 4 · Concise trust section ────────────────────────────────────── -->
-  <section class="trust" aria-labelledby="tr-h">
-    <div class="trust-in">
-      <h2 class="eyebrow reveal" id="tr-h" style="display:block;margin-bottom:14px;">Trust</h2>
-      <p class="reveal">Clinical content includes sources, review status, and limitations where available.</p>
-      <div class="cta-wrap reveal"><a class="btn-text" style="justify-content:center;" href="/about.html">Review our clinical approach <span class="arr">&rarr;</span></a></div>
+  <!-- ── 6 · VIDEOS ────────────────────────────────────────────────────
+       Mounted by videos-data.js (AhVideos), the SAME source of truth the
+       Videos page and the app Home use. No second implementation. -->
+  <section class="vids" aria-labelledby="vd-h">
+    <div class="head head-row">
+      <div>
+        <p class="eyebrow reveal">Education</p>
+        <h2 class="sec-h reveal" id="vd-h">Learn before your surgery.</h2>
+      </div>
+      <a class="btn-text vids-all" href="/videos.html">Watch all videos <span class="arr">&rarr;</span></a>
+    </div>
+    <div id="home-videos" class="reveal"></div>
+  </section>
+
+  <!-- ── 7 · FINAL CTA ─────────────────────────────────────────────── -->
+  <section class="final" aria-labelledby="fn-h">
+    <div class="final-in reveal">
+      <h2 class="final-h" id="fn-h">Going for surgery? Start preparing now.</h2>
+      <p class="final-p">A few minutes today makes the day of your operation calmer.</p>
+      <div class="cta-wrap"><a class="btn btn-teal" href="/patients.html">Start preparation</a></div>
     </div>
   </section>
 
@@ -820,6 +1204,38 @@ footer{border-top:1px solid var(--hair);padding:40px var(--edge);}
 
 <!-- Authenticated application Home (populated by JS; hidden for logged-out visitors). -->
 <div id="ah" class="ah"><div class="ah-wrap"><p class="ah-load">Loading your home&hellip;</p></div></div>
+
+<script>
+/* ── Public homepage wiring. Visitors only: a session renders the app Home
+      instead (renderAppHome → #ah), so nothing below ever runs for a
+      signed-in patient, doctor or admin. ───────────────────────────────── */
+(function(){
+  /* VIDEOS — mounted through videos-data.js (AhVideos), the SAME source of
+     truth the Videos page and the app Home already use. No second
+     implementation, no second fetch path, no fabricated cards: if the feed is
+     unavailable AhVideos renders its own channel fallback. */
+  var vb = document.getElementById('home-videos');
+  if(vb && window.AhVideos && typeof window.AhVideos.mount === 'function'){
+    window.AhVideos.mount(vb, { max:4, skeleton:4 });
+  }
+
+  /* HEALTH PASSPORT CTA — session-aware, exactly as patients.html now is.
+     The passport is a personal account feature and its destination never
+     changes: /health-passport.html. A visitor has no account yet, so they are
+     asked to sign in first; anyone who already has a session goes straight
+     there whatever their role. Calling nbOpenModal() for an authenticated
+     visitor would route them to their workspace — the bug fixed in 123fbbb —
+     so the link is only swapped for the button when there is genuinely no
+     session. No passport, token or auth logic is touched here. */
+  var host = document.getElementById('hp-cta');
+  if(!host || typeof window.getSession !== 'function') return;
+  Promise.resolve(window.getSession()).then(function(s){
+    if(s) return;                                  // signed in: keep the link
+    host.innerHTML = '<button class="btn btn-teal" type="button" ' +
+      'onclick="window.nbOpenModal&&window.nbOpenModal()">Create my Health Passport</button>';
+  }).catch(function(){ /* leave the direct link; it gates itself */ });
+})();
+</script>
 
 <script>
 // Single opacity fade for below-hero content (hero is visible immediately).
