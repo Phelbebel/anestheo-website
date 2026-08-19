@@ -6,14 +6,14 @@
 <title>My Space — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
-<script src="/clinical-index.js?v=2026.08.16-02"></script>
-<script src="/clinical-search.js?v=2026.08.16-02"></script>
-<script src="/navbar.js?v=2026.08.16-02"></script>
-<script src="/journey.js?v=2026.08.16-02"></script>
-<script src="/passport.js?v=2026.08.16-02"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.16-02">
+<script src="/supabase.js?v=2026.08.18-03"></script>
+<script src="/auth.js?v=2026.08.18-03"></script>
+<script src="/clinical-index.js?v=2026.08.18-03"></script>
+<script src="/clinical-search.js?v=2026.08.18-03"></script>
+<script src="/navbar.js?v=2026.08.18-03"></script>
+<script src="/journey.js?v=2026.08.18-03"></script>
+<script src="/passport.js?v=2026.08.18-03"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.18-03">
 <style>
 /* ============================================================
    MY SPACE — premium patient healthcare home.
@@ -443,6 +443,8 @@ body{background:var(--bg);color:var(--text);}
 .pd-modal input,.pd-modal select{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:11px 13px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:44px;-webkit-appearance:none;}
 .pd-modal input:focus,.pd-modal select:focus{border-color:#2A8A74;}
 .pd-modal select option{background:#132218;}
+.pd-err{display:none;margin-top:16px;padding:11px 13px;border-radius:8px;font-size:13.5px;
+  line-height:1.55;background:rgba(192,57,43,.13);border:1px solid rgba(192,57,43,.32);color:#FFB4A8;}
 .pd-modal-btns{display:flex;gap:10px;margin-top:20px;}
 .pd-modal-btns button{flex:1;padding:12px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;border:none;}
 .pd-cancel{background:transparent;border:1px solid rgba(255,255,255,.15)!important;color:var(--muted);}
@@ -662,6 +664,7 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:#2A8A74;}
     <label>Surgeon</label><input type="text" id="m-surgeon" placeholder="Surgeon name">
     <label>Anesthesia type (if known)</label>
     <select id="m-anes"><option value="">Not sure yet</option><option>General</option><option>Spinal</option><option>Epidural</option><option>Regional block</option><option>Sedation</option><option>Local</option></select>
+    <div class="pd-err" id="m-err" role="alert"></div>
     <div class="pd-modal-btns">
       <button class="pd-cancel" onclick="closeSurgery()">Cancel</button>
       <button class="pd-save" id="m-save" onclick="saveSurgery()">Save</button>
@@ -1548,28 +1551,78 @@ async function loadSurgeries(){
   var active = _surgeries.filter(function(s){ return !s.archived_at && !s.completed_at; });
   _surgery = active[0] || _surgeries[0] || null;
 }
+/* Translate a database refusal into something the person can act on. The raw
+   text is a PostgREST sentence written for a developer; it still goes to the
+   console, where the developer is looking. */
+function saveSurgeryError(err){
+  var m = String((err && (err.message || err.hint || err.details)) || err || '');
+  try { console.error('save surgery:', m); } catch(e){}
+  if(/does not exist|schema cache|42703|PGRST\d+/i.test(m))
+    return 'We could not save your surgery details because this account is missing a field on our side. ' +
+           'Nothing was changed. Please let us know at support@anestheo.com.';
+  if(/row-level security|violates|42501|permission/i.test(m))
+    return 'We could not save these details to your account. Nothing was changed.';
+  if(/duplicate key|uniq_active_journey/i.test(m))
+    return 'You already have a surgery in progress, so a second one was not created. ' +
+           'Reload the page and edit the existing one.';
+  if(/network|fetch|timeout|Failed to fetch/i.test(m))
+    return 'We could not reach the server. Check your connection and try again — nothing was saved.';
+  return 'We could not save your surgery details, and nothing was changed. Please try again.';
+}
+
 async function saveSurgery(){
-  ge('m-save').disabled = true; ge('m-save').textContent = 'Saving…';
+  var btn = ge('m-save'), err = ge('m-err');
+  if(err){ err.style.display = 'none'; err.textContent = ''; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  /* NO `origin` FIELD. This used to send
+         origin: (_surgery && _surgery.origin) ? _surgery.origin : 'patient'
+     but patient_surgeries has no origin column — it comes from
+     v2_preparation_origin_migration.sql, which this database has never had
+     applied. Every save therefore failed with 42703 and the patient's surgery
+     details were never stored.
+
+     It failed SILENTLY, and not because of the try/catch: supabase-js RETURNS
+     { data, error } for a database refusal rather than throwing, so the catch
+     below never ran and even the console stayed clean. The modal closed on
+     the way out and the page reloaded the unchanged row, which looks exactly
+     like a successful save. That is why this went unnoticed.
+
+     Every other field is unchanged. care_state is omitted deliberately: the
+     column defaults to 'surgical', and sending a value here would overwrite a
+     lane a clinician may have set. */
   var rec = {
     patient_id: _uid,
     procedure_type: ge('m-proc').value || null,
     surgery_date: ge('m-date').value || null,
     hospital: ge('m-hospital').value || null,
     surgeon: ge('m-surgeon').value || null,
-    anesthesia_type: ge('m-anes').value || null,
-    origin: (_surgery && _surgery.origin) ? _surgery.origin : 'patient'
+    anesthesia_type: ge('m-anes').value || null
   };
+
+  var r;
   try {
     // Journey-aware: update THIS journey by its id; create a row only when the
     // patient has no active journey. Never upsert by patient_id — that would
     // overwrite an archived journey now that a patient can hold several.
     if (_surgery && _surgery.id) {
-      await window.sb.from('patient_surgeries').update(rec).eq('id', _surgery.id);
+      r = await window.sb.from('patient_surgeries').update(rec).eq('id', _surgery.id);
     } else {
-      await window.sb.from('patient_surgeries').insert(rec);
+      r = await window.sb.from('patient_surgeries').insert(rec);
     }
-  } catch(e){ console.error('save surgery:', e.message); }
-  ge('m-save').disabled = false; ge('m-save').textContent = 'Save';
+  } catch(e){ r = { error: e }; }          // network faults DO throw
+
+  btn.disabled = false; btn.textContent = 'Save';
+
+  /* A refusal keeps the modal open with the details still typed in. Closing it
+     and reloading — which is what happened before — throws away what the
+     person wrote and tells them nothing. */
+  if(r && r.error){
+    if(err){ err.textContent = saveSurgeryError(r.error); err.style.display = 'block'; }
+    else { alert(saveSurgeryError(r.error)); }
+    return;
+  }
+
   closeSurgery();
   await loadSurgeries();
   renderJourney(); renderStatusPanel(); renderHero(); renderSpotlight(); renderPrep();
