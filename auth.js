@@ -145,21 +145,29 @@ async function requireRole(allowed, opts) {
   var role = p.role || 'patient';
   var isAdmin = auth.isAdmin === true;      // from is_platform_admin(), server-side
 
-  /* An unapproved doctor is not staff for routing purposes. Before this,
-     isStaff was true for role='doctor' regardless of verification_status, so a
-     pending doctor reached every staff page. The database now refuses their
-     reads (v2_auth_onboarding.sql), which means without this they would land
-     on a workspace that silently renders nothing — the worst of both. Send
-     them somewhere that explains itself instead.
+  /* IS THIS DOCTOR VERIFIED? — a question about trust surfaces, not access.
 
-     Administrators are exempt, and that is now stated rather than inherited
-     from a role collapse: an anesthesiologist whose verification lapses must
-     still reach the Admin Center. It does not let them chart — the database
-     decides that, and is_verified_doctor() is false for them. */
-  if (role === 'doctor' && (p.verification_status || '') !== 'approved' && !isAdmin) {
-    window.location.replace('/doctor-pending.html');
-    return null;
-  }
+     This was `window.location.replace('/doctor-pending.html')`, which held an
+     unapproved doctor out of every staff page. It was an honest presentation
+     of the database at the time: thirty-three RESTRICTIVE policies really did
+     deny them every clinical table, so the workspace would have rendered empty.
+
+     v9_doctor_access_model.sql, now deployed, removes those policies and
+     re-points ten predicates from is_verified_doctor() to is_doctor_account().
+     Being a doctor account is what opens the workspace. Verification is what
+     opens the public directory, the patient Questions inbox, verifying a
+     Health Passport entry, and being named as a co-author on someone's chart.
+
+     So this flag gates nothing here, and it must not. It exists so a page can
+     offer the optional step, or explain one specific trust-gated action,
+     without every page re-deriving the rule from the profile row.
+
+     Administrators are excluded for the reason they always were: their trust
+     surfaces come from the admin privilege, so telling them they are
+     unverified would describe something that does not apply to them. */
+  auth.unverifiedDoctor = (role === 'doctor' &&
+                           (p.verification_status || '') !== 'approved' && !isAdmin);
+  auth.pendingDoctor = auth.unverifiedDoctor;   // previous name; kept for one release
 
   var isStaff = (role === 'doctor' || role === 'admin' || isAdmin);
   var allow = Array.isArray(allowed) ? allowed : [allowed];
@@ -722,24 +730,12 @@ async function resolveAuthDestination() {
      made the OAuth callback disagree with every other entry point. */
   if (role === 'patient') return { ok: true, dest: '/index.html', role: 'patient', verification: verif };
 
-  /* A doctor who is not yet approved goes to the pending page, not the
-     workspace. Until now they were sent to dashboard.html with a banner, which
-     was misleading in both directions: it looked like access had been granted,
-     and — because nothing server-side consulted verification_status — it
-     actually had been.
+/* An unapproved doctor lands in the workspace like any other clinician.
+     They used to be routed to /doctor-pending.html — a page with no way
+     onward, reached again on every sign-in. That page still exists, linked
+     from the Verified Clinician prompt, as the place that explains what
+     verification adds. It is an offer now, not a gate. */
 
-     v2_auth_onboarding.sql closes that at the database: a RESTRICTIVE policy
-     on twelve clinical tables now denies every unapproved doctor. So the
-     workspace would render empty for them anyway. Routing here is the honest
-     presentation of a decision the server already enforces, NOT the gate
-     itself — deleting this line would change what they see, never what they
-     can reach.
-
-     Any status other than 'approved' lands here, including 'rejected' and
-     'changes_requested': fail closed, and let the page explain the state. */
-  if (role === 'doctor' && verif !== 'approved') {
-    return { ok: true, dest: '/doctor-pending.html', role: 'doctor', verification: verif };
-  }
   return { ok: true, dest: '/dashboard.html', role: role, verification: verif };
 }
 window.resolveAuthDestination = resolveAuthDestination;

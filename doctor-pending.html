@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Awaiting verification — Anestheo</title>
+<title>Become a Verified Clinician — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-04"></script>
-<script src="/auth.js?v=2026.08.18-04"></script>
+<script src="/supabase.js?v=2026.08.19-01"></script>
+<script src="/auth.js?v=2026.08.19-01"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -41,6 +41,10 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
   border-radius:10px;padding:14px 16px;font-size:13px;color:rgba(255,255,255,.62);
   line-height:1.7;margin-top:20px;}
 .acts{display:flex;flex-direction:column;gap:9px;margin-top:22px;}
+.dp-list{list-style:none;margin:0 0 4px;padding:0;}
+.dp-list li{position:relative;padding:6px 0 6px 22px;font-size:13.5px;color:rgba(255,255,255,.78);line-height:1.6;}
+.dp-list li::before{content:'';position:absolute;left:4px;top:14px;width:6px;height:6px;
+  border-radius:50%;background:var(--accent);}
 .btn{display:block;width:100%;text-align:center;padding:12px 16px;border-radius:9px;
   font-family:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;
   border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#fff;min-height:46px;}
@@ -59,22 +63,33 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
   <div class="brand">Anest<span>heo</span></div>
   <div class="card">
     <div class="head">
-      <div class="pill pill-wait" id="dp-pill"><span class="dot"></span><span id="dp-pill-t">Awaiting verification</span></div>
-      <h1 id="dp-h">Your doctor profile is awaiting verification.</h1>
-      <p class="sub" id="dp-sub">An Anestheo administrator reviews every clinical account by hand.</p>
+      <div class="pill pill-wait" id="dp-pill"><span class="dot"></span><span id="dp-pill-t">Not verified yet</span></div>
+      <h1 id="dp-h">Become a Verified Clinician.</h1>
+      <p class="sub" id="dp-sub">Your workspace is already open. Verification adds the parts of Anestheo that patients rely on.</p>
     </div>
     <div class="body">
       <div class="sec-h">Submitted details</div>
       <dl class="kv" id="dp-kv"><dd style="color:rgba(255,255,255,.4)">Loading…</dd></dl>
 
+      <div class="sec-h" style="margin-top:22px">What verification adds</div>
+      <ul class="dp-list">
+        <li>Your listing in the clinician directory patients search</li>
+        <li>Answering patient questions in the shared inbox</li>
+        <li>Confirming a Health Passport entry as clinician&#8209;verified</li>
+        <li>Joining another clinician&rsquo;s anesthesia record as a named co&#8209;author</li>
+      </ul>
       <div class="note" id="dp-note">
-        You can sign in at any time — this page is where you will land until your account is
-        approved. The clinical workspace and patient data stay closed until then; that
-        restriction is enforced by our database, not by this page.
+        None of this affects the workspace you already have. Your patients, your anesthesia
+        records, Live Tools and the clinical references are open to you now and stay open
+        whether or not you verify.
       </div>
 
       <div class="acts">
-        <a class="btn btn-p" href="/doctor-pending.html">Check status again</a>
+        <!-- This page is not a holding pen and never was after the redirect
+             was removed. Under the current access model it is an offer, so the
+             first action out of it is the workspace that is already theirs. -->
+        <a class="btn btn-p" href="/dashboard.html">Back to my workspace</a>
+        <a class="btn" href="/doctor-pending.html">Check my status</a>
         <a class="btn" href="/index.html">Go to the homepage</a>
         <a class="btn" href="#" onclick="window.signOut();return false;">Sign out</a>
       </div>
@@ -92,13 +107,19 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
    and whose verification_status is not exactly 'approved'. If this page did
    not exist, they would still be unable to read a single patient record.
 
-   What it does add is an explanation. Before it, an unapproved doctor was sent
-   to the workspace with a banner — which read as "you are in", and (because
-   nothing server-side checked the status) was unfortunately accurate.
+   What it does add is an explanation, in full, of what verification needs and
+   where the account currently stands — more than a banner can carry.
 
-   It also handles the states that are not 'pending'. Rejected and
-   changes_requested land here too, and being told "awaiting verification"
-   when you have actually been rejected is worse than being told nothing.
+   IT IS AN OFFER, NOT A GATE. requireRole() used to redirect every unapproved
+   doctor here, on every staff page, so this was the whole product until an
+   administrator acted. Then the redirect went and this became an explanation
+   of what was still closed. Under v9_doctor_access_model.sql nothing ordinary
+   is closed any more: verification is what adds the directory, the patient
+   question inbox, confirming Health Passport entries, and co-authorship on
+   another clinician's chart.
+
+   So the page now describes what is gained rather than what is withheld, and
+   every visit offers the way back to a workspace that is already open.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 var LEVEL = { consultant:'Consultant / Specialist', resident:'Resident' };

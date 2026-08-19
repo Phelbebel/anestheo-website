@@ -6,11 +6,11 @@
 <title>Settings — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-04"></script>
-<script src="/auth.js?v=2026.08.18-04"></script>
-<script src="/clinical-index.js?v=2026.08.18-04"></script>
-<script src="/clinical-search.js?v=2026.08.18-04"></script>
-<script src="/navbar.js?v=2026.08.18-04"></script>
+<script src="/supabase.js?v=2026.08.19-01"></script>
+<script src="/auth.js?v=2026.08.19-01"></script>
+<script src="/clinical-index.js?v=2026.08.19-01"></script>
+<script src="/clinical-search.js?v=2026.08.19-01"></script>
+<script src="/navbar.js?v=2026.08.19-01"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -588,6 +588,102 @@ function copyUid(){
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   THE LOADED BASELINE, AND WHY EVERY SAVE ON THIS PAGE IS NOW A DIFF
+
+   This page used to send all eight professional fields on every save, whether
+   they had changed or not. Combined with two other things, that silently
+   un-approved verified doctors and wiped their licence numbers:
+
+     1. three of those fields are read by a SEPARATE query, whose failure path
+        left the inputs empty — and an empty input became `null`;
+     2. two of them are closed <select>s, and assigning a value that is not in
+        the option list leaves a <select> at '', which also became `null`.
+
+   Either way a real value was overwritten with NULL, that counts as a change
+   to a professional-identity field, and guard_profiles_self_update() correctly
+   resets an approved doctor to 'pending' when one of those changes. Reproduced
+   on a replica: approved -> pending, licence number gone, from a doctor
+   editing their phone number.
+
+   THE TRIGGER IS RIGHT AND IS NOT TOUCHED. A genuinely changed licence really
+   should reset trust status. What was wrong is that the client sent changes
+   nobody made. So:
+
+     _loaded   holds exactly what came back from the database
+     dirty()   sends only fields the person actually altered
+     setSel()  never lets an unmatched stored value become ''
+     _fieldsOk records whether the professional read succeeded at all
+
+   If the read failed we do not guess: the form is disabled and says so. A
+   save that cannot see the current values has no business writing over them.
+   ══════════════════════════════════════════════════════════════════════════ */
+var _loaded = {};          // the last known-good server state
+var _fieldsOk = true;      // did the professional-columns read succeed?
+
+/* Assign a <select> safely. A value the option list does not contain is
+   ADOPTED as an option rather than silently discarded — a specialty an
+   administrator typed as free text through admin_update_profile_fields is a
+   real value, and the fact that this page renders a closed list is not a
+   reason to destroy it on the next save. */
+function setSel(id, value){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var v = (value == null) ? '' : String(value);
+  el.value = v;
+  if(v !== '' && el.value !== v){
+    var opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v + ' — as recorded';
+    el.appendChild(opt);
+    el.value = v;
+  }
+}
+
+/* Only what actually changed, compared against what was loaded. Values are
+   normalised the same way on both sides so that '' and null and '  ' do not
+   read as a change when the person touched nothing. */
+function dirty(candidate){
+  var out = {}, k, a, b;
+  for(k in candidate){
+    if(!Object.prototype.hasOwnProperty.call(candidate, k)) continue;
+    a = candidate[k]; b = _loaded[k];
+    a = (a == null) ? '' : String(a).trim();
+    b = (b == null) ? '' : String(b).trim();
+    if(a !== b) out[k] = candidate[k];
+  }
+  return out;
+}
+
+/* ── saveError ─────────────────────────────────────────────────────────────
+   Every save on this page used to print result.error.message verbatim, which
+   for the two failures that actually happen means showing somebody a Postgres
+   sentence. The guard trigger answers a rejected column with
+
+     profiles: role cannot be changed directly. Role changes go through
+     set_own_role(); verification and admin status are set only by an audited
+     admin action.
+
+   — accurate, addressed to a developer, and alarming to a doctor who was
+   trying to correct their phone number. The raw text still reaches the
+   console, where the person who needs it is looking. */
+function saveError(e){
+  var m = String((e && e.message) || e || '');
+  try { console.error('[settings] save failed:', m); } catch(x){}
+  if(!m) return 'We could not save that. Please try again.';
+  if(/cannot be changed directly|42501|permission|not authorized|not authorised/i.test(m))
+    return 'Some of those details are not yours to change here. Contact support if they are wrong.';
+  if(/professional_level_chk|violates check constraint/i.test(m))
+    return 'One of the values is not one we accept. Check the highlighted fields and try again.';
+  if(/duplicate key|already exists/i.test(m))
+    return 'That value is already in use on another account.';
+  if(/does not exist|schema cache|PGRST\d+|42703|42P01/i.test(m))
+    return 'This part of your profile is not available on this deployment yet.';
+  if(/network|fetch|timeout|failed to fetch/i.test(m))
+    return 'The server could not be reached. Check your connection and try again.';
+  return m;
+}
+
 document.addEventListener('DOMContentLoaded', async function(){
   try {
     var auth = await window.requireAuth();
@@ -599,28 +695,46 @@ document.addEventListener('DOMContentLoaded', async function(){
     _authUser = user; _profileRow = profile;
     avatarRender();          // independent of the rest of the page
 
+    /* CLINICAL ROLE AND PLATFORM PRIVILEGE ARE READ SEPARATELY.
+
+       This line used to be `(_isAdmin ? 'admin' : profile.role)`, and it was
+       not merely a labelling slip: _curRole drives isDoctor, which decides
+       whether the PROFESSIONAL PROFILE section renders at all. An
+       anesthesiologist who also administers the platform was therefore shown
+       the patient "Personal information" form and had no way to reach — let
+       alone edit — their own licence number, institution, specialty or
+       verification state, from anywhere in the product. */
     _isAdmin  = await window.isPlatformAdmin();
-    _curRole  = (_isAdmin ? 'admin' : profile.role) || 'pending';
+    _curRole  = profile.role || 'pending';
     _curVerif = profile.verification_status || '';
     var isDoctor = (_curRole === 'doctor');
-    var isPatient = (_curRole === 'patient');
+    var isPatient = (_curRole === 'patient') && !_isAdmin;
 
     // ACCOUNT — stated as facts, not as disabled form controls.
     document.getElementById('v-email').textContent = user.email || '\u2014';
     var typeLabel = { patient:'Patient', doctor:'Doctor', admin:'Administrator',
                       other:'Healthcare professional', pending:'Not set yet' };
     var pill = document.getElementById('v-acctype');
-    pill.textContent = typeLabel[_curRole] || _curRole;
-    if(_curRole === 'pending') pill.className = 'pill warn';
+    // Both facts when both are true, in that order: what you do clinically,
+    // then what you may administer.
+    var acctText = typeLabel[_curRole] || _curRole;
+    if(_isAdmin && _curRole !== 'admin'){
+      acctText = (_curRole === 'pending') ? 'Administrator' : (acctText + ' · Administrator');
+    }
+    pill.textContent = acctText;
+    if(_curRole === 'pending' && !_isAdmin) pill.className = 'pill warn';
 
     // Only a patient is offered the doctor application, and it is the full
     // verification flow — never a role switch.
-    if(isPatient) document.getElementById('become-doctor').style.display = 'block';
+    // Keyed on the CLINICAL role, so an administrator whose clinical role is
+    // still 'patient' can apply like anybody else. Platform privilege is not a
+    // substitute for verification and must not quietly stand in for one.
+    if(_curRole === 'patient') document.getElementById('become-doctor').style.display = 'block';
 
     /* The sidebar's Workspace link goes to the staff dashboard, which
        requireRole() bounces a patient straight back out of. Showing a dead
        link is worse than showing none. */
-    if(!isPatient && _curRole !== 'pending'){
+    if(_isAdmin || (!isPatient && _curRole !== 'pending')){
       document.getElementById('sb-workspace').style.display = 'block';
       document.getElementById('sb-sep').style.display = 'block';
     }
@@ -631,6 +745,10 @@ document.addEventListener('DOMContentLoaded', async function(){
       document.getElementById('f-name').value = profile.full_name || '';
       fillCountries(document.getElementById('f-country'), profile.country);
       document.getElementById('f-phone').value = splitPhone(profile.country, profile.phone);
+      // The baseline this branch's save diffs against.
+      _loaded.full_name = profile.full_name || '';
+      _loaded.country   = profile.country || '';
+      _loaded.phone     = profile.phone || '';
     } else {
       // PROFESSIONAL PROFILE (doctors) — full field set, plus verification state.
       document.getElementById('professional-section').style.display = 'block';
@@ -643,23 +761,58 @@ document.addEventListener('DOMContentLoaded', async function(){
 
       document.getElementById('d-name').value      = profile.full_name || '';
       document.getElementById('d-hospital').value  = profile.hospital || '';
-      document.getElementById('d-specialty').value = profile.specialty || '';
+      setSel('d-specialty', profile.specialty);
       document.getElementById('d-phone').value     = splitPhone(profile.country, profile.phone);
       fillCountries(document.getElementById('d-country'), profile.country);
 
       /* getProfile() selects a narrow, fixed column list because it runs on
          every protected page; the professional columns are read here, where
-         they are shown. Narrow fallback if the migration is not applied yet. */
+         they are shown.
+
+         THE FAILURE PATH IS NO LONGER SILENT. This block used to swallow an
+         error and leave three inputs empty, and the next save then wrote those
+         empties over real values as NULL — which is how an approved doctor
+         lost their verification and their licence number by editing their
+         phone. If the read fails we now say so and stop the form: a save that
+         cannot see the current values must not overwrite them. */
+      var extra = null;
       try {
-        var extra = await window.sb.from('profiles')
+        extra = await window.sb.from('profiles')
           .select('professional_level,medical_license_number,medical_university')
           .eq('id', user.id).maybeSingle();
-        if(!extra.error && extra.data){
-          document.getElementById('d-level').value      = extra.data.professional_level || '';
-          document.getElementById('d-license').value    = extra.data.medical_license_number || '';
-          document.getElementById('d-university').value = extra.data.medical_university || '';
+      } catch(e){ extra = { error: e }; }
+
+      if(extra && !extra.error && extra.data){
+        setSel('d-level', extra.data.professional_level);
+        document.getElementById('d-license').value    = extra.data.medical_license_number || '';
+        document.getElementById('d-university').value = extra.data.medical_university || '';
+      } else {
+        _fieldsOk = false;
+        var dbtn = document.getElementById('dsave-btn');
+        if(dbtn){ dbtn.disabled = true; dbtn.textContent = 'Unavailable right now'; }
+        var derr = document.getElementById('dsave-err');
+        if(derr){
+          derr.textContent = 'We could not load your professional details just now, so saving is ' +
+            'switched off to avoid overwriting them. Reload the page to try again.';
+          derr.style.display = 'block';
         }
-      } catch(e){ /* leave those fields empty rather than fail the page */ }
+        try { console.error('[settings] professional columns unreadable:',
+                            extra && extra.error && (extra.error.message || extra.error)); } catch(x){}
+      }
+
+      /* THE BASELINE. Everything below compares against this, so a field the
+         person never touched is never sent — and therefore can never be the
+         thing that resets their verification. */
+      _loaded.full_name              = profile.full_name || '';
+      _loaded.hospital               = profile.hospital || '';
+      _loaded.specialty              = profile.specialty || '';
+      _loaded.country                = profile.country || '';
+      _loaded.phone                  = profile.phone || '';
+      if(extra && !extra.error && extra.data){
+        _loaded.professional_level     = extra.data.professional_level || '';
+        _loaded.medical_license_number = extra.data.medical_license_number || '';
+        _loaded.medical_university     = extra.data.medical_university || '';
+      }
     }
     onCountryChange();
 
@@ -706,16 +859,25 @@ async function saveProfileData(){
   btn.disabled = true; btn.textContent = 'Saving\u2026';
 
   var country = document.getElementById('f-country').value || null;
-  var result = await window.saveProfile(_userId, {
+  var payload = dirty({
     full_name: name,
     country:   country,
     phone:     normalizePhone(country, document.getElementById('f-phone').value)
   });
+
+  if(!Object.keys(payload).length){
+    btn.disabled = false; btn.textContent = 'Save changes';
+    ok.textContent = 'Nothing to save — no changes were made.'; ok.style.display = 'block';
+    return;
+  }
+
+  var result = await window.saveProfile(_userId, payload);
   btn.disabled = false; btn.textContent = 'Save changes';
 
   if(result.error){
-    err.textContent = result.error.message; err.style.display = 'block'; return;
+    err.textContent = saveError(result.error); err.style.display = 'block'; return;
   }
+  Object.keys(payload).forEach(function(k){ _loaded[k] = payload[k]; });
   ok.textContent = 'Saved.'; ok.style.display = 'block';
   document.getElementById('f-phone').value =
     splitPhone(country, normalizePhone(country, document.getElementById('f-phone').value));
@@ -737,9 +899,28 @@ async function saveDoctorData(){
   }
   btn.disabled = true; btn.textContent = 'Saving\u2026';
 
+  /* Refuse outright if the professional columns never loaded. Without this the
+     three inputs below would read '' and the diff would see three deletions
+     the person never made. This is the exact path that used to un-approve
+     verified doctors, and it is closed at the top rather than mitigated. */
+  if(!_fieldsOk){
+    btn.disabled = false; btn.textContent = 'Save changes';
+    err.textContent = 'Your professional details could not be loaded, so they cannot be saved. ' +
+      'Reload the page and try again.';
+    err.style.display = 'block';
+    return;
+  }
+
   var country = document.getElementById('d-country').value || null;
   var was = _curVerif;
-  var result = await window.saveProfile(_userId, {
+
+  /* ONLY WHAT CHANGED. Sending the full set on every save is what turned a
+     phone-number edit into a licence-number deletion: the two <select>s and
+     the three separately-read inputs could each report '' for a value that was
+     really there, and '' became NULL over a real column. A field the person
+     did not touch is now not in the payload at all, so it cannot be the thing
+     that resets their verification. */
+  var payload = dirty({
     full_name:              name,
     professional_level:     document.getElementById('d-level').value || null,
     country:                country,
@@ -749,11 +930,44 @@ async function saveDoctorData(){
     medical_university:     document.getElementById('d-university').value.trim() || null,
     specialty:              document.getElementById('d-specialty').value || null
   });
+
+  /* A field going from a real value to empty is the one change we will not
+     infer. Clearing a licence number is a decision, and if it is a real one it
+     deserves to be asked about rather than assumed from a blank input — which
+     is what a failed populate looks like. Blanking is refused, by name. */
+  var cleared = Object.keys(payload).filter(function(k){
+    var now = payload[k];
+    return (now == null || String(now).trim() === '') &&
+           String(_loaded[k] == null ? '' : _loaded[k]).trim() !== '';
+  });
+  if(cleared.length){
+    btn.disabled = false; btn.textContent = 'Save changes';
+    var LABEL = { full_name:'your name', professional_level:'your professional level',
+                  country:'your country', phone:'your phone number',
+                  medical_license_number:'your licence number', hospital:'your hospital',
+                  medical_university:'your medical university', specialty:'your specialty' };
+    err.textContent = 'Please fill in ' +
+      cleared.map(function(k){ return LABEL[k] || k; }).join(', ') +
+      '. Professional details cannot be left blank once they have been recorded.';
+    err.style.display = 'block';
+    return;
+  }
+
+  if(!Object.keys(payload).length){
+    btn.disabled = false; btn.textContent = 'Save changes';
+    ok.textContent = 'Nothing to save — no changes were made.';
+    ok.style.display = 'block';
+    return;
+  }
+
+  var result = await window.saveProfile(_userId, payload);
   btn.disabled = false; btn.textContent = 'Save changes';
 
   if(result.error){
-    err.textContent = result.error.message; err.style.display = 'block'; return;
+    err.textContent = saveError(result.error); err.style.display = 'block'; return;
   }
+
+  Object.keys(payload).forEach(function(k){ _loaded[k] = payload[k]; });
 
   var fresh = await window.getProfile(_userId);
   var now = (fresh && fresh.verification_status) || was;
@@ -781,7 +995,7 @@ async function saveDirectory(){
     accepting_patients: document.getElementById('f-accepting').checked
   });
   btn.disabled = false; btn.textContent = 'Save directory setting';
-  if(result.error){ err.textContent = result.error.message; err.style.display = 'block'; }
+  if(result.error){ err.textContent = saveError(result.error); err.style.display = 'block'; }
   else {
     ok.textContent = document.getElementById('f-accepting').checked
       ? '✓ You are now listed in the patient directory.'

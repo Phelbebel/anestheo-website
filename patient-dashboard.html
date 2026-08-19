@@ -6,14 +6,14 @@
 <title>My Space — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-04"></script>
-<script src="/auth.js?v=2026.08.18-04"></script>
-<script src="/clinical-index.js?v=2026.08.18-04"></script>
-<script src="/clinical-search.js?v=2026.08.18-04"></script>
-<script src="/navbar.js?v=2026.08.18-04"></script>
-<script src="/journey.js?v=2026.08.18-04"></script>
-<script src="/passport.js?v=2026.08.18-04"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.18-04">
+<script src="/supabase.js?v=2026.08.19-01"></script>
+<script src="/auth.js?v=2026.08.19-01"></script>
+<script src="/clinical-index.js?v=2026.08.19-01"></script>
+<script src="/clinical-search.js?v=2026.08.19-01"></script>
+<script src="/navbar.js?v=2026.08.19-01"></script>
+<script src="/journey.js?v=2026.08.19-01"></script>
+<script src="/passport.js?v=2026.08.19-01"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-01">
 <style>
 /* ============================================================
    MY SPACE — premium patient healthcare home.
@@ -2065,18 +2065,30 @@ function passportCardHtml(){
     facts = '<div class="pc-facts">' + f.join('') + '</div>';
   }
 
+  /* THE LABEL HAS TO MATCH WHAT THE CLICK DOES.
+
+     The middle case here used to read "Create my Health Passport" for someone
+     who ALREADY HAD ONE — it was keyed on whether the QR was switched on, not
+     on whether the passport existed — so the product offered to create a thing
+     it was at that moment displaying facts about.
+
+     ?create=1 carries the intent of the one label that really does mean
+     create, so health-passport.html can act on it immediately instead of
+     asking for the same click a second time. */
   var acts = live
-    ? '<a class="pc-btn" href="/health-passport.html">' +
-        (s.qrActive ? 'Show my QR' : 'Create my Health Passport') + '</a>' +
-      '<a class="pc-btn ghost" href="/health-passport.html">Edit passport</a>'
-    : '<a class="pc-btn" href="/health-passport.html">Create my Health Passport</a>';
+    ? (s.qrActive
+        ? '<a class="pc-btn" href="/health-passport.html">Show my QR</a>' +
+          '<a class="pc-btn ghost" href="/health-passport.html">Edit my passport</a>'
+        : '<a class="pc-btn" href="/health-passport.html">Set up my emergency QR</a>' +
+          '<a class="pc-btn ghost" href="/health-passport.html">Open my passport</a>')
+    : '<a class="pc-btn" href="/health-passport.html?create=1">Create my Health Passport</a>';
 
   return '<section class="pc pc-hp">' +
     '<div class="pc-top">' + pcIcon('shield-check') +
       '<span class="pc-lbl">Health Passport</span>' + pill + '</div>' +
     '<div class="pc-h">Your essential information, when you can\u2019t explain it yourself.</div>' +
     '<div class="pc-sub">Allergies, medical alerts, important medications and emergency ' +
-      'contacts &mdash; carried as a secure QR code. It works whether or not you have a surgery booked.</div>' +
+      'contacts, carried as a secure QR code. It works whether or not you have a surgery booked.</div>' +
     facts +
     '<div class="pc-acts">' + acts + '</div>' +
     lockNote('You control what is shared.') +

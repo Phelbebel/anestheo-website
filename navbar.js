@@ -617,7 +617,10 @@ window.nbResendConfirm = async function(){
 // Current auth state (UI only) so the login modal is never shown to an
 // already-authenticated user. Set by setAuth/populateMenu, cleared by setGuest.
 var _nbAuthed = false;
+/* THE CLINICAL ROLE, VERBATIM. Never overwritten by platform privilege — see
+   populateMenu(). _nbIsAdmin carries that second, independent fact. */
 var _nbRole = null;
+var _nbIsAdmin = false;
 
 function setBtns(disabled){
   var b = ge('nb-submit-btn');
@@ -628,7 +631,7 @@ function setBtns(disabled){
 }
 
 function setGuest(){
-  _nbAuthed = false; _nbRole = null;
+  _nbAuthed = false; _nbRole = null; _nbIsAdmin = false;
   var g = ge('nb-guest-links'), a = ge('nb-auth-links');
   if(g) g.style.display = '';
   if(a) a.style.display = 'none';
@@ -770,7 +773,12 @@ async function populateMenu(user, profile){
   /* From is_platform_admin(), not from the profile row — one server-side
      answer, shared with every other page. */
   var isAdmin = await window.isPlatformAdmin();
-  _nbAuthed = true; _nbRole = isAdmin ? 'admin' : role;
+  /* The role is stored AS IT IS. The previous line was `isAdmin ? 'admin' :
+     role`, which is the same collapse the comment above warns against, made
+     one variable later: an anesthesiologist who administers the platform was
+     remembered as 'admin' and nothing downstream could tell they were a
+     doctor. Privilege is now a second field, so both facts survive. */
+  _nbAuthed = true; _nbRole = role; _nbIsAdmin = isAdmin;
 
   var fullName = (profile && profile.full_name) ? profile.full_name : '';
   var parts    = fullName.trim().split(' ').filter(Boolean);
@@ -806,9 +814,15 @@ async function populateMenu(user, profile){
   if(isAdmin && role !== 'admin') roleText = roleText ? roleText + ' · Administrator' : 'Administrator';
   var rlEl = ge('nb-menu-role'); if(rlEl) rlEl.textContent = roleText;
 
-  var isStaff = (role !== 'patient') || isAdmin;
-  var isPatient = !isStaff;
-  var isDoctor = (role === 'doctor');
+  /* 'pending' means NO ROLE HAS BEEN CHOSEN YET, and it used to fall through
+     `role !== 'patient'` into isStaff — so a brand-new social sign-in was
+     shown the clinical global search and the staff workspace switcher before
+     they had told us who they are. Absence of a role is now its own case:
+     neither staff nor patient, so the public navigation is what they get. */
+  var hasRole   = !!role && role !== 'pending';
+  var isStaff   = (hasRole && role !== 'patient') || isAdmin;
+  var isPatient = hasRole && role === 'patient' && !isAdmin;
+  var isDoctor  = (role === 'doctor');
   // Admin surfaces are keyed on the PRIVILEGE, not on the role column.
   var isAdminRole = !!isAdmin;
   // Which workspace set this account gets. The admin set already contains
@@ -995,26 +1009,35 @@ function nbShowAuthModal(){
   document.body.style.overflow = 'hidden';
   setTimeout(function(){ var e = ge('nb-email'); if(e) e.focus(); }, 80);
 }
-function nbGoWorkspace(role){
-  // Returning session: patients land on the Patient Home; staff on the workspace.
-  location.href = (role === 'patient') ? '/index.html' : '/dashboard.html';
+/* Where a returning session belongs. Takes both facts, because they are two
+   different questions and answering with only one of them is how a doctor-
+   administrator lost their clinical home.
+
+   'pending' is not a role, it is the ABSENCE of one — a brand-new social
+   sign-in, or an account that never finished onboarding. Sending it to
+   /dashboard.html used to bounce off requireRole('staff') and land the person
+   back where they started with no explanation. It goes to the chooser. */
+function nbGoWorkspace(role, isAdmin){
+  if(!role || role === 'pending'){ location.href = '/role-select.html'; return; }
+  if(role === 'patient' && !isAdmin){ location.href = '/index.html'; return; }
+  location.href = '/dashboard.html';
 }
 // The sign-in modal must ONLY appear when there is no authenticated session.
 // If a valid Supabase session already exists, reuse it and send the user to
 // their own workspace instead of ever asking them to sign in again.
 window.nbOpenModal = function(){
-  if(_nbAuthed){ nbGoWorkspace(_nbRole); return; }
+  if(_nbAuthed){ nbGoWorkspace(_nbRole, _nbIsAdmin); return; }
   // Navbar state not populated yet — double-check the persisted session before
   // ever showing the modal (handles a click during auth initialisation).
   if(typeof window.getSession === 'function'){
     Promise.resolve(window.getSession()).then(function(s){
       if(!s){ nbShowAuthModal(); return; }
-      if(_nbRole){ nbGoWorkspace(_nbRole); return; }
+      if(_nbRole){ nbGoWorkspace(_nbRole, _nbIsAdmin); return; }
       if(typeof window.getProfile === 'function'){
         Promise.resolve(window.getProfile(s.user.id))
-          .then(function(p){ nbGoWorkspace(p && p.role); })
-          .catch(function(){ nbGoWorkspace(null); });
-      } else { nbGoWorkspace(null); }
+          .then(function(p){ nbGoWorkspace(p && p.role, false); })
+          .catch(function(){ nbGoWorkspace(null, false); });
+      } else { nbGoWorkspace(null, false); }
     }).catch(function(){ nbShowAuthModal(); });
     return;
   }

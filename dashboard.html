@@ -6,13 +6,13 @@
 <title>Dashboard — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-04"></script>
-<script src="/auth.js?v=2026.08.18-04"></script>
-<script src="/clinical-index.js?v=2026.08.18-04"></script>
-<script src="/clinical-search.js?v=2026.08.18-04"></script>
-<script src="/clinical-open.js?v=2026.08.18-04"></script>
-<script src="/patient-lifecycle.js?v=2026.08.18-04"></script>
-<script src="/navbar.js?v=2026.08.18-04"></script>
+<script src="/supabase.js?v=2026.08.19-01"></script>
+<script src="/auth.js?v=2026.08.19-01"></script>
+<script src="/clinical-index.js?v=2026.08.19-01"></script>
+<script src="/clinical-search.js?v=2026.08.19-01"></script>
+<script src="/clinical-open.js?v=2026.08.19-01"></script>
+<script src="/patient-lifecycle.js?v=2026.08.19-01"></script>
+<script src="/navbar.js?v=2026.08.19-01"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: #0A1A15; color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -1995,9 +1995,28 @@ async function wsLcToggle(domId, kind, id, state, starred){
     };
   });
 
-  // Ask the server about every action this state offers, in one wait.
-  var need=window.PatientLifecycle.actionsForState(state);
-  var map=await window.PatientLifecycle.eligibilityFor(kind, id, need);
+  /* Ask the server about every action this state offers, in one wait.
+
+     WRAPPED, BECAUSE "Checking…" IS NOT AN ACCEPTABLE RESTING STATE. If this
+     await ever rejects, everything below it is skipped and the hints sit on
+     "Checking…" for ever with the actions disabled — which is exactly what
+     production showed. The refusal is now always drawn, and it names what the
+     server said instead of quietly enabling the buttons over a real
+     permission error. */
+  var need, map;
+  try {
+    need = window.PatientLifecycle.actionsForState(state);
+    map  = await window.PatientLifecycle.eligibilityFor(kind, id, need);
+  } catch(err){
+    if(_wsLcOpen!==domId) return;
+    var why = (err && (err.message || err.hint)) || String(err);
+    try { console.error('[dashboard] eligibility failed', kind, id, err); } catch(e){}
+    menu.querySelectorAll('.ws-lc-hint').forEach(function(h){
+      h.textContent = 'Could not check this action: ' + why;
+      h.className = 'ws-lc-hint tone-block';
+    });
+    return;
+  }
   if(_wsLcOpen!==domId) return;                 // the doctor moved on; do not fight them
   items.forEach(function(it){
     if(!it.needsEligibility) return;
@@ -3327,7 +3346,12 @@ document.addEventListener('DOMContentLoaded', async function(){
     // The role column says what this person does clinically; is_admin says what
     // they may administer. Collapsing the first into the second used to hide
     // the anesthesiologist inside a founder account.
-    var role  = profile.role || (isAdmin ? 'admin' : 'patient');
+    /* The clinical role, and nothing else. The old fallback substituted
+       'admin' whenever the column was empty, which turned an administrator
+       with no clinical role into one that the greeting, the role label and
+       every role test downstream then treated as a clinician. Missing is
+       missing; the privilege is carried by isAdmin, one line below. */
+    var role  = profile.role || 'patient';
 
     // Patients land on the For Patients portal (dashboard is one tool inside it).
     // An administrator is not sent away from their own console.
@@ -3352,10 +3376,33 @@ document.addEventListener('DOMContentLoaded', async function(){
     // administrator whatever their clinical role happens to be.
     var isAdminRole = !!isAdmin;
 
-    // Verification banner for pending doctors
+    /* THE VERIFIED CLINICIAN PROMPT.
+
+       This was a warning: "patient records stay closed until an administrator
+       approves you". Under v9_doctor_access_model.sql that sentence is simply
+       false — an unverified doctor has their patients, their charts, archive,
+       delete and the Recycle Bin, exactly like anybody else with role='doctor'.
+
+       So it is no longer a warning. It names what verification actually adds,
+       because a prompt that cannot say what it is for is just nagging:
+         · the public clinician directory patients search
+         · answering patient questions in the shared inbox
+         · confirming a Health Passport entry as clinician-verified
+         · being named as a co-author on another doctor's chart
+
+       Shown only while it is actionable, and never to an administrator, whose
+       trust surfaces come from the admin privilege instead. */
     var banner = '';
-    if(role === 'doctor' && verif === 'pending'){
-      banner = '<div class="verify-banner">&#9203; <strong>Verification in progress.</strong> Your license is under review. Usually within 24 hours. Questions? <a href="mailto:support@anestheo.com" style="color:#7ECFC0;">support@anestheo.com</a></div>';
+    if(auth.unverifiedDoctor){
+      var vhead = {
+        rejected:          'Your last verification request was not approved.',
+        changes_requested: 'We asked for a change before your verification can go ahead.'
+      }[verif] || 'You are not a Verified Clinician yet.';
+      banner = '<div class="verify-banner">&#9733; <strong>' + vhead + '</strong> ' +
+        'Your workspace, your patients and Live Chart are open as normal. Verification adds ' +
+        'the public directory, the patient question inbox, confirming Health Passport entries, ' +
+        'and joining another clinician&rsquo;s record as co-author. ' +
+        '<a href="/doctor-pending.html" style="color:#7ECFC0;">Become a Verified Clinician</a></div>';
     }
 
     // Section rail (switches panels in-place — no navigation away)

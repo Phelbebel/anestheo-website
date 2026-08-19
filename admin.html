@@ -6,12 +6,12 @@
 <title>Admin Center — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-04"></script>
-<script src="/auth.js?v=2026.08.18-04"></script>
-<script src="/clinical-index.js?v=2026.08.18-04"></script>
-<script src="/clinical-search.js?v=2026.08.18-04"></script>
-<script src="/navbar.js?v=2026.08.18-04"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.18-04">
+<script src="/supabase.js?v=2026.08.19-01"></script>
+<script src="/auth.js?v=2026.08.19-01"></script>
+<script src="/clinical-index.js?v=2026.08.19-01"></script>
+<script src="/clinical-search.js?v=2026.08.19-01"></script>
+<script src="/navbar.js?v=2026.08.19-01"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-01">
 <style>
 /* ============================================================
    ADMIN CENTER — platform administration
@@ -1084,7 +1084,48 @@ async function loadAll(){
 
 function isDoctor(p){ return p.role === 'doctor'; }
 function isPatientRole(p){ return p.role === 'patient'; }
+/* PLATFORM PRIVILEGE. Mirrors is_platform_admin() in the database — is_admin
+   OR role='admin'. It answers "what may this person administer", never "what
+   are they clinically". */
 function isAdminRole(p){ return p.is_admin === true || p.role === 'admin'; }
+
+/* ── HOW AN ACCOUNT IS DESCRIBED ────────────────────────────────────────────
+   Two independent dimensions, printed as two things.
+
+   Every display site here used to read `isAdminRole(p) ? 'admin' : p.role`,
+   which is not a shorthand — it is a claim that the two are alternatives. They
+   are not: role is what someone does clinically, is_admin is what they may
+   administer, and the founder account is deliberately both. Under the old
+   rendering an approved anesthesiologist who administers the platform appeared
+   in the People table as plain "admin", with no verification state worth
+   reading and no way to tell from the list that they chart at all.
+
+   acRoleCell() prints the clinical role, then adds the privilege as a separate
+   badge when it is held. A pure administrator (role='admin') gets one badge,
+   because there the two facts genuinely coincide. */
+var ROLE_WORD = { doctor:'doctor', patient:'patient', admin:'admin', nurse:'nurse',
+                  student:'student', other:'other', pending:'no role yet' };
+function roleWord(p){
+  var r = (p && p.role) || '';
+  if(!r || r === 'pending') return ROLE_WORD.pending;
+  return ROLE_WORD[r] || r;
+}
+function adminBadge(p){
+  // role='admin' already says it; a second badge would print it twice.
+  if(!isAdminRole(p) || p.role === 'admin') return '';
+  return ' <span class="bdg bdg-info" title="Platform administrator — independent of the clinical role">platform admin</span>';
+}
+function acRoleCell(p){
+  var w = roleWord(p);
+  var base = (p.role === 'admin')
+    ? '<span class="bdg bdg-info">admin</span>'
+    : ((p.role && p.role !== 'pending') ? esc(w) : '<span class="mut">' + esc(w) + '</span>');
+  return base + adminBadge(p);
+}
+function acRoleText(p){
+  var w = roleWord(p);
+  return (isAdminRole(p) && p.role !== 'admin') ? (w + ' · platform admin') : w;
+}
 function pname(p){ return p ? (p.full_name || p.email || 'User') : null; }
 function docName(id){ var p = AC.profById[id]; return p ? pname(p) : (id ? 'Unknown ('+short(id)+')' : null); }
 
@@ -1307,7 +1348,7 @@ function vOverview(){
     h += '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Verification</th><th>Registered</th><th></th></tr></thead><tbody>'+
       (recent.length ? recent.map(function(p){
         return '<tr><td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td>'+
-          '<td>'+dash(isAdminRole(p)?'admin':p.role)+'</td><td>'+badgeVerify(p.verification_status)+'</td>'+
+          '<td>'+acRoleCell(p)+'</td><td>'+badgeVerify(p.verification_status)+'</td>'+
           '<td>'+esc(fdate(p.created_at))+'</td>'+
           acRowActions(p)+'</tr>';
       }).join('') : '<tr><td colspan="6" class="empty">No accounts</td></tr>')+
@@ -1790,7 +1831,7 @@ function vDoctor(id, qs){
       kv('Medical university', has('profiles','medical_university') ? p.medical_university : null,
          has('profiles','medical_university') ? null : 'Not available') +
       kv('Specialty', p.specialty) +
-      kv('Role', isAdminRole(p)?'admin':p.role) +
+      kv('Role', acRoleText(p)) +
       kv('License number', has('profiles','medical_license_number') ? p.medical_license_number : null,
          has('profiles','medical_license_number') ? null : 'Not available') +
       kv('Verification status', p.verification_status) +
@@ -2516,7 +2557,7 @@ function vAccounts(qs){
       return '<tr>'+
         (amod?'<td class="selcol"><input type="checkbox" class="selbox" data-id="'+p.id+'" aria-label="Select '+esc(pname(p))+'" onchange="AC.selToggle(\'account\',\''+p.id+'\',this.checked)"></td>':'')+
         '<td class="nm">'+dash(p.full_name)+'</td><td>'+dash(p.email)+'</td><td>'+dash(p.phone)+'</td>'+
-        '<td>'+(isAdminRole(p)?'<span class="bdg bdg-info">admin</span>':dash(p.role))+'</td>'+
+        '<td>'+acRoleCell(p)+'</td>'+
         (p2()?'<td>'+badgeStatus(p)+'</td>':'')+
         '<td>'+badgeVerify(p.verification_status)+'</td><td>'+dash(p.country)+'</td>'+
         '<td>'+esc(fdate(p.created_at))+'</td><td class="mono">'+esc(short(p.id))+'</td>'+
@@ -3671,7 +3712,7 @@ function vSettings(){
   var p = AC.me||{};
   var h = head('Settings','Settings','Your administrator account, and how platform configuration is managed.');
   h += '<div class="gcard"><div class="gcard-h">Signed-in administrator</div><div class="kv">'+
-    kv('Name', p.full_name)+kv('Email', p.email)+kv('Role', isAdminRole(p)?'Administrator':p.role)+
+    kv('Name', p.full_name)+kv('Email', p.email)+kv('Role', acRoleText(p))+
     kvMono('Account ID', p.id)+
     '</div></div>';
   h += '<div class="gcard"><div class="gcard-h">Security</div><div class="kv">'+
@@ -3906,6 +3947,6 @@ document.addEventListener('keydown', function(e){
 
 })();
 </script>
-<script src="/videos-data.js?v=2026.08.18-04"></script>
+<script src="/videos-data.js?v=2026.08.19-01"></script>
 </body>
 </html>

@@ -6,13 +6,13 @@
 <title>For Patients — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.18-04"></script>
-<script src="/auth.js?v=2026.08.18-04"></script>
-<script src="/clinical-index.js?v=2026.08.18-04"></script>
-<script src="/clinical-search.js?v=2026.08.18-04"></script>
-<script src="/navbar.js?v=2026.08.18-04"></script>
-<script src="/journey.js?v=2026.08.18-04"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.18-04">
+<script src="/supabase.js?v=2026.08.19-01"></script>
+<script src="/auth.js?v=2026.08.19-01"></script>
+<script src="/clinical-index.js?v=2026.08.19-01"></script>
+<script src="/clinical-search.js?v=2026.08.19-01"></script>
+<script src="/navbar.js?v=2026.08.19-01"></script>
+<script src="/journey.js?v=2026.08.19-01"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-01">
 <style>
 /* -- Patient Home (UX ported from surgery-journey; status from derived spine) -- */
 #ph-loader{min-height:50vh;display:flex;align-items:center;justify-content:center;}
@@ -236,8 +236,11 @@ function hpArtSvg(){
     '</g></svg>';
 }
 function hpFeatureHtml(signedIn){
+  /* ?create=1 says what the label says. A signed-in visitor who clicks
+     "Create my Health Passport" has decided; health-passport.html should not
+     open with the same offer and wait for the decision again. */
   var cta = signedIn
-    ? '<a class="ph-cta" href="/health-passport.html">Create my Health Passport</a>'
+    ? '<a class="ph-cta" href="/health-passport.html?create=1">Create my Health Passport</a>'
     : '<button class="ph-cta" onclick="window.nbOpenModal()">Create my Health Passport</button>';
   return '<section class="hp-feat">' +
       '<div>' +
@@ -245,7 +248,7 @@ function hpFeatureHtml(signedIn){
         '<h2>Your essential health information, always with you.</h2>' +
         '<p>Create a Health Passport containing the allergies, medical alerts, important ' +
           'medications and emergency contacts you choose to share. Carry it as a secure QR ' +
-          'code &mdash; whether or not you have an upcoming surgery.</p>' +
+          'code, whether or not you have an upcoming surgery.</p>' +
         '<div class="hp-feat-btns">' + cta + '</div>' +
         '<div class="hp-feat-note">You control what is shared, and you can switch it off at any time.</div>' +
       '</div>' +
