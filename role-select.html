@@ -7,8 +7,8 @@
 <title>How will you use Anestheo?</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.16-02"></script>
-<script src="/auth.js?v=2026.08.16-02"></script>
+<script src="/supabase.js?v=2026.08.18-04"></script>
+<script src="/auth.js?v=2026.08.18-04"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
@@ -547,10 +547,60 @@ async function submitDoctor(){
 
   btn.disabled = true; btn.textContent = 'Submitting…';
 
-  var roleRes = await window.setOwnRole('doctor');
-  if(roleRes && roleRes.error){
+  /* HOTFIX PATH. v9_1 is live and set_own_role() no longer accepts 'doctor',
+     so this now goes through submit_doctor_onboarding() — one atomic call that
+     validates the same eight fields on the server and writes role and details
+     together.
+
+     ROUTING IS UNCHANGED ON PURPOSE. The access model (v9) is NOT applied yet,
+     so an unapproved doctor still cannot reach clinical data, and this page
+     still lands them on /doctor-pending.html exactly as it does today. Telling
+     them the workspace is open before the database agrees would be worse than
+     the bug this fixes. */
+  var onb = await window.submitDoctorOnboarding({
+    full_name:              name,
+    professional_level:     _level,
+    country:                country,
+    phone:                  normalizePhone(country, phone),
+    medical_license_number: license,
+    hospital:               hospital,
+    medical_university:     university,
+    specialty:              specialty
+  });
+
+  if(onb && onb.error){
     btn.disabled = false; btn.textContent = 'Submit for verification';
-    showErr('doctor-err', roleRes.error.message || 'We could not submit your application.');
+    showErr('doctor-err', onb.error.message);
+    return;
+  }
+
+  if(onb && onb.data && onb.data.ok === false){
+    btn.disabled = false; btn.textContent = 'Submit for verification';
+    var LBL = { full_name:'your full name', professional_level:'your professional level',
+                country:'your country', phone:'a telephone number',
+                medical_license_number:'your licence number', hospital:'your hospital',
+                medical_university:'your medical university', specialty:'your specialty' };
+    if(onb.data.code === 'invalid_field'){
+      showErr('doctor-err', 'Please choose ' + (LBL[onb.data.field] || onb.data.field) + ' from the list.');
+    } else {
+      var miss = (onb.data.missing || []).map(function(k){ return LBL[k] || k; });
+      showErr('doctor-err', 'Please add ' + miss.slice(0,3).join(', ') +
+        (miss.length > 3 ? ', and ' + (miss.length - 3) + ' more.' : '.'));
+    }
+    return;
+  }
+
+  /* Only reached when the RPC is absent, i.e. v9_1 has not been applied to
+     this database. The old two-step still works there. */
+  if(onb && onb.legacy){
+    var roleRes = await window.setOwnRole('doctor');
+    if(roleRes && roleRes.error){
+      btn.disabled = false; btn.textContent = 'Submit for verification';
+      showErr('doctor-err', roleRes.error.message || 'We could not submit your application.');
+      return;
+    }
+  } else {
+    window.location.replace('/doctor-pending.html');
     return;
   }
 

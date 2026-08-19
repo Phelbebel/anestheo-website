@@ -216,6 +216,50 @@ async function saveProfile(userId, data) {
 // So the RPC is now the only path. If it is missing the call fails loudly and
 // onboarding stops — which is the correct outcome, because a database without
 // the hardening cannot safely accept a role write from a browser at all.
+/* ── submitDoctorOnboarding ─────────────────────────────────────────────────
+   HOTFIX. v9_1_doctor_onboarding.sql is applied in production and its
+   set_own_role() now REFUSES 'doctor', pointing callers at this RPC instead.
+   This page still called setOwnRole('doctor'), so doctor registration has been
+   failing since that migration committed.
+
+   This is deliberately the SMALLEST change that restores it: the same call the
+   new frontend makes, wired into the page that is live today. It carries none
+   of the access-model work — that ships with v9 and its own frontend.
+
+   The RPC answers with { ok:false, code:'missing_fields', missing:[...] }
+   rather than raising when a field is absent, because the caller is a form.
+   Authorization failures still raise. */
+async function submitDoctorOnboarding(fields) {
+  try {
+    var r = await window.sb.rpc('submit_doctor_onboarding', {
+      p_full_name:          fields.full_name || null,
+      p_professional_level: fields.professional_level || null,
+      p_country:            fields.country || null,
+      p_phone:              fields.phone || null,
+      p_license:            fields.medical_license_number || null,
+      p_hospital:           fields.hospital || null,
+      p_university:         fields.medical_university || null,
+      p_specialty:          fields.specialty || null
+    });
+    if (r.error) {
+      var m = r.error.message || '';
+      /* If the RPC is absent this deployment has NOT had v9_1 applied, and
+         set_own_role still accepts 'doctor'. Fall back to the old pair rather
+         than blocking registration — this file has to work on both sides of
+         that migration. */
+      if (r.error.code === '42883' || r.error.code === 'PGRST202' ||
+          /function .* does not exist|could not find the function|schema cache/i.test(m)) {
+        return { legacy: true, error: null };
+      }
+      return { error: { message: m || 'We could not complete your registration.' } };
+    }
+    return { data: r.data || null, error: null };
+  } catch (e) {
+    return { error: { message: e.message || 'We could not reach the server.' } };
+  }
+}
+window.submitDoctorOnboarding = submitDoctorOnboarding;
+
 async function setOwnRole(role) {
   try {
     var r = await window.sb.rpc('set_own_role', { p_role: role });
