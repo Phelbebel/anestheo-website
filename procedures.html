@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Choose Your Procedure — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -14,19 +14,19 @@
 <link rel="stylesheet" href="/styles.css?v=2026.08.19-04">
 <style>
 .step-tag{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);background:rgba(27,107,90,.14);border:1px solid rgba(42,138,116,.3);padding:6px 13px;border-radius:30px;margin-bottom:16px;}
-.step-num{width:20px;height:20px;border-radius:50%;background:var(--teal2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--teal2);color:var(--on-brand);display:flex;align-items:center;justify-content:center;font-size:11px;}
 .journey{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 0;}
-.journey-step{font-size:12px;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:7px 13px;border-radius:var(--radius-sm);}
+.journey-step{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:7px 13px;border-radius:var(--radius-sm);}
 .journey-step b{color:var(--accent);}
 .proc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:8px;}
-.proc-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;text-align:left;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;flex-direction:column;gap:8px;color:inherit;}
+.proc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;text-align:left;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;flex-direction:column;gap:8px;color:inherit;}
 .proc-card:hover{border-color:rgba(42,138,116,.5);background:rgba(27,107,90,.1);transform:translateY(-2px);}
 .proc-card.active{border-color:var(--teal2);background:rgba(27,107,90,.16);}
 .proc-ico{font-size:30px;}
-.proc-title{font-size:16px;font-weight:600;color:#fff;}
+.proc-title{font-size:16px;font-weight:600;color:var(--ink);}
 .proc-desc{font-size:13px;color:var(--muted);line-height:1.5;}
 .proc-arrow{margin-top:auto;font-size:13px;color:var(--accent);font-weight:500;}
-.proc-card.active .proc-arrow{color:#fff;}
+.proc-card.active .proc-arrow{color:var(--ink);}
 /* expanding guide */
 #guide-wrap{overflow:hidden;max-height:0;transition:max-height .45s ease;}
 #guide-wrap.open{max-height:6000px;}
@@ -34,38 +34,38 @@
 @keyframes gfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .guide-hero{display:flex;align-items:center;gap:16px;margin-bottom:8px;}
 .guide-hero-ico{font-size:42px;}
-.guide-h1{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;}
+.guide-h1{font-family:var(--sans);font-size:27px;font-weight:700;}
 .guide-sub{font-size:14px;color:var(--muted);}
-.guide-close{margin-left:auto;background:none;border:1px solid rgba(255,255,255,.15);color:var(--muted);border-radius:var(--radius-sm);padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit;}
-.guide-close:hover{color:#fff;border-color:rgba(255,255,255,.3);}
+.guide-close{margin-left:auto;background:none;border:1px solid var(--line-2);color:var(--muted);border-radius:var(--radius-sm);padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit;}
+.guide-close:hover{color:var(--ink);border-color:var(--ink-faint);}
 .disclaimer{font-size:11px;color:var(--hint);margin:14px 0 22px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:var(--radius-sm);padding:9px 13px;}
 .disclaimer strong{color:var(--warning);}
-.pblock{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:14px;}
+.pblock{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;margin-bottom:14px;}
 .pblock-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
-.pblock p{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:9px;}
+.pblock p{font-size:14px;color:var(--ink-2);line-height:1.7;margin-bottom:9px;}
 .pblock p:last-child{margin-bottom:0;}
-.pli{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.pli{font-size:14px;color:var(--ink-2);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
 .pli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--teal2);}
-.pli b{color:#fff;}
+.pli b{color:var(--ink);}
 .fast-tbl{width:100%;border-collapse:collapse;font-size:13.5px;}
 .fast-tbl th{text-align:left;padding:9px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
-.fast-tbl td{padding:10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);}
+.fast-tbl td{padding:10px;border-bottom:1px solid rgba(27,107,90,.1);color:var(--ink-2);}
 .fast-tbl tr:last-child td{border-bottom:none;}
-.fast-tbl td b{color:#fff;}
-.faq-q{font-size:14px;font-weight:600;color:#fff;margin-top:14px;margin-bottom:5px;}
+.fast-tbl td b{color:var(--ink);}
+.faq-q{font-size:14px;font-weight:600;color:var(--ink);margin-top:14px;margin-bottom:5px;}
 .faq-q:first-child{margin-top:0;}
-.faq-a{font-size:13.5px;color:rgba(255,255,255,.75);line-height:1.7;}
+.faq-a{font-size:13.5px;color:var(--ink-2);line-height:1.7;}
 .vid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
-.vid-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;text-decoration:none;color:inherit;transition:all .18s;}
+.vid-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;text-decoration:none;color:inherit;transition:all .18s;}
 .vid-card:hover{border-color:rgba(42,138,116,.4);background:rgba(27,107,90,.1);}
 .vid-ico{font-size:22px;margin-bottom:6px;}
-.vid-title{font-size:13px;font-weight:500;color:#fff;}
+.vid-title{font-size:13px;font-weight:500;color:var(--ink);}
 .ask-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;background:linear-gradient(135deg,rgba(27,107,90,.2),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.4);border-radius:var(--radius-lg);padding:22px 24px;margin-top:8px;}
-.ask-cta-text{font-size:15px;color:#fff;font-weight:500;}
+.ask-cta-text{font-size:15px;color:var(--ink);font-weight:500;}
 .ask-cta-sub{font-size:13px;color:var(--muted);margin-top:3px;}
 .next-strip{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;}
 .next-strip a{font-size:13px;color:var(--accent);text-decoration:none;background:rgba(27,107,90,.1);border:1px solid rgba(42,138,116,.25);padding:9px 14px;border-radius:var(--radius-sm);}
-.next-strip a:hover{background:rgba(27,107,90,.2);color:#fff;}
+.next-strip a:hover{background:rgba(27,107,90,.2);color:var(--ink);}
 </style>
 </head>
 <body>
@@ -74,7 +74,7 @@
 <section class="hero-section">
   <div class="page-wrap">
     <div class="step-tag"><span class="step-num">1</span> Select your procedure</div>
-    <h1 style="font-family:'Playfair Display',serif;font-size:34px;font-weight:700;margin-bottom:10px;">Your anesthesia, explained for your surgery</h1>
+    <h1 class="hero-h1" style="font-size:34px;margin-bottom:10px;">Your anesthesia, explained for your surgery</h1>
     <p style="font-size:15px;color:var(--muted);max-width:560px;line-height:1.6;">Choose your procedure to reveal a complete preparation guide right here — no jumping between pages.</p>
     <div class="journey">
       <span class="journey-step"><b>1.</b> Choose procedure</span>

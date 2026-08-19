@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ask the Anesthesiologist — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -13,14 +13,14 @@
 <script src="/navbar.js?v=2026.08.19-04"></script>
 <link rel="stylesheet" href="/styles.css?v=2026.08.19-04">
 <style>
-.ask-form{background:rgba(255,255,255,.04);border:1px solid rgba(27,107,90,.22);
+.ask-form{background:var(--surface);border:1px solid rgba(27,107,90,.22);
   border-radius:var(--radius-md);padding:28px;max-width:580px;}
-.ask-form label{display:block;font-size:11px;color:rgba(255,255,255,.35);
+.ask-form label{display:block;font-size:11px;color:var(--ink-faint);
   letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:5px;margin-top:14px;}
 .ask-form label:first-child{margin-top:0;}
 .ask-form input,.ask-form select,.ask-form textarea{
-  width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
-  border-radius:var(--radius-sm);padding:11px 12px;color:#fff;font-size:14px;font-family:inherit;
+  width:100%;background:var(--surface-3);border:1px solid var(--line);
+  border-radius:var(--radius-sm);padding:11px 12px;color:var(--ink);font-size:14px;font-family:inherit;
   outline:none;transition:border-color .2s;min-height:44px;appearance:none;}
 .ask-form input:focus,.ask-form select:focus,.ask-form textarea:focus{border-color:var(--teal2);}
 .ask-form select option{background:var(--dark);}
@@ -33,10 +33,10 @@
 .ask-col-left{min-width:0;}
 .ask-col-right{min-width:0;}
 .faq-eyebrow{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
-.faq-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:16px;}
-.faq-item{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:9px;overflow:hidden;background:rgba(255,255,255,.03);transition:border-color .2s;}
+.faq-title{font-family:var(--sans);font-size:22px;font-weight:700;margin-bottom:16px;}
+.faq-item{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:9px;overflow:hidden;background:var(--surface);transition:border-color .2s;}
 .faq-item.open{border-color:rgba(42,138,116,.45);}
-.faq-q{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:14px 16px;font-size:14px;font-weight:500;color:#fff;font-family:inherit;}
+.faq-q{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:14px 16px;font-size:14px;font-weight:500;color:var(--ink);font-family:inherit;}
 .faq-q:hover{color:var(--accent);}
 .faq-chev{flex-shrink:0;transition:transform .25s;color:var(--accent);font-size:12px;}
 .faq-item.open .faq-chev{transform:rotate(180deg);}

@@ -1,212 +1,347 @@
 /* ============================================================
-   ANESTHEO DESIGN TOKENS  ·  the single source of truth
+   ANESTHEO DESIGN TOKENS  ·  one brand, two surfaces
    ------------------------------------------------------------
    WHY THIS FILE EXISTS
 
-   Before this file, the same design decision was written down in
-   many places at once. `--teal` was defined 20 times across the
-   site with four different values (#1B6B5A, #2A8A74, #7ECFC0,
-   #2FA88C), so the brand colour depended on which page you were
-   standing on. Corner radius drifted across eighteen distinct
-   values between 2px and 30px. Nothing was broken — it was simply
-   impossible to change the product's appearance in one move.
+   The product's appearance used to be written down in 215 places.
+   `--teal` was defined twenty times with four different values, so
+   the brand colour depended on which page you were standing on.
+   Corners drifted across eighteen values between 2px and 30px.
+   Nothing was broken — it was simply impossible to change how
+   Anestheo looks in one move.
 
-   Every token below is declared exactly once, here. Pages and
-   components reference them with var(). A page that genuinely
-   needs a different value still overrides it locally — this file
-   is loaded before any page's own <style>, so a deliberate local
-   decision continues to win. What is no longer possible is
-   *accidentally* holding a different opinion about the brand.
+   HOW IT IS ORGANISED
 
-   SCOPE
+     1. BRAND        one teal, one radius scale, one spacing
+                     rhythm, one type hierarchy, one motion.
+                     Identical on every surface. This is what
+                     makes the public site and the clinical
+                     product read as the same product.
 
-   These are the tokens of the dark application surface, which is
-   what 57 of the site's 58 pages are. The public homepage is a
-   light composition and carries its own palette inline; it is the
-   visual reference this file was derived FROM, not a consumer of
-   it. See the "light ground" block at the end for the small set of
-   light tokens shared with it.
+     2. DARK SURFACE the default, and the clinical product: the
+                     doctor workspace, Live Tools, Live Chart, the
+                     anesthesia record, Admin Center. Dense,
+                     instrument-like, read for hours in a theatre.
 
-   Loaded by: styles.css (@import) for every page that links it,
-   and directly by the standalone document pages that do not.
+     3. LIGHT SURFACE opted into with <html class="theme-light">.
+                     The public and patient-facing side: warm
+                     paper, white cards, restrained shadow. Calm
+                     rather than clinical.
+
+   The two surfaces differ ONLY in ground, ink and the weights of
+   the shared colours. Radius, spacing, type scale, motion and the
+   brand hue itself are shared, which is what keeps them relatives
+   rather than two products.
+
+   HOW TO USE IT
+
+   Write components against the SEMANTIC names — --ground, --surface,
+   --line, --ink, --ink-muted, --brand — and the same rule renders
+   correctly on both surfaces. The older dark-specific names
+   (--dark, --text, --muted, --accent …) are kept and are also
+   redefined under .theme-light, so a page that still speaks the old
+   vocabulary follows its theme too.
+
+   A page may still override any token locally; this file is loaded
+   before any page's own <style>, so a deliberate local decision
+   continues to win. What is no longer possible is *accidentally*
+   holding a different opinion about the brand.
    ============================================================ */
 
+/* ════════════════════════════════════════════════════════════
+   1 · BRAND — shared by both surfaces, never themed
+   ════════════════════════════════════════════════════════════ */
 :root{
 
-  /* ── BRAND ────────────────────────────────────────────────
-     One teal, three weights. --teal is the brand and the resting
-     state of a primary action; --teal2 is its hover and the colour
-     of a section label; --accent is the light-on-dark reading
-     weight, used for links and emphasis where --teal would fail
-     contrast against the dark ground. */
-  --teal:          #1B6B5A;
-  --teal2:         #2A8A74;
-  --accent:        #7ECFC0;
-  --accent-soft:   #9FF0CF;
-  --teal-tint:     rgba(27,107,90,.10);
-  --teal-tint-2:   rgba(27,107,90,.18);
-  --accent-tint:   rgba(126,207,192,.10);
+  /* ── The teal ─────────────────────────────────────────────
+     One hue at three weights. --brand is the brand and the
+     resting state of a primary action. --brand-deep is its
+     pressed/hover state. --brand-lift is the same teal lifted
+     for legibility against a dark ground — it is a contrast
+     accommodation, not a second brand colour. */
+  --brand:        #1B6B5A;
+  --brand-deep:   #155646;
+  --brand-mid:    #2A8A74;
+  --brand-lift:   #7ECFC0;
+  --brand-lift-2: #9FF0CF;
+  --on-brand:     #ffffff;
 
-  /* ── GROUND ───────────────────────────────────────────────
-     --dark is the page. --dark2 is a raised region ON the page
-     (a drawer, a sticky header). --ground-nav is the navigation
-     bar, deliberately a shade below the page so the bar reads as
-     behind the content rather than on it. */
-  --dark:          #0A1A15;
-  --dark2:         #0C1F18;
-  --dark3:         #132218;   /* a solid raised block: table head, active row */
+  /* ── Radius ───────────────────────────────────────────────
+     A 4px grid, replacing the eighteen ad-hoc values the site
+     had accumulated. Every one of 6, 7, 8 and 9px was in use at
+     once; so were 10, 11, 12 and 13. Nobody can see a 1px
+     difference in a corner, which is exactly why they
+     multiplied — and why no two components ever agreed.
+     Anything under 4px is left alone: at that size a radius is a
+     detail of a specific shape (an accent bar, a focus ring)
+     rather than a component's corner. */
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-2xl:  26px;
+  --radius-pill: 999px;
+
+  /* ── Spacing ──────────────────────────────────────────────
+     A 4px base. Layout code may still use raw px where a value
+     is genuinely bespoke; these exist so the common rhythm is
+     shared rather than re-guessed. */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 22px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+
+  /* ── Type ─────────────────────────────────────────────────
+     --font carries the interface. --sans is the public voice:
+     Inter, as on the homepage. --serif is reserved for titles on
+     the dark product surface. --mono is for values that must
+     line up. */
+  --sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font:  'DM Sans', -apple-system, system-ui, sans-serif;
+  --serif: 'Playfair Display', Georgia, serif;
+  --mono:  ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── Motion ───────────────────────────────────────────────
+     Two durations. Anything slower than --dur-2 on a hover
+     reads as lag rather than polish. */
+  --dur-1: .14s;
+  --dur-2: .22s;
+
+  /* ── Measure ──────────────────────────────────────────────*/
+  --max:  1060px;
+  --maxw: 1160px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   2 · DARK SURFACE — the default, and the clinical product
+   ════════════════════════════════════════════════════════════ */
+:root, .theme-dark{
+
+  /* ── Ground ───────────────────────────────────────────────*/
+  --ground:        #0A1A15;
+  --ground-2:      #0C1F18;   /* a raised region: drawer, sticky header */
+  --ground-3:      #132218;   /* a solid raised block: table head, active row */
   --ground-nav:    #071210;
   --ground-sunken: #07120F;
 
-  /* ── SURFACES ─────────────────────────────────────────────
-     Cards and panels are light lifted off the dark ground, never
-     a separate colour. Three weights: resting, hover, and active. */
-  --surface-1:     rgba(255,255,255,.035);
-  --surface-2:     rgba(255,255,255,.06);
-  --surface-3:     rgba(255,255,255,.09);
+  /* ── Surfaces ─────────────────────────────────────────────
+     Cards are light lifted off the dark ground, never a
+     separate colour. Three weights: resting, hover, active. */
+  --surface:   rgba(255,255,255,.035);
+  --surface-2: rgba(255,255,255,.06);
+  --surface-3: rgba(255,255,255,.09);
 
-  /* ── BORDERS ──────────────────────────────────────────────
-     --border is the brand hairline that separates content regions.
-     --hair is the neutral hairline used inside a surface, where a
-     teal edge would read as a highlight it does not mean. */
-  --border:        rgba(27,107,90,.22);
-  --border-strong: rgba(27,107,90,.34);
-  --hair:          rgba(255,255,255,.08);
-  --hair-2:        rgba(255,255,255,.16);
+  /* ── Lines ────────────────────────────────────────────────
+     --line is the brand hairline separating content regions.
+     --hair is the neutral hairline used INSIDE a surface, where
+     a teal edge would read as a highlight it does not mean. */
+  --line:      rgba(27,107,90,.22);
+  --line-2:    rgba(27,107,90,.34);
+  --hair:      rgba(255,255,255,.08);
+  --hair-2:    rgba(255,255,255,.16);
 
-  /* ── TEXT ─────────────────────────────────────────────────
-     Four steps, and they are a hierarchy rather than a palette:
+  /* ── Ink ──────────────────────────────────────────────────
+     Four steps, and a hierarchy rather than a palette:
      heading, body, supporting, and the barely-there label. */
-  --text:          #ffffff;
-  --text-2:        rgba(255,255,255,.74);
-  --muted:         rgba(255,255,255,.55);
-  --hint:          rgba(255,255,255,.28);
+  --ink:       #ffffff;
+  --ink-2:     rgba(255,255,255,.74);
+  --ink-muted: rgba(255,255,255,.55);
+  --ink-faint: rgba(255,255,255,.28);
 
-  /* ── FUNCTIONAL COLOUR ────────────────────────────────────
-     These carry clinical and procedural meaning and must never be
-     rebalanced for looks. Each has a foreground, a fill and an
-     edge so that a state can be shown as text, as a badge, or as
+  /* ── Brand on this ground ─────────────────────────────────
+     --brand-read is whichever weight of the teal is legible as
+     TEXT here. On dark that is the lifted teal; on light it is
+     the brand itself. Components use --brand-read for links and
+     emphasis so they never have to know which surface they are
+     on. */
+  --brand-read:  var(--brand-lift);
+  --brand-tint:  rgba(27,107,90,.10);
+  --brand-tint-2:rgba(27,107,90,.18);
+  --brand-glow:  rgba(126,207,192,.10);
+
+  /* ── Elevation ────────────────────────────────────────────
+     Named --elev-* rather than --shadow, because two pages
+     already own a local --shadow tuned to their own scale. */
+  --elev-1: 0 2px 10px rgba(0,0,0,.20);
+  --elev-2: 0 10px 30px rgba(0,0,0,.35);
+  --elev-3: 0 24px 60px rgba(0,0,0,.50);
+
+  /* ── Functional colour ────────────────────────────────────
+     These carry clinical and procedural meaning and must never
+     be rebalanced for looks. Each has a foreground, a fill and
+     an edge, so a state can be shown as text, as a badge, or as
      a whole panel without anyone re-deriving the tint. */
-  --success:       #5EE393;
-  --success-bg:    rgba(94,227,147,.10);
-  --success-bd:    rgba(94,227,147,.28);
+  --success:    #5EE393;
+  --success-bg: rgba(94,227,147,.10);
+  --success-bd: rgba(94,227,147,.28);
 
-  --warning:       #E8A838;
-  --warning-bg:    rgba(232,168,56,.10);
-  --warning-bd:    rgba(232,168,56,.28);
+  --warning:    #E8A838;
+  --warning-bg: rgba(232,168,56,.10);
+  --warning-bd: rgba(232,168,56,.28);
 
   --danger:        #FF9B86;
   --danger-strong: #C0392B;
   --danger-bg:     rgba(255,155,134,.10);
   --danger-bd:     rgba(255,155,134,.30);
 
-  --info:          #5BA8FF;
-  --info-bg:       rgba(91,168,255,.12);
-  --info-bd:       rgba(91,168,255,.32);
+  --info:    #5BA8FF;
+  --info-bg: rgba(91,168,255,.12);
+  --info-bd: rgba(91,168,255,.32);
 
-  /* ── CARE LIFECYCLE ───────────────────────────────────────
+  /* ── Care lifecycle ───────────────────────────────────────
      The four states a patient's journey can be in. Both the
      doctor dashboard and the patient dashboard render them, and
      they had drifted apart: the same state was tinted .12/.32 on
      one surface and .13/.34 on the other. A patient and their
      clinician must be looking at the same colour when they are
-     looking at the same state, so there is now one definition. */
-  --done:          #34D399;
-  --done-bg:       rgba(52,211,153,.12);
-  --done-bd:       rgba(52,211,153,.32);
+     looking at the same state. */
+  --done:    #34D399; --done-bg:   rgba(52,211,153,.12); --done-bd:   rgba(52,211,153,.32);
+  --action:  #FFB347; --action-bg: rgba(255,179,71,.12); --action-bd: rgba(255,179,71,.34);
+  --urgent:  #FF6B6B; --urgent-bg: rgba(255,107,107,.12);--urgent-bd: rgba(255,107,107,.32);
 
-  --action:        #FFB347;
-  --action-bg:     rgba(255,179,71,.12);
-  --action-bd:     rgba(255,179,71,.34);
+  /* ── Legacy dark vocabulary ───────────────────────────────
+     The names most of the product's CSS already speaks. They are
+     aliases now, not separate opinions — and they are redefined
+     under .theme-light below, so a page written in this
+     vocabulary follows whichever surface it is on. */
+  --dark:          var(--ground);
+  --dark2:         var(--ground-2);
+  --dark3:         var(--ground-3);
+  --surface-1:     var(--surface);
+  --text:          var(--ink);
+  --text-2:        var(--ink-2);
+  --muted:         var(--ink-muted);
+  --hint:          var(--ink-faint);
+  --border:        var(--line);
+  --border-strong: var(--line-2);
+  --teal:          var(--brand);
+  --teal2:         var(--brand-mid);
+  --accent:        var(--brand-lift);
+  --accent-soft:   var(--brand-lift-2);
+  --teal-tint:     var(--brand-tint);
+  --teal-tint-2:   var(--brand-tint-2);
+  --accent-tint:   var(--brand-glow);
+}
 
-  --urgent:        #FF6B6B;
-  --urgent-bg:     rgba(255,107,107,.12);
-  --urgent-bd:     rgba(255,107,107,.32);
+/* ════════════════════════════════════════════════════════════
+   3 · LIGHT SURFACE — the public and patient-facing side
+   ------------------------------------------------------------
+   Opt in with <html class="theme-light">.
 
-  /* ── RADIUS ───────────────────────────────────────────────
-     A 4px grid, replacing the eighteen ad-hoc values the site had
-     accumulated. Every one of 6, 7, 8 and 9px was in use at once;
-     so were 10, 11, 12 and 13. Nobody can see a 1px difference in
-     a corner, which is exactly why they multiplied — and why no
-     two components ever agreed. Anything under 4px is left alone:
-     at that size a radius is a detail of a specific shape (an
-     accent bar, a focus ring) rather than a component's corner. */
-  --radius-xs:     4px;
-  --radius-sm:     8px;
-  --radius-md:     12px;
-  --radius-lg:     16px;
-  --radius-xl:     20px;
-  --radius-2xl:    26px;
-  --radius-pill:   999px;
+   Warm paper rather than white: #FAFAF8 has enough yellow in it
+   to stop a full page of text glaring, and it is the ground the
+   product's own visual language was designed on. Cards are true
+   white so they lift off it without needing a border to prove
+   they are there.
 
-  /* ── ELEVATION ────────────────────────────────────────────
-     Deliberately named --elev-* rather than --shadow, because two
-     pages already own a local --shadow tuned to their own scale. */
-  --elev-1:        0 2px 10px rgba(0,0,0,.20);
-  --elev-2:        0 10px 30px rgba(0,0,0,.35);
-  --elev-3:        0 24px 60px rgba(0,0,0,.50);
+   Note what does NOT change: the teal, the radius scale, the
+   spacing rhythm, the type hierarchy, the motion. That shared
+   half is the whole point — the two surfaces are the same
+   product seen in two lights, not two designs.
+   ════════════════════════════════════════════════════════════ */
+.theme-light{
+  --ground:        #FAFAF8;
+  --ground-2:      #F3F3EF;   /* an alternate band, e.g. a footer */
+  --ground-3:      #EDEDE8;   /* a solid raised block: table head */
+  --ground-nav:    rgba(250,250,248,.88);
+  --ground-sunken: #F3F3EF;
 
-  /* ── SPACING ──────────────────────────────────────────────
-     A 4px base. Layout code is free to use raw px where a value
-     is genuinely bespoke; these exist so the common rhythm is
-     shared rather than re-guessed. */
-  --sp-1:          4px;
-  --sp-2:          8px;
-  --sp-3:          12px;
-  --sp-4:          16px;
-  --sp-5:          22px;
-  --sp-6:          32px;
-  --sp-7:          48px;
-  --sp-8:          64px;
+  --surface:   #FFFFFF;
+  --surface-2: #FBFBF9;
+  --surface-3: #F5F5F1;
 
-  /* ── TYPE ─────────────────────────────────────────────────
-     --font carries the interface. --serif is reserved for titles
-     and card headings; it is the one place the product allows
-     itself a voice. --mono is for values that must line up. */
-  --font:  'DM Sans', -apple-system, system-ui, sans-serif;
-  --serif: 'Playfair Display', Georgia, serif;
-  --mono:  ui-monospace, SFMono-Regular, Menlo, monospace;
+  --line:      rgba(20,24,26,.10);
+  --line-2:    rgba(20,24,26,.16);
+  --hair:      rgba(20,24,26,.08);
+  --hair-2:    rgba(20,24,26,.14);
 
-  /* ── MOTION ───────────────────────────────────────────────
-     Two durations. Anything slower than --dur-2 on a hover reads
-     as lag rather than polish. */
-  --dur-1:         .14s;
-  --dur-2:         .22s;
+  --ink:       #14181A;
+  --ink-2:     #3A4144;
+  --ink-muted: #5A6360;
+  --ink-faint: #6B726E;
 
-  /* ── MEASURE ──────────────────────────────────────────────*/
-  --max:           1060px;
+  /* On paper the brand teal is legible as text at full strength,
+     so nothing needs lifting. */
+  --brand-read:   var(--brand);
+  --brand-tint:   rgba(27,107,90,.06);
+  --brand-tint-2: rgba(27,107,90,.12);
+  --brand-glow:   rgba(27,107,90,.08);
 
-  /* ── LIGHT GROUND ─────────────────────────────────────────
-     The public homepage's palette, named here so any future light
-     surface inherits the same decisions instead of re-picking
-     them. The homepage itself still declares these inline: it is
-     the reference, and it must render correctly even if every
-     other stylesheet fails to load. */
-  --l-bg:          #FAFAF8;
-  --l-ink:         #14181A;
-  --l-muted:       #5A6360;
-  --l-faint:       #6B726E;
-  --l-hair:        rgba(20,24,26,.10);
-  --l-hair-2:      rgba(20,24,26,.16);
+  /* Restrained. A light interface earns depth from the hairline
+     and the ground, not from a drop shadow. */
+  --elev-1: 0 1px 2px rgba(20,24,26,.05);
+  --elev-2: 0 4px 16px rgba(20,24,26,.07);
+  --elev-3: 0 18px 44px rgba(20,24,26,.10);
+
+  /* The functional hues, re-struck for a light ground. The dark
+     surface's pale greens and corals disappear on paper, so each
+     one moves to a weight that carries the same meaning at the
+     contrast this ground needs. The MEANING is unchanged; only
+     the luminance is. */
+  --success:    #0F7A4A;
+  --success-bg: rgba(15,122,74,.07);
+  --success-bd: rgba(15,122,74,.22);
+
+  --warning:    #8A5A00;
+  --warning-bg: rgba(232,168,56,.13);
+  --warning-bd: rgba(232,168,56,.36);
+
+  --danger:        #B3261E;
+  --danger-strong: #8C1D18;
+  --danger-bg:     rgba(179,38,30,.06);
+  --danger-bd:     rgba(179,38,30,.22);
+
+  --info:    #1B5FA8;
+  --info-bg: rgba(27,95,168,.06);
+  --info-bd: rgba(27,95,168,.22);
+
+  --done:    #0F7A4A; --done-bg:   rgba(15,122,74,.07);  --done-bd:   rgba(15,122,74,.22);
+  --action:  #8A5A00; --action-bg: rgba(232,168,56,.13); --action-bd: rgba(232,168,56,.36);
+  --urgent:  #B3261E; --urgent-bg: rgba(179,38,30,.06);  --urgent-bd: rgba(179,38,30,.22);
+
+  /* The legacy vocabulary, pointed at this surface. This is what
+     lets a page that says var(--muted) or var(--accent) render
+     correctly here without being rewritten. */
+  --dark:          var(--ground);
+  --dark2:         var(--ground-2);
+  --dark3:         var(--ground-3);
+  --surface-1:     var(--surface);
+  --text:          var(--ink);
+  --text-2:        var(--ink-2);
+  --muted:         var(--ink-muted);
+  --hint:          var(--ink-faint);
+  --border:        var(--line);
+  --border-strong: var(--line-2);
+  --teal:          var(--brand);
+  --teal2:         var(--brand);
+  --accent:        var(--brand);
+  --accent-soft:   var(--brand-deep);
+  --teal-tint:     var(--brand-tint);
+  --teal-tint-2:   var(--brand-tint-2);
+  --accent-tint:   var(--brand-glow);
+
+  /* The public voice is Inter, as on the homepage. */
+  --font: var(--sans);
+
+  color-scheme: light;
 }
 
 /* ── FOCUS ──────────────────────────────────────────────────
-   One visible focus treatment for the whole product, matching the
-   homepage. Declared here rather than in the component layer so
-   that it also covers pages which load only the tokens.
+   One visible focus treatment for the whole product, in the
+   brand weight that is legible on whichever ground it lands on.
 
-   Deliberately no border-radius here: rounding the outline would mean
-   overriding the corner of whatever is focused, and a 26px card would snap
-   to a hard edge for exactly as long as it held focus. */
+   Deliberately no border-radius: rounding the outline would mean
+   overriding the corner of whatever is focused, and a 26px card
+   would snap to a hard edge for exactly as long as it held
+   focus. */
 :focus-visible{
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--brand-read);
   outline-offset: 2px;
 }
 
-/* Honour a stated preference for less movement. The transitions in
-   this system are all short colour and border fades, so removing
-   them costs nothing and stops the interface from moving for
-   someone who asked it not to. */
+/* Honour a stated preference for less movement. The transitions
+   in this system are all short colour and border fades, so
+   removing them costs nothing and stops the interface from
+   moving for someone who asked it not to. */
 @media (prefers-reduced-motion: reduce){
   :root{ --dur-1: .001s; --dur-2: .001s; }
 }

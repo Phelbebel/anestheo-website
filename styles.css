@@ -13,8 +13,8 @@
 
 html, body {
   font-family: var(--font);
-  background: var(--dark);
-  color: var(--text);
+  background: var(--ground);
+  color: var(--ink);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -151,7 +151,7 @@ body::before {
 .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
 .footer-links a { font-size: 13px; color: var(--hint); text-decoration: none; transition: color var(--dur-2); }
 .footer-links a:hover { color: var(--text); }
-.footer-copy { font-size: 12px; color: rgba(255,255,255,.18); width: 100%; margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid rgba(255,255,255,.06); }
+.footer-copy { font-size: 12px; color: var(--ink-faint); width: 100%; margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid rgba(255,255,255,.06); }
 
 /* ============================================================
    DOCUMENT PAGES
@@ -191,7 +191,7 @@ body::before {
 .doc-card p:last-child { margin-bottom: 0; }
 .doc-card ul { margin: var(--sp-1) 0 0 18px; }
 .doc-card li { font-size: 14px; color: var(--text-2); margin-bottom: 6px; }
-.doc-note { font-size: 12.5px; color: rgba(255,255,255,.45); margin-top: 14px; }
+.doc-note { font-size: 12.5px; color: var(--ink-faint); margin-top: 14px; }
 
 /* ── Continuous document (privacy, terms, disclaimer, about) ── */
 .legal-wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: var(--sp-8) 24px 80px; }
@@ -201,7 +201,7 @@ body::before {
   font-family: var(--serif); font-size: clamp(28px,4vw,40px);
   font-weight: 700; margin-bottom: var(--sp-2);
 }
-.legal-updated { font-size: 13px; color: rgba(255,255,255,.45); margin-bottom: 28px; }
+.legal-updated { font-size: 13px; color: var(--ink-faint); margin-bottom: 28px; }
 .legal-wrap h2 { font-size: 18px; color: var(--accent); margin: 28px 0 10px; }
 .legal-wrap p  { font-size: 15px; color: var(--text-2); line-height: 1.75; font-weight: 300; margin-bottom: var(--sp-3); }
 .legal-wrap ul { margin: 6px 0 var(--sp-3) 20px; }
@@ -221,3 +221,112 @@ body::before {
   .site-footer { padding: 32px 16px 20px; }
   .doc-wrap, .legal-wrap { padding-left: 16px; padding-right: 16px; padding-bottom: 56px; }
 }
+
+/* ============================================================
+   LIGHT SURFACE
+   ------------------------------------------------------------
+   Everything above already reads its colour from tokens, so a
+   page carrying class="theme-light" is mostly correct as soon as
+   the tokens flip. What follows is the handful of decisions that
+   are not a colour swap — the places where a dark composition
+   and a light one genuinely want different treatment.
+
+   The reference is the homepage: warm paper, white cards that
+   earn their edge from a hairline rather than a shadow, one
+   restrained teal, and a clean sans hierarchy. Layout, spacing
+   and structure are untouched — this is the same page in a
+   different light, not a different page.
+   ============================================================ */
+
+/* The graph-paper grid is a dark-composition device. On paper it
+   reads as a printing fault, so the light surface simply has a
+   ground. */
+.theme-light body::before { display: none; }
+
+/* On the dark surface a title in Playfair is the one place the
+   product allows itself a voice. On the public surface the voice
+   is the homepage's: Inter, tight, and confident enough not to
+   need a serif. */
+.theme-light .section-title,
+.theme-light .card-title,
+.theme-light .hero-h1,
+.theme-light .legal-wrap h1 {
+  font-family: var(--sans);
+  letter-spacing: -.02em;
+  font-weight: 600;
+}
+.theme-light .section-title { font-weight: 650; }
+.theme-light .hero-h1 { font-weight: 680; letter-spacing: -.03em; }
+.theme-light .section-tag,
+.theme-light .doc-eyebrow { color: var(--brand); letter-spacing: .11em; }
+
+/* A white card on warm paper is already separated from its
+   ground, so the border does the work a fill used to do and the
+   shadow only has to suggest a millimetre of lift. */
+.theme-light .card,
+.theme-light .doc-card {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--elev-1);
+}
+.theme-light .card:hover {
+  background: var(--surface);
+  border-color: var(--line-2);
+  box-shadow: var(--elev-2);
+}
+
+/* Body copy on paper wants its normal weight. The 300 that keeps
+   long text from glaring on a dark ground reads as thin and grey
+   on a light one. */
+.theme-light .section-sub,
+.theme-light .legal-wrap p,
+.theme-light .legal-wrap li,
+.theme-light .hero-sub { font-weight: 400; color: var(--ink-2); }
+
+/* Links: the brand at full strength, underlined on the light
+   surface where colour alone is a weaker signal. */
+.theme-light .doc-wrap a,
+.theme-light .legal-wrap a,
+.theme-light .legal-back { color: var(--brand); }
+
+/* The homepage's button language, exactly: 13/22 padding, a 9px
+   corner rounded onto the shared scale, and a solid teal that
+   deepens rather than lightens on hover. */
+.theme-light .btn-primary {
+  background: var(--brand); color: var(--on-brand);
+  padding: 13px 22px; min-height: 46px; font-weight: 600; font-size: 15px;
+  border-radius: var(--radius-sm);
+}
+.theme-light .btn-primary:hover { background: var(--brand-deep); }
+.theme-light .btn-ghost {
+  background: transparent; color: var(--ink);
+  border-color: var(--line-2);
+  padding: 13px 22px; min-height: 46px; font-weight: 600; font-size: 15px;
+}
+.theme-light .btn-ghost:hover { background: var(--brand-tint); border-color: var(--brand); }
+
+/* The hero's teal wash is a dark-ground effect; on paper the same
+   gradient reads as a stain. A hairline under the section does
+   the separating instead. */
+/* The dark hero fills its height with a teal wash, so 48vh reads as a
+   composition. Take the wash away and the same height reads as a gap, so the
+   light hero is sized by its content with a hairline closing it. */
+.theme-light .hero-section {
+  background: none; border-bottom: 1px solid var(--line);
+  min-height: 0; padding: var(--sp-8) 28px var(--sp-7);
+}
+.theme-light .hero-eyebrow {
+  background: var(--brand-tint); border-color: var(--brand-tint-2);
+  color: var(--brand);
+}
+.theme-light .hero-h1 em { color: var(--brand); }
+
+/* The footer is the one band that changes ground, so the page
+   ends somewhere rather than trailing off. */
+.theme-light .site-footer { background: var(--ground-2); border-top-color: var(--line); }
+.theme-light .footer-logo span { color: var(--brand); }
+.theme-light .footer-links a { color: var(--ink-muted); }
+.theme-light .footer-links a:hover { color: var(--ink); }
+.theme-light .footer-copy { border-top-color: var(--line); }
+
+.theme-light .divider { background: var(--line); }

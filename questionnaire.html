@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pre-Op Questionnaire — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -19,11 +19,11 @@
 #app{display:none;}
 .q-wrap{max-width:600px;margin:0 auto;padding:32px 22px 90px;position:relative;z-index:1;}
 .q-head{margin-bottom:22px;}
-.q-head h1{font-family:'Playfair Display',serif;font-size:25px;font-weight:700;margin-bottom:4px;}
+.q-head h1{font-family:var(--sans);font-size:25px;font-weight:700;margin-bottom:4px;}
 .q-head p{font-size:14px;color:var(--muted);}
 /* stepper dots */
 .q-dots{display:flex;gap:6px;margin-bottom:10px;}
-.q-dot{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;transition:background .3s;}
+.q-dot{flex:1;height:4px;background:var(--surface-3);border-radius:2px;transition:background .3s;}
 .q-dot.done{background:var(--teal2);}
 .q-dot.now{background:var(--accent);}
 .q-progress-text{font-size:12px;color:var(--hint);margin-bottom:26px;display:flex;justify-content:space-between;}
@@ -31,63 +31,63 @@
 .q-step{display:none;}
 .q-step.active{display:block;animation:fade .3s;}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.q-step-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;margin-bottom:4px;}
+.q-step-title{font-family:var(--sans);font-size:21px;font-weight:700;margin-bottom:4px;}
 .q-step-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
 /* fields */
 .q-field{margin-bottom:20px;}
-.q-field>label{display:block;font-size:14px;font-weight:500;margin-bottom:9px;color:#fff;}
+.q-field>label{display:block;font-size:14px;font-weight:500;margin-bottom:9px;color:var(--ink);}
 .q-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.q-text{width:100%;background:rgba(255,255,255,.055);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:12px 14px;color:#fff;font-size:15px;font-family:inherit;
+.q-text{width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;color:var(--ink);font-size:15px;font-family:inherit;
   outline:none;min-height:46px;transition:border-color .2s;appearance:none;-webkit-appearance:none;}
 .q-text:focus{border-color:var(--teal2);}
 .q-text::placeholder{color:var(--hint);}
 textarea.q-text{min-height:84px;resize:vertical;}
 select.q-text option{background:var(--dark3);}
 .q-opts{display:flex;flex-direction:column;gap:8px;}
-.q-opt{display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.04);
+.q-opt{display:flex;align-items:center;gap:11px;background:var(--surface);
   border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 15px;cursor:pointer;
   transition:all .18s;-webkit-tap-highlight-color:transparent;}
 .q-opt:hover{border-color:rgba(42,138,116,.4);}
 .q-opt.sel{border-color:var(--teal2);background:rgba(27,107,90,.14);}
 .q-opt.flagged.sel{border-color:rgba(232,168,56,.5);background:rgba(232,168,56,.08);}
 .q-opt input{accent-color:var(--teal2);width:17px;height:17px;flex-shrink:0;}
-.q-opt span{font-size:14px;color:rgba(255,255,255,.85);}
+.q-opt span{font-size:14px;color:var(--ink-2);}
 .q-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 @media(max-width:440px){.q-grid2,.q-row{grid-template-columns:1fr;}}
 /* nav */
 .q-nav{display:flex;justify-content:space-between;gap:12px;margin-top:30px;}
-.q-back{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.15);
+.q-back{background:transparent;color:var(--muted);border:1px solid var(--line-2);
   padding:12px 22px;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s;}
-.q-back:hover{color:#fff;border-color:rgba(255,255,255,.3);}
-.q-next{background:var(--teal);color:#fff;border:none;padding:12px 26px;border-radius:var(--radius-sm);
+.q-back:hover{color:var(--ink);border-color:var(--ink-faint);}
+.q-next{background:var(--teal);color:var(--on-brand);border:none;padding:12px 26px;border-radius:var(--radius-sm);
   font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .2s;margin-left:auto;}
 .q-next:hover{background:var(--teal2);}
 .q-next:disabled{opacity:.5;cursor:default;}
 .q-saved{font-size:12px;color:var(--accent);text-align:center;margin-top:12px;height:16px;opacity:0;transition:opacity .3s;}
 .q-err{font-size:13px;color:rgba(255,150,130,.9);margin-top:10px;display:none;}
 /* review */
-.rev-group{margin-bottom:16px;background:rgba(255,255,255,.03);border:1px solid var(--border);
+.rev-group{margin-bottom:16px;background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius-md);padding:14px 16px;}
 .rev-group-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
 .rev-line{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;gap:12px;}
 .rev-line span:first-child{color:var(--muted);}
-.rev-line span:last-child{color:#fff;text-align:right;}
+.rev-line span:last-child{color:var(--ink);text-align:right;}
 .flag-box{background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.25);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;}
 .flag-title{font-size:13px;font-weight:600;color:var(--warning);margin-bottom:8px;}
 .flag-item{font-size:13px;color:rgba(255,220,150,.85);padding:3px 0;}
 .done-box{text-align:center;padding:34px 20px;}
 .done-ico{font-size:44px;margin-bottom:14px;}
-.done-box h2{font-family:'Playfair Display',serif;font-size:24px;margin-bottom:8px;}
+.done-box h2{font-family:var(--sans);font-size:24px;margin-bottom:8px;}
 .done-box p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:22px;}
 .sm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:18px 0 4px;}
-.sm-stat{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:11px 13px;}
+.sm-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:11px 13px;}
 .sm-l{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--hint);margin-bottom:3px;}
-.sm-v{font-size:15px;font-weight:600;color:#fff;}
+.sm-v{font-size:15px;font-weight:600;color:var(--ink);}
 .sm-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin:16px 0 6px;}
-.sm-list{font-size:13.5px;color:rgba(255,255,255,.88);line-height:1.6;}
+.sm-list{font-size:13.5px;color:var(--ink-2);line-height:1.6;}
 .sm-flags{display:flex;gap:7px;flex-wrap:wrap;}
-.sm-flag{font-size:11.5px;font-weight:600;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.32);color:#E8C16b;border-radius:var(--radius-sm);padding:5px 10px;}
+.sm-flag{font-size:11.5px;font-weight:600;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.32);color:var(--warning);border-radius:var(--radius-sm);padding:5px 10px;}
 .sm-btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px;}
 </style>
 </head>
@@ -519,7 +519,7 @@ function qPrint(){
   }).join('');
   var win=window.open('','_blank'); if(!win) return;
   win.document.write('<html><head><title>Pre-op questionnaire</title>' +
-    '<style>body{font-family:Arial,sans-serif;color:#111;max-width:700px;margin:24px auto;padding:0 16px;}h1{font-size:20px;}h2{font-size:13px;text-transform:uppercase;color:var(--teal);border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:20px;}table{width:100%;border-collapse:collapse;font-size:13px;}td{padding:6px 8px;border-bottom:1px solid #eee;}td:first-child{color:#555;width:42%;}.flag{display:inline-block;background:#fff7e6;border:1px solid #f0c674;color:#8a5a00;border-radius:var(--radius-xs);padding:3px 8px;font-size:12px;margin:2px 4px 2px 0;}.noprint{margin-top:18px;}</style></head><body>' +
+    '<style>body{font-family:Arial,sans-serif;color:#111;max-width:700px;margin:24px auto;padding:0 16px;}h1{font-size:20px;}h2{font-size:13px;text-transform:uppercase;color:#1B6B5A;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:20px;}table{width:100%;border-collapse:collapse;font-size:13px;}td{padding:6px 8px;border-bottom:1px solid #eee;}td:first-child{color:#555;width:42%;}.flag{display:inline-block;background:#fff7e6;border:1px solid #f0c674;color:#8a5a00;border-radius:5px;padding:3px 8px;font-size:12px;margin:2px 4px 2px 0;}.noprint{margin-top:18px;}</style></head><body>' +
     '<h1>Pre-operative questionnaire</h1>' +
     '<div>'+(d.when?'Completed '+new Date(d.when).toLocaleDateString()+' · ':'')+d.completion+'% complete</div>' +
     '<h2>Summary</h2><table>' +

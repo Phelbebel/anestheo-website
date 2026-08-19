@@ -94,6 +94,32 @@ for (const f of files) {
   }
 }
 
+/* GENERATED DOCUMENTS
+   ------------------------------------------------------------------
+   Three pages build a whole standalone HTML document in a string and hand it
+   to a new window to print — the questionnaire summary a clinician takes into
+   theatre, and the patient's own copy. That document gets none of this site's
+   stylesheets, so a var() inside it resolves to nothing: the declaration is
+   dropped and the printout silently loses a heading colour or a warning
+   flag's border. It still prints, which is what makes it dangerous.
+
+   A site-wide "replace this hex with the token that holds it" pass will walk
+   straight into this, because the string contains a literal <style> block and
+   looks exactly like page CSS. It did. This is the guard. */
+for (const f of files) {
+  const html = read(f);
+  const re = /'<style>[\s\S]{0,4000}?<\/style>/g;
+  let m;
+  while ((m = re.exec(html))) {
+    const bad = [...new Set(m[0].match(/var\(--[A-Za-z0-9_-]+/g) || [])];
+    const line = html.slice(0, m.index).split('\n').length;
+    for (const b of bad) {
+      problems.push(f + ':' + line + '  ' + b + ') inside a generated standalone ' +
+                    'document — it has no stylesheet, so this resolves to nothing');
+    }
+  }
+}
+
 /* The bar is injected last and must never read a page's palette. */
 for (const [tok, line] of NAV_REFS) {
   if (!NAV_DEFS.has(tok)) {

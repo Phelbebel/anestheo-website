@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Plastic Surgery — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -17,34 +17,34 @@
 .crumb a{color:var(--accent);text-decoration:none;}
 .proc-hero{display:flex;align-items:center;gap:16px;margin-bottom:8px;}
 .proc-hero-ico{font-size:44px;}
-.proc-h1{font-family:'Playfair Display',serif;font-size:30px;font-weight:700;}
+.proc-h1{font-family:var(--sans);font-size:30px;font-weight:700;}
 .proc-sub{font-size:14px;color:var(--muted);margin-bottom:8px;}
 .disclaimer{font-size:11px;color:var(--hint);margin-bottom:26px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:var(--radius-sm);padding:9px 13px;}
 .disclaimer strong{color:var(--warning);}
-.pblock{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:16px;}
+.pblock{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:16px;}
 .pblock-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:13px;display:flex;align-items:center;gap:9px;}
-.pblock p{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:10px;}
+.pblock p{font-size:14px;color:var(--ink-2);line-height:1.7;margin-bottom:10px;}
 .pblock p:last-child{margin-bottom:0;}
-.pli{font-size:14px;color:rgba(255,255,255,.82);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
+.pli{font-size:14px;color:var(--ink-2);line-height:1.7;padding:5px 0 5px 22px;position:relative;}
 .pli:before{content:'';position:absolute;left:4px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--teal2);}
-.pli b{color:#fff;}
+.pli b{color:var(--ink);}
 .fast-tbl{width:100%;border-collapse:collapse;font-size:13.5px;}
 .fast-tbl th{text-align:left;padding:9px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
-.fast-tbl td{padding:10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);}
+.fast-tbl td{padding:10px;border-bottom:1px solid rgba(27,107,90,.1);color:var(--ink-2);}
 .fast-tbl tr:last-child td{border-bottom:none;}
-.fast-tbl td b{color:#fff;}
-.faq-q{font-size:14px;font-weight:600;color:#fff;margin-top:14px;margin-bottom:5px;}
+.fast-tbl td b{color:var(--ink);}
+.faq-q{font-size:14px;font-weight:600;color:var(--ink);margin-top:14px;margin-bottom:5px;}
 .faq-q:first-child{margin-top:0;}
-.faq-a{font-size:13.5px;color:rgba(255,255,255,.75);line-height:1.7;}
+.faq-a{font-size:13.5px;color:var(--ink-2);line-height:1.7;}
 .vid-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
-.vid-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;text-decoration:none;color:inherit;transition:all .18s;}
+.vid-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;text-decoration:none;color:inherit;transition:all .18s;}
 .vid-card:hover{border-color:rgba(42,138,116,.4);background:rgba(27,107,90,.1);}
 .vid-ico{font-size:22px;margin-bottom:6px;}
-.vid-title{font-size:13px;font-weight:500;color:#fff;}
+.vid-title{font-size:13px;font-weight:500;color:var(--ink);}
 .ask-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
   background:linear-gradient(135deg,rgba(27,107,90,.2),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.4);
   border-radius:var(--radius-lg);padding:22px 24px;margin-top:8px;}
-.ask-cta-text{font-size:15px;color:#fff;font-weight:500;}
+.ask-cta-text{font-size:15px;color:var(--ink);font-weight:500;}
 .ask-cta-sub{font-size:13px;color:var(--muted);margin-top:3px;}
 .nav-prev{display:inline-block;margin-top:24px;font-size:13px;color:var(--accent);text-decoration:none;}
 </style>
