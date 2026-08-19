@@ -106,8 +106,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-tab.active .ws-tab-ic{color:var(--accent);}
 .ws-tab.active::before{content:'';position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--accent),var(--teal2));box-shadow:0 0 10px rgba(126,207,192,.6);}
 .ws-tab:focus-visible{outline:2px solid rgba(126,207,192,.55);outline-offset:1px;}
-/* Live Tools — the signature feature: a living monitor card that owns the sidebar */
+/* Live Tools — the signature feature: a living monitor card that owns the sidebar.
+   text-decoration:none because this is an <a>, and a card is not a run of text:
+   the browser default was underlining the label inside it. */
 .ws-sig{position:relative;display:block;width:100%;text-align:left;font-family:inherit;cursor:pointer;padding:0;margin:2px 0;
+  text-decoration:none;color:inherit;
   border:1px solid rgba(126,207,192,.5);border-radius:var(--radius-lg);overflow:hidden;
   background:linear-gradient(150deg,rgba(42,138,116,.5),rgba(8,30,24,.65));
   animation:sigGlow 3s ease-in-out infinite;transition:transform .2s ease;}
