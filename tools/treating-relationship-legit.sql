@@ -1,6 +1,10 @@
 \set ON_ERROR_STOP off
 \pset pager off
 BEGIN;
+
+-- NOTE: no `origin` column. v2_preparation_origin_migration.sql was never
+-- applied to production, and a fixture that invents columns tests a database
+-- that does not exist. This is what let the first v9_2 through review.
 CREATE TABLE res(n serial, name text, pass boolean, detail text);
 GRANT ALL ON res TO PUBLIC; GRANT ALL ON SEQUENCE res_n_seq TO PUBLIC;
 CREATE OR REPLACE FUNCTION pg_temp.be(u uuid) RETURNS void LANGUAGE plpgsql AS $$
@@ -30,9 +34,9 @@ END $$;
 
 DO $$ BEGIN
   INSERT INTO public.patient_surgeries(id, patient_id, assigned_doctor_id, clinic_patient_id,
-                                       patient_name, procedure_type, care_state, origin)
+                                       patient_name, procedure_type, care_state)
   VALUES ('2b000000-0000-4000-8000-000000000001', NULL,'1a000000-0000-4000-8000-00000000000d',
-          '2a000000-0000-4000-8000-000000000001','Walk-in Patient','Knee','surgical','clinic');
+          '2a000000-0000-4000-8000-000000000001','Walk-in Patient','Knee','surgical');
   PERFORM pg_temp.t('L2 ...and the paired journey with patient_id NULL, as the product does', true);
 EXCEPTION WHEN OTHERS THEN
   PERFORM pg_temp.t('L2 ...and the paired journey with patient_id NULL, as the product does', false, SQLSTATE||' '||SQLERRM);
@@ -49,9 +53,9 @@ END $$;
 -- ── 2. The patient's own journey (patient-dashboard.html) ──
 SELECT pg_temp.god(); SELECT pg_temp.be(:PAT);
 DO $$ BEGIN
-  INSERT INTO public.patient_surgeries(id, patient_id, patient_name, procedure_type, care_state, origin)
+  INSERT INTO public.patient_surgeries(id, patient_id, patient_name, procedure_type, care_state)
   VALUES ('2b000000-0000-4000-8000-000000000002','1b000000-0000-4000-8000-00000000000e',
-          'Legit Patient','Hip','surgical','patient');
+          'Legit Patient','Hip','surgical');
   PERFORM pg_temp.t('L4 a patient can still create their OWN journey', true);
 EXCEPTION WHEN OTHERS THEN
   PERFORM pg_temp.t('L4 a patient can still create their OWN journey', false, SQLSTATE||' '||SQLERRM);

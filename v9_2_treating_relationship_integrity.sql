@@ -252,20 +252,63 @@ GRANT EXECUTE ON FUNCTION public.doctor_treats_patient(uuid) TO authenticated;
 -- Function writes auth_user_id for real conversions — and a migration that
 -- silently removes clinical links is worse than the hole it is closing. This
 -- prints what to look at; a human decides.
+--
+-- THIS BLOCK CANNOT ABORT THE MIGRATION, and that is now structural rather
+-- than a matter of getting the query right. The first version of it referred
+-- to patient_surgeries.origin, a column added by
+-- v2_preparation_origin_migration.sql — which this production database has
+-- never had applied. Pre-deployment run stopped with 42703, and because the
+-- whole file is one transaction, three security guards that were otherwise
+-- correct were rolled back with it. A diagnostic that prints a number must
+-- never be able to do that, so the whole block is wrapped: if anything in here
+-- fails, it says so and the security work still commits.
+--
+-- The second count also changed, because the first one could not be computed
+-- without `origin` and there is no honest substitute for it. What replaced it
+-- uses only columns this migration already depends on elsewhere: a doctor
+-- attached to a patient's own journey with nothing on record that explains the
+-- attachment — no accepted or closed care request, and no clinic link. That is
+-- the shape a forged assignment leaves behind.
+--
+-- It is a REVIEW list, not an accusation: admin_assign_doctor() attaches a
+-- clinician deliberately and audibly, and those attachments look identical
+-- here. Cross-check anything it finds against admin_audit_log before drawing a
+-- conclusion.
 DO $audit$
 DECLARE v_cp int; v_ps int;
 BEGIN
-  SELECT count(*) INTO v_cp FROM public.clinic_patients WHERE auth_user_id IS NOT NULL;
-  SELECT count(*) INTO v_ps FROM public.patient_surgeries s
-   WHERE s.patient_id IS NOT NULL AND s.assigned_doctor_id IS NOT NULL
-     AND s.clinic_patient_id IS NULL AND s.origin = 'clinic';
-  RAISE NOTICE '--- Existing account links, for review ------------------';
-  RAISE NOTICE '  clinic_patients with auth_user_id set : %', v_cp;
-  RAISE NOTICE '  clinic-origin journeys naming an account with no clinic back-link : %', v_ps;
-  RAISE NOTICE '  Both are normal in small numbers. Investigate only if either is';
-  RAISE NOTICE '  larger than your real conversion volume.';
+  SELECT count(*) INTO v_cp
+    FROM public.clinic_patients
+   WHERE auth_user_id IS NOT NULL;
+
+  SELECT count(*) INTO v_ps
+    FROM public.patient_surgeries s
+   WHERE s.patient_id IS NOT NULL
+     AND s.assigned_doctor_id IS NOT NULL
+     AND s.deleted_at IS NULL
+     AND NOT EXISTS (SELECT 1 FROM public.care_requests r
+                      WHERE r.patient_id = s.patient_id
+                        AND r.doctor_id  = s.assigned_doctor_id
+                        AND r.status IN ('accepted','closed')
+                        AND r.deleted_at IS NULL)
+     AND NOT EXISTS (SELECT 1 FROM public.clinic_patients c
+                      WHERE c.auth_user_id = s.patient_id
+                        AND c.doctor_id    = s.assigned_doctor_id
+                        AND c.deleted_at IS NULL);
+
+  RAISE NOTICE '--- Existing links, for review ---------------------------';
+  RAISE NOTICE '  clinic_patients rows naming an account   : %', v_cp;
+  RAISE NOTICE '  doctor-on-journey attachments with no     ';
+  RAISE NOTICE '  care request and no clinic link           : %', v_ps;
+  RAISE NOTICE '  Neither number is a finding on its own. Admin assignments';
+  RAISE NOTICE '  look exactly like the second one; check admin_audit_log.';
   RAISE NOTICE '  Review: SELECT id, doctor_id, auth_user_id, converted_at';
   RAISE NOTICE '            FROM public.clinic_patients WHERE auth_user_id IS NOT NULL;';
+EXCEPTION WHEN OTHERS THEN
+  -- Reporting is not worth a failed deployment of a security fix.
+  RAISE NOTICE '--- Review counts unavailable on this database -----------';
+  RAISE NOTICE '  %: %', SQLSTATE, SQLERRM;
+  RAISE NOTICE '  The guards in sections 1-4 are unaffected and still apply.';
 END
 $audit$;
 

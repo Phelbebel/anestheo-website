@@ -13,6 +13,10 @@
 \pset pager off
 BEGIN;
 
+-- NOTE: no `origin` column. v2_preparation_origin_migration.sql was never
+-- applied to production, and a fixture that invents columns tests a database
+-- that does not exist. This is what let the first v9_2 through review.
+
 CREATE TABLE res(n serial, name text, pass boolean, detail text);
 GRANT ALL ON res TO PUBLIC;
 GRANT ALL ON SEQUENCE res_n_seq TO PUBLIC;
@@ -70,9 +74,9 @@ UPDATE public.profiles SET role='doctor', is_admin=false, verification_status='a
    constraint on this schema and a fixture that ignores it is testing a
    database that does not exist. Journey 1 is NEWDOC's, journey 2 is OTHDOC's,
    and they belong to different patients. */
-INSERT INTO public.patient_surgeries(id, patient_id, assigned_doctor_id, patient_name, procedure_type, care_state, origin)
-VALUES ('a1000000-0000-4000-8000-000000000001', :PATIENT, :NEWDOC, 'A Patient','Knee','surgical','clinic'),
-       ('a1000000-0000-4000-8000-000000000002', :PAT2,    :OTHDOC, 'Second Patient','Hip','surgical','clinic')
+INSERT INTO public.patient_surgeries(id, patient_id, assigned_doctor_id, patient_name, procedure_type, care_state)
+VALUES ('a1000000-0000-4000-8000-000000000001', :PATIENT, :NEWDOC, 'A Patient','Knee','surgical'),
+       ('a1000000-0000-4000-8000-000000000002', :PAT2,    :OTHDOC, 'Second Patient','Hip','surgical')
 ON CONFLICT (id) DO NOTHING;
 
 /* OTHDOC also treats PATIENT, through a clinic record rather than a journey.

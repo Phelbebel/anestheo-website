@@ -1,6 +1,10 @@
 \set ON_ERROR_STOP off
 \pset pager off
 BEGIN;
+
+-- NOTE: no `origin` column. v2_preparation_origin_migration.sql was never
+-- applied to production, and a fixture that invents columns tests a database
+-- that does not exist. This is what let the first v9_2 through review.
 CREATE TABLE res(n serial, name text, pass boolean, detail text);
 GRANT ALL ON res TO PUBLIC; GRANT ALL ON SEQUENCE res_n_seq TO PUBLIC;
 CREATE OR REPLACE FUNCTION pg_temp.be(u uuid) RETURNS void LANGUAGE plpgsql AS $$
@@ -50,9 +54,9 @@ SELECT pg_temp.be(:ATT);
 
 -- ATTACK B — patient_surgeries: self-assign to an arbitrary patient_id
 DO $$ BEGIN
-  INSERT INTO public.patient_surgeries(id, patient_id, assigned_doctor_id, patient_name, procedure_type, care_state, origin)
+  INSERT INTO public.patient_surgeries(id, patient_id, assigned_doctor_id, patient_name, procedure_type, care_state)
   VALUES ('dd000000-0000-4000-8000-000000000002','bb000000-0000-4000-8000-00000000000e',
-          'aa000000-0000-4000-8000-00000000000d','Victim','Knee','surgical','clinic');
+          'aa000000-0000-4000-8000-00000000000d','Victim','Knee','surgical');
   PERFORM pg_temp.t('ATTACK B patient_surgeries INSERT self-assigning an arbitrary patient is REFUSED',
     false, 'THE INSERT SUCCEEDED');
 EXCEPTION WHEN OTHERS THEN
@@ -88,8 +92,8 @@ UPDATE public.profiles SET role='patient', account_status='active', deleted_at=N
 INSERT INTO public.clinic_patients(id, doctor_id, auth_user_id, patient_name, procedure)
 VALUES ('dd000000-0000-4000-8000-000000000004', :ATT, 'bb000000-0000-4000-8000-00000000000f','Real Patient','Consult')
 ON CONFLICT DO NOTHING;
-INSERT INTO public.patient_surgeries(id, patient_id, assigned_doctor_id, patient_name, procedure_type, care_state, origin)
-VALUES ('dd000000-0000-4000-8000-000000000005','bb000000-0000-4000-8000-00000000000f', :ATT,'Real Patient','Hip','surgical','clinic')
+INSERT INTO public.patient_surgeries(id, patient_id, assigned_doctor_id, patient_name, procedure_type, care_state)
+VALUES ('dd000000-0000-4000-8000-000000000005','bb000000-0000-4000-8000-00000000000f', :ATT,'Real Patient','Hip','surgical')
 ON CONFLICT DO NOTHING;
 SELECT pg_temp.be(:ATT);
 DO $$ BEGIN
