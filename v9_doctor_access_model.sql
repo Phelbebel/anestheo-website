@@ -31,6 +31,29 @@
 -- Plus one that is ADDED, because the new model needs it:
 --   get_clinician_directory()    public, patient-facing clinician listing
 --
+-- TWO Q&A SCHEMA SHAPES, BECAUSE PRODUCTION HAS THE OLDER ONE.
+-- v2_ask_migration.sql is what turns the lightweight questions table into the
+-- Ask-a-Doctor portal: it adds patient_id, subject, message and status, and
+-- creates question_replies. Production never received it. So `questions`
+-- exists there but has no patient_id, and an earlier version of section 4c —
+-- guarded only by to_regclass — ran and failed 42703 building a policy body
+-- around a column that is not there.
+--
+-- Existence was never the right question. Section 4c now asks whether the
+-- COLUMNS ITS OWN POLICIES NAME are present, and takes one of two paths:
+--   PORTAL  patient_id present -> the blanket gate is replaced by the narrowed
+--           permissive policies, as designed.
+--   LEGACY  patient_id absent  -> the blanket gate is LEFT EXACTLY AS IT IS.
+--           It is the only thing keeping an unverified doctor out of that
+--           inbox, and there is no patient_id to build a replacement from.
+-- Making the table portal-shaped is v2_ask_migration.sql's job. That is a
+-- product decision about the live Questions system and not something a
+-- permissions migration takes on the way past.
+--
+-- The Q&A pair is therefore EXCLUDED from section 4's generic loop. Letting
+-- the loop drop the gate first and discovering only afterwards that it cannot
+-- be rebuilt would leave the legacy inbox wider than this migration found it.
+--
 -- REHEARSED AGAINST THE REAL INVENTORY, AND ONE THING WAS NOT REHEARSED.
 -- The rehearsal replica matched production on every field of
 -- tools/v9_production_inventory.sql — 31 gate policies, patient_archive_audit
@@ -473,6 +496,14 @@ BEGIN
        AND ( policyname LIKE '%\_require\_verified'
              OR ( permissive = 'RESTRICTIVE'
                   AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) )
+       /* THE Q&A PAIR IS NOT THE GENERIC CASE and must never be dropped here.
+          Section 4c decides their fate, because whether their gate can be
+          replaced depends on the SHAPE of the table, not its existence. On a
+          legacy questions table the replacement cannot be built at all, and a
+          loop that had already dropped the gate would leave the inbox wider
+          than it found it — a silent widening produced by a migration whose
+          whole purpose is to not widen anything. */
+       AND tablename NOT IN ('questions','question_replies')
      ORDER BY tablename, policyname
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I',
@@ -480,7 +511,7 @@ BEGIN
     RAISE NOTICE '  dropped %.%', r.tablename, r.policyname;
     v_n := v_n + 1;
   END LOOP;
-  RAISE NOTICE 'Blanket verification policies dropped: %', v_n;
+  RAISE NOTICE 'Blanket verification policies dropped: % (Q&A pair handled separately in 4c)', v_n;
 END
 $drop_gate$;
 
@@ -520,10 +551,50 @@ $drop_gate$;
 -- this deployment has no Ask-a-Doctor inbox, there is nothing here to protect
 -- and nothing here should stop the rest of the migration. Absence is reported,
 -- not assumed and not fatal.
+/* WHICH SHAPE IS THIS DATABASE? — asked by COLUMN, not by table.
+   Existence was not a sufficient test and production proved it: questions is
+   present there, but it is the LEGACY table. v2_ask_migration.sql is what adds
+   patient_id, subject, message, status and creates question_replies, and that
+   migration was never applied. Guarding on to_regclass let the block run and
+   the policy body then failed with 42703 on patient_id.
+   So each branch now checks the columns its own policies actually name. */
 DO $qa$
+DECLARE
+  v_q_exists    boolean := to_regclass('public.questions') IS NOT NULL;
+  v_r_exists    boolean := to_regclass('public.question_replies') IS NOT NULL;
+  v_q_portal    boolean := false;
+  v_r_portal    boolean := false;
 BEGIN
-  IF to_regclass('public.questions') IS NULL THEN
-    RAISE NOTICE 'skip: public.questions is not present on this database';
+  IF v_q_exists THEN
+    SELECT count(*) = 1 INTO v_q_portal
+      FROM pg_attribute
+     WHERE attrelid = to_regclass('public.questions')
+       AND attname  = 'patient_id'          -- the only column the new policies name
+       AND attnum > 0 AND NOT attisdropped;
+  END IF;
+
+  IF v_r_exists THEN
+    SELECT count(*) = 2 INTO v_r_portal
+      FROM pg_attribute
+     WHERE attrelid = to_regclass('public.question_replies')
+       AND attname IN ('question_id','author_id')
+       AND attnum > 0 AND NOT attisdropped;
+  END IF;
+
+  -- ── questions ─────────────────────────────────────────────────────────
+  IF NOT v_q_exists THEN
+    RAISE NOTICE 'questions: not present on this database; nothing to do';
+
+  ELSIF NOT v_q_portal THEN
+    /* LEGACY. Its blanket gate is deliberately LEFT IN PLACE — it is the only
+       thing standing between the legacy inbox and an unverified doctor, and
+       there is no patient_id to build the replacement from. Preserving it is
+       the conservative outcome: access is exactly what it was before v9 ran.
+       Making this table portal-shaped is v2_ask_migration.sql's job, and that
+       is a product decision about the live Questions system, not something a
+       permissions migration gets to do on the way past. */
+    RAISE NOTICE 'questions: legacy schema detected; existing trust gate preserved';
+
   ELSE
     EXECUTE $q$DROP POLICY IF EXISTS questions_require_verified ON public.questions$q$;
     EXECUTE $q$DROP POLICY IF EXISTS q_select_own_or_staff ON public.questions$q$;
@@ -539,11 +610,19 @@ BEGIN
         FOR UPDATE TO authenticated
         USING ( public.is_platform_admin() OR public.is_verified_doctor() )
         WITH CHECK ( public.is_platform_admin() OR public.is_verified_doctor() )$q$;
-    RAISE NOTICE 'questions: inbox kept verified-only.';
+    RAISE NOTICE 'questions: portal schema; inbox kept verified-only.';
   END IF;
 
-  IF to_regclass('public.question_replies') IS NULL THEN
-    RAISE NOTICE 'skip: public.question_replies is not present on this database';
+  -- ── question_replies ──────────────────────────────────────────────────
+  IF NOT v_r_exists THEN
+    RAISE NOTICE 'question_replies: not present on this database; nothing to do';
+
+  ELSIF NOT v_r_portal OR NOT v_q_portal THEN
+    /* The reply policies read question_replies.question_id/author_id AND join
+       to questions.patient_id, so BOTH tables have to be portal-shaped. If
+       either is not, the gate stays exactly as it is. */
+    RAISE NOTICE 'question_replies: legacy or incomplete schema detected; existing trust gate preserved';
+
   ELSE
     EXECUTE $q$DROP POLICY IF EXISTS question_replies_require_verified ON public.question_replies$q$;
     EXECUTE $q$DROP POLICY IF EXISTS r_select_own_or_staff ON public.question_replies$q$;
@@ -565,7 +644,7 @@ BEGIN
                                       AND q.patient_id = auth.uid())
                            OR public.is_platform_admin()
                            OR public.is_verified_doctor() ) )$q$;
-    RAISE NOTICE 'question_replies: replies kept verified-only.';
+    RAISE NOTICE 'question_replies: portal schema; replies kept verified-only.';
   END IF;
 END
 $qa$;
@@ -734,15 +813,52 @@ ON CONFLICT (name) DO UPDATE SET applied_at = now(), note = EXCLUDED.note;
 -- ============================================================
 DO $verify$
 DECLARE
-  v_left int; v_bad text[] := '{}';
+  v_left int; v_bad text[] := '{}'; v_row record;
 BEGIN
-  /* V1: no blanket gate survives — measured the same way section 4 found
-     them, so this cannot pass by looking for the wrong name. */
+  /* V1 — THREE SEPARATE CLAIMS, because "zero gates remain" is no longer the
+     right assertion. On a legacy Q&A schema a gate is deliberately preserved,
+     and a check that demanded zero would either fail correct work or, if
+     loosened to "some may remain", stop proving anything.
+
+     V1a  every ORDINARY doctor-workspace gate is gone
+     V1b  anything still standing is on the Q&A pair AND only because that
+          table is legacy — a portal-shaped table keeping its gate is a bug
+     V1c  nothing unexpected is left anywhere */
   SELECT count(*) INTO v_left FROM pg_policies
    WHERE schemaname='public'
      AND ( policyname LIKE '%\_require\_verified'
-           OR ( permissive='RESTRICTIVE' AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) );
-  IF v_left <> 0 THEN v_bad := v_bad || ('V1 ' || v_left || ' blanket gate policies remain')::text; END IF;
+           OR ( permissive='RESTRICTIVE' AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) )
+     AND tablename NOT IN ('questions','question_replies');
+  IF v_left <> 0 THEN
+    v_bad := v_bad || ('V1a ' || v_left || ' ordinary workspace gate(s) remain: ' ||
+      (SELECT string_agg(tablename||'.'||policyname, ', ') FROM pg_policies
+        WHERE schemaname='public'
+          AND ( policyname LIKE '%\_require\_verified'
+                OR ( permissive='RESTRICTIVE' AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) )
+          AND tablename NOT IN ('questions','question_replies')))::text;
+  END IF;
+
+  FOR v_row IN
+    SELECT tablename, policyname FROM pg_policies
+     WHERE schemaname='public'
+       AND ( policyname LIKE '%\_require\_verified'
+             OR ( permissive='RESTRICTIVE' AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) )
+       AND tablename IN ('questions','question_replies')
+  LOOP
+    /* A preserved gate is legitimate ONLY on a table that is not portal-shaped.
+       If questions has patient_id, section 4c should have replaced the gate,
+       and a surviving one means it silently did not. */
+    IF v_row.tablename = 'questions'
+       AND EXISTS (SELECT 1 FROM pg_attribute
+                    WHERE attrelid=to_regclass('public.questions') AND attname='patient_id'
+                      AND attnum>0 AND NOT attisdropped) THEN
+      v_bad := v_bad || ('V1b questions is portal-shaped but kept its blanket gate ('
+                         || v_row.policyname || ')')::text;
+    ELSE
+      RAISE NOTICE 'V1b preserved by design: %.% (legacy Q&A trust gate)',
+                   v_row.tablename, v_row.policyname;
+    END IF;
+  END LOOP;
 
   -- V2: the ten ordinary gates now ask about the doctor account.
   IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
@@ -782,13 +898,34 @@ BEGIN
      but only assert it where the inbox actually exists. Demanding a policy on
      a table this deployment does not have is how the previous version of this
      file failed. */
-  IF to_regclass('public.questions') IS NOT NULL THEN
+  /* V9 — the portal contract, asserted only where the portal exists. On a
+     legacy schema the equivalent guarantee is V1b: the original gate is still
+     standing, which is what keeps that inbox verified-only. */
+  IF EXISTS (SELECT 1 FROM pg_attribute
+              WHERE attrelid = to_regclass('public.questions') AND attname='patient_id'
+                AND attnum>0 AND NOT attisdropped) THEN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
                     AND tablename='questions' AND policyname='q_select_own_or_staff'
                     AND qual LIKE '%is_verified_doctor%')
       THEN v_bad := v_bad || 'V9 questions inbox is open to unverified doctors'::text; END IF;
+  ELSIF to_regclass('public.questions') IS NOT NULL THEN
+    /* LEGACY: prove the preserved gate is genuinely still there. Without this
+       the legacy path could silently drop protection and still pass. */
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+                    AND tablename='questions'
+                    AND ( policyname LIKE '%\_require\_verified'
+                          OR ( permissive='RESTRICTIVE'
+                               AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) ))
+      THEN v_bad := v_bad ||
+        'V9-legacy the legacy questions trust gate was removed and not replaced'::text; END IF;
   END IF;
-  IF to_regclass('public.question_replies') IS NOT NULL THEN
+
+  IF EXISTS (SELECT 1 FROM pg_attribute
+              WHERE attrelid = to_regclass('public.question_replies') AND attname='question_id'
+                AND attnum>0 AND NOT attisdropped)
+     AND EXISTS (SELECT 1 FROM pg_attribute
+                  WHERE attrelid = to_regclass('public.questions') AND attname='patient_id'
+                    AND attnum>0 AND NOT attisdropped) THEN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
                     AND tablename='question_replies' AND policyname='r_select_own_or_staff'
                     AND qual LIKE '%is_verified_doctor%')

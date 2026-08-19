@@ -86,7 +86,13 @@ want_col(tbl, col) AS (VALUES
   ('clinic_patients','doctor_id'),('clinic_patients','auth_user_id'),('clinic_patients','deleted_at'),
   ('care_requests','patient_id'),('care_requests','doctor_id'),
   ('care_requests','status'),('care_requests','deleted_at'),
-  ('anesthesia_amendments','case_id'),('anesthesia_amendments','amended_by')
+  ('anesthesia_amendments','case_id'),('anesthesia_amendments','amended_by'),
+  /* SCHEMA-SENSITIVE. Table existence is NOT sufficient, and production proved
+     it: questions is present there but is the LEGACY table, so a block guarded
+     only by to_regclass ran and its policy body failed 42703 on patient_id.
+     v9 section 4c branches on exactly these columns. */
+  ('questions','patient_id'),('questions','status'),('questions','subject'),
+  ('question_replies','question_id'),('question_replies','author_id')
 ),
 -- Named policies v9 drops and recreates.
 want_pol(tbl, pol) AS (VALUES
@@ -138,8 +144,15 @@ SELECT '4 COLUMN',
        w.tbl || '.' || w.col,
        CASE WHEN a.attname IS NULL THEN 'MISSING' ELSE 'present' END,
        CASE WHEN a.attname IS NULL THEN
-              CASE WHEN w.col = 'finalized_by_verification_status'
-                   THEN 'expected missing — v9 ADDs it' ELSE 'blocks v9' END
+              CASE
+                WHEN w.col = 'finalized_by_verification_status'
+                  THEN 'expected missing - v9 ADDs it'
+                /* These four do not block anything. They SELECT A BRANCH in
+                   v9 section 4c: absent means the legacy path, which preserves
+                   the existing trust gate instead of replacing it. */
+                WHEN w.tbl IN ('questions','question_replies')
+                  THEN 'not a blocker - selects the LEGACY branch in 4c'
+                ELSE 'blocks v9' END
             ELSE format_type(a.atttypid, a.atttypmod) END
   FROM want_col w
   LEFT JOIN pg_attribute a
@@ -187,6 +200,44 @@ UNION ALL
 SELECT '6 SUMMARY', 'v9_1 applied?',
        CASE WHEN to_regproc('public.submit_doctor_onboarding') IS NULL
             THEN 'no' ELSE 'YES' END, 'submit_doctor_onboarding'
+UNION ALL
+/* The verdict v9 section 4c will reach, computed the same way it computes it.
+   This is the row to read before running v9. */
+SELECT '6 SUMMARY', 'Q&A schema shape (drives v9 section 4c)',
+  CASE
+    WHEN to_regclass('public.questions') IS NULL THEN 'no questions table - 4c does nothing'
+    WHEN EXISTS (SELECT 1 FROM pg_attribute
+                  WHERE attrelid=to_regclass('public.questions') AND attname='patient_id'
+                    AND attnum>0 AND NOT attisdropped)
+      THEN 'PORTAL - 4c redesigns the questions policies'
+    ELSE 'LEGACY - 4c preserves the existing trust gate, creates nothing'
+  END,
+  'legacy = v2_ask_migration.sql was never applied'
+UNION ALL
+SELECT '6 SUMMARY', 'question_replies shape',
+  CASE
+    WHEN to_regclass('public.question_replies') IS NULL THEN 'absent - 4c does nothing'
+    WHEN (SELECT count(*) FROM pg_attribute
+           WHERE attrelid=to_regclass('public.question_replies')
+             AND attname IN ('question_id','author_id')
+             AND attnum>0 AND NOT attisdropped) = 2
+      THEN 'PORTAL columns present'
+    ELSE 'LEGACY/incomplete - 4c preserves the existing trust gate'
+  END, 'needs question_id AND author_id'
+UNION ALL
+SELECT '6 SUMMARY', 'gates v9 will PRESERVE (not drop)',
+  (SELECT count(*)::text FROM pg_policies p WHERE p.schemaname='public'
+    AND ( p.policyname LIKE '%\_require\_verified'
+          OR (p.permissive='RESTRICTIVE' AND coalesce(p.qual,'') LIKE '%is_pending_doctor%') )
+    AND p.tablename IN ('questions','question_replies')),
+  'excluded from the generic loop; 4c decides by column'
+UNION ALL
+SELECT '6 SUMMARY', 'gates v9 will DROP',
+  (SELECT count(*)::text FROM pg_policies p WHERE p.schemaname='public'
+    AND ( p.policyname LIKE '%\_require\_verified'
+          OR (p.permissive='RESTRICTIVE' AND coalesce(p.qual,'') LIKE '%is_pending_doctor%') )
+    AND p.tablename NOT IN ('questions','question_replies')),
+  'the ordinary doctor-workspace gates'
 UNION ALL
 /* The PostgreSQL version matters more than it looks. On 16, DROP POLICY IF
    EXISTS tolerates a missing relation; on the server that ran this deployment
