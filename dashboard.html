@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-clinical">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -46,7 +46,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 
 .welcome { margin-bottom: 24px; }
 .welcome-label { font-size: 11px; color: rgba(255,255,255,.3); letter-spacing: .07em; text-transform: uppercase; font-weight: 600; margin-bottom: 7px; }
-.welcome h1 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; margin-bottom: 5px; }
+.welcome h1 { font-family:var(--sans); font-size: 28px; font-weight: 700; margin-bottom: 5px; }
 .welcome-sub { font-size: 14px; color: rgba(255,255,255,.45); }
 
 .session-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(27,107,90,.12); border: 1px solid rgba(27,107,90,.25); border-radius: var(--radius-xl); padding: 5px 13px; font-size: 12px; color: var(--accent); margin-bottom: 28px; }
@@ -71,7 +71,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .coming-soon { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; background: rgba(232,168,56,.1); color: var(--warning); border: 1px solid rgba(232,168,56,.2); padding: 2px 7px; border-radius: var(--radius-xs); display: inline-block; margin-top: 2px; }
 .card-flagship { grid-column: 1 / -1; background: linear-gradient(135deg, rgba(27,107,90,.18), rgba(27,107,90,.06)); border-color: rgba(42,138,116,.45); position: relative; }
 .card-flagship .card-ico { font-size: 30px; }
-.card-flagship .card-title { font-size: 17px; font-family: 'Playfair Display', serif; }
+.card-flagship .card-title { font-size: 17px; font-family:var(--sans); }
 .card-flagship:hover { border-color: rgba(42,138,116,.7); }
 .flagship-tag { position: absolute; top: 16px; right: 16px; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: rgba(42,138,116,.25); color: var(--accent); border: 1px solid rgba(42,138,116,.45); padding: 3px 9px; border-radius: var(--radius-xs); }
 
@@ -87,7 +87,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 }
 /* ── SINGLE-PAGE WORKSPACE ── */
 .ws-top{max-width:1180px;margin:0 auto;padding:24px 20px 8px;}
-.ws-greet{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;}
+.ws-greet{font-family:var(--sans);font-size:24px;font-weight:700;}
 .ws-role{font-size:13px;color:var(--muted);margin-top:2px;}
 .ws-online{color:var(--accent);}
 .verify-banner{max-width:1180px;margin:8px auto 0;padding:11px 16px;background:rgba(232,168,56,.08);border:1px solid rgba(232,168,56,.25);border-radius:var(--radius-md);font-size:13px;color:#E8C16b;}
@@ -137,7 +137,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-sec.active{display:block;}
 @keyframes wsfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .ws-sec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
-.ws-sec-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;}
+.ws-sec-title{font-family:var(--sans);font-size:20px;font-weight:700;}
 .ws-sec-sub{font-size:13px;color:var(--muted);margin-top:3px;}
 .ws-open{font-size:13px;color:var(--accent);text-decoration:none;background:rgba(27,107,90,.12);border:1px solid rgba(42,138,116,.3);border-radius:var(--radius-sm);padding:9px 14px;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .ws-open:hover{background:rgba(27,107,90,.2);}
@@ -164,7 +164,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-ws-bg.open{display:flex;}
 .ws-ws-modal{background:#0A1614;border:1px solid rgba(42,138,116,.4);border-radius:var(--radius-lg);max-width:1080px;width:100%;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);}
 .ws-ws-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 20px 12px;background:rgba(42,138,116,.16);border-bottom:1px solid rgba(42,138,116,.3);}
-.ws-ws-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;}
+.ws-ws-title{font-family:var(--sans);font-size:21px;font-weight:700;color:#fff;}
 .ws-ws-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
 .ws-ws-body{padding:18px 20px 26px;overflow-y:auto;}
 /* ── Workspace-first UI (tabbed patient workspace) ── */
@@ -287,7 +287,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-req-msg{font-size:12.5px;color:rgba(255,255,255,.7);margin-top:4px;font-style:italic;}
 .ws-req-btns{display:flex;gap:8px;flex-shrink:0;}
 .ws-stat{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:15px 16px;}
-.ws-stat-n{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;}
+.ws-stat-n{font-family:var(--sans);font-size:26px;font-weight:700;color:#fff;}
 .ws-stat-l{font-size:12px;color:var(--muted);margin-top:2px;}
 .ws-subtabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
 .ws-subtab{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit;}
@@ -318,7 +318,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .pc-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:14px;cursor:pointer;transition:border-color .18s,transform .18s;}
 .pc-card:hover{border-color:rgba(42,138,116,.4);transform:translateY(-1px);}
 .pc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px;}
-.pc-name{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;color:#fff;}
+.pc-name{font-family:var(--sans);font-size:21px;font-weight:700;color:#fff;}
 .pc-facts{font-size:13px;color:var(--muted);margin-top:5px;line-height:1.6;}
 .pc-sep{margin:0 7px;opacity:.5;}
 .pc-status{font-size:12px;font-weight:700;color:var(--accent);background:rgba(27,107,90,.16);border:1px solid rgba(42,138,116,.35);border-radius:var(--radius-xl);padding:6px 13px;white-space:nowrap;}
@@ -389,7 +389,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .acs-chip.on{background:#1B6B5A;border-color:#1B6B5A;color:#fff;font-weight:600;}
 /* SECTION 1 — My Surgical Patients (primary, dominant) */
 .ws-surg-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:4px 0 14px;}
-.ws-surg-t{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:#fff;}
+.ws-surg-t{font-family:var(--sans);font-size:23px;font-weight:700;color:#fff;}
 .ws-surg-sub{font-size:13px;color:var(--muted);}
 /* SECTION 2 — Consultations (secondary). SECTION 3 — Requests (smallest). */
 .ws-consult-sec{margin-top:30px;padding:16px 18px;border:1px solid rgba(61,139,220,.28);border-radius:var(--radius-lg);background:rgba(61,139,220,.035);}
@@ -683,7 +683,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-inv-acts{display:flex;gap:6px;flex:0 0 auto;}
 .ws-inv-acts .ws-btn{padding:6px 10px;font-size:11.5px;}
 .ws-inv-cancel{color:#ff9b9b!important;}
-.ws-invite-head{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#fff;}
+.ws-invite-head{font-family:var(--sans);font-size:18px;font-weight:700;color:#fff;}
 .ws-invite-sub{font-size:12.5px;color:var(--muted);margin:3px 0 14px;}
 .ws-pt-cols{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
 .ws-pt-form{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;position:sticky;top:16px;}
@@ -701,7 +701,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-modal-bg.open{display:flex;}
 .ws-modal{background:var(--dark2);border:1px solid rgba(27,107,90,.3);border-radius:var(--radius-lg);padding:24px;max-width:440px;width:100%;}
 .ws-modal-lg{max-width:560px;}
-.ws-modal h3{font-family:'Playfair Display',serif;font-size:21px;margin-bottom:14px;}
+.ws-modal h3{font-family:var(--sans);font-size:21px;margin-bottom:14px;}
 .ws-modal label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:12px 0 5px;}
 .ws-modal input,.ws-modal textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:44px;}
 .ws-modal textarea{min-height:64px;resize:vertical;}
@@ -709,7 +709,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-modal-btns{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;}
 .ws-modal-btns .ws-btn{flex:1;text-align:center;padding:12px;min-width:90px;}
 .ws-d-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;}
-.ws-d-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;}
+.ws-d-name{font-family:var(--sans);font-size:22px;font-weight:700;}
 .ws-d-sub{font-size:13px;color:var(--accent);margin-top:2px;}
 .ws-d-grid{display:flex;flex-direction:column;gap:0;margin-bottom:8px;}
 .ws-d-row{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.1);font-size:13.5px;}
@@ -736,7 +736,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-cmd-c:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.12);}
 .ws-cmd-c:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .ws-cmd-c[disabled]{opacity:.45;cursor:default;}
-.ws-cmd-n{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;color:#fff;line-height:1;
+.ws-cmd-n{font-family:var(--sans);font-size:23px;font-weight:700;color:#fff;line-height:1;
   font-variant-numeric:tabular-nums;}
 .ws-cmd-c.warn .ws-cmd-n{color:var(--warning);}
 .ws-cmd-l{font-size:10.5px;color:rgba(255,255,255,.42);text-transform:uppercase;letter-spacing:.06em;margin-top:7px;line-height:1.4;}

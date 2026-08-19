@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="theme-light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,16 +14,17 @@
 <link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-/* Palette comes from tokens.css and this page runs on the light surface: it is
-   read on a phone, outdoors, often by someone who has never seen it before.
-   Paper is legible in daylight in a way a dark card is not, and it prints.
+/* Palette comes from tokens.css, so this emergency card carries the same
+   identity as everything else. It is read on a phone by someone who has never
+   seen it before, so the print stylesheet at the foot of this block — not a
+   different theme — is what makes it survive being put on paper.
    --red stays named because the page's own rules speak that name. */
 :root{--red:var(--danger-strong);}
 body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--ground);
   color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.5;}
 .wrap{max-width:640px;margin:0 auto;padding:18px 16px 60px;}
 .brand{display:flex;align-items:center;gap:9px;padding:6px 0 14px;}
-.brand b{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);}
+.brand b{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-read);}
 h1{font-size:24px;font-weight:700;line-height:1.25;}
 .who{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
   padding:15px 16px;margin-bottom:14px;}
@@ -51,8 +52,8 @@ h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted
 /* Provenance is never hidden and never abbreviated away. */
 .pv-pat{background:var(--surface-3);color:var(--ink-2);}
 .pv-doc{background:var(--info-bg);color:var(--info);}
-.pv-ver{background:var(--brand-tint-2);color:var(--brand);}
-.pv-sys{background:rgba(123,63,140,.10);color:#7B3F8C;}
+.pv-ver{background:var(--brand-tint-2);color:var(--brand-read);}
+.pv-sys{background:rgba(206,147,216,.14);color:#E6C6EC;}
 
 .contact{display:flex;align-items:center;gap:12px;background:var(--surface);
   border:1px solid var(--border);border-radius:var(--radius-md);padding:13px 15px;margin-bottom:9px;}

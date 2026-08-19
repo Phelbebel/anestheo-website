@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-clinical">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>Live Chart — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -30,7 +30,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
   border-bottom:1px solid var(--border);backdrop-filter:blur(8px);}
 .hdr-in{max-width:1600px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .hdr-id{min-width:170px;}
-.hdr-name{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;line-height:1.2;}
+.hdr-name{font-family:var(--sans);font-size:19px;font-weight:700;line-height:1.2;}
 .hdr-sub{font-size:12px;color:var(--muted);margin-top:2px;}
 .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;min-width:0;}
 .chip{font-size:11.5px;font-weight:600;border-radius:var(--radius-sm);padding:4px 9px;
@@ -267,7 +267,7 @@ select option{background:var(--dark3);}
 
 /* ── Record view: one continuous anesthetic, not twelve forms ───────────── */
 .rv{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;}
-.rv h3{font-family:'Playfair Display',serif;font-size:17px;margin:22px 0 9px;}
+.rv h3{font-family:var(--sans);font-size:17px;margin:22px 0 9px;}
 .rv h3:first-child{margin-top:0;}
 .rvgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;}
 .rvgrid div{font-size:13px;}

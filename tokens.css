@@ -1,5 +1,5 @@
 /* ============================================================
-   ANESTHEO DESIGN TOKENS  ·  one brand, two surfaces
+   ANESTHEO DESIGN TOKENS  ·  one identity, three surfaces
    ------------------------------------------------------------
    WHY THIS FILE EXISTS
 
@@ -10,37 +10,56 @@
    Nothing was broken — it was simply impossible to change how
    Anestheo looks in one move.
 
+   WHERE THE IDENTITY COMES FROM
+
+   From the homepage as it RENDERS, measured in a browser, not from
+   the values declared at the top of its stylesheet. Those two had
+   diverged: index.html declares a warm paper palette at :root and
+   then paints over it, so #FAFAF8 is real in the source and has
+   never once reached a screen. The palette below is the one a
+   visitor actually sees:
+
+       ground   #0B1620   deep bluish graphite, never pure black
+       raised   #0E1C27
+       ink      #F2F6F8 · #93A6B4 · #6D8091
+       teal     #2FA88C lifted for the dark ground, #7ECFC0 to read
+       hairline rgba(255,255,255,.09)
+       card     rgba(255,255,255,.035)
+
    HOW IT IS ORGANISED
 
-     1. BRAND        one teal, one radius scale, one spacing
-                     rhythm, one type hierarchy, one motion.
-                     Identical on every surface. This is what
-                     makes the public site and the clinical
-                     product read as the same product.
+     1. BRAND     the teal family, the radius scale, the spacing
+                  rhythm, the type hierarchy, the motion. Identical
+                  everywhere. This shared half is what makes the
+                  public site and the clinical product read as one
+                  product rather than two.
 
-     2. DARK SURFACE the default, and the clinical product: the
-                     doctor workspace, Live Tools, Live Chart, the
-                     anesthesia record, Admin Center. Dense,
-                     instrument-like, read for hours in a theatre.
+     2. GRAPHITE  the default, and the identity above. The public
+                  site, the patient application, and anything that
+                  does not ask for something else.
 
-     3. LIGHT SURFACE opted into with <html class="theme-light">.
-                     The public and patient-facing side: warm
-                     paper, white cards, restrained shadow. Calm
-                     rather than clinical.
+     3. CLINICAL  <html class="theme-clinical">. The same graphite
+                  identity, one step deeper and one step denser: a
+                  full-screen instrument read for hours needs more
+                  contrast between a row and its neighbour than a
+                  marketing page does, and it keeps the teal
+                  hairline that separates its panels.
 
-   The two surfaces differ ONLY in ground, ink and the weights of
-   the shared colours. Radius, spacing, type scale, motion and the
-   brand hue itself are shared, which is what keeps them relatives
-   rather than two products.
+     4. LIGHT     <html class="theme-light">. A complete light
+                  surface, kept and maintained but assigned to no
+                  page. It exists for a surface that one day has a
+                  readability reason to be light — print, daylight,
+                  a shared screen. Assigning it is a design
+                  decision, not a default.
 
    HOW TO USE IT
 
    Write components against the SEMANTIC names — --ground, --surface,
    --line, --ink, --ink-muted, --brand — and the same rule renders
-   correctly on both surfaces. The older dark-specific names
-   (--dark, --text, --muted, --accent …) are kept and are also
-   redefined under .theme-light, so a page that still speaks the old
-   vocabulary follows its theme too.
+   correctly on every surface. The older names (--dark, --text,
+   --muted, --accent …) are kept as aliases and redefined per
+   surface, so a page that still speaks the old vocabulary follows
+   whichever surface it is on.
 
    A page may still override any token locally; this file is loaded
    before any page's own <style>, so a deliberate local decision
@@ -49,22 +68,30 @@
    ============================================================ */
 
 /* ════════════════════════════════════════════════════════════
-   1 · BRAND — shared by both surfaces, never themed
+   1 · BRAND — shared by every surface, never themed
    ════════════════════════════════════════════════════════════ */
 :root{
 
   /* ── The teal ─────────────────────────────────────────────
-     One hue at three weights. --brand is the brand and the
-     resting state of a primary action. --brand-deep is its
-     pressed/hover state. --brand-lift is the same teal lifted
-     for legibility against a dark ground — it is a contrast
-     accommodation, not a second brand colour. */
+     One hue at three weights, in the hierarchy the homepage
+     established. --brand is the deep teal a solid fill is made
+     of, where white text needs the contrast. --brand-mid is the
+     accent lifted for a dark ground — the homepage's own
+     --teal. --brand-lift is the weight that READS: links,
+     eyebrows, emphasis. */
   --brand:        #1B6B5A;
   --brand-deep:   #155646;
-  --brand-mid:    #2A8A74;
+  --brand-mid:    #2FA88C;
   --brand-lift:   #7ECFC0;
   --brand-lift-2: #9FF0CF;
   --on-brand:     #ffffff;
+
+  /* The homepage's primary action is a teal gradient, and its
+     secondary is light-on-graphite. Both are here so a button
+     anywhere in the product can be the same button. */
+  --brand-grad:       linear-gradient(135deg,#2FA88C,#1B6B5A);
+  --brand-grad-hover: linear-gradient(135deg,#37bd9c,#22826d);
+  --brand-grad-shadow: 0 12px 30px rgba(47,168,140,.26);
 
   /* ── Radius ───────────────────────────────────────────────
      A 4px grid, replacing the eighteen ad-hoc values the site
@@ -91,12 +118,12 @@
   --sp-5: 22px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
 
   /* ── Type ─────────────────────────────────────────────────
-     --font carries the interface. --sans is the public voice:
-     Inter, as on the homepage. --serif is reserved for titles on
-     the dark product surface. --mono is for values that must
-     line up. */
+     Inter, because that is the homepage's voice and the homepage
+     is the identity. --serif stays defined for the few places
+     that still deliberately ask for it; nothing shared does.
+     --mono is for values that must line up. */
   --sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font:  'DM Sans', -apple-system, system-ui, sans-serif;
+  --font:  var(--sans);
   --serif: 'Playfair Display', Georgia, serif;
   --mono:  ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -112,58 +139,56 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   2 · DARK SURFACE — the default, and the clinical product
+   2 · GRAPHITE — the default, and the homepage's identity
    ════════════════════════════════════════════════════════════ */
-:root, .theme-dark{
+:root, .theme-graphite{
 
   /* ── Ground ───────────────────────────────────────────────*/
-  --ground:        #0A1A15;
-  --ground-2:      #0C1F18;   /* a raised region: drawer, sticky header */
-  --ground-3:      #132218;   /* a solid raised block: table head, active row */
-  --ground-nav:    #071210;
-  --ground-sunken: #07120F;
+  --ground:        #0B1620;
+  --ground-2:      #0E1C27;   /* a raised region: drawer, sticky header */
+  --ground-3:      #14232F;   /* a solid raised block: table head, active row */
+  --ground-nav:    rgba(11,22,32,.72);
+  --ground-sunken: #08111A;
+
+  /* The homepage's two glows, kept as tokens so any page can sit
+     on the same light. Never a repeating pattern, never neon. */
+  --ground-glow:
+    radial-gradient(ellipse 80% 55% at 72% -8%, rgba(47,168,140,.16), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 8% 4%, rgba(60,110,160,.10), transparent 62%);
 
   /* ── Surfaces ─────────────────────────────────────────────
-     Cards are light lifted off the dark ground, never a
-     separate colour. Three weights: resting, hover, active. */
+     Cards are light lifted off the graphite, never a separate
+     colour. Three weights: resting, hover, active. */
   --surface:   rgba(255,255,255,.035);
-  --surface-2: rgba(255,255,255,.06);
-  --surface-3: rgba(255,255,255,.09);
+  --surface-2: rgba(255,255,255,.05);
+  --surface-3: rgba(255,255,255,.08);
 
-  /* ── Lines ────────────────────────────────────────────────
-     --line is the brand hairline separating content regions.
-     --hair is the neutral hairline used INSIDE a surface, where
-     a teal edge would read as a highlight it does not mean. */
-  --line:      rgba(27,107,90,.22);
-  --line-2:    rgba(27,107,90,.34);
-  --hair:      rgba(255,255,255,.08);
-  --hair-2:    rgba(255,255,255,.16);
+  /* ── Lines ────────────────────────────────────────────────*/
+  --line:   rgba(255,255,255,.09);
+  --line-2: rgba(255,255,255,.16);
+  --hair:   rgba(255,255,255,.09);
+  --hair-2: rgba(255,255,255,.16);
 
   /* ── Ink ──────────────────────────────────────────────────
-     Four steps, and a hierarchy rather than a palette:
-     heading, body, supporting, and the barely-there label. */
-  --ink:       #ffffff;
-  --ink-2:     rgba(255,255,255,.74);
-  --ink-muted: rgba(255,255,255,.55);
-  --ink-faint: rgba(255,255,255,.28);
+     A hierarchy rather than a palette: heading, body,
+     supporting, and the barely-there label. */
+  --ink:       #F2F6F8;
+  --ink-2:     #C7D3DB;
+  --ink-muted: #93A6B4;
+  --ink-faint: #6D8091;
 
   /* ── Brand on this ground ─────────────────────────────────
      --brand-read is whichever weight of the teal is legible as
-     TEXT here. On dark that is the lifted teal; on light it is
-     the brand itself. Components use --brand-read for links and
-     emphasis so they never have to know which surface they are
-     on. */
-  --brand-read:  var(--brand-lift);
-  --brand-tint:  rgba(27,107,90,.10);
-  --brand-tint-2:rgba(27,107,90,.18);
-  --brand-glow:  rgba(126,207,192,.10);
+     TEXT here, so a component never has to know which surface
+     it is on. */
+  --brand-read:   var(--brand-lift);
+  --brand-tint:   rgba(47,168,140,.10);
+  --brand-tint-2: rgba(47,168,140,.20);
+  --brand-glow:   rgba(126,207,192,.10);
 
-  /* ── Elevation ────────────────────────────────────────────
-     Named --elev-* rather than --shadow, because two pages
-     already own a local --shadow tuned to their own scale. */
-  --elev-1: 0 2px 10px rgba(0,0,0,.20);
-  --elev-2: 0 10px 30px rgba(0,0,0,.35);
-  --elev-3: 0 24px 60px rgba(0,0,0,.50);
+  --elev-1: 0 2px 10px rgba(0,0,0,.25);
+  --elev-2: 0 12px 30px rgba(0,0,0,.35);
+  --elev-3: 0 24px 60px rgba(0,0,0,.45);
 
   /* ── Functional colour ────────────────────────────────────
      These carry clinical and procedural meaning and must never
@@ -198,11 +223,11 @@
   --action:  #FFB347; --action-bg: rgba(255,179,71,.12); --action-bd: rgba(255,179,71,.34);
   --urgent:  #FF6B6B; --urgent-bg: rgba(255,107,107,.12);--urgent-bd: rgba(255,107,107,.32);
 
-  /* ── Legacy dark vocabulary ───────────────────────────────
-     The names most of the product's CSS already speaks. They are
-     aliases now, not separate opinions — and they are redefined
-     under .theme-light below, so a page written in this
-     vocabulary follows whichever surface it is on. */
+  /* ── Legacy vocabulary ────────────────────────────────────
+     The names most of the product's CSS already speaks. Aliases
+     now, not separate opinions, and redefined on every surface
+     below so a page written in this vocabulary follows the
+     surface it is on. */
   --dark:          var(--ground);
   --dark2:         var(--ground-2);
   --dark3:         var(--ground-3);
@@ -220,39 +245,91 @@
   --teal-tint:     var(--brand-tint);
   --teal-tint-2:   var(--brand-tint-2);
   --accent-tint:   var(--brand-glow);
+
+  color-scheme: dark;
 }
 
 /* ════════════════════════════════════════════════════════════
-   3 · LIGHT SURFACE — the public and patient-facing side
+   3 · CLINICAL — the same identity, deeper and denser
+   ------------------------------------------------------------
+   Opt in with <html class="theme-clinical">.
+
+   The doctor workspace, Live Tools, Live Chart, the anesthesia
+   record and Admin Center are instruments. They are read for
+   hours, often in a dim theatre, and they put far more rows on a
+   screen than any marketing page does.
+
+   So this surface takes the graphite identity and asks two things
+   of it: a ground one step deeper, so a full screen of it does not
+   glare, and a hairline with the brand in it, because a teal edge
+   is how a panel has always announced where it ends here and
+   removing it would cost real legibility for the sake of tidiness.
+
+   Density and contrast come first. Everything else — the teal
+   hierarchy, the radii, the rhythm, the type — is the shared set.
+   ════════════════════════════════════════════════════════════ */
+.theme-clinical{
+  --ground:        #0A141C;
+  --ground-2:      #0D1A24;
+  --ground-3:      #12202B;
+  --ground-nav:    #070F16;
+  --ground-sunken: #070E14;
+
+  /* No wash. A gradient behind a vitals trace is noise. */
+  --ground-glow: none;
+
+  --surface:   rgba(255,255,255,.04);
+  --surface-2: rgba(255,255,255,.065);
+  --surface-3: rgba(255,255,255,.09);
+
+  /* The brand hairline, in the homepage's teal rather than the
+     old green-black one. */
+  --line:   rgba(47,168,140,.22);
+  --line-2: rgba(47,168,140,.34);
+  --hair:   rgba(255,255,255,.08);
+  --hair-2: rgba(255,255,255,.16);
+
+  /* One step brighter than the public surface at every level: a
+     dense table needs its supporting text to survive being small. */
+  --ink:       #FFFFFF;
+  --ink-2:     rgba(255,255,255,.78);
+  --ink-muted: #9FB3C0;
+  --ink-faint: #748795;
+}
+
+/* ════════════════════════════════════════════════════════════
+   4 · LIGHT — maintained, assigned to nothing
    ------------------------------------------------------------
    Opt in with <html class="theme-light">.
 
    Warm paper rather than white: #FAFAF8 has enough yellow in it
-   to stop a full page of text glaring, and it is the ground the
-   product's own visual language was designed on. Cards are true
-   white so they lift off it without needing a border to prove
-   they are there.
+   to stop a full page of text glaring. Cards are true white so
+   they lift off it without needing a border to prove they are
+   there.
 
-   Note what does NOT change: the teal, the radius scale, the
-   spacing rhythm, the type hierarchy, the motion. That shared
-   half is the whole point — the two surfaces are the same
-   product seen in two lights, not two designs.
+   No page currently uses this. It is kept because the moment a
+   surface has a genuine readability reason to be light — a page
+   read outdoors, a page that is printed, a screen shared across a
+   table — the decision should be one class, not a redesign. Note
+   what does not change even then: the teal, the radius scale, the
+   spacing rhythm, the type, the motion.
    ════════════════════════════════════════════════════════════ */
 .theme-light{
   --ground:        #FAFAF8;
-  --ground-2:      #F3F3EF;   /* an alternate band, e.g. a footer */
-  --ground-3:      #EDEDE8;   /* a solid raised block: table head */
+  --ground-2:      #F3F3EF;
+  --ground-3:      #EDEDE8;
   --ground-nav:    rgba(250,250,248,.88);
   --ground-sunken: #F3F3EF;
+  --ground-glow:   none;
 
   --surface:   #FFFFFF;
   --surface-2: #FBFBF9;
   --surface-3: #F5F5F1;
 
-  --line:      rgba(20,24,26,.10);
-  --line-2:    rgba(20,24,26,.16);
-  --hair:      rgba(20,24,26,.08);
-  --hair-2:    rgba(20,24,26,.14);
+  --line:   rgba(20,24,26,.10);
+  --line-2: rgba(20,24,26,.16);
+  --hair:   rgba(20,24,26,.08);
+  --hair-2: rgba(20,24,26,.14);
 
   --ink:       #14181A;
   --ink-2:     #3A4144;
@@ -298,29 +375,10 @@
   --action:  #8A5A00; --action-bg: rgba(232,168,56,.13); --action-bd: rgba(232,168,56,.36);
   --urgent:  #B3261E; --urgent-bg: rgba(179,38,30,.06);  --urgent-bd: rgba(179,38,30,.22);
 
-  /* The legacy vocabulary, pointed at this surface. This is what
-     lets a page that says var(--muted) or var(--accent) render
-     correctly here without being rewritten. */
-  --dark:          var(--ground);
-  --dark2:         var(--ground-2);
-  --dark3:         var(--ground-3);
-  --surface-1:     var(--surface);
-  --text:          var(--ink);
-  --text-2:        var(--ink-2);
-  --muted:         var(--ink-muted);
-  --hint:          var(--ink-faint);
-  --border:        var(--line);
-  --border-strong: var(--line-2);
-  --teal:          var(--brand);
-  --teal2:         var(--brand);
-  --accent:        var(--brand);
-  --accent-soft:   var(--brand-deep);
-  --teal-tint:     var(--brand-tint);
-  --teal-tint-2:   var(--brand-tint-2);
-  --accent-tint:   var(--brand-glow);
-
-  /* The public voice is Inter, as on the homepage. */
-  --font: var(--sans);
+  --teal:        var(--brand);
+  --teal2:       var(--brand);
+  --accent:      var(--brand);
+  --accent-soft: var(--brand-deep);
 
   color-scheme: light;
 }

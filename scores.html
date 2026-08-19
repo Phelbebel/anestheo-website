@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-clinical">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Clinical Scores &amp; Calculators — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -18,7 +18,7 @@
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
 .sc-wrap{max-width:1080px;margin:0 auto;padding:30px 22px 80px;}
-.sc-head h1{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;margin-bottom:5px;}
+.sc-head h1{font-family:var(--sans);font-size:27px;font-weight:700;margin-bottom:5px;}
 .sc-head p{font-size:14px;color:var(--muted);max-width:680px;line-height:1.6;}
 .sc-nav{position:sticky;top:0;background:rgba(10,26,21,.94);backdrop-filter:blur(8px);z-index:10;display:flex;gap:7px;flex-wrap:wrap;padding:14px 0;margin:18px 0 8px;border-bottom:1px solid var(--border);}
 .sc-nav button{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:var(--radius-xl);padding:7px 14px;font-size:12.5px;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
@@ -26,7 +26,7 @@
 .disclaimer{font-size:11px;color:var(--hint);margin:10px 0 18px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:var(--radius-sm);padding:9px 13px;}
 .disclaimer strong{color:var(--warning);}
 .sc-cat{margin-bottom:30px;}
-.sc-cat-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;margin:10px 0 12px;color:#fff;}
+.sc-cat-title{font-family:var(--sans);font-size:19px;font-weight:700;margin:10px 0 12px;color:#fff;}
 .sc-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:11px;overflow:hidden;}
 .sc-q{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:15px 18px;font-family:inherit;}
 .sc-q-name{font-size:15px;font-weight:600;color:#fff;}
@@ -46,7 +46,7 @@
 .sc-num{width:120px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:10px 12px;color:#fff;font-size:15px;font-family:inherit;outline:none;}
 .sc-result{margin-top:14px;background:#06120D;border:1px solid rgba(42,138,116,.3);border-radius:var(--radius-md);padding:14px 16px;}
 .sc-score{font-size:13px;color:var(--hint);}
-.sc-score b{font-size:24px;color:#fff;font-weight:700;font-family:'Playfair Display',serif;margin-right:5px;}
+.sc-score b{font-size:24px;color:#fff;font-weight:700;font-family:var(--sans);margin-right:5px;}
 .sc-interp{font-size:15px;font-weight:600;margin:6px 0 3px;}
 .sc-risk{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:var(--radius-sm);margin-bottom:8px;}
 .r-low{background:rgba(27,107,90,.22);color:var(--accent);}

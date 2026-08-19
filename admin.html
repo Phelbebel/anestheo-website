@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-clinical">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Center — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -32,7 +32,7 @@
   border-right:1px solid var(--border);background:linear-gradient(180deg,rgba(6,14,10,.72),rgba(6,14,10,.32));}
 .adm-main{flex:1;min-width:0;padding:26px 30px 72px;}
 
-.adm-railhead{font-family:var(--serif);font-size:15px;font-weight:700;color:#fff;padding:2px 10px 4px;}
+.adm-railhead{font-family:var(--sans);font-size:15px;font-weight:700;color:#fff;padding:2px 10px 4px;}
 .adm-railsub{font-size:10.5px;color:var(--hint);letter-spacing:.05em;text-transform:uppercase;padding:0 10px 16px;}
 .adm-grp{font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:rgba(126,207,192,.5);
   padding:16px 10px 6px;}
@@ -51,7 +51,7 @@
 
 /* ── Header + search ───────────────────────────────────── */
 .adm-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px;}
-.adm-h1{font-family:var(--serif);font-size:27px;font-weight:700;line-height:1.15;}
+.adm-h1{font-family:var(--sans);font-size:27px;font-weight:700;line-height:1.15;}
 .adm-crumb{font-size:11px;color:var(--hint);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
 .adm-sub{font-size:13px;color:var(--muted);margin-top:5px;max-width:640px;line-height:1.6;}
 .adm-searchwrap{position:relative;flex:0 0 320px;max-width:100%;}
@@ -79,7 +79,7 @@
   border-radius:var(--radius-md);padding:14px 15px;transition:border-color .18s,background .18s,transform .18s;}
 .stat-c:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.13);transform:translateY(-1px);}
 .stat-c:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-.stat-n{font-family:var(--serif);font-size:25px;font-weight:700;color:#fff;line-height:1;font-variant-numeric:tabular-nums;}
+.stat-n{font-family:var(--sans);font-size:25px;font-weight:700;color:#fff;line-height:1;font-variant-numeric:tabular-nums;}
 .stat-l{font-size:10.5px;color:var(--hint);text-transform:uppercase;letter-spacing:.06em;margin-top:7px;line-height:1.4;}
 .stat-c.warn .stat-n{color:var(--warning);}
 .stat-c.na .stat-n{color:rgba(255,255,255,.22);font-size:19px;}
@@ -123,7 +123,7 @@
 
 /* ── Detail view ───────────────────────────────────────── */
 .dt-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;justify-content:space-between;margin-bottom:4px;}
-.dt-name{font-family:var(--serif);font-size:23px;font-weight:700;color:#fff;}
+.dt-name{font-family:var(--sans);font-size:23px;font-weight:700;color:#fff;}
 .dt-meta{font-size:12.5px;color:var(--muted);margin-top:4px;}
 .kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:13px 20px;}
 .kv-k{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--hint);margin-bottom:3px;}
@@ -201,7 +201,7 @@
   background:#0B1613;border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 22px 18px;
   box-shadow:0 26px 60px -20px rgba(0,0,0,.95);}
 .dlg.danger{border-color:rgba(192,57,43,.42);}
-.dlg h3{font-family:var(--serif);font-size:19px;color:#fff;margin-bottom:7px;}
+.dlg h3{font-family:var(--sans);font-size:19px;color:#fff;margin-bottom:7px;}
 .dlg p{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:12px;}
 .dlg label{display:block;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
   color:var(--hint);margin:12px 0 5px;}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="theme-light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,7 +31,7 @@
   --border:var(--line);
   --future:var(--ink-faint); --future-bg:var(--surface-3);
   /* Consultations are the one lane with no functional colour of its own. */
-  --con:#5B4BC4; --con-bg:rgba(91,75,196,.07); --con-bd:rgba(91,75,196,.24);
+  --con:#A99BFF; --con-bg:rgba(142,123,255,.12); --con-bd:rgba(169,155,255,.30);
   --r-lg:var(--radius-2xl); --r-md:var(--radius-xl); --r-sm:var(--radius-lg);
   --shadow:var(--elev-3); --shadow-sm:var(--elev-1);
 }
@@ -222,7 +222,7 @@ body{background:var(--bg);color:var(--text);}
    --action and --con are the colours of a LABEL on this ground, and a label
    colour used as a large fill loses the contrast the label had. */
 .ms-btn-action{background:linear-gradient(135deg,#E8A838,#F08A24);color:#3a1f00;box-shadow:0 8px 20px rgba(240,138,36,.28);}
-.ms-btn-con{background:linear-gradient(135deg,#5B4BC4,#4B3CAE);color:#fff;box-shadow:0 8px 20px rgba(91,75,196,.26);}
+.ms-btn-con{background:linear-gradient(135deg,#8E7BFF,#6F5BE6);color:#fff;box-shadow:0 8px 20px rgba(111,91,230,.30);}
 .ms-btn-quiet{background:transparent;border:1px solid var(--line);color:var(--muted);}
 .ms-btn-quiet:hover{background:var(--surface);color:var(--text);}
 .ms-btn-sm{padding:10px 15px;font-size:13px;border-radius:var(--radius-md);}
@@ -244,10 +244,10 @@ body{background:var(--bg);color:var(--text);}
 .ms-crq-main{flex:1;min-width:0;}
 .ms-crq-nm{font-size:15.5px;font-weight:700;}
 .ms-crq-sub{font-size:12.5px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.ms-crq-reply{font-size:13px;color:#5B4BC4;margin-top:9px;padding:9px 13px;background:rgba(142,123,255,.08);border-radius:var(--radius-sm);border-left:2px solid var(--con);line-height:1.5;}
+.ms-crq-reply{font-size:13px;color:#CFC6FF;margin-top:9px;padding:9px 13px;background:rgba(142,123,255,.08);border-radius:var(--radius-sm);border-left:2px solid var(--con);line-height:1.5;}
 .ms-cbadge{font-size:11px;font-weight:700;padding:5px 11px;border-radius:var(--radius-xl);display:inline-flex;align-items:center;gap:6px;}
 .ms-cbadge .bd{width:7px;height:7px;border-radius:50%;}
-.ms-cbadge.wait{color:#5B4BC4;background:var(--con-bg);border:1px solid var(--con-bd);} .ms-cbadge.wait .bd{background:var(--con);animation:pulse 1.6s ease-in-out infinite;}
+.ms-cbadge.wait{color:#CFC6FF;background:var(--con-bg);border:1px solid var(--con-bd);} .ms-cbadge.wait .bd{background:var(--con);animation:pulse 1.6s ease-in-out infinite;}
 .ms-cbadge.reply{color:var(--accent-soft);background:var(--done-bg);border:1px solid var(--done-bd);} .ms-cbadge.reply .bd{background:var(--done);}
 .ms-cbadge.closed{color:var(--muted);background:var(--surface);border:1px solid var(--line);} .ms-cbadge.closed .bd{background:var(--hint);}
 .ms-crq-acts{display:flex;gap:7px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;align-items:center;}

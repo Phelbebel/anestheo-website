@@ -17,26 +17,40 @@
    everywhere.                                                              */
 var CSS = `
 :root{
-  --nb-bg:#071210; --nb-bg-drawer:#07120F; --nb-panel:#0C1F18;
-  --nb-modal:#0A1A15; --nb-foot:#0A1712;
+  /* Graphite, from the homepage masthead: a translucent bar over the page's
+     own ground rather than a separate black strip above it. */
+  --nb-bg:rgba(11,22,32,.72); --nb-bg-drawer:#0B1620; --nb-panel:#0E1C27;
+  --nb-modal:#0E1C27; --nb-foot:#0A131C;
 
-  --nb-teal:#1B6B5A; --nb-teal2:#2A8A74;
+  --nb-teal:#1B6B5A; --nb-teal2:#2FA88C;
   --nb-accent:#7ECFC0; --nb-accent-2:#9FE0D2; --nb-accent-3:#CFF3EA;
 
-  --nb-edge:rgba(27,107,90,.28); --nb-edge-2:rgba(42,138,116,.5);
-  --nb-hair:rgba(255,255,255,.12);
+  --nb-edge:rgba(255,255,255,.09); --nb-edge-2:rgba(47,168,140,.5);
+  --nb-hair:rgba(255,255,255,.16);
 
-  --nb-text:#fff;
-  --nb-t2:rgba(255,255,255,.72); --nb-t3:rgba(255,255,255,.6);
-  --nb-t4:rgba(255,255,255,.4);  --nb-t5:rgba(255,255,255,.28);
-  --nb-surface:rgba(255,255,255,.04); --nb-surface-2:rgba(255,255,255,.06);
-  --nb-danger:rgba(255,120,100,.85);
+  --nb-text:#F2F6F8;
+  --nb-t2:#C7D3DB; --nb-t3:#93A6B4;
+  --nb-t4:#6D8091; --nb-t5:#5A6B78;
+  --nb-surface:rgba(255,255,255,.035); --nb-surface-2:rgba(255,255,255,.05);
+  --nb-danger:#FF9B86;
 
   /* One radius scale, matching tokens.css. The bar previously used 3, 6, 7,
      8, 9, 10, 12, 13, 14 and 30px — nine radii on one 56px strip. */
   --nb-r-sm:8px; --nb-r-md:12px; --nb-r-lg:16px; --nb-r-pill:999px;
   --nb-dur:.18s;
 }
+
+/* The clinical surface sits one step deeper than the public one, so the bar
+   goes with it — and there it is opaque, because a translucent strip over a
+   dense table is legibility spent on an effect. */
+html.theme-clinical{
+  --nb-bg:#070F16; --nb-bg-drawer:#0A141C; --nb-panel:#0D1A24;
+  --nb-modal:#0D1A24; --nb-foot:#08121A;
+  --nb-edge:rgba(47,168,140,.24);
+  --nb-text:#FFFFFF; --nb-t2:rgba(255,255,255,.78);
+  --nb-t3:#9FB3C0; --nb-t4:#748795; --nb-t5:#5E6F7C;
+}
+html.theme-clinical .nb{ -webkit-backdrop-filter:none; backdrop-filter:none; }
 
 /* The light counterpart, for public and patient-facing pages.
 
@@ -66,11 +80,7 @@ html.theme-light{
 }
 /* A translucent bar needs the blur, or scrolled content shows through it as
    noise rather than as depth. */
-html.theme-light .nb{
-  -webkit-backdrop-filter:saturate(1.6) blur(10px);
-  backdrop-filter:saturate(1.6) blur(10px);
-  border-bottom-color:var(--nb-edge);
-}
+html.theme-light .nb{ -webkit-backdrop-filter:saturate(1.6) blur(10px); backdrop-filter:saturate(1.6) blur(10px); }
 /* The dark bar separates its links from the ground with a white wash. On
    paper the same wash is invisible, so hover tints toward the ink instead. */
 html.theme-light .nb-nav-links a:hover,
@@ -99,9 +109,12 @@ html.theme-light .nb-mob{ box-shadow:0 18px 40px -18px rgba(20,24,26,.35); }
 html.theme-light .nb-mob-bg{ background:rgba(20,24,26,.28); }
 html.theme-light .nb-mob-card{ background:#fff; border-color:var(--nb-edge); }
 *{box-sizing:border-box;}
+/* The homepage masthead: translucent graphite over the page's own ground,
+   blurred, closed with a hairline. The bar is chrome, not a separate strip. */
 .nb{position:fixed;top:0;left:0;right:0;height:56px;z-index:900;
-  background:var(--nb-bg);border-bottom:1px solid rgba(27,107,90,.25);
-  font-family:'DM Sans',sans-serif;}
+  background:var(--nb-bg);border-bottom:1px solid var(--nb-edge);
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  font-family:var(--nb-font,'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif);}
 .nb-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:100%;
   display:flex;align-items:center;gap:0;}
 .nb-logo{text-decoration:none;font-size:18px;font-weight:600;color:var(--nb-text);
@@ -129,7 +142,7 @@ html.theme-light .nb-mob-card{ background:#fff; border-color:var(--nb-edge); }
 .nb-avatar-btn:hover{background:var(--nb-surface-2);}
 .nb-avatar{width:32px;height:32px;border-radius:50%;background:var(--nb-teal2);color:var(--nb-text);
   display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
-  letter-spacing:.02em;flex-shrink:0;font-family:'DM Sans',sans-serif;overflow:hidden;}
+  letter-spacing:.02em;flex-shrink:0;font-family:inherit;overflow:hidden;}
 /* Once a photo is in, the teal disc behind it would show as a rim. */
 .nb-avatar[data-avatar]{background:var(--nb-surface-2);}
 .nb-chev{font-size:10px;color:var(--nb-t4);padding-right:4px;}
@@ -264,7 +277,7 @@ body.nb-lock{position:fixed;width:100%;overflow:hidden;}
 .nb-modal{background:var(--nb-modal);border:1px solid rgba(27,107,90,.35);
   border-radius:var(--nb-r-lg);width:100%;max-width:370px;padding:28px 24px;position:relative;}
 .nb-modal h2{font-size:19px;font-weight:700;margin-bottom:4px;color:var(--nb-text);
-  font-family:'Playfair Display',serif;}
+  font-weight:700;letter-spacing:-.02em;}
 .nb-modal p{font-size:13px;color:var(--nb-t4);margin-bottom:18px;}
 .nb-modal label{display:block;font-size:11px;color:var(--nb-t5);
   letter-spacing:.05em;text-transform:uppercase;font-weight:600;margin-bottom:5px;}
@@ -409,7 +422,7 @@ body.nb-lock{position:fixed;width:100%;overflow:hidden;}
 }
 /* ── Shared compact application footer (authenticated pages) ─────────────── */
 .nb-foot{background:var(--nb-foot);border-top:1px solid var(--nb-hair);
-  font-family:'DM Sans',-apple-system,system-ui,sans-serif;color:var(--nb-t3);margin-top:44px;}
+  font-family:inherit;color:var(--nb-t3);margin-top:44px;}
 .nb-foot-in{max-width:1160px;margin:0 auto;padding:30px 24px 24px;}
 .nb-foot-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 20px;}
 .nb-foot-h{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--nb-t4);margin-bottom:11px;}

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-clinical">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anesthesiology Live Tools — Anestheo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.19-04"></script>
 <script src="/auth.js?v=2026.08.19-04"></script>
@@ -27,10 +27,15 @@ html,body{max-width:100%;overflow-x:hidden;}
 
    Here the structure is graphite and the ink is neutral, so the only
    saturated colour on screen belongs to a pharmacologic class, a warning,
-   or an active control. Scoped to this page: the marketing site keeps its
-   own identity, which is not this instrument's job to carry.            */
-html,body{background:#0A0C0C;}
-#loader{position:fixed;inset:0;background:#0A0C0C;z-index:9999;display:flex;align-items:center;justify-content:center;}
+   or an active control.
+
+   The ground is now the shared clinical one rather than this page's own
+   near-black. It was the single darkest surface in the product — two steps
+   below everything else — which made moving from the workspace into the
+   workstation feel like leaving the application. Same graphite family,
+   still the deepest thing on screen, no longer a different room.        */
+html,body{background:var(--ground);}
+#loader{position:fixed;inset:0;background:var(--ground);z-index:9999;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
@@ -44,7 +49,7 @@ html,body{background:#0A0C0C;}
 .cw-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;}
 .cw-hero-r2{align-items:center;}
 .cw-hero-id{min-width:0;}
-.cw-title{font-family:'Playfair Display',serif;font-size:25px;font-weight:700;letter-spacing:-.01em;line-height:1.02;}
+.cw-title{font-family:var(--sans);font-size:25px;font-weight:700;letter-spacing:-.01em;line-height:1.02;}
 .cw-sub{font-size:13px;font-weight:500;color:var(--muted);margin-top:3px;}
 .cw-ready{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;color:var(--accent-soft);background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.36);border-radius:30px;padding:5px 12px;}
 .cw-ready .dot{width:8px;height:8px;border-radius:50%;background:var(--done);box-shadow:0 0 11px var(--done);animation:cwPulse 1.9s ease-in-out infinite;}
@@ -199,7 +204,7 @@ html,body{background:#0A0C0C;}
 .sum-primary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .sp-cell{background:rgba(0,0,0,.22);border-radius:var(--radius-md);padding:11px 12px;text-align:center;}
 .sp-cell i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;display:block;margin-bottom:4px;color:var(--ink-3);}
-.sp-cell b{font-size:24px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;line-height:1;}
+.sp-cell b{font-size:24px;font-weight:700;color:#fff;font-family:var(--sans);line-height:1;}
 .sp-cell b u{font-size:11px;text-decoration:none;color:var(--hint);margin-left:2px;font-family:'DM Sans',sans-serif;}
 .sum-proc{background:rgba(0,0,0,.16);border-radius:var(--radius-sm);padding:9px 12px;margin-top:8px;}
 .sum-proc i{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;font-style:normal;margin-right:8px;color:var(--ink-3);}
