@@ -44,13 +44,39 @@ BEGIN;
 -- 1. PREFLIGHT
 -- ============================================================
 DO $preflight$
-DECLARE v_missing text[] := '{}';
+DECLARE v_missing text[] := '{}'; v_t text;
 BEGIN
   IF to_regproc('public.is_doctor_account')   IS NULL THEN v_missing := v_missing || 'is_doctor_account() [v2_auth_onboarding.sql]'::text; END IF;
   IF to_regproc('public.is_verified_doctor')  IS NULL THEN v_missing := v_missing || 'is_verified_doctor() [v2_auth_onboarding.sql]'::text; END IF;
   IF to_regproc('public.is_platform_admin')   IS NULL THEN v_missing := v_missing || 'is_platform_admin() [v2_admin_phase0.sql]'::text; END IF;
   IF to_regproc('public.doctor_treats_patient') IS NULL THEN v_missing := v_missing || 'doctor_treats_patient() [v2_security_hardening.sql]'::text; END IF;
-  IF to_regclass('public.anesthesia_cases')   IS NULL THEN v_missing := v_missing || 'anesthesia_cases [v3_anesthesia_record.sql]'::text; END IF;
+
+  /* RELATIONS THIS FILE CANNOT WORK WITHOUT.
+     Checked by name against the catalog, because the migration files are not
+     evidence: patient_archive_audit is in v2_auth_onboarding.sql and is not in
+     this database, which is what took the first attempt down at section 4.
+     Optional relations are deliberately NOT listed — section 4 discovers what
+     exists and section 4c skips what does not. */
+  FOR v_t IN SELECT unnest(ARRAY[
+      'profiles','patient_surgeries','clinic_patients','care_requests',
+      'anesthesia_cases','anesthesia_amendments','anesthesia_audit'])
+  LOOP
+    IF to_regclass('public.' || v_t) IS NULL THEN
+      v_missing := v_missing || ('table public.' || v_t)::text;
+    END IF;
+  END LOOP;
+
+  /* FUNCTIONS the new bodies call at run time. A SQL-language body is parsed
+     at CREATE, so a missing one here fails mid-file rather than in front of a
+     clinician. */
+  FOR v_t IN SELECT unnest(ARRAY[
+      'is_platform_admin','doctor_treats_patient','account_is_active',
+      'patient_purge_eligibility'])
+  LOOP
+    IF to_regproc('public.' || v_t) IS NULL THEN
+      v_missing := v_missing || ('function public.' || v_t || '()')::text;
+    END IF;
+  END LOOP;
 
   -- v3_1 must already be applied. If it is not, the bodies replaced in
   -- section 3 are v3's WIDER ones, and re-pointing those would compound the
@@ -78,8 +104,12 @@ DO $before$
 DECLARE v_n int;
 BEGIN
   SELECT count(*) INTO v_n FROM pg_policies
-   WHERE schemaname='public' AND policyname LIKE '%\_require\_verified';
-  RAISE NOTICE 'Blanket verification policies before: % (expected 33)', v_n;
+   WHERE schemaname='public'
+     AND ( policyname LIKE '%\_require\_verified'
+           OR ( permissive='RESTRICTIVE' AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) );
+  /* No expected number any more. 33 was what the migration files implied; this
+     database is the only authority on what it actually has. */
+  RAISE NOTICE 'Blanket verification policies found on THIS database: %', v_n;
 END
 $before$;
 
@@ -163,20 +193,30 @@ AS $$
 $$;
 
 -- 3.3 Open a new case  (was v3:753)
-DROP POLICY IF EXISTS anes_case_insert ON public.anesthesia_cases;
-CREATE POLICY anes_case_insert ON public.anesthesia_cases
-  FOR INSERT TO authenticated
-  WITH CHECK ( public.is_doctor_account()
-               AND anesthesiologist_id = auth.uid()
-               AND created_by = auth.uid()
-               AND status IN ('draft','in_progress') );
+DO $ins$ BEGIN
+  IF to_regclass('public.anesthesia_cases') IS NULL THEN
+    RAISE NOTICE 'skip: anesthesia_cases not present'; RETURN;
+  END IF;
+  EXECUTE $p$DROP POLICY IF EXISTS anes_case_insert ON public.anesthesia_cases$p$;
+  EXECUTE $p$
+    CREATE POLICY anes_case_insert ON public.anesthesia_cases
+      FOR INSERT TO authenticated
+      WITH CHECK ( public.is_doctor_account()
+                   AND anesthesiologist_id = auth.uid()
+                   AND created_by = auth.uid()
+                   AND status IN ('draft','in_progress') )$p$;
+END $ins$;
 
 -- 3.4 What a case may become  (was v3:765)
-DROP POLICY IF EXISTS anes_case_update ON public.anesthesia_cases;
-CREATE POLICY anes_case_update ON public.anesthesia_cases
-  FOR UPDATE TO authenticated
-  USING ( public.anesthesia_case_editable(id) )
-  WITH CHECK ( public.is_doctor_account() );
+DO $upd$ BEGIN
+  IF to_regclass('public.anesthesia_cases') IS NULL THEN RETURN; END IF;
+  EXECUTE $p$DROP POLICY IF EXISTS anes_case_update ON public.anesthesia_cases$p$;
+  EXECUTE $p$
+    CREATE POLICY anes_case_update ON public.anesthesia_cases
+      FOR UPDATE TO authenticated
+      USING ( public.anesthesia_case_editable(id) )
+      WITH CHECK ( public.is_doctor_account() )$p$;
+END $upd$;
 
 -- 3.5 + 3.6 Amend a finalized record — RPC and policy MOVE TOGETHER.
 --     Splitting them is the one way to get this wrong: the RPC would succeed
@@ -218,14 +258,20 @@ BEGIN
 END;
 $$;
 
-DROP POLICY IF EXISTS anes_amend_insert ON public.anesthesia_amendments;
-CREATE POLICY anes_amend_insert ON public.anesthesia_amendments
-  FOR INSERT TO authenticated
-  WITH CHECK ( public.is_doctor_account()
-               AND public.anesthesia_case_access(case_id)
-               AND amended_by = auth.uid()
-               AND EXISTS (SELECT 1 FROM public.anesthesia_cases c
-                            WHERE c.id = case_id AND c.status = 'finalized') );
+DO $amd$ BEGIN
+  IF to_regclass('public.anesthesia_amendments') IS NULL THEN
+    RAISE NOTICE 'skip: anesthesia_amendments not present'; RETURN;
+  END IF;
+  EXECUTE $p$DROP POLICY IF EXISTS anes_amend_insert ON public.anesthesia_amendments$p$;
+  EXECUTE $p$
+    CREATE POLICY anes_amend_insert ON public.anesthesia_amendments
+      FOR INSERT TO authenticated
+      WITH CHECK ( public.is_doctor_account()
+                   AND public.anesthesia_case_access(case_id)
+                   AND amended_by = auth.uid()
+                   AND EXISTS (SELECT 1 FROM public.anesthesia_cases c
+                                WHERE c.id = case_id AND c.status = 'finalized') )$p$;
+END $amd$;
 
 -- 3.7 Change the anesthesia team.
 --     THE TWO TESTS IN THIS FUNCTION ARE NOT THE SAME QUESTION.
@@ -365,52 +411,62 @@ $$;
 --   * 2 tables where it was NOT true: questions and question_replies.
 --     See 4b. They are handled differently and deliberately.
 --
--- 31 dropped here, 2 redesigned below. The loop is written as one statement
--- per table rather than a DO block over an array, so that a failure on one
--- table cannot silently roll back the other thirty.
-
--- 4a. The 21 anesthesia tables.
--- These two do NOT follow the <table>_require_verified convention: v3 wrote
--- them by hand rather than through the loop that named the other nineteen, so
--- they are anes_case_ and anes_amend_. The names below are the ones actually
--- installed, read back from pg_policies rather than inferred from the pattern.
--- Both spellings are dropped, because a database that was repaired by hand at
--- some point may carry either.
-DROP POLICY IF EXISTS anes_case_require_verified                   ON public.anesthesia_cases;
-DROP POLICY IF EXISTS anesthesia_cases_require_verified            ON public.anesthesia_cases;
-DROP POLICY IF EXISTS anes_amend_require_verified                  ON public.anesthesia_amendments;
-DROP POLICY IF EXISTS anesthesia_amendments_require_verified       ON public.anesthesia_amendments;
-DROP POLICY IF EXISTS anesthesia_case_times_require_verified       ON public.anesthesia_case_times;
-DROP POLICY IF EXISTS anesthesia_preassessment_require_verified    ON public.anesthesia_preassessment;
-DROP POLICY IF EXISTS anesthesia_history_review_require_verified   ON public.anesthesia_history_review;
-DROP POLICY IF EXISTS anesthesia_access_require_verified           ON public.anesthesia_access;
-DROP POLICY IF EXISTS anesthesia_device_sessions_require_verified  ON public.anesthesia_device_sessions;
-DROP POLICY IF EXISTS anesthesia_airway_require_verified           ON public.anesthesia_airway;
-DROP POLICY IF EXISTS anesthesia_ventilation_require_verified      ON public.anesthesia_ventilation;
-DROP POLICY IF EXISTS anesthesia_positioning_require_verified      ON public.anesthesia_positioning;
-DROP POLICY IF EXISTS anesthesia_medications_require_verified      ON public.anesthesia_medications;
-DROP POLICY IF EXISTS anesthesia_infusions_require_verified        ON public.anesthesia_infusions;
-DROP POLICY IF EXISTS anesthesia_infusion_rates_require_verified   ON public.anesthesia_infusion_rates;
-DROP POLICY IF EXISTS anesthesia_fluids_require_verified           ON public.anesthesia_fluids;
-DROP POLICY IF EXISTS anesthesia_blood_products_require_verified   ON public.anesthesia_blood_products;
-DROP POLICY IF EXISTS anesthesia_outputs_require_verified          ON public.anesthesia_outputs;
-DROP POLICY IF EXISTS anesthesia_vitals_require_verified           ON public.anesthesia_vitals;
-DROP POLICY IF EXISTS anesthesia_labs_require_verified             ON public.anesthesia_labs;
-DROP POLICY IF EXISTS anesthesia_regional_require_verified         ON public.anesthesia_regional;
-DROP POLICY IF EXISTS anesthesia_events_require_verified           ON public.anesthesia_events;
-DROP POLICY IF EXISTS anesthesia_handoffs_require_verified         ON public.anesthesia_handoffs;
-
--- 4b. The 10 workspace tables that are properly scoped underneath.
-DROP POLICY IF EXISTS care_requests_require_verified           ON public.care_requests;
-DROP POLICY IF EXISTS clinic_patients_require_verified         ON public.clinic_patients;
-DROP POLICY IF EXISTS patient_archive_audit_require_verified   ON public.patient_archive_audit;
-DROP POLICY IF EXISTS patient_recommendations_require_verified ON public.patient_recommendations;
-DROP POLICY IF EXISTS patient_surgeries_require_verified       ON public.patient_surgeries;
-DROP POLICY IF EXISTS preop_checklist_require_verified         ON public.preop_checklist;
-DROP POLICY IF EXISTS preop_questionnaires_require_verified    ON public.preop_questionnaires;
-DROP POLICY IF EXISTS preparation_plans_require_verified       ON public.preparation_plans;
-DROP POLICY IF EXISTS questionnaire_templates_require_verified ON public.questionnaire_templates;
-DROP POLICY IF EXISTS requirement_documents_require_verified   ON public.requirement_documents;
+-- HOW THIS BLOCK FINDS ITS WORK — and why it no longer names tables.
+--
+-- It used to be 33 hand-written DROP POLICY IF EXISTS lines. That failed in
+-- production with 42P01: relation "public.patient_archive_audit" does not
+-- exist — one table this deployment never created took the whole migration
+-- down, after v9_2 and v9_1 had already committed.
+--
+-- AND THE SEMANTICS ARE VERSION-DEPENDENT, which is the part worth knowing.
+-- On PostgreSQL 16, `DROP POLICY IF EXISTS p ON <missing table>` is tolerated:
+-- it emits "relation does not exist, skipping" and carries on. On the server
+-- running production it raises 42P01. So a replica on a newer PostgreSQL will
+-- run those 33 lines happily and prove nothing — which is exactly what
+-- happened here, and is why the rehearsal passed before the deployment failed.
+--
+-- Discovering the set from the catalog removes the question entirely. A DROP
+-- is only ever emitted for a policy pg_policies just returned, and pg_policies
+-- cannot return a policy on a relation that does not exist, so there is no
+-- version of PostgreSQL on which this block can raise 42P01.
+--
+-- The deeper fault was writing the list from the migration files at all. Twice
+-- now they have described a database that does not exist here
+-- (patient_surgeries.origin, then patient_archive_audit), so the list is now
+-- DISCOVERED from the catalog at run time. pg_policies only ever lists
+-- policies on relations that exist, which makes 42P01 unreachable by
+-- construction rather than by remembering to check.
+--
+-- Two predicates identify the set, and a policy matching EITHER is dropped:
+--   * the name ends in _require_verified   — the convention v2/v3 used, and
+--     the reason the odd anes_case_/anes_amend_ pair is caught too;
+--   * OR it is RESTRICTIVE and its USING mentions is_pending_doctor — which
+--     catches one that was ever renamed by hand.
+-- Nothing else can match: no other policy in this schema is a RESTRICTIVE
+-- is_pending_doctor gate, and that is exactly what this migration removes.
+--
+-- It counts what it dropped and says so, so the log records the real number
+-- for this database instead of an assumed one.
+DO $drop_gate$
+DECLARE r record; v_n int := 0;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname
+      FROM pg_policies
+     WHERE schemaname = 'public'
+       AND ( policyname LIKE '%\_require\_verified'
+             OR ( permissive = 'RESTRICTIVE'
+                  AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) )
+     ORDER BY tablename, policyname
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I',
+                   r.policyname, r.schemaname, r.tablename);
+    RAISE NOTICE '  dropped %.%', r.tablename, r.policyname;
+    v_n := v_n + 1;
+  END LOOP;
+  RAISE NOTICE 'Blanket verification policies dropped: %', v_n;
+END
+$drop_gate$;
 
 -- ============================================================
 -- 4c. THE TWO TABLES WHERE DROPPING WOULD HAVE BEEN A WIDENING
@@ -444,40 +500,59 @@ DROP POLICY IF EXISTS requirement_documents_require_verified   ON public.require
 -- rewritten by hand in four places. They now call the function, so the inbox
 -- and the rest of the database agree about who an administrator is.
 
-DROP POLICY IF EXISTS questions_require_verified       ON public.questions;
-DROP POLICY IF EXISTS question_replies_require_verified ON public.question_replies;
+-- Wrapped, for the same reason section 4 is discovered rather than listed: if
+-- this deployment has no Ask-a-Doctor inbox, there is nothing here to protect
+-- and nothing here should stop the rest of the migration. Absence is reported,
+-- not assumed and not fatal.
+DO $qa$
+BEGIN
+  IF to_regclass('public.questions') IS NULL THEN
+    RAISE NOTICE 'skip: public.questions is not present on this database';
+  ELSE
+    EXECUTE $q$DROP POLICY IF EXISTS questions_require_verified ON public.questions$q$;
+    EXECUTE $q$DROP POLICY IF EXISTS q_select_own_or_staff ON public.questions$q$;
+    EXECUTE $q$
+      CREATE POLICY q_select_own_or_staff ON public.questions
+        FOR SELECT TO authenticated
+        USING ( auth.uid() = patient_id
+                OR public.is_platform_admin()
+                OR public.is_verified_doctor() )$q$;
+    EXECUTE $q$DROP POLICY IF EXISTS q_update_staff ON public.questions$q$;
+    EXECUTE $q$
+      CREATE POLICY q_update_staff ON public.questions
+        FOR UPDATE TO authenticated
+        USING ( public.is_platform_admin() OR public.is_verified_doctor() )
+        WITH CHECK ( public.is_platform_admin() OR public.is_verified_doctor() )$q$;
+    RAISE NOTICE 'questions: inbox kept verified-only.';
+  END IF;
 
-DROP POLICY IF EXISTS q_select_own_or_staff ON public.questions;
-CREATE POLICY q_select_own_or_staff ON public.questions
-  FOR SELECT TO authenticated
-  USING ( auth.uid() = patient_id
-          OR public.is_platform_admin()
-          OR public.is_verified_doctor() );
-
-DROP POLICY IF EXISTS q_update_staff ON public.questions;
-CREATE POLICY q_update_staff ON public.questions
-  FOR UPDATE TO authenticated
-  USING ( public.is_platform_admin() OR public.is_verified_doctor() )
-  WITH CHECK ( public.is_platform_admin() OR public.is_verified_doctor() );
-
-DROP POLICY IF EXISTS r_select_own_or_staff ON public.question_replies;
-CREATE POLICY r_select_own_or_staff ON public.question_replies
-  FOR SELECT TO authenticated
-  USING ( EXISTS (SELECT 1 FROM public.questions q
-                   WHERE q.id = question_replies.question_id
-                     AND q.patient_id = auth.uid())
-          OR public.is_platform_admin()
-          OR public.is_verified_doctor() );
-
-DROP POLICY IF EXISTS r_insert_participant ON public.question_replies;
-CREATE POLICY r_insert_participant ON public.question_replies
-  FOR INSERT TO authenticated
-  WITH CHECK ( author_id = auth.uid()
-               AND ( EXISTS (SELECT 1 FROM public.questions q
-                              WHERE q.id = question_replies.question_id
-                                AND q.patient_id = auth.uid())
-                     OR public.is_platform_admin()
-                     OR public.is_verified_doctor() ) );
+  IF to_regclass('public.question_replies') IS NULL THEN
+    RAISE NOTICE 'skip: public.question_replies is not present on this database';
+  ELSE
+    EXECUTE $q$DROP POLICY IF EXISTS question_replies_require_verified ON public.question_replies$q$;
+    EXECUTE $q$DROP POLICY IF EXISTS r_select_own_or_staff ON public.question_replies$q$;
+    EXECUTE $q$
+      CREATE POLICY r_select_own_or_staff ON public.question_replies
+        FOR SELECT TO authenticated
+        USING ( EXISTS (SELECT 1 FROM public.questions q
+                         WHERE q.id = question_replies.question_id
+                           AND q.patient_id = auth.uid())
+                OR public.is_platform_admin()
+                OR public.is_verified_doctor() )$q$;
+    EXECUTE $q$DROP POLICY IF EXISTS r_insert_participant ON public.question_replies$q$;
+    EXECUTE $q$
+      CREATE POLICY r_insert_participant ON public.question_replies
+        FOR INSERT TO authenticated
+        WITH CHECK ( author_id = auth.uid()
+                     AND ( EXISTS (SELECT 1 FROM public.questions q
+                                    WHERE q.id = question_replies.question_id
+                                      AND q.patient_id = auth.uid())
+                           OR public.is_platform_admin()
+                           OR public.is_verified_doctor() ) )$q$;
+    RAISE NOTICE 'question_replies: replies kept verified-only.';
+  END IF;
+END
+$qa$;
 
 -- ============================================================
 -- 5. THE PUBLIC CLINICIAN DIRECTORY — TIGHTENED
@@ -645,10 +720,13 @@ DO $verify$
 DECLARE
   v_left int; v_bad text[] := '{}';
 BEGIN
-  -- V1: the blanket restriction is gone from all 33.
+  /* V1: no blanket gate survives — measured the same way section 4 found
+     them, so this cannot pass by looking for the wrong name. */
   SELECT count(*) INTO v_left FROM pg_policies
-   WHERE schemaname='public' AND policyname LIKE '%\_require\_verified';
-  IF v_left <> 0 THEN v_bad := v_bad || ('V1 ' || v_left || ' _require_verified policies remain')::text; END IF;
+   WHERE schemaname='public'
+     AND ( policyname LIKE '%\_require\_verified'
+           OR ( permissive='RESTRICTIVE' AND coalesce(qual,'') LIKE '%is_pending_doctor%' ) );
+  IF v_left <> 0 THEN v_bad := v_bad || ('V1 ' || v_left || ' blanket gate policies remain')::text; END IF;
 
   -- V2: the ten ordinary gates now ask about the doctor account.
   IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
@@ -684,11 +762,31 @@ BEGIN
                     AND p.prosrc LIKE '%verification_status = ''approved''%')
     THEN v_bad := v_bad || 'V8 get_clinician_directory is still open to unverified doctors'::text; END IF;
 
-  -- V9: the Q&A inbox kept a trust requirement rather than losing one.
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
-                  AND tablename='questions' AND policyname='q_select_own_or_staff'
-                  AND qual LIKE '%is_verified_doctor%')
-    THEN v_bad := v_bad || 'V9 questions inbox is open to unverified doctors'::text; END IF;
+  /* V9: the Q&A inbox kept a trust requirement rather than losing one —
+     but only assert it where the inbox actually exists. Demanding a policy on
+     a table this deployment does not have is how the previous version of this
+     file failed. */
+  IF to_regclass('public.questions') IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+                    AND tablename='questions' AND policyname='q_select_own_or_staff'
+                    AND qual LIKE '%is_verified_doctor%')
+      THEN v_bad := v_bad || 'V9 questions inbox is open to unverified doctors'::text; END IF;
+  END IF;
+  IF to_regclass('public.question_replies') IS NOT NULL THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+                    AND tablename='question_replies' AND policyname='r_select_own_or_staff'
+                    AND qual LIKE '%is_verified_doctor%')
+      THEN v_bad := v_bad || 'V9b question replies are open to unverified doctors'::text; END IF;
+  END IF;
+
+  /* V12 — NEW, and the check that would have caught this deployment's failure
+     before it started: every table that still carries one of the policies this
+     migration recreates must actually have the recreated one. */
+  IF to_regclass('public.anesthesia_cases') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+                      AND tablename='anesthesia_cases' AND policyname='anes_case_insert'
+                      AND with_check LIKE '%is_doctor_account%')
+    THEN v_bad := v_bad || 'V12 anes_case_insert was not re-pointed'::text; END IF;
 
   -- V10: provenance exists and is NOT client-writable.
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
@@ -704,7 +802,7 @@ BEGIN
     RAISE EXCEPTION E'POST-VERIFY FAILED — nothing committed:\n  %',
       array_to_string(v_bad, E'\n  ');
   END IF;
-  RAISE NOTICE 'POST-VERIFY: all 11 checks passed.';
+  RAISE NOTICE 'POST-VERIFY: every check passed against the objects THIS database actually has.';
 END
 $verify$;
 
