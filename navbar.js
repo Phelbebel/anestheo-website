@@ -435,6 +435,144 @@ body.nb-lock{position:fixed;width:100%;overflow:hidden;}
 .nb-foot-copy{font-size:12px;color:var(--nb-t4);}
 @media(max-width:720px){ .nb-foot-cols{grid-template-columns:repeat(2,1fr);} }
 @media(max-width:420px){ .nb-foot-cols{grid-template-columns:1fr;} }
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE APPLICATION SHELL — the bottom tab bar
+   --------------------------------------------------------------------------
+   Everything here is inert above the phone breakpoint. The bar is display:none
+   until a media query turns it on, and the class that reserves room for it at
+   the foot of the page is applied by the same query, so desktop and iPad keep
+   the approved header and workspace switcher untouched.
+
+   THE BREAKPOINT is 740px — the same one that already hides .nb-nav-links and
+   .nb-ws. One breakpoint, so the header and the shell can never disagree about
+   which layout the page is in. iPad portrait is 768/834 and therefore keeps
+   the inline switcher, which at that width has larger targets than a five-up
+   bar and is the better touch surface.
+   ══════════════════════════════════════════════════════════════════════════ */
+.nb-tabbar{display:none;}
+.nb-ic{width:22px;height:22px;display:block;}
+
+@media(max-width:740px){
+  /* An authenticated phone has the bar, so the hamburger is no longer the only
+     way in — More is a tab. Guests keep it, because they have no bar. */
+  html.nb-has-tabs .nb-burger{display:none;}
+
+  .nb-tabbar.on{
+    display:grid; grid-auto-flow:column; grid-auto-columns:1fr;
+    /* One height, used by the bar, by the page's bottom padding and by the
+       sheet that stops above it, so the three can never disagree. */
+    --nb-tab-h:57px;
+    position:fixed; left:0; right:0; bottom:0; z-index:880;
+    background:var(--nb-bg); border-top:1px solid var(--nb-edge);
+    -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+    /* The home indicator on a notched iPhone, and Safari's own bottom chrome,
+       both live inside this inset. Padding rather than margin, so the bar's
+       background still reaches the physical bottom of the screen instead of
+       leaving a strip of page showing under it. */
+    padding-bottom:env(safe-area-inset-bottom);
+    font-family:inherit;
+  }
+  .nb-tab{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:3px; min-height:56px; padding:7px 2px 8px; box-sizing:border-box;
+    background:none; border:0; cursor:pointer; font-family:inherit;
+    text-decoration:none; color:var(--nb-t3); font-size:10.5px; font-weight:600;
+    letter-spacing:.01em; -webkit-tap-highlight-color:transparent;
+    transition:color var(--nb-dur);
+  }
+  .nb-tab-lb{line-height:1;white-space:nowrap;}
+  .nb-tab-ic{display:flex;align-items:center;justify-content:center;height:22px;}
+  .nb-tab:active{color:var(--nb-text);}
+  .nb-tab.on{color:var(--nb-accent);}
+  /* The active mark is a short rule at the top edge of the tab, in line with
+     the bar's own border — the same device the desktop rail uses down its
+     left edge. It is drawn, not animated: a persistent bar that moves every
+     time you navigate is noise. */
+  .nb-tab.on::before{
+    content:''; position:absolute; top:0; width:26px; height:2px;
+    border-radius:0 0 2px 2px; background:var(--nb-accent);
+  }
+  .nb-tab{position:relative;}
+  .nb-tab:focus-visible{outline:2px solid var(--nb-accent);outline-offset:-3px;}
+
+  /* Live Tools is the signature instrument, so it reads as one: the icon sits
+     in a teal-tinted well rather than on the bar. No floating button, no glow,
+     no pulse — the tint and the monitor mark are enough, and a flashing
+     control in a theatre is a status claim this is not entitled to make. */
+  .nb-tab.sig .nb-tab-ic{
+    width:40px; border-radius:var(--nb-r-md);
+    background:linear-gradient(180deg,rgba(47,168,140,.22),rgba(47,168,140,.10));
+    border:1px solid rgba(47,168,140,.42);
+    color:var(--nb-accent);
+  }
+  .nb-tab.sig.on .nb-tab-ic{
+    background:linear-gradient(180deg,rgba(47,168,140,.38),rgba(47,168,140,.18));
+    border-color:rgba(126,207,192,.7);
+  }
+
+  /* Room at the foot of every page for the bar, so it never covers the last
+     row of a table, the last field of a form, or a save button. */
+  html.nb-has-tabs body{
+    padding-bottom:calc(57px + env(safe-area-inset-bottom)) !important;
+  }
+  /* iOS pins a fixed element above the keyboard, which would put the bar on
+     top of the field being typed into. See nbBindKeyboardDodge. */
+  html.nb-typing .nb-tabbar.on{display:none;}
+  html.nb-typing body{padding-bottom:0 !important;}
+
+  /* The drawer becomes a bottom sheet, because it is now opened from the
+     bottom of the screen. Same element, same focus trap, same backdrop — only
+     where it comes from changes. It stops above the bar so both stay usable. */
+  html.nb-has-tabs .nb-mob{
+    top:auto; bottom:calc(57px + env(safe-area-inset-bottom));
+    border-radius:16px 16px 0 0;
+    box-shadow:0 -18px 40px -18px rgba(0,0,0,.75);
+    max-height:calc(100vh - 57px - 90px);
+    padding:14px 0 18px;
+  }
+  html.nb-has-tabs .nb-mob-bg{top:0;}
+  /* On a phone the bar owns primary navigation and this group owns the rest,
+     so the legacy link lists would be a second copy of both. Guests keep them:
+     renderShell leaves nb-has-tabs off, and these rules never apply. */
+  html.nb-has-tabs #nb-mob-navgrp,
+  html.nb-has-tabs #nb-mob-wsgrp{display:none !important;}
+  /* The More list owns these two now, and it draws them with an icon and the
+     duplicate filter applied. Left visible, Account printed Profile & settings
+     a second time three rows below the first. */
+  html.nb-has-tabs #nb-mob-settings,
+  html.nb-has-tabs #nb-mob-workspace{display:none !important;}
+  html:not(.nb-has-tabs) .nb-more-grp{display:none;}
+
+  .nb-more-list{display:flex;flex-direction:column;padding:0 8px;}
+  .nb-more-item{
+    display:flex; align-items:center; gap:13px;
+    min-height:48px; padding:0 14px; border-radius:var(--nb-r-md);
+    color:var(--nb-t2); text-decoration:none; font-size:15px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .nb-more-item .nb-more-ic{display:flex;color:var(--nb-t4);flex:0 0 auto;}
+  .nb-more-item:active{background:var(--nb-surface-2);}
+  .nb-more-item.on{color:var(--nb-text);background:var(--nb-surface);}
+  .nb-more-item.on .nb-more-ic{color:var(--nb-accent);}
+}
+@supports(height:100dvh){
+  @media(max-width:740px){
+    html.nb-has-tabs .nb-mob{max-height:calc(100dvh - 57px - 90px);}
+  }
+}
+/* Landscape phone: the bar would eat a third of the height, and the header
+   already carries the account. Stand it down and give the drawer back. */
+@media(max-width:900px) and (max-height:460px){
+  .nb-tabbar.on{display:none;}
+  html.nb-has-tabs body{padding-bottom:0 !important;}
+  html.nb-has-tabs .nb-burger{display:block;}
+  html.nb-has-tabs .nb-mob{top:56px;bottom:auto;border-radius:0 0 16px 16px;}
+  html.nb-has-tabs #nb-mob-navgrp{display:block !important;}
+}
+@media(prefers-reduced-motion:reduce){
+  .nb-tab{transition:none;}
+}
+
 `;
 
 function injectCSS(){
@@ -616,6 +754,14 @@ function buildHTML(page){
         '<a href="/videos.html" class="nb-mob-link">Videos</a>' +
       '</div>' +
       '</div>' +                                   // end NAVIGATION group
+      // 2b. MORE — the phone shell's secondary navigation. Built from NB_MORE
+      //     minus whatever the tab bar is already showing, so nothing is
+      //     listed twice. Replaces the groups above on a phone; they stay for
+      //     guests, who have no tab bar.
+      '<div class="nb-mob-grp nb-more-grp" id="nb-more-grp">' +
+        '<div class="nb-mob-h">More</div>' +
+        '<div class="nb-more-list" id="nb-more-list" role="navigation" aria-label="More"></div>' +
+      '</div>' +
       // 3. ACCOUNT — always last, always separated from content links.
       '<div class="nb-mob-grp nb-mob-acct" id="nb-mob-acctgrp">' +
         '<div class="nb-mob-h">Account</div>' +
@@ -627,6 +773,10 @@ function buildHTML(page){
         '</div>' +
       '</div>' +
     '</div>' +
+    /* The application shell. Rendered empty and filled by renderShell once the
+       role is known, so a visitor never sees it flash. It is the last element
+       in the chrome so its stacking is predictable without a z-index war. */
+    '<nav class="nb-tabbar" id="nb-tabbar" role="navigation" aria-label="Primary"></nav>' +
     '<div class="nb-modal-bg" id="nb-modal" onclick="if(event.target===this)window.nbCloseModal()">' +
       '<div class="nb-modal">' +
         '<button class="nb-modal-close" onclick="window.nbCloseModal()">&#10005;</button>' +
@@ -757,7 +907,126 @@ function setGuest(){
   var navAdmin = ge('nb-nav-admin'); if(navAdmin) navAdmin.style.display = 'none';
   var mobAdmin = ge('nb-mob-admin-nav'); if(mobAdmin) mobAdmin.style.display = 'none';
   renderWorkspaceSwitcher(null);          // no workspace switcher for guests
+  renderShell(null);                      // ...and no application shell
 }
+
+/* ── Icons ─────────────────────────────────────────────────────────────────
+   Lucide, inline, stroke-based — the same system and the same 24×24 grid the
+   doctor workspace already draws its rail with. Emoji were fine for a drawer
+   row read once; they are wrong for a primary navigation that is on screen
+   the whole time, because they carry a different colour, weight and vertical
+   centre on every platform and cannot take the active state's tint.
+
+   Paths only. The wrapper below supplies the shared stroke attributes, so a
+   new icon is one line and cannot disagree with the others.               */
+var NB_ICONS = {
+  home:     '<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/><path d="M9.5 20v-6h5v6"/>',
+  users:    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' +
+            '<path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  pulse:    '<path d="M3 12h4l2.5-7 5 14L17.5 12H21"/>',
+  chart:    '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l3.5-4 3 2.5L20 7"/>',
+  compass:  '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+  shield:   '<path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6z"/><path d="m9.5 12 1.8 1.8 3.4-3.6"/>',
+  message:  '<path d="M20 15a3 3 0 0 1-3 3H8l-4 3V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3z"/>',
+  admin:    '<path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6z"/><circle cx="12" cy="11" r="2"/>' +
+            '<path d="M12 13v3"/>',
+  more:     '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+  book:     '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  folder:   '<path d="M4 20a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4.5l2 3H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2z"/>',
+  play:     '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 6 3.5-6 3.5z"/>',
+  cog:      '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
+  info:     '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  badge:    '<path d="M12 2 9.5 5H6v3.5L3 12l3 3.5V19h3.5L12 22l2.5-3H18v-3.5L21 12l-3-3.5V5h-3.5z"/>' +
+            '<path d="m9.5 12 1.8 1.8 3.4-3.6"/>',
+  logout:   '<path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  search:   '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'
+};
+function nbIcon(name){
+  var d = NB_ICONS[name];
+  if(!d) return '';
+  return '<svg class="nb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+         'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" ' +
+         'aria-hidden="true" focusable="false">' + d + '</svg>';
+}
+
+/* ── Mobile application shell: the bottom tab bar ──────────────────────────
+   WHAT THIS IS
+
+   On a phone the application used to have exactly one way in: a hamburger.
+   Every destination — the workspace, Live Tools, Live Chart, a patient's own
+   journey — sat behind a tap on a menu, which is a website's navigation, not
+   an application's. This is the persistent bar that replaces it.
+
+   WHERE THE ROLES COME FROM
+
+   Nowhere new. populateMenu() already resolves the three facts this product
+   separates — what someone is clinically (profiles.role), what they may
+   administer (is_platform_admin()), and what they have been verified for —
+   and it hands the answer here. This file adds no check of its own, reads no
+   table, and grants nothing: it decides which five LABELS to draw, and every
+   destination it can draw is one the account could already reach from the
+   drawer. The server and RLS remain the only authority on what opens.
+
+   WHY THESE FIVE
+
+   A doctor's day is patients and the two clinical instruments. A patient's is
+   their own journey. They are not the same product and must not get the same
+   bar, so there are two sets, keyed on the same role facts the rest of the
+   navigation already uses. Every href below is an existing route, taken from
+   the workspace switcher and the drawer rather than invented.             */
+var NB_TABS = {
+  /* A doctor who also administers keeps the DOCTOR bar. Administration is a
+     privilege on top of a clinician, not a replacement for one — the same
+     rule populateMenu applies to the role label and the workspace switcher.
+     Admin Center is in More. */
+  doctor: [
+    { href:'/index.html',            label:'Home',       ico:'home'  },
+    { href:'/dashboard.html',        label:'Patients',   ico:'users' },
+    { href:'/engine.html',           label:'Live Tools', ico:'pulse', signature:true },
+    { href:'/anesthesia-cases.html', label:'Live Chart', ico:'chart' },
+    { more:true,                     label:'More',       ico:'more'  }
+  ],
+  /* An administrator who is not a clinician. They keep both instruments —
+     NB_WORKSPACES.admin already gives them Live Tools — and get the Admin
+     Center in place of the patient list. Doctor Workspace is in More. */
+  admin: [
+    { href:'/index.html',            label:'Home',       ico:'home'  },
+    { href:'/admin.html',            label:'Admin',      ico:'admin' },
+    { href:'/engine.html',           label:'Live Tools', ico:'pulse', signature:true },
+    { href:'/anesthesia-cases.html', label:'Live Chart', ico:'chart' },
+    { more:true,                     label:'More',       ico:'more'  }
+  ],
+  /* Journey is /patient-dashboard.html — the existing patient workspace, the
+     same destination the app Home's "Continue your surgery journey" button
+     has always pointed at. No second journey system. */
+  patient: [
+    { href:'/index.html',            label:'Home',     ico:'home'    },
+    { href:'/patient-dashboard.html',label:'Journey',  ico:'compass' },
+    { href:'/health-passport.html',  label:'Passport', ico:'shield'  },
+    { href:'/ask.html',              label:'Ask',      ico:'message' },
+    { more:true,                     label:'More',     ico:'more'    }
+  ]
+};
+
+/* The More sheet. Secondary destinations only — anything already in the bar
+   above is filtered out by href before this renders, so a destination can
+   never appear in both. `when` is read from the flags populateMenu computed;
+   it is a display rule, never an access rule. */
+var NB_MORE = [
+  { href:'/dashboard.html',       label:'Doctor Workspace', ico:'users',  when:'staff'   },
+  { href:'/admin.html',           label:'Admin Center',     ico:'admin',  when:'admin'   },
+  { href:'/anesthesia-cases.html',label:'Live Chart',       ico:'chart',  when:'staff'   },
+  { href:'/patient-dashboard.html',label:'My Space',        ico:'compass',when:'patient' },
+  { href:'/health-passport.html', label:'Health Passport',  ico:'shield', when:'always'  },
+  { href:'/references.html',      label:'References',       ico:'book',   when:'staff'   },
+  { href:'/resources.html',       label:'Resources',        ico:'folder', when:'staff'   },
+  { href:'/patients.html',        label:'For Patients',     ico:'users',  when:'staff'   },
+  { href:'/ask.html',             label:'Ask Anesthesiologist', ico:'message', when:'patientish' },
+  { href:'/videos.html',          label:'Videos',           ico:'play',   when:'always'  },
+  { href:'/doctor-pending.html',  label:'Verification',     ico:'badge',  when:'unverified' },
+  { href:'/settings.html',        label:'Profile & settings', ico:'cog',  when:'always'  },
+  { href:'/about.html',           label:'About & help',     ico:'info',   when:'always'  }
+];
 
 // ── Workspace switcher ────────────────────────────────────────
 // Every destination is an existing route. Nothing here is invented.
@@ -845,6 +1114,100 @@ function renderWorkspaceSwitcher(role){
     mob.classList.add('on');
   }
   if(grp) grp.style.display = '';
+}
+
+/* ── The mobile shell ──────────────────────────────────────────────────────
+   renderShell is called once, from populateMenu, with the role facts that
+   function has already resolved. It never computes them itself.
+
+   `flags` is exactly what populateMenu knows:
+     kind        'doctor' | 'admin' | 'patient' | null   which bar, if any
+     isStaff     clinician or administrator
+     isAdmin     is_platform_admin()
+     isPatient   a patient account
+     unverified  a doctor the platform has not yet checked                 */
+function renderShell(flags){
+  var bar   = ge('nb-tabbar');
+  var sheet = ge('nb-more-list');
+  var root  = document.documentElement;
+  if(!bar) return;
+
+  var tabs = flags && flags.kind ? NB_TABS[flags.kind] : null;
+
+  /* No bar for a visitor, and none for an account that has not chosen a role
+     yet: there is nothing to be persistently navigating. They keep the public
+     header and the drawer, unchanged. */
+  if(!tabs){
+    bar.innerHTML = '';
+    bar.classList.remove('on');
+    root.classList.remove('nb-has-tabs');
+    if(sheet) sheet.innerHTML = '';
+    return;
+  }
+
+  var page = nbCurrentPage();
+  bar.innerHTML = tabs.map(function(t){
+    var on = !t.more && t.href.split('/').pop() === page;
+    var cls = 'nb-tab' + (t.signature ? ' sig' : '') + (on ? ' on' : '');
+    var inner = '<span class="nb-tab-ic">' + nbIcon(t.ico) + '</span>' +
+                '<span class="nb-tab-lb">' + t.label + '</span>';
+    if(t.more){
+      return '<button type="button" class="' + cls + '" id="nb-tab-more" ' +
+             'aria-haspopup="dialog" aria-controls="nb-mob" aria-expanded="false" ' +
+             'onclick="window.nbToggleMob()">' + inner + '</button>';
+    }
+    return '<a href="' + t.href + '" class="' + cls + '"' +
+           (on ? ' aria-current="page"' : '') + '>' + inner + '</a>';
+  }).join('');
+  bar.classList.add('on');
+
+  /* The class is on <html> rather than <body> so the bottom padding that keeps
+     the bar off the last row of a page applies even on the pages that set
+     their own body background and overflow. */
+  root.classList.add('nb-has-tabs');
+
+  /* The More sheet, minus anything the bar already shows. This is the rule
+     that stops a destination appearing twice — it is computed, not curated,
+     so adding a tab automatically removes it from More. */
+  if(sheet){
+    var inBar = {};
+    tabs.forEach(function(t){ if(t.href) inBar[t.href] = 1; });
+    var show = {
+      always:     true,
+      staff:      !!flags.isStaff,
+      admin:      !!flags.isAdmin,
+      patient:    !!flags.isPatient,
+      patientish: !flags.isStaff,          // Ask is for people asking, not answering
+      unverified: !!flags.unverified
+    };
+    sheet.innerHTML = NB_MORE.filter(function(m){
+      return show[m.when] && !inBar[m.href];
+    }).map(function(m){
+      var on = m.href.split('/').pop() === page;
+      return '<a href="' + m.href + '" class="nb-more-item' + (on ? ' on' : '') + '"' +
+             (on ? ' aria-current="page"' : '') + '>' +
+             '<span class="nb-more-ic">' + nbIcon(m.ico) + '</span>' + m.label + '</a>';
+    }).join('');
+  }
+}
+
+/* iOS keeps a fixed element pinned above the keyboard, which is right for a
+   toolbar and wrong for navigation: the bar would sit on top of the field
+   being typed into. Stand it down while a text field has focus, and bring it
+   back the moment focus leaves. Nothing is unmounted, so no layout is lost. */
+function nbBindKeyboardDodge(){
+  var TEXTY = /^(input|textarea|select)$/i;
+  function texty(el){
+    if(!el || !TEXTY.test(el.tagName)) return false;
+    if(el.tagName.toLowerCase() !== 'input') return true;
+    return !/^(checkbox|radio|button|submit|range|file|color)$/i.test(el.type || 'text');
+  }
+  document.addEventListener('focusin',  function(e){
+    if(texty(e.target)) document.documentElement.classList.add('nb-typing');
+  });
+  document.addEventListener('focusout', function(){
+    document.documentElement.classList.remove('nb-typing');
+  });
 }
 
 function setAuth(){
@@ -961,6 +1324,17 @@ async function populateMenu(user, profile){
   var mobWs  = ge('nb-mob-workspace'); if(mobWs)  mobWs.style.display  = (isStaff && !wsRole) ? 'block' : 'none';
   var mobSet = ge('nb-mob-settings');  if(mobSet) mobSet.style.display = isPatient ? 'none' : 'block';
   renderWorkspaceSwitcher(wsRole);
+  /* The phone shell, from the facts already resolved above. A doctor who
+     administers keeps the doctor bar — same rule as the role label and the
+     workspace switcher, one line up. */
+  renderShell({
+    kind:       isDoctor ? 'doctor' : (isAdminRole ? 'admin' : (isPatient ? 'patient' : null)),
+    isStaff:    isStaff,
+    isAdmin:    isAdminRole,
+    isPatient:  isPatient,
+    unverified: isDoctor && !isAdminRole &&
+                !!(profile && (profile.verification_status || '') !== 'approved')
+  });
   // Global search for staff only
   var search = ge('nb-search-wrap'); if(search) search.style.display = isStaff ? 'block' : 'none';
   var msg = ge('nb-mob-searchgrp'); if(msg) msg.style.display = isStaff ? 'block' : 'none';
@@ -1252,8 +1626,22 @@ function nbMobTrap(e){
   if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
   else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
 }
+/* The More tab replaces the burger on an authenticated phone, so the trigger
+   is whichever of the two is actually on screen. */
+function nbMobTrigger(){
+  /* getClientRects(), not offsetParent: the More tab lives inside a fixed bar
+     and offsetParent is null for anything inside one, so an offsetParent test
+     would never see it and the drawer would credit a burger that is not on
+     screen — leaving aria-expanded on the wrong control and returning focus
+     to a hidden button on close. */
+  var more = ge('nb-tab-more');
+  if(more && more.getClientRects().length) return more;
+  return ge('nb-burger');
+}
 window.nbOpenMob = function(){
-  var m = ge('nb-mob'), bg = ge('nb-mob-bg'), btn = ge('nb-burger');
+  /* Whichever control opened it owns the aria state and the focus that comes
+     back on close. On a phone that is now the More tab, not the burger. */
+  var m = ge('nb-mob'), bg = ge('nb-mob-bg'), btn = nbMobTrigger();
   if(!m || m.classList.contains('open')) return;
   _nbMobScrollY = window.scrollY || window.pageYOffset || 0;
   m.classList.add('open');
@@ -1266,7 +1654,7 @@ window.nbOpenMob = function(){
   if(f.length) setTimeout(function(){ f[0].focus(); }, 30);
 };
 window.nbCloseMob = function(){
-  var m = ge('nb-mob'), bg = ge('nb-mob-bg'), btn = ge('nb-burger');
+  var m = ge('nb-mob'), bg = ge('nb-mob-bg'), btn = nbMobTrigger();
   if(!m || !m.classList.contains('open')) return;
   m.classList.remove('open');
   if(bg) bg.classList.remove('open');
@@ -1291,7 +1679,11 @@ document.addEventListener('click', function(e){
 
 document.addEventListener('click', function(e){
   var mob  = ge('nb-mob');
-  if(mob && mob.classList.contains('open') && !e.target.closest('#nb-nav') && !e.target.closest('#nb-mob')){
+  /* #nb-tabbar belongs in this list for the same reason #nb-nav does: the More
+     tab is the control that OPENS the drawer, and its click bubbles here. Left
+     out, the sheet opened and closed again on the same tap — it never appeared. */
+  if(mob && mob.classList.contains('open') && !e.target.closest('#nb-nav') &&
+     !e.target.closest('#nb-mob') && !e.target.closest('#nb-tabbar')){
     window.nbCloseMob();          // must go through the closer: unlocks scroll,
   }                               // hides the backdrop and restores focus
   var menu = ge('nb-menu');
@@ -1540,6 +1932,7 @@ async function nbInit(){
   if(_nbInitDone){ return; }
   _nbInitDone = true;
   injectCSS();
+  nbBindKeyboardDodge();
   var page = location.pathname.split('/').pop() || 'index.html';
   var ph = document.getElementById('nb-placeholder');
   var html = buildHTML(page);
