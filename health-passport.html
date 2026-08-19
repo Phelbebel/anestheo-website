@@ -7,16 +7,17 @@
 <title>Health Passport — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
-<script src="/navbar.js?v=2026.08.19-03"></script>
-<script src="/passport.js?v=2026.08.19-03"></script>
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<script src="/navbar.js?v=2026.08.19-04"></script>
+<script src="/passport.js?v=2026.08.19-04"></script>
 <script src="/vendor/qrcode-generator-2.0.4.js"></script>
-<script src="/qr.js?v=2026.08.19-03"></script>
+<script src="/qr.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
-  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.5);}
+  --border:rgba(27,107,90,.22);}
 body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
   -webkit-font-smoothing:antialiased;}
 #loader{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;z-index:99;}
@@ -28,7 +29,7 @@ h1{font-family:'Playfair Display',serif;font-size:27px;font-weight:700;}
 .sub{font-size:14.5px;color:var(--muted);margin:5px 0 22px;line-height:1.6;}
 h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
   margin:26px 0 10px;font-weight:700;}
-.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;
+.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);
   padding:16px;margin-bottom:11px;}
 .card.crit{background:rgba(192,57,43,.13);border-color:rgba(192,57,43,.45);}
 .row{display:flex;align-items:flex-start;gap:12px;}
@@ -38,7 +39,7 @@ h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted
 .it-v{font-size:14px;color:rgba(255,255,255,.8);margin-top:3px;}
 .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
 .tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  border-radius:5px;padding:3px 7px;white-space:nowrap;}
+  border-radius:var(--radius-xs);padding:3px 7px;white-space:nowrap;}
 .tag.cat{background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);}
 .tag.sev{background:rgba(192,57,43,.28);color:#FFC9C0;}
 .tag.hid{background:rgba(255,255,255,.06);color:rgba(255,255,255,.45);}
@@ -49,9 +50,9 @@ h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted
 .lost{font-size:12.5px;color:#FFD9A0;margin-top:8px;line-height:1.5;}
 .warnline{font-size:12.5px;color:#FFD9A0;line-height:1.5;margin-top:7px;
   background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.3);
-  border-radius:8px;padding:9px 11px;}
+  border-radius:var(--radius-sm);padding:9px 11px;}
 button,.btn{font-family:inherit;cursor:pointer;}
-.btn{min-height:46px;padding:0 17px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
+.btn{min-height:46px;padding:0 17px;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,.15);
   background:rgba(255,255,255,.05);color:#fff;font-size:14.5px;display:inline-flex;
   align-items:center;justify-content:center;gap:7px;text-decoration:none;}
 .btn:hover{background:rgba(126,207,192,.13);border-color:var(--teal2);}
@@ -63,23 +64,23 @@ button,.btn{font-family:inherit;cursor:pointer;}
 label{display:block;font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.06em;
   text-transform:uppercase;font-weight:600;margin:12px 0 5px;}
 input,select,textarea{width:100%;background:rgba(255,255,255,.055);
-  border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:11px 12px;color:#fff;
+  border:1px solid rgba(255,255,255,.12);border-radius:var(--radius-sm);padding:11px 12px;color:#fff;
   font-family:inherit;font-size:15px;min-height:46px;outline:none;}
 input:focus,select:focus,textarea:focus{border-color:var(--teal2);}
-select option{background:#132218;}
+select option{background:var(--dark3);}
 textarea{min-height:80px;resize:vertical;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
 .chk{display:flex;align-items:center;gap:10px;min-height:46px;font-size:14.5px;cursor:pointer;}
 .chk input{width:22px;height:22px;min-height:0;flex:0 0 auto;accent-color:var(--teal2);}
-.msg{display:none;border-radius:9px;padding:11px 13px;font-size:13.5px;margin-top:11px;line-height:1.55;}
+.msg{display:none;border-radius:var(--radius-sm);padding:11px 13px;font-size:13.5px;margin-top:11px;line-height:1.55;}
 .msg-err{background:rgba(192,57,43,.13);border:1px solid rgba(192,57,43,.32);color:#FFB4A8;}
 .msg-ok{background:rgba(27,107,90,.17);border:1px solid rgba(42,138,116,.32);color:var(--accent);}
 .empty{text-align:center;padding:30px 18px;color:var(--muted);font-size:14.5px;line-height:1.7;}
 
 /* The QR card — meant to be printed and carried. */
-.qrcard{background:#fff;color:#0A1A15;border-radius:16px;padding:22px;text-align:center;
+.qrcard{background:#fff;color:var(--dark);border-radius:var(--radius-lg);padding:22px;text-align:center;
   max-width:340px;margin:0 auto;}
-.qrcard .qb{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#1B6B5A;font-weight:700;}
+.qrcard .qb{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);font-weight:700;}
 .qrcard .qn{font-family:'Playfair Display',serif;font-size:21px;font-weight:700;margin:7px 0 3px;}
 .qrcard .qs{font-size:12.5px;color:#4a5b55;margin-bottom:14px;}
 .qrcard svg{display:block;margin:0 auto;width:220px;height:220px;}

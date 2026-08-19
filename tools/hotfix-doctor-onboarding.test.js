@@ -79,10 +79,18 @@ async function run(b, opts) {
     t('...the account really is a doctor now', s.profile.role === 'doctor', s.profile.role);
     t('...with the professional details stored',
       s.profile.medical_license_number === 'IL-99231', s.profile.medical_license_number);
-    /* The important restraint: v9 is NOT applied, so the database still denies
-       an unapproved doctor every clinical table. Sending them to the workspace
-       would show an empty screen and call it access. */
-    t('...routing UNCHANGED: still /doctor-pending.html', s.url === '/doctor-pending.html', s.url);
+    /* This assertion used to read /doctor-pending.html, and the reason was
+       sound at the time: v9 had not been applied, so the database still denied
+       an unapproved doctor every clinical table, and sending them to the
+       workspace would have shown an empty screen and called it access.
+
+       v9 is applied in production now, and with it the access model the
+       product decided on: verification is trust status, not the ordinary
+       product-access gate. A doctor who has completed onboarding gets the
+       doctor workspace. The old expectation was correct for a database that
+       no longer exists. */
+    t('...routing follows the access model: straight to the workspace',
+      s.url === '/dashboard.html', s.url);
     t('no page error', errs.length === 0, errs);
   }
 

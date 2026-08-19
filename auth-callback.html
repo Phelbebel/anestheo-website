@@ -7,30 +7,31 @@
 <title>Signing you in — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
-:root{--accent:#7ECFC0;--teal:#2A8A74;}
+/* Standalone by design — see reset-password.html. Tokens only. */
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:#0A1A15;color:#fff;font-family:'DM Sans',-apple-system,system-ui,sans-serif;line-height:1.6;
+body{background:var(--dark);color:var(--text);font-family:var(--font);line-height:1.6;
   -webkit-font-smoothing:antialiased;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
   background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:52px 52px;}
 .cb{width:100%;max-width:420px;text-align:center;}
 .cb-logo{font-size:20px;font-weight:600;margin-bottom:28px;letter-spacing:.01em;}
-.cb-logo span{color:#2A8A74;}
-.cb-card{background:rgba(255,255,255,.035);border:1px solid rgba(27,107,90,.24);border-radius:14px;padding:30px 24px;}
+.cb-logo span{color:var(--teal2);}
+.cb-card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:30px 24px;}
 .cb-spin{width:26px;height:26px;margin:0 auto 16px;border:2.5px solid rgba(126,207,192,.22);
-  border-top-color:#7ECFC0;border-radius:50%;animation:sp .8s linear infinite;}
+  border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg);}}
 .cb-t{font-size:16px;font-weight:700;margin-bottom:6px;}
-.cb-s{font-size:13.5px;color:rgba(255,255,255,.6);}
-.cb-err .cb-t{color:#FFB4A8;}
+.cb-s{font-size:13.5px;color:var(--muted);}
+.cb-err .cb-t{color:var(--danger);}
 .cb-actions{display:flex;flex-direction:column;gap:9px;margin-top:20px;}
-.cb-btn{display:block;width:100%;padding:11px 16px;border-radius:10px;font-family:inherit;font-size:14px;
-  font-weight:600;text-decoration:none;cursor:pointer;border:1px solid rgba(27,107,90,.4);
-  background:rgba(255,255,255,.05);color:#fff;}
+.cb-btn{display:block;width:100%;padding:11px 16px;border-radius:var(--radius-md);font-family:inherit;font-size:14px;
+  font-weight:600;text-decoration:none;cursor:pointer;border:1px solid var(--border-strong);
+  background:var(--surface-2);color:var(--text);}
 .cb-btn:hover{background:rgba(126,207,192,.12);border-color:rgba(126,207,192,.55);}
-.cb-btn-primary{background:linear-gradient(135deg,#2A8A74,#1B6B5A);border-color:transparent;}
+.cb-btn-primary{background:linear-gradient(135deg,var(--teal2),var(--teal));border-color:transparent;}
 </style>
 </head>
 <body>

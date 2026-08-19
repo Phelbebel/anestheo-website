@@ -7,12 +7,13 @@
 <title>Become a Verified Clinician — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
-  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.5);}
+  --border:rgba(27,107,90,.22);}
 body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;
   min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
   -webkit-font-smoothing:antialiased;
@@ -21,11 +22,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;
 .wrap{width:100%;max-width:540px;}
 .brand{text-align:center;font-size:19px;font-weight:600;margin-bottom:22px;}
 .brand span{color:var(--teal2);}
-.card{background:rgba(10,22,15,.98);border:1px solid var(--border);border-radius:18px;
+.card{background:rgba(10,22,15,.98);border:1px solid var(--border);border-radius:var(--radius-xl);
   overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.5);}
 .head{padding:30px 28px 22px;border-bottom:1px solid var(--border);}
 .pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;
-  letter-spacing:.07em;text-transform:uppercase;border-radius:20px;padding:5px 12px;margin-bottom:13px;}
+  letter-spacing:.07em;text-transform:uppercase;border-radius:var(--radius-xl);padding:5px 12px;margin-bottom:13px;}
 .pill-wait{color:rgba(255,220,150,.95);background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.28);}
 .pill-stop{color:rgba(255,170,150,.95);background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.32);}
 .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
@@ -38,14 +39,14 @@ h1{font-family:'Playfair Display',serif;font-size:23px;font-weight:700;margin-bo
 .kv dt{color:rgba(255,255,255,.42);}
 .kv dd{color:rgba(255,255,255,.9);word-break:break-word;}
 .note{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
-  border-radius:10px;padding:14px 16px;font-size:13px;color:rgba(255,255,255,.62);
+  border-radius:var(--radius-md);padding:14px 16px;font-size:13px;color:rgba(255,255,255,.62);
   line-height:1.7;margin-top:20px;}
 .acts{display:flex;flex-direction:column;gap:9px;margin-top:22px;}
 .dp-list{list-style:none;margin:0 0 4px;padding:0;}
 .dp-list li{position:relative;padding:6px 0 6px 22px;font-size:13.5px;color:rgba(255,255,255,.78);line-height:1.6;}
 .dp-list li::before{content:'';position:absolute;left:4px;top:14px;width:6px;height:6px;
   border-radius:50%;background:var(--accent);}
-.btn{display:block;width:100%;text-align:center;padding:12px 16px;border-radius:9px;
+.btn{display:block;width:100%;text-align:center;padding:12px 16px;border-radius:var(--radius-sm);
   font-family:inherit;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer;
   border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#fff;min-height:46px;}
 .btn:hover{background:rgba(126,207,192,.1);border-color:rgba(126,207,192,.4);}

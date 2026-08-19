@@ -6,73 +6,73 @@
 <title>For Patients — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
-<script src="/clinical-index.js?v=2026.08.19-03"></script>
-<script src="/clinical-search.js?v=2026.08.19-03"></script>
-<script src="/navbar.js?v=2026.08.19-03"></script>
-<script src="/journey.js?v=2026.08.19-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.19-03">
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<script src="/clinical-index.js?v=2026.08.19-04"></script>
+<script src="/clinical-search.js?v=2026.08.19-04"></script>
+<script src="/navbar.js?v=2026.08.19-04"></script>
+<script src="/journey.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-04">
 <style>
 /* -- Patient Home (UX ported from surgery-journey; status from derived spine) -- */
 #ph-loader{min-height:50vh;display:flex;align-items:center;justify-content:center;}
-.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .ph-hi{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:4px;}
 .ph-sub{font-size:15px;color:var(--muted);margin-bottom:24px;}
 #ph-alert{margin-bottom:18px;}
 /* current surgery snapshot */
-.ph-snap{background:linear-gradient(135deg,rgba(27,107,90,.18),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.45);border-radius:18px;padding:22px 24px;margin-bottom:14px;}
+.ph-snap{background:linear-gradient(135deg,rgba(27,107,90,.18),rgba(27,107,90,.06));border:1px solid rgba(42,138,116,.45);border-radius:var(--radius-xl);padding:22px 24px;margin-bottom:14px;}
 .ph-snap-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:6px;}
 .ph-snap-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;}
 .ph-snap-facts{font-size:13.5px;color:var(--muted);margin-top:4px;}
-.ph-status{font-size:11.5px;font-weight:700;border-radius:20px;padding:6px 13px;white-space:nowrap;}
+.ph-status{font-size:11.5px;font-weight:700;border-radius:var(--radius-xl);padding:6px 13px;white-space:nowrap;}
 /* derived pill colours (journey.js pillKey) */
-.ph-pill-waiting{background:rgba(232,168,56,.14);color:#E8A838;}
-.ph-pill-under_review{background:rgba(126,207,192,.16);color:#7ECFC0;}
+.ph-pill-waiting{background:rgba(232,168,56,.14);color:var(--warning);}
+.ph-pill-under_review{background:rgba(126,207,192,.16);color:var(--accent);}
 .ph-pill-reviewed{background:rgba(37,211,102,.16);color:#5ee393;}
 .ph-pill-changes{background:rgba(255,110,90,.16);color:#ff8a72;}
 .ph-track{display:flex;align-items:flex-start;margin:16px 0 12px;overflow-x:auto;padding-bottom:4px;}
 .ph-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;min-width:84px;}
 .ph-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.07);color:var(--hint);border:1px solid var(--border);}
-.ph-step.done .ph-dot{background:#2A8A74;color:#fff;border-color:#2A8A74;}
-.ph-step.now .ph-dot{border-color:#7ECFC0;color:#7ECFC0;}
+.ph-step.done .ph-dot{background:var(--teal2);color:#fff;border-color:var(--teal2);}
+.ph-step.now .ph-dot{border-color:var(--accent);color:var(--accent);}
 .ph-lbl{font-size:10.5px;color:var(--muted);white-space:nowrap;}
 .ph-step.done .ph-lbl,.ph-step.now .ph-lbl{color:#fff;}
 .ph-line{flex:1;height:2px;min-width:16px;background:rgba(255,255,255,.12);margin-top:12px;}
 .ph-next{display:flex;align-items:center;gap:9px;font-size:14px;color:#fff;margin:6px 0 6px;}
-.ph-next b{color:#7ECFC0;font-weight:600;}
+.ph-next b{color:var(--accent);font-weight:600;}
 .ph-conn{font-size:12.5px;color:var(--muted);margin:2px 0 14px;}
-.ph-cta{display:inline-block;background:#1B6B5A;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;}
-.ph-cta:hover{background:#2A8A74;}
+.ph-cta{display:inline-block;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-md);padding:12px 22px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;}
+.ph-cta:hover{background:var(--teal2);}
 /* empty state */
-.ph-empty{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:26px 24px;margin-bottom:14px;text-align:center;}
+.ph-empty{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-xl);padding:26px 24px;margin-bottom:14px;text-align:center;}
 .ph-empty h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px;}
 .ph-empty p{font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6;}
 /* quick actions */
 .ph-qa-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin:26px 0 12px;}
 .ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
-.ph-tile{display:flex;flex-direction:column;gap:7px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px 18px;text-decoration:none;color:inherit;cursor:pointer;font-family:inherit;text-align:left;transition:border-color .18s,background .18s,transform .18s;}
+.ph-tile{display:flex;flex-direction:column;gap:7px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 18px;text-decoration:none;color:inherit;cursor:pointer;font-family:inherit;text-align:left;transition:border-color .18s,background .18s,transform .18s;}
 .ph-tile:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.1);transform:translateY(-2px);}
 .ph-tile-ico{font-size:24px;}
 .ph-tile-t{font-size:15px;font-weight:600;color:#fff;}
 .ph-tile-d{font-size:12.5px;color:var(--muted);line-height:1.5;}
 .ph-tile.soon{opacity:.55;cursor:default;}
 .ph-tile.soon:hover{transform:none;border-color:var(--border);background:rgba(255,255,255,.04);}
-.ph-soon-tag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#E8A838;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.25);border-radius:4px;padding:2px 7px;display:inline-block;width:fit-content;}
+.ph-soon-tag{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--warning);background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.25);border-radius:var(--radius-xs);padding:2px 7px;display:inline-block;width:fit-content;}
 /* guest hero */
 .gh{min-height:42vh;display:flex;align-items:center;padding:50px 0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(27,107,90,.16) 0%,transparent 65%);}
 .gh h1{font-family:'Playfair Display',serif;font-size:clamp(30px,4.5vw,46px);font-weight:700;line-height:1.12;margin-bottom:14px;}
-.gh h1 em{color:#2A8A74;font-style:normal;}
+.gh h1 em{color:var(--teal2);font-style:normal;}
 .gh p{font-size:16px;color:var(--muted);max-width:480px;line-height:1.8;margin-bottom:26px;}
 .gh-btns{display:flex;gap:12px;flex-wrap:wrap;}
 /* health passport — a product in its own right, not a quick action */
 .hp-feat{display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:center;
   background:linear-gradient(135deg,rgba(126,207,192,.10),rgba(255,255,255,.02));
-  border:1px solid rgba(42,138,116,.3);border-radius:22px;padding:38px 36px;margin:34px 0;}
+  border:1px solid rgba(42,138,116,.3);border-radius:var(--radius-xl);padding:38px 36px;margin:34px 0;}
 .hp-feat-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
-  letter-spacing:.09em;text-transform:uppercase;color:#7ECFC0;margin-bottom:14px;}
-.hp-feat-eyebrow::before{content:'';width:22px;height:1px;background:#2A8A74;}
+  letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
+.hp-feat-eyebrow::before{content:'';width:22px;height:1px;background:var(--teal2);}
 .hp-feat h2{font-family:'Playfair Display',serif;font-size:clamp(24px,3.2vw,34px);font-weight:700;
   line-height:1.18;margin-bottom:14px;}
 .hp-feat p{font-size:15px;color:var(--muted);line-height:1.75;margin-bottom:22px;max-width:52ch;}

@@ -9,39 +9,40 @@
 <meta name="referrer" content="no-referrer">
 <title>Health Passport — Anestheo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/passport.js?v=2026.08.19-03"></script>
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/passport.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
-  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.5);--red:#C0392B;}
+  --border:rgba(27,107,90,.22);--red:var(--danger-strong);}
 body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--dark);
   color:#fff;min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.5;}
 .wrap{max-width:640px;margin:0 auto;padding:18px 16px 60px;}
 .brand{display:flex;align-items:center;gap:9px;padding:6px 0 14px;}
 .brand b{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
 h1{font-size:24px;font-weight:700;line-height:1.25;}
-.who{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;
+.who{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:var(--radius-md);
   padding:15px 16px;margin-bottom:14px;}
 .who .lab{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);}
 
 /* The banner is not decoration. Everything under it may be self-reported, and
    a clinician arriving at speed has to be told that before they read a word. */
 .warn{background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.4);
-  border-radius:12px;padding:13px 15px;font-size:13.5px;color:#FFE0AE;margin-bottom:16px;}
+  border-radius:var(--radius-md);padding:13px 15px;font-size:13.5px;color:#FFE0AE;margin-bottom:16px;}
 .warn b{color:#FFD9A0;}
 
 h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
   margin:22px 0 9px;font-weight:700;}
 .card{background:rgba(255,255,255,.04);border:1px solid var(--border);
-  border-radius:12px;padding:13px 15px;margin-bottom:9px;}
+  border-radius:var(--radius-md);padding:13px 15px;margin-bottom:9px;}
 .card.crit{background:rgba(192,57,43,.15);border-color:rgba(192,57,43,.55);}
 .card .t{font-size:16px;font-weight:700;line-height:1.3;}
 .card.crit .t{color:#FFC9C0;}
 .card .v{font-size:14px;color:rgba(255,255,255,.82);margin-top:3px;}
 .card .m{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:9px;}
 .tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  border-radius:5px;padding:3px 7px;white-space:nowrap;}
+  border-radius:var(--radius-xs);padding:3px 7px;white-space:nowrap;}
 .tag.cat{background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);}
 .tag.sev{background:rgba(192,57,43,.28);color:#FFC9C0;}
 /* Provenance is never hidden and never abbreviated away. */
@@ -51,10 +52,10 @@ h2{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted
 .pv-sys{background:rgba(206,147,216,.2);color:#E6C6EC;}
 
 .contact{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);
-  border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:9px;}
+  border:1px solid var(--border);border-radius:var(--radius-md);padding:13px 15px;margin-bottom:9px;}
 .contact .n{flex:1;min-width:0;}
 .contact a{display:inline-flex;align-items:center;min-height:44px;padding:0 15px;
-  border-radius:9px;background:var(--teal);color:#fff;text-decoration:none;
+  border-radius:var(--radius-sm);background:var(--teal);color:#fff;text-decoration:none;
   font-weight:600;font-size:14px;white-space:nowrap;}
 .foot{margin-top:26px;font-size:12px;color:var(--muted);line-height:1.65;}
 .gone{text-align:center;padding:56px 20px;}

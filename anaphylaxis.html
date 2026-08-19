@@ -6,25 +6,25 @@
 <title>Anaphylaxis — Anestheo References</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
-<script src="/clinical-index.js?v=2026.08.19-03"></script>
-<script src="/clinical-search.js?v=2026.08.19-03"></script>
-<script src="/navbar.js?v=2026.08.19-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.19-03">
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<script src="/clinical-index.js?v=2026.08.19-04"></script>
+<script src="/clinical-search.js?v=2026.08.19-04"></script>
+<script src="/navbar.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-04">
 <style>
-#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
-.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+#loader{position:fixed;inset:0;background:var(--dark);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
 .crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
 .crumb a{color:var(--accent);text-decoration:none;}
 .ref-h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:4px;}
 .ref-sub{font-size:14px;color:var(--muted);margin-bottom:8px;}
-.disclaimer{font-size:11px;color:var(--hint);margin-bottom:28px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:8px;padding:9px 13px;}
-.disclaimer strong{color:#E8A838;}
-.block{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:13px;padding:20px 22px;margin-bottom:16px;}
-.block-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#7ECFC0;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.disclaimer{font-size:11px;color:var(--hint);margin-bottom:28px;line-height:1.6;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);border-radius:var(--radius-sm);padding:9px 13px;}
+.disclaimer strong{color:var(--warning);}
+.block{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px 22px;margin-bottom:16px;}
+.block-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .rtbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px;}
 .rtbl th{text-align:left;padding:8px 10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
 .rtbl td{padding:9px 10px;border-bottom:1px solid rgba(27,107,90,.1);color:rgba(255,255,255,.82);vertical-align:top;}
@@ -33,12 +33,12 @@
 .algo{counter-reset:step;}
 .algo-step{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid rgba(27,107,90,.1);font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.55;}
 .algo-step:last-child{border-bottom:none;}
-.algo-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(27,107,90,.25);color:#7ECFC0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.algo-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(27,107,90,.25);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
 .algo-step b{color:#fff;}
 .note{font-size:13.5px;color:rgba(255,255,255,.78);line-height:1.7;padding:5px 0;}
 .note b{color:#fff;}
-.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:5px;background:rgba(27,107,90,.2);color:#7ECFC0;border:1px solid rgba(42,138,116,.3);margin:2px 3px 2px 0;}
-.pill-warn{background:rgba(232,168,56,.12);color:#E8A838;border-color:rgba(232,168,56,.3);}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:var(--radius-xs);background:rgba(27,107,90,.2);color:var(--accent);border:1px solid rgba(42,138,116,.3);margin:2px 3px 2px 0;}
+.pill-warn{background:rgba(232,168,56,.12);color:var(--warning);border-color:rgba(232,168,56,.3);}
 .pill-danger{background:rgba(192,57,43,.13);color:rgba(255,140,120,.92);border-color:rgba(192,57,43,.3);}
 </style>
 </head>

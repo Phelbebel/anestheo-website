@@ -7,14 +7,15 @@
 <title>Live Chart — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
-<script src="/navbar.js?v=2026.08.19-03"></script>
-<script src="/anesthesia.js?v=2026.08.19-03"></script>
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<script src="/navbar.js?v=2026.08.19-04"></script>
+<script src="/anesthesia.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
-  --border:rgba(27,107,90,.22);--muted:rgba(255,255,255,.45);}
+  --border:rgba(27,107,90,.22);}
 body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
   -webkit-font-smoothing:antialiased;}
 #loader{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;}
@@ -24,7 +25,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
 #app{display:none;max-width:1000px;margin:0 auto;padding:30px 20px 60px;}
 h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:4px;}
 .sub{font-size:14px;color:var(--muted);margin-bottom:22px;}
-.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;
+.card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);
   overflow:hidden;margin-bottom:14px;}
 .card-h{padding:12px 16px;border-bottom:1px solid rgba(27,107,90,.16);font-size:12.5px;
   font-weight:700;color:var(--accent);}
@@ -36,22 +37,22 @@ h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bo
 .row-main{flex:1;min-width:0;}
 .row-name{font-size:15px;font-weight:600;}
 .row-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
-.badge{font-size:11px;font-weight:600;border-radius:6px;padding:4px 9px;white-space:nowrap;}
+.badge{font-size:11px;font-weight:600;border-radius:var(--radius-sm);padding:4px 9px;white-space:nowrap;}
 .b-live{background:rgba(27,107,90,.18);border:1px solid rgba(42,138,116,.35);color:var(--accent);}
 .b-done{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.6);}
 .empty{text-align:center;padding:34px 18px;color:var(--muted);font-size:14px;line-height:1.7;}
 label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.06em;
   text-transform:uppercase;font-weight:600;margin:10px 0 4px;}
 input,select{width:100%;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);
-  border-radius:8px;padding:10px 12px;color:#fff;font-family:inherit;font-size:14.5px;min-height:44px;outline:none;}
+  border-radius:var(--radius-sm);padding:10px 12px;color:#fff;font-family:inherit;font-size:14.5px;min-height:44px;outline:none;}
 input:focus,select:focus{border-color:var(--teal2);}
-select option{background:#132218;}
+select option{background:var(--dark3);}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
-.btn{width:100%;padding:12px;border-radius:9px;border:none;font-family:inherit;font-size:14.5px;
+.btn{width:100%;padding:12px;border-radius:var(--radius-sm);border:none;font-family:inherit;font-size:14.5px;
   font-weight:600;cursor:pointer;background:var(--teal);color:#fff;min-height:46px;margin-top:14px;}
 .btn:hover{background:var(--teal2);}
 .btn.ghost{background:none;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);}
-.msg{display:none;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:10px;
+.msg{display:none;border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;margin-top:10px;
   background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#FFB4A8;}
 /* Waiting is not failing. An account that has not been verified yet is a
    state, not an error, and painting it in the refusal colour tells a new
@@ -60,11 +61,11 @@ select option{background:#132218;}
 .qrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
 .qrow input{flex:1 1 260px;min-width:0;}
 .tabs{display:flex;gap:5px;flex-wrap:wrap;}
-.tab{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:8px;
+.tab{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:var(--radius-sm);
   padding:8px 13px;font-size:13px;font-family:inherit;color:rgba(255,255,255,.6);
   cursor:pointer;min-height:40px;}
 .tab:hover{color:#fff;background:rgba(126,207,192,.1);}
-.tab.on{background:rgba(27,107,90,.26);border-color:#2A8A74;color:#fff;font-weight:600;}
+.tab.on{background:rgba(27,107,90,.26);border-color:var(--teal2);color:#fff;font-weight:600;}
 @media(max-width:560px){ .g2{grid-template-columns:1fr;} #app{padding:20px 14px 50px;}
   .qrow{flex-direction:column;align-items:stretch;} .tabs{justify-content:stretch;} .tab{flex:1;} }
 </style>

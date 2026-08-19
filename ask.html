@@ -6,39 +6,39 @@
 <title>Ask the Anesthesiologist — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
-<script src="/clinical-index.js?v=2026.08.19-03"></script>
-<script src="/clinical-search.js?v=2026.08.19-03"></script>
-<script src="/navbar.js?v=2026.08.19-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.19-03">
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<script src="/clinical-index.js?v=2026.08.19-04"></script>
+<script src="/clinical-search.js?v=2026.08.19-04"></script>
+<script src="/navbar.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-04">
 <style>
 .ask-form{background:rgba(255,255,255,.04);border:1px solid rgba(27,107,90,.22);
-  border-radius:12px;padding:28px;max-width:580px;}
+  border-radius:var(--radius-md);padding:28px;max-width:580px;}
 .ask-form label{display:block;font-size:11px;color:rgba(255,255,255,.35);
   letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:5px;margin-top:14px;}
 .ask-form label:first-child{margin-top:0;}
 .ask-form input,.ask-form select,.ask-form textarea{
   width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
-  border-radius:8px;padding:11px 12px;color:#fff;font-size:14px;font-family:inherit;
+  border-radius:var(--radius-sm);padding:11px 12px;color:#fff;font-size:14px;font-family:inherit;
   outline:none;transition:border-color .2s;min-height:44px;appearance:none;}
-.ask-form input:focus,.ask-form select:focus,.ask-form textarea:focus{border-color:#2A8A74;}
-.ask-form select option{background:#0A1A15;}
+.ask-form input:focus,.ask-form select:focus,.ask-form textarea:focus{border-color:var(--teal2);}
+.ask-form select option{background:var(--dark);}
 .ask-form textarea{min-height:120px;resize:vertical;}
-.ask-msg{display:none;border-radius:8px;padding:10px 13px;font-size:13px;margin-top:12px;}
-.ask-ok{background:rgba(27,107,90,.15);border:1px solid rgba(42,138,116,.3);color:#7ECFC0;}
+.ask-msg{display:none;border-radius:var(--radius-sm);padding:10px 13px;font-size:13px;margin-top:12px;}
+.ask-ok{background:rgba(27,107,90,.15);border:1px solid rgba(42,138,116,.3);color:var(--accent);}
 .ask-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:rgba(255,160,140,.93);}
 /* two-column knowledge-center layout */
 .ask-cols{display:grid;grid-template-columns:60% 40%;gap:40px;align-items:start;}
 .ask-col-left{min-width:0;}
 .ask-col-right{min-width:0;}
-.faq-eyebrow{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7ECFC0;margin-bottom:6px;}
+.faq-eyebrow{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
 .faq-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:16px;}
-.faq-item{border:1px solid var(--border);border-radius:11px;margin-bottom:9px;overflow:hidden;background:rgba(255,255,255,.03);transition:border-color .2s;}
+.faq-item{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:9px;overflow:hidden;background:rgba(255,255,255,.03);transition:border-color .2s;}
 .faq-item.open{border-color:rgba(42,138,116,.45);}
 .faq-q{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:14px 16px;font-size:14px;font-weight:500;color:#fff;font-family:inherit;}
-.faq-q:hover{color:#7ECFC0;}
-.faq-chev{flex-shrink:0;transition:transform .25s;color:#7ECFC0;font-size:12px;}
+.faq-q:hover{color:var(--accent);}
+.faq-chev{flex-shrink:0;transition:transform .25s;color:var(--accent);font-size:12px;}
 .faq-item.open .faq-chev{transform:rotate(180deg);}
 .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;}
 .faq-a-inner{padding:0 16px 15px;font-size:13.5px;line-height:1.65;color:var(--muted);}

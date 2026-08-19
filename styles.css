@@ -1,25 +1,15 @@
 /* ── Anestheo shared styles ── */
 /* All pages import this. navbar.js injects its own scoped CSS. */
 
+/* Tokens first: every value below is drawn from them, and a page's own
+   <style> still overrides them because a linked sheet is parsed before the
+   inline block that follows it. */
+@import url("tokens.css?v=2026.08.19-04");
+
 /* The Point — design-system primitive. Every dark composition inherits it. */
-@import url("point.css?v=2026.08.19-03");
+@import url("point.css?v=2026.08.19-04");
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-:root {
-  --teal:   #1B6B5A;
-  --teal2:  #2A8A74;
-  --accent: #7ECFC0;
-  --dark:   #0A1A15;
-  --dark2:  #0C1F18;
-  --border: rgba(27,107,90,0.22);
-  --text:   #ffffff;
-  --muted:  rgba(255,255,255,0.55);
-  --hint:   rgba(255,255,255,0.28);
-  --max:    1060px;
-  --font:   'DM Sans', sans-serif;
-  --serif:  'Playfair Display', serif;
-}
 
 html, body {
   font-family: var(--font);
@@ -49,7 +39,7 @@ body::before {
 }
 
 /* ── SECTION ── */
-.section { margin-bottom: 64px; }
+.section { margin-bottom: var(--sp-8); }
 .section-tag {
   font-size: 11px; font-weight: 700; letter-spacing: .09em;
   text-transform: uppercase; color: var(--teal2);
@@ -61,7 +51,7 @@ body::before {
 }
 .section-sub {
   font-size: 15px; color: var(--muted); line-height: 1.75;
-  font-weight: 300; max-width: 560px; margin-bottom: 32px;
+  font-weight: 300; max-width: 560px; margin-bottom: var(--sp-6);
 }
 
 /* ── CARD GRID ── */
@@ -71,14 +61,14 @@ body::before {
   gap: 14px;
 }
 .card {
-  background: rgba(255,255,255,.04);
+  background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 22px;
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
   text-decoration: none;
   color: var(--text);
-  transition: border-color .2s, background .2s, transform .2s;
-  display: flex; flex-direction: column; gap: 8px;
+  transition: border-color var(--dur-2), background var(--dur-2), transform var(--dur-2);
+  display: flex; flex-direction: column; gap: var(--sp-2);
   position: relative; overflow: hidden;
 }
 .card::after {
@@ -86,7 +76,7 @@ body::before {
   background: var(--teal2); transform: scaleX(0); transform-origin: left;
   transition: transform .26s;
 }
-.card:hover { border-color: rgba(42,138,116,.4); background: rgba(27,107,90,.1); transform: translateY(-1px); }
+.card:hover { border-color: var(--border-strong); background: var(--teal-tint); transform: translateY(-1px); }
 .card:hover::after { transform: scaleX(1); }
 .card-ico   { font-size: 24px; }
 .card-title { font-family: var(--serif); font-size: 17px; font-weight: 700; }
@@ -103,8 +93,8 @@ body::before {
 .hero-inner { max-width: var(--max); margin: 0 auto; width: 100%; }
 .hero-eyebrow {
   display: inline-flex; align-items: center; gap: 7px;
-  background: rgba(27,107,90,.14); border: 1px solid rgba(27,107,90,.3);
-  color: var(--accent); padding: 4px 13px; border-radius: 20px;
+  background: var(--teal-tint-2); border: 1px solid var(--border-strong);
+  color: var(--accent); padding: 4px 13px; border-radius: var(--radius-pill);
   font-size: 11px; font-weight: 600; letter-spacing: .08em;
   text-transform: uppercase; margin-bottom: 18px;
 }
@@ -122,24 +112,24 @@ body::before {
   font-size: 16px; color: var(--muted); line-height: 1.8;
   font-weight: 300; max-width: 480px; margin-bottom: 28px;
 }
-.hero-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-btns { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
 .btn-primary {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: var(--sp-2);
   background: var(--teal); color: #fff; border: none;
-  padding: 12px 24px; border-radius: 8px; font-size: 14px;
+  padding: 12px 24px; border-radius: var(--radius-sm); font-size: 14px;
   font-weight: 500; cursor: pointer; font-family: var(--font);
-  text-decoration: none; transition: background .2s;
+  text-decoration: none; transition: background var(--dur-2);
 }
 .btn-primary:hover { background: var(--teal2); }
 .btn-ghost {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: var(--sp-2);
   background: transparent; color: var(--text);
-  border: 1px solid rgba(255,255,255,.18);
-  padding: 12px 24px; border-radius: 8px; font-size: 14px;
+  border: 1px solid var(--hair-2);
+  padding: 12px 24px; border-radius: var(--radius-sm); font-size: 14px;
   font-weight: 500; cursor: pointer; font-family: var(--font);
-  text-decoration: none; transition: all .2s;
+  text-decoration: none; transition: border-color var(--dur-2), background var(--dur-2);
 }
-.btn-ghost:hover { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.04); }
+.btn-ghost:hover { border-color: rgba(255,255,255,.38); background: var(--surface-1); }
 
 /* ── DIVIDER ── */
 .divider { height: 1px; background: var(--border); margin: 48px 0; }
@@ -154,14 +144,74 @@ body::before {
 .footer-inner {
   max-width: var(--max); margin: 0 auto;
   display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 16px;
+  flex-wrap: wrap; gap: var(--sp-4);
 }
 .footer-logo { font-size: 16px; font-weight: 600; color: var(--text); text-decoration: none; }
 .footer-logo span { color: var(--teal2); }
 .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
-.footer-links a { font-size: 13px; color: var(--hint); text-decoration: none; transition: color .2s; }
+.footer-links a { font-size: 13px; color: var(--hint); text-decoration: none; transition: color var(--dur-2); }
 .footer-links a:hover { color: var(--text); }
-.footer-copy { font-size: 12px; color: rgba(255,255,255,.18); width: 100%; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.06); }
+.footer-copy { font-size: 12px; color: rgba(255,255,255,.18); width: 100%; margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid rgba(255,255,255,.06); }
+
+/* ============================================================
+   DOCUMENT PAGES
+   ------------------------------------------------------------
+   The site has thirteen prose pages — legal notices, the policy
+   set, the status and release pages, 404, and the two auth
+   interstitials. Each one used to carry its own private copy of
+   this block, and the copies had drifted: two different heading
+   fonts, two different link colours, one family with cards and
+   one without, and a brand teal that was wrong on nine of them.
+
+   Both families are kept, because their difference is real: a
+   .doc-* page is a set of discrete answers and reads as cards; a
+   .legal-* page is one continuous instrument and reads as a
+   document. What they now share is the palette, the type scale,
+   the radius and the rhythm — consistency, not homogenisation.
+   ============================================================ */
+
+/* ── Carded document (policies, status, release notes, 404) ── */
+/* One top-space for every document page. The two families had drifted to
+   88px and 46px below the fixed navigation; neither was chosen, they were
+   just typed at different times. */
+.doc-wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: var(--sp-8) 24px 56px; line-height: 1.6; }
+.doc-wrap a { color: var(--accent); }
+.doc-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--accent);
+}
+.doc-h1 { font-size: clamp(24px,4vw,30px); font-weight: 700; letter-spacing: -.02em; margin: var(--sp-2) 0 6px; }
+.doc-lead { font-size: 15px; color: var(--muted); margin-bottom: 26px; }
+.doc-card {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px 22px; margin-bottom: 14px;
+}
+.doc-card h2 { font-size: 16px; font-weight: 700; margin-bottom: var(--sp-2); }
+.doc-card p  { font-size: 14px; color: var(--text-2); margin-bottom: 10px; }
+.doc-card p:last-child { margin-bottom: 0; }
+.doc-card ul { margin: var(--sp-1) 0 0 18px; }
+.doc-card li { font-size: 14px; color: var(--text-2); margin-bottom: 6px; }
+.doc-note { font-size: 12.5px; color: rgba(255,255,255,.45); margin-top: 14px; }
+
+/* ── Continuous document (privacy, terms, disclaimer, about) ── */
+.legal-wrap { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: var(--sp-8) 24px 80px; }
+.legal-back { display: inline-block; margin-bottom: var(--sp-5); color: var(--accent); text-decoration: none; font-size: 14px; }
+.legal-back:hover { text-decoration: underline; }
+.legal-wrap h1 {
+  font-family: var(--serif); font-size: clamp(28px,4vw,40px);
+  font-weight: 700; margin-bottom: var(--sp-2);
+}
+.legal-updated { font-size: 13px; color: rgba(255,255,255,.45); margin-bottom: 28px; }
+.legal-wrap h2 { font-size: 18px; color: var(--accent); margin: 28px 0 10px; }
+.legal-wrap p  { font-size: 15px; color: var(--text-2); line-height: 1.75; font-weight: 300; margin-bottom: var(--sp-3); }
+.legal-wrap ul { margin: 6px 0 var(--sp-3) 20px; }
+.legal-wrap li { font-size: 15px; color: var(--text-2); line-height: 1.7; font-weight: 300; }
+.legal-wrap a  { color: var(--accent); }
+.legal-note {
+  background: var(--warning-bg); border: 1px solid var(--warning-bd);
+  border-radius: var(--radius-md); padding: var(--sp-3) 14px;
+  font-size: 13px; color: var(--muted); margin-top: 26px; line-height: 1.6;
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width: 720px) {
@@ -169,4 +219,5 @@ body::before {
   .hero-section { padding: 48px 16px 40px; }
   .card-grid { grid-template-columns: 1fr; }
   .site-footer { padding: 32px 16px 20px; }
+  .doc-wrap, .legal-wrap { padding-left: 16px; padding-right: 16px; padding-bottom: 56px; }
 }

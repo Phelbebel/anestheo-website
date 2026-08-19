@@ -6,20 +6,20 @@
 <title>Resources — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
-<script src="/clinical-index.js?v=2026.08.19-03"></script>
-<script src="/clinical-search.js?v=2026.08.19-03"></script>
-<script src="/navbar.js?v=2026.08.19-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.19-03">
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<script src="/clinical-index.js?v=2026.08.19-04"></script>
+<script src="/clinical-search.js?v=2026.08.19-04"></script>
+<script src="/navbar.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-04">
 <style>
-#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
-.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+#loader{position:fixed;inset:0;background:var(--dark);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
 .crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
 .crumb a{color:var(--accent);text-decoration:none;}
-.res-tag{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(232,168,56,.1);color:#E8A838;border:1px solid rgba(232,168,56,.2);padding:2px 7px;border-radius:4px;}
+.res-tag{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:rgba(232,168,56,.1);color:var(--warning);border:1px solid rgba(232,168,56,.2);padding:2px 7px;border-radius:var(--radius-xs);}
 .card{position:relative;}
 .card-soon{cursor:pointer;}
 </style>

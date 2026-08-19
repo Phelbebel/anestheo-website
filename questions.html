@@ -6,15 +6,15 @@
 <title>Submitted Questions — Anestheo Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.19-03"></script>
-<script src="/auth.js?v=2026.08.19-03"></script>
-<script src="/clinical-index.js?v=2026.08.19-03"></script>
-<script src="/clinical-search.js?v=2026.08.19-03"></script>
-<script src="/navbar.js?v=2026.08.19-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.19-03">
+<script src="/supabase.js?v=2026.08.19-04"></script>
+<script src="/auth.js?v=2026.08.19-04"></script>
+<script src="/clinical-index.js?v=2026.08.19-04"></script>
+<script src="/clinical-search.js?v=2026.08.19-04"></script>
+<script src="/navbar.js?v=2026.08.19-04"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.19-04">
 <style>
-#loader{position:fixed;inset:0;background:#0A1A15;z-index:9999;display:flex;align-items:center;justify-content:center;}
-.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:#2A8A74;border-radius:50%;animation:spin .8s linear infinite;}
+#loader{position:fixed;inset:0;background:var(--dark);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 #app{display:none;}
 .crumb{font-size:12px;color:var(--hint);margin-bottom:14px;}
@@ -23,17 +23,17 @@
 .tbl th{text-align:left;padding:10px 12px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--hint);border-bottom:1px solid var(--border);font-weight:600;}
 .tbl td{padding:11px 12px;border-bottom:1px solid rgba(27,107,90,.1);color:var(--muted);}
 .tbl tr:hover td{background:rgba(27,107,90,.05);}
-.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;}
-.b-approved{background:rgba(27,107,90,.22);color:#7ECFC0;border:1px solid rgba(42,138,116,.35);}
-.b-pending{background:rgba(232,168,56,.13);color:#E8A838;border:1px solid rgba(232,168,56,.3);}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--radius-xs);}
+.b-approved{background:rgba(27,107,90,.22);color:var(--accent);border:1px solid rgba(42,138,116,.35);}
+.b-pending{background:rgba(232,168,56,.13);color:var(--warning);border:1px solid rgba(232,168,56,.3);}
 .b-rejected{background:rgba(192,57,43,.13);color:rgba(255,140,120,.9);border:1px solid rgba(192,57,43,.3);}
-.act{font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:5px;}
-.act-approve{background:rgba(27,107,90,.2);color:#7ECFC0;border:1px solid rgba(42,138,116,.35);}
+.act{font-size:11px;padding:5px 11px;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;margin-right:5px;}
+.act-approve{background:rgba(27,107,90,.2);color:var(--accent);border:1px solid rgba(42,138,116,.35);}
 .act-approve:hover{background:rgba(27,107,90,.38);}
 .act-reject{background:transparent;color:rgba(255,120,100,.7);border:1px solid rgba(192,57,43,.3);}
 .act-reject:hover{background:rgba(192,57,43,.12);}
 .empty{text-align:center;color:var(--hint);padding:30px;}
-.tbl-wrap{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:6px 18px 12px;overflow-x:auto;}
+.tbl-wrap{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:6px 18px 12px;overflow-x:auto;}
 </style>
 </head>
 <body>
