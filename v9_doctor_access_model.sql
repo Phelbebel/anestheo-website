@@ -31,6 +31,22 @@
 -- Plus one that is ADDED, because the new model needs it:
 --   get_clinician_directory()    public, patient-facing clinician listing
 --
+-- REHEARSED AGAINST THE REAL INVENTORY, AND ONE THING WAS NOT REHEARSED.
+-- The rehearsal replica matched production on every field of
+-- tools/v9_production_inventory.sql — 31 gate policies, patient_archive_audit
+-- absent, question_replies absent, questions present, v9_1 and v9_2 applied,
+-- v9 not — except its PostgreSQL major version: 16.13 here, 17.6 there. PG17
+-- could not be installed (the distro ships 16 and the PGDG repo is blocked).
+--
+-- That gap mattered enormously for the PREVIOUS version of this file, whose
+-- 33 hand-written DROP POLICY lines behaved differently on 16 and on
+-- production. It does not matter for this one, and the reason is structural
+-- rather than optimistic: section 4 issues a DROP only for a policy
+-- pg_policies has just returned, so there is no statement here that can name a
+-- relation the catalog did not just confirm exists. The remaining catalog
+-- surface — pg_policies, to_regclass, to_regproc, information_schema.columns,
+-- format(%I) — is unchanged between 16 and 17.
+--
 -- ORDER OF SECTIONS MATTERS. The predicates are re-pointed (3) before the
 -- blanket restriction is dropped (4), so there is no instant during the
 -- transaction at which a table is reachable by a caller the predicates would

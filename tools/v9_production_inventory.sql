@@ -12,12 +12,33 @@
 --  Read the SUMMARY rows first, then anything marked MISSING.
 -- ═══════════════════════════════════════════════════════════════════════════
 WITH
--- Relations v9 touches. `hard` = the file cannot work without it;
--- `soft` = it only ever appears in a DROP POLICY, so absence is survivable.
+-- Relations v9 touches.
+--
+-- `hard` MIRRORS v9_doctor_access_model.sql's preflight EXACTLY — the seven
+-- relations named in its `FOR v_t IN SELECT unnest(ARRAY[...])` loop. If that
+-- list changes, change this one. They were out of step once: this file called
+-- question_replies hard while v9 had already been changed to guard it with
+-- to_regclass, which made the inventory report a blocker that was not one.
+--
+-- `soft` = v9 either discovers it from pg_policies (section 4, which cannot
+-- name a relation that does not exist) or guards it with to_regclass
+-- (sections 3.3-3.5 and 4c). Absence is survivable and v9 says so in its log.
+--
+-- questions and question_replies are BOTH soft, and legitimately so. The
+-- foreign key runs question_replies -> questions, so the parent has no
+-- dependency on the child; v9's questions policies reference only questions
+-- columns and the two predicate functions. A database with questions and no
+-- question_replies is a coherent state, and both frontend readers already
+-- degrade: patient-dashboard.html takes `rr.data || []`, and admin.html lists
+-- question_replies in its capability probe, which hides the section when the
+-- relation is absent.
 want_rel(need, relname) AS (VALUES
+  -- the seven from v9's preflight, and only those
   ('hard','profiles'),('hard','patient_surgeries'),('hard','clinic_patients'),
   ('hard','care_requests'),('hard','anesthesia_cases'),('hard','anesthesia_amendments'),
-  ('hard','questions'),('hard','question_replies'),('hard','anesthesia_audit'),
+  ('hard','anesthesia_audit'),
+  -- guarded by to_regclass in v9 section 4c; absence is reported, not fatal
+  ('soft','questions'),('soft','question_replies'),
   ('soft','patient_archive_audit'),('soft','patient_recommendations'),
   ('soft','preop_checklist'),('soft','preop_questionnaires'),('soft','preparation_plans'),
   ('soft','questionnaire_templates'),('soft','requirement_documents'),
@@ -34,13 +55,18 @@ want_rel(need, relname) AS (VALUES
 ),
 -- Functions v9 replaces, calls, or must not disturb.
 want_fn(need, fname) AS (VALUES
-  ('hard','is_doctor_account'),('hard','is_verified_doctor'),('hard','is_platform_admin'),
-  ('hard','doctor_treats_patient'),('hard','account_is_active'),
-  ('hard','anesthesia_case_access'),('hard','anesthesia_case_editable'),
-  ('hard','anesthesia_amend_case'),('hard','anesthesia_set_trainee'),
-  ('hard','anesthesia_finalize_case'),('hard','recycle_bin_list'),
-  ('hard','patient_record_manageable'),('hard','get_clinician_directory'),
-  ('hard','anesthesia_guard_case_fields'),('hard','patient_purge_eligibility'),
+  /* hard = the four v9's preflight checks by catalog, plus the three its
+     preflight checks individually above them. Everything else on this list is
+     REPLACED by v9 (CREATE OR REPLACE), so its prior absence is not a
+     blocker — it is reported because knowing is useful. */
+  ('hard','is_platform_admin'),('hard','doctor_treats_patient'),
+  ('hard','account_is_active'),('hard','patient_purge_eligibility'),
+  ('hard','is_doctor_account'),('hard','is_verified_doctor'),
+  ('soft','anesthesia_case_access'),('soft','anesthesia_case_editable'),
+  ('soft','anesthesia_amend_case'),('soft','anesthesia_set_trainee'),
+  ('soft','anesthesia_finalize_case'),('soft','recycle_bin_list'),
+  ('soft','patient_record_manageable'),('soft','get_clinician_directory'),
+  ('soft','anesthesia_guard_case_fields'),
   ('soft','is_pending_doctor'),('soft','hp_clinician_may_read'),('soft','hp_verify_item'),
   ('soft','submit_doctor_onboarding'),('soft','set_own_role')
 ),
