@@ -887,6 +887,148 @@ html:not(.pre-app):not(.app) .foot-links a{color:var(--muted);}
 html:not(.pre-app):not(.app) .foot-links a:hover{color:var(--ink);}
 html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
 
+
+/* ── PRODUCT SHOWCASE ──────────────────────────────────────────────────────
+   Live Tools and Live Chart, shown rather than described.
+
+   Both previews are STATIC. They are hand-built from the real components'
+   own class vocabulary and measurements — the drug card, the panel head and
+   tag, the chart lane, the sticky label column, the timeline dot — so what a
+   visitor sees is what they get, but nothing here calculates, fetches or
+   renders a record. No iframe: engine.html is an authenticated instrument and
+   embedding it would put a live workstation on a marketing page.
+
+   Every value shown is a published reference range or a synthetic time, never
+   a patient and never a computed dose. The chart preview carries no name, no
+   identifier and no real observation.
+
+   .pv-win is the product window itself: a title bar, a body, and the same
+   graphite the workstation sits on. Deliberately not a device mockup — a
+   phone bezel around a clinical tool makes it look like a consumer app and
+   costs a third of the width it needs. */
+html:not(.pre-app):not(.app) .show{position:relative;}
+html:not(.pre-app):not(.app) .show-in{display:grid;grid-template-columns:.92fr 1.08fr;
+  gap:clamp(30px,5vw,64px);align-items:center;}
+html:not(.pre-app):not(.app) .show.flip .show-in{grid-template-columns:1.08fr .92fr;}
+html:not(.pre-app):not(.app) .show.flip .show-copy{order:2;}
+html:not(.pre-app):not(.app) .show-cta{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap;}
+html:not(.pre-app):not(.app) .show-pts{list-style:none;margin-top:22px;display:flex;
+  flex-direction:column;gap:9px;}
+html:not(.pre-app):not(.app) .show-pts li{display:flex;gap:10px;align-items:flex-start;
+  font-size:14.5px;color:var(--muted);line-height:1.55;}
+html:not(.pre-app):not(.app) .show-pts li::before{content:'';flex:0 0 auto;width:6px;height:6px;
+  border-radius:50%;background:var(--teal-2);margin-top:8px;}
+
+/* the window */
+html:not(.pre-app):not(.app) .pv-win{border-radius:var(--radius-xl);overflow:hidden;
+  background:#0A141C;border:1px solid var(--hair-2);box-shadow:var(--shadow);}
+html:not(.pre-app):not(.app) .pv-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:rgba(255,255,255,.045);border-bottom:1px solid var(--hair);}
+html:not(.pre-app):not(.app) .pv-dots{display:flex;gap:5px;}
+html:not(.pre-app):not(.app) .pv-dots i{width:9px;height:9px;border-radius:50%;
+  background:rgba(255,255,255,.16);}
+html:not(.pre-app):not(.app) .pv-name{font-size:11.5px;font-weight:650;letter-spacing:.02em;
+  color:rgba(255,255,255,.62);margin-left:4px;}
+html:not(.pre-app):not(.app) .pv-live{margin-left:auto;display:inline-flex;align-items:center;gap:5px;
+  font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-2);
+  background:rgba(47,168,140,.14);border:1px solid rgba(47,168,140,.3);
+  border-radius:var(--radius-xl);padding:3px 8px;}
+html:not(.pre-app):not(.app) .pv-live i{width:5px;height:5px;border-radius:50%;background:var(--teal-2);}
+html:not(.pre-app):not(.app) .pv-body{padding:14px;display:flex;flex-direction:column;gap:12px;}
+
+/* a panel, as the workstation draws one */
+html:not(.pre-app):not(.app) .pv-panel{border:1px solid rgba(255,255,255,.085);
+  border-radius:var(--radius-lg);overflow:hidden;
+  background:linear-gradient(155deg,rgba(255,255,255,.06),rgba(255,255,255,.016));}
+html:not(.pre-app):not(.app) .pv-ph{display:flex;align-items:center;gap:9px;padding:11px 14px;
+  border-bottom:1px solid rgba(255,255,255,.06);}
+html:not(.pre-app):not(.app) .pv-pt{font-size:13px;font-weight:700;letter-spacing:-.01em;color:#fff;}
+html:not(.pre-app):not(.app) .pv-tag{margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--teal-2);background:rgba(126,207,192,.12);
+  border:1px solid rgba(126,207,192,.2);padding:3px 8px;border-radius:var(--radius-xl);}
+html:not(.pre-app):not(.app) .pv-pb{padding:12px 14px 14px;}
+
+/* the drug card grid, at the workstation's own proportions */
+html:not(.pre-app):not(.app) .pv-drugs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+html:not(.pre-app):not(.app) .pv-drug{background:rgba(0,0,0,.2);border:1px solid rgba(47,168,140,.22);
+  border-radius:var(--radius-sm);padding:10px 11px;}
+html:not(.pre-app):not(.app) .pv-dn{font-size:12.5px;font-weight:700;letter-spacing:.02em;color:#fff;}
+html:not(.pre-app):not(.app) .pv-ds{font-size:10px;color:var(--teal-2);font-weight:500;line-height:1.3;
+  margin:2px 0 7px;}
+html:not(.pre-app):not(.app) .pv-dd{font-size:17px;font-weight:700;color:#fff;
+  font-variant-numeric:tabular-nums;line-height:1.05;}
+html:not(.pre-app):not(.app) .pv-dd span{font-size:9.5px;color:#9fe6d4;margin-left:3px;font-weight:600;}
+
+/* the metric rows */
+html:not(.pre-app):not(.app) .pv-m{display:flex;justify-content:space-between;align-items:baseline;
+  gap:12px;padding:8px 0;border-bottom:1px solid rgba(47,168,140,.14);}
+html:not(.pre-app):not(.app) .pv-m:last-child{border-bottom:none;}
+html:not(.pre-app):not(.app) .pv-ml{font-size:12.5px;color:#eef6f3;font-weight:600;}
+html:not(.pre-app):not(.app) .pv-mv{font-size:14.5px;font-weight:700;color:#fff;
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+html:not(.pre-app):not(.app) .pv-mv span{font-size:10px;color:var(--teal-2);font-weight:600;margin-left:3px;}
+html:not(.pre-app):not(.app) .pv-foot{font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.5;}
+
+/* ── Live Chart: the lane structure, the sticky label column, the timeline ─ */
+html:not(.pre-app):not(.app) .pv-chart{border:1px solid rgba(47,168,140,.22);
+  border-radius:var(--radius-md);background:rgba(255,255,255,.02);overflow:hidden;}
+html:not(.pre-app):not(.app) .pv-crow{display:flex;align-items:stretch;
+  border-bottom:1px solid rgba(255,255,255,.06);}
+html:not(.pre-app):not(.app) .pv-crow:last-child{border-bottom:none;}
+html:not(.pre-app):not(.app) .pv-clbl{flex:0 0 86px;width:86px;background:#0E1C27;
+  border-right:1px solid rgba(255,255,255,.13);padding:7px 9px;font-size:10.5px;font-weight:600;
+  color:rgba(255,255,255,.66);display:flex;align-items:center;}
+html:not(.pre-app):not(.app) .pv-ctrk{position:relative;flex:1;min-height:34px;}
+html:not(.pre-app):not(.app) .pv-caxis{background:rgba(255,255,255,.03);}
+html:not(.pre-app):not(.app) .pv-caxis .pv-clbl{font-size:9.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);}
+html:not(.pre-app):not(.app) .pv-caxis .pv-ctrk{min-height:28px;}
+html:not(.pre-app):not(.app) .pv-tick{position:absolute;top:0;bottom:0;
+  border-left:1px solid rgba(255,255,255,.055);}
+html:not(.pre-app):not(.app) .pv-tick.maj{border-left-color:rgba(255,255,255,.15);}
+html:not(.pre-app):not(.app) .pv-tlab{position:absolute;top:8px;font-size:9.5px;
+  color:rgba(255,255,255,.55);padding-left:4px;font-variant-numeric:tabular-nums;}
+html:not(.pre-app):not(.app) .pv-item{position:absolute;top:4px;height:24px;display:flex;
+  align-items:center;padding:0 7px 0 8px;border-radius:var(--radius-sm);font-size:10.5px;
+  white-space:nowrap;border:1px solid rgba(255,255,255,.16);border-left:3px solid var(--teal-2);
+  background:rgba(255,255,255,.06);color:#fff;font-weight:600;}
+html:not(.pre-app):not(.app) .pv-item.ev{border-left-color:#FF9B86;background:rgba(255,155,134,.1);}
+html:not(.pre-app):not(.app) .pv-bar2{position:absolute;top:6px;height:20px;
+  border-radius:var(--radius-sm);border:1px solid rgba(206,147,216,.5);
+  background:rgba(206,147,216,.22);display:flex;align-items:center;padding:0 7px;
+  font-size:10px;color:#fff;font-weight:600;white-space:nowrap;}
+html:not(.pre-app):not(.app) .pv-vit{position:absolute;inset:0;}
+html:not(.pre-app):not(.app) .pv-vit svg{width:100%;height:100%;display:block;}
+
+/* the case controls strip */
+html:not(.pre-app):not(.app) .pv-ctrls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+html:not(.pre-app):not(.app) .pv-chip{font-size:10.5px;font-weight:650;color:rgba(255,255,255,.72);
+  background:rgba(255,255,255,.05);border:1px solid var(--hair);border-radius:var(--radius-xl);
+  padding:5px 11px;}
+html:not(.pre-app):not(.app) .pv-chip.on{color:#0A141C;background:var(--teal-2);border-color:transparent;}
+html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weight:700;
+  color:var(--teal-2);font-variant-numeric:tabular-nums;}
+
+/* ── responsive ──
+   The preview is simplified on a phone, never shrunk: a three-up drug grid at
+   390px produces three unreadable columns, so it becomes two, the third panel
+   stands down, and the chart keeps the lanes that carry the idea. */
+@media(max-width:980px){
+  html:not(.pre-app):not(.app) .show-in,
+  html:not(.pre-app):not(.app) .show.flip .show-in{grid-template-columns:1fr;gap:34px;}
+  html:not(.pre-app):not(.app) .show-copy,
+  html:not(.pre-app):not(.app) .show.flip .show-copy{order:0;}
+  html:not(.pre-app):not(.app) .show-art{order:1;}
+}
+@media(max-width:620px){
+  html:not(.pre-app):not(.app) .pv-drugs{grid-template-columns:repeat(2,1fr);}
+  html:not(.pre-app):not(.app) .pv-drop{display:none;}
+  html:not(.pre-app):not(.app) .pv-clbl{flex:0 0 66px;width:66px;font-size:9.5px;padding:6px 7px;}
+  html:not(.pre-app):not(.app) .pv-body{padding:11px;gap:10px;}
+  html:not(.pre-app):not(.app) .pv-show-cta .btn{width:100%;}
+  html:not(.pre-app):not(.app) .show-cta .btn{width:100%;}
+}
+
 /* ── responsive ───────────────────────────────────────────────────────── */
 @media(max-width:980px){
   /* Copy FIRST on narrow screens. The passport card is the proof, not the
@@ -1049,10 +1191,10 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
         <p class="eyebrow">Health Passport</p>
         <h2 class="sec-h" id="hp-h">Your important medical information.<br>One scan away.</h2>
         <p class="sec-sub">
-          Keep the things that matter before, during and after surgery — allergies,
-          medical alerts, important medications and an emergency contact — in a
-          personal QR code you can carry. You decide what goes on it, and you can
-          switch it off at any time.
+          Allergies, medical alerts, important medications, an emergency contact:
+          the things that matter before, during and after surgery, in a personal QR
+          code you can carry. You decide what goes on it, and you can switch it off
+          at any time.
         </p>
         <div class="hp-cta" id="hp-cta">
           <a class="btn btn-teal" href="/health-passport.html">Create my Health Passport</a>
@@ -1145,7 +1287,196 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
     </ol>
   </section>
 
-  <!-- ── 5 · CLINICIANS — deliberately secondary ───────────────────── -->
+
+  <!-- ── 5 · LIVE TOOLS ────────────────────────────────────────────────
+       A STATIC preview, built from engine.html's own class vocabulary and
+       proportions. It does not calculate: every figure below is a published
+       reference range, written out, exactly as the workstation shows one
+       before a weight is entered. No iframe — engine.html is an
+       authenticated instrument, and access is decided there, not here. The
+       CTA is the existing route and carries no session claim of its own. -->
+  <section class="show" id="live-tools" aria-labelledby="lt-h">
+    <div class="show-in">
+      <div class="show-copy">
+        <p class="eyebrow reveal">Live Tools</p>
+        <h2 class="sec-h reveal" id="lt-h">The anesthesia workstation,<br>open on the table.</h2>
+        <p class="sec-sub reveal">
+          Dosing, airway, regional, infusions and crisis protocols in one place,
+          built to be read at arm's length while your hands are busy.
+        </p>
+        <ul class="show-pts reveal">
+          <li>Reference ranges for induction, blockade, opioids and reversal.</li>
+          <li>Weight-aware figures the moment you enter a patient's details.</li>
+          <li>Emergency protocols one tap away, never buried in a menu.</li>
+        </ul>
+        <div class="show-cta reveal">
+          <a class="btn btn-teal" href="/engine.html">Open Live Tools</a>
+        </div>
+      </div>
+
+      <div class="show-art reveal" aria-hidden="true">
+        <div class="pv-win">
+          <div class="pv-bar">
+            <span class="pv-dots"><i></i><i></i><i></i></span>
+            <span class="pv-name">Live Tools</span>
+            <span class="pv-live"><i></i>Live</span>
+          </div>
+          <div class="pv-body">
+
+            <div class="pv-panel">
+              <div class="pv-ph">
+                <span class="pv-pt">Induction and sedation</span>
+                <span class="pv-tag">Drugs</span>
+              </div>
+              <div class="pv-pb">
+                <div class="pv-drugs">
+                  <div class="pv-drug">
+                    <div class="pv-dn">Propofol</div>
+                    <div class="pv-ds">Induction bolus</div>
+                    <div class="pv-dd">2 &ndash; 2.5<span>mg/kg</span></div>
+                  </div>
+                  <div class="pv-drug">
+                    <div class="pv-dn">Fentanyl</div>
+                    <div class="pv-ds">Induction</div>
+                    <div class="pv-dd">1 &ndash; 2<span>mcg/kg</span></div>
+                  </div>
+                  <div class="pv-drug pv-drop">
+                    <div class="pv-dn">Rocuronium</div>
+                    <div class="pv-ds">Intubating dose</div>
+                    <div class="pv-dd">0.6<span>mg/kg</span></div>
+                  </div>
+                </div>
+                <div class="pv-foot">Standard reference ranges. Verify against your
+                  local formulary and the product label.</div>
+              </div>
+            </div>
+
+            <div class="pv-panel">
+              <div class="pv-ph">
+                <span class="pv-pt">Propofol targets</span>
+                <span class="pv-tag">TCI</span>
+              </div>
+              <div class="pv-pb">
+                <div class="pv-m">
+                  <span class="pv-ml">Induction (Ce)</span>
+                  <span class="pv-mv">4 &ndash; 6<span>mcg/mL</span></span>
+                </div>
+                <div class="pv-m">
+                  <span class="pv-ml">Maintenance (Ce)</span>
+                  <span class="pv-mv">2.5 &ndash; 4<span>mcg/mL</span></span>
+                </div>
+                <div class="pv-m">
+                  <span class="pv-ml">Sedation (Ce)</span>
+                  <span class="pv-mv">0.5 &ndash; 1.5<span>mcg/mL</span></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6 · LIVE CHART ────────────────────────────────────────────────
+       The anesthesia record's lane structure: a sticky label column, a time
+       axis, a vitals trace, a medication lane and an event lane. Static and
+       synthetic. There is no name, no identifier and no observation from any
+       person on this page; the times are round numbers and the trace is a
+       drawn path. The CTA is the canonical Live Chart route the navigation
+       already uses. -->
+  <section class="show flip" id="live-chart" aria-labelledby="lc-h">
+    <div class="show-in">
+      <div class="show-art reveal" aria-hidden="true">
+        <div class="pv-win">
+          <div class="pv-bar">
+            <span class="pv-dots"><i></i><i></i><i></i></span>
+            <span class="pv-name">Live Chart</span>
+            <span class="pv-live"><i></i>Recording</span>
+          </div>
+          <div class="pv-body">
+
+            <div class="pv-ctrls">
+              <span class="pv-chip on">Case open</span>
+              <span class="pv-chip">Vitals</span>
+              <span class="pv-chip">Drugs</span>
+              <span class="pv-chip">Events</span>
+              <span class="pv-el">00:42:10</span>
+            </div>
+
+            <div class="pv-chart">
+              <div class="pv-crow pv-caxis">
+                <div class="pv-clbl">Time</div>
+                <div class="pv-ctrk">
+                  <span class="pv-tick maj" style="left:0"></span><span class="pv-tlab" style="left:0">08:00</span>
+                  <span class="pv-tick" style="left:25%"></span>
+                  <span class="pv-tick maj" style="left:50%"></span><span class="pv-tlab" style="left:50%">08:30</span>
+                  <span class="pv-tick" style="left:75%"></span>
+                </div>
+              </div>
+
+              <div class="pv-crow">
+                <div class="pv-clbl">Vitals</div>
+                <div class="pv-ctrk" style="min-height:62px">
+                  <span class="pv-vit">
+                    <svg viewBox="0 0 300 62" preserveAspectRatio="none">
+                      <polyline points="0,26 30,24 60,29 90,22 120,27 150,25 180,31 210,27 240,24 270,28 300,26"
+                        fill="none" stroke="#7ECFC0" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+                      <polyline points="0,44 30,46 60,41 90,45 120,43 150,47 180,42 210,45 240,44 270,42 300,45"
+                        fill="none" stroke="#FF9B86" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <div class="pv-crow">
+                <div class="pv-clbl">Infusions</div>
+                <div class="pv-ctrk">
+                  <span class="pv-bar2" style="left:8%;width:74%">Remifentanil</span>
+                </div>
+              </div>
+
+              <div class="pv-crow">
+                <div class="pv-clbl">Drugs</div>
+                <div class="pv-ctrk">
+                  <span class="pv-item" style="left:2%">Propofol</span>
+                  <span class="pv-item" style="left:38%">Rocuronium</span>
+                </div>
+              </div>
+
+              <div class="pv-crow">
+                <div class="pv-clbl">Events</div>
+                <div class="pv-ctrk">
+                  <span class="pv-item" style="left:4%">Airway secured</span>
+                  <span class="pv-item ev" style="left:54%">Surgery start</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="show-copy">
+        <p class="eyebrow reveal">Live Chart</p>
+        <h2 class="sec-h reveal" id="lc-h">The anesthesia record,<br>written as it happens.</h2>
+        <p class="sec-sub reveal">
+          Vitals, drugs, infusions and events on one timeline, entered in seconds
+          during the case rather than reconstructed afterwards.
+        </p>
+        <ul class="show-pts reveal">
+          <li>One timeline for every entry, so the sequence is never in doubt.</li>
+          <li>Milestones, medications and events recorded at the moment they happen.</li>
+          <li>A complete record at the end of the case, ready to review.</li>
+        </ul>
+        <div class="show-cta reveal">
+          <a class="btn btn-teal" href="/anesthesia-cases.html">Explore Live Chart</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7 · CLINICIANS, deliberately secondary ─────────────────────── -->
   <section class="clin" id="clinicians" aria-labelledby="cl-h">
     <div class="clin-in">
       <div class="clin-copy">
@@ -1173,9 +1504,9 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
     <div class="head head-row">
       <div>
         <p class="eyebrow reveal">Education</p>
-        <h2 class="sec-h reveal" id="vd-h">Learn before your surgery.</h2>
+        <h2 class="sec-h reveal" id="vd-h">Latest from Anestheo.</h2>
       </div>
-      <a class="btn-text vids-all" href="/videos.html">Watch all videos <span class="arr">&rarr;</span></a>
+      <a class="btn-text vids-all" href="/videos.html">View all videos <span class="arr">&rarr;</span></a>
     </div>
     <div id="home-videos" class="reveal"></div>
   </section>
@@ -1222,7 +1553,11 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
      unavailable AhVideos renders its own channel fallback. */
   var vb = document.getElementById('home-videos');
   if(vb && window.AhVideos && typeof window.AhVideos.mount === 'function'){
-    window.AhVideos.mount(vb, { max:4, skeleton:4 });
+    /* Three, as the section promises. Real thumbnails, real titles, real
+       YouTube links, straight from the shared source of truth; if the feed is
+       unavailable AhVideos renders its own channel fallback rather than a
+       fabricated card. */
+    window.AhVideos.mount(vb, { max:3, skeleton:3 });
   }
 
   /* HEALTH PASSPORT CTA — session-aware, exactly as patients.html now is.
@@ -1341,7 +1676,7 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
     if(m<1)return 'just now'; if(m<60)return m+'m ago'; if(h<24)return h+'h ago'; if(dy<7)return dy+'d ago'; return new Date(ts).toLocaleDateString(); }
   // Inline expand/collapse — Crisis Center pattern (expand in place, no navigation).
   window.ahAcc=function(btn){ var c=btn.closest('.ah-acc'); if(!c) return; var o=c.classList.toggle('open'); btn.setAttribute('aria-expanded', o?'true':'false'); };
-  function statTile(id,cls,label){ return '<div class="ah-stat '+cls+'" id="'+id+'"><b>—</b><span>'+esc(label)+'</span></div>'; }
+  function statTile(id,cls,label){ return '<div class="ah-stat '+cls+'" id="'+id+'"><b>·</b><span>'+esc(label)+'</span></div>'; }
 
   // Clinical references — each expands INLINE (summary, key points, links, related).
   // Content is topic-level only; specifics live on the linked full reference page.
@@ -1352,7 +1687,7 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
      sum:'Structured airway assessment, equipment and sizing, and a stepwise plan for the anticipated and unanticipated difficult airway.',
      kp:['Predictors and bedside assessment of a difficult airway','Tube/device sizing and preparation','Plan A–D and escalation to front-of-neck access'],rel:[['Difficult airway','/difficult-airway.html']]},
     {k:'anticoag',ic:'💉',n:'Anticoagulation',s:'Peri-operative bridging & timing',h:'/anticoagulation.html',
-     sum:'Peri-operative management of anticoagulants and antiplatelets — when to stop, whether to bridge, and safe timing around neuraxial techniques.',
+     sum:'Peri-operative management of anticoagulants and antiplatelets: when to stop, whether to bridge, and safe timing around neuraxial techniques.',
      kp:['Stop/restart intervals by agent','Bridging decisions by thrombotic risk','Neuraxial timing and safety windows'],rel:[['Regional','/regional.html']]},
     {k:'icu',ic:'🫀',n:'ICU',s:'Critical care reference',h:'/icu.html',
      sum:'Peri-operative critical care reference covering sedation, ventilation and haemodynamic support.',
@@ -1367,7 +1702,7 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
      sum:'Regional anaesthesia reference covering block selection, technique and safe local-anaesthetic dosing.',
      kp:['Block selection by procedure','Ultrasound and landmark technique','Maximum safe LA doses'],rel:[['LAST','/last.html']]},
     {k:'last',ic:'🚨',n:'LAST',s:'Local anaesthetic systemic toxicity',h:'/last.html',
-     sum:'Recognition and management of local anaesthetic systemic toxicity — a time-critical emergency after regional techniques.',
+     sum:'Recognition and management of local anaesthetic systemic toxicity, a time-critical emergency after regional techniques.',
      kp:['Recognise early CNS and cardiac signs','Stop injection; secure airway; control seizures','Lipid emulsion rescue therapy'],rel:[['Regional','/regional.html']]},
     {k:'anaphylaxis',ic:'⚠️',n:'Anaphylaxis',s:'Peri-operative crisis',h:'/anaphylaxis.html',
      sum:'Recognition and management of peri-operative anaphylaxis, including the common triggers under anaesthesia.',
@@ -1650,13 +1985,13 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
     setSt('wf-active-st',  m.active>0      ? '<b>'+m.active+'</b> in your care'          : 'No active patients');
     var rev=document.querySelector('.wf-review'); if(rev) rev.classList.toggle('warn', m.review>0);
     var attn=m.review+qNames.length, hs=document.getElementById('ah-hero-sub');
-    if(hs) hs.textContent = attn>0 ? (attn+' '+(attn===1?'item needs':'items need')+' your attention today.') : 'You’re all caught up — nothing needs you right now.';
+    if(hs) hs.textContent = attn>0 ? (attn+' '+(attn===1?'item needs':'items need')+' your attention today.') : 'You’re all caught up. Nothing needs you right now.';
     // Needs your attention — each patient appears ONCE, with their most
     // patient-facing task (a waiting question first, then review, then documents).
     var seen={}, items=[];
     function add(name,row){ if(items.length>=8 || seen[name]) return; seen[name]=1; items.push(row); }
     qNames.forEach(function(nm){ add(nm,{ic:'💬',name:nm,sub:'Sent you a question',act:'Answer patient',href:'/dashboard.html'}); });
-    reviewNames.forEach(function(nm){ add(nm,{ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted — awaiting review',act:'Review questionnaire',href:'/dashboard.html'}); });
+    reviewNames.forEach(function(nm){ add(nm,{ic:'📋',warn:true,name:nm,sub:'Questionnaire submitted, awaiting review',act:'Review questionnaire',href:'/dashboard.html'}); });
     docItems.forEach(function(d){ add(d.name,{ic:'📎',name:d.name,sub:d.n+' document'+(d.n===1?'':'s')+' to review',act:'Review documents',href:'/dashboard.html'}); });
     renderInbox(items);
   }
@@ -1743,7 +2078,7 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
       h+='<button class="mj-btn primary" type="button" onclick="ahJourneyStart()">＋ Start new surgery journey</button></div>';
       if(_journeys.active){
         h+='<div class="mj-danger"><div class="mj-danger-t">Danger zone</div>'+
-           '<p>Permanently delete this surgery journey and its related preparation data. Your account and any past surgeries are not affected. This cannot be undone — archiving keeps everything and is reversible.</p>'+
+           '<p>Permanently delete this surgery journey and its related preparation data. Your account and any past surgeries are not affected. This cannot be undone. Archiving keeps everything and is reversible.</p>'+
            '<button class="mj-btn danger" type="button" onclick="ahJourneyDelete()">Delete this surgery journey</button></div>';
       }
       h+='<p class="mj-note">Archiving keeps every questionnaire, document and message viewable under past surgeries. Nothing is deleted.</p>';
@@ -1781,7 +2116,7 @@ html:not(.pre-app):not(.app) .foot-copy{color:var(--faint);}
     renderJourneys();
     var b=document.getElementById('ah-journeys');
     if(b) b.insertAdjacentHTML('beforeend','<p class="mj-note" style="color:#FFB499">'+
-      (missing?'This action isn’t enabled on your account yet — the journey update is awaiting release.':esc(m||'Something went wrong.'))+'</p>');
+      (missing?'This action isn’t enabled on your account yet. The journey update is awaiting release.':esc(m||'Something went wrong.'))+'</p>');
   }
   window.ahJourneyArchive=function(){
     if(!_journeys.active) return;
