@@ -11,12 +11,12 @@
      inside the embedded tool preview (.pv) so it renders as the actual tool. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.20-02"></script>
-<script src="/auth.js?v=2026.08.20-02"></script>
-<script src="/clinical-index.js?v=2026.08.20-02"></script>
-<script src="/clinical-search.js?v=2026.08.20-02"></script>
-<script src="/navbar.js?v=2026.08.20-02"></script>
-<script src="/videos-data.js?v=2026.08.20-02"></script>
+<script src="/supabase.js?v=2026.08.20-03"></script>
+<script src="/auth.js?v=2026.08.20-03"></script>
+<script src="/clinical-index.js?v=2026.08.20-03"></script>
+<script src="/clinical-search.js?v=2026.08.20-03"></script>
+<script src="/navbar.js?v=2026.08.20-03"></script>
+<script src="/videos-data.js?v=2026.08.20-03"></script>
 <style>
 /* =========================================================================
    Anestheo homepage — two-path action hero (patient-first).
@@ -748,7 +748,10 @@ html:not(.pre-app):not(.app) .head-row{display:flex;align-items:flex-end;justify
 
 /* ── 1 · hero ─────────────────────────────────────────────────────────── */
 html:not(.pre-app):not(.app) .hero{padding-top:clamp(56px,8vw,104px);padding-bottom:clamp(48px,7vw,92px);}
-html:not(.pre-app):not(.app) .hero-in{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,72px);align-items:center;}
+/* Aligned to the top, not centred. The right column is taller now that the
+   video sits under the passport, and centring left a third of the fold empty
+   above the first word. */
+html:not(.pre-app):not(.app) .hero-in{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,72px);align-items:start;}
 /* No rule before the label. It carried no meaning, and at 390px a 26px teal
    line beside a word reads as a stray dash rather than as ornament. */
 html:not(.pre-app):not(.app) .hero-eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.13em;
@@ -769,7 +772,13 @@ html:not(.pre-app):not(.app) .hero-cta{display:flex;gap:13px;flex-wrap:wrap;}
    had already said. Nothing replaces them. */
 
 /* the passport visual */
+/* The right column is now two things stacked: the passport card, and the
+   newest video under it. */
+html:not(.pre-app):not(.app) .hero-right{display:flex;flex-direction:column;gap:26px;min-width:0;}
 html:not(.pre-app):not(.app) .hero-art{position:relative;display:flex;justify-content:center;}
+html:not(.pre-app):not(.app) .hero-vid{min-width:0;}
+html:not(.pre-app):not(.app) .hero-vid-h{font-size:12.5px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--teal-2);margin-bottom:12px;}
 /* Horizontal inset stays at 0: at tablet width the hero art spans the full
    column, and a negative side inset pushed the glow past the viewport. */
 html:not(.pre-app):not(.app) .pass-glow{position:absolute;inset:-14% 0;border-radius:50%;
@@ -915,10 +924,10 @@ html:not(.pre-app):not(.app) .show.flip .show-copy{order:2;}
 html:not(.pre-app):not(.app) .show-cta{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap;}
 html:not(.pre-app):not(.app) .show-pts{list-style:none;margin-top:22px;display:flex;
   flex-direction:column;gap:9px;}
-html:not(.pre-app):not(.app) .show-pts li{display:flex;gap:10px;align-items:flex-start;
-  font-size:14.5px;color:var(--muted);line-height:1.55;}
-html:not(.pre-app):not(.app) .show-pts li::before{content:'';flex:0 0 auto;width:6px;height:6px;
-  border-radius:50%;background:var(--teal-2);margin-top:8px;}
+html:not(.pre-app):not(.app) .show-pts li{font-size:14.5px;color:var(--muted);line-height:1.6;
+  padding-left:0;}
+/* No bullet. The three lines are already a list; a teal dot beside each one
+   is decoration standing in for structure the markup already has. */
 
 /* the window */
 html:not(.pre-app):not(.app) .pv-win{border-radius:var(--radius-xl);overflow:hidden;
@@ -1036,7 +1045,12 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
      pitch: a visitor who meets it before the headline has no idea what they
      are looking at. */
   html:not(.pre-app):not(.app) .hero-in{grid-template-columns:1fr;gap:38px;}
-  html:not(.pre-app):not(.app) .hero-art{order:1;}
+  /* The ORDER rule belongs to the right column, not to the card inside it.
+     .hero-art used to be a direct child of the hero grid, so order:1 pushed it
+     below the copy. It is now nested in .hero-right, where the same rule
+     reordered it against its own sibling instead and put the video above the
+     passport. */
+  html:not(.pre-app):not(.app) .hero-right{order:1;}
   html:not(.pre-app):not(.app) .pass{max-width:340px;}
   html:not(.pre-app):not(.app) .hp-in,
   html:not(.pre-app):not(.app) .clin-in{grid-template-columns:1fr;}
@@ -1074,9 +1088,14 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
 <header class="mast">
   <nav class="mast-in" aria-label="Primary">
     <a class="brand" href="/index.html">Anest<span class="brand-accent">heo</span></a>
+    <!-- The visitor's navigation, matching the rest of the public site:
+         Home, For Patients, Videos, For Clinicians, Login. Videos is a real
+         destination now, not a link out to a channel, so it belongs here. -->
     <div class="nav-r">
-      <a href="#patient-actions">Preparing for surgery</a>
-      <a href="#clinicians">For clinicians</a>
+      <a href="/index.html">Home</a>
+      <a href="/patients.html">For Patients</a>
+      <a href="/videos.html">Videos</a>
+      <a href="#clinicians">For Clinicians</a>
       <button class="nav-login" id="nav-login" onclick="window.nbOpenModal&&window.nbOpenModal()">Log in</button>
     </div>
   </nav>
@@ -1107,9 +1126,15 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
         </div>
       </div>
 
+      <!-- RIGHT COLUMN: the passport card, and beneath it the newest video.
+           The card is the product; the video is the education. The card keeps
+           aria-hidden because it is a drawing, and the video does not, because
+           it is real content with a real title. -->
+      <div class="hero-right">
+
       <!-- The product visual. Drawn, not photographed: a card carrying a real
            QR lattice, the way the passport actually looks. No medical content
-           is shown on it — the sample fields are labels, never values. -->
+           is shown on it: the sample fields are labels, never values. -->
       <div class="hero-art" aria-hidden="true">
         <div class="pass-glow"></div>
         <div class="pass">
@@ -1174,6 +1199,18 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
           <div class="pass-foot">You choose what is shared</div>
         </div>
       </div>
+
+      <!-- The newest upload, played here. Mounted by videos-data.js from the
+           same automatic feed the rest of the site uses, so a new video on the
+           channel appears here without anyone touching this file. The section
+           further down deliberately starts at the SECOND video, so nothing is
+           shown twice on one page. -->
+      <aside class="hero-vid" aria-labelledby="hv-h">
+        <p class="hero-vid-h" id="hv-h">Latest from Anestheo</p>
+        <div id="hero-video"></div>
+      </aside>
+
+      </div><!-- /hero-right -->
     </div>
   </section>
 
@@ -1547,6 +1584,13 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
      truth the Videos page and the app Home already use. No second
      implementation, no second fetch path, no fabricated cards: if the feed is
      unavailable AhVideos renders its own channel fallback. */
+  /* The hero's featured video: the newest upload, compact for the narrower
+     column. Same automatic feed as everything else. */
+  var hv = document.getElementById('hero-video');
+  if(hv && window.AhVideos && typeof window.AhVideos.mountFeatured === 'function'){
+    window.AhVideos.mountFeatured(hv, { index:0, compact:true });
+  }
+
   var vb = document.getElementById('home-videos');
   if(vb && window.AhVideos && typeof window.AhVideos.mountEmbeds === 'function'){
     /* Three real Anestheo videos, PLAYED HERE. Privacy-enhanced
@@ -1554,7 +1598,7 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
        visitor presses play and stays on anestheo.com. Never autoplay, never a
        fabricated ID: if the feed is down AhVideos renders the reason and a
        retry rather than a card that pretends. */
-    window.AhVideos.mountEmbeds(vb, { max:3 });
+    window.AhVideos.mountEmbeds(vb, { max:3, skip:1 });
   }
 
   /* HEALTH PASSPORT CTA — session-aware, exactly as patients.html now is.

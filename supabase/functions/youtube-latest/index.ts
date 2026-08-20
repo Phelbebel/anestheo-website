@@ -6,7 +6,7 @@
 // render. The API key stays server-side (never exposed to the browser), and
 // the response is CORS-enabled so the page can call it directly.
 //
-// Returns: [{ id, title, published, duration, thumb, views }]
+// Returns: [{ id, title, description, published, duration, thumb, views }]
 //
 // Deploy:  supabase functions deploy youtube-latest --no-verify-jwt
 // Secrets: YOUTUBE_API_KEY=AIza...        (required)
@@ -123,6 +123,11 @@ Deno.serve(async (req: Request) => {
         return {
           id: it.contentDetails?.videoId,
           title: it.snippet?.title || "",
+          /* The first paragraph only. A YouTube description carries chapters,
+             links and boilerplate after it, none of which belongs under a card
+             on a marketing page. Trimmed here rather than in the browser so
+             every consumer gets the same short line. */
+          description: String(it.snippet?.description || "").split(/\n\s*\n/)[0].trim().slice(0, 220),
           published: it.contentDetails?.videoPublishedAt || it.snippet?.publishedAt || "",
           thumb: (th.medium || th.high || th.default || {}).url || "",
           duration: "",

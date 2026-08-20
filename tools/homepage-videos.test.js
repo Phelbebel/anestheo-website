@@ -33,8 +33,8 @@ const t = (n, ok, d) => {
 
 /* Shaped exactly like youtube-latest's success response. */
 const FEED = [
-  { id: 'dQw4w9WgXcQ', title: 'What happens during general anesthesia', published: '2026-07-02T10:00:00Z', views: 14200, duration: '6:12' },
-  { id: 'kJQP7kiw5Fk', title: 'Spinal anesthesia for a caesarean, explained', published: '2026-06-18T10:00:00Z', views: 8300, duration: '8:41' },
+  { id: 'dQw4w9WgXcQ', title: 'What happens during general anesthesia', description: 'A clear walkthrough of what an anesthesiologist does from the moment you enter theatre.', published: '2026-07-02T10:00:00Z', views: 14200, duration: '6:12' },
+  { id: 'kJQP7kiw5Fk', title: 'Spinal anesthesia for a caesarean, explained', description: 'How a spinal works, what you will feel, and why you stay awake.', published: '2026-06-18T10:00:00Z', views: 8300, duration: '8:41' },
   { id: '9bZkp7q19f0', title: 'Fasting before surgery: what and when', published: '2026-06-02T10:00:00Z', views: 22100, duration: '4:55' },
   { id: 'M7lc1UVf-VE', title: 'A fourth video the homepage must not show', published: '2026-05-02T10:00:00Z' }
 ];
@@ -95,14 +95,15 @@ const readVideos = pg => pg.evaluate(() => {
     t('three players, not four', v.players === 3, v.players);
     t('every src is a youtube-nocookie embed',
       v.srcs.every(s => s.startsWith('https://www.youtube-nocookie.com/embed/')), v.srcs[0]);
-    t('the embed IDs are exactly the feed\'s first three, in order',
+    /* Videos 2, 3 and 4. The newest is featured in the hero, so this section
+       deliberately starts after it and the page never repeats a video. */
+    t('the embed IDs are the feed\'s SECOND, third and fourth, in order',
       JSON.stringify(v.srcs.map(s => s.split('/embed/')[1].split('?')[0])) ===
-      JSON.stringify(FEED.slice(0, 3).map(x => x.id)),
+      JSON.stringify(FEED.slice(1, 4).map(x => x.id)),
       v.srcs.map(s => s.split('/embed/')[1].split('?')[0]));
-    t('the fourth video is not embedded',
-      !v.srcs.some(s => s.includes('M7lc1UVf-VE')));
+    t('the NEWEST video is not repeated here', !v.srcs.some(s => s.includes(FEED[0].id)));
     t('real titles are shown beside the players',
-      JSON.stringify(v.titles) === JSON.stringify(FEED.slice(0, 3).map(x => x.title)), v.titles);
+      JSON.stringify(v.titles) === JSON.stringify(FEED.slice(1, 4).map(x => x.title)), v.titles);
     t('every player is lazy', v.lazy === true);
     t('every player allows fullscreen', v.fs === true);
     t('every player carries its title for assistive tech', v.titled === true);
@@ -146,6 +147,59 @@ const readVideos = pg => pg.evaluate(() => {
     t(name + ': the real reason is logged, not swallowed',
       logs.some(l => /\[AhVideos\]/.test(l)), logs.filter(l => /AhVideos/.test(l))[0]);
     t(name + ': the reason is on the element for a live page', !!v.reason, v.reason);
+    await ctx.close();
+  }
+
+  /* ── 3b · the hero features the newest, the section starts at the second ─
+     The two must never print the same video on one page. */
+  console.log('\n── hero featured video ──');
+  {
+    const { ctx, pg } = await open(b, 1440, ok);
+    const v = await pg.evaluate(() => {
+      const id = el => [...el.querySelectorAll('iframe')]
+        .map(f => (f.getAttribute('src')||'').split('/embed/')[1].split('?')[0]);
+      return {
+        hero:  id(document.getElementById('hero-video')),
+        lower: id(document.getElementById('home-videos')),
+        title: (document.querySelector('#hero-video .ahv-feat-title')||{}).textContent,
+        desc:  !!document.querySelector('#hero-video .ahv-feat-desc'),
+        passportStillThere: !!document.querySelector('.hero-art .pass')
+      };
+    });
+    t('the hero features exactly one video', v.hero.length === 1, v.hero);
+    t('...and it is the NEWEST', v.hero[0] === FEED[0].id, v.hero[0]);
+    t('...with its real title', v.title === FEED[0].title, v.title);
+    t('...and its description', v.desc === true);
+    t('the section below starts at the SECOND video',
+      v.lower[0] === FEED[1].id, v.lower[0]);
+    t('nothing appears twice on the page',
+      v.hero.concat(v.lower).length === new Set(v.hero.concat(v.lower)).size,
+      v.hero.concat(v.lower));
+    t('the Health Passport card is untouched', v.passportStillThere === true);
+    await ctx.close();
+  }
+
+  /* ── 3c · mobile stacking: copy, passport, video ─────────────────────── */
+  {
+    const { ctx, pg } = await open(b, 390, ok);
+    const o = await pg.evaluate(() => {
+      const top = sel => Math.round(document.querySelector(sel).getBoundingClientRect().top + scrollY);
+      return { copy: top('.hero-copy'), pass: top('.hero-art'), vid: top('.hero-vid') };
+    });
+    t('@390 the order is copy, then passport, then video',
+      o.copy < o.pass && o.pass < o.vid, o);
+    await ctx.close();
+  }
+
+  /* ── 3d · the public navigation ──────────────────────────────────────── */
+  {
+    const { ctx, pg } = await open(b, 1440, ok);
+    const nav = await pg.evaluate(() =>
+      [...document.querySelectorAll('.mast .nav-r a')].map(a => a.textContent.trim()));
+    const login = await pg.evaluate(() => !!document.getElementById('nav-login'));
+    t('visitor nav is Home, For Patients, Videos, For Clinicians',
+      JSON.stringify(nav) === JSON.stringify(['Home','For Patients','Videos','For Clinicians']), nav);
+    t('...with Login beside it', login === true);
     await ctx.close();
   }
 

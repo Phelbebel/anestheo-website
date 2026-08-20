@@ -635,12 +635,17 @@ function buildHTML(page){
     '<nav class="nb" id="nb-nav">' +
       '<div class="nb-inner">' +
         '<a href="/index.html" class="nb-logo">Anest<span>heo</span></a>' +
+        /* The visitor bar. Five items, and the first thing a patient sees, so
+           it names the two audiences and nothing else. Ask Anesthesiologist
+           and Live Tools are not gone: Ask belongs inside the patient
+           experience and Live Tools inside the clinician workspace, and both
+           are reached from there. A first-time visitor should not have to work
+           out which of five destinations is meant for them. */
         '<div class="nb-nav-links" id="nb-nav-links">' +
           '<a href="/index.html"' + activeCls('/index.html', p) + '>Home</a>' +
           '<a href="/patients.html"' + activeCls('/patients.html', p) + '>For Patients</a>' +
           '<a href="/videos.html"' + activeCls('/videos.html', p) + '>Videos</a>' +
-          '<a href="/ask.html"' + activeCls('/ask.html', p) + '>Ask Anesthesiologist</a>' +
-          '<a href="/engine.html"' + activeCls('/engine.html', p) + '>Live Tools</a>' +
+          '<a href="/index.html#clinicians">For Clinicians</a>' +
         '</div>' +
         // Role-aware patient navigation (shown only to logged-in patients).
         '<div class="nb-nav-links" id="nb-nav-patient" style="display:none">' +
@@ -729,9 +734,7 @@ function buildHTML(page){
         '<a href="/index.html" class="nb-mob-link">Home</a>' +
         '<a href="/patients.html" class="nb-mob-link">For Patients</a>' +
         '<a href="/videos.html" class="nb-mob-link">Videos</a>' +
-        '<a href="/ask.html" class="nb-mob-link">Ask Anesthesiologist</a>' +
-        '<a href="/engine.html" class="nb-mob-link">Live Tools</a>' +
-        '<a href="/anesthesia-cases.html" class="nb-mob-link">Live Chart</a>' +
+        '<a href="/index.html#clinicians" class="nb-mob-link">For Clinicians</a>' +
       '</div>' +
       // Patient mobile nav — logged-in patients only.
       '<div id="nb-mob-patient-nav" style="display:none">' +
