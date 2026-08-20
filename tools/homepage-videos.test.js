@@ -147,6 +147,20 @@ const readVideos = pg => pg.evaluate(() => {
     t(name + ': the real reason is logged, not swallowed',
       logs.some(l => /\[AhVideos\]/.test(l)), logs.filter(l => /AhVideos/.test(l))[0]);
     t(name + ': the reason is on the element for a live page', !!v.reason, v.reason);
+    /* Exactly one sentence, and not a word of it technical. A patient who came
+       to learn about anesthesia must never meet an API error. */
+    const seen = await pg.evaluate(() => {
+      const d = document.querySelector('#home-videos .ahv-down');
+      return { text: d ? d.textContent.replace(/\s+/g, ' ').trim() : '',
+               btn: (d && d.querySelector('[data-ahv-retry]') || {}).textContent };
+    });
+    t(name + ': shows the friendly message',
+      /We couldn.t load the latest videos right now/.test(seen.text) &&
+      /Please try again/.test(seen.text), seen.text);
+    t(name + ': and a Retry button', /try again/i.test(seen.btn || ''), seen.btn);
+    t(name + ': leaks no technical detail to the reader',
+      !/(supabase|youtube-latest|API|HTTP|403|400|404|error|not_configured|fetch)/i.test(seen.text),
+      seen.text);
     await ctx.close();
   }
 
@@ -233,6 +247,78 @@ const readVideos = pg => pg.evaluate(() => {
     t('no em dash in visible prose', h.emdash === 0, h.emdash);
     console.log('       hero height @390: ' + h.heroH + 'px');
     await ctx.close();
+  }
+
+  /* ── 6 · the videos page: featured, then the REST of the library ───────
+     One video, one place. The newest plays at the top; the library starts
+     after it. */
+  console.log('\n── videos page ──');
+  for (const [label, width] of [['desktop', 1440], ['iPad portrait', 834], ['iPhone 390', 390]]) {
+    const ctx = await b.newContext({ viewport: { width, height: width < 500 ? 844 : 1000 } });
+    await ctx.route('**/*', r => {
+      const u = r.request().url();
+      if (/cdn\.jsdelivr|unpkg/.test(u)) return r.fulfill({ status:200, contentType:'text/javascript', body:MOCK });
+      if (/googleapis|gstatic/.test(u))  return r.fulfill({ status:200, contentType:'text/css', body:'' });
+      if (/youtube-nocookie|youtube\.com|ytimg/.test(u))
+        return r.fulfill({ status:200, contentType:'text/html', body:'<!doctype html><title>stub</title>' });
+      if (/youtube-latest/.test(u)) return ok(r);
+      return r.continue();
+    });
+    const pg = await ctx.newPage();
+    const errs = [];
+    pg.on('pageerror', e => { const m = (e && e.message) || String(e); if (m !== 'Object') errs.push(m.slice(0,140)); });
+    await pg.addInitScript('window.__TEST_PROFILE=null;window.__TEST_ROLE="anon";' +
+                           'window.__TEST_HARDENED=true;window.__TEST_ONBOARD=true;');
+    await pg.goto(BASE + '/videos.html', { waitUntil:'networkidle' });
+    await pg.waitForTimeout(1800);
+    const v = await pg.evaluate(() => {
+      const ids = sel => [...document.querySelectorAll(sel + ' iframe')]
+        .map(f => (f.getAttribute('src')||'').split('/embed/')[1].split('?')[0]);
+      return { feat: ids('#vid-featured'), lib: ids('#vid-host'),
+               title: (document.querySelector('#vid-featured .ahv-feat-title')||{}).textContent,
+               nocookie: [...document.querySelectorAll('iframe')]
+                 .every(f => (f.getAttribute('src')||'').startsWith('https://www.youtube-nocookie.com/embed/')),
+               doc: document.documentElement.scrollWidth, win: window.innerWidth };
+    });
+    if (width === 1440) {
+      t('videos page features exactly one video', v.feat.length === 1, v.feat);
+      t('...and it is the NEWEST', v.feat[0] === FEED[0].id, v.feat[0]);
+      t('...with its real title', v.title === FEED[0].title, v.title);
+      t('the library holds the REST, not the featured one',
+        !v.lib.includes(FEED[0].id) && v.lib[0] === FEED[1].id, v.lib);
+      t('every player is a youtube-nocookie embed', v.nocookie === true);
+      t('no page error', errs.length === 0, errs);
+    }
+    t('videos page @' + label + ': no horizontal overflow', v.doc <= v.win, { doc:v.doc, win:v.win });
+    await ctx.close();
+  }
+
+  /* ── 7 · no hardcoded video IDs anywhere in the shipped source ─────────
+     The whole point of the feed is that publishing to the channel is the only
+     step. A literal video id in a page would be a video that never updates,
+     and a fabricated one would be a video that does not exist. Scan the files
+     that actually ship. Test fixtures are excluded on purpose: they are not
+     served to anyone. */
+  console.log('\n── no hardcoded video IDs ──');
+  {
+    const fsx = require('fs');
+    const ROOT = '/home/user/anestheo-website/';
+    const SHIPPED = ['index.html', 'videos.html', 'videos-data.js', 'navbar.js', 'styles.css'];
+    /* A YouTube id is 11 chars of [A-Za-z0-9_-]. Matching that alone finds far
+       too much ordinary text, so look for one in the places an id would
+       actually be used: an embed URL, a watch URL, or a thumbnail URL. */
+    const ID_IN_URL = /(?:youtube(?:-nocookie)?\.com\/(?:embed\/|watch\?v=)|ytimg\.com\/vi\/)([A-Za-z0-9_-]{11})/g;
+    const found = [];
+    for (const f of SHIPPED) {
+      const src = fsx.readFileSync(ROOT + f, 'utf8');
+      let m; const re = new RegExp(ID_IN_URL.source, 'g');
+      while ((m = re.exec(src))) found.push(f + ': ' + m[1]);
+    }
+    t('no literal video id in any shipped file', found.length === 0, found);
+    /* And the URLs that ARE there must be built, not written. */
+    const vd = fsx.readFileSync(ROOT + 'videos-data.js', 'utf8');
+    t('embed URLs are built from the feed\'s id',
+      /youtube-nocookie\.com\/embed\/' \+ encodeURIComponent\(id\)/.test(vd));
   }
 
   await b.close();

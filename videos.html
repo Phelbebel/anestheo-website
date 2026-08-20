@@ -44,11 +44,10 @@
 
   <div class="section">
     <div class="section-tag">Library</div>
-    <h2 class="section-title">All videos</h2>
-    <p class="section-sub">Everything published on the Anestheo channel, newest first.</p>
-    <!-- The complete collection, starting at index 0. This is the library, so
-         the newest video appears here too; the homepage is the one that skips
-         it, because it features that video higher up the same page. -->
+    <h2 class="section-title">More videos</h2>
+    <p class="section-sub">The rest of the library, newest first.</p>
+    <!-- skip:1. The newest video is already playing at the top of this page,
+         so the library starts after it. One video, one place. -->
     <div id="vid-host"></div>
   </div>
 </div>
@@ -64,7 +63,7 @@
       window.AhVideos.mountFeatured(document.getElementById('vid-featured'), { index:0 });
     }
     if(typeof window.AhVideos.mountEmbeds === 'function'){
-      window.AhVideos.mountEmbeds(document.getElementById('vid-host'), { max:12 });
+      window.AhVideos.mountEmbeds(document.getElementById('vid-host'), { max:12, skip:1 });
     }
   });
 </script>
