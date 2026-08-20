@@ -56,6 +56,14 @@ case "$CODE" in
       echo "  FIX (Supabase, not GitHub):"
       echo "    supabase secrets set YOUTUBE_API_KEY=AIza…"
       echo "    supabase functions deploy youtube-latest --no-verify-jwt   # reload secrets"
+    elif grep -q 'invalid_channel_id' "$BODY"; then
+      echo "VERDICT: YOUTUBE_CHANNEL_ID is malformed. A channel id is UC plus 22"
+      echo "  characters, 24 in total. The body above gives the length it received."
+      echo "  FIX (Supabase, not GitHub): re-copy the id from the channel's About"
+      echo "  page or its URL, then re-set the secret and redeploy."
+    elif grep -qE 'channel_not_found|handle_not_found' "$BODY"; then
+      echo "VERDICT: the key works, but the channel could not be found."
+      echo "  Check the id/handle in the body above against the real channel."
     elif grep -q '"error"' "$BODY"; then
       echo "VERDICT: the function ran and the YOUTUBE DATA API refused it."
       echo "  A 403 here is normally one of:"
