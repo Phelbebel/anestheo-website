@@ -4,10 +4,10 @@
 /* Tokens first: every value below is drawn from them, and a page's own
    <style> still overrides them because a linked sheet is parsed before the
    inline block that follows it. */
-@import url("tokens.css?v=2026.08.20-02");
+@import url("tokens.css?v=2026.08.20-03");
 
 /* The Point — design-system primitive. Every dark composition inherits it. */
-@import url("point.css?v=2026.08.20-02");
+@import url("point.css?v=2026.08.20-03");
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -113,7 +113,8 @@ body::before {
   font-size: 12.5px; font-weight: 600; letter-spacing: .13em;
   text-transform: uppercase; margin-bottom: 20px;
 }
-.hero-eyebrow::before { content: ''; width: 26px; height: 1px; background: var(--brand-mid); }
+/* No rule before the label, for the same reason the homepage dropped its
+   own: at narrow widths a short line beside a word reads as a stray dash. */
 .hero-eyebrow span {
   width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
   animation: pulse 2.4s infinite;
@@ -285,7 +286,6 @@ body::before {
 .theme-light .hero-h1 em { background: none; -webkit-background-clip: border-box;
   background-clip: border-box; color: var(--brand); }
 .theme-light .hero-eyebrow { color: var(--brand); }
-.theme-light .hero-eyebrow::before { background: var(--brand); }
 .theme-light .section-tag, .theme-light .doc-eyebrow { color: var(--brand); }
 .theme-light .doc-wrap a, .theme-light .legal-wrap a,
 .theme-light .legal-back, .theme-light .legal-wrap h2 { color: var(--brand); }

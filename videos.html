@@ -3,45 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Videos — Anestheo</title>
+<title>Educational videos — Anestheo</title>
+<meta name="description" content="Clear video explanations of anesthesia, surgery preparation and recovery, from a certified anesthesiologist.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.20-02"></script>
-<script src="/auth.js?v=2026.08.20-02"></script>
-<script src="/clinical-index.js?v=2026.08.20-02"></script>
-<script src="/clinical-search.js?v=2026.08.20-02"></script>
-<script src="/navbar.js?v=2026.08.20-02"></script>
-<script src="/videos-data.js?v=2026.08.20-02"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.20-02">
+<script src="/supabase.js?v=2026.08.20-03"></script>
+<script src="/auth.js?v=2026.08.20-03"></script>
+<script src="/clinical-index.js?v=2026.08.20-03"></script>
+<script src="/clinical-search.js?v=2026.08.20-03"></script>
+<script src="/navbar.js?v=2026.08.20-03"></script>
+<script src="/videos-data.js?v=2026.08.20-03"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.20-03">
 </head>
 <body>
 <div id="nb-placeholder"></div>
 
+<!-- ── THE EDUCATION HUB ──────────────────────────────────────────────────
+     Not a page of links to a channel. The newest video plays here, large, and
+     the library sits beneath it. Everything comes from the same automatic feed
+     the homepage uses: videos-data.js calls the youtube-latest Edge Function,
+     which reads the YouTube Data API server-side. Publishing to the channel is
+     the only step; no file here is ever edited to add a video. -->
 <section class="hero-section">
   <div class="hero-inner">
-    <div class="hero-eyebrow"><span></span>Educational Videos</div>
-    <h1 class="hero-h1">Understand anesthesia<br>through <em>video</em></h1>
-    <p class="hero-sub">Short, clear video explanations of anesthesia procedures, recovery, and what to expect before surgery.</p>
-    <div class="hero-btns">
-      <a href="https://www.youtube.com/@anestheo" target="_blank" rel="noopener" class="btn-primary">Watch on YouTube</a>
-    </div>
+    <p class="hero-eyebrow">Educational videos</p>
+    <h1 class="hero-h1">Understand anesthesia,<br><em>before your surgery</em></h1>
+    <p class="hero-sub">Clear explanations of anesthesia, surgery preparation and
+      recovery, from a certified anesthesiologist. Watch them here.</p>
   </div>
 </section>
 
 <div class="page-wrap">
   <div class="section">
     <div class="section-tag">Latest</div>
-    <h2 class="section-title">Video library</h2>
-    <p class="section-sub">Latest videos from the official Anestheo YouTube channel, produced by a certified anesthesiologist.</p>
-    <!-- Real videos from the shared source of truth (videos-data.js → youtube-latest). -->
+    <h2 class="section-title">Newest video</h2>
+    <!-- Index 0 of the feed. Width-capped: a 16:9 player at the full 1060px
+         measure is 596px tall and swallows the page it is meant to open. -->
+    <div id="vid-featured" class="vid-featured"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-tag">Library</div>
+    <h2 class="section-title">All videos</h2>
+    <p class="section-sub">Everything published on the Anestheo channel, newest first.</p>
+    <!-- The complete collection, starting at index 0. This is the library, so
+         the newest video appears here too; the homepage is the one that skips
+         it, because it features that video higher up the same page. -->
     <div id="vid-host"></div>
   </div>
 </div>
 
+<style>
+  .vid-featured{max-width:820px;}
+</style>
+
 <script>
   document.addEventListener('DOMContentLoaded', function(){
-    if(window.AhVideos && typeof window.AhVideos.mount==='function'){
-      window.AhVideos.mount(document.getElementById('vid-host'), { max:12, skeleton:6 });
+    if(!window.AhVideos) return;
+    if(typeof window.AhVideos.mountFeatured === 'function'){
+      window.AhVideos.mountFeatured(document.getElementById('vid-featured'), { index:0 });
+    }
+    if(typeof window.AhVideos.mountEmbeds === 'function'){
+      window.AhVideos.mountEmbeds(document.getElementById('vid-host'), { max:12 });
     }
   });
 </script>
@@ -52,10 +75,11 @@
     <div class="footer-links">
       <a href="/index.html">Home</a>
       <a href="/patients.html">For Patients</a>
-      <a href="/ask.html">Ask</a>
+      <a href="/videos.html">Videos</a>
+      <a href="/index.html#clinicians">For Clinicians</a>
     </div>
   </div>
-  <div class="footer-inner"><p class="footer-copy">&copy; 2025 Anestheo. Educational purposes only.</p></div>
+  <div class="footer-inner"><p class="footer-copy">&copy; 2026 Anestheo. Educational purposes only.</p></div>
 </footer>
 </body>
 </html>

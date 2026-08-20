@@ -203,40 +203,107 @@
     document.head.appendChild(s);
   }
 
+  /* Patient-facing copy. Whoever is reading this came for anesthesia
+     education, not for an incident report: they get one plain sentence and a
+     way to try again. The reason lives in the console and on the element, for
+     whoever has to fix it. */
   function down(host, opts){
     var e = _lastError || {};
+    var remount = (opts && opts.render) || mountEmbeds;
     host.innerHTML = '<div class="ahv-down">' +
-      '<div class="ahv-down-t">Latest videos could not be loaded</div>' +
-      '<div class="ahv-down-s">The video feed is not responding right now. ' +
-        'You can try again, or watch everything on the Anestheo channel.</div>' +
+      '<div class="ahv-down-t">We couldn\'t load the latest videos right now</div>' +
+      '<div class="ahv-down-s">Please try again in a moment.</div>' +
       '<div class="ahv-down-a">' +
         '<button type="button" data-ahv-retry="1">Try again</button>' +
-        '<a href="' + channelUrl() + '" target="_blank" rel="noopener">Open the channel</a>' +
       '</div></div>';
     var btn = host.querySelector('[data-ahv-retry]');
     if(btn) btn.addEventListener('click', function(){
-      _cache = null; _lastError = null; mountEmbeds(host, opts);
+      _cache = null; _lastError = null; remount(host, opts);
     });
-    /* The reason is on the element for anyone inspecting a live page, and in
-       the console above. It is never shown to a visitor as jargon. */
     if(e.code) host.firstChild.setAttribute('data-reason', e.code + ': ' + (e.detail||''));
   }
 
-  /* Render real, playable videos into a host element. opts.max caps how many. */
+  /* Render real, playable videos into a host element.
+       opts.max   how many to show
+       opts.skip  how many of the newest to leave out, so a page can feature
+                  the latest above and list the ones after it below without
+                  printing the same video twice. */
   function mountEmbeds(host, opts){
     if(!host) return;
     opts = opts || {}; embedCSS();
-    var n = opts.max || 3;
+    var n = opts.max || 3, skip = opts.skip || 0;
     var sk = ''; for(var i=0;i<n;i++){ sk += '<div class="ahv-emb-skel"></div>'; }
     host.innerHTML = '<div class="ahv-emb-grid">' + sk + '</div>';
-    load(Math.max(n, 6)).then(function(vids){
-      if(!vids || !vids.length){ down(host, opts); return; }
-      host.innerHTML = '<div class="ahv-emb-grid">' +
-        vids.slice(0, n).map(embedCard).join('') + '</div>';
-    }).catch(function(e){ fail('render', String((e && e.message) || e)); down(host, opts); });
+    load(Math.max(n + skip, 6)).then(function(vids){
+      var show = vids ? vids.slice(skip, skip + n) : [];
+      if(!show.length){ down(host, Object.assign({ render: mountEmbeds }, opts)); return; }
+      host.innerHTML = '<div class="ahv-emb-grid">' + show.map(embedCard).join('') + '</div>';
+    }).catch(function(e){
+      fail('render', String((e && e.message) || e));
+      down(host, Object.assign({ render: mountEmbeds }, opts));
+    });
   }
 
-  window.AhVideos = { load:load, mount:mount, mountEmbeds:mountEmbeds, embedUrl:embedUrl,
+  /* ── ONE FEATURED VIDEO ──────────────────────────────────────────────────
+     The newest upload, played large, with its title and the opening line of
+     its own description underneath. Used in the homepage hero beneath the
+     Health Passport, and at the top of the videos page.
+
+     opts.index   which video to feature (0 = newest, the default)
+     opts.compact tighter type, for the narrower hero column */
+  function featuredCard(v, compact){
+    var meta = [ v.published ? fmtDate(v.published) : '', fmtViews(v.views) ].filter(Boolean).join(' · ');
+    return '<div class="ahv-feat' + (compact ? ' compact' : '') + '">' +
+      '<div class="ahv-emb-frame">' +
+        '<iframe src="' + esc(embedUrl(v.id)) + '" title="' + esc(v.title || 'Anestheo video') + '" ' +
+          'loading="lazy" referrerpolicy="strict-origin-when-cross-origin" ' +
+          'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" ' +
+          'allowfullscreen></iframe>' +
+      '</div>' +
+      '<div class="ahv-feat-meta">' +
+        '<div class="ahv-feat-title">' + esc(v.title || '') + '</div>' +
+        (v.description ? '<p class="ahv-feat-desc">' + esc(v.description) + '</p>' : '') +
+        (meta ? '<div class="ahv-emb-sub">' + esc(meta) + '</div>' : '') +
+      '</div></div>';
+  }
+
+  function featCSS(){
+    if(document.getElementById('ahv-feat-css')) return;
+    var s = document.createElement('style'); s.id = 'ahv-feat-css';
+    s.textContent = ''
+      + '.ahv-feat{display:flex;flex-direction:column;}'
+      + '.ahv-feat-meta{padding:14px 2px 0;}'
+      + '.ahv-feat-title{font-size:19px;font-weight:650;line-height:1.3;letter-spacing:-.01em;color:#F2F6F8;}'
+      + '.ahv-feat-desc{font-size:14.5px;line-height:1.65;color:#93A6B4;margin-top:8px;'
+      +   'display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}'
+      + '.ahv-feat.compact .ahv-feat-meta{padding-top:12px;}'
+      + '.ahv-feat.compact .ahv-feat-title{font-size:15.5px;}'
+      + '.ahv-feat.compact .ahv-feat-desc{font-size:13px;-webkit-line-clamp:2;margin-top:6px;}'
+      + '.ahv-feat-skel{aspect-ratio:16/9;border-radius:14px;border:1px solid rgba(255,255,255,.09);'
+      +   'background:linear-gradient(100deg,rgba(255,255,255,.03) 30%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.03) 70%);'
+      +   'background-size:220% 100%;animation:ahvskel 1.3s linear infinite;}'
+      + '@media(prefers-reduced-motion:reduce){.ahv-feat-skel{animation:none;}}'
+      + '@media(max-width:620px){.ahv-feat-title{font-size:17px;}.ahv-feat-desc{font-size:14px;}}';
+    document.head.appendChild(s);
+  }
+
+  function mountFeatured(host, opts){
+    if(!host) return;
+    opts = opts || {}; embedCSS(); featCSS();
+    var idx = opts.index || 0;
+    host.innerHTML = '<div class="ahv-feat-skel"></div>';
+    load(Math.max(idx + 1, 6)).then(function(vids){
+      var v = vids && vids[idx];
+      if(!v){ down(host, Object.assign({ render: mountFeatured }, opts)); return; }
+      host.innerHTML = featuredCard(v, !!opts.compact);
+    }).catch(function(e){
+      fail('render', String((e && e.message) || e));
+      down(host, Object.assign({ render: mountFeatured }, opts));
+    });
+  }
+
+  window.AhVideos = { load:load, mount:mount, mountEmbeds:mountEmbeds,
+                     mountFeatured:mountFeatured, embedUrl:embedUrl,
                      channelUrl:channelUrl, watchUrl:watchUrl, thumbUrl:thumbUrl, fmtDate:fmtDate,
                      CHANNEL:CHANNEL,
                      get lastError(){ return _lastError; } };
