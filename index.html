@@ -11,12 +11,12 @@
      inside the embedded tool preview (.pv) so it renders as the actual tool. -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.20-01"></script>
-<script src="/auth.js?v=2026.08.20-01"></script>
-<script src="/clinical-index.js?v=2026.08.20-01"></script>
-<script src="/clinical-search.js?v=2026.08.20-01"></script>
-<script src="/navbar.js?v=2026.08.20-01"></script>
-<script src="/videos-data.js?v=2026.08.20-01"></script>
+<script src="/supabase.js?v=2026.08.20-02"></script>
+<script src="/auth.js?v=2026.08.20-02"></script>
+<script src="/clinical-index.js?v=2026.08.20-02"></script>
+<script src="/clinical-search.js?v=2026.08.20-02"></script>
+<script src="/navbar.js?v=2026.08.20-02"></script>
+<script src="/videos-data.js?v=2026.08.20-02"></script>
 <style>
 /* =========================================================================
    Anestheo homepage — two-path action hero (patient-first).
@@ -749,9 +749,10 @@ html:not(.pre-app):not(.app) .head-row{display:flex;align-items:flex-end;justify
 /* ── 1 · hero ─────────────────────────────────────────────────────────── */
 html:not(.pre-app):not(.app) .hero{padding-top:clamp(56px,8vw,104px);padding-bottom:clamp(48px,7vw,92px);}
 html:not(.pre-app):not(.app) .hero-in{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(32px,5vw,72px);align-items:center;}
+/* No rule before the label. It carried no meaning, and at 390px a 26px teal
+   line beside a word reads as a stray dash rather than as ornament. */
 html:not(.pre-app):not(.app) .hero-eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--teal-2);margin-bottom:20px;display:inline-flex;align-items:center;gap:10px;}
-html:not(.pre-app):not(.app) .hero-eyebrow::before{content:'';width:26px;height:1px;background:var(--teal);}
+  text-transform:uppercase;color:var(--teal-2);margin-bottom:20px;display:inline-block;}
 /* The old hero centred its headline and capped it at 16ch. This one is a
    two-column layout, so the copy reads left-aligned and needs the width. */
 html:not(.pre-app):not(.app) .hero-copy{text-align:left;}
@@ -763,9 +764,9 @@ html:not(.pre-app):not(.app) .hero-h-2{
   -webkit-background-clip:text;background-clip:text;color:transparent;}
 html:not(.pre-app):not(.app) .hero-o{font-size:17px;color:var(--muted);line-height:1.75;max-width:54ch;margin-bottom:32px;}
 html:not(.pre-app):not(.app) .hero-cta{display:flex;gap:13px;flex-wrap:wrap;}
-html:not(.pre-app):not(.app) .hero-marks{list-style:none;display:flex;gap:10px;flex-wrap:wrap;margin-top:30px;}
-html:not(.pre-app):not(.app) .hero-marks li{font-size:12.5px;color:var(--muted);background:var(--card);
-  border:1px solid var(--hair);border-radius:30px;padding:7px 15px;}
+/* .hero-marks is gone. Three pills that looked like controls and did nothing:
+   on a phone they cost a third of the fold to repeat words the paragraph above
+   had already said. Nothing replaces them. */
 
 /* the passport visual */
 html:not(.pre-app):not(.app) .hero-art{position:relative;display:flex;justify-content:center;}
@@ -1104,11 +1105,6 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
           <a class="btn btn-teal" href="/patients.html">Prepare for surgery</a>
           <a class="btn btn-ghost" href="#clinicians">Explore clinician tools</a>
         </div>
-        <ul class="hero-marks" aria-label="What Anestheo covers">
-          <li>Personalized preparation</li>
-          <li>Health Passport</li>
-          <li>Patient education</li>
-        </ul>
       </div>
 
       <!-- The product visual. Drawn, not photographed: a card carrying a real
@@ -1552,12 +1548,13 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
      implementation, no second fetch path, no fabricated cards: if the feed is
      unavailable AhVideos renders its own channel fallback. */
   var vb = document.getElementById('home-videos');
-  if(vb && window.AhVideos && typeof window.AhVideos.mount === 'function'){
-    /* Three, as the section promises. Real thumbnails, real titles, real
-       YouTube links, straight from the shared source of truth; if the feed is
-       unavailable AhVideos renders its own channel fallback rather than a
-       fabricated card. */
-    window.AhVideos.mount(vb, { max:3, skeleton:3 });
+  if(vb && window.AhVideos && typeof window.AhVideos.mountEmbeds === 'function'){
+    /* Three real Anestheo videos, PLAYED HERE. Privacy-enhanced
+       youtube-nocookie embeds built from the IDs the feed returns, so a
+       visitor presses play and stays on anestheo.com. Never autoplay, never a
+       fabricated ID: if the feed is down AhVideos renders the reason and a
+       retry rather than a card that pretends. */
+    window.AhVideos.mountEmbeds(vb, { max:3 });
   }
 
   /* HEALTH PASSPORT CTA — session-aware, exactly as patients.html now is.
