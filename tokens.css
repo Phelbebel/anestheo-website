@@ -190,6 +190,15 @@
   --elev-2: 0 12px 30px rgba(0,0,0,.35);
   --elev-3: 0 24px 60px rgba(0,0,0,.45);
 
+  /* The wash behind a modal. Neutral-cold, because a scrim tinted toward the
+     ground it covers is how a dark theme starts to look like one colour. */
+  --scrim:      rgba(4,8,12,.78);
+  --scrim-soft: rgba(4,8,12,.62);
+  /* Ink for a chip whose fill is a bright accent — a count on a teal pill, a
+     label on an amber flag. Near-black with the graphite cast rather than the
+     old green one, so it belongs to the same family as the ground. */
+  --on-accent:  #06121C;
+
   /* ── Functional colour ────────────────────────────────────
      These carry clinical and procedural meaning and must never
      be rebalanced for looks. Each has a foreground, a fill and
@@ -348,6 +357,10 @@
   --elev-1: 0 1px 2px rgba(20,24,26,.05);
   --elev-2: 0 4px 16px rgba(20,24,26,.07);
   --elev-3: 0 18px 44px rgba(20,24,26,.10);
+
+  --scrim:      rgba(20,24,26,.42);
+  --scrim-soft: rgba(20,24,26,.28);
+  --on-accent:  #FFFFFF;
 
   /* The functional hues, re-struck for a light ground. The dark
      surface's pale greens and corals disappear on paper, so each

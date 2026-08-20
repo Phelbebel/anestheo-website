@@ -14,9 +14,10 @@
 <link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-:root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
-  --border:rgba(27,107,90,.22);}
-body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
+/* Ground, teal and hairline come from the clinical theme. This block used to
+   redefine all four, which pinned the page to the old green-black ground and
+   to the pre-homepage teal no matter what the theme said. */
+body{font-family:var(--font);background:var(--ground);color:var(--ink);min-height:100vh;
   -webkit-font-smoothing:antialiased;}
 #loader{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);

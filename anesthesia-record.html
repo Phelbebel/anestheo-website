@@ -14,9 +14,10 @@
 <link rel="stylesheet" href="/tokens.css?v=2026.08.19-04">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-:root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;--panel:rgba(255,255,255,.04);
-  --border:rgba(27,107,90,.22);--warn:var(--warning);--bad:#FF8A80;}
-body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-height:100vh;
+/* Ground, teal and hairline come from the clinical theme — see
+   anesthesia-cases.html. Only this page's own two names stay. */
+:root{--panel:var(--surface);--warn:var(--warning);--bad:#FF8A80;}
+body{font-family:var(--font);background:var(--ground);color:var(--ink);min-height:100vh;
   -webkit-font-smoothing:antialiased;padding-bottom:40px;}
 #loader{position:fixed;inset:0;background:var(--dark);z-index:99;display:flex;align-items:center;justify-content:center;}
 .spin{width:30px;height:30px;border:3px solid rgba(27,107,90,.25);border-top-color:var(--teal2);
@@ -26,7 +27,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
 
 /* ── Persistent case header. Sticky because in theatre you must be able to see
       who this is and how long they have been under, at any scroll position. ── */
-.hdr{position:sticky;top:0;z-index:30;background:rgba(6,16,11,.985);
+.hdr{position:sticky;top:0;z-index:30;background:var(--ground-2);
   border-bottom:1px solid var(--border);backdrop-filter:blur(8px);}
 .hdr-in{max-width:1600px;margin:0 auto;padding:10px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 .hdr-id{min-width:170px;}
@@ -64,7 +65,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:#fff;min-heig
 .rnav:hover{color:#fff;background:rgba(255,255,255,.04);}
 .rnav.on{background:rgba(27,107,90,.26);border-color:var(--teal2);color:#fff;font-weight:600;}
 .rnav .ic{font-size:15px;width:20px;text-align:center;flex:0 0 auto;}
-.rnav .n{margin-left:auto;font-size:10.5px;font-weight:800;color:#06140f;background:var(--accent);
+.rnav .n{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--on-accent);background:var(--accent);
   border-radius:var(--radius-xl);padding:1px 7px;min-width:18px;text-align:center;}
 .sec{display:none;} .sec.on{display:block;}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:14px;overflow:hidden;}
@@ -194,7 +195,7 @@ select option{background:var(--dark3);}
 .chartin{position:relative;min-width:100%;}
 .crow{display:flex;align-items:stretch;border-bottom:1px solid rgba(255,255,255,.06);}
 .crow:last-child{border-bottom:none;}
-.clbl{position:sticky;left:0;z-index:4;flex:0 0 106px;width:106px;background:#08160F;
+.clbl{position:sticky;left:0;z-index:4;flex:0 0 106px;width:106px;background:var(--ground-2);
   border-right:1px solid rgba(255,255,255,.13);padding:7px 9px;font-size:11.5px;font-weight:600;
   color:rgba(255,255,255,.66);display:flex;align-items:center;}
 .ctrack{position:relative;flex:0 0 auto;min-height:36px;}
@@ -248,7 +249,7 @@ select option{background:var(--dark3);}
 /* Quick entry. On a wide screen a right-hand drawer; on an iPad held in
    portrait or a phone, a bottom sheet — because a thumb reaches the bottom. */
 .cdrawer{position:fixed;z-index:55;right:0;top:0;bottom:0;width:min(430px,92vw);
-  background:#0A1B14;border-left:1px solid var(--teal2);box-shadow:-14px 0 44px rgba(0,0,0,.5);
+  background:var(--ground-2);border-left:1px solid var(--teal2);box-shadow:-14px 0 44px rgba(0,0,0,.5);
   display:flex;flex-direction:column;}
 .cdrawer-h{display:flex;align-items:center;gap:10px;padding:13px 15px;
   border-bottom:1px solid var(--border);}
