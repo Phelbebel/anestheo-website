@@ -6,12 +6,12 @@
 <title>Ask the Anesthesiologist — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.21-01"></script>
-<script src="/auth.js?v=2026.08.21-01"></script>
-<script src="/clinical-index.js?v=2026.08.21-01"></script>
-<script src="/clinical-search.js?v=2026.08.21-01"></script>
-<script src="/navbar.js?v=2026.08.21-01"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.21-01">
+<script src="/supabase.js?v=2026.08.21-02"></script>
+<script src="/auth.js?v=2026.08.21-02"></script>
+<script src="/clinical-index.js?v=2026.08.21-02"></script>
+<script src="/clinical-search.js?v=2026.08.21-02"></script>
+<script src="/navbar.js?v=2026.08.21-02"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.21-02">
 <style>
 .ask-form{background:var(--surface);border:1px solid rgba(27,107,90,.22);
   border-radius:var(--radius-md);padding:28px;max-width:580px;}
@@ -116,6 +116,29 @@
 </footer>
 
 <script>
+/* ── THE GUARD THIS PAGE NEVER HAD ─────────────────────────────────────────
+   Ask the Anesthesiologist is a patient destination: it is listed in the
+   patient navigation, the phone tab bar and the More sheet, and nowhere in
+   the public navigation. Its table agrees — q_insert_own is
+   `auth.uid() = patient_id`, so a question with no account behind it is not
+   something the database will accept.
+
+   It was nonetheless the one patient page with no guard of any kind. It never
+   asked who was reading it, so a signed-out visitor and a signed-in account
+   with no role chosen both got the form. requireAuth() now answers both:
+   signed out goes to the homepage, no role chosen goes to the chooser.
+
+   SEPARATE, PRE-EXISTING DEFECT, NOT FIXED HERE. submitQuestion() posts
+   { name, role, topic, question, email }. The questions table has none of
+   those columns — it has patient_id, subject, message, status — so the insert
+   below cannot succeed on the current schema and has not been able to since
+   v2_ask_migration.sql. The guard does not cause that and does not cure it;
+   changing the insert means deciding how the form's fields map onto
+   subject/message, which is a product decision rather than a security one. */
+document.addEventListener('DOMContentLoaded', function(){
+  if (typeof window.requireAuth === 'function') window.requireAuth();
+});
+
 async function submitQuestion(){
   var btn = document.getElementById('ask-btn');
   var ok  = document.getElementById('ask-ok');

@@ -6,13 +6,13 @@
 <title>For Patients — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.21-01"></script>
-<script src="/auth.js?v=2026.08.21-01"></script>
-<script src="/clinical-index.js?v=2026.08.21-01"></script>
-<script src="/clinical-search.js?v=2026.08.21-01"></script>
-<script src="/navbar.js?v=2026.08.21-01"></script>
-<script src="/journey.js?v=2026.08.21-01"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.21-01">
+<script src="/supabase.js?v=2026.08.21-02"></script>
+<script src="/auth.js?v=2026.08.21-02"></script>
+<script src="/clinical-index.js?v=2026.08.21-02"></script>
+<script src="/clinical-search.js?v=2026.08.21-02"></script>
+<script src="/navbar.js?v=2026.08.21-02"></script>
+<script src="/journey.js?v=2026.08.21-02"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.21-02">
 <style>
 /* -- Patient Home (UX ported from surgery-journey; status from derived spine) -- */
 #ph-loader{min-height:50vh;display:flex;align-items:center;justify-content:center;}
@@ -301,6 +301,24 @@ async function isStaff(p){
     // Clinicians preview the patient-facing site (no redirect). They ARE
     // signed in, so their Health Passport link is the direct one.
     if(await isStaff(profile)){ showGuest(true); return; }
+
+    /* A ROLELESS ACCOUNT IS NOT A PATIENT EITHER.
+
+       This page is two things: the public "For Patients" page for a visitor,
+       and the patient home for someone signed in. It cannot use requireAuth()
+       for that reason — the guard would take the marketing page away from
+       everybody who is not logged in.
+
+       So it has to ask the one question itself. Without this, a brand-new
+       Google or Facebook sign-in fell past the isStaff() check into
+       showHome() and was greeted with "Welcome back" and a surgery snapshot,
+       having never said they were a patient. Same destination as every other
+       surface: choose first. A signed-OUT visitor is untouched — they
+       returned at the showGuest(false) line above. */
+    if(!profile || !profile.role || profile.role === 'pending'){
+      window.location.replace('/role-select.html');
+      return;
+    }
 
     showHome(profile, session.user);
 

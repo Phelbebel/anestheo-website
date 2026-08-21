@@ -4,10 +4,10 @@
 /* Tokens first: every value below is drawn from them, and a page's own
    <style> still overrides them because a linked sheet is parsed before the
    inline block that follows it. */
-@import url("tokens.css?v=2026.08.21-01");
+@import url("tokens.css?v=2026.08.21-02");
 
 /* The Point — design-system primitive. Every dark composition inherits it. */
-@import url("point.css?v=2026.08.21-01");
+@import url("point.css?v=2026.08.21-02");
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 

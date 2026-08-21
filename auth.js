@@ -100,7 +100,40 @@ function resetPlatformAdmin() { _adminAnswer = null; }
 
 // ── requireAuth ───────────────────────────────────────────────
 // Call on every protected page. Returns { session, user, profile } or null.
-// Redirects to /index.html if no session.
+// Redirects to /index.html if no session, and to /role-select.html if the
+// account has not chosen a role yet.
+//
+// TWO QUESTIONS, NOT ONE. This used to ask only "is somebody signed in?" and a
+// brand-new account passed it, because role='pending' is a real row with a
+// real session behind it. Being signed in is not the same as having an
+// account that is finished, and every protected page called this expecting it
+// to answer both.
+//
+// WHAT THAT COST. handle_new_user() creates every account at role='pending',
+// and the chooser was only ever OFFERED — by auth-callback.html, which routes
+// correctly, and by one inline check in index.html. Nothing required it. A
+// Google or Facebook sign-in that landed on any other URL — a bookmark, a
+// shared link, the browser restoring a tab — was let straight in with no role
+// on file. Worse, requireRole() sent unapproved callers to
+// /patient-dashboard.html, a page guarded by this function, so the clinical
+// guards actively DELIVERED role-less accounts into the patient application.
+//
+// AND IT WAS NOT COSMETIC. Every patient-side RLS policy keys on ownership —
+// auth.uid() = patient_id — with no role predicate anywhere. To the database a
+// 'pending' account is a fully functional patient: it can create a
+// questionnaire, a Health Passport, a surgery record. The role column said
+// nobody had chosen; the data said otherwise.
+//
+// So the rule lives here, in the one function all of them already call, rather
+// than in a copy on each page that can drift.
+//
+//   opts.allowPending  — for a page that legitimately serves an account with
+//                        no role yet. Nothing ships with it today; it exists
+//                        so that adding such a page is a deliberate act.
+//   opts.noRedirect    — suppresses the UNAUTHENTICATED redirect only. A
+//                        signed-in account with no role is a different
+//                        situation with a different right answer, and sending
+//                        it to the chooser is that answer.
 async function requireAuth(opts) {
   opts = opts || {};
   var session = await getSession();
@@ -118,6 +151,19 @@ async function requireAuth(opts) {
   /* Resolved once here so every caller gets the server's answer without each
      page having to remember to ask for it. */
   var isAdmin = await isPlatformAdmin();
+
+  /* THE ROLE GATE.
+     Administrators are exempt, and deliberately so: is_admin is a platform
+     privilege that only an audited admin action sets, it is orthogonal to the
+     clinical role, and an administrator who has never picked one is still an
+     administrator. Gating them here would lock the Admin Center behind a
+     question that does not apply to them. Everyone else chooses first. */
+  var role = (profile && profile.role) || 'pending';
+  if (role === 'pending' && !isAdmin && !opts.allowPending) {
+    window.location.replace('/role-select.html');
+    return null;
+  }
+
   return { session: session, user: user, profile: profile, isAdmin: isAdmin };
 }
 
@@ -175,6 +221,24 @@ async function requireRole(allowed, opts) {
   if (allow.indexOf('staff') >= 0) ok = isStaff;
   else { ok = allow.indexOf(role) >= 0; if (isAdmin && allow.indexOf('admin') >= 0) ok = true; }
   if (ok) return auth;
+
+  /* NO ROLE IS NOT THE WRONG ROLE.
+     requireAuth() above already sends a roleless account to the chooser, so
+     this is unreachable in ordinary use — it is here because the line below
+     is what made the bypass reachable, and the rule belongs where somebody
+     reading the deny path will look for it.
+
+     What it replaces: `isStaff ? '/dashboard.html' : '/patient-dashboard.html'`
+     with no third case. A brand-new account is not staff, so every clinical
+     URL — the doctor workspace, Live Tools, Live Chart, the questionnaire
+     library — handed it to /patient-dashboard.html and called that a denial.
+     Being turned away from the doctor's door is not a reason to be shown into
+     the patient's. */
+  if (role === 'pending' && !isAdmin) {
+    window.location.replace('/role-select.html');
+    return null;
+  }
+
   // Wrong role: non-staff (patients/other) go to their own space; a staff
   // member lacking a finer role (e.g. a doctor on an admin page) goes to the
   // staff dashboard. replace() so Back doesn't return to the blocked page.
