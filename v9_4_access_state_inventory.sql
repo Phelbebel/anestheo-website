@@ -160,6 +160,42 @@ SELECT 5, 'unclassified gate', g.tablename, g.policyname, 'ATTENTION',
    AND g.tablename NOT IN (SELECT t FROM anes)
 
 UNION ALL
+-- ── 5b · POLICY BODIES, NOT JUST FUNCTION BODIES ─────────────────────────
+-- THE GAP THIS CLOSES. The first version of this file read pg_proc and never
+-- read pg_policies' expressions, so it could report that
+-- anesthesia_case_access() had been re-pointed while saying nothing about
+-- anes_case_insert - which calls is_verified_doctor() INLINE, in its own
+-- WITH CHECK, and is not reached by re-pointing either function.
+--
+-- That matters more than it sounds. RLS requires a row to satisfy at least one
+-- PERMISSIVE policy AND every RESTRICTIVE one. v9_5 section 4 works on the
+-- restrictive side; if the permissive anes_case_insert still demands
+-- is_verified_doctor(), an unverified doctor cannot create a standalone case
+-- no matter what v9_5 does, because the two conditions are ANDed and v9_5
+-- never touches the permissive one.
+--
+-- So: which predicate does each anesthesia_cases policy actually name?
+SELECT 5, 'anesthesia_cases policy', policyname,
+       cmd || ' / ' || permissive || ' :: '
+         || left(coalesce(with_check, qual, '(no expression)'), 90),
+       CASE
+         WHEN coalesce(with_check,'') || coalesce(qual,'') LIKE '%is_verified_doctor%'
+           THEN 'ATTENTION'
+         ELSE 'OK' END,
+       CASE
+         WHEN coalesce(with_check,'') || coalesce(qual,'') LIKE '%is_verified_doctor%'
+           THEN 'still verification-gated: an unverified doctor CANNOT use this. If this is '
+                || 'anes_case_insert or anes_case_update, v9_5 alone will NOT deliver the '
+                || 'standalone chart and this policy must be re-pointed to is_doctor_account()'
+         WHEN coalesce(with_check,'') || coalesce(qual,'') LIKE '%is_doctor_account%'
+           THEN 'v9 section 3 re-pointed this: a doctor account may use it'
+         WHEN coalesce(with_check,'') || coalesce(qual,'') LIKE '%is_pending_doctor%'
+           THEN 'a verification gate; v9_5 narrows or keeps it'
+         ELSE 'names no verification predicate: scoped by ownership only' END
+  FROM pg_policies
+ WHERE schemaname = 'public' AND tablename = 'anesthesia_cases'
+
+UNION ALL
 -- ── 6 · THE VERDICT ──────────────────────────────────────────────────────
 SELECT 9, 'VERDICT', 'v9_doctor_access_model.sql',
        (SELECT count(*)::text FROM gates) || ' verification gate policies present',
