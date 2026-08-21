@@ -7,89 +7,79 @@
 <title>How will you use Anestheo?</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.20-03"></script>
-<script src="/auth.js?v=2026.08.20-03"></script>
-<link rel="stylesheet" href="/tokens.css?v=2026.08.20-03">
+<script src="/supabase.js?v=2026.08.21-01"></script>
+<script src="/auth.js?v=2026.08.21-01"></script>
+<script src="/practice-form.js?v=2026.08.21-01"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.21-01">
 <style>
+/* ── Surface ────────────────────────────────────────────────────────────────
+   Tokens and nothing else. This page used to declare its own --dark:#0A1A15
+   with a 52px repeating grid painted over it, which made registration the one
+   green-black, graph-paper screen in a graphite product. The palette is the
+   homepage's now, and the light behind the card is --ground-glow: the same two
+   radial washes the homepage sits on, not a pattern. */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-:root{--teal:#1B6B5A;--teal2:#2A8A74;--accent:#7ECFC0;--dark:#0A1A15;
-  --border:rgba(27,107,90,.22);--text:#fff;}
-body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
+body{font-family:var(--sans);background:var(--ground);color:var(--ink);
   min-height:100vh;display:flex;align-items:center;justify-content:center;
-  padding:24px;-webkit-font-smoothing:antialiased;
-  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
-  background-size:52px 52px;}
+  padding:24px;-webkit-font-smoothing:antialiased;line-height:1.6;
+  background-image:var(--ground-glow);background-repeat:no-repeat;background-attachment:fixed;}
 .wrap{width:100%;max-width:560px;}
-.brand{text-align:center;font-size:19px;font-weight:600;margin-bottom:22px;}
-.brand span{color:var(--teal2);}
-.card{background:rgba(10,22,15,.98);border:1px solid var(--border);
-  border-radius:var(--radius-xl);overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.5);}
-.card-head{padding:28px 28px 20px;border-bottom:1px solid var(--border);}
-.card-head h1{font-family:var(--sans);font-size:23px;font-weight:700;margin-bottom:6px;}
-.card-head p{font-size:13.5px;color:var(--muted);}
+.brand{text-align:center;font-size:19px;font-weight:600;margin-bottom:22px;letter-spacing:-.01em;}
+.brand span{color:var(--brand-mid);}
+.card{background:var(--ground-2);border:1px solid var(--line);
+  border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--elev-3);}
+.card-head{padding:28px 28px 20px;border-bottom:1px solid var(--line);}
+.card-head h1{font-size:23px;font-weight:700;margin-bottom:6px;line-height:1.3;letter-spacing:-.01em;}
+.card-head p{font-size:13.5px;color:var(--ink-muted);}
 .card-body{padding:24px 28px 28px;}
 .step{display:none;} .step.active{display:block;}
 
 /* Role choice — stacked, generous, description-led. Two options only. */
-.role-opt{display:block;width:100%;text-align:left;background:rgba(255,255,255,.03);
-  border:2px solid rgba(255,255,255,.08);border-radius:var(--radius-md);padding:18px 18px;
-  cursor:pointer;transition:border-color .18s,background .18s;margin-bottom:12px;
+.role-opt{display:block;width:100%;text-align:left;background:var(--surface);
+  border:2px solid var(--line);border-radius:var(--radius-md);padding:18px;
+  cursor:pointer;transition:border-color var(--dur-2),background var(--dur-2);margin-bottom:12px;
   font-family:inherit;color:inherit;-webkit-tap-highlight-color:transparent;}
-.role-opt:hover{border-color:rgba(42,138,116,.45);background:rgba(27,107,90,.1);}
-.role-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-.role-opt.sel{border-color:var(--teal2);background:rgba(27,107,90,.18);}
-.ro-name{font-family:var(--sans);font-size:17px;font-weight:700;margin-bottom:5px;}
-.ro-desc{font-size:13px;color:var(--muted);line-height:1.55;}
-.ro-flag{display:inline-block;margin-top:9px;font-size:11px;font-weight:600;
-  letter-spacing:.05em;text-transform:uppercase;color:rgba(255,220,150,.9);
-  background:rgba(232,168,56,.1);border:1px solid rgba(232,168,56,.26);
-  border-radius:var(--radius-xl);padding:3px 10px;}
+.role-opt:hover{border-color:var(--brand-tint-2);background:var(--surface-2);}
+.role-opt:focus-visible{outline:2px solid var(--brand-lift);outline-offset:2px;}
+.role-opt.sel{border-color:var(--brand-mid);background:var(--brand-tint);}
+.ro-name{font-size:17px;font-weight:700;margin-bottom:5px;}
+.ro-desc{font-size:13px;color:var(--ink-muted);line-height:1.55;}
+.ro-flag{display:inline-block;margin-top:10px;font-size:11px;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--brand-read);
+  background:var(--brand-tint);border:1px solid var(--brand-tint-2);
+  border-radius:var(--radius-pill);padding:3px 10px;}
 
-/* Doctor form */
 .field{margin-bottom:13px;}
-.field label{display:block;font-size:10px;color:rgba(255,255,255,.38);letter-spacing:.06em;
-  text-transform:uppercase;font-weight:600;margin-bottom:5px;}
-.field input,.field select{width:100%;background:rgba(255,255,255,.055);
-  border:1px solid rgba(255,255,255,.11);border-radius:var(--radius-sm);padding:11px 13px;
-  color:var(--text);font-size:14.5px;font-family:inherit;outline:none;
-  transition:border-color .2s;min-height:44px;}
-.field select{appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%237ECFC0' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 13px center;padding-right:32px;}
-.field input:focus,.field select:focus{border-color:var(--teal2);}
-.field select option{background:var(--dark3);color:#fff;}
-.field .hint{font-size:11.5px;color:rgba(255,255,255,.34);margin-top:5px;line-height:1.45;}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
-/* Phone: dial code sits against the number, one control visually */
-.phone-row{display:grid;grid-template-columns:96px 1fr;gap:8px;}
-.phone-row .dial{display:flex;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.11);
-  border-radius:var(--radius-sm);font-size:14.5px;color:var(--accent);min-height:44px;font-variant-numeric:tabular-nums;}
-/* Segmented control for professional level */
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.seg button{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);
-  border-radius:var(--radius-sm);padding:12px 10px;color:rgba(255,255,255,.72);font-family:inherit;
-  font-size:13.5px;font-weight:600;cursor:pointer;min-height:46px;transition:all .18s;}
-.seg button.on{border-color:var(--teal2);background:rgba(27,107,90,.2);color:#fff;}
+.field label{display:block;font-size:10px;color:var(--ink-faint);letter-spacing:.06em;
+  text-transform:uppercase;font-weight:600;margin-bottom:6px;}
+.field input{width:100%;background:var(--surface-2);border:1px solid var(--line-2);
+  border-radius:var(--radius-sm);padding:11px 13px;color:var(--ink);font-size:14.5px;
+  font-family:inherit;outline:none;transition:border-color var(--dur-2);min-height:44px;}
+.field input:focus{border-color:var(--brand-mid);}
+.field .hint{font-size:11.5px;color:var(--ink-faint);margin-top:6px;line-height:1.5;}
+
+/* What a doctor account is, before they commit to it. Teal, not amber: this
+   is what they get, not a warning about what they cannot have. */
+.next-note{background:var(--brand-tint);border:1px solid var(--brand-tint-2);
+  border-radius:var(--radius-md);padding:14px 16px;margin-bottom:18px;}
+.next-note b{display:block;font-size:13px;color:var(--ink);margin-bottom:7px;}
+.next-list{list-style:none;margin:0;padding:0;}
+.next-list li{position:relative;padding:3px 0 3px 18px;font-size:12.5px;
+  color:var(--ink-2);line-height:1.6;}
+.next-list li::before{content:'';position:absolute;left:2px;top:12px;width:5px;height:5px;
+  border-radius:50%;background:var(--brand-mid);}
 
 .btn{width:100%;padding:13px;border-radius:var(--radius-sm);font-size:14.5px;font-weight:600;
-  cursor:pointer;font-family:inherit;border:none;min-height:48px;transition:background .2s;
-  background:var(--teal);color:#fff;margin-top:6px;}
-.btn:hover{background:var(--teal2);}
+  cursor:pointer;font-family:inherit;border:none;min-height:48px;margin-top:8px;
+  background:var(--brand-grad);color:var(--on-brand);transition:filter var(--dur-2);}
+.btn:hover{background:var(--brand-grad-hover);}
 .btn:disabled{opacity:.45;cursor:default;}
-.btn-ghost{background:none;border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.6);
-  margin-top:9px;}
-.btn-ghost:hover{background:rgba(255,255,255,.05);}
-.msg{display:none;border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;margin-top:12px;line-height:1.5;}
-.msg-err{background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:rgba(255,160,140,.93);}
-.verify-note{background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.2);
-  border-radius:var(--radius-sm);padding:12px 14px;font-size:12.5px;color:rgba(255,220,150,.88);
-  line-height:1.65;margin-bottom:16px;}
-.sec-h{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;
-  color:rgba(126,207,192,.62);margin:20px 0 10px;padding-bottom:7px;
-  border-bottom:1px solid rgba(27,107,90,.2);}
-.sec-h:first-child{margin-top:0;}
+.btn-ghost{background:none;border:1px solid var(--line-2);color:var(--ink-muted);margin-top:9px;}
+.btn-ghost:hover{background:var(--surface-2);color:var(--ink);}
+.msg{display:none;border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;
+  margin-top:12px;line-height:1.5;}
+.msg-err{background:var(--danger-bg);border:1px solid var(--danger-bd);color:var(--danger);}
 @media(max-width:480px){
-  .row2,.seg{grid-template-columns:1fr;}
   .card-head,.card-body{padding-left:18px;padding-right:18px;}
 }
 </style>
@@ -112,8 +102,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
         </button>
         <button type="button" class="role-opt" id="ro-doctor" onclick="pickRole('doctor')">
           <div class="ro-name">I&rsquo;m a doctor</div>
-          <div class="ro-desc">Clinical workspace and patient management. Your workspace opens straight away; becoming a Verified Clinician is a separate, optional step.</div>
-          <span class="ro-flag">Verification optional</span>
+          <div class="ro-desc">Clinical workspace and patient management. Your workspace opens straight away; becoming a Verified Clinician is a separate step you take when you are ready.</div>
+          <span class="ro-flag">No paperwork to start</span>
         </button>
         <div class="msg msg-err" id="role-err"></div>
       </div>
@@ -135,77 +125,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
         <div class="msg msg-err" id="patient-err"></div>
       </div>
 
-      <!-- STEP 2b — doctor professional details. Patients never see this. -->
+      <!-- STEP 2b — the doctor account. A name, and they are in.
+           Everything that was here — licence number, hospital, university,
+           specialty, level, country, telephone — is now the verification step
+           on doctor-pending.html. Registration asks for none of it. -->
       <div class="step" id="step-doctor">
-        <div class="verify-note">
-          <strong>Professional verification required.</strong><br>
-          An Anestheo administrator reviews every clinical account by hand. You can sign in
-          while that happens, but the clinical workspace stays closed until you are approved.
-        </div>
-
-        <div class="sec-h">You</div>
-        <div class="field">
-          <label for="d-name">Full name *</label>
-          <input type="text" id="d-name" autocomplete="name" placeholder="As it appears on your registration">
+        <div class="next-note">
+          <b>What happens next</b>
+          <ul class="next-list">
+            <li>Your clinical workspace opens immediately &mdash; patients, anesthesia records, Live Chart and the clinical references</li>
+            <li>Becoming a Verified Clinician is a separate step, from inside the workspace, whenever you are ready</li>
+            <li>Verification is what adds the surfaces patients rely on: the clinician directory, the patient question inbox, and confirming a Health Passport entry</li>
+          </ul>
         </div>
         <div class="field">
-          <label>Professional level *</label>
-          <div class="seg">
-            <button type="button" id="lvl-consultant" onclick="pickLevel('consultant')">Consultant / Specialist</button>
-            <button type="button" id="lvl-resident"   onclick="pickLevel('resident')">Resident</button>
+          <label for="d-name">Your name *</label>
+          <input type="text" id="d-name" autocomplete="name" placeholder="As you want patients and colleagues to see it">
+          <div class="hint" id="d-name-hint" style="display:none">
+            We got this from your sign-in — correct it if it&rsquo;s not how you want to be addressed.
           </div>
         </div>
-        <div class="field">
-          <label for="d-country">Country *</label>
-          <select id="d-country" onchange="onCountryChange()"></select>
-          <div class="hint" id="d-country-hint" style="display:none">
-            We guessed this from your device&rsquo;s time zone — please correct it if it&rsquo;s wrong.
-          </div>
-        </div>
-        <div class="field">
-          <label for="d-phone">Telephone *</label>
-          <div class="phone-row">
-            <div class="dial" id="d-dial">+—</div>
-            <input type="tel" id="d-phone" autocomplete="tel-national" inputmode="tel" placeholder="Phone number">
-          </div>
-          <div class="hint">Used only to reach you about verification.</div>
-        </div>
-
-        <div class="sec-h">Your practice</div>
-        <div class="field">
-          <label for="d-license">Medical license / registration number *</label>
-          <input type="text" id="d-license" placeholder="As issued by your medical council">
-        </div>
-        <div class="field">
-          <label for="d-hospital">Hospital / institution *</label>
-          <input type="text" id="d-hospital" list="dl-hospital" autocomplete="organization"
-                 placeholder="Where you practise">
-          <datalist id="dl-hospital"></datalist>
-          <div class="hint">Suggestions are a starting point — type any institution.</div>
-        </div>
-        <div class="field">
-          <label for="d-university">Medical university *</label>
-          <input type="text" id="d-university" list="dl-university" placeholder="Where you qualified">
-          <datalist id="dl-university"></datalist>
-          <div class="hint">Suggestions are a starting point — type any university.</div>
-        </div>
-        <div class="field">
-          <label for="d-specialty">Specialty *</label>
-          <select id="d-specialty">
-            <option value="">Select…</option>
-            <option>Anesthesiology</option>
-            <option>Anesthesiology &amp; Intensive Care</option>
-            <option>Intensive Care / ICU</option>
-            <option>Pain Medicine</option>
-            <option>Emergency Medicine</option>
-            <option>Surgery</option>
-            <option>Other</option>
-          </select>
-        </div>
-
-        <button class="btn" id="d-submit" onclick="submitDoctor()">Create my doctor account</button>
-        <button class="btn btn-ghost" onclick="backToRole()">Back</button>
+        <button class="btn" id="d-submit" onclick="submitDoctor()">Open my clinical workspace</button>
+        <button class="btn btn-ghost" id="d-back" onclick="backToRole()">Back</button>
         <div class="msg msg-err" id="doctor-err"></div>
+      </div>
+
+      <!-- STEP 2c — THE FALLBACK, and only that.
+           Reached when create_doctor_account() is absent, i.e. this database
+           has not had v9_3 applied and still has no way to make a doctor
+           without the full professional file. Rather than fail registration
+           between a deploy and a migration, we ask for what that database
+           insists on. Nobody sees this once v9_3 is applied. -->
+      <div class="step" id="step-practice">
+        <p style="font-size:13px;color:var(--ink-muted);margin-bottom:18px;line-height:1.65;">
+          We need a few more details before we can open your workspace.
+        </p>
+        <div id="practice-host"></div>
+        <button class="btn" id="pr-submit" onclick="submitPractice()">Open my clinical workspace</button>
+        <button class="btn btn-ghost" onclick="backToRole()">Back</button>
+        <div class="msg msg-err" id="practice-err"></div>
       </div>
 
     </div>
@@ -214,84 +172,37 @@ body{font-family:'DM Sans',sans-serif;background:var(--dark);color:var(--text);
 
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
-   ROLE SELECTION AND DOCTOR ONBOARDING
+   ROLE SELECTION AND DOCTOR REGISTRATION
 
    Two roles are offered. The data model still accepts nurse / student / other
    through set_own_role(), so adding them later is a UI change here and nothing
    else — but offering a role we cannot yet do anything useful with only
    produces accounts nobody can serve.
 
+   WHAT CHANGED, AND WHY THE PAGE IS SHORTER
+
+   Registering as a doctor used to mean stating a licence number, a hospital, a
+   medical university, a specialty, a professional level, a country and a
+   telephone number — eight fields, before seeing a single screen of the
+   product. That was the right shape while an administrator reviewed every
+   doctor before the account could do anything: the form WAS the application.
+
+   It is two things now. Creating the account asks for a name. Becoming a
+   Verified Clinician asks for the eight fields, from inside the workspace, and
+   is what opens the patient-facing surfaces. Neither half was deleted; they
+   were prised apart.
+
    NOTHING ON THIS PAGE IS AN AUTHORIZATION DECISION. The role is written by
-   set_own_role(), which refuses 'admin' and derives verification_status
-   server-side; the professional details are ordinary self-editable profile
-   columns — claims about oneself, not grants. A doctor submitting this form
-   becomes role='doctor', verification_status='pending', and the database
-   denies them every clinical table until an admin approves them.
+   create_doctor_account() or set_own_role(), both of which refuse 'admin' and
+   derive verification_status server-side. A doctor registering here becomes
+   role='doctor', verification_status='pending' — and 'pending' still means
+   every patient-facing surface stays closed until an administrator says
+   otherwise.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 var _role = null;
-var _level = null;
 var _session = null;
 var _profile = null;
-
-/* ── Countries ────────────────────────────────────────────────────────────
-   Dial code travels with the country so the phone field can show the right
-   prefix without a second question. Kept deliberately small and ordinary
-   rather than pretending to be an authoritative ISO dataset. */
-var COUNTRIES = [
-  { name:'Israel',         iso:'IL', dial:'+972' },
-  { name:'Georgia',        iso:'GE', dial:'+995' },
-  { name:'United Kingdom', iso:'GB', dial:'+44'  },
-  { name:'United States',  iso:'US', dial:'+1'   },
-  { name:'Canada',         iso:'CA', dial:'+1'   },
-  { name:'Germany',        iso:'DE', dial:'+49'  },
-  { name:'France',         iso:'FR', dial:'+33'  },
-  { name:'Italy',          iso:'IT', dial:'+39'  },
-  { name:'Spain',          iso:'ES', dial:'+34'  },
-  { name:'Netherlands',    iso:'NL', dial:'+31'  },
-  { name:'Poland',         iso:'PL', dial:'+48'  },
-  { name:'Turkey',         iso:'TR', dial:'+90'  },
-  { name:'India',          iso:'IN', dial:'+91'  },
-  { name:'Australia',      iso:'AU', dial:'+61'  },
-  { name:'Other',          iso:'',   dial:''     }
-];
-
-/* Time zone → country. Reliable enough to save a tap and wrong often enough
-   that it must never be more than a default: the field stays editable, the
-   hint says we guessed, and nothing downstream treats it as verified. It is a
-   device setting, not evidence of where anyone practises. */
-var TZ_COUNTRY = {
-  'Asia/Jerusalem':'Israel', 'Asia/Tel_Aviv':'Israel', 'Asia/Tbilisi':'Georgia',
-  'Europe/London':'United Kingdom', 'Europe/Berlin':'Germany', 'Europe/Paris':'France',
-  'Europe/Rome':'Italy', 'Europe/Madrid':'Spain', 'Europe/Amsterdam':'Netherlands',
-  'Europe/Warsaw':'Poland', 'Europe/Istanbul':'Turkey', 'Asia/Kolkata':'India',
-  'Asia/Calcutta':'India', 'Australia/Sydney':'Australia', 'Australia/Melbourne':'Australia',
-  'America/Toronto':'Canada', 'America/Vancouver':'Canada',
-  'America/New_York':'United States', 'America/Chicago':'United States',
-  'America/Denver':'United States', 'America/Los_Angeles':'United States'
-};
-
-/* Institution suggestions, by country. A convenience only — the inputs are
-   free text and a <datalist> never constrains what can be typed. There is no
-   trustworthy global registry of hospitals or medical schools we could ship
-   or call, and a closed list would lock out exactly the doctors least likely
-   to be on it. So: help where we can, block nobody. */
-var HOSPITALS = {
-  'Israel':['Sheba Medical Center','Ichilov (Sourasky)','Hadassah Ein Kerem','Rambam Health Care Campus','Shaare Zedek Medical Center','Rabin Medical Center (Beilinson)','Soroka Medical Center'],
-  'Georgia':['Tbilisi State Medical University Hospital','Aversi Clinic','New Hospitals','Ingorokva High Medical Technology Center'],
-  'United Kingdom':['Guy’s and St Thomas’','Royal Free Hospital','Addenbrooke’s Hospital','Manchester Royal Infirmary','John Radcliffe Hospital'],
-  'United States':['Massachusetts General Hospital','Cleveland Clinic','Johns Hopkins Hospital','Mayo Clinic','Stanford Health Care'],
-  'Germany':['Charité Berlin','Universitätsklinikum Heidelberg','LMU Klinikum München'],
-  'India':['AIIMS New Delhi','Christian Medical College Vellore','Tata Memorial Hospital']
-};
-var UNIVERSITIES = {
-  'Israel':['Tel Aviv University','Hebrew University of Jerusalem','Technion — Israel Institute of Technology','Ben-Gurion University of the Negev'],
-  'Georgia':['Tbilisi State Medical University','Ivane Javakhishvili Tbilisi State University','David Tvildiani Medical University'],
-  'United Kingdom':['University of Oxford','University of Cambridge','Imperial College London','University of Edinburgh'],
-  'United States':['Harvard Medical School','Johns Hopkins University','Stanford University','University of Pennsylvania'],
-  'Germany':['Charité — Universitätsmedizin Berlin','Heidelberg University','LMU Munich'],
-  'India':['All India Institute of Medical Sciences','Christian Medical College Vellore','Maulana Azad Medical College']
-};
 
 function el(id){ return document.getElementById(id); }
 function showErr(id, m){ var e = el(id); e.textContent = m; e.style.display = 'block'; }
@@ -308,8 +219,8 @@ function clearErr(id){ el(id).style.display = 'none'; }
 
   var profile = await getProfile(session.user.id);
 
-  /* Guarantee the profiles row BEFORE offering any choice. set_own_role()
-     raises P0002 ('no profile row for this account') rather than creating one
+  /* Guarantee the profiles row BEFORE offering any choice. The role setters
+     raise P0002 ('no profile row for this account') rather than creating one
      — correctly, since inventing rows is not a role-setter's job. Normally
      handle_new_user() has already made it, but anyone arriving here directly
      rather than through auth-callback.html can outrun that, and the failure
@@ -329,13 +240,12 @@ function clearErr(id){ el(id).style.display = 'none'; }
     /* An existing account. Three reasons it can legitimately be here, and a
        redirect for everything else — nobody is asked to choose a role twice. */
 
-    // 1. A patient applying to become a doctor, sent from settings. Same form,
-    //    same set_own_role() path, same pending outcome. There is deliberately
-    //    no shortcut that turns a patient into a doctor without it.
+    // 1. A patient becoming a doctor, sent from settings. Same path, same
+    //    outcome: a doctor account at verification_status='pending'. There is
+    //    deliberately no shortcut that makes anybody a VERIFIED doctor.
     if(q.get('apply') === 'doctor' && profile.role === 'patient'){
-      buildCountries();
-      prefillDoctor(profile);
-      openDoctor();
+      _role = 'doctor';
+      openDoctor(profile.full_name || providerName());
       return;
     }
 
@@ -351,7 +261,6 @@ function clearErr(id){ el(id).style.display = 'none'; }
     window.location.replace((res && res.ok) ? res.dest : '/index.html');
     return;
   }
-  buildCountries();
 })();
 
 /* A name is "usable" if it looks like something a person would answer to.
@@ -380,51 +289,23 @@ function providerName(){
   return '';
 }
 
-function buildCountries(){
-  var sel = el('d-country');
-  sel.innerHTML = '<option value="">Select…</option>' +
-    COUNTRIES.map(function(c){ return '<option value="' + c.name + '">' + c.name + '</option>'; }).join('');
-
-  var guess = null;
-  try {
-    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    guess = TZ_COUNTRY[tz] || null;
-  } catch(e){ guess = null; }
-
-  if(guess){
-    sel.value = guess;
-    el('d-country-hint').style.display = 'block';
-  }
-  onCountryChange();
-}
-
-function onCountryChange(){
-  var name = el('d-country').value;
-  var c = COUNTRIES.filter(function(x){ return x.name === name; })[0];
-  el('d-dial').textContent = (c && c.dial) ? c.dial : '+—';
-  fillList('dl-hospital',   HOSPITALS[name]   || []);
-  fillList('dl-university', UNIVERSITIES[name] || []);
-}
-
-function fillList(id, items){
-  el(id).innerHTML = items.map(function(v){
-    return '<option value="' + v.replace(/"/g,'&quot;') + '"></option>';
-  }).join('');
-}
-
 function pickRole(role){
   _role = role;
   el('ro-patient').classList.toggle('sel', role === 'patient');
   el('ro-doctor').classList.toggle('sel',  role === 'doctor');
   clearErr('role-err');
   if(role === 'patient') return openPatient(providerName());
-  openDoctor();
+  openDoctor(providerName());
+}
+
+function showStep(id){
+  ['step-role','step-patient','step-doctor','step-practice'].forEach(function(s){
+    el(s).classList.toggle('active', s === id);
+  });
 }
 
 function openPatient(prefill){
-  el('step-role').classList.remove('active');
-  el('step-doctor').classList.remove('active');
-  el('step-patient').classList.add('active');
+  showStep('step-patient');
   el('rs-h').textContent = 'What should we call you?';
   el('rs-sub').textContent = 'This is the only thing we need to get you started.';
   var f = el('p-name');
@@ -434,41 +315,25 @@ function openPatient(prefill){
   setTimeout(function(){ f.focus(); f.select(); }, 60);
 }
 
-function openDoctor(){
-  el('step-role').classList.remove('active');
-  el('step-patient').classList.remove('active');
-  el('step-doctor').classList.add('active');
-  el('rs-h').textContent = 'Tell us about your practice';
-  el('rs-sub').textContent = 'These open your clinical workspace. You can apply to become a Verified Clinician later.';
-  setTimeout(function(){ el('d-name').focus(); }, 60);
-}
-
-/* A patient applying to be a doctor already told us some of this. Carrying it
-   over is not a shortcut through verification — every field stays editable and
-   the outcome is still role=doctor + pending. */
-function prefillDoctor(p){
-  if(!p) return;
-  if(hasName(p.full_name)) el('d-name').value = p.full_name;
-  if(p.country){ el('d-country').value = p.country; onCountryChange(); }
-  if(p.phone) el('d-phone').value = p.phone;
-  el('rs-sub').textContent = 'We already have some of this. Check it over and add the rest.';
+function openDoctor(prefill){
+  showStep('step-doctor');
+  el('rs-h').textContent = 'What should we call you?';
+  el('rs-sub').textContent = 'That is all we need to open your workspace.';
+  var f = el('d-name');
+  if(prefill){ f.value = prefill; el('d-name-hint').style.display = 'block'; }
+  // A patient arriving through ?apply=doctor has a role already; "Back" would
+  // offer them a choice they have made.
+  el('d-back').style.display = (_profile && _profile.role === 'patient') ? 'none' : 'block';
+  setTimeout(function(){ f.focus(); f.select(); }, 60);
 }
 
 function backToRole(){
-  el('step-doctor').classList.remove('active');
-  el('step-patient').classList.remove('active');
-  el('step-role').classList.add('active');
+  showStep('step-role');
   el('rs-h').textContent = 'How will you use Anestheo?';
   el('rs-sub').textContent = 'This decides what you see. You can ask us to change it later.';
   el('ro-doctor').classList.remove('sel');
   el('ro-patient').classList.remove('sel');
   _role = null;
-}
-
-function pickLevel(v){
-  _level = v;
-  el('lvl-consultant').classList.toggle('on', v === 'consultant');
-  el('lvl-resident').classList.toggle('on',   v === 'resident');
 }
 
 /* ── Patient: a name, and they are in ──────────────────────────────────────
@@ -515,139 +380,112 @@ async function submitPatient(){
   window.location.replace((res && res.ok) ? res.dest : '/index.html');
 }
 
-/* ── Doctor: collect the claim, then wait ──────────────────────────────────
-   Order matters. setOwnRole() first, because it is the call that can fail on
-   authorization; the profile columns are written only once the role is real.
-   Doing it the other way round would leave professional details attached to a
-   roleless account if the role write were refused. */
+/* ── Doctor: a name, and the workspace opens ───────────────────────────────
+   create_doctor_account() writes role='doctor' and verification_status=
+   'pending' in one statement. The professional file is not collected here and
+   is not implied here; the workspace carries the prompt for it. */
 async function submitDoctor(){
   clearErr('doctor-err');
   var name = el('d-name').value.trim();
-  var country = el('d-country').value;
-  var phone = el('d-phone').value.trim();
-  var license = el('d-license').value.trim();
-  var hospital = el('d-hospital').value.trim();
-  var university = el('d-university').value.trim();
-  var specialty = el('d-specialty').value;
   var btn = el('d-submit');
+  if(!hasName(name)){
+    showErr('doctor-err', 'Please enter your name so we know how to address you.');
+    el('d-name').focus();
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Opening your workspace…';
 
-  var missing = [];
-  if(!name) missing.push('your full name');
-  if(!_level) missing.push('your professional level');
-  if(!country) missing.push('your country');
-  if(!phone) missing.push('a telephone number');
-  if(!license) missing.push('your license number');
-  if(!hospital) missing.push('your hospital');
-  if(!university) missing.push('your medical university');
-  if(!specialty) missing.push('your specialty');
-  if(missing.length){
-    showErr('doctor-err', 'Please add ' + missing.slice(0,3).join(', ') +
-      (missing.length > 3 ? ', and ' + (missing.length - 3) + ' more.' : '.'));
+  var r = await window.createDoctorAccount(name);
+
+  if(r && r.error){
+    btn.disabled = false; btn.textContent = 'Open my clinical workspace';
+    showErr('doctor-err', r.error.message);
     return;
   }
 
-  btn.disabled = true; btn.textContent = 'Setting up your workspace…';
-
-  /* HOTFIX PATH. v9_1 is live and set_own_role() no longer accepts 'doctor',
-     so this now goes through submit_doctor_onboarding() — one atomic call that
-     validates the same eight fields on the server and writes role and details
-     together.
-
-     ROUTING IS UNCHANGED ON PURPOSE. The access model (v9) is NOT applied yet,
-     so an unapproved doctor still cannot reach clinical data, and this page
-     still lands them on /doctor-pending.html exactly as it does today. Telling
-     them the workspace is open before the database agrees would be worse than
-     the bug this fixes. */
-  var onb = await window.submitDoctorOnboarding({
-    full_name:              name,
-    professional_level:     _level,
-    country:                country,
-    phone:                  normalizePhone(country, phone),
-    medical_license_number: license,
-    hospital:               hospital,
-    medical_university:     university,
-    specialty:              specialty
-  });
-
-  if(onb && onb.error){
-    btn.disabled = false; btn.textContent = 'Create my doctor account';
-    showErr('doctor-err', onb.error.message);
+  /* No create_doctor_account() on this database: it has not had v9_3 applied
+     and still cannot make a doctor without the full professional file. Ask for
+     it rather than fail. Announced plainly, because being sent to a longer
+     form than the one advertised deserves a sentence. */
+  if(r && r.legacy){
+    btn.disabled = false; btn.textContent = 'Open my clinical workspace';
+    openPractice(name);
     return;
   }
 
-  if(onb && onb.data && onb.data.ok === false){
-    btn.disabled = false; btn.textContent = 'Create my doctor account';
-    var LBL = { full_name:'your full name', professional_level:'your professional level',
-                country:'your country', phone:'a telephone number',
-                medical_license_number:'your licence number', hospital:'your hospital',
-                medical_university:'your medical university', specialty:'your specialty' };
-    if(onb.data.code === 'invalid_field'){
-      showErr('doctor-err', 'Please choose ' + (LBL[onb.data.field] || onb.data.field) + ' from the list.');
-    } else {
-      var miss = (onb.data.missing || []).map(function(k){ return LBL[k] || k; });
-      showErr('doctor-err', 'Please add ' + miss.slice(0,3).join(', ') +
-        (miss.length > 3 ? ', and ' + (miss.length - 3) + ' more.' : '.'));
-    }
+  if(r && r.data && r.data.ok === false){
+    btn.disabled = false; btn.textContent = 'Open my clinical workspace';
+    showErr('doctor-err', 'Please enter your name so we know how to address you.');
     return;
   }
 
-  /* Only reached when the RPC is absent, i.e. v9_1 has not been applied to
-     this database. The old two-step still works there. */
-  if(onb && onb.legacy){
-    var roleRes = await window.setOwnRole('doctor');
-    if(roleRes && roleRes.error){
-      btn.disabled = false; btn.textContent = 'Create my doctor account';
-      showErr('doctor-err', roleRes.error.message || 'We could not submit your application.');
-      return;
-    }
-  } else {
-    /* Straight into the workspace. v9_doctor_access_model.sql is deployed, so
-       being a doctor account is what opens it — there is nothing to wait for,
-       and the dashboard itself carries the optional Verified Clinician prompt.
-       This used to land on /doctor-pending.html, which was correct only while
-       the blanket policies were still denying every clinical table. */
-    window.location.replace('/dashboard.html');
-    return;
-  }
-
-  /* Below here is the LEGACY path only — reached when
-     submit_doctor_onboarding() is absent, i.e. a database that has not had
-     v9_1 applied. Such a database almost certainly has not had v9 either, so
-     its unapproved doctors ARE still gated and /doctor-pending.html remains
-     the honest destination for them. The two paths differ on purpose. */
-
-  var save = await window.saveProfile(_session.user.id, {
-    email:                  _session.user.email,
-    full_name:              name,
-    professional_level:     _level,
-    country:                country,
-    phone:                  normalizePhone(country, phone),
-    medical_license_number: license,
-    hospital:               hospital,
-    medical_university:     university,
-    specialty:              specialty
-  });
-  if(save && save.error){
-    /* The role IS set at this point, so they are a pending doctor with an
-       incomplete file rather than a lost account. Say so plainly and send
-       them on: an admin can ask for the rest. */
-    btn.disabled = false; btn.textContent = 'Create my doctor account';
-    showErr('doctor-err', 'Your application was created but some details did not save: ' +
-      (save.error.message || 'unknown error') + ' You can add them from your profile.');
-    return;
-  }
-  window.location.replace('/doctor-pending.html');
+  window.location.replace('/dashboard.html');
 }
 
-/* Store something closer to E.164 than free text, without pretending to be a
-   full phone-number library: strip separators, drop a national trunk '0', and
-   prefix the country's dial code unless the person already typed one. */
-function normalizePhone(countryName, raw){
-  var c = COUNTRIES.filter(function(x){ return x.name === countryName; })[0];
-  var digits = String(raw || '').replace(/[^\d+]/g, '');
-  if(digits.charAt(0) === '+') return digits;
-  digits = digits.replace(/^0+/, '');
-  return (c && c.dial) ? (c.dial + digits) : digits;
+/* ── The fallback form ─────────────────────────────────────────────────────
+   Same component the verification step uses, so a doctor who registers on a
+   pre-v9_3 database fills in exactly the fields verification would have asked
+   for, and arrives with a complete file. */
+var _fallbackName = '';
+function openPractice(name){
+  _fallbackName = name;
+  showStep('step-practice');
+  el('rs-h').textContent = 'Tell us about your practice';
+  el('rs-sub').textContent = 'These open your clinical workspace on this system.';
+  window.AhPractice.mount(el('practice-host'), { hideName: true });
+  window.AhPractice.prefill(_profile);
+  setTimeout(function(){ var f = el('practice-host').querySelector('input,select');
+                         if(f) f.focus(); }, 60);
+}
+
+async function submitPractice(){
+  clearErr('practice-err');
+  var btn = el('pr-submit');
+  btn.disabled = true; btn.textContent = 'Opening your workspace…';
+
+  var res = await window.AhPractice.submit({ name: _fallbackName });
+
+  /* THE DOUBLE-LEGACY PATH: neither v9_3 nor v9_1. On such a database
+     set_own_role() still accepts 'doctor' and the eight columns are ordinary
+     self-editable profile fields, so the original two-step is both available
+     and correct — and it is also the only thing that works there.
+
+     The order is the one it always was: the privileged call first, because
+     that is the one that can be refused. Details attached to a roleless
+     account would be worse than no details.
+
+     Routing differs from the v9_3 path ON PURPOSE. A database without v9 has
+     the old restrictive policies, so an unapproved doctor really would find
+     the workspace empty; /doctor-pending.html is the honest destination
+     there. */
+  if(!res.ok && res.legacy){
+    var roleRes = await window.setOwnRole('doctor');
+    if(roleRes && roleRes.error){
+      btn.disabled = false; btn.textContent = 'Open my clinical workspace';
+      showErr('practice-err', roleRes.error.message || 'We could not open your account.');
+      return;
+    }
+    var save = await window.saveProfile(_session.user.id,
+      Object.assign({ email: _session.user.email }, res.fields));
+    if(save && save.error){
+      /* The role IS set at this point, so they are a doctor with an
+         incomplete file rather than a lost account. Say so plainly and send
+         them on: the verification step can ask again. */
+      btn.disabled = false; btn.textContent = 'Open my clinical workspace';
+      showErr('practice-err', 'Your account was created but some details did not save. ' +
+        'You can add them from Become a Verified Clinician.');
+      return;
+    }
+    window.location.replace('/doctor-pending.html');
+    return;
+  }
+
+  if(!res.ok){
+    btn.disabled = false; btn.textContent = 'Open my clinical workspace';
+    showErr('practice-err', res.message);
+    return;
+  }
+  window.location.replace('/dashboard.html');
 }
 </script>
 </body>

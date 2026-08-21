@@ -268,6 +268,40 @@ async function submitDoctorOnboarding(fields) {
 }
 window.submitDoctorOnboarding = submitDoctorOnboarding;
 
+/* ── createDoctorAccount ────────────────────────────────────────────────────
+   Registration and verification are two acts, and this is the first one: a
+   doctor account from a name alone, at verification_status='pending'.
+
+   The professional file — licence, hospital, university, specialty — is no
+   longer collected here. It is collected on doctor-pending.html, through
+   submit_doctor_onboarding(), which is unchanged and still insists on all
+   eight fields. Nothing about what verification requires has moved; only when
+   it is asked for has.
+
+   WHEN THE RPC IS ABSENT this deployment has not had v9_3 applied, so the
+   database still has no way to make a doctor without the full file. Answering
+   { legacy:true } lets the caller fall back to asking for it, which is the
+   current behaviour and is correct on that database. The alternative — failing
+   — would take doctor registration down between deploying this file and
+   applying the migration. */
+async function createDoctorAccount(fullName) {
+  try {
+    var r = await window.sb.rpc('create_doctor_account', { p_full_name: fullName || null });
+    if (r.error) {
+      var m = r.error.message || '';
+      if (r.error.code === '42883' || r.error.code === 'PGRST202' ||
+          /function .* does not exist|could not find the function|schema cache/i.test(m)) {
+        return { legacy: true, error: null };
+      }
+      return { error: { message: m || 'We could not open your account.' } };
+    }
+    return { data: r.data || null, error: null };
+  } catch (e) {
+    return { error: { message: e.message || 'We could not reach the server.' } };
+  }
+}
+window.createDoctorAccount = createDoctorAccount;
+
 async function setOwnRole(role) {
   try {
     var r = await window.sb.rpc('set_own_role', { p_role: role });
