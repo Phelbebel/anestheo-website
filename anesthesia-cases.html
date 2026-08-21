@@ -42,8 +42,9 @@ h1{font-family:var(--sans);font-size:26px;font-weight:700;margin-bottom:4px;}
 .b-live{background:rgba(27,107,90,.18);border:1px solid rgba(42,138,116,.35);color:var(--accent);}
 .b-done{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.6);}
 .empty{text-align:center;padding:34px 18px;color:var(--muted);font-size:14px;line-height:1.7;}
-/* Teal, not amber. Practice charting is a legitimate use of the product, not
-   a degraded state, and an alert colour would tell the opposite story. */
+/* Teal, not amber. A Standalone Clinical Case is a legitimate use of the
+   product, not a degraded state, and an alert colour would tell the opposite
+   story. */
 .ac-standalone{display:flex;flex-direction:column;gap:3px;margin:0 0 16px;padding:13px 16px;
   border-radius:var(--radius-md);background:var(--brand-tint);border:1px solid var(--brand-tint-2);}
 .ac-standalone b{font-size:13px;font-weight:700;color:var(--ink);}
@@ -94,14 +95,21 @@ select option{background:var(--dark3);}
   <div class="card">
     <div class="card-h">START A NEW RECORD</div>
     <div class="card-b">
-      <label for="n-name">Patient name</label>
+      <!-- The label, the placeholder and the two identity fields below are
+           rewritten in place for a Standalone Clinical Case. Written here as
+           the verified-clinician form because that is the one most people
+           see; openStandalone() adjusts it once, on load, rather than the page
+           carrying two copies of the same markup. -->
+      <label for="n-name" id="n-name-lab">Patient name</label>
       <input id="n-name" placeholder="As identified in theatre" autocomplete="off">
-      <label for="n-mrn">Hospital / MRN</label>
-      <input id="n-mrn" autocomplete="off">
+      <div id="n-idwrap">
+        <label for="n-mrn">Hospital / MRN</label>
+        <input id="n-mrn" autocomplete="off">
+      </div>
       <!-- Date of birth OR age. A new record starts with neither: an empty
            field is an honest statement, and a patient whose birthday nobody
            knows is a normal morning in theatre, not an error. -->
-      <label>Date of birth / age</label>
+      <label id="n-dob-lab">Date of birth / age</label>
       <div id="n-dobwrap"></div>
       <div class="g2">
         <div><label for="n-weight">Weight (kg)</label><input id="n-weight" type="number" step="0.1"></div>
@@ -117,6 +125,8 @@ select option{background:var(--dark3);}
       </div>
       <label for="n-proc">Planned procedure</label>
       <input id="n-proc" placeholder="e.g. Laparoscopic cholecystectomy" autocomplete="off">
+      <label for="n-diag">Diagnosis</label>
+      <input id="n-diag" placeholder="e.g. Symptomatic cholelithiasis" autocomplete="off">
       <label for="n-allergy">Allergies</label>
       <input id="n-allergy" placeholder="Leave blank only if genuinely none known" autocomplete="off">
       <button class="btn" id="n-go" onclick="createCase()">Open record</button>
@@ -237,17 +247,61 @@ function createHint(msg){
   return 'Nothing was saved. You can correct the details and try again.';
 }
 
+/* ── STANDALONE CLINICAL CASE ──────────────────────────────────────────────
+   Not a sandbox and not a demo. The anesthesia record it opens is the real
+   one, the same chart a verified clinician keeps, with the same drugs, vitals,
+   airway, events and timings. What it does not carry is a patient's identity,
+   because a doctor account that has not been verified has no standing to hold
+   one.
+
+   So this rewrites three things and leaves the rest of the form alone: the
+   name field becomes a case title, the MRN field goes, and the date-of-birth
+   control becomes age. Age stays because dosing needs it and "44 years"
+   describes a physiology rather than a person.
+
+   Everything here is presentation. v9_5_verification_boundary.sql refuses
+   mrn, date_of_birth, surgery_id, clinic_patient_id and patient_user_id on
+   the write side for exactly this caller, so a console cannot get past it. */
+function openStandalone(){
+  el('n-name-lab').textContent = 'Case title';
+  el('n-name').placeholder = 'e.g. Morning list, case 2';
+  el('n-idwrap').style.display = 'none';
+  el('n-dob-lab').textContent = 'Age';
+  el('q').placeholder = 'Search by title, procedure or room';
+
+  var head = document.querySelector('.card-h');
+  if(head) head.textContent = 'START A STANDALONE CLINICAL CASE';
+
+  var note = document.createElement('div');
+  note.className = 'ac-standalone';
+  note.innerHTML =
+    '<b>Standalone Clinical Case</b>' +
+    '<span>Full anesthesia documentation, saved to your account and not attached to a ' +
+    'patient record. Complete <a href="/doctor-pending.html">professional verification</a> ' +
+    'to chart for your own patients.</span>';
+  /* Above the form, not above the list. Inserting it before #list put it
+     inside the "Active — 0 records" card, where it read as a note about the
+     empty list rather than an explanation of the form above it. It belongs
+     before the thing it describes. */
+  var form = document.querySelector('.card');
+  if(form && form.parentNode) form.parentNode.insertBefore(note, form);
+}
+
 async function createCase(){
   if(_creating) return;                     // a second tap must not open a second case
   var err = el('n-err'); err.style.display = 'none';
   var name = el('n-name').value.trim();
-  if(name.length < 2){ showCreateError('Enter the patient name.', ''); el('n-name').focus(); return; }
+  if(name.length < 2){
+    showCreateError(ANES.standalone ? 'Give the case a title.' : 'Enter the patient name.', '');
+    el('n-name').focus(); return; }
 
   /* Refused here rather than by the database, so the clinician is told which
      field is wrong while they are still looking at it. */
   var age = ANES.readDob('n-dob');
   if(age.error){
-    showCreateError(age.error, 'Correct the date of birth, give an age instead, or leave both blank.');
+    showCreateError(age.error, ANES.standalone
+      ? 'Give an age, or leave it blank.'
+      : 'Correct the date of birth, give an age instead, or leave both blank.');
     var f = el('n-dob-wrap'); if(f) try { f.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e){}
     return;
   }
@@ -258,8 +312,13 @@ async function createCase(){
   try {
     r = await ANES.createCase({
       display_name: name,
-      mrn: el('n-mrn').value.trim() || null,
-      date_of_birth: age.date_of_birth,
+      /* NULL, not "whatever is in the hidden input". A Standalone Clinical
+         Case carries no identifiers, and sending an empty string would be a
+         value where the policy expects an absence. The database refuses these
+         columns for this caller anyway — this is the form agreeing with it
+         rather than discovering it. */
+      mrn: ANES.standalone ? null : (el('n-mrn').value.trim() || null),
+      date_of_birth: ANES.standalone ? null : age.date_of_birth,
       age_value: age.age_value,
       age_unit: age.age_unit,
       weight_kg: parseFloat(el('n-weight').value) || null,
@@ -267,6 +326,7 @@ async function createCase(){
       asa_class: el('n-asa').value || null,
       urgency: el('n-urgency').value,
       planned_procedure: el('n-proc').value.trim() || null,
+      diagnosis: el('n-diag').value.trim() || null,
       allergies: el('n-allergy').value.trim() || null
     });
   } catch(e){
@@ -317,14 +377,8 @@ async function createCase(){
      clinician who charts a real case here and later finds it is not on the
      patient's record has been misled by silence. */
   if(auth.unverifiedDoctor){
-    var note = document.createElement('div');
-    note.className = 'ac-standalone';
-    note.innerHTML =
-      '<b>Practice charting</b>' +
-      '<span>Your charts are saved to your account but are not attached to a patient record. ' +
-      'Complete <a href="/doctor-pending.html">professional verification</a> to chart for your patients.</span>';
-    var host = el('list');
-    if(host && host.parentNode) host.parentNode.insertBefore(note, host);
+    ANES.setStandalone(true);
+    openStandalone();
   }
 
   el('tools-bar').innerHTML = window.nbToolsBar('/anesthesia-cases.html');

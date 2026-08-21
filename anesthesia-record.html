@@ -499,7 +499,7 @@ function renderField(spec, f, v){
   var id = 'f-' + spec + '-' + f.k;
   var val = v[f.k];
   var out = '<div class="fld' + (f.type === 'area' || f.type === 'multi' || f.type === 'dob' ? ' wide' : '') + '">' +
-            '<span class="flab">' + esc(f.label) + '</span>';
+            '<span class="flab">' + esc(ANES.caseFieldLabel(f.k, f.label)) + '</span>';
 
   if(f.type === 'choice'){
     out += '<div class="opts">' + (f.options || []).map(function(o){
@@ -569,6 +569,12 @@ function renderForm(spec, form, opts){
     // a lumen count on a peripheral cannula teaches the clinician to ignore
     // the form.
     if(opts.fieldFilter && !opts.fieldFilter(f, v)) return false;
+    /* A Standalone Clinical Case identifies nobody, so the identity fields are
+       not drawn. One filter, at the single point every form renders through,
+       rather than a second field list that would drift from the first. The
+       database refuses these columns for this caller regardless — see
+       v9_5_verification_boundary.sql. */
+    if(ANES.standalone && ANES.IDENTITY_FIELDS.indexOf(f.k) >= 0) return false;
     return true;
   });
   var groups = {};
@@ -1157,9 +1163,15 @@ function secRecord(){
   var c = _case, m = _chartModel = chartModel(), t = ANES.totals(D);
   var dl = function(k, v){ return '<div><dt>' + esc(k) + '</dt><dd>' + (v == null || v === '' ? '—' : esc(v)) + '</dd></div>'; };
 
+  /* On a Standalone Clinical Case the identity rows are not empty, they are
+     absent. Printing "MRN —" states that a case has no MRN, which invites the
+     reader to wonder whether one was missed; omitting the row says the record
+     was never about a person. */
   var idBlock = '<div class="rvgrid">' +
-    dl('Patient', c.display_name) + dl('MRN', c.mrn) +
-    dl('Date of birth', c.date_of_birth || 'Not known') + dl('Age', ANES.ageLabel(c)) +
+    (ANES.standalone
+      ? dl('Case title', c.display_name) + dl('Age', ANES.ageLabel(c))
+      : dl('Patient', c.display_name) + dl('MRN', c.mrn) +
+        dl('Date of birth', c.date_of_birth || 'Not known') + dl('Age', ANES.ageLabel(c))) +
     dl('Sex', c.sex) + dl('Weight', c.weight_kg ? c.weight_kg + ' kg' : '') +
     dl('Height', c.height_cm ? c.height_cm + ' cm' : '') +
     dl('ASA', (c.asa_class||'') + (ANES.yes(c.asa_emergency) ? 'E' : '')) +
@@ -1298,17 +1310,24 @@ function secOverview(){
   var c = _case;
   var known = !!c.date_of_birth;
   var ageTxt = ANES.ageLabel(c);
-  var demo = [
-    ['Name', esc(c.display_name || '—')],
-    ['MRN', esc(c.mrn || '—')],
-    ['Date of birth', known ? esc(c.date_of_birth) : 'Not known'],
-    ['Age', ageTxt ? esc(ageTxt) + (known ? ' <span style="color:var(--muted)">(from date of birth)</span>'
-                                          : ' <span style="color:var(--muted)">(as recorded)</span>') : '—'],
+  /* The export is the document somebody prints and files, so it is the one
+     surface where a misleading label does lasting damage. A Standalone
+     Clinical Case exports as what it is: a titled case with a physiology, and
+     no claim to a name, a number or a birth date. */
+  var demo = (ANES.standalone
+    ? [['Case title', esc(c.display_name || '—')],
+       ['Age', ageTxt ? esc(ageTxt) + ' <span style="color:var(--muted)">(as recorded)</span>' : '—']]
+    : [['Name', esc(c.display_name || '—')],
+       ['MRN', esc(c.mrn || '—')],
+       ['Date of birth', known ? esc(c.date_of_birth) : 'Not known'],
+       ['Age', ageTxt ? esc(ageTxt) + (known ? ' <span style="color:var(--muted)">(from date of birth)</span>'
+                                             : ' <span style="color:var(--muted)">(as recorded)</span>') : '—']]
+  ).concat([
     ['Sex', esc(c.sex || '—')],
     ['Weight', c.weight_kg ? esc(c.weight_kg) + ' kg' : '—'],
     ['Height', c.height_cm ? esc(c.height_cm) + ' cm' : '—'],
     ['ASA', esc(c.asa_class || '—') + (ANES.yes(c.asa_emergency) ? 'E' : '')]
-  ].map(function(i){ return '<div><dt>' + i[0] + '</dt><dd>' + i[1] + '</dd></div>'; }).join('');
+  ]).map(function(i){ return '<div><dt>' + i[0] + '</dt><dd>' + i[1] + '</dd></div>'; }).join('');
 
   return sectionError('case','The case') + sectionError('times','Milestones') +
     '<div class="card"><div class="card-h"><span class="card-t">Patient</span>' +
@@ -2287,10 +2306,14 @@ async function reload(){
 }
 
 (async function(){
-  // Verified doctors only. requireRole sends a pending doctor to the pending
-  // page and a patient to their own area; the database refuses them regardless.
+  /* Doctor accounts, verified or not. requireRole sends a patient to their own
+     area and a roleless account to the chooser; the database decides the rest.
+     An unverified doctor reaches this page for a Standalone Clinical Case and
+     is refused any patient-linked one by v9_5's RESTRICTIVE policy, which
+     matches on the row rather than on the URL. */
   var auth = await window.requireRole('staff');
   if(!auth) return;
+  ANES.setStandalone(!!auth.unverifiedDoctor);
   if(!CASE_ID){ location.replace('/anesthesia-cases.html'); return; }
   if(!await reload()) return;          // the page now explains why; nothing more to show
   setInterval(tickClock, 15000);

@@ -262,7 +262,7 @@ BEGIN
   /* USING AND WITH CHECK ARE DELIBERATELY NOT THE SAME EXPRESSION.
      USING decides what an unverified doctor may SEE and reach; WITH CHECK
      decides what they may LEAVE BEHIND. Identifiers are constrained only on
-     the write side, for one practical reason: a sandbox case created before
+     the write side, for one practical reason: a standalone case created before
      this rule may already carry an mrn, and putting the identifier test in
      USING would make that row invisible to the person who owns it, with no
      way to correct it. On the write side the same row is self-healing -
@@ -280,8 +280,9 @@ BEGIN
       ||   'surgery_id IS NULL AND clinic_patient_id IS NULL AND patient_user_id IS NULL)) '
       || 'WITH CHECK (NOT public.is_pending_doctor() OR ('
       ||   'surgery_id IS NULL AND clinic_patient_id IS NULL AND patient_user_id IS NULL '
-      /* ── ADDED: the sandbox is a clinical sandbox, not a place to keep a
-            real person's identifiers. display_name is NOT constrained - it
+      /* ── ADDED: a Standalone Clinical Case is a clinical record, not a
+            place to keep a real person's identifiers. display_name is NOT
+            constrained - it
             becomes the case title. sex, weight, height, ASA, allergies,
             diagnosis and the procedure fields are clinical, not identifying,
             and stay exactly as they are. ── */

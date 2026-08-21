@@ -256,11 +256,46 @@ function dobStyles(){
 
 /* prefix namespaces the ids so the new-record form and the chart's edit form
    can both be on screen without colliding. */
+/* ── STANDALONE CLINICAL CASE MODE ─────────────────────────────────────────
+   A doctor account that is not yet verified charts real anesthesia against a
+   case that identifies nobody. The clinical half is untouched: age, sex,
+   weight, height, ASA, procedure, diagnosis, notes and the whole anesthesia
+   record behave exactly as they do for a verified clinician. What is absent is
+   the identity half - patient name, MRN, date of birth - because the account
+   has no standing to hold a real person's identifiers yet.
+
+   THIS FLAG IS PRESENTATION. It decides which fields are drawn. The boundary
+   is v9_5_verification_boundary.sql, whose RESTRICTIVE policy refuses mrn,
+   date_of_birth and the three link columns on the write side for exactly this
+   caller. Turning this flag off in a console changes what the form looks like
+   and nothing about what the database accepts. */
+ANES.standalone = false;
+ANES.setStandalone = function(on){ ANES.standalone = !!on; };
+
+/* The three columns that name a person. display_name is NOT one of them: in a
+   Standalone Clinical Case it carries the case title, which is why the policy
+   in v9_5 leaves it alone and constrains only these. */
+ANES.IDENTITY_FIELDS = ['mrn', 'date_of_birth'];
+
+/* What a field is called depends on what the case is. "Patient name" on a case
+   with no patient is the form asking for something the record cannot hold. */
+ANES.caseFieldLabel = function(key, fallback){
+  if(!ANES.standalone) return fallback;
+  return ({ display_name:'Case title', date_of_birth:'Age' })[key] || fallback;
+};
+
 ANES.dobFieldHtml = function(prefix, row, opts){
   dobStyles();
   opts = opts || {};
   row = row || {};
-  var mode = (row.age_value != null && row.age_unit) ? 'age' : 'dob';
+  /* ageOnly: the Date of birth tab is not offered, because a date of birth is
+     an identifier and this case has none. Age is not - "44 years" describes a
+     physiology, not a person, and dosing needs it. The Age tab and the
+     age_value/age_unit columns behind it already existed (v5_case_age.sql);
+     this only removes the choice. */
+  var ageOnly = opts.ageOnly || ANES.standalone;
+  var mode = ageOnly ? 'age'
+           : ((row.age_value != null && row.age_unit) ? 'age' : 'dob');
   var p = String(prefix);
   var d = '', m = '', y = '';
   if(row.date_of_birth){
@@ -277,12 +312,16 @@ ANES.dobFieldHtml = function(prefix, row, opts){
 
   var h = '<div class="dobctl" id="' + p + '-wrap" data-mode="' + mode + '"' +
           (opts.spec ? ' data-dobfor="' + esc2(opts.spec) + '" data-dobp="' + esc2(p) + '"' : '') + '>';
-  h += '<div class="dobtabs" role="group" aria-label="How the patient\'s age is known">' +
-       '<button type="button" class="dobtab' + (mode === 'dob' ? ' on' : '') + '" id="' + p + '-tab-dob" ' +
-         'aria-pressed="' + (mode === 'dob') + '" onclick="ANES.dobMode(' + js + ',\'dob\')">Date of birth</button>' +
-       '<button type="button" class="dobtab' + (mode === 'age' ? ' on' : '') + '" id="' + p + '-tab-age" ' +
-         'aria-pressed="' + (mode === 'age') + '" onclick="ANES.dobMode(' + js + ',\'age\')">Age</button>' +
-       '</div>';
+  /* With one option there is no choice to present, and a tab strip of one is a
+     control that does nothing. The age row below renders on its own. */
+  if(!ageOnly){
+    h += '<div class="dobtabs" role="group" aria-label="How the patient\'s age is known">' +
+         '<button type="button" class="dobtab' + (mode === 'dob' ? ' on' : '') + '" id="' + p + '-tab-dob" ' +
+           'aria-pressed="' + (mode === 'dob') + '" onclick="ANES.dobMode(' + js + ',\'dob\')">Date of birth</button>' +
+         '<button type="button" class="dobtab' + (mode === 'age' ? ' on' : '') + '" id="' + p + '-tab-age" ' +
+           'aria-pressed="' + (mode === 'age') + '" onclick="ANES.dobMode(' + js + ',\'age\')">Age</button>' +
+         '</div>';
+  }
 
   // Day / month / year. inputmode="numeric" gives the iPad a number pad while
   // staying a text field, so the year is four keystrokes and not a wheel.
@@ -1222,6 +1261,13 @@ ANES.EDITABLE = {
 /* ── Case header, editable while the record is open ──────────────────────── */
 ANES.FORMS.caseHeader = {
   table:'anesthesia_cases', single:true,
+  /* THE SECOND PLACE IDENTITY IS EDITABLE, and the one an earlier pass at this
+     missed: the New Case form opens a record, this form edits it while it is
+     open. Constraining only the first would have left the second as a way
+     straight back to a patient name. Both are filtered by the same flag.
+
+     Filtered at render time rather than by keeping two field lists, because
+     two lists drift and the drift is silent. */
   fields: [
     F('display_name','Patient name','text'),
     F('mrn','MRN','text'),
