@@ -48,6 +48,29 @@
 -- the patient tables and only narrows the anesthesia ones. Run twice, it is a
 -- no-op the second time.
 --
+-- MEASURED. v9_4 has since been run read-only against production, and the
+-- answer is PARTIAL rather than either world:
+--
+--   anesthesia_case_access()   uses is_doctor_account()  -> v9 section 3 HAS run
+--   anesthesia_case_editable() uses is_doctor_account()  -> same
+--   restrictive verification gates present: 1  (questions_require_verified)
+--   patient-management tables with NO gate: 9
+--       care_requests, clinic_patients, patient_recommendations,
+--       patient_surgeries, preop_checklist, preop_questionnaires,
+--       preparation_plans, questionnaire_templates, requirement_documents
+--   patient_archive_audit  absent      question_replies  absent
+--
+-- So on production this file is not a precaution. Section 3 will ADD nine
+-- gates, closing a hole that is open right now: an unverified doctor can
+-- currently reach those nine tables through ordinary PostgREST calls, scoped
+-- only by ownership. Section 4 will ADD the standalone rule to the anesthesia
+-- family, which today has no gate at all and whose access function was already
+-- re-pointed to is_doctor_account() - meaning an unverified doctor can
+-- currently open patient-LINKED charts they own. Both directions tighten.
+--
+-- The two absent tables are skipped by name-checks that were already there,
+-- and the 1 present gate is left exactly as found.
+--
 -- IT FAILS SAFE
 -- -------------
 -- Section 3 (tighten) comes before section 4 (narrow), so there is no instant

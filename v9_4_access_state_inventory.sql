@@ -22,6 +22,17 @@
 -- Run this, paste the output, and the question is answered from the catalog
 -- rather than from a comment somebody wrote months ago.
 --
+-- IT HAS BEEN RUN. Production answered PARTIAL: both anesthesia predicates
+-- already name is_doctor_account(), exactly 1 restrictive gate survives
+-- (questions_require_verified), and 9 present patient-management tables have
+-- none. Neither of the two clean verdicts below fired, which is the file
+-- working: it said "PARTIAL or UNRECOGNISED - do not apply v9_5 until the rows
+-- above are read by a human", the rows were read, and v9_5 and v9_6 were
+-- written against what they said.
+--
+-- Keep running it before each apply. It is read-only and it is the only thing
+-- in this repository that knows what the database actually is.
+--
 -- HOW TO READ THE OUTPUT
 -- ----------------------
 -- One result set. Every row is a finding, with a `state` column that is either

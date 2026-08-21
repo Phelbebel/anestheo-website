@@ -46,6 +46,8 @@ const DIRECTORY = `[
   { id:'dr-rejected',   full_name:'Dr Rejected',   role:'doctor', is_admin:false, verification_status:'rejected',     accepting_patients:true,  specialty:'Anesthesiology', hospital:'Central' },
   { id:'dr-closed',     full_name:'Dr Closed',     role:'doctor', is_admin:false, verification_status:'approved',     accepting_patients:false, specialty:'Anesthesiology', hospital:'Rambam' },
   { id:'admin-1',       full_name:'Ada Admin',     role:'admin',  is_admin:true,  verification_status:'not_required', accepting_patients:true,  specialty:'Administration', hospital:'Anestheo' },
+  { id:'admin-doc-ok',  full_name:'Dr Admin',      role:'doctor', is_admin:true,  verification_status:'approved',     accepting_patients:true,  specialty:'Anesthesiology', hospital:'Rambam' },
+  { id:'admin-doc-no',  full_name:'Dr Admin Pend', role:'doctor', is_admin:true,  verification_status:'pending',      accepting_patients:true,  specialty:'Anesthesiology', hospital:'Rambam' },
   { id:'patient-1',     full_name:'Ana Patient',   role:'patient',is_admin:false, verification_status:'not_required', accepting_patients:true,  specialty:null, hospital:null }
 ]`;
 
@@ -69,7 +71,6 @@ const RPCS = `
     return { id: window.__DIR_ID || r.id, role: r.role,
              is_admin: r.is_admin, verification_status: r.verification_status };
   }
-  function __isAdmin(p){ return p && p.is_admin === true; }
   function __approved(p){ return p && p.verification_status === 'approved'; }
   function __isVerifiedDoctor(p){ return p && p.role === 'doctor' && __approved(p); }
   function __err(msg, code){ return Promise.resolve({ data:null, error:{ message:msg, code:code } }); }
@@ -82,10 +83,13 @@ const RPCS = `
     /* get_clinician_directory - v9_6 section 2 */
     if(fn === 'get_clinician_directory'){
       record('rpc', { fn:fn, args:p });
+      /* PRODUCTION's body, read from the live database, not from the
+         migration files - which build a broader directory that admits
+         administrators. role='doctor' AND approved, no is_admin branch. */
       var rows = __DIR.filter(function(d){
         return d.accepting_patients === true
-            && (d.role === 'doctor' || d.is_admin === true)
-            && (d.is_admin === true || d.verification_status === 'approved');
+            && d.role === 'doctor'
+            && d.verification_status === 'approved';
       }).map(function(d){
         return { id:d.id, name:d.full_name || 'Clinician', specialty:d.specialty, clinic:d.hospital };
       });
@@ -99,10 +103,11 @@ const RPCS = `
       if(!surg || surg.patient_id !== (me.id || 'patient-1'))
         return __err('Surgery not found for this patient', 'P0001');
       var target = __DIR.filter(function(d){ return d.id === p.p_doctor_id; })[0];
+      /* v9_6 section 3: mirrors the directory exactly. No is_admin branch. */
       var ok = target
             && target.accepting_patients === true
-            && (target.role === 'doctor' || target.is_admin === true)
-            && (target.is_admin === true || target.verification_status === 'approved');
+            && target.role === 'doctor'
+            && target.verification_status === 'approved';
       if(!ok) return __err('Selected clinician is not available', '42501');
       var already = Object.keys(__requests).some(function(k){
         return __requests[k].surgery_id === p.p_surgery_id &&
@@ -123,7 +128,9 @@ const RPCS = `
       if(req.status !== 'requested') return __err('Request is no longer pending', 'P0001');
 
       if(p.p_decision === 'accept'){
-        if(!(__isVerifiedDoctor(me) || __isAdmin(me))){
+        /* v9_6 section 4: is_verified_doctor() alone. Administering the
+           platform is not practising medicine. */
+        if(!__isVerifiedDoctor(me)){
           return __err('Verification is required before accepting patients', '42501');
         }
         req.status = 'accepted';
@@ -241,7 +248,16 @@ const rpc = (pg, fn, args) => pg.evaluate(([f,a]) =>
     t('...nor one who is not accepting patients', ids.indexOf('dr-closed') < 0, ids);
     t('...nor a patient account', ids.indexOf('patient-1') < 0, ids);
     t('directory DOES list the approved doctor', ids.indexOf('dr-approved') >= 0, ids);
-    t('...and the administrator, unchanged', ids.indexOf('admin-1') >= 0, ids);
+    /* THE REGRESSION THIS CAUGHT. An earlier draft of v9_6 would have replaced
+       production's directory with (role='doctor' OR is_admin), putting a pure
+       administrator in front of patients as a selectable clinician. is_admin is
+       a platform privilege and says nothing about practising medicine. */
+    t('a PURE administrator is NOT listed as a clinician',
+      ids.indexOf('admin-1') < 0, ids);
+    t('...but an administrator who IS an approved doctor is listed',
+      ids.indexOf('admin-doc-ok') >= 0, ids);
+    t('...and an administrator doctor who is NOT approved is not',
+      ids.indexOf('admin-doc-no') < 0, ids);
 
     const bad = await rpc(pg, 'request_clinician',
       { p_surgery_id:'surg-1', p_doctor_id:'dr-pending', p_message:'hello' });
@@ -250,8 +266,20 @@ const rpc = (pg, fn, args) => pg.evaluate(([f,a]) =>
     t('...and the message does not say WHY (no enumeration)',
       !/verif/i.test(bad.err||''), bad.err);
 
+    const admin = await rpc(pg, 'request_clinician',
+      { p_surgery_id:'surg-1', p_doctor_id:'admin-1', p_message:'hello' });
+    t('a patient cannot request a pure administrator', admin.err !== null, admin.err);
+    t('...also 42501, and the same neutral message',
+      admin.code === '42501' && admin.err === 'Selected clinician is not available', admin.err);
+
+    const adminPend = await rpc(pg, 'request_clinician',
+      { p_surgery_id:'surg-1', p_doctor_id:'admin-doc-no', p_message:'hello' });
+    t('an admin who is an UNAPPROVED doctor is refused too',
+      adminPend.err !== null && adminPend.code === '42501', adminPend.err);
+
     const st = await pg.evaluate(() => window.__dbState());
-    t('...no care_request row was created', Object.keys(st.requests).length === 0);
+    t('...no care_request row was created by any of them',
+      Object.keys(st.requests).length === 0, Object.keys(st.requests));
     t('...assigned_doctor_id untouched', st.surgeries['surg-1'].assigned_doctor_id === null);
     await ctx.close();
   }
@@ -323,9 +351,21 @@ const rpc = (pg, fn, args) => pg.evaluate(([f,a]) =>
     });
     const acc = await rpc(pg, 'respond_care_request',
       { p_request_id:'req-a', p_decision:'accept', p_reason:null });
-    t('an administrator can still accept a request', acc.err === null, acc.err);
-    t('...verification_status=not_required did not lock them out',
-      acc.code === null, acc.code);
+    /* CHANGED FROM THE PREVIOUS DRAFT, DELIBERATELY. That version carried
+       (is_verified_doctor() OR is_platform_admin()) so administrators were
+       "unchanged". Wrong reading of unchanged: a treating relationship created
+       on the strength of an is_admin flag is a clinical relationship nobody
+       clinically qualified for. Administrator intervention keeps its own
+       audited assignment and transfer RPCs, which v9_6 does not touch. */
+    t('a PURE administrator cannot become a treating doctor', acc.err !== null, acc.err);
+    t('...refused with the same message and 42501',
+      acc.err === 'Verification is required before accepting patients' && acc.code === '42501', acc.code);
+    const stA = await pg.evaluate(() => window.__dbState());
+    t('...and did not become assigned',
+      stA.surgeries['surg-1'].assigned_doctor_id === null, stA.surgeries['surg-1'].assigned_doctor_id);
+    t('...the admin assignment RPCs are untouched by v9_6',
+      !/FUNCTION public\.(admin_assign|admin_transfer)/.test(SQL) &&
+      !/assigned_doctor_id = p_(doctor|to)/.test(SQL));
     await ctx.close();
   }
   {
@@ -337,40 +377,66 @@ const rpc = (pg, fn, args) => pg.evaluate(([f,a]) =>
   // ── 7 · THE MIRROR MATCHES THE SQL ──────────────────────────────────────
   /* Without this the sections above test a JavaScript file's opinion of a
      migration. Each assertion names a condition that must appear in v9_6. */
-  console.log('\n── 7 · the mirror above matches v9_6 ──');
+  console.log('\n── 7 · the mirror above matches v9_6, and v9_6 matches production ──');
   {
     t('v9_6 carries the audit note verbatim',
       /SECURITY DEFINER functions require their own authorization checks[\s\S]{0,80}bypass table RLS/.test(SQL));
-    t('directory filters on verification_status', /verification_status\s*=\s*''approved''/.test(SQL));
-    t('directory keeps administrators on the is_admin branch',
-      /is_admin, false\) = true[\s\S]{0,120}verification_status = ''approved''/.test(SQL));
-    t('request_clinician checks role AND verification',
-      /accepting_patients = true[\s\S]{0,220}verification_status = 'approved'/.test(SQL));
+
+    /* THE DIRECTORY IS NOT TOUCHED. Production's body already filters
+       correctly and the migration FILES build a broader one; replacing it from
+       the files would have widened the patient-facing directory. */
+    t('v9_6 does NOT redefine get_clinician_directory',
+      !/CREATE OR REPLACE FUNCTION public\.get_clinician_directory/.test(SQL) &&
+      !/CREATE FUNCTION public\.get_clinician_directory/.test(SQL));
+    t('...it verifies the deployed body instead',
+      /proname = 'get_clinician_directory'[\s\S]{0,400}RAISE (NOTICE|WARNING)/.test(SQL));
+    t('...and warns loudly if that body lacks the filter',
+      /does NOT filter on verification_status/.test(SQL));
+
+    /* request_clinician: four conditions, no admin branch. */
+    t('request_clinician requires role=doctor', /role = ''doctor''/.test(SQL));
+    t('...and verification_status=approved', /verification_status = ''approved''/.test(SQL));
+    t('...and accepting_patients', /accepting_patients = true/.test(SQL));
+    t('...and the lifecycle columns where they exist',
+      /deleted_at IS NULL/.test(SQL) && /account_status, ''active''\) = ''active''/.test(SQL));
+    t('...with NO is_admin exception anywhere in the file',
+      !/is_platform_admin\(\)/.test(SQL.replace(/^--.*$/gm,'')) ||
+      !/OR public\.is_platform_admin\(\)/.test(SQL));
+
+    /* respond_care_request: is_verified_doctor alone. */
     t('respond_care_request gates only the accept branch',
-      /IF p_decision = 'accept' THEN[\s\S]{0,260}is_verified_doctor\(\)/.test(SQL));
-    t('...with the exact message the requirement names',
+      /IF p_decision = 'accept' THEN[\s\S]{0,300}is_verified_doctor\(\)/.test(SQL));
+    t('...with is_verified_doctor() and NO admin disjunct',
+      /IF NOT public\.is_verified_doctor\(\) THEN/.test(SQL) &&
+      !/is_verified_doctor\(\) OR public\.is_platform_admin/.test(SQL));
+    t('...the exact message the requirement names',
       /'Verification is required before accepting patients'/.test(SQL));
     t('...and SQLSTATE 42501', /ERRCODE = '42501'/.test(SQL));
     t('the decline branch is NOT gated',
       /ELSIF p_decision = 'decline' THEN(?![\s\S]{0,160}is_verified_doctor)/.test(SQL));
+
+    /* Blast radius. */
     t('v9_6 changes no RLS policy', !/CREATE POLICY|DROP POLICY|ALTER POLICY/.test(SQL));
     t('v9_6 changes no table', !/ALTER TABLE|CREATE TABLE|DROP TABLE/.test(SQL));
-    /* get_clinician_directory is built through EXECUTE (it has to be, to stay
-       tolerant of a missing display_name or clinic_name), so its CREATE lives
-       inside a string. Counting distinct NAMES is the honest measure. */
-    t('v9_6 touches exactly three functions, and names them',
+    t('v9_6 changes exactly two function bodies',
       (function(){
         var names = (SQL.match(/CREATE OR REPLACE FUNCTION public\.(\w+)/g) || [])
           .map(function(m){ return m.split('.').pop(); });
         var uniq = names.filter(function(v,i){ return names.indexOf(v) === i; }).sort();
-        return uniq.length === 3 &&
-               uniq.join(',') === 'get_clinician_directory,request_clinician,respond_care_request';
+        return uniq.join(',') === 'request_clinician,respond_care_request';
       })(),
       (SQL.match(/CREATE OR REPLACE FUNCTION public\.(\w+)/g) || []).map(function(m){ return m.split('.').pop(); }));
     t('v9_6 does not touch the six review functions',
       !/FUNCTION public\.(start_review|approve_plan|get_patient_plan|save_doctor_plan|request_changes|mark_document_reviewed)\s*\(/.test(SQL));
-    t('v9_6 names the already-assigned case rather than silently ignoring it',
-      /ALREADY-ASSIGNED UNVERIFIED DOCTORS ARE NOT DETACHED/.test(SQL));
+    t('v9_6 self-checks that no admin bypass crept back in',
+      /has an admin bypass - it must not/.test(SQL));
+
+    /* The measured production state is recorded, not inferred. */
+    t('v9_6 records the measured production findings',
+      /MEASURED AGAINST PRODUCTION/.test(SQL) &&
+      /restrictive gates present  1/.test(SQL));
+    t('...including the zero-rows assignment audit',
+      /ZERO ROWS/.test(SQL) && /NO CLEANUP IS REQUIRED/.test(SQL));
   }
 
   await b.close();
