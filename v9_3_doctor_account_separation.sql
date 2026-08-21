@@ -26,32 +26,35 @@
 --   · is_verified_doctor() and everything keyed on it are untouched, so every
 --     patient-facing surface stays exactly as gated as it is today.
 --
--- ── READ THIS BEFORE APPLYING ───────────────────────────────────────────────
--- WHAT IT COSTS, STATED PLAINLY
+-- ── DEPLOYMENT ORDER. THIS MATTERS. ────────────────────────────────────────
 --
--- v9_1 exists precisely to stop this. Its own header says so: v9 grants the
--- clinical workspace to any doctor account the moment it exists, which removed
--- the administrator who used to review every doctor before the account could
--- do anything, so the eight fields became the only remaining friction between
--- "has an email address" and "has a clinical workspace".
+--   1. v9_4_access_state_inventory.sql   read only. Run it, read the output.
+--   2. v9_5_verification_boundary.sql    establishes what a doctor account is
+--                                        allowed to be.
+--   3. THIS FILE                         makes doctor accounts easy to create.
 --
--- Applying this file removes that friction by design. After it:
+-- An earlier version of this header warned that after this file "anyone who
+-- can register can hold a doctor account, and a doctor account opens patients,
+-- charts, archive and delete with no professional claim on file". That warning
+-- was accurate about a world in which v9_doctor_access_model.sql had removed
+-- the verification gate from all 33 tables, and it was the right thing to say
+-- while that was the only other migration in play.
 --
---     anyone who can register can hold a doctor account, and under v9 a doctor
---     account opens the clinical workspace — patients, charts, Live Chart,
---     archive, delete and the Recycle Bin — with no professional claim of any
---     kind on file.
+-- v9_5 removes the condition the warning depended on. After v9_5 a doctor
+-- account opens the clinician product - Live Tools, references, education, and
+-- Live Chart for a case with no patient attached - and nothing patient-facing.
+-- The patient-management layer stays behind verification_status='approved',
+-- which only an administrator sets and which this function never sets.
 --
--- That is a product decision, not an oversight, and it is the decision this
--- migration was written to carry out. What it does NOT do is widen anything
--- patient-facing: the clinician directory, the patient question inbox,
--- clinician-verified Health Passport entries and co-authorship on another
--- doctor's chart all still key on verification_status='approved', which only
--- an administrator sets and which this function never sets.
+-- So the trade is no longer "easy registration in exchange for open patient
+-- data". It is easy registration into a product that has a boundary. Applying
+-- THIS file before v9_5 would recreate the old warning for real, which is why
+-- the order above is not a suggestion.
 --
--- If that trade is not the intended one, do not apply this file; the frontend
--- degrades to the current eight-field registration on its own when the
--- function is absent.
+-- If v9_5 has not been applied, do not apply this file; the frontend degrades
+-- to the current eight-field registration on its own when the function below
+-- is absent, and that eight-field form is the only thing currently standing
+-- between a stranger and a doctor account.
 -- ============================================================
 
 BEGIN;
@@ -61,6 +64,12 @@ DECLARE v_missing text[] := '{}';
 BEGIN
   IF to_regproc('public.submit_doctor_onboarding') IS NULL THEN
     v_missing := v_missing || 'submit_doctor_onboarding() [v9_1_doctor_onboarding.sql]'::text; END IF;
+  /* The boundary has to exist before the door is widened. Checked by catalog
+     rather than trusted to a runbook: this function is the one thing that
+     makes an unverified doctor account cheap to create, and it must not be
+     cheap to create until being one means something bounded. */
+  IF to_regproc('public.anesthesia_case_unlinked') IS NULL THEN
+    v_missing := v_missing || 'anesthesia_case_unlinked() [v9_5_verification_boundary.sql - APPLY IT FIRST]'::text; END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                   WHERE table_schema='public' AND table_name='profiles'
                     AND column_name='verification_status') THEN

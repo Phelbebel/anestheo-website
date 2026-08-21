@@ -1137,6 +1137,19 @@ function renderShell(flags){
 
   var tabs = flags && flags.kind ? NB_TABS[flags.kind] : null;
 
+  /* An unverified doctor has no patients, so the tab that says "Patients"
+     would be naming something that is not there. The DESTINATION is unchanged
+     — /dashboard.html is their workspace either way — and so is what the
+     database will give them. Only the word changes, because a label that
+     promises patient management to an account which cannot have it is the
+     navigation lying about the product. This is presentation; the boundary is
+     v9_5_verification_boundary.sql. */
+  if(tabs && flags.kind === 'doctor' && flags.unverified){
+    tabs = tabs.map(function(t){
+      return (t.href === '/dashboard.html') ? { href:t.href, label:'Workspace', ico:t.ico } : t;
+    });
+  }
+
   /* No bar for a visitor, and none for an account that has not chosen a role
      yet: there is nothing to be persistently navigating. They keep the public
      header and the drawer, unchanged. */

@@ -6,14 +6,14 @@
 <title>Dashboard — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.21-02"></script>
-<script src="/auth.js?v=2026.08.21-02"></script>
-<script src="/clinical-index.js?v=2026.08.21-02"></script>
-<script src="/clinical-search.js?v=2026.08.21-02"></script>
-<script src="/clinical-open.js?v=2026.08.21-02"></script>
-<script src="/patient-lifecycle.js?v=2026.08.21-02"></script>
-<script src="/navbar.js?v=2026.08.21-02"></script>
-<link rel="stylesheet" href="/tokens.css?v=2026.08.21-02">
+<script src="/supabase.js?v=2026.08.21-03"></script>
+<script src="/auth.js?v=2026.08.21-03"></script>
+<script src="/clinical-index.js?v=2026.08.21-03"></script>
+<script src="/clinical-search.js?v=2026.08.21-03"></script>
+<script src="/clinical-open.js?v=2026.08.21-03"></script>
+<script src="/patient-lifecycle.js?v=2026.08.21-03"></script>
+<script src="/navbar.js?v=2026.08.21-03"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.21-03">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -90,7 +90,38 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-greet{font-family:var(--sans);font-size:24px;font-weight:700;}
 .ws-role{font-size:13px;color:var(--muted);margin-top:2px;}
 .ws-online{color:var(--accent);}
-.verify-banner{max-width:1180px;margin:8px auto 0;padding:11px 16px;background:rgba(232,168,56,.08);border:1px solid rgba(232,168,56,.25);border-radius:var(--radius-md);font-size:13px;color:#E8C16b;}
+.verify-banner{max-width:1180px;margin:8px auto 0;padding:11px 16px;background:var(--warning-bg);border:1px solid var(--warning-bd);border-radius:var(--radius-md);font-size:13px;color:var(--warning);}
+
+/* ── The unverified clinician's home ──────────────────────────────────────
+   Four things that work, then one card about the thing that does not yet.
+   That order is the whole design: a workspace which opens on its own
+   limitation teaches the person that the product is the limitation. */
+.ws-wel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:26px;}
+.ws-wel-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;
+  padding:18px;border-radius:var(--radius-lg);border:1px solid var(--line);background:var(--surface);
+  color:inherit;text-decoration:none;font-family:inherit;cursor:pointer;width:100%;
+  transition:border-color var(--dur-2),background var(--dur-2),transform var(--dur-2);}
+.ws-wel-card:hover{border-color:var(--brand-tint-2);background:var(--surface-2);transform:translateY(-2px);}
+.ws-wel-card:focus-visible{outline:2px solid var(--brand-lift);outline-offset:2px;}
+.ws-wel-ic{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);background:var(--brand-tint);color:var(--brand-read);margin-bottom:6px;}
+.ws-wel-ic svg{width:17px;height:17px;}
+.ws-wel-card b{font-size:15px;font-weight:700;color:var(--ink);}
+.ws-wel-card i{font-style:normal;font-size:12.5px;color:var(--ink-muted);line-height:1.55;}
+
+.ws-verify-card{border:1px solid var(--brand-tint-2);background:var(--brand-tint);
+  border-radius:var(--radius-lg);padding:22px;max-width:640px;}
+.ws-verify-h{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:10px;}
+.ws-verify-p{font-size:13px;color:var(--ink-2);margin-bottom:6px;}
+.ws-verify-l{list-style:none;margin:0 0 18px;padding:0;}
+.ws-verify-l li{position:relative;padding:3px 0 3px 18px;font-size:13px;color:var(--ink-2);line-height:1.6;}
+.ws-verify-l li::before{content:'';position:absolute;left:2px;top:12px;width:5px;height:5px;
+  border-radius:50%;background:var(--brand-mid);}
+.ws-verify-btn{display:inline-block;padding:11px 20px;border-radius:var(--radius-sm);
+  background:var(--brand-grad);color:var(--on-brand);text-decoration:none;font-size:14px;
+  font-weight:600;min-height:44px;line-height:22px;}
+.ws-verify-btn:hover{background:var(--brand-grad-hover);}
+@media(max-width:720px){ .ws-wel-grid{grid-template-columns:1fr;} }
 .ws-shell{max-width:1200px;margin:14px auto 0;padding:0 20px 70px;display:grid;grid-template-columns:228px 1fr;gap:26px;align-items:start;}
 .ws-rail{display:flex;flex-direction:column;gap:3px;position:sticky;top:16px;padding:10px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border:1px solid rgba(27,107,90,.22);border-radius:var(--radius-xl);box-shadow:0 18px 40px rgba(0,0,0,.28);}
 .ws-railgrp{display:flex;flex-direction:column;gap:2px;}
@@ -3403,30 +3434,52 @@ document.addEventListener('DOMContentLoaded', async function(){
 
        Shown only while it is actionable, and never to an administrator, whose
        trust surfaces come from the admin privilege instead. */
+    /* THE VERIFICATION BOUNDARY, IN THE WORKSPACE.
+
+       An unverified doctor is a real doctor account with a real workspace.
+       What they do not have is the patient-management layer, because that is
+       what verification is for. So the rail below drops the sections that
+       would only produce empty lists and refused queries, and the workspace
+       opens on a panel that says what this account can do rather than what it
+       cannot.
+
+       The counts are the specific thing to keep out of their way. Loading
+       patients, cases, questions and the recycle bin for an account the
+       database will refuse produces a row of zeros that reads as "you have no
+       patients" when the truth is "you cannot have patients yet". */
+    var verifiedDoctor = !auth.unverifiedDoctor;
+
     var banner = '';
     if(auth.unverifiedDoctor){
       var vhead = {
-        rejected:          'Your last verification request was not approved.',
-        changes_requested: 'We asked for a change before your verification can go ahead.'
-      }[verif] || 'You are not a Verified Clinician yet.';
+        rejected:          'Your verification was not approved.',
+        changes_requested: 'We need something else before your verification can go ahead.'
+      }[verif] || 'Verify your practice to work with patients.';
       banner = '<div class="verify-banner">&#9733; <strong>' + vhead + '</strong> ' +
-        'Your workspace, your patients and Live Chart are open as normal. Verification adds ' +
-        'the public directory, the patient question inbox, confirming Health Passport entries, ' +
-        'and joining another clinician&rsquo;s record as co-author. ' +
-        '<a href="/doctor-pending.html" style="color:#7ECFC0;">Become a Verified Clinician</a></div>';
+        'Live Tools, Live Chart and the clinical references are open to you now. ' +
+        '<a href="/doctor-pending.html" style="color:#7ECFC0;">Complete verification</a></div>';
     }
 
     // Section rail (switches panels in-place — no navigation away)
+    // Which panel the workspace opens on. A verified doctor lands on their
+    // patients; an unverified one has none, so they land on what they do have.
+    var homeSec = verifiedDoctor ? 'patients' : 'welcome';
     function railTab(sec, icon, label, extra){
-      return '<button class="ws-tab'+(sec==='patients'?' active':'')+'" data-sec="'+sec+'" onclick="wsShow(\''+sec+'\')'+(extra||'')+'">' +
+      return '<button class="ws-tab'+(sec===homeSec?' active':'')+'" data-sec="'+sec+'" onclick="wsShow(\''+sec+'\')'+(extra||'')+'">' +
         '<span class="ws-tab-ic">'+dIcon(icon)+'</span><span class="ws-tab-tx">'+label+'</span></button>';
     }
     var rail =
       '<div class="ws-railgrp">' +
         '<div class="ws-railgrp-lbl">Clinical Workspace</div>' +
-        railTab('oplist','clipboard-list','Operating List',';wsLoadOpList()') +
-        railTab('patients','users','Patients') +
-        railTab('ask','message-circle','Questions') +
+        (verifiedDoctor
+          ? railTab('oplist','clipboard-list','Operating List',';wsLoadOpList()') +
+            railTab('patients','users','Patients') +
+            railTab('ask','message-circle','Questions')
+          /* Not hidden buttons over live data. These three sections are not
+             built at all for an unverified doctor, and the database would
+             refuse them anyway; the rail simply reflects that. */
+          : railTab('welcome','layout-grid','Overview') +
+            '<a class="ws-tab" href="/anesthesia-cases.html"><span class="ws-tab-ic">'+dIcon('clipboard-list')+'</span><span class="ws-tab-tx">Live Chart</span></a>') +
         (isAdminRole ? railTab('admin','shield-check','Admin') : '') +
       '</div>' +
       '<div class="ws-railgrp">' +
@@ -3607,6 +3660,48 @@ document.addEventListener('DOMContentLoaded', async function(){
       '</div>';
     }
 
+    /* SECTION 7 — the unverified doctor's home.
+       Built only for them, so a verified doctor's workspace is byte-identical
+       to what it was. It names the two things that are open, and the one thing
+       that is not, without turning the whole screen into a warning. */
+    var secWelcome = '';
+    if(!verifiedDoctor){
+      secWelcome =
+      '<div class="ws-sec active" id="sec-welcome">' +
+        '<div class="ws-sec-head"><div>' +
+          '<div class="ws-sec-title">Welcome to your clinician workspace</div>' +
+          '<div class="ws-sec-sub">Everything below is open to you now. Working with patients needs one more step.</div>' +
+        '</div></div>' +
+
+        '<div class="ws-wel-grid">' +
+          '<a class="ws-wel-card" href="/engine.html">' +
+            '<span class="ws-wel-ic">'+dIcon('activity')+'</span>' +
+            '<b>Live Tools</b><i>Dosing, airway, regional and the clinical calculators. Nothing to set up.</i></a>' +
+          '<a class="ws-wel-card" href="/anesthesia-cases.html">' +
+            '<span class="ws-wel-ic">'+dIcon('clipboard-list')+'</span>' +
+            '<b>Live Chart</b><i>Chart a case end to end. Your charts are not attached to a patient record until you are verified.</i></a>' +
+          '<button type="button" class="ws-wel-card" onclick="wsShow(\'refs\')">' +
+            '<span class="ws-wel-ic">'+dIcon('book-open')+'</span>' +
+            '<b>References</b><i>The clinical reference library, guidelines and evidence.</i></button>' +
+          '<a class="ws-wel-card" href="/videos.html">' +
+            '<span class="ws-wel-ic">'+dIcon('play-circle')+'</span>' +
+            '<b>Videos</b><i>The Anestheo education library.</i></a>' +
+        '</div>' +
+
+        '<div class="ws-verify-card">' +
+          '<div class="ws-verify-h">Complete professional verification to work with patients</div>' +
+          '<p class="ws-verify-p">Verification unlocks:</p>' +
+          '<ul class="ws-verify-l">' +
+            '<li>Patient management and your operating list</li>' +
+            '<li>Preoperative questionnaires</li>' +
+            '<li>Consultation requests and the patient question inbox</li>' +
+            '<li>Anesthesia records linked to a patient</li>' +
+          '</ul>' +
+          '<a class="ws-verify-btn" href="/doctor-pending.html">Complete verification</a>' +
+        '</div>' +
+      '</div>';
+    }
+
     var mainHTML =
       '<div class="ws-top">' +
         '<div><div class="ws-greet">' + greeting + '</div>' +
@@ -3615,7 +3710,18 @@ document.addEventListener('DOMContentLoaded', async function(){
       banner +
       '<div class="ws-shell">' +
         '<nav class="ws-rail">' + rail + '</nav>' +
-        '<div class="ws-body">' + secOpList + secPatients + secTools + secRefs + secResources + secAsk + secAdmin + '</div>' +
+        /* THE PATIENT SECTIONS ARE NOT BUILT, not merely hidden.
+           An earlier pass left them in the DOM and relied on the rail not
+           linking to them. Both they and the welcome panel carry .active by
+           default, so the workspace rendered the welcome card and then, right
+           underneath it, "0 patients", a row of zero counts, an empty Recycle
+           Bin and a New Patient button — a whole patient-management console
+           reporting nothing, for an account that cannot have anything. A zero
+           is a claim. Not rendering is the only honest option. */
+        '<div class="ws-body">' +
+          (verifiedDoctor ? (secOpList + secPatients + secAsk) : secWelcome) +
+          secTools + secRefs + secResources + secAdmin +
+        '</div>' +
       '</div>';
 
     document.getElementById('app').innerHTML = mainHTML;
@@ -3626,12 +3732,18 @@ document.addEventListener('DOMContentLoaded', async function(){
     window.__wsUserName = ((role === 'doctor' || role === 'admin') ? 'Dr. ' : '') + (profile.full_name || name);
     wsInjectModals();
     wsMpRestoreState();
-    wsLoadPatients();
-    wsLoadCases();
-    wsLoadAsk();
-    // The bin badge has to be right before the tab is opened, or a count of 0
-    // over a bin that is not empty is worse than no badge at all.
-    wsLoadRecycleBin();
+    /* NOT LOADED FOR AN UNVERIFIED DOCTOR, and not because the queries would
+       fail — though after v9_5 they will. A zero next to "Patients" is a
+       sentence, and the sentence it makes is "you have none", which is not
+       what is true. Asking at all is the mistake. */
+    if(verifiedDoctor){
+      wsLoadPatients();
+      wsLoadCases();
+      wsLoadAsk();
+      // The bin badge has to be right before the tab is opened, or a count of 0
+      // over a bin that is not empty is worse than no badge at all.
+      wsLoadRecycleBin();
+    }
     if(isAdminRole){ wsLoadAdmin(); }
 
     _dashDone = true; clearTimeout(_dashWatchdog);

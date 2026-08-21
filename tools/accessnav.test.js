@@ -122,11 +122,27 @@ const where = pg => pg.evaluate(() => location.pathname);
       return { text: bn ? bn.textContent.replace(/\s+/g,' ').trim() : null,
                sticky: !!document.getElementById('auth-pending-doctor-notice') };
     });
-    t('Dashboard: the prompt is an OFFER, not a restriction',
-      !!s.text && /Verified Clinician/i.test(s.text), (s.text||'').slice(0,70));
-    t('...it names what verification adds',
-      /directory/i.test(s.text||'') && /question/i.test(s.text||''), (s.text||'').slice(0,90));
-    t('...and does not claim patient records are closed',
+    /* REWRITTEN DELIBERATELY, because the sentence these assertions were
+       holding is no longer true.
+
+       The old banner said verification was an OFFER and that "your workspace,
+       your patients and Live Chart are open as normal". Patients are not open
+       as normal: v9_5_verification_boundary.sql keeps every patient-management
+       table behind verification_status='approved', which is the whole point of
+       this change. A test that insisted the banner call patient access open
+       would now be enforcing the bug.
+
+       What is asserted instead: the banner names the two things that ARE open,
+       does not claim patients are, and offers the way forward. The detail —
+       what verification unlocks, item by item — moved to the card in the
+       welcome panel, which is checked in verification-boundary.test.js. */
+    t('Dashboard: the prompt names what IS open',
+      !!s.text && /Live Tools/i.test(s.text) && /Live Chart/i.test(s.text), (s.text||'').slice(0,90));
+    t('...and does NOT claim patient access is open',
+      !!s.text && !/your patients (are|stay) open/i.test(s.text), (s.text||'').slice(0,90));
+    t('...and offers the way to verification',
+      /Complete verification/i.test(s.text||''), (s.text||'').slice(0,90));
+    t('...and does not claim patient records are closed in a dead-end way',
       !/records? (stay|are) closed/i.test(s.text||''), (s.text||'').slice(0,70));
     t('...no stale sticky restriction banner', s.sticky === false);
     await ctx.close();

@@ -7,11 +7,11 @@
 <title>Live Chart — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.21-02"></script>
-<script src="/auth.js?v=2026.08.21-02"></script>
-<script src="/navbar.js?v=2026.08.21-02"></script>
-<script src="/anesthesia.js?v=2026.08.21-02"></script>
-<link rel="stylesheet" href="/tokens.css?v=2026.08.21-02">
+<script src="/supabase.js?v=2026.08.21-03"></script>
+<script src="/auth.js?v=2026.08.21-03"></script>
+<script src="/navbar.js?v=2026.08.21-03"></script>
+<script src="/anesthesia.js?v=2026.08.21-03"></script>
+<link rel="stylesheet" href="/tokens.css?v=2026.08.21-03">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 /* Ground, teal and hairline come from the clinical theme. This block used to
@@ -42,6 +42,13 @@ h1{font-family:var(--sans);font-size:26px;font-weight:700;margin-bottom:4px;}
 .b-live{background:rgba(27,107,90,.18);border:1px solid rgba(42,138,116,.35);color:var(--accent);}
 .b-done{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.6);}
 .empty{text-align:center;padding:34px 18px;color:var(--muted);font-size:14px;line-height:1.7;}
+/* Teal, not amber. Practice charting is a legitimate use of the product, not
+   a degraded state, and an alert colour would tell the opposite story. */
+.ac-standalone{display:flex;flex-direction:column;gap:3px;margin:0 0 16px;padding:13px 16px;
+  border-radius:var(--radius-md);background:var(--brand-tint);border:1px solid var(--brand-tint-2);}
+.ac-standalone b{font-size:13px;font-weight:700;color:var(--ink);}
+.ac-standalone span{font-size:12.5px;color:var(--ink-2);line-height:1.6;}
+.ac-standalone a{color:var(--brand-read);}
 label{display:block;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.06em;
   text-transform:uppercase;font-weight:600;margin:10px 0 4px;}
 input,select{width:100%;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.12);
@@ -292,13 +299,34 @@ async function createCase(){
      the database gives them nothing) rather than pretending to be broken. */
   var auth = await window.requireRole('staff');
   if(!auth) return;
-  /* NO CREATE RESTRICTION. An earlier pass disabled this form for an
-     unverified doctor, because anes_case_insert demanded is_verified_doctor()
-     and letting them fill in a patient's name and date of birth for an INSERT
-     that was never going to be accepted would have been worse than the old
-     redirect. v9_doctor_access_model.sql re-points that policy to
-     is_doctor_account(), so the INSERT now succeeds and the restriction has
-     nothing left to protect anyone from. Opening a chart is ordinary work. */
+
+  /* STANDALONE MODE IS NOT A NEW MODE. It is what this page has always done.
+     The New Case form below passes no surgery_id, no clinic_patient_id and no
+     patient_user_id, so every chart created here is about nobody in this
+     database — the identity is whatever the clinician types, exactly as it
+     would be on paper.
+
+     That is why an unverified doctor can use this page in full. What they
+     cannot do is open a chart that IS attached to a patient record, and that
+     is enforced by v9_5_verification_boundary.sql rather than by this line:
+     the RESTRICTIVE policy refuses any row whose three link columns are not
+     all null, on read and on write. Removing the notice below would not grant
+     anybody anything.
+
+     The notice exists so the limit is legible rather than discovered. A
+     clinician who charts a real case here and later finds it is not on the
+     patient's record has been misled by silence. */
+  if(auth.unverifiedDoctor){
+    var note = document.createElement('div');
+    note.className = 'ac-standalone';
+    note.innerHTML =
+      '<b>Practice charting</b>' +
+      '<span>Your charts are saved to your account but are not attached to a patient record. ' +
+      'Complete <a href="/doctor-pending.html">professional verification</a> to chart for your patients.</span>';
+    var host = el('list');
+    if(host && host.parentNode) host.parentNode.insertBefore(note, host);
+  }
+
   el('tools-bar').innerHTML = window.nbToolsBar('/anesthesia-cases.html');
   // Empty: a new record starts with no date of birth and no age.
   el('n-dobwrap').innerHTML = ANES.dobFieldHtml('n-dob', {});

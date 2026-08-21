@@ -77,7 +77,15 @@ const readBar = pg => pg.evaluate(() => {
   /* ── 1 · role → tab mapping, at 390 ─────────────────────────────────── */
   const EXPECT = {
     'verified doctor'  : ['Home','Patients','Live Tools','Live Chart','More'],
-    'unverified doctor': ['Home','Patients','Live Tools','Live Chart','More'],
+    /* CHANGED DELIBERATELY. The tab used to read "Patients" for every doctor.
+       An unverified doctor has none and cannot have any until they are
+       approved, so the word was the navigation promising something the
+       database refuses. The DESTINATION is identical — /dashboard.html either
+       way — and so is what they are allowed to do there. Only the label moved.
+       See v9_5_verification_boundary.sql for the boundary itself. */
+    'unverified doctor': ['Home','Workspace','Live Tools','Live Chart','More'],
+    /* An administrator is never a pending doctor: is_pending_doctor() excludes
+       them by is_admin, and so does the flag the shell is rendered from. */
     'doctor + admin'   : ['Home','Patients','Live Tools','Live Chart','More'],
     'pure admin'       : ['Home','Admin','Live Tools','Live Chart','More'],
     'patient'          : ['Home','Journey','Passport','Ask','More'],
