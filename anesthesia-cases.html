@@ -116,13 +116,25 @@ select option{background:var(--dark3);}
         <div><label for="n-height">Height (cm)</label><input id="n-height" type="number" step="0.5"></div>
       </div>
       <div class="g2">
+        <!-- Sex was only ever on the case header, so a new record started
+             without it and it had to be filled in afterwards. ANES.createCase
+             has always forwarded the column; the form simply never asked. It
+             matters more here than most: dosing and airway prediction both use
+             it, and on a Standalone Clinical Case it is one of the few things
+             that describes the physiology at all. -->
+        <div><label for="n-sex">Sex</label>
+          <select id="n-sex"><option value="">—</option><option value="female">Female</option>
+            <option value="male">Male</option><option value="other">Other</option>
+            <option value="unknown">Unknown</option></select></div>
         <div><label for="n-asa">ASA</label>
           <select id="n-asa"><option value="">—</option><option>I</option><option>II</option>
             <option>III</option><option>IV</option><option>V</option><option>VI</option></select></div>
-        <div><label for="n-urgency">Urgency</label>
-          <select id="n-urgency"><option value="elective">Elective</option>
-            <option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
       </div>
+      <!-- Full width, not a lonely half. Adding Sex to the row above left
+           Urgency alone in a two-column grid with a gap beside it. -->
+      <label for="n-urgency">Urgency</label>
+      <select id="n-urgency"><option value="elective">Elective</option>
+        <option value="urgent">Urgent</option><option value="emergency">Emergency</option></select>
       <label for="n-proc">Planned procedure</label>
       <input id="n-proc" placeholder="e.g. Laparoscopic cholecystectomy" autocomplete="off">
       <label for="n-diag">Diagnosis</label>
@@ -264,7 +276,7 @@ function createHint(msg){
    the write side for exactly this caller, so a console cannot get past it. */
 function openStandalone(){
   el('n-name-lab').textContent = 'Case title';
-  el('n-name').placeholder = 'e.g. Morning list, case 2';
+  el('n-name').placeholder = 'e.g. Morning laparoscopic case';
   el('n-idwrap').style.display = 'none';
   el('n-dob-lab').textContent = 'Age';
   el('q').placeholder = 'Search by title, procedure or room';
@@ -276,9 +288,11 @@ function openStandalone(){
   note.className = 'ac-standalone';
   note.innerHTML =
     '<b>Standalone Clinical Case</b>' +
-    '<span>Full anesthesia documentation, saved to your account and not attached to a ' +
-    'patient record. Complete <a href="/doctor-pending.html">professional verification</a> ' +
-    'to chart for your own patients.</span>';
+    '<span>This is a standalone clinical case. Do not enter identifiable patient ' +
+    'information until your account is verified. Full anesthesia documentation is ' +
+    'available, saved to your account and not attached to a patient record. ' +
+    'Complete <a href="/doctor-pending.html">professional verification</a> to chart ' +
+    'for your own patients.</span>';
   /* Above the form, not above the list. Inserting it before #list put it
      inside the "Active — 0 records" card, where it read as a note about the
      empty list rather than an explanation of the form above it. It belongs
@@ -321,6 +335,7 @@ async function createCase(){
       date_of_birth: ANES.standalone ? null : age.date_of_birth,
       age_value: age.age_value,
       age_unit: age.age_unit,
+      sex: el('n-sex').value || null,
       weight_kg: parseFloat(el('n-weight').value) || null,
       height_cm: parseFloat(el('n-height').value) || null,
       asa_class: el('n-asa').value || null,

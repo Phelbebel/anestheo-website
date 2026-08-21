@@ -115,6 +115,9 @@ const readForm = pg => pg.evaluate(() => {
     hasHeight:   vis('n-height'),
     hasAsa:      vis('n-asa'),
     hasProc:     vis('n-proc'),
+    hasSex:      vis('n-sex'),
+    ageUnits:    [...document.querySelectorAll('#n-dob-au option')]
+                   .map(o => o.value).filter(Boolean),
     cardHead:    (document.querySelector('.card-h') || {}).textContent || '',
     notice:      (document.querySelector('.ac-standalone') || {}).textContent || '',
     searchPlace: (document.getElementById('q') || {}).placeholder || ''
@@ -147,6 +150,15 @@ const readForm = pg => pg.evaluate(() => {
     t('ASA is still asked for',      f.hasAsa === true);
     t('procedure is still asked for',f.hasProc === true);
     t('diagnosis is now asked for',  f.hasDiag === true);
+    /* Sex was only ever on the case header, so a new record started without it.
+       ANES.createCase always forwarded the column; the form never asked. */
+    t('sex is now asked for at creation', f.hasSex === true);
+    t('...and age offers years, months and days',
+      ['years','months','days'].every(u => f.ageUnits.indexOf(u) >= 0), f.ageUnits);
+    /* The wording is specified verbatim, so it is asserted verbatim. */
+    t('the notice says exactly what it was asked to say',
+      /This is a standalone clinical case\. Do not enter identifiable patient information until your account is verified\./
+        .test(f.notice.replace(/\s+/g,' ')), f.notice.slice(0,110));
     t('the search no longer offers MRN', !/MRN/i.test(f.searchPlace), f.searchPlace);
     t('no page error', errs.length === 0, errs);
     await ctx.close();
@@ -160,6 +172,7 @@ const readForm = pg => pg.evaluate(() => {
     await pg.fill('#n-weight', '78');
     await pg.fill('#n-height', '174');
     await pg.selectOption('#n-asa', 'II');
+    await pg.selectOption('#n-sex', 'female');
     await pg.fill('#n-proc', 'Laparoscopic cholecystectomy');
     await pg.fill('#n-diag', 'Symptomatic cholelithiasis');
     await pg.click('#n-go');
@@ -176,6 +189,7 @@ const readForm = pg => pg.evaluate(() => {
     t('...and the record opens', /anesthesia-record\.html\?case=/.test(s.url), s.url);
     t('...the title landed in display_name',
       s.sent && s.sent.display_name === 'Morning list, case 2', s.sent && s.sent.display_name);
+    t('...sex landed too', s.sent && s.sent.sex === 'female', s.sent && s.sent.sex);
     t('...the clinical values landed',
       s.sent && s.sent.weight_kg == 78 && s.sent.asa_class === 'II' &&
       s.sent.diagnosis === 'Symptomatic cholelithiasis',
@@ -221,7 +235,9 @@ const readForm = pg => pg.evaluate(() => {
         hasDobField: labs.some(l => /date of birth/i.test(l)),
         hasPatientName: labs.some(l => /^Patient name$/i.test(l)),
         hasCaseTitle: labs.some(l => /^Case title$/i.test(l)),
-        body: (document.body.innerText || '').replace(/\s+/g,' ')
+        body: (document.body.innerText || '').replace(/\s+/g,' '),
+        sections: [...document.querySelectorAll('#rail button, #rail a')]
+                    .map(n => n.textContent.replace(/\s+/g,' ').trim()).filter(Boolean)
       };
     });
     t('the record page is in standalone mode', s.standalone === true, s.url);
@@ -231,6 +247,15 @@ const readForm = pg => pg.evaluate(() => {
     t('...it says "Case title"', s.hasCaseTitle === true, s.labels.slice(0,4));
     t('the anesthesia record itself is still there',
       /vitals|medication|airway|event/i.test(s.body));
+    /* "Clinical notes" and "Anesthesia plan" are documented inside the record
+       rather than on the create form - anesthesia_cases has no notes or plan
+       column, so the record's own sections are where they live. An unverified
+       doctor must reach them, or the standalone case is a header with nothing
+       under it. */
+    t('...including the anesthesia technique and case detail',
+      /anesthesia|technique|case details/i.test(s.body));
+    t('...and the sections that carry notes and the plan',
+      s.sections.length >= 8, s.sections.slice(0, 10));
     t('no page error', errs.length === 0, errs);
     await ctx.close();
   }
