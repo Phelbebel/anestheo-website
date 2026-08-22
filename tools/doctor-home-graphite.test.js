@@ -281,8 +281,21 @@ const MAIN_AH = (MAIN_HTML.match(/^\.ah\{--bd:[^\n]*\n[^\n]*\n[^\n]*$/m) || ['']
     !/v9_doctor_access_model\.sql, now deployed, removes those policies/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
   t('the comment now names the v9_5 boundary',
     /v9_5_verification_boundary\.sql[\s\S]{0,200}RESTRICTIVE/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
-  t('no page but index.html changed',
-    changed.filter(f => /\.html$/.test(f)).every(f => f === 'index.html'), changed);
+  /* REWRITTEN, because the original was scoped to one branch rather than to
+     the thing it protects. It read "no page but index.html changed", which was
+     true while this suite's own branch was the only work in flight and became
+     false the moment any later branch touched a different page — reporting a
+     failure about patients.html in a suite about the doctor home.
+
+     What it has to guarantee is durable: the doctor index home lives in
+     index.html, and no other page may grow a rule that reaches it. So every
+     changed page except index.html must be free of the doctor-home class. */
+  const otherPages = changed.filter(f => /\.html$/.test(f) && f !== 'index.html');
+  const leaks = otherPages.filter(f => /doctor-home/.test(fs.readFileSync(REPO + '/' + f, 'utf8')));
+  t('no other page defines or uses doctor-home', leaks.length === 0, leaks);
+  t('the doctor home still lives only in index.html',
+    execSync('git -C ' + REPO + ' grep -l "doctor-home" -- "*.html" || true', { encoding:'utf8' })
+      .split('\n').filter(Boolean).join() === 'index.html');
 
   /* The builders and the role test are the behaviour. Compare the source. */
   const fn = (src, name, end) => {

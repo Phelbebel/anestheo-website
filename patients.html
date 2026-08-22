@@ -70,9 +70,13 @@
 .hp-feat{display:grid;grid-template-columns:1.15fr .85fr;gap:34px;align-items:center;
   background:linear-gradient(135deg,rgba(126,207,192,.10),rgba(255,255,255,.02));
   border:1px solid rgba(42,138,116,.3);border-radius:var(--radius-xl);padding:38px 36px;margin:34px 0;}
+/* No rule before HEALTH PASSPORT. It carried a 22px teal line, and at narrow
+   widths a short line beside a word reads as a stray dash rather than as
+   decoration. The hero eyebrow on this page dropped its own for exactly that
+   reason (see .hero-eyebrow in styles.css) — this was the last one left. The
+   gap is kept so a future icon still has somewhere to sit. */
 .hp-feat-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;
   letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;}
-.hp-feat-eyebrow::before{content:'';width:22px;height:1px;background:var(--teal2);}
 .hp-feat h2{font-family:var(--sans);font-size:clamp(24px,3.2vw,34px);font-weight:700;
   line-height:1.18;margin-bottom:14px;}
 .hp-feat p{font-size:15px;color:var(--muted);line-height:1.75;margin-bottom:22px;max-width:52ch;}
@@ -86,6 +90,72 @@
   .hp-feat{grid-template-columns:1fr;gap:24px;padding:30px 22px;}
   .hp-art{order:-1;} .hp-art svg{max-width:132px;}
   .hp-feat-btns .ph-cta,.hp-feat-btns .btn-ghost{width:100%;text-align:center;}
+}
+
+/* ── PUBLIC VALUE: the anesthesia picker and the checklist ─────────────────
+   Tokens only — --surface, --border, --ink, --muted, --hint, --accent,
+   --teal — so this sits on the graphite system already on main and cannot
+   become a second theme. No grid, no glow, no new palette. */
+.pa-h{font-family:var(--sans);font-size:clamp(20px,2.6vw,26px);font-weight:700;
+  line-height:1.2;color:var(--ink);}
+.pa-sub{font-size:14px;color:var(--muted);line-height:1.65;margin-top:6px;max-width:56ch;}
+.pa-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);
+  padding:24px 24px 20px;margin:18px 0 0;}
+/* The navbar is fixed at 56px. Without this, opening the picker scrolls its
+   own heading underneath it and the panel appears to start mid-sentence. */
+#pa-anes,#pa-chk{scroll-margin-top:76px;}
+.pa-panel-h{display:flex;align-items:flex-start;gap:14px;}
+.pa-panel-h > div{flex:1;min-width:0;}
+.pa-close{flex:0 0 auto;width:44px;height:44px;border-radius:var(--radius-md);
+  border:1px solid var(--border);background:none;color:var(--muted);
+  font-size:22px;line-height:1;cursor:pointer;font-family:inherit;}
+.pa-close:hover{color:var(--ink);border-color:var(--hair-2);}
+.pa-chips{display:flex;flex-wrap:wrap;gap:9px;margin:20px 0 4px;}
+.pa-chip{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-pill);
+  padding:0 16px;min-height:44px;cursor:pointer;transition:border-color .16s,background .16s;}
+.pa-chip:hover{border-color:var(--hair-2);}
+.pa-chip[aria-pressed="true"]{background:var(--brand-tint-2);border-color:var(--accent);color:var(--ink);}
+.pa-out{margin-top:20px;padding-top:18px;border-top:1px solid var(--border);}
+.pa-out-h{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:14px;}
+.pa-opt{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--border);}
+.pa-opt:first-of-type{border-top:none;padding-top:0;}
+.pa-opt .pa-dot{flex:0 0 auto;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:7px;}
+.pa-opt-n{display:block;font-size:14.5px;font-weight:600;color:var(--ink);}
+.pa-opt-d{display:block;font-size:13px;color:var(--muted);line-height:1.6;margin-top:2px;}
+/* The sentence that keeps this educational. Styled to be read, not skipped. */
+.pa-disc{margin-top:16px;padding:12px 14px;border-radius:var(--radius-md);
+  background:var(--surface);border:1px solid var(--border);
+  font-size:12.5px;color:var(--muted);line-height:1.6;}
+.pa-more{display:inline-flex;align-items:center;gap:7px;min-height:44px;
+  font-size:14px;font-weight:600;color:var(--accent);margin-top:6px;}
+/* checklist */
+.pa-chk{margin:30px 0 0;}
+.pa-chk-list{list-style:none;margin:18px 0 0;padding:0;
+  border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;}
+.pa-chk-row{display:flex;align-items:center;gap:13px;padding:4px 16px;
+  border-top:1px solid var(--border);background:var(--surface);}
+.pa-chk-row:first-child{border-top:none;}
+.pa-chk-lbl{display:flex;align-items:center;gap:13px;flex:1;min-width:0;
+  min-height:56px;cursor:pointer;font-size:14.5px;color:var(--ink);line-height:1.45;}
+.pa-chk-lbl input{flex:0 0 auto;width:21px;height:21px;accent-color:var(--teal);cursor:pointer;}
+.pa-chk-row.on .pa-chk-lbl{color:var(--muted);}
+.pa-chk-help{flex:0 0 auto;font-size:12.5px;font-weight:600;color:var(--accent);
+  min-height:44px;display:inline-flex;align-items:center;}
+.pa-chk-note{font-size:12px;color:var(--hint);margin-top:11px;line-height:1.6;}
+.pa-chk-cta{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin-top:20px;padding:20px 22px;border:1px solid var(--border);border-radius:var(--radius-xl);
+  background:var(--surface);}
+.pa-chk-cta p{font-size:14.5px;color:var(--ink);line-height:1.55;max-width:46ch;margin:0;}
+@media (max-width:620px){
+  .pa-panel{padding:20px 16px 16px;}
+  .pa-chip{width:100%;text-align:left;}
+  .pa-chk-row{flex-wrap:wrap;padding:4px 14px 10px;}
+  .pa-chk-lbl{min-height:52px;}
+  .pa-chk-help{margin-left:34px;}
+  .pa-chk-cta{padding:18px 16px;}
+  .pa-chk-cta .ph-cta{width:100%;text-align:center;}
 }
 </style>
 </head>
@@ -132,7 +202,13 @@
       <a class="ph-tile" href="/preop-instructions.html"><span class="ph-tile-ico">&#9201;&#65039;</span>
         <span class="ph-tile-t">Fasting and medications</span>
         <span class="ph-tile-d">When to stop eating and drinking, and which of your medicines to take or hold.</span></a>
-      <a class="ph-tile" href="/questions.html"><span class="ph-tile-ico">&#128172;</span>
+      <!-- WAS /questions.html, WHICH IS THE ADMIN INBOX. That page is
+           "Submitted Questions — Anestheo Admin" and is guarded by
+           requireRole('admin'), so this card offered a visitor a page that
+           redirects them straight back out. The patient-facing answer to
+           "what should I ask" is the section the signed-in home already
+           links to, and it opens for anybody. -->
+      <a class="ph-tile" href="/preop-instructions.html#what-to-tell"><span class="ph-tile-ico">&#128172;</span>
         <span class="ph-tile-t">Questions worth asking</span>
         <span class="ph-tile-d">What to raise with your anesthesiologist, so nothing is left until the day.</span></a>
       <a class="ph-tile" href="/videos.html"><span class="ph-tile-ico">&#127916;</span>
@@ -141,13 +217,71 @@
       <a class="ph-tile" href="/recovery.html"><span class="ph-tile-ico">&#10084;&#65039;</span>
         <span class="ph-tile-t">Recovery, and what is normal</span>
         <span class="ph-tile-d">Pain, nausea, when to rest and the warning signs worth a phone call.</span></a>
-      <a class="ph-tile" href="/patients.html#hp-feat-guest"><span class="ph-tile-ico">&#128737;&#65039;</span>
-        <span class="ph-tile-t">Your surgery journey</span>
-        <span class="ph-tile-d">Add your procedure and Anestheo builds the preparation around its date.</span></a>
+      <!-- WAS "Your surgery journey", pointing at #hp-feat-guest — the same
+           page, scrolled down to the Health Passport. A card promising a
+           surgery journey and delivering an anchor jump is the definition of a
+           low-value tile, and the hero CTA already offers the real thing.
+           Replaced with something a visitor can actually use unregistered. -->
+      <button type="button" class="ph-tile" id="pa-anes-open" aria-expanded="false" aria-controls="pa-anes">
+        <span class="ph-tile-ico">&#129496;</span>
+        <span class="ph-tile-t">What anesthesia might I have?</span>
+        <span class="ph-tile-d">Explore the common anesthesia options used for your type of procedure and what each one means.</span></button>
     </div>
 
+    <!-- ═══ WHAT ANESTHESIA MIGHT I HAVE? ═══════════════════════════════════
+         EDUCATION, NOT A RECOMMENDATION. This picker never says what a visitor
+         will get. It answers "what is commonly used for this kind of
+         operation", which is a question about anesthesia practice, not about
+         them — and it says so in the panel, every time, not once at the top of
+         the page where it can be scrolled past.
+
+         The option text is not written here. Every line is drawn from the
+         "Anesthesia commonly used" section of the public procedure guide it
+         links to, and tools/public-patient-value.test.js asserts that each
+         option name still appears in its source page — so this cannot quietly
+         drift away from what an anesthesiologist wrote. -->
+    <section id="pa-anes" hidden>
+      <div class="pa-panel">
+        <div class="pa-panel-h">
+          <div>
+            <h2 class="pa-h">What anesthesia might I have?</h2>
+            <p class="pa-sub">Choose the kind of procedure you are preparing for. You will see the options
+              commonly used for it — no account needed.</p>
+          </div>
+          <button type="button" class="pa-close" id="pa-anes-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="pa-chips" id="pa-chips" role="group" aria-label="Procedure category"></div>
+        <div id="pa-result" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ═══ BEFORE SURGERY CHECKLIST ════════════════════════════════════════
+         Works with no account, no network and no Supabase. The only thing that
+         crosses a storage boundary is five booleans in this browser's
+         localStorage — no free text, no dates, no identifiers, nothing about
+         anyone's health. A visitor who declines storage still gets a working
+         checklist; it simply forgets.
+
+         Each row links to the section that answers it, which is what makes
+         this different from the completion tracker already on
+         /preop-instructions.html: that one is ticked after you have read the
+         page, this one is how you find the page. -->
+    <section class="pa-chk" id="pa-chk">
+      <h2 class="pa-h">Before surgery checklist</h2>
+      <p class="pa-sub">Five things worth knowing before the day. Tick them off as you go.</p>
+      <ul class="pa-chk-list" id="pa-chk-list"></ul>
+      <p class="pa-chk-note" id="pa-chk-note"></p>
+      <div class="pa-chk-cta">
+        <p>Want Anestheo to save your preparation and organize it around your actual procedure?</p>
+        <button class="ph-cta" type="button"
+          onclick="window.nbStartPatientJourney ? window.nbStartPatientJourney() : window.nbOpenModal()">Start my surgery journey</button>
+      </div>
+    </section>
+
     <!-- Health Passport is a product, not a quick action: it is useful to
-         someone with no surgery, no surgeon and no questionnaire. -->
+         someone with no surgery, no surgeon and no questionnaire. It stays
+         BELOW the public value above it, so the page reads as "here is what
+         Anestheo does" rather than "this is a QR card company". -->
     <div id="hp-feat-guest"></div>
   </section>
 
@@ -312,6 +446,167 @@ function renderHpFeature(view, hasSession){
   if(host) host.innerHTML = hpFeatureHtml(!!hasSession);
 }
 
+/* ── WHAT ANESTHESIA MIGHT I HAVE? ────────────────────────────────────────
+   Every option below is a condensation of the "Anesthesia commonly used"
+   section of the guide it links to — the source is an anesthesiologist's page
+   on this site, not this file. The test suite asserts each `n` still appears
+   in its `href` page, so if a guide is rewritten this stops agreeing loudly
+   rather than quietly.
+
+   `note` carries what the source says about WHEN an option applies. That is
+   the difference between education and a recommendation: "reserved for
+   emergencies" is a fact about practice, "you will have a spinal" would be a
+   claim about a person nobody here has met. */
+var PA_CATS = [
+  { k:'csection', label:'C-section / childbirth', href:'/csection.html', opts:[
+      { n:'Spinal anesthesia', d:'A single injection in the lower back that numbs you from the chest down while you stay awake. Used for most planned cesarean sections.' },
+      { n:'Epidural', d:'If a labor epidural is already in place, it can often be topped up for the surgery.' },
+      { n:'General anesthesia', d:'Fully asleep. Reserved for emergencies, or when regional anesthesia is not suitable.' } ] },
+  { k:'ortho', label:'Orthopedic surgery', href:'/orthopedic.html', opts:[
+      { n:'General anesthesia', d:'Fully asleep for the operation.' },
+      { n:'Spinal anesthesia', d:'Numbs the lower body. For knee and hip replacement, spinal with a nerve block is very common.' },
+      { n:'Nerve block', d:'Numbs a specific limb and gives pain relief afterward. Often combined with one of the above.' } ] },
+  { k:'ent', label:'ENT surgery', href:'/ent.html', opts:[
+      { n:'General anesthesia', d:'Used for most ENT surgery, because the operation often involves the airway itself.' },
+      { n:'Local anesthesia', d:'Numbing of the area alone, for some minor procedures.' },
+      { n:'Sedation', d:'Medication to keep you relaxed and drowsy, for some minor procedures.' } ] },
+  { k:'dental', label:'Dental / oral surgery', href:'/dental.html', opts:[
+      { n:'Local anesthesia', d:'Numbing injections alone. This is what many dental procedures use.' },
+      { n:'Sedation', d:'Offered for dental anxiety, or for more complex surgery.' },
+      { n:'General anesthesia', d:'Sometimes used for wisdom teeth removal and major oral surgery.' } ] },
+  { k:'general', label:'General surgery', href:'/general-surgery.html', opts:[
+      { n:'General anesthesia', d:'Most often used for gallbladder removal, hernia repair and appendix surgery.' },
+      { n:'Spinal anesthesia', d:'Used for some procedures instead of, or alongside, general anesthesia.' },
+      { n:'Regional block', d:'Sometimes combined with general anesthesia to help with pain relief.' } ] },
+  { k:'urology', label:'Urology', href:'/urology.html', opts:[
+      { n:'General anesthesia', d:'Used depending on the operation.' },
+      { n:'Spinal anesthesia', d:'Many minimally invasive procedures, such as cystoscopy, can be done this way.' },
+      { n:'Sedation', d:'Also common for shorter, minimally invasive procedures.' } ] },
+  { k:'plastic', label:'Plastic surgery', href:'/plastic.html', opts:[
+      { n:'Local anesthesia', d:'Numbing of the area alone, for smaller procedures.' },
+      { n:'Sedation', d:'For procedures where local alone would not be comfortable.' },
+      { n:'General anesthesia', d:'For larger or longer operations. What is used depends on the size, length and area of surgery, and your overall health.' } ] },
+  /* Two options, not three. An earlier draft listed "Spinal anesthesia" as a
+     separate line. The guide does not say that — it says an epidural OR a
+     spinal, as one adjunct for pain relief alongside general anesthesia — so
+     splitting them invented a distinction a reader would have taken as real.
+     The citation check flagged it, which is what that check is for. */
+  { k:'oncogyn', label:'Oncogynecology', href:'/oncogynecology.html', opts:[
+      { n:'General anesthesia', d:'Usual for gynecologic cancer surgery.' },
+      { n:'Epidural or spinal', d:'Sometimes combined with general anesthesia for pain relief during and after surgery.' } ] },
+  /* No fabricated specifics for an operation nobody has named. What is true of
+     every case is the principle, and the index is where the rest lives. */
+  { k:'other', label:'Something else', href:'/procedures.html', other:true, opts:[
+      { n:'General anesthesia', d:'Fully asleep for the operation.' },
+      { n:'Regional anesthesia', d:'A spinal, epidural or nerve block that numbs one part of the body while you stay awake.' },
+      { n:'Sedation', d:'Medication that keeps you relaxed and drowsy, often alongside local anesthesia.' },
+      { n:'Local anesthesia', d:'Numbing of the area being operated on, and nothing more.' } ] }
+];
+var PA_DISCLAIMER =
+  'This is general education about what may be used, not a plan for you. Your anesthesiologist ' +
+  'decides based on your health, your procedure and the circumstances on the day — and will ' +
+  'discuss it with you beforehand.';
+
+function paRenderChips(){
+  var host = ge('pa-chips'); if(!host) return;
+  host.innerHTML = PA_CATS.map(function(c){
+    return '<button type="button" class="pa-chip" data-k="'+c.k+'" aria-pressed="false">'+esc(c.label)+'</button>';
+  }).join('');
+  host.addEventListener('click', function(e){
+    var btn = e.target.closest('.pa-chip'); if(!btn) return;
+    paPick(btn.getAttribute('data-k'));
+  });
+}
+function paPick(k){
+  var cat = PA_CATS.filter(function(c){ return c.k === k; })[0]; if(!cat) return;
+  [].forEach.call(document.querySelectorAll('.pa-chip'), function(b){
+    b.setAttribute('aria-pressed', b.getAttribute('data-k') === k ? 'true' : 'false');
+  });
+  ge('pa-result').innerHTML =
+    '<div class="pa-out">' +
+      '<div class="pa-out-h">Common anesthesia options &middot; ' + esc(cat.label) + '</div>' +
+      cat.opts.map(function(o){
+        return '<div class="pa-opt"><span class="pa-dot"></span><span>' +
+          '<span class="pa-opt-n">'+esc(o.n)+'</span>' +
+          '<span class="pa-opt-d">'+esc(o.d)+'</span></span></div>';
+      }).join('') +
+      '<div class="pa-disc">'+esc(PA_DISCLAIMER)+'</div>' +
+      '<a class="pa-more" href="'+esc(cat.href)+'">' +
+        (cat.other ? 'Browse all procedure guides' : 'Read the full ' + esc(cat.label) + ' guide') +
+      ' &rarr;</a>' +
+    '</div>';
+}
+function paInitAnes(){
+  var open = ge('pa-anes-open'), panel = ge('pa-anes'), close = ge('pa-anes-close');
+  if(!open || !panel) return;
+  paRenderChips();
+  function setOpen(on){
+    panel.hidden = !on;
+    open.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if(on){ panel.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  }
+  open.addEventListener('click', function(){ setOpen(panel.hidden); });
+  if(close) close.addEventListener('click', function(){ setOpen(false); open.focus(); });
+}
+
+/* ── BEFORE SURGERY CHECKLIST ─────────────────────────────────────────────
+   No auth, no network, no Supabase. Five booleans in this browser and nothing
+   else — no free text, no dates, no identifiers, nothing anyone could read as
+   a health record. Storage can throw (private windows, blocked site data), so
+   every read and write is wrapped and the list works either way. */
+var PA_CHK_KEY = 'anestheo.public.checklist.v1';
+var PA_CHK = [
+  { t:'I know my fasting instructions',                        h:'/preop-instructions.html#fasting',      l:'Fasting' },
+  { t:'I know which medicines I should take or pause',         h:'/preop-instructions.html#medications',  l:'Medicines' },
+  { t:'I know when and where to arrive',                       h:null,                                    l:null },
+  { t:'I know what documents and items to bring',              h:'/preop-instructions.html#what-to-bring',l:'What to bring' },
+  { t:'I have questions ready for my anesthesiologist',        h:'/preop-instructions.html#what-to-tell', l:'What to ask' }
+];
+function paChkRead(){
+  try {
+    var v = JSON.parse(localStorage.getItem(PA_CHK_KEY) || '[]');
+    return Array.isArray(v) ? v.map(Boolean) : [];
+  } catch(e){ return []; }
+}
+function paChkWrite(v){
+  try { localStorage.setItem(PA_CHK_KEY, JSON.stringify(v.map(Boolean))); return true; }
+  catch(e){ return false; }
+}
+function paInitChk(){
+  var host = ge('pa-chk-list'); if(!host) return;
+  var state = paChkRead();
+  host.innerHTML = PA_CHK.map(function(item, i){
+    var on = state[i] === true;
+    return '<li class="pa-chk-row' + (on ? ' on' : '') + '">' +
+        '<label class="pa-chk-lbl"><input type="checkbox" data-i="'+i+'"'+(on?' checked':'')+'>' +
+          '<span>'+esc(item.t)+'</span></label>' +
+        (item.h ? '<a class="pa-chk-help" href="'+esc(item.h)+'">'+esc(item.l)+' &rarr;</a>' : '') +
+      '</li>';
+  }).join('');
+  host.addEventListener('change', function(e){
+    var box = e.target;
+    if(!box || box.type !== 'checkbox') return;
+    var next = PA_CHK.map(function(_, i){
+      var b = host.querySelector('input[data-i="'+i+'"]'); return !!(b && b.checked);
+    });
+    var row = box.closest('.pa-chk-row');
+    if(row) row.classList.toggle('on', box.checked);
+    paChkWrite(next);
+  });
+  /* Say which of the two things is true, rather than promising either. Probed
+     with a throwaway key so asking the question does not itself write the
+     checklist back on every page load. */
+  var note = ge('pa-chk-note');
+  if(note){
+    var canStore = false;
+    try { localStorage.setItem(PA_CHK_KEY + '.probe','1');
+          localStorage.removeItem(PA_CHK_KEY + '.probe'); canStore = true; } catch(e){}
+    note.textContent = canStore
+      ? 'Kept in this browser only, so it is here when you come back on this device. Nothing is sent anywhere and no medical information is stored.'
+      : 'This browser is not storing site data, so the checklist will reset when you leave. It still works while you are here.';
+  }
+}
+
 function showHome(profile, user){
   var first = (profile && profile.full_name) ? profile.full_name.split(' ')[0] : user.email.split('@')[0];
   first = first.charAt(0).toUpperCase() + first.slice(1);
@@ -323,6 +618,11 @@ function showHome(profile, user){
 function showGuest(hasSession){
   renderHpFeature('guest', hasSession === true);
   ge('ph-loader').style.display='none'; ge('ph-guest').style.display='block';
+  /* Wired only once the guest view is actually on screen, and never for the
+     signed-in home — these are public surfaces, and a signed-in patient has
+     the real, saved versions of both. */
+  paInitAnes();
+  paInitChk();
 }
 function showClin(){ ge('ph-loader').style.display='none'; ge('ph-clin').style.display='block'; }
 /* Clinical role comes from the row; platform privilege comes from the server.
