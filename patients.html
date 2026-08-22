@@ -99,13 +99,53 @@
       <div>
         <div class="hero-eyebrow"><span></span>For Patients</div>
         <h1>Prepare for your<br><em>surgery</em> with confidence</h1>
-        <p>A personal, step-by-step assistant - from preparation to recovery. Understand your anesthesia, complete your forms, and know exactly what to do next.</p>
+        <p>Anestheo explains your anesthesia in plain language, tells you exactly what to do before your operation, and keeps it all in one place. Written by anesthesiologists.</p>
         <div class="gh-btns">
           <button class="btn-primary" onclick="window.nbStartPatientJourney ? window.nbStartPatientJourney() : window.nbOpenModal()">Start my surgery journey</button>
           <a href="/ask.html" class="btn-ghost">Ask a question</a>
         </div>
       </div>
     </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         WHAT A VISITOR GETS, BEFORE BEING ASKED FOR AN ACCOUNT.
+
+         This page used to be a hero and then, immediately, the Health
+         Passport. The Passport is genuinely a product in its own right, which
+         is why it sits below rather than being demoted — but leading with it
+         and nothing else made the whole proposition look like "this site is a
+         medical ID card", when most of what Anestheo does for a patient
+         happens before they ever reach one.
+
+         Six things, each a real page they can open right now without signing
+         up. Progressive disclosure: understand it, try it, then decide.
+
+         REUSES .ph-grid / .ph-tile, the card family the signed-in home
+         already uses. No new CSS: those classes are already on the token
+         system, so this band cannot drift from the rest of the page.
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div class="ph-qa-label">How Anestheo helps</div>
+    <div class="ph-grid">
+      <a class="ph-tile" href="/procedures.html"><span class="ph-tile-ico">&#128214;</span>
+        <span class="ph-tile-t">Understand your anesthesia</span>
+        <span class="ph-tile-d">What happens, what it feels like, and what the risks really are for your procedure.</span></a>
+      <a class="ph-tile" href="/preop-instructions.html"><span class="ph-tile-ico">&#9201;&#65039;</span>
+        <span class="ph-tile-t">Fasting and medications</span>
+        <span class="ph-tile-d">When to stop eating and drinking, and which of your medicines to take or hold.</span></a>
+      <a class="ph-tile" href="/questions.html"><span class="ph-tile-ico">&#128172;</span>
+        <span class="ph-tile-t">Questions worth asking</span>
+        <span class="ph-tile-d">What to raise with your anesthesiologist, so nothing is left until the day.</span></a>
+      <a class="ph-tile" href="/videos.html"><span class="ph-tile-ico">&#127916;</span>
+        <span class="ph-tile-t">Short explainer videos</span>
+        <span class="ph-tile-d">A few minutes each, from a certified anesthesiologist.</span></a>
+      <a class="ph-tile" href="/recovery.html"><span class="ph-tile-ico">&#10084;&#65039;</span>
+        <span class="ph-tile-t">Recovery, and what is normal</span>
+        <span class="ph-tile-d">Pain, nausea, when to rest and the warning signs worth a phone call.</span></a>
+      <a class="ph-tile" href="/patients.html#hp-feat-guest"><span class="ph-tile-ico">&#128737;&#65039;</span>
+        <span class="ph-tile-t">Your surgery journey</span>
+        <span class="ph-tile-d">Add your procedure and Anestheo builds the preparation around its date.</span></a>
+    </div>
+
     <!-- Health Passport is a product, not a quick action: it is useful to
          someone with no surgery, no surgeon and no questionnaire. -->
     <div id="hp-feat-guest"></div>

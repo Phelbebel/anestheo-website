@@ -588,7 +588,7 @@ button.req-box{cursor:pointer;} button.req-box:hover{border-color:var(--teal2);}
       <div class="ms-sec-head">
         <div class="ms-sec-ico info"><span class="ic-slot" data-ic="calendar-check-2"></span></div>
         <div><div class="ms-sec-title">My surgeries</div><div class="ms-sec-sub">Follow every step of your journey</div></div>
-        <button class="ms-sec-link" onclick="openSurgery(null)"><span class="ic-slot" data-ic="plus"></span> Add surgery</button>
+        <button class="ms-sec-link" onclick="openSurgery(null)"><span class="ic-slot" data-ic="plus"></span> Add procedure</button>
       </div>
       <!-- care-team connection + review controls (status-panel) -->
       <div id="status-panel"></div>
@@ -830,18 +830,28 @@ function heroStatus(){
   var rs = _quest ? (_quest.review_state || 'not_submitted') : 'not_submitted';
   // A completed surgery (with nothing upcoming) takes precedence — celebrate recovery.
   if(_surgery && effDone(_surgery) && !upcomingSurgeries().length)
-    return { tone:'done', icon:'heart-pulse', text:'Your surgery is complete — wishing you a smooth recovery.' };
+    return { tone:'done', icon:'heart-pulse', text:'Your surgery is complete. Wishing you a smooth recovery.' };
   var ns = nextSurgery();
   var dd = ns && ns.surgery_date ? daysUntil(ns.surgery_date) : null;
   // Imminent surgery is the most time-critical message — it outranks review state.
   if(dd !== null && dd === 0) return { tone:'action', icon:'clock', text:'Your surgery is today. Follow your team\'s instructions carefully.' };
   if(dd !== null && dd === 1) return { tone:'action', icon:'clock', text:'Your surgery is tomorrow. Here\'s everything you need.' };
-  if(rs === 'approved') return { tone:'done', icon:'shield-check', text:'Your preparation plan is approved — you\'re all set for the day of your surgery.' };
-  if(rs === 'changes_requested') return { tone:'action', icon:'alert-triangle', text:'Your anesthesiologist requested a little more information.' };
-  if(rs === 'in_review') return { tone:'info', icon:'stethoscope', text:'Your anesthesiologist is reviewing your questionnaire.' };
+  if(rs === 'approved') return { tone:'done', icon:'shield-check', text:'Your preparation plan is approved. You are all set for the day of your surgery.' };
+  if(rs === 'changes_requested') return { tone:'action', icon:'alert-triangle', text:'Your anesthesiologist has asked for a little more information.' };
+  if(rs === 'in_review') return { tone:'info', icon:'stethoscope', text:'Your anesthesiologist is reviewing your preoperative questionnaire.' };
   if(answeredConsults().length) return { tone:'info', icon:'stethoscope', text:'You have a new reply to one of your consultations.' };
-  if(dd !== null && dd > 1 && dd <= 7) return { tone:'info', icon:'calendar-check-2', text:'Your surgery is in ' + dd + ' days — here\'s how to prepare.' };
-  if(_quest && _quest.status === 'submitted') return { tone:'done', icon:'circle-check-big', text:'Your questionnaire is complete — nicely done.' };
+  if(dd !== null && dd > 1 && dd <= 7) return { tone:'info', icon:'calendar-check-2', text:'Your surgery is in ' + dd + ' days. Here is how to prepare.' };
+  /* WHICH questionnaire, and keyed on the REVIEW STATE rather than on
+     status==='submitted'. "Your questionnaire is complete" told a patient
+     neither which form was meant nor what happens next, and it read off a
+     different column from every other branch in this function.
+
+     'pending' is the state a questionnaire lands in the moment it is sent:
+     submitted, not yet picked up. It is one of the five in the CHECK
+     constraint on preop_questionnaires.review_state and was the only one this
+     function never had a message for. */
+  if(rs === 'pending') return { tone:'done', icon:'circle-check-big',
+    text:'Preoperative questionnaire submitted. Your anesthesiologist will review it.' };
   if(_surgery && _surgery.procedure_type) return { tone:'info', icon:'calendar-check-2', text:'Let\'s get you ready for your procedure, step by step.' };
   return { tone:'info', icon:'sparkles', text:'Welcome back. Everything for your care lives here.' };
 }
@@ -859,23 +869,45 @@ function renderHero(){
   var prep = prepTaskCount();
   var waiting = waitingConsults().length;
   var updates = Math.min(_activity.length, 99);
+  /* A ZERO IS A CLAIM.
+
+     This row used to render four counters unconditionally, so a patient who
+     had just created an account and done nothing was met with
+
+         Upcoming surgery  None yet · Consultations 0 · Preparation 0 · What's new 0
+
+     Three zeros and a "None yet", none of which is information. A zero means
+     "we counted, and the answer was none" — but nothing had been counted,
+     because nothing could exist yet. It reads as an empty dashboard rather
+     than a journey that has not started, and it is the loudest thing on the
+     screen for exactly the person who most needs a clear first step.
+
+     So the counters appear once there is a journey to count against. Before
+     that the hero carries the empty state alone, which the caller renders. */
   var chips = '';
-  // Upcoming surgery — show the real date + procedure, not just a count.
-  if(ns && ns.surgery_date){
-    var dd = daysUntil(ns.surgery_date);
-    var when = new Date(ns.surgery_date).toLocaleDateString(undefined,{day:'numeric',month:'short'});
-    var sub = (esc(ns.procedure_type||'Surgery')) + (dd!=null && dd>=0 ? (' · '+(dd===0?'today':dd===1?'tomorrow':'in '+dd+' days')) : '');
-    chips += heroCard('b','calendar-check-2','Upcoming surgery', when, sub, "scrollToSec('surgeries-sec')");
-  } else {
-    var n0 = upcomingSurgeries().length;
-    chips += heroCard('b','calendar-check-2','Upcoming surgery', n0===0?'None yet':String(n0), n0===0?'Add your procedure':( n0+' scheduled'), "scrollToSec('surgeries-sec')");
+  var hasJourney = !!(ns || upcomingSurgeries().length);
+
+  if(hasJourney){
+    // Upcoming surgery. The real date and procedure, not just a count.
+    if(ns && ns.surgery_date){
+      var dd = daysUntil(ns.surgery_date);
+      var when = new Date(ns.surgery_date).toLocaleDateString(undefined,{day:'numeric',month:'short'});
+      var sub = (esc(ns.procedure_type||'Surgery')) + (dd!=null && dd>=0 ? (' · '+(dd===0?'today':dd===1?'tomorrow':'in '+dd+' days')) : '');
+      chips += heroCard('b','calendar-check-2','Upcoming surgery', when, sub, "scrollToSec('surgeries-sec')");
+    } else {
+      var n0 = upcomingSurgeries().length;
+      chips += heroCard('b','calendar-check-2','Upcoming surgery', String(n0),
+        n0===1 ? '1 scheduled' : (n0+' scheduled'), "scrollToSec('surgeries-sec')");
+    }
+    /* Still shown at zero once a journey exists, because THEN a zero is real:
+       it says "nothing is waiting on you", which is worth knowing. */
+    chips += heroCard('p','stethoscope','Consultations', String(waiting),
+      waiting===0?'None waiting':(waiting===1?'1 waiting for a reply':waiting+' waiting'), "scrollToSec('consults-sec')");
+    chips += heroCard('o','clipboard-check','Preparation', String(prep),
+      prep===0?'All caught up':(prep===1?'1 task remaining':prep+' tasks remaining'), 'openPrep()');
+    chips += heroCard('i','bell-ring','What\'s new', String(updates),
+      updates===0?'No updates yet':(updates===1?'1 recent update':updates+' recent updates'), "scrollToSec('whatsnew-sec')");
   }
-  // Consultations
-  chips += heroCard('p','stethoscope','Consultations', waiting===0?'0':String(waiting), waiting===0?'None waiting':(waiting===1?'1 waiting for a reply':waiting+' waiting'), "scrollToSec('consults-sec')");
-  // Preparation — "N tasks remaining"
-  chips += heroCard('o','clipboard-check','Preparation', String(prep), prep===0?'All caught up':(prep===1?'1 task remaining':prep+' tasks remaining'), 'openPrep()');
-  // What's new
-  chips += heroCard('i','bell-ring','What\'s new', String(updates), updates===0?'No updates yet':(updates===1?'1 recent update':updates+' recent updates'), "scrollToSec('whatsnew-sec')");
 
   host.innerHTML =
     '<h1>'+esc(greeting())+'</h1>' +
@@ -908,8 +940,8 @@ function computeSpotlight(){
   var dd = ns && ns.surgery_date ? daysUntil(ns.surgery_date) : null;
 
   if(!hasS){
-    return { tone:'', pin:'Start here', icon:'plus', t:'Add your surgery to begin', s:'Tell us about your procedure and we\'ll guide you, step by step.',
-      btn:'Add my surgery', btnCls:'ms-btn-action', on:'openSurgery(null)' };
+    return { tone:'', pin:'Start here', icon:'plus', t:'No upcoming procedure yet', s:'Add your procedure and Anestheo builds your preparation around it, step by step.',
+      btn:'Add my procedure', btnCls:'ms-btn-action', on:'openSurgery(null)' };
   }
   if(_surgery && effDone(_surgery) && !upcomingSurgeries().length){
     return { tone:'tone-done', pin:'Recovery', icon:'heart-pulse', t:'Your surgery is complete', s:'Take care of yourself — your recovery information is here whenever you need it.',
@@ -1053,7 +1085,7 @@ function patientMilestones(){
   var reviewDone = approved || changes;
   var M = [];
   M.push({ label:'Surgery added', done:hasS });
-  M.push({ label:'Questionnaire submitted', done:qSub });
+  M.push({ label:'Preoperative questionnaire submitted', done:qSub });
   M.push({ label:'Preparation checklist completed', done:prep });
   M.push({ label:'Clinician assigned', done:assigned, sub: assigned && dn ? ('with ' + dn) : '' });
   M.push({ label:'Under review', done:reviewDone });
@@ -1506,9 +1538,12 @@ function renderJourney(){
     ge('upcoming-label').style.display='none'; ge('past-label').style.display='none';
     if(ge('add-row')) ge('add-row').style.display='none';
     up.innerHTML =
+      /* NO BUTTON HERE. The hero above already carries the one primary
+         action; repeating it turned the same request into two competing
+         cards. This states what the section is for and stops. */
       '<div class="ms-empty-cta">' +
-        '<div><div class="et">No surgery added yet</div><div class="es">Add your procedure to start your step-by-step journey.</div></div>' +
-        '<button class="ms-btn ms-btn-action" onclick="openSurgery(null)">Add my surgery &rarr;</button>' +
+        '<div><div class="et">Nothing scheduled yet</div>' +
+        '<div class="es">Procedures you add appear here with their dates, preparation and status.</div></div>' +
       '</div>';
     past.innerHTML=''; return;
   }
@@ -1938,7 +1973,7 @@ function renderQuestions(qs, replies){
   var host = ge('q-body'); if(!host) return;
   if(!qs || !qs.length){
     host.innerHTML = '<div class="ms-empty-cta"><div><div class="et">No consultations yet</div>' +
-      '<div class="es">Ask an anesthesiologist about anesthesia, sedation, or your procedure — no surgery needed.</div></div>' +
+      '<div class="es">Ask an anesthesiologist about anesthesia, sedation, or your procedure. No surgery needed.</div></div>' +
       '<a class="ms-btn ms-btn-con" href="/ask.html">Ask a question &rarr;</a></div>';
     return;
   }
@@ -2155,7 +2190,7 @@ function journeyCardHtml(){
   var has = live.length > 0;
   var pill = has
     ? '<span class="pc-pill pc-pill-on">' + live.length + ' active</span>'
-    : '<span class="pc-pill pc-pill-off">No surgery yet</span>';
+    : '<span class="pc-pill pc-pill-off">Not started</span>';
   var facts = '';
   if(has){
     var n = live[0];
@@ -2164,16 +2199,22 @@ function journeyCardHtml(){
     if(n.surgery_date)   bits.push('<span class="pc-fact"><b>' + esc(fmtDate(n.surgery_date)) + '</b></span>');
     if(bits.length) facts = '<div class="pc-facts">' + bits.join('') + '</div>';
   }
+  /* NO BUTTON WHEN THERE IS NO JOURNEY. The hero above already asks for
+     exactly this, in the same words, a few hundred pixels higher up. Two
+     cards making the same request is what made the page feel like a set of
+     widgets rather than one guided next step, so this panel explains what a
+     surgery journey IS and lets the hero do the asking. Once a journey
+     exists the panel has its own distinct actions and keeps them. */
   var acts = has
     ? '<button class="pc-btn" onclick="goSurgeries()">Open my journey</button>' +
-      '<button class="pc-btn ghost" onclick="openSurgery(null)">Add a surgery</button>'
-    : '<button class="pc-btn" onclick="openSurgery(null)">Add my surgery</button>';
+      '<button class="pc-btn ghost" onclick="openSurgery(null)">Add a procedure</button>'
+    : '';
   return '<section class="pc">' +
     '<div class="pc-top">' + pcIcon('calendar-check-2', 'j') +
       '<span class="pc-lbl">Surgery Journey</span>' + pill + '</div>' +
     '<div class="pc-h">Every step of your surgery, in order.</div>' +
     '<div class="pc-sub">Preparation, questionnaires, your care team and what happens on the ' +
-      'day &mdash; tracked from first appointment to recovery.</div>' +
+      'day. Tracked from first appointment to recovery.</div>' +
     facts +
     '<div class="pc-acts">' + acts + '</div>' +
     '</section>';

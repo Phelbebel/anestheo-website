@@ -112,9 +112,79 @@ html.pre-app main#main, html.app main#main,
 html.pre-app footer, html.app footer{display:none !important;}
 .ah{display:none;}
 html.pre-app .ah, html.app .ah{display:block;}
-.ah{--bd:rgba(27,107,90,.22);--tx:#fff;--mu:rgba(255,255,255,.55);--hi:rgba(255,255,255,.32);--tl:#1B6B5A;--tl2:#2A8A74;--ac:#7ECFC0;
-  font-family:'DM Sans',-apple-system,system-ui,sans-serif;color:var(--tx);min-height:100vh;background:#0A1A15;
-  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:52px 52px;}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SIGNED-IN HOME, ON THE SAME GROUND AS EVERYTHING ELSE
+
+   The graphite palette below this file's public block carries a note saying it
+   was SCOPED TO VISITORS ONLY, so that "the authenticated Home keeps the light
+   system it has always had". That was a deliberate, careful decision when the
+   public homepage was repainted: it avoided touching the signed-in surface in
+   a change that was not about it.
+
+   The cost only became visible later. It left one page rendering two design
+   generations depending on who was looking at it, and the older one was not
+   merely older — it was broken. Measured in a browser:
+
+       body            #0A1A15   green-black, plus a 52px repeating grid
+       headings        #14181A   near-black text ON that ground
+       eyebrows        #1B6B5A   deep brand green as body text
+
+   The first is a different product. The second and third fail contrast badly
+   enough to be unreadable, and had been since the public half moved and the
+   private half did not.
+
+   WHAT THIS DOES, AND WHY IT IS SMALL. The 152 .ah-* rules below all read from
+   seven local custom properties. Repointing those seven, plus the three
+   properties on .ah itself, moves the entire signed-in home onto the product's
+   palette without touching a single one of them.
+
+   THE VALUES ARE MIRRORED, NOT LINKED, for the reason stated at the top of
+   this file: index.html renders with nothing but its own <style>, because it
+   is the first thing anyone sees and the last thing that should depend on
+   another file arriving. The radius scale is already mirrored from tokens.css
+   on the same principle. Keep all three in step.
+
+   THIS ALSO REPAINTS THE DOCTOR'S HOME. renderAppHome() builds both
+   buildPatient() and buildDoctor() into #ah, so a doctor visiting index.html
+   gets these rules too. That is intended and is an improvement — their home
+   had the identical contrast bug — but it is a change to a surface outside the
+   patient experience and is called out rather than slipped in.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html.pre-app, html.app{
+  --bg:#0B1620;              /* deep bluish graphite, never pure black */
+  --bg-2:#0E1C27;
+  --ink:#F2F6F8;             /* primary text, soft white rather than glaring */
+  --muted:#93A6B4;           /* cool blue-gray secondary */
+  --faint:#6D8091;
+  --hair:rgba(255,255,255,.09);
+  --hair-2:rgba(255,255,255,.16);
+  --teal:#2FA88C;            /* the accent, lifted for a dark ground */
+  --teal-2:#7ECFC0;
+  --card:rgba(255,255,255,.035);
+}
+html.pre-app body, html.app body{ background:var(--bg); color:var(--ink); }
+
+.ah{
+  /* The seven the 152 rules below read. Each now points at the palette above
+     instead of carrying its own opinion. */
+  --bd:var(--hair);          /* was rgba(27,107,90,.22) — a green hairline */
+  --tx:var(--ink);           /* was #fff — glaring against a dark ground */
+  --mu:var(--muted);         /* was rgba(255,255,255,.55) */
+  --hi:var(--faint);         /* was rgba(255,255,255,.32) */
+  --tl:var(--teal);          /* was #1B6B5A — too dark to read on dark */
+  --tl2:var(--teal);
+  --ac:var(--teal-2);        /* #7ECFC0 either way; now it has a name */
+  font-family:var(--sans);   /* was DM Sans, alone on the whole site */
+  color:var(--tx);min-height:100vh;
+  background:var(--bg);
+  /* The homepage's own two washes, not a repeating pattern. The 52px grid is
+     gone: it was the single loudest thing on the page and it communicated
+     nothing. */
+  background-image:
+    radial-gradient(ellipse 80% 55% at 72% -8%, rgba(47,168,140,.16), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 8% 4%, rgba(60,110,160,.10), transparent 62%);
+  background-repeat:no-repeat;background-attachment:fixed;}
 .ah-wrap{max-width:1040px;margin:0 auto;padding:80px 20px 40px;}  /* top clears the fixed 56px navbar */
 .ah-load{color:var(--mu);font-size:14px;padding:40px 0;}
 .ah-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
@@ -130,12 +200,12 @@ html.pre-app .ah, html.app .ah{display:block;}
 .ah-panel-h{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8FD9C6;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .ah-more{font-size:11.5px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--ac);}
 .ah-actions{display:flex;gap:10px;flex-wrap:wrap;}
-.ah-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;font-size:14px;font-weight:700;padding:11px 16px;border-radius:var(--radius-sm);border:1px solid var(--bd);background:rgba(255,255,255,.05);color:#fff;min-height:44px;}
+.ah-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;font-size:14px;font-weight:700;padding:11px 16px;border-radius:var(--radius-sm);border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--tx);min-height:44px;}
 .ah-btn:hover{border-color:rgba(126,207,192,.5);}
 .ah-btn.primary{background:var(--tl);border-color:var(--tl2);}
 .ah-btn.primary:hover{background:var(--tl2);}
 .ah-tools{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.ah-tool{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--bd);border-radius:var(--radius-md);background:rgba(255,255,255,.03);color:#fff;min-height:60px;transition:border-color .15s,background .15s;}
+.ah-tool{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--bd);border-radius:var(--radius-md);background:rgba(255,255,255,.03);color:var(--tx);min-height:60px;transition:border-color .15s,background .15s;}
 .ah-tool:hover{border-color:rgba(126,207,192,.4);background:rgba(27,107,90,.1);}
 .ah-tool .n{font-size:14px;font-weight:700;}
 .ah-tool .s{font-size:11px;color:var(--mu);}
@@ -181,7 +251,7 @@ html.pre-app .ah, html.app .ah{display:block;}
 .ah-search kbd{font-size:10.5px;font-weight:700;color:var(--mu);border:1px solid var(--bd);border-radius:var(--radius-xs);padding:2px 6px;background:rgba(255,255,255,.03);}
 /* TODAY — stat tiles */
 .ah-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
-.ah-stat{background:rgba(255,255,255,.035);border:1px solid var(--bd);border-radius:var(--radius-md);padding:14px 15px;display:block;color:#fff;transition:border-color .15s,background .15s;}
+.ah-stat{background:rgba(255,255,255,.035);border:1px solid var(--bd);border-radius:var(--radius-md);padding:14px 15px;display:block;color:var(--tx);transition:border-color .15s,background .15s;}
 a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1);}
 .ah-stat b{display:block;font-size:26px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
 .ah-stat.warn b{color:#FFC98A;} .ah-stat.info b{color:#B9D7FF;} .ah-stat.ok b{color:#8FE9C4;}
@@ -190,7 +260,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 /* CONTINUE / grids of compact cards */
 .ah-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .ah-grid.g2{grid-template-columns:repeat(2,1fr);}
-.ah-cc{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border:1px solid var(--bd);border-radius:var(--radius-md);background:rgba(255,255,255,.03);color:#fff;transition:border-color .15s,background .15s;}
+.ah-cc{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border:1px solid var(--bd);border-radius:var(--radius-md);background:rgba(255,255,255,.03);color:var(--tx);transition:border-color .15s,background .15s;}
 .ah-cc:hover{border-color:rgba(126,207,192,.4);background:rgba(27,107,90,.1);}
 .ah-cc .ic{font-size:17px;line-height:1;flex:0 0 auto;margin-top:1px;}
 .ah-cc .tx{min-width:0;display:flex;flex-direction:column;}
@@ -198,7 +268,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ah-cc .s{display:block;font-size:11.5px;color:var(--mu);margin-top:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 /* CREATE — three primary actions */
 .ah-create{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.ah-ca{display:flex;align-items:center;justify-content:center;gap:9px;height:52px;border-radius:var(--radius-md);border:1px solid var(--bd);background:rgba(255,255,255,.04);color:#fff;font-weight:700;font-size:14.5px;transition:border-color .15s,background .15s;}
+.ah-ca{display:flex;align-items:center;justify-content:center;gap:9px;height:52px;border-radius:var(--radius-md);border:1px solid var(--bd);background:rgba(255,255,255,.04);color:var(--tx);font-weight:700;font-size:14.5px;transition:border-color .15s,background .15s;}
 .ah-ca:hover{border-color:rgba(126,207,192,.5);background:rgba(27,107,90,.12);}
 .ah-ca.accent{background:var(--tl);border-color:var(--tl2);}
 .ah-ca.accent:hover{background:var(--tl2);}
@@ -208,7 +278,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ah-blank a{color:var(--ac);font-weight:600;}
 /* Collapsible sections — Crisis Center pattern (expand inline, no navigation) */
 .ah-coll{border:1px solid var(--bd);border-radius:var(--radius-lg);background:rgba(255,255,255,.025);overflow:hidden;}
-.ah-coll-h{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:#fff;font-family:inherit;cursor:pointer;padding:15px 17px;}
+.ah-coll-h{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:var(--tx);font-family:inherit;cursor:pointer;padding:15px 17px;}
 .ah-coll-h .cico{font-size:16px;flex:0 0 auto;}
 .ah-coll-h .ct{font-size:14px;font-weight:700;}
 .ah-coll-h .cs{font-size:12px;color:var(--mu);margin-left:2px;}
@@ -217,13 +287,13 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ah-coll-b{display:none;padding:0 17px 16px;}
 .ah-coll.open .ah-coll-b{display:block;}
 .ah-refs{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
-.ah-ref{display:flex;flex-direction:column;gap:3px;padding:12px 13px;border:1px solid var(--bd);border-radius:var(--radius-md);background:rgba(255,255,255,.03);color:#fff;transition:border-color .15s,background .15s;min-height:56px;}
+.ah-ref{display:flex;flex-direction:column;gap:3px;padding:12px 13px;border:1px solid var(--bd);border-radius:var(--radius-md);background:rgba(255,255,255,.03);color:var(--tx);transition:border-color .15s,background .15s;min-height:56px;}
 .ah-ref:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.12);}
 .ah-ref .n{font-size:13px;font-weight:700;}
 .ah-ref .s{font-size:10.5px;color:var(--mu);}
 /* RECENT ACTIVITY — timeline */
 .ah-time{position:relative;}
-.ah-trow{display:flex;align-items:flex-start;gap:12px;padding:9px 0;border-top:1px solid rgba(27,107,90,.14);color:#fff;}
+.ah-trow{display:flex;align-items:flex-start;gap:12px;padding:9px 0;border-top:1px solid rgba(27,107,90,.14);color:var(--tx);}
 .ah-trow:first-child{border-top:none;}
 .ah-trow .dot{width:8px;height:8px;border-radius:50%;background:var(--tl2);margin-top:5px;flex:0 0 auto;}
 .ah-trow .tt{font-size:13px;font-weight:600;}
@@ -231,12 +301,12 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ah-trow .tgo{margin-left:auto;color:var(--ac);font-size:12px;font-weight:700;flex:0 0 auto;}
 /* LATEST VIDEOS */
 .ah-vids{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.ah-vid{display:block;border:1px solid var(--bd);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.03);color:#fff;transition:border-color .15s;}
+.ah-vid{display:block;border:1px solid var(--bd);border-radius:var(--radius-md);overflow:hidden;background:rgba(255,255,255,.03);color:var(--tx);transition:border-color .15s;}
 .ah-vid:hover{border-color:rgba(126,207,192,.45);}
 .ah-vid .thumb{aspect-ratio:16/9;background:linear-gradient(135deg,rgba(27,107,90,.35),rgba(10,26,21,.6));display:flex;align-items:center;justify-content:center;font-size:22px;color:rgba(255,255,255,.5);}
 .ah-vid .vm{padding:9px 11px;font-size:12.5px;font-weight:600;}
 /* WHAT'S NEW */
-.ah-new-row{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;color:#fff;border-top:1px solid rgba(27,107,90,.14);}
+.ah-new-row{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;color:var(--tx);border-top:1px solid rgba(27,107,90,.14);}
 .ah-new-row:first-child{border-top:none;}
 .ah-tag{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8FE9C4;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);border-radius:var(--radius-xl);padding:2px 8px;flex:0 0 auto;}
 /* Notifications — real, actionable items only */
@@ -253,7 +323,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .ah-qa{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
 /* Inline-expandable reference / resource cards (Crisis Center pattern) */
 .ah-acc{border:1px solid var(--bd);border-radius:var(--radius-md);background:rgba(255,255,255,.028);margin-bottom:8px;}
-.ah-acc-h{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:#fff;font-family:inherit;cursor:pointer;padding:13px 15px;}
+.ah-acc-h{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;color:var(--tx);font-family:inherit;cursor:pointer;padding:13px 15px;}
 .ah-acc-h .ic{font-size:16px;flex:0 0 auto;}
 .ah-acc-h .t{font-size:14px;font-weight:700;}
 .ah-acc-h .cs{font-size:11.5px;color:var(--mu);}
@@ -405,9 +475,9 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .pt-hero .glow{position:absolute;right:-6%;top:-70%;width:min(520px,60%);height:240%;pointer-events:none;
   background:radial-gradient(circle,rgba(126,207,192,.10),transparent 70%);}
 .pt-hero h1{position:relative;font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,3.8vw,40px);
-  font-weight:700;line-height:1.16;letter-spacing:-.015em;color:#fff;}
+  font-weight:700;line-height:1.16;letter-spacing:-.015em;color:var(--tx);}
 .pt-hero h1 .soft{display:block;color:#BEE7DD;}
-.pt-hero p{position:relative;font-size:15px;color:rgba(255,255,255,.72);line-height:1.6;margin-top:12px;max-width:52ch;}
+.pt-hero p{position:relative;font-size:15px;color:var(--mu);line-height:1.6;margin-top:12px;max-width:52ch;}
 .pt-hero-acts{position:relative;display:flex;flex-wrap:wrap;gap:11px;margin-top:22px;}
 .pt-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:var(--radius-md);
   font-size:14.5px;font-weight:700;text-decoration:none;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:#fff;
@@ -429,7 +499,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
 .pt-j-rows:not(:last-child){margin-bottom:15px;}
 .pt-j-chip{display:inline-flex;align-items:baseline;gap:7px;font-size:12.5px;background:rgba(255,255,255,.04);
   border:1px solid var(--bd);border-radius:var(--radius-xl);padding:7px 13px;color:var(--mu);}
-.pt-j-chip b{color:#fff;font-weight:700;}
+.pt-j-chip b{color:var(--tx);font-weight:700;}
 .pt-j-empty{position:relative;font-size:13.5px;color:var(--mu);line-height:1.55;margin-bottom:15px;}
 /* Preparation cards */
 .pt-prep{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
@@ -462,7 +532,7 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
   background:radial-gradient(circle,rgba(126,207,192,.11),transparent 72%);}
 .pt-ask .tx{position:relative;flex:1;min-width:220px;}
 .pt-ask .tx b{display:block;font-size:16.5px;font-weight:800;letter-spacing:-.01em;}
-.pt-ask .tx span{display:block;font-size:13px;color:rgba(255,255,255,.72);margin-top:5px;line-height:1.55;}
+.pt-ask .tx span{display:block;font-size:13px;color:var(--mu);margin-top:5px;line-height:1.55;}
 .pt-ask .pt-btn{position:relative;flex:0 0 auto;}
 /* Procedure quick-view panel content (styles identical across all 8 procedure
    pages — copied ONCE, scoped; clinical CONTENT is fetched, never copied) */
@@ -2111,12 +2181,20 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
     var box=document.getElementById('ah-journeys'); if(!box) return;
     var h='';
     if(_journeys.active) h+=ahJourneyRow(_journeys.active,true);
-    else h+='<div class="pt-j-empty">You have no active surgery journey.</div>';
+    else h+='<div class="pt-j-empty">No upcoming procedure yet. Add one and Anestheo '+
+            'builds your preparation around its date.</div>';
     if(_journeys.past.length) h+=_journeys.past.map(function(j){ return ahJourneyRow(j,false); }).join('');
     if(_journeys.caps===true){
       h+='<div class="mj-acts">';
       if(_journeys.active) h+='<button class="mj-btn" type="button" onclick="ahJourneyArchive()">&#128451; Archive current journey</button>';
-      h+='<button class="mj-btn primary" type="button" onclick="ahJourneyStart()">＋ Start new surgery journey</button></div>';
+      /* Only when there is already a journey to start a NEW one alongside.
+         With none, the hero above is the single primary action and this
+         control was simply asking the same thing in different words. */
+      if(_journeys.active)
+        h+='<button class="mj-btn primary" type="button" onclick="ahJourneyStart()">Add another procedure</button>';
+      else
+        h+='<button class="mj-btn primary" type="button" onclick="ahJourneyStart()">Add my procedure</button>';
+      h+='</div>';
       if(_journeys.active){
         h+='<div class="mj-danger"><div class="mj-danger-t">Danger zone</div>'+
            '<p>Permanently delete this surgery journey and its related preparation data. Your account and any past surgeries are not affected. This cannot be undone. Archiving keeps everything and is reversible.</p>'+
