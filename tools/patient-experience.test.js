@@ -45,6 +45,33 @@ const ADMIN    = { email:'a@e.com',  role:'admin',   verification_status:'not_re
 const GROUND = 'rgb(11, 22, 32)';   // #0B1620
 const INK    = 'rgb(242, 246, 248)';// #F2F6F8
 
+/* #ah is shared by buildPatient() and buildDoctor(). The palette is therefore
+   scoped to html.patient-home, and THIS is the pre-branch .ah rule reproduced
+   exactly — what a doctor's index home must still render, value for value. */
+const DOCTOR_ORIGINAL = {
+  bg: 'rgb(10, 26, 21)',            // #0A1A15
+  font: 'DM Sans',
+  gridSize: '52px 52px, 52px 52px',
+  vars: { bd:'rgba(27,107,90,.22)', tx:'#fff', mu:'rgba(255,255,255,.55)',
+          hi:'rgba(255,255,255,.32)', tl:'#1B6B5A', tl2:'#2A8A74', ac:'#7ECFC0' }
+};
+
+/* Every custom property the 152 .ah-* rules read, plus what .ah paints. */
+const ahPalette = pg => pg.evaluate(() => {
+  const ah = document.querySelector('.ah');
+  if (!ah) return null;
+  const c = getComputedStyle(ah), v = n => c.getPropertyValue(n).trim();
+  return {
+    htmlClass: document.documentElement.className,
+    bg: c.backgroundColor,
+    font: c.fontFamily.split(',')[0].replace(/["']/g,''),
+    gridSize: /linear-gradient\(90deg/.test(c.backgroundImage || '') ? c.backgroundSize : null,
+    vars: { bd:v('--bd'), tx:v('--tx'), mu:v('--mu'), hi:v('--hi'),
+            tl:v('--tl'), tl2:v('--tl2'), ac:v('--ac') },
+    ptElements: document.querySelectorAll('[class*="pt-"]').length
+  };
+});
+
 async function open(b, path, profile, opts) {
   opts = opts || {};
   const ctx = await b.newContext({ viewport:{ width: opts.width || 1440, height: opts.height || 1400 } });
@@ -73,10 +100,16 @@ const probe = pg => pg.evaluate(() => {
                      return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
   const body = getComputedStyle(document.body);
   const ah   = document.querySelector('.ah');
+  /* VISIBLE grids only. .ah sits in the DOM for every role and carries the
+     grid in its base rule; a visitor never paints it because .ah is
+     display:none, but getComputedStyle reports it regardless. Counting
+     unpainted elements measured the stylesheet, not the screen. */
   const grids = [...document.querySelectorAll('*')].filter(n => {
     const c = getComputedStyle(n);
-    return /linear-gradient\(90deg|repeating-linear/.test(c.backgroundImage || '') &&
-           /\d+px \d+px/.test(c.backgroundSize || '');
+    if (!/linear-gradient\(90deg|repeating-linear/.test(c.backgroundImage || '')) return false;
+    if (!/\d+px \d+px/.test(c.backgroundSize || '')) return false;
+    const r = n.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && c.display !== 'none' && c.visibility !== 'hidden';
   }).length;
   const txt = (document.body.innerText || '').replace(/\s+/g, ' ');
   // Visible em dashes only: a text node inside a laid-out element.
@@ -133,6 +166,42 @@ const probe = pg => pg.evaluate(() => {
                                'rgb(109, 128, 145)','rgb(47, 168, 140)'].indexOf(c) >= 0),
       s.headColors);
     t('no page error', errs.length === 0, errs);
+    await ctx.close();
+  }
+
+  // ── 1b · THE PALETTE IS ROLE-SCOPED ────────────────────────────────────
+  /* The first version of this change repainted #ah unconditionally, which
+     also repainted the doctor's index home, because renderAppHome() builds
+     both variants into the same element. Patient work should not carry a
+     doctor-facing redesign along with it. This section is what keeps them
+     apart. */
+  console.log('\n── 1b · patient palette does not reach the doctor ──');
+  {
+    const { ctx, pg } = await open(b, '/index.html', PATIENT);
+    const s = await ahPalette(pg);
+    t('the patient variant is marked on <html>', /patient-home/.test(s.htmlClass), s.htmlClass);
+    t('...and gets the new palette', s.bg === GROUND && s.font === 'Inter' && s.gridSize === null,
+      [s.bg, s.font, s.gridSize]);
+    t('...with all seven variables repointed',
+      s.vars.tx === '#F2F6F8' && s.vars.mu === '#93A6B4' && s.vars.tl === '#2FA88C',
+      s.vars);
+    await ctx.close();
+  }
+  for (const [who, prof] of [['doctor', DOCTOR], ['unverified doctor', UNVERDOC], ['administrator', ADMIN]]) {
+    const { ctx, pg } = await open(b, '/index.html', prof);
+    const s = await ahPalette(pg);
+    t((who + ': NOT marked as the patient variant').padEnd(62),
+      !/patient-home/.test(s.htmlClass), s.htmlClass);
+    t((who + ': ground unchanged (#0A1A15)').padEnd(62),
+      s.bg === DOCTOR_ORIGINAL.bg, s.bg);
+    t((who + ': typeface unchanged (DM Sans)').padEnd(62),
+      s.font === DOCTOR_ORIGINAL.font, s.font);
+    t((who + ': the 52px grid is still there').padEnd(62),
+      s.gridSize === DOCTOR_ORIGINAL.gridSize, s.gridSize);
+    t((who + ': all seven variables byte-identical to pre-branch').padEnd(62),
+      JSON.stringify(s.vars) === JSON.stringify(DOCTOR_ORIGINAL.vars), s.vars);
+    t((who + ': renders no patient-only .pt-* markup').padEnd(62),
+      s.ptElements === 0, s.ptElements);
     await ctx.close();
   }
 
@@ -276,11 +345,16 @@ const probe = pg => pg.evaluate(() => {
      It must improve their contrast and change nothing else. */
   console.log('\n── 8 · doctor and admin ──');
   {
+    /* REVERSED FROM THE PREVIOUS VERSION OF THIS FILE, ON PURPOSE. It used to
+       assert the doctor home was graphite and gridless, which was true while
+       the palette change was unscoped. Scoping it to the patient was an
+       explicit requirement, so the doctor home keeping #0A1A15 and its grid is
+       now the correct outcome, not a regression. Section 1b checks all seven
+       variables; this checks the page still renders and is error-free. */
     const { ctx, pg, errs } = await open(b, '/index.html', DOCTOR);
     const s = await probe(pg);
-    t('a doctor\'s index home is on the same ground', s.ahBg === GROUND, s.ahBg);
-    t('...with no grid', s.grids === 0, s.grids);
-    t('...and no near-black text', !s.headColors.includes('rgb(20, 24, 26)'), s.headColors);
+    t('a doctor\'s index home keeps its own ground', s.ahBg === DOCTOR_ORIGINAL.bg, s.ahBg);
+    t('...and its grid, which is its pre-branch appearance', s.grids >= 1, s.grids);
     t('no page error', errs.length === 0, errs);
     await ctx.close();
   }

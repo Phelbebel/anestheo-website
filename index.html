@@ -114,77 +114,63 @@ html.pre-app footer, html.app footer{display:none !important;}
 html.pre-app .ah, html.app .ah{display:block;}
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   THE SIGNED-IN HOME, ON THE SAME GROUND AS EVERYTHING ELSE
+   THE SIGNED-IN HOME, AND WHY THE PALETTE IS ROLE-SCOPED
 
-   The graphite palette below this file's public block carries a note saying it
-   was SCOPED TO VISITORS ONLY, so that "the authenticated Home keeps the light
-   system it has always had". That was a deliberate, careful decision when the
-   public homepage was repainted: it avoided touching the signed-in surface in
-   a change that was not about it.
+   #ah is shared: renderAppHome() builds buildPatient() AND buildDoctor() into
+   it. So the palette below is scoped to html.patient-home, which that function
+   sets only for the patient variant. A doctor's index home renders the .ah
+   rule underneath, unchanged, byte for byte.
 
-   The cost only became visible later. It left one page rendering two design
-   generations depending on who was looking at it, and the older one was not
-   merely older — it was broken. Measured in a browser:
+   That scoping is deliberate. The patient home needed this; the doctor home
+   was never examined for it, and a doctor-facing visual change should be its
+   own decision on its own evidence rather than something that rode along.
 
-       body            #0A1A15   green-black, plus a 52px repeating grid
-       headings        #14181A   near-black text ON that ground
-       eyebrows        #1B6B5A   deep brand green as body text
+   WHAT THE PATIENT HOME WAS, MEASURED IN A BROWSER
+       body       #0A1A15   green-black, plus a 52px repeating grid
+       headings   #14181A   near-black text ON that ground
+       eyebrows   #1B6B5A   deep brand green as body text
+   The first is a different product from every other patient page. The second
+   and third are contrast failures, not preferences.
 
-   The first is a different product. The second and third fail contrast badly
-   enough to be unreadable, and had been since the public half moved and the
-   private half did not.
+   WHY THIS IS SMALL. The 152 .ah-* rules all read from seven local custom
+   properties. Overriding those seven for one variant moves the entire home
+   without duplicating a single rule, and leaves the other variant alone.
 
-   WHAT THIS DOES, AND WHY IT IS SMALL. The 152 .ah-* rules below all read from
-   seven local custom properties. Repointing those seven, plus the three
-   properties on .ah itself, moves the entire signed-in home onto the product's
-   palette without touching a single one of them.
+   THE DOCTOR HOME HAS THE SAME CONTRAST DEFECT. It is reported separately
+   rather than fixed here, because fixing it is the change this scoping exists
+   to avoid making by accident.
 
-   THE VALUES ARE MIRRORED, NOT LINKED, for the reason stated at the top of
-   this file: index.html renders with nothing but its own <style>, because it
-   is the first thing anyone sees and the last thing that should depend on
-   another file arriving. The radius scale is already mirrored from tokens.css
-   on the same principle. Keep all three in step.
-
-   THIS ALSO REPAINTS THE DOCTOR'S HOME. renderAppHome() builds both
-   buildPatient() and buildDoctor() into #ah, so a doctor visiting index.html
-   gets these rules too. That is intended and is an improvement — their home
-   had the identical contrast bug — but it is a change to a surface outside the
-   patient experience and is called out rather than slipped in.
+   VALUES ARE MIRRORED, NOT LINKED, for the reason at the top of this file:
+   index.html renders with nothing but its own <style>, because it is the first
+   thing anyone sees. The radius scale is already mirrored on that principle.
    ═══════════════════════════════════════════════════════════════════════════ */
-html.pre-app, html.app{
-  --bg:#0B1620;              /* deep bluish graphite, never pure black */
-  --bg-2:#0E1C27;
-  --ink:#F2F6F8;             /* primary text, soft white rather than glaring */
-  --muted:#93A6B4;           /* cool blue-gray secondary */
-  --faint:#6D8091;
-  --hair:rgba(255,255,255,.09);
-  --hair-2:rgba(255,255,255,.16);
-  --teal:#2FA88C;            /* the accent, lifted for a dark ground */
-  --teal-2:#7ECFC0;
-  --card:rgba(255,255,255,.035);
-}
-html.pre-app body, html.app body{ background:var(--bg); color:var(--ink); }
 
-.ah{
-  /* The seven the 152 rules below read. Each now points at the palette above
-     instead of carrying its own opinion. */
-  --bd:var(--hair);          /* was rgba(27,107,90,.22) — a green hairline */
-  --tx:var(--ink);           /* was #fff — glaring against a dark ground */
-  --mu:var(--muted);         /* was rgba(255,255,255,.55) */
-  --hi:var(--faint);         /* was rgba(255,255,255,.32) */
-  --tl:var(--teal);          /* was #1B6B5A — too dark to read on dark */
-  --tl2:var(--teal);
-  --ac:var(--teal-2);        /* #7ECFC0 either way; now it has a name */
-  font-family:var(--sans);   /* was DM Sans, alone on the whole site */
-  color:var(--tx);min-height:100vh;
-  background:var(--bg);
-  /* The homepage's own two washes, not a repeating pattern. The 52px grid is
-     gone: it was the single loudest thing on the page and it communicated
-     nothing. */
+/* UNCHANGED. This is the pre-branch rule, reproduced exactly, and it is what a
+   doctor's index home still renders. */
+.ah{--bd:rgba(27,107,90,.22);--tx:#fff;--mu:rgba(255,255,255,.55);--hi:rgba(255,255,255,.32);--tl:#1B6B5A;--tl2:#2A8A74;--ac:#7ECFC0;
+  font-family:'DM Sans',-apple-system,system-ui,sans-serif;color:var(--tx);min-height:100vh;background:#0A1A15;
+  background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:52px 52px;}
+
+/* PATIENT ONLY. Seven variables and three properties; no rule below is copied. */
+html.patient-home .ah{
+  --bd:rgba(255,255,255,.09);   /* was a green hairline */
+  --tx:#F2F6F8;                 /* soft white, not glaring pure #fff */
+  --mu:#93A6B4;                 /* cool blue-gray secondary */
+  --hi:#6D8091;
+  --tl:#2FA88C;                 /* the accent lifted for a dark ground */
+  --tl2:#2FA88C;                /* was #1B6B5A, too dark to read on dark */
+  --ac:#7ECFC0;
+  font-family:var(--sans);
+  background:#0B1620;
+  /* The homepage's own two washes. The 52px grid is gone: it was the loudest
+     thing on the page and communicated nothing. background-size:auto is what
+     actually cancels it. */
   background-image:
     radial-gradient(ellipse 80% 55% at 72% -8%, rgba(47,168,140,.16), transparent 60%),
     radial-gradient(ellipse 60% 45% at 8% 4%, rgba(60,110,160,.10), transparent 62%);
-  background-repeat:no-repeat;background-attachment:fixed;}
+  background-size:auto;background-repeat:no-repeat;background-attachment:fixed;}
+html.patient-home body{ background:#0B1620; color:#F2F6F8; }
+
 .ah-wrap{max-width:1040px;margin:0 auto;padding:80px 20px 40px;}  /* top clears the fixed 56px navbar */
 .ah-load{color:var(--mu);font-size:14px;padding:40px 0;}
 .ah-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
@@ -2376,6 +2362,18 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
     /* Platform privilege from the server; the rest are clinical roles. */
     var isDoc = role==='doctor'||role==='admin'||
                 (await window.isPlatformAdmin());
+    /* THE PALETTE IS ROLE-SCOPED, and the class is set here because this is
+       the one place that already knows which variant is being built.
+
+       #ah is shared by buildPatient() and buildDoctor(), so repainting .ah
+       repainted both. The patient work in this branch is patient work; a
+       doctor-facing visual change should be its own decision, taken on its
+       own evidence. html.patient-home carries the new palette and nothing
+       else does, so buildDoctor() renders exactly what it rendered before.
+
+       On <html> rather than on #ah because body's background has to be
+       scoped too, and body is not a descendant of #ah. */
+    de.classList.toggle('patient-home', !isDoc);
     if(isDoc) buildDoctor(ah, session, profile, role);
     else buildPatient(ah, session, profile);
   }
