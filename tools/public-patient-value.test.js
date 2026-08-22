@@ -256,9 +256,22 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
   t('auth.js is untouched',     !changed.includes('auth.js'));
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
-  t('index.html is untouched',  !changed.includes('index.html'));
-  t('only patients.html changed among pages',
-    changed.filter(f => /\.html$/.test(f)).every(f => f === 'patients.html'), changed);
+  /* REWRITTEN. These read "index.html is untouched" and "only patients.html
+     changed among pages" — true while this suite's own branch was the work in
+     flight, and false as soon as any later branch touched another page, at
+     which point this suite reports a failure about a file it does not cover.
+
+     What it actually protects is that the public picker and checklist have ONE
+     implementation, on the page that owns them. A second copy appearing
+     somewhere else is the regression worth catching; a different page changing
+     for an unrelated reason is not. */
+  const impls = execSync('git -C ' + REPO + ' grep -l "pa-chk-list\\|PA_CATS" -- "*.html" || true',
+    { encoding:'utf8' }).split('\n').filter(Boolean);
+  t('the picker and checklist live only in patients.html',
+    impls.join() === 'patients.html', impls);
+  t('no other page defines the pa- component classes',
+    execSync('git -C ' + REPO + ' grep -l "pa-panel\\|pa-chk-row" -- "*.html" || true',
+      { encoding:'utf8' }).split('\n').filter(Boolean).join() === 'patients.html');
   /* The signed-in half of this same file must be exactly what main ships. */
   const signedIn = s => {
     const i = s.indexOf('<section id="ph-home"'); const j = s.indexOf('<section id="ph-clin"');

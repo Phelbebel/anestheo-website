@@ -1057,6 +1057,21 @@ html:not(.pre-app):not(.app) .clin-list{list-style:none;display:flex;flex-direct
 html:not(.pre-app):not(.app) .clin-list li{padding:16px 18px;border-radius:var(--radius-md);border:1px solid transparent;
   transition:.18s;}
 html:not(.pre-app):not(.app) .clin-list li:hover{background:var(--card);border-color:var(--hair);}
+/* The padding moves onto the anchor so the whole row is the hit target, not
+   just the words. Written AFTER the li rule rather than before it: same
+   specificity, so the later declaration is the one that wins. The li keeps
+   the hover it always had — what changed is that something now happens when
+   you take it up on the offer. */
+html:not(.pre-app):not(.app) .clin-list li{padding:0;}
+html:not(.pre-app):not(.app) .clin-list li > a{display:block;padding:16px 18px;color:inherit;min-height:44px;}
+/* The arrow is visible at rest, not only on hover. These four rows were dead
+   for long enough that discoverability beats restraint here: something has to
+   say "this opens" before the cursor arrives, and on a touch screen there is
+   no hover to reveal it at all. */
+html:not(.pre-app):not(.app) .clin-list li > a b::after{content:' \2192';color:var(--teal-2);
+  font-weight:600;opacity:.5;transition:opacity .16s;}
+html:not(.pre-app):not(.app) .clin-list li:hover > a b::after,
+html:not(.pre-app):not(.app) .clin-list li > a:focus-visible b::after{opacity:1;}
 html:not(.pre-app):not(.app) .clin-list b{display:block;font-size:15px;font-weight:650;margin-bottom:3px;}
 html:not(.pre-app):not(.app) .clin-list span{font-size:13.5px;color:var(--muted);}
 
@@ -1064,9 +1079,22 @@ html:not(.pre-app):not(.app) .clin-list span{font-size:13.5px;color:var(--muted)
 html:not(.pre-app):not(.app) .vids-all{white-space:nowrap;}
 
 /* ── 7 · final CTA ────────────────────────────────────────────────────── */
+/* WAS A TEAL SLAB — linear-gradient(150deg,rgba(47,168,140,.16),…) inside a
+   rgba(47,168,140,.26) border, from the generation this page has otherwise
+   left behind. Every other surface on the graphite ground is light lifted off
+   it, not a colour laid over it, and --card / --hair are the tokens that say
+   so; they were already defined a few hundred lines above and simply were not
+   used here. The teal that remains is the button, which is the only thing in
+   the block anyone is meant to act on. */
 html:not(.pre-app):not(.app) .final-in{text-align:center;border-radius:var(--radius-2xl);padding:clamp(40px,6vw,76px) clamp(24px,4vw,56px);
-  background:linear-gradient(150deg,rgba(47,168,140,.16),rgba(255,255,255,.02));
-  border:1px solid rgba(47,168,140,.26);box-shadow:var(--shadow);}
+  background:var(--card);border:1px solid var(--hair);box-shadow:var(--shadow);}
+/* One controlled teal, flat rather than a gradient that ends on the old
+   #1B6B5A green. Dark ink on it, because white on #2FA88C is 3.0:1 — below
+   AA. Scoped to this block: .btn-teal is shared with four other buttons on
+   this page and repainting them is a separate decision. */
+html:not(.pre-app):not(.app) .final-in .btn-teal{
+  background:var(--teal);color:#06121C;box-shadow:none;}
+html:not(.pre-app):not(.app) .final-in .btn-teal:hover{background:#38BC9D;}
 html:not(.pre-app):not(.app) .final-h{font-size:clamp(26px,3.6vw,40px);font-weight:700;letter-spacing:-.025em;
   line-height:1.14;margin-bottom:14px;}
 html:not(.pre-app):not(.app) .final-p{font-size:16px;color:var(--muted);}
@@ -1704,11 +1732,27 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
         </p>
         <div class="cta-wrap"><a class="btn btn-ghost" href="/engine.html">Open Live Tools</a></div>
       </div>
+      <!-- FOUR CLAIMS THAT WERE NOT LINKS. These were plain <li>, and
+           .clin-list li:hover already lit them with a background and a border
+           — so they looked like four things you could open and were four
+           things you could not. Every one now goes to the page that already
+           exists for it; none of these destinations is new.
+
+             Live Tools          /engine.html      requireRole('staff')
+             Calculators         /scores.html      requireRole('staff')  ("Clinical Scores & Calculators")
+             References          /references.html  requireAuth()
+             Clinician workspace /dashboard.html   requireRole('staff')
+
+           Routing is the routing that already existed and is not touched
+           here: a logged-out click opens the sign-in modal (the GATED
+           interceptor below), a doctor or admin passes requireRole('staff'),
+           and a patient is sent to /patient-dashboard.html rather than into
+           the workspace. -->
       <ul class="clin-list">
-        <li><b>Live Tools</b><span>Dosing, airway and crisis support at the bedside.</span></li>
-        <li><b>Calculators</b><span>Weight-based values computed in seconds.</span></li>
-        <li><b>References</b><span>Regional, obstetric, ICU and paediatric guidance.</span></li>
-        <li><b>Clinician workspace</b><span>Patients, questionnaires and preparation plans.</span></li>
+        <li><a href="/engine.html"><b>Live Tools</b><span>Dosing, airway and crisis support at the bedside.</span></a></li>
+        <li><a href="/scores.html"><b>Calculators</b><span>Weight-based values computed in seconds.</span></a></li>
+        <li><a href="/references.html"><b>References</b><span>Regional, obstetric, ICU and paediatric guidance.</span></a></li>
+        <li><a href="/dashboard.html"><b>Clinician workspace</b><span>Patients, questionnaires and preparation plans.</span></a></li>
       </ul>
     </div>
   </section>
@@ -1732,7 +1776,13 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
     <div class="final-in reveal">
       <h2 class="final-h" id="fn-h">Going for surgery? Start preparing now.</h2>
       <p class="final-p">A few minutes today makes the day of your operation calmer.</p>
-      <div class="cta-wrap"><a class="btn btn-teal" href="/patients.html">Start preparation</a></div>
+      <!-- WAS "Start preparation". The hero button above goes to this same
+           /patients.html and says "Prepare for surgery"; two buttons, one
+           destination, two names. Matched to the hero rather than to the
+           journey wording, because /patients.html is the public For Patients
+           page — "Start my surgery journey" belongs on the controls that
+           actually begin the account flow, and this one does not. -->
+      <div class="cta-wrap"><a class="btn btn-teal" href="/patients.html">Prepare for surgery</a></div>
     </div>
   </section>
 
@@ -1823,7 +1873,12 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
 //      All data comes from the product's own queries; nothing is invented, and
 //      missing data is omitted or shown as an honest empty state.
 (function(){
-  var GATED = ['engine.html','references.html','dashboard.html','patient-dashboard.html'];
+  /* scores.html joined the list when the For Clinicians section started
+     linking to it. Every page here guards itself, so leaving it out would not
+     have leaked anything — it would have sent a logged-out visitor on a
+     navigation that ends where they started, which is the bounce this
+     interceptor exists to replace with a sign-in prompt. */
+  var GATED = ['engine.html','references.html','scores.html','dashboard.html','patient-dashboard.html'];
   function gatedHref(href){ return href && GATED.some(function(g){ return href.indexOf(g) !== -1; }); }
   var authed = false;
   document.addEventListener('click', function(e){
