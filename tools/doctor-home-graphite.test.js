@@ -375,6 +375,24 @@ const MAIN_AH = (MAIN_HTML.match(/^\.ah\{--bd:[^\n]*\n[^\n]*\n[^\n]*$/m) || ['']
   t('the mobile tab bar still mounts',     mob.tabs === true);
   t('the greeting still renders on phone', !!mob.greeting && /Dana/.test(mob.greeting));
 
+  /* The patient phone home, on the same build. A doctor-scoped block cannot
+     reach it, but "cannot" is cheaper to assert than to assume. */
+  const mp = await open(b, ID.patient, '/index.html', 390, 844);
+  const mobP = await mp.pg.evaluate(`(() => {
+    const ah=document.querySelector('.ah'), c=getComputedStyle(ah);
+    return { cls:document.documentElement.className, bg:c.backgroundColor,
+             font:c.fontFamily.split(',')[0].replace(/["']/g,''),
+             grid:/linear-gradient\\(90deg,\\s*rgba\\(255/.test(c.backgroundImage||''),
+             overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+             tabs: !!document.querySelector('.nb-mob, .nb-tabs, [class*="nb-mob"]') }; })()`);
+  await mp.ctx.close();
+  t('patient phone ground is graphite',    mobP.bg === 'rgb(11, 22, 32)', mobP.bg);
+  t('patient phone type is Inter',         mobP.font === 'Inter', mobP.font);
+  t('patient phone has no grid',           mobP.grid === false);
+  t('no horizontal overflow for a patient at 390px', mobP.overflow <= 0, mobP.overflow + 'px');
+  t('patient phone tab bar mounts',        mobP.tabs === true);
+  t('patient phone is not styled as a doctor', !/\bdoctor-home\b/.test(mobP.cls), mobP.cls);
+
   await b.close();
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);

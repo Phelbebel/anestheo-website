@@ -45,11 +45,28 @@ const ADMIN    = { email:'a@e.com',  role:'admin',   verification_status:'not_re
 const GROUND = 'rgb(11, 22, 32)';   // #0B1620
 const INK    = 'rgb(242, 246, 248)';// #F2F6F8
 
-/* #ah is shared by buildPatient() and buildDoctor(). The palette is therefore
-   scoped to html.patient-home, and THIS is the pre-branch .ah rule reproduced
-   exactly — what a doctor's index home must still render, value for value. */
+/* #ah is shared by buildPatient() and buildDoctor(), so the patient palette is
+   scoped to html.patient-home. This constant WAS the pre-branch .ah rule, and
+   section 1 below asserted a doctor's home still rendered it value for value.
+
+   THOSE ASSERTIONS ARE GONE, and this is why. They were never about green:
+   they were the receipt for one instruction — that patient work must not
+   repaint the doctor home by riding along on the shared `.ah` rule. A later,
+   separate, explicitly requested change moved the doctor home onto the same
+   graphite ground under its own html.doctor-home block, on its own evidence.
+   Keeping "the doctor must still be #0A1A15" would now assert that an
+   approved change had not shipped, which is not a regression test, it is a
+   stale one.
+
+   What the original instruction actually protects is still tested, and more
+   precisely than before: a doctor's home must not carry the patient class,
+   must not render patient-only markup, and must not inherit the patient
+   block's hierarchy. Those three run below and are the reason this section
+   still exists. The doctor home's own appearance is asserted where it is
+   decided — tools/doctor-home-graphite.test.js, which pins it value for value
+   and additionally proves the patient block is byte-identical to main. */
 const DOCTOR_ORIGINAL = {
-  bg: 'rgb(10, 26, 21)',            // #0A1A15
+  bg: 'rgb(10, 26, 21)',            // #0A1A15 — kept for the base .ah check below
   font: 'DM Sans',
   gridSize: '52px 52px, 52px 52px',
   vars: { bd:'rgba(27,107,90,.22)', tx:'#fff', mu:'rgba(255,255,255,.55)',
@@ -192,16 +209,17 @@ const probe = pg => pg.evaluate(() => {
     const s = await ahPalette(pg);
     t((who + ': NOT marked as the patient variant').padEnd(62),
       !/patient-home/.test(s.htmlClass), s.htmlClass);
-    t((who + ': ground unchanged (#0A1A15)').padEnd(62),
-      s.bg === DOCTOR_ORIGINAL.bg, s.bg);
-    t((who + ': typeface unchanged (DM Sans)').padEnd(62),
-      s.font === DOCTOR_ORIGINAL.font, s.font);
-    t((who + ': the 52px grid is still there').padEnd(62),
-      s.gridSize === DOCTOR_ORIGINAL.gridSize, s.gridSize);
-    t((who + ': all seven variables byte-identical to pre-branch').padEnd(62),
-      JSON.stringify(s.vars) === JSON.stringify(DOCTOR_ORIGINAL.vars), s.vars);
+    t((who + ': marked as the doctor variant instead').padEnd(62),
+      /doctor-home/.test(s.htmlClass), s.htmlClass);
     t((who + ': renders no patient-only .pt-* markup').padEnd(62),
       s.ptElements === 0, s.ptElements);
+    /* The two blocks agree on the ground and the ink — that is the point of a
+       design system — but --tl2 is where the hierarchies part: the patient
+       home holds the teal flat, the doctor home lifts it for hover. If a
+       doctor ever computes the patient's #2FA88C here, the scoping has
+       collapsed and one block is feeding both roles. */
+    t((who + ': does not inherit the patient hierarchy').padEnd(62),
+      s.vars.tl2 === '#38BC9D', s.vars.tl2);
     await ctx.close();
   }
 
@@ -340,21 +358,30 @@ const probe = pg => pg.evaluate(() => {
     await ctx.close();
   }
 
-  // ── 8 · THE OTHER ROLES DID NOT MOVE ───────────────────────────────────
-  /* index.html's .ah is the doctor's home too, so this change reaches them.
-     It must improve their contrast and change nothing else. */
+  // ── 8 · THE OTHER ROLES ────────────────────────────────────────────────
   console.log('\n── 8 · doctor and admin ──');
   {
-    /* REVERSED FROM THE PREVIOUS VERSION OF THIS FILE, ON PURPOSE. It used to
-       assert the doctor home was graphite and gridless, which was true while
-       the palette change was unscoped. Scoping it to the patient was an
-       explicit requirement, so the doctor home keeping #0A1A15 and its grid is
-       now the correct outcome, not a regression. Section 1b checks all seven
-       variables; this checks the page still renders and is error-free. */
+    /* THIS PAIR HAS NOW BEEN REVERSED TWICE, and the history is worth keeping
+       because it explains why neither reading was wrong at the time.
+
+       v1 asserted the doctor home was graphite and gridless — true while the
+       patient palette change was still unscoped, and exactly the accident that
+       needed catching. v2 asserted it kept #0A1A15 and its grid, which is what
+       scoping to the patient produced and what was explicitly required. v3,
+       here, asserts neither colour: the doctor home moved to graphite under
+       its own block by its own decision, so pinning a ground in THIS file
+       would just re-litigate that decision every time it runs.
+
+       The property this file owns is that the patient block does not feed the
+       doctor home. That is what is asserted now — different block, no patient
+       markup — and the doctor's own values are pinned in
+       tools/doctor-home-graphite.test.js where they are decided. */
     const { ctx, pg, errs } = await open(b, '/index.html', DOCTOR);
-    const s = await probe(pg);
-    t('a doctor\'s index home keeps its own ground', s.ahBg === DOCTOR_ORIGINAL.bg, s.ahBg);
-    t('...and its grid, which is its pre-branch appearance', s.grids >= 1, s.grids);
+    const s = await ahPalette(pg);
+    t('a doctor\'s index home is not built from the patient block',
+      !/patient-home/.test(s.htmlClass || ''), s.htmlClass);
+    t('...and the base .ah rule both fall back to is still the original',
+      fs.readFileSync('/home/user/anestheo-website/index.html','utf8').includes('background:#0A1A15;'));
     t('no page error', errs.length === 0, errs);
     await ctx.close();
   }
