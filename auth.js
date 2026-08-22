@@ -198,11 +198,19 @@ async function requireRole(allowed, opts) {
      of the database at the time: thirty-three RESTRICTIVE policies really did
      deny them every clinical table, so the workspace would have rendered empty.
 
-     v9_doctor_access_model.sql, now deployed, removes those policies and
-     re-points ten predicates from is_verified_doctor() to is_doctor_account().
-     Being a doctor account is what opens the workspace. Verification is what
-     opens the public directory, the patient Questions inbox, verifying a
-     Health Passport entry, and being named as a co-author on someone's chart.
+     v9_doctor_access_model.sql, deployed, removed those policies and
+     re-pointed ten predicates from is_verified_doctor() to is_doctor_account().
+     v9_5_verification_boundary.sql, deployed after it, put a narrower boundary
+     back: twelve patient-management tables are RESTRICTIVE against
+     is_pending_doctor() again, and the anesthesia family admits an unverified
+     doctor only for a case linked to nobody.
+
+     So the accurate statement is narrower than this comment used to make it.
+     Being a doctor account opens the clinical workspace — the anesthesia
+     record, the drug library, scores, crisis tools. Verification opens the
+     rest: patient management, the public directory, the patient Questions
+     inbox, verifying a Health Passport entry, and being named as a co-author
+     on someone's chart.
 
      So this flag gates nothing here, and it must not. It exists so a page can
      offer the optional step, or explain one specific trust-gated action,

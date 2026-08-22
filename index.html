@@ -641,6 +641,133 @@ a.ah-stat:hover{border-color:rgba(126,207,192,.45);background:rgba(27,107,90,.1)
   .ib-row .ib-act{margin-left:0;width:100%;text-align:center;}
 }
 
+/* ═══ THE DOCTOR HOME, MOVED ONTO THE GRAPHITE GROUND ══════════════════════
+
+   #ah is one element shared by buildDoctor() and buildPatient(), so anything
+   written on `.ah` itself repaints both. renderAppHome() puts `doctor-home`
+   on <html> for the clinical roles and nothing else, and every rule below
+   hangs off it — so this block cannot reach the patient home, which carries
+   its own block near the top of this file, and cannot reach any other page,
+   because no other page has this class.
+
+   The two blocks are deliberately not merged into one. They agree on the
+   ground, the ink ramp and the teal — that agreement is the point — but they
+   are separate decisions with separate evidence, and either could be reverted
+   without disturbing the other. Sharing a selector would end that.
+
+   WHAT WAS ACTUALLY WRONG. Not contrast: an audit of all 72 painted text
+   nodes on this page found zero WCAG AA failures, worst 4.58:1 in the shared
+   navbar footer. What was wrong is that the ground is #0A1A15 — a warm
+   green-black from the first generation — while the navbar and footer this
+   page already renders are #0A131C graphite. Two grounds, one screen. Add a
+   52px grid nothing else on the site draws, and DM Sans where every newer
+   surface sets Inter, and the doctor home reads as an older product.
+
+   NOT A COPY OF THE PATIENT HOME. That one is calm and unhurried: two large
+   glows, a serif hero, generous air. This is a work surface — dense, fast,
+   scanned. It keeps its own hierarchy: Inter throughout at the doctor's
+   tighter tracking, one restrained glow instead of two, section labels as
+   quiet uppercase wayfinding rather than accents, and teal spent only where
+   it means "act here". Shared ground, different room.
+
+   Values are the graphite tokens from tokens.css, written out because this
+   page links no stylesheet — same reason the radius scale is repeated at the
+   top of this file. Keep the two in step. */
+html.doctor-home .ah{
+  --bd:rgba(255,255,255,.09);            /* --line     */
+  --tx:#F2F6F8; --mu:#93A6B4; --hi:#6D8091;   /* --ink · --ink-muted · --ink-faint */
+  --tl:#2FA88C; --tl2:#38BC9D;           /* --brand-mid, lifted for hover */
+  --ac:#7ECFC0;                          /* --brand-lift — the weight that reads as text */
+  --dh-wash:rgba(255,255,255,.05);       /* hover fill: light off the ground, not green */
+  --dh-line:rgba(255,255,255,.07);       /* hairline between rows inside a card */
+  --dh-tint:rgba(47,168,140,.10);        /* --brand-tint: an icon tile, never a fill */
+  --dh-ink-on-teal:#06121C;              /* --on-accent */
+  font-family:var(--sans);
+  background:#0B1620;
+  /* One glow, high and off-centre. The patient home carries two because it is
+     a welcome; this is a desk. */
+  background-image:radial-gradient(ellipse 74% 42% at 64% -14%, rgba(47,168,140,.11), transparent 62%);
+  background-size:auto;background-repeat:no-repeat;background-attachment:fixed;}
+html.doctor-home body{background:#0B1620;color:#F2F6F8;}
+
+/* Soft white, not paper white. Each rule below still hardcodes #fff; on
+   graphite that is a hair too hot for a long working session, and --tx is the
+   ink the rest of the system uses.
+
+   The list is SHORTER than it was. Eleven of these were converted to var(--tx)
+   in the base rules by the patient work, and for a doctor --tx already
+   resolves to #F2F6F8 through the block above — so overriding them here would
+   restate a value that is already correct. Listed rather than globbed so the
+   set stays auditable, and trimmed for the same reason. */
+html.doctor-home .ah-search input, html.doctor-home .ah-blank .bt,
+html.doctor-home .ah-nrow .ntt,html.doctor-home .ov-hd .ov-t,
+html.doctor-home .ov-row .ov-l,html.doctor-home .ib-row .ib-nm,
+html.doctor-home .wf-status b, html.doctor-home .rf-card,
+html.doctor-home .res-card,    html.doctor-home .lw2,
+html.doctor-home .mj-row .mj-n,html.doctor-home .ah-dlg h3,
+html.doctor-home .ah-dlg input,
+html.doctor-home .ref-vw .rtbl td b, html.doctor-home .ref-vw .note b,
+html.doctor-home .ref-vw .algo-step b{color:var(--tx);}
+
+/* Hairlines between rows. Were rgba(27,107,90,.13) — a green line that only
+   reads as a line because the ground behind it was green too. */
+html.doctor-home .ah-row,   html.doctor-home .ah-jrow,
+html.doctor-home .ah-trow,  html.doctor-home .ah-new-row,
+html.doctor-home .ov-row,   html.doctor-home .mj-row,
+html.doctor-home .ref-vw .rtbl td,     html.doctor-home .ref-vw .algo-step,
+html.doctor-home .ref-vw .fast-tbl td, html.doctor-home .ref-vw .timeline-item{
+  border-top-color:var(--dh-line);border-bottom-color:var(--dh-line);}
+
+/* Hover and selected states. Every one of these was a green wash; a card
+   lifting toward the light is the newer language and stays neutral. */
+html.doctor-home .ah-tool:hover,  html.doctor-home a.ah-stat:hover,
+html.doctor-home .ah-cc:hover,    html.doctor-home .ah-ca:hover,
+html.doctor-home .ah-ref:hover,   html.doctor-home .rf-card:hover,
+html.doctor-home .rf-card.active, html.doctor-home .ah-more.sub:hover,
+html.doctor-home .pt-pcard:active,html.doctor-home .ref-vw .vid-card:hover{
+  background:var(--dh-wash);}
+
+/* Section labels are wayfinding, not accent. Mint #8FD9C6 made every heading
+   compete with the one teal thing on the page that is actually clickable. */
+html.doctor-home .ah-panel-h{color:var(--mu);}
+
+/* The greeting keeps its gradient — it is the one flourish this page gets —
+   but ends on the brand teal rather than the old pale mint. */
+/* background-IMAGE, not the `background` shorthand: the shorthand resets
+   background-clip to border-box and the name stops being clipped to the
+   glyphs — it paints as a solid bar and the doctor's name disappears. */
+html.doctor-home .ah-greeting .nm{background-image:linear-gradient(90deg,#F2F6F8,#7ECFC0);}
+html.doctor-home .ah-hero .glow{background:radial-gradient(58% 58% at 30% 45%, rgba(47,168,140,.10), transparent 72%);}
+
+/* Live Workspace: the single highest-emphasis action. It was a green slab;
+   now it is a raised card with the teal held to a tint, so it leads by
+   elevation and size rather than by being the greenest thing on screen. */
+html.doctor-home .lw2{
+  background:linear-gradient(135deg,rgba(47,168,140,.17),rgba(255,255,255,.035));
+  border-color:rgba(126,207,192,.26);}
+html.doctor-home .lw2 .lw2-ic{background:var(--dh-tint);border-color:rgba(126,207,192,.28);}
+html.doctor-home .lw2 .lw2-tx span{color:var(--mu);}
+
+/* Filled teal controls. --tl moved from #1B6B5A to the brighter #2FA88C, and
+   white on that is 3.0:1 — below AA. Dark ink on the bright teal is 6.3:1 and
+   is the pattern the accent chips on this page already use. */
+html.doctor-home .ah-btn.primary, html.doctor-home .ah-ca.accent,
+html.doctor-home .mj-btn.primary{
+  background:var(--tl);border-color:var(--tl);color:var(--dh-ink-on-teal);}
+html.doctor-home .ah-btn.primary:hover, html.doctor-home .ah-ca.accent:hover,
+html.doctor-home .mj-btn.primary:hover{background:var(--tl2);border-color:var(--tl2);}
+html.doctor-home .ah-nrow .nact, html.doctor-home .ah-open-ref,
+html.doctor-home .ref-open,      html.doctor-home .ib-row .ib-act{color:var(--dh-ink-on-teal);}
+
+/* Remaining green literals the variables never reached. */
+html.doctor-home .ah-vid .thumb{background:linear-gradient(135deg,rgba(47,168,140,.26),rgba(11,22,32,.65));}
+html.doctor-home .ah-dlg-bg{background:rgba(4,8,12,.78);}
+html.doctor-home .ah-dlg{background:#0E1C27;}
+html.doctor-home .ref-vw .algo-num{background:var(--dh-tint);}
+html.doctor-home .ref-vw .pill{background:var(--dh-tint);border-color:rgba(126,207,192,.28);}
+html.doctor-home .ref-vw .pli:before{background:var(--tl);}
+html.doctor-home .ref-vw .vid-card:hover{border-color:rgba(126,207,192,.4);}
+
 /* ── Card sections ────────────────────────────────────────────────────── */
 .head{max-width:var(--maxw);margin:0 auto clamp(24px,3vw,32px);}
 .cards{display:grid;gap:clamp(16px,2vw,20px);max-width:var(--maxw);margin:0 auto;}
@@ -2362,18 +2489,28 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
     /* Platform privilege from the server; the rest are clinical roles. */
     var isDoc = role==='doctor'||role==='admin'||
                 (await window.isPlatformAdmin());
-    /* THE PALETTE IS ROLE-SCOPED, and the class is set here because this is
+    /* THE PALETTE IS ROLE-SCOPED, and the classes are set here because this is
        the one place that already knows which variant is being built.
 
-       #ah is shared by buildPatient() and buildDoctor(), so repainting .ah
-       repainted both. The patient work in this branch is patient work; a
-       doctor-facing visual change should be its own decision, taken on its
-       own evidence. html.patient-home carries the new palette and nothing
-       else does, so buildDoctor() renders exactly what it rendered before.
+       #ah is shared by buildPatient() and buildDoctor(), so anything written
+       on `.ah` repaints both roles at once. Each role therefore carries its
+       own class and its own scoped block, and `.ah` itself is left as it has
+       always been — which is what the pre-app loading state still renders on,
+       before a role is known.
 
-       On <html> rather than on #ah because body's background has to be
-       scoped too, and body is not a descendant of #ah. */
+       They arrived as two separate decisions and stayed that way on purpose:
+       the patient home moved to graphite on patient evidence, the doctor home
+       moved on its own, and either could have been reverted without touching
+       the other. The two rulesets share the ground and the ink ramp; they do
+       not share a hierarchy. See the blocks above.
+
+       PRESENTATION ONLY. These classes decide nothing. isDoc is still the one
+       thing that chooses a builder, and it is computed exactly as before.
+
+       On <html> rather than on #ah because body's background has to be scoped
+       too, and body is not a descendant of #ah. */
     de.classList.toggle('patient-home', !isDoc);
+    de.classList.toggle('doctor-home', isDoc);
     if(isDoc) buildDoctor(ah, session, profile, role);
     else buildPatient(ah, session, profile);
   }
