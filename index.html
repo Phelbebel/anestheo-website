@@ -1873,12 +1873,23 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
 //      All data comes from the product's own queries; nothing is invented, and
 //      missing data is omitted or shown as an honest empty state.
 (function(){
-  /* scores.html joined the list when the For Clinicians section started
-     linking to it. Every page here guards itself, so leaving it out would not
-     have leaked anything — it would have sent a logged-out visitor on a
-     navigation that ends where they started, which is the bounce this
-     interceptor exists to replace with a sign-in prompt. */
-  var GATED = ['engine.html','references.html','scores.html','dashboard.html','patient-dashboard.html'];
+  /* THIS LIST IS NOW TWO ENTRIES, AND THAT IS THE WHOLE ACCESS MODEL.
+     It briefly held five. engine.html, scores.html and references.html were
+     in it because those pages gated themselves, so a logged-out click would
+     navigate somewhere that bounced straight back and this interceptor turned
+     that round trip into a sign-in prompt instead.
+
+     None of the three gates protected anything: an audit found no Supabase
+     read, no RPC, no fetch and no patient identifier on any of them, and the
+     one backend call Live Tools makes — get_evidence(tool_slug) — is already
+     granted to `anon`. They are open now, so intercepting a click on them
+     would be asking for an account in order to reach a page that no longer
+     wants one.
+
+     What remains is what was always the real boundary: the two dashboards.
+     dashboard.html holds the patients, the records, the questionnaires and
+     the consultations; patient-dashboard.html holds one person's journey. */
+  var GATED = ['dashboard.html','patient-dashboard.html'];
   function gatedHref(href){ return href && GATED.some(function(g){ return href.indexOf(g) !== -1; }); }
   var authed = false;
   document.addEventListener('click', function(e){

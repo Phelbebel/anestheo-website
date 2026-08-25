@@ -57,8 +57,18 @@
 <script>
 document.addEventListener('DOMContentLoaded', async function(){
   try{
-    var auth = await window.requireAuth(); if(!auth) return;
-    var role = auth.profile ? auth.profile.role : '';
+    /* ANONYMOUS IS ALLOWED; A KNOWN PATIENT STILL IS NOT.
+       noRedirect suppresses only the UNAUTHENTICATED bounce. A signed-in
+       account with no role still goes to the chooser, and the patient
+       redirect on the next line is untouched — someone we know to be a
+       patient belongs in the patient experience, not in clinician-only
+       reference material.
+
+       The gate could go because this page reads nothing: no Supabase call,
+       no RPC, no fetch, no storage. It was keeping static reference content
+       away from the clinicians it was written for. */
+    var auth = await window.requireAuth({ noRedirect: true });
+    var role = (auth && auth.profile) ? auth.profile.role : '';
     if(role === 'patient'){ window.location.href = '/dashboard.html'; return; }
     document.getElementById('loader').style.display='none';
     document.getElementById('app').style.display='block';

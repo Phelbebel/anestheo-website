@@ -68,6 +68,13 @@ html,body{background:var(--ground);}
 .cw-crisis-tx b{font-size:14.5px;font-weight:800;letter-spacing:.01em;}
 .cw-crisis-tx i{font-style:normal;font-size:10px;color:rgba(255,255,255,.82);}
 /* ── Collapsible clinical sections ── */
+/* The professional-use notice. Legible rather than decorative — it is the
+   sentence the login used to say on this page's behalf. Amber-tinted because
+   it is a caution, not an error, and the crisis surfaces already own red. */
+.eng-notice{display:block;margin:0 0 12px;padding:11px 14px;border-radius:var(--radius-md);
+  background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.26);
+  font-size:12.5px;line-height:1.6;color:var(--ink-2);}
+.eng-notice b{color:#E8C16B;font-weight:700;}
 .cw-acc{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:10px;overflow:hidden;background:rgba(255,255,255,.022);}
 .cw-acc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:11px;padding:13px 16px;
   font-size:13.5px;font-weight:800;color:#f1fffb;-webkit-tap-highlight-color:transparent;}
@@ -1425,6 +1432,18 @@ body .nb-search-wrap{display:none !important;}
                 aria-label="Open the Crisis Center emergency protocols">Emergency</button>
       </div>
     </nav>
+
+    <!-- WHO THIS IS FOR, SAID BEFORE ANYTHING IS CALCULATED.
+         The page is now reachable without an account, so the sentence that
+         used to be implied by the login has to be on the screen instead. It
+         sits above the first input rather than in a footer: a notice under
+         the doses is a notice nobody reads before using them. Anestheo
+         computes; it does not prescribe, and it does not decide. -->
+    <p class="eng-notice" role="note">
+      <b>For healthcare professionals.</b> Reference and education only — Anestheo does not
+      prescribe and does not make clinical decisions. Always verify doses and clinical
+      decisions against current local protocols and the patient&rsquo;s context.
+    </p>
 
     <!-- Patient Identity — collapsible, collapsed by default (does not affect any calculation) -->
     <details class="cw-acc">
@@ -3099,7 +3118,21 @@ document.addEventListener('DOMContentLoaded',async function(){
        leaked (the embed path fetches no patient data), but a query parameter
        that skips an auth check has no business outliving its only consumer.
        Every visitor now takes the same gated path. */
-    var auth=await window.requireRole('staff'); if(!auth)return;
+    /* NO GUARD, AND THAT IS THE POINT.
+       This page was behind requireRole('staff'). An audit of what it actually
+       loads found the reason it never needed to be: engine.html makes no
+       Supabase table read, no RPC, no fetch and no XHR. Its only backend call
+       comes from evidence-api.js — get_evidence(tool_slug) — which
+       evidence_transparency_phase1_1.sql already grants to `anon`. Everything
+       else is arithmetic in this browser, and the only persistence is
+       localStorage: anestheo-engine-inputs (age, sex, height, weight, ASA,
+       procedure) and anestheo-live-timers. The name and ID/MRN fields are
+       never written to either, and never leave the page.
+
+       So the gate protected no data. It kept a dosing reference away from the
+       clinicians it was built for, which is the opposite of what a gate is
+       for. What stays gated is dashboard.html — the patients, the records,
+       the questionnaires. That boundary is untouched. */
     ge('loader').style.display='none';
     ge('app').style.display='block';
     if(restoreInputs()) compute();   // only ever from real saved/incoming data

@@ -200,7 +200,14 @@ const rpc = (pg, fn, args) => pg.evaluate(([f,a]) =>
 
   // ── 1 · PENDING ─────────────────────────────────────────────────────────
   console.log('\n── 1 · a pending account reaches the chooser and nothing else ──');
-  for (const p of ['/dashboard.html','/patient-dashboard.html','/engine.html']) {
+  /* /engine.html is NOT in this list any more. It lost requireRole('staff')
+     after an audit found it makes no Supabase read, no RPC and no fetch,
+     stores no identifier, and that its one backend call — get_evidence — is
+     already granted to `anon`. A page an anonymous visitor can open cannot
+     also be one that forces a roleless account to choose first, or that turns
+     a patient away: that is the same person one sign-out apart. The surfaces
+     below all hold data, and every one of them still redirects. */
+  for (const p of ['/dashboard.html','/patient-dashboard.html']) {
     const { ctx, pg } = await open(b, p, 'pending');
     const url = await pg.evaluate(() => location.pathname);
     t(('pending on ' + p).padEnd(42) + '→ role-select', url === '/role-select.html', url);
@@ -214,10 +221,16 @@ const rpc = (pg, fn, args) => pg.evaluate(([f,a]) =>
     t('patient → patient app', await pg.evaluate(() => location.pathname) === '/patient-dashboard.html');
     await ctx.close();
   }
-  for (const p of ['/dashboard.html','/engine.html','/anesthesia-cases.html']) {
+  for (const p of ['/dashboard.html','/anesthesia-cases.html']) {
     const { ctx, pg } = await open(b, p, 'patient');
     const url = await pg.evaluate(() => location.pathname);
     t(('patient on ' + p).padEnd(42) + '→ denied', url === '/patient-dashboard.html', url);
+    await ctx.close();
+  }
+  {
+    const { ctx, pg } = await open(b, '/engine.html', 'patient');
+    const url = await pg.evaluate(() => location.pathname);
+    t('patient on /engine.html'.padEnd(42) + '→ opens, it is public', url === '/engine.html', url);
     await ctx.close();
   }
 

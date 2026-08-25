@@ -11,14 +11,24 @@
  * come back: every row must contain an anchor, every anchor must point at a
  * file that exists, and any row that lights up on hover must be a link.
  *
- * Section 3 is the one worth reading twice. It does not assume how the four
- * destinations route; it signs in as a patient, a doctor and an admin, opens
- * all four, and records where each actually lands. Twelve navigations, because
+ * IT ALSO NOW COVERS THE PUBLIC ACCESS MODEL. Live Tools, Calculators and the
+ * reference library lost their guards, because an audit found they had nothing
+ * to guard: no Supabase read, no RPC, no fetch, no identifier, and the one
+ * backend call Live Tools makes is already granted to `anon` in the migration.
+ * Opening a page is only defensible if opening it reads nothing, so section 4b
+ * does not take the audit's word for it — it captures every Supabase request
+ * each page makes at the network boundary and inspects it.
+ *
+ * Section 3 is the one worth reading twice. It assumes nothing about routing:
+ * it visits five destinations as an anonymous visitor, a patient, a doctor and
+ * an admin, and records where each actually lands. Twenty navigations, because
  * "a patient must not enter the clinician workspace" is a claim about
  * behaviour and the only honest way to check it is to try.
  *
- * None of that routing is new. This branch adds no guard, changes no guard,
- * and touches no SQL — section 5 asserts that too.
+ * What did NOT change is the boundary that was always real: dashboard.html and
+ * patient-dashboard.html are byte-identical to main, requireRole('staff')
+ * still guards the workspace, and no SQL, RLS or SECURITY DEFINER function is
+ * touched. Section 5 is the guard inventory, page by page.
  */
 const { chromium } = require('/home/user/anestheo-website/node_modules/playwright');
 const { execSync } = require('child_process');
@@ -121,44 +131,83 @@ function ratio(fg, bg) {
       .some(a => /Open Live Tools/i.test(a.textContent) && a.getAttribute('href') === '/engine.html'))()`));
 
   /* ── 2 · logged out asks for a sign-in, it does not bounce ──────────── */
-  console.log('\n2 · Logged out → sign-in, not a round trip');
-  t('the gated list covers all four destinations',
-    CLIN.every(c => new RegExp("GATED = \\[[^\\]]*" + c.href.replace(/^\//,'').replace('.', '\\.')).test(HTML)),
-    (HTML.match(/var GATED = \[[^\]]*\]/) || [''])[0]);
+  /* REWRITTEN FROM "all four open sign-in". That was true of the previous
+     revision and was the finding that prompted this one: three of the four
+     rows led to a sign-in prompt for pages that read no data. Three now
+     navigate; the fourth, which is the only one holding patient records,
+     still asks. */
+  console.log('\n2 · Logged out — three open, one asks');
+  const gated = (HTML.match(/var GATED = \[[^\]]*\]/) || [''])[0];
+  t('the gated list is exactly the two dashboards',
+    /var GATED = \['dashboard\.html','patient-dashboard\.html'\]/.test(HTML), gated);
+  for (const name of ['engine.html', 'scores.html', 'references.html']) {
+    t(name + ' is no longer intercepted', !gated.includes("'" + name + "'"), gated);
+  }
   for (const c of CLIN) {
+    const shouldAsk = c.href === '/dashboard.html';
     const before = g.pg.url();
     await g.pg.click('.clin-list a[href="' + c.href + '"]');
-    await g.pg.waitForTimeout(500);
-    const stayed = g.pg.url() === before;
-    const modal = await g.pg.evaluate(`(() => { const m = document.getElementById('nb-modal');
-      return !!m && m.classList.contains('open'); })()`);
-    t(c.name + ': stays on the page and opens sign-in', stayed && modal, { stayed, modal });
-    await g.pg.evaluate(`window.nbCloseModal && window.nbCloseModal()`);
-    await g.pg.waitForTimeout(200);
+    await g.pg.waitForTimeout(shouldAsk ? 500 : 1800);
+    const url = new URL(g.pg.url()).pathname;
+    if (shouldAsk) {
+      const modal = await g.pg.evaluate(`(() => { const m = document.getElementById('nb-modal');
+        return !!m && m.classList.contains('open'); })()`);
+      t(c.name + ': asks for sign-in without leaving the page',
+        g.pg.url() === before && modal, { url, modal });
+      await g.pg.evaluate(`window.nbCloseModal && window.nbCloseModal()`);
+      await g.pg.waitForTimeout(200);
+    } else {
+      t(c.name + ': opens directly, no account asked', url === c.href, url);
+      await g.pg.goBack({ waitUntil:'networkidle' });
+      await g.pg.waitForTimeout(1200);
+      await g.pg.evaluate(`document.querySelector('#clinicians').scrollIntoView()`);
+    }
   }
   await g.ctx.close();
 
   /* ── 3 · where each role actually lands ─────────────────────────────── */
-  console.log('\n3 · Twelve navigations, measured not assumed');
+  /* Twenty navigations now: a reference TOPIC page is included, because
+     opening references.html publicly would be hollow if everything behind it
+     were still shut. */
+  console.log('\n3 · Twenty navigations, measured not assumed');
+  const DESTS = ['/engine.html', '/scores.html', '/references.html', '/airway.html', '/dashboard.html'];
   const landed = {};
-  for (const who of ['patient', 'doctor', 'admin']) {
+  for (const who of ['anon', 'patient', 'doctor', 'admin']) {
     landed[who] = {};
-    for (const c of CLIN) {
-      const s = await open(b, c.href, ID[who]);
-      landed[who][c.href] = new URL(s.pg.url()).pathname;
+    for (const d of DESTS) {
+      const s = await open(b, d, who === 'anon' ? null : ID[who]);
+      landed[who][d] = new URL(s.pg.url()).pathname;
       await s.ctx.close();
     }
   }
-  t('a patient is turned away from every clinician destination',
-    CLIN.every(c => landed.patient[c.href] !== c.href), landed.patient);
-  t('...and lands in their own space, never the workspace',
-    CLIN.every(c => landed.patient[c.href] === '/patient-dashboard.html'), landed.patient);
-  t('a doctor opens Live Tools',            landed.doctor['/engine.html'] === '/engine.html');
-  t('a doctor opens Calculators',           landed.doctor['/scores.html'] === '/scores.html');
-  t('a doctor opens References',            landed.doctor['/references.html'] === '/references.html');
-  t('a doctor opens the workspace',         landed.doctor['/dashboard.html'] === '/dashboard.html');
-  t('an admin opens all four',
-    CLIN.every(c => landed.admin[c.href] === c.href), landed.admin);
+  t('logged out: Live Tools opens directly',  landed.anon['/engine.html'] === '/engine.html', landed.anon);
+  t('logged out: Calculators opens directly', landed.anon['/scores.html'] === '/scores.html');
+  t('logged out: References opens directly',  landed.anon['/references.html'] === '/references.html');
+  t('logged out: a reference topic opens too', landed.anon['/airway.html'] === '/airway.html');
+  t('logged out: the workspace does NOT open', landed.anon['/dashboard.html'] !== '/dashboard.html',
+    landed.anon['/dashboard.html']);
+
+  /* The patient half of the model: public tools yes, clinician-only reference
+     material no, workspace never. */
+  t('patient: cannot enter the clinician workspace',
+    landed.patient['/dashboard.html'] === '/patient-dashboard.html', landed.patient);
+  t('patient: the reference redirect is preserved',
+    landed.patient['/references.html'] === '/patient-dashboard.html' &&
+    landed.patient['/airway.html'] === '/patient-dashboard.html', landed.patient);
+  t('patient: ends up in the patient experience, never a clinician surface',
+    ['/references.html','/airway.html','/dashboard.html']
+      .every(d => landed.patient[d] === '/patient-dashboard.html'), landed.patient);
+  /* Deliberate, and worth stating out loud: the public tools are public for
+     everyone, a signed-in patient included. The redirect was scoped to
+     reference material by decision, not by oversight. */
+  t('patient: the public tools stay public',
+    landed.patient['/engine.html'] === '/engine.html' &&
+    landed.patient['/scores.html'] === '/scores.html', landed.patient);
+
+  for (const who of ['doctor', 'admin']) {
+    t(who + ': opens all five destinations',
+      DESTS.every(d => landed[who][d] === d), landed[who]);
+  }
 
   /* ── 4 · the "Going for surgery?" block ─────────────────────────────── */
   console.log('\n4 · Going for surgery? — graphite, one teal');
@@ -199,6 +248,83 @@ function ratio(fg, bg) {
   t('the heading is unchanged',
     /Going for surgery\? Start preparing now\./.test(HTML));
 
+  /* ── 4b · what the newly public pages ask the network for ───────────── */
+  /* THE ASSERTION THE WHOLE CHANGE RESTS ON. Opening a page is only safe if
+     opening it reads nothing. Every request each page makes to Supabase is
+     captured at the network boundary and inspected — not inferred from the
+     source, because a shared script could always add one. */
+  console.log('\n4b · Opened anonymously, these pages ask for nothing');
+  const PATIENT_TABLES = ['patient_surgeries','clinic_patients','care_requests',
+    'preop_questionnaires','preop_checklist','preparation_plans','patient_recommendations',
+    'anesthesia_cases','anesthesia_events','health_passport','consultations','profiles'];
+  for (const page of ['/engine.html', '/scores.html', '/references.html', '/airway.html']) {
+    const ctx = await b.newContext({ viewport:{ width:1280, height:900 } });
+    const hits = [];
+    await ctx.route('**/*', r => {
+      const u = r.request().url();
+      if (/supabase\.co/.test(u)) { hits.push(u.replace(/^https?:\/\/[^/]+/, ''));
+        return r.fulfill({status:200,contentType:'application/json',body:'null'}); }
+      if (/cdn\.jsdelivr|unpkg/.test(u)) return r.fulfill({status:200,contentType:'text/javascript',body:MOCK});
+      if (/googleapis|gstatic/.test(u))  return r.fulfill({status:200,contentType:'text/css',body:''});
+      if (/youtube|ytimg/.test(u))       return r.fulfill({status:200,contentType:'application/json',body:'[]'});
+      return r.continue();
+    });
+    const pg = await ctx.newPage();
+    await pg.addInitScript('window.__TEST_ROLE="anon";');
+    await pg.goto(BASE + page, { waitUntil:'networkidle' });
+    await pg.waitForTimeout(1800);
+    const tableHits = hits.filter(h => PATIENT_TABLES.some(tb => h.includes('/rest/v1/' + tb)));
+    t(page + ': queries no patient table', tableHits.length === 0, tableHits);
+    const rpcHits = hits.filter(h => h.includes('/rest/v1/rpc/'))
+      .map(h => h.split('/rpc/')[1].split('?')[0]);
+    t(page + ': the only RPCs are anon-granted ones',
+      rpcHits.every(n => n === 'get_evidence'), rpcHits);
+    /* Nothing that could identify a person may be written to this device. */
+    const stored = await pg.evaluate(`(() => { const o = {};
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i);
+        o[k] = (localStorage.getItem(k) || '').slice(0, 300); } return o; })()`);
+    const keys = Object.keys(stored);
+    t(page + ': stores no identifier',
+      !JSON.stringify(stored).match(/fname|lname|mrn|"pid"|patient_id|email|user_id/i),
+      keys);
+    await ctx.close();
+  }
+
+  /* The evidence drawer is the one live backend call on Live Tools, and its
+     function is granted to `anon` in the migration. Both halves checked. */
+  const ev = await open(b, '/engine.html', null);
+  const evidence = await ev.pg.evaluate(`(async () => {
+    if (typeof window.getEvidence !== 'function') return { missing:true };
+    try { const r = await window.getEvidence('ideal-body-weight'); return { ok:true, threw:false, r: r === null ? 'null' : typeof r }; }
+    catch (e) { return { ok:false, threw:true, msg:e.message }; } })()`);
+  await ev.ctx.close();
+  t('the evidence API is present for an anonymous visitor', !evidence.missing, evidence);
+  t('...and calling it does not throw',    evidence.threw === false, evidence);
+  t('get_evidence is granted to anon in the migration',
+    /grant execute on function public\.get_evidence\(text\) to anon, authenticated;/i
+      .test(fs.readFileSync(REPO + '/evidence_transparency_phase1_1.sql','utf8')));
+
+  /* ── 4c · the professional-use notice ───────────────────────────────── */
+  console.log('\n4c · Live Tools says who it is for');
+  const nt = await open(b, '/engine.html', null);
+  const notice = await nt.pg.evaluate(`(() => { const e = document.querySelector('.eng-notice');
+    if (!e) return null; const r = e.getBoundingClientRect();
+    return { text:(e.textContent||'').replace(/\\s+/g,' ').trim(),
+             visible: r.width > 0 && r.height > 0,
+             top: Math.round(r.top + scrollY),
+             firstInput: (() => { const i = document.querySelector('#app input');
+               return i ? Math.round(i.getBoundingClientRect().top + scrollY) : Infinity; })() }; })()`);
+  await nt.ctx.close();
+  t('the notice renders',                  !!notice && notice.visible, notice && notice.text.slice(0,60));
+  t('it names the audience',               /for healthcare professionals/i.test(notice.text));
+  t('it says reference and education only', /reference and education only/i.test(notice.text));
+  t('it disclaims prescribing and deciding',
+    /does not prescribe and does not make clinical decisions/i.test(notice.text));
+  t('it tells the reader to verify locally',
+    /verify doses and clinical decisions against current local protocols/i.test(notice.text));
+  t('it sits above the first input, not in a footer',
+    notice.top < notice.firstInput, { notice: notice.top, input: notice.firstInput });
+
   /* ── 5 · nothing structural moved ───────────────────────────────────── */
   console.log('\n5 · Security, SQL and the rest of the page');
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
@@ -208,15 +334,42 @@ function ratio(fg, bg) {
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
   t('patients.html is untouched', !changed.includes('patients.html'));
-  t('only index.html changed among pages',
-    changed.filter(f => /\.html$/.test(f)).every(f => f === 'index.html'), changed);
-  /* No guard on any destination page was edited to make a link work. */
-  for (const f of ['engine.html','scores.html','references.html','dashboard.html']) {
-    t(f + ' is byte-identical to main',
-      fs.readFileSync(REPO + '/' + f, 'utf8') === onMain(f));
+
+  /* THE GUARD INVENTORY. The previous revision asserted these four pages were
+     byte-identical to main, which was the right claim while the change was
+     purely visual and is the wrong one now: three of them deliberately lost a
+     guard. So the assertion becomes the specific thing that changed, page by
+     page, and — more importantly — the specific thing that must not. */
+  const src = f => fs.readFileSync(REPO + '/' + f, 'utf8');
+  /* Guards are checked on CODE, not on prose. Both files explain in a comment
+     which guard they used to call and why it went — a raw substring search
+     matches the explanation and reports the gate as still present. */
+  const code = f => src(f).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+  const REFS = ['references.html','airway.html','anticoagulation.html','regional.html','icu.html',
+                'obstetric.html','pediatric.html','last.html','difficult-airway.html','anaphylaxis.html'];
+
+  t('engine.html no longer calls requireRole',   !/requireRole\(/.test(code('engine.html')));
+  t('scores.html no longer calls requireRole',   !/requireRole\(/.test(code('scores.html')));
+  t('engine.html calls no guard at all',         !/requireAuth\(/.test(code('engine.html')));
+  t('scores.html calls no guard at all',         !/requireAuth\(/.test(code('scores.html')));
+  for (const f of REFS) {
+    t(f + ': anonymous allowed via noRedirect',
+      /requireAuth\(\{\s*noRedirect:\s*true\s*\}\)/.test(src(f)));
+    t(f + ': signed-in patient still redirected',
+      /if\(role === 'patient'\)\{ window\.location\.href = '\/dashboard\.html'; return; \}/.test(src(f)));
   }
-  t('requireRole is still what guards the workspace',
-    /requireRole\(['"]staff['"]\)/.test(fs.readFileSync(REPO + '/dashboard.html','utf8')));
+  /* The one gate that had a reason to exist keeps it, untouched. */
+  t('dashboard.html is byte-identical to main',
+    src('dashboard.html') === onMain('dashboard.html'));
+  t('requireRole(\'staff\') still guards the workspace',
+    /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
+  t('patient-dashboard.html is byte-identical to main',
+    src('patient-dashboard.html') === onMain('patient-dashboard.html'));
+  /* Opening a page must not have meant opening a write path. */
+  for (const f of ['engine.html','scores.html', ...REFS]) {
+    t(f + ': still makes no Supabase call',
+      !/\.from\(['"]|\.rpc\(['"]/.test(code(f)));
+  }
   /* The signed-in homes are built by JS this branch did not touch. */
   const fn = (src, name, end) => {
     const i = src.indexOf(name); if (i < 0) return null;

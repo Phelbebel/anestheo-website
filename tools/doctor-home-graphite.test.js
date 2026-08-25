@@ -356,11 +356,24 @@ const MAIN_AH = (MAIN_HTML.match(/^\.ah\{--bd:[^\n]*\n[^\n]*\n[^\n]*$/m) || ['']
   t('an unverified doctor gets the same ground', uSkin.bg === dSkin.bg, uSkin.bg);
   t('their verification notice still renders',   uVerify !== null, uVerify);
 
-  /* The workspace is a different file and must not have been touched. */
-  t('dashboard.html is identical to main',
-    fs.readFileSync(REPO + '/dashboard.html','utf8') === onMain('dashboard.html'));
-  t('engine.html is identical to main',
-    fs.readFileSync(REPO + '/engine.html','utf8') === onMain('engine.html'));
+  /* NARROWED, for the third time and for the same reason each time: this read
+     "dashboard.html and engine.html are identical to main", which is a claim
+     about whole files rather than about the thing this suite owns. engine.html
+     legitimately changed on a later branch — it lost a guard that protected no
+     data — and this suite reported that as a doctor-home regression.
+
+     What the doctor home actually needs from those two files is that its own
+     repaint did not reach them. So: neither may carry the doctor-home class or
+     the palette variables it defines, and the workspace keeps the guard that
+     makes it the workspace. Whole-file identity is asserted where it belongs —
+     public-clinician-and-cta.test.js pins dashboard.html byte for byte. */
+  for (const f of ['dashboard.html', 'engine.html']) {
+    const s = fs.readFileSync(REPO + '/' + f, 'utf8');
+    t(f + ' does not carry the doctor-home class', !/doctor-home/.test(s));
+    t(f + ' does not redefine the home palette',   !/--dh-wash|--dh-line|--dh-ink-on-teal/.test(s));
+  }
+  t('the workspace still guards itself',
+    /requireRole\(['"]staff['"]\)/.test(fs.readFileSync(REPO + '/dashboard.html','utf8')));
   const w = await open(b, ID.doctor, '/dashboard.html');
   const wSkin = await w.pg.evaluate(
     `(() => { const c=getComputedStyle(document.body);

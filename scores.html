@@ -550,7 +550,11 @@ window.scToggle=scToggle; window.scPick=scPick; window.scSelect=scSelect; window
 
 document.addEventListener('DOMContentLoaded', async function(){
   try {
-    var auth = await window.requireRole('staff'); if(!auth) return;
+    /* NO GUARD. Same audit, same answer as engine.html: this page makes no
+       Supabase call, no fetch and no XHR, writes nothing to localStorage, and
+       has no name or identifier field — buildNav() and buildContent() render
+       scores from constants in this file and the inputs are numbers. There was
+       nothing behind the gate to protect. */
     buildNav(); buildContent();
     ge('loader').style.display='none'; ge('app').style.display='block';
   } catch(e){

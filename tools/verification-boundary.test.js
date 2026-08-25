@@ -140,7 +140,14 @@ async function openProbed(b, path, who) {
 
   // ── 1 · AUTH: the chooser cannot be bypassed ────────────────────────────
   console.log('\n── 1 · auth ──');
-  for (const p of ['/index.html','/dashboard.html','/patient-dashboard.html','/engine.html','/anesthesia-cases.html']) {
+  /* /engine.html is NOT in this list any more. It lost requireRole('staff')
+     after an audit found it makes no Supabase read, no RPC and no fetch,
+     stores no identifier, and that its one backend call — get_evidence — is
+     already granted to `anon`. A page an anonymous visitor can open cannot
+     also be one that forces a roleless account to choose first, or that turns
+     a patient away: that is the same person one sign-out apart. The surfaces
+     below all hold data, and every one of them still redirects. */
+  for (const p of ['/index.html','/dashboard.html','/patient-dashboard.html','/anesthesia-cases.html']) {
     const r = await open(b, p, 'pending');
     t(('pending on ' + p).padEnd(46) + '→ role-select', r.url === '/role-select.html', r.url);
   }
@@ -252,8 +259,9 @@ async function openProbed(b, path, who) {
   for (const [p, expect] of [['/patient-dashboard.html','/patient-dashboard.html'],
                              ['/health-passport.html','/health-passport.html'],
                              ['/dashboard.html','/patient-dashboard.html'],
-                             ['/engine.html','/patient-dashboard.html'],
-                             ['/questionnaires.html','/patient-dashboard.html']]) {
+                             ['/questionnaires.html','/patient-dashboard.html'],
+                             /* Public now, and public means public. */
+                             ['/engine.html','/engine.html']]) {
     const r = await open(b, p, 'patient');
     t(('patient on ' + p).padEnd(46) + '→ ' + expect, r.url === expect, r.url);
   }

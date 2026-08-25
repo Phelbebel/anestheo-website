@@ -89,11 +89,26 @@ async function land(b, path, profile, identities) {
 
 /* Everything a signed-in account can reach that is not the chooser itself.
    /videos.html and /patients.html are marketing pages and stay public; they
-   are listed so the split is stated rather than assumed. */
+   are listed so the split is stated rather than assumed.
+
+   /engine.html MOVED OUT OF THE CLINICAL AREA and into PUBLIC_AREA. It was
+   listed here because it sat behind requireRole('staff'); that guard was
+   removed after an audit found the page makes no Supabase read, no RPC and no
+   fetch, stores no identifier, and that its one backend call — get_evidence —
+   is already granted to `anon`. A page an anonymous visitor can open cannot
+   also be a page that forces a roleless account to choose a role first: those
+   are the same person, one sign-out apart.
+
+   The rule this suite exists for is untouched. A roleless account is still
+   sent to the chooser by every surface that holds data, and is still never
+   delivered into the patient application by a clinical denial — which was the
+   original bug. /engine.html holds no data to be roleless in front of. */
 const PATIENT_AREA = ['/patient-dashboard.html','/health-passport.html','/settings.html',
                       '/questionnaire.html','/ask.html'];
-const CLINICAL_AREA = ['/dashboard.html','/engine.html','/anesthesia-cases.html',
+const CLINICAL_AREA = ['/dashboard.html','/anesthesia-cases.html',
                        '/questionnaires.html','/admin.html','/users.html'];
+const PUBLIC_AREA   = ['/index.html','/patients.html','/videos.html',
+                       '/engine.html','/scores.html','/references.html'];
 
 (async () => {
   const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -209,10 +224,21 @@ const CLINICAL_AREA = ['/dashboard.html','/engine.html','/anesthesia-cases.html'
 
   // ── 6 · A PATIENT IS STILL DENIED THE CLINICAL AREA ─────────────────────
   console.log('\n── the deny path still denies ──');
-  for (const path of ['/dashboard.html','/engine.html','/anesthesia-cases.html']) {
+  for (const path of ['/dashboard.html','/anesthesia-cases.html']) {
     const r = await land(b, path, PATIENT);
     t('patient on ' + path.padEnd(24) + '→ patient space, as before',
       r.url === '/patient-dashboard.html', r.url);
+  }
+  /* And the other half of the same rule, stated rather than left implied: the
+     pages that hold no data stay open to them. Denying a signed-in patient a
+     page an anonymous visitor can read would punish them for having an
+     account, not protect anything. */
+  for (const path of ['/engine.html','/scores.html','/references.html']) {
+    const r = await land(b, path, PATIENT);
+    const expected = path === '/references.html' ? '/patient-dashboard.html' : path;
+    t('patient on ' + path.padEnd(24) +
+      (path === '/references.html' ? '→ patient space (clinician reference)' : '→ opens, it is public'),
+      r.url === expected, r.url);
   }
   {
     const r = await land(b, '/admin.html', DOCTOR_OK);
@@ -237,7 +263,7 @@ const CLINICAL_AREA = ['/dashboard.html','/engine.html','/anesthesia-cases.html'
     t('signed out on ' + path.padEnd(24) + '→ homepage, not the chooser',
       r.url === '/index.html', r.url);
   }
-  for (const path of ['/index.html','/patients.html','/videos.html']) {
+  for (const path of PUBLIC_AREA) {
     const r = await land(b, path, null);
     t('public page ' + path.padEnd(20) + ' still public', r.url === path, r.url);
   }

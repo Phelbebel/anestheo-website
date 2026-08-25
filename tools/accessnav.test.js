@@ -82,7 +82,22 @@ const where = pg => pg.evaluate(() => location.pathname);
          was my matrix being wrong about the product, not the product being
          wrong. Health Passport is personal for the same reason. */
       const personal = (url === '/health-passport.html' || url === '/settings.html');
-      const staffSurface = !personal;
+      /* LIVE TOOLS IS NOW PUBLIC, and this assertion changed with it.
+         It used to read "Live Tools: patient is kept out", which was correct
+         while /engine.html sat behind requireRole('staff'). That guard was
+         removed deliberately: an audit found the page makes no Supabase read,
+         no RPC and no fetch, stores no identifier, and its one backend call —
+         get_evidence — is granted to `anon`. The gate protected nothing.
+
+         Once the page opens for an anonymous visitor, keeping a SIGNED-IN
+         patient out is theatre: it is the same person one sign-out apart, and
+         the only thing the check would achieve is punishing them for having an
+         account. What a patient is still kept out of is the workspace and the
+         clinician reference library, and both are asserted — here for
+         /dashboard.html, and in public-clinician-and-cta.test.js for the ten
+         reference pages. */
+      const publicTool = (url === '/engine.html');
+      const staffSurface = !personal && !publicTool;
       if (personal) {
         /* THE HEALTH PASSPORT IS PERSONAL. Every account reaches their own,
            and a clinician must never be bounced to the Doctor Dashboard for
@@ -91,6 +106,8 @@ const where = pg => pg.evaluate(() => location.pathname);
         t(label + ': not bounced to the workspace', at !== '/dashboard.html', at);
         if (url === '/health-passport.html')
           t(label + ': not bounced to My Space either', at !== '/patient-dashboard.html', at);
+      } else if (publicTool) {
+        t(label + ': open to every account, by design', at === url, at);
       } else if (CLINICAL.includes(who) || who === 'pure admin') {
         t(label + ': reachable', at === url, at);
       } else {
