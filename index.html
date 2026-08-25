@@ -912,10 +912,43 @@ html:not(.pre-app):not(.app) .nav-login:hover{border-color:rgba(126,207,192,.5);
 html:not(.pre-app):not(.app) .btn{width:auto;border-radius:var(--radius-md);padding:14px 26px;font-size:15px;
   font-weight:650;min-height:50px;background:var(--ink);color:#0B1620;border:1px solid transparent;}
 html:not(.pre-app):not(.app) .btn:hover{background:#fff;}
+/* THE INK COULD NOT BE FIXED WITHOUT THE GRADIENT, and that is why this rule
+   changes shape rather than just its colour.
+
+   It was linear-gradient(135deg,#2FA88C,#1B6B5A) with white text. White on the
+   bright end is 2.96:1 — below the 4.5:1 AA needs for 15px/650 text. The
+   obvious repair is a darker ink, so I measured every candidate against BOTH
+   ends before touching anything:
+
+       ink        on #2FA88C   on #1B6B5A
+       #ffffff       2.96          6.37
+       #06121C       6.39          2.97
+       #0B1620       6.18          2.87
+       #04121A       6.42          2.98
+
+   No ink passes at both ends. The gradient spans too much luminance for any
+   single text colour to sit on: light ink fails the bright stop, dark ink
+   fails the dark stop. So the gradient had to give.
+
+   Flattened to the brand teal with the graphite on-accent ink — 6.39:1 at
+   rest, 7.97:1 on hover. The button is still teal, still the same size,
+   radius, weight and shadow; it simply stops travelling into the old #1B6B5A
+   green on its way. A gradient could have been kept by narrowing it (say
+   #2FA88C → #26907A, which reaches 4.86:1 at the dark end) but that buys a
+   thinner margin for a gradient nobody can see across 22px of padding.
+
+   This also DELETES an override rather than adding one: .final-in .btn-teal
+   was doing exactly this for one button, because repainting the other four was
+   a separate decision at the time. It is the same decision now, so it belongs
+   here and the exception is gone. */
 html:not(.pre-app):not(.app) .btn-teal{
-  background:linear-gradient(135deg,#2FA88C,#1B6B5A);color:#fff;
+  background:var(--teal);color:#06121C;
   box-shadow:0 12px 30px rgba(47,168,140,.26);}
-html:not(.pre-app):not(.app) .btn-teal:hover{background:linear-gradient(135deg,#37bd9c,#22826d);}
+html:not(.pre-app):not(.app) .btn-teal:hover{background:#38BC9D;}
+/* A teal ring 2px outside a teal button reads as a halo rather than as focus.
+   The lifted brand teal is 10.6:1 on the ground and unmistakably not the
+   button, which is what a focus indicator has to be. */
+html:not(.pre-app):not(.app) .btn-teal:focus-visible{outline-color:#7ECFC0;}
 html:not(.pre-app):not(.app) .btn-ghost{background:var(--glass);color:var(--ink);border-color:var(--hair-2);}
 html:not(.pre-app):not(.app) .btn-ghost:hover{border-color:rgba(126,207,192,.55);background:var(--teal-tint);}
 html:not(.pre-app):not(.app) .btn-text{color:var(--ink);}
@@ -1088,13 +1121,14 @@ html:not(.pre-app):not(.app) .vids-all{white-space:nowrap;}
    the block anyone is meant to act on. */
 html:not(.pre-app):not(.app) .final-in{text-align:center;border-radius:var(--radius-2xl);padding:clamp(40px,6vw,76px) clamp(24px,4vw,56px);
   background:var(--card);border:1px solid var(--hair);box-shadow:var(--shadow);}
-/* One controlled teal, flat rather than a gradient that ends on the old
-   #1B6B5A green. Dark ink on it, because white on #2FA88C is 3.0:1 — below
-   AA. Scoped to this block: .btn-teal is shared with four other buttons on
-   this page and repainting them is a separate decision. */
-html:not(.pre-app):not(.app) .final-in .btn-teal{
-  background:var(--teal);color:#06121C;box-shadow:none;}
-html:not(.pre-app):not(.app) .final-in .btn-teal:hover{background:#38BC9D;}
+/* The teal override that used to live here is gone. It flattened this one
+   button and darkened its ink because white on #2FA88C is 3.0:1, and it was
+   scoped to this block because repainting the other four .btn-teal buttons
+   was a separate decision. That decision has since been taken, so the rule
+   moved to .btn-teal itself and this exception has nothing left to say. The
+   one thing it did that the shared rule does not is drop the shadow, which
+   this block does not want against its own card. */
+html:not(.pre-app):not(.app) .final-in .btn-teal{box-shadow:none;}
 html:not(.pre-app):not(.app) .final-h{font-size:clamp(26px,3.6vw,40px);font-weight:700;letter-spacing:-.025em;
   line-height:1.14;margin-bottom:14px;}
 html:not(.pre-app):not(.app) .final-p{font-size:16px;color:var(--muted);}
