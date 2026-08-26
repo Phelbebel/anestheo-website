@@ -88,9 +88,13 @@ const BTNS = `(() => [...document.querySelectorAll('.btn-teal')].map(n => {
   /* ── 1 · why the ink alone could not fix it ─────────────────────────── */
   console.log('\n1 · No single ink fits the old gradient');
   const OLD = { bright:'#2FA88C', dark:'#1B6B5A' };
-  t('the old gradient is what main shipped',
-    /linear-gradient\(135deg,#2FA88C,#1B6B5A\);color:#fff/.test(MAIN_HTML),
-    (MAIN_HTML.match(/\.btn-teal\{[^}]*linear-gradient[^}]*\}/) || [''])[0].slice(0, 80));
+  /* The old values are RECORDED here rather than read back from main. They
+     were main's when this suite was written; the fix has since merged, so
+     asking git for them now returns the fix and the assertion inverts. The
+     arithmetic below is what matters and it does not depend on any branch. */
+  const CSS = HTML.replace(/\/\*[\s\S]*?\*\//g, ' ');   // the comment quotes the old value
+  t('no teal button ships that gradient any more',
+    !/linear-gradient\(135deg,#2FA88C,#1B6B5A\)/.test(CSS));
   const white = ratio(hex('#ffffff'), hex(OLD.bright));
   t('white failed the bright stop', white < 4.5, white + ':1 on ' + OLD.bright);
   t('...and that is the reported defect', Math.abs(white - 2.96) < 0.05, white);
@@ -158,10 +162,16 @@ const BTNS = `(() => [...document.querySelectorAll('.btn-teal')].map(n => {
 
   /* ── 4 · one shared fix, not four overrides ─────────────────────────── */
   console.log('\n4 · One rule, no page-specific overrides');
-  const rules = execSync('git -C ' + REPO + ' grep -c "\\.btn-teal" -- "*.html" "*.css" || true',
-    { encoding:'utf8' }).split('\n').filter(Boolean);
+  /* Comments stripped first. ask.html now explains that .btn-primary carries
+     the same defect this file fixed, and a raw grep counted that sentence as a
+     .btn-teal usage. */
+  const owners = execSync('git -C ' + REPO + ' ls-files "*.html" "*.css"', { encoding:'utf8' })
+    .split('\n').filter(Boolean)
+    .filter(f => /\.btn-teal|class="[^"]*btn-teal/.test(
+      fs.readFileSync(REPO + '/' + f, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/<!--[\s\S]*?-->/g, ' ')));
   t('.btn-teal is defined and used only in index.html',
-    rules.every(l => l.startsWith('index.html:')), rules);
+    owners.join() === 'index.html', owners);
   const teal = (HTML.match(/^html:not\(\.pre-app\):not\(\.app\) \.btn-teal[^{]*\{[^}]*\}/gm) || []);
   t('the public teal rules are a small set', teal.length === 3, teal.length + ' rules');
   t('the old final-in colour override is gone',
@@ -175,9 +185,25 @@ const BTNS = `(() => [...document.querySelectorAll('.btn-teal')].map(n => {
   const paints = src => (src.replace(/\/\*[\s\S]*?\*\//g, ' ')
     .match(/[^{}]*\.btn-teal[^{]*\{[^}]*\}/g) || [])
     .filter(r => /(^|[;{])\s*(background|color)\s*:/.test(r.split('{')[1] || ''));
-  t('fewer rules decide the button fill and ink than on main',
-    paints(HTML).length < paints(MAIN_HTML).length,
-    paints(MAIN_HTML).length + ' → ' + paints(HTML).length);
+  /* Absolute, not relative to main — main now carries this fix, so "fewer
+     than main" compares the change with itself. What has to stay true is that
+     the fill and the ink are decided in one small, findable place. */
+  /* FOUR, and the number is stated rather than bounded loosely: one rest and
+     one hover rule per theme. The light-theme pair is the marketing fallback
+     and was never the defect — #fff on its #1B6B5A is 6.37:1. The public pair
+     is the one that governed the failing buttons, and it is now a single
+     declaration each rather than a gradient plus an exception. */
+  const sels = paints(HTML).map(r => r.split('{')[0].trim());
+  t('exactly four rules decide the button fill and ink', sels.length === 4, sels);
+  t('two of them are the light-theme fallback',
+    sels.filter(x => x === '.btn-teal' || x === '.btn-teal:hover').length === 2, sels);
+  t('two of them are the shared public rule and its hover',
+    sels.filter(x => /^html:not\(\.pre-app\):not\(\.app\) \.btn-teal(:hover)?$/.test(x)).length === 2, sels);
+  t('no per-section colour override survives',
+    !sels.some(x => /\.final-in|\.hero |\.clin/.test(x)), sels);
+  /* The untouched fallback still passes on its own ground. */
+  t('the light-theme pair was never the defect',
+    ratio(hex('#ffffff'), hex('#1B6B5A')) >= 4.5, ratio(hex('#ffffff'), hex('#1B6B5A')) + ':1');
 
   /* ── 5 · nothing but the colour moved ───────────────────────────────── */
   console.log('\n5 · Geometry, wording and destinations unchanged');
@@ -224,8 +250,11 @@ const BTNS = `(() => [...document.querySelectorAll('.btn-teal')].map(n => {
   t('auth.js is untouched',     !changed.includes('auth.js'));
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
-  t('only index.html changed among pages',
-    changed.filter(f => /\.html$/.test(f)).every(f => f === 'index.html'), changed);
+  /* Was "only index.html changed among pages" — branch-scoped, and it fails
+     the moment any later branch touches a different page, reporting it as a
+     button-contrast regression. The durable form: no other page may define or
+     use .btn-teal, so no other page can reintroduce the failing pair. */
+  t('.btn-teal exists in no page but index.html', owners.join() === 'index.html', owners);
   t('no guard call changed',
     (HTML.match(/require(Role|Auth)\([^)]*\)/g) || []).join() ===
     (MAIN_HTML.match(/require(Role|Auth)\([^)]*\)/g) || []).join());

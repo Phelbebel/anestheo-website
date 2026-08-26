@@ -99,16 +99,24 @@ async function land(b, path, profile, identities) {
    also be a page that forces a roleless account to choose a role first: those
    are the same person, one sign-out apart.
 
+   /ask.html MOVED THE SAME WAY, for a different reason. It reads no data
+   either, but it can WRITE one: a question. So the split is between the two
+   verbs rather than between two pages — a roleless account reads the FAQ like
+   anybody else, and is sent to the chooser the moment it tries to send a
+   question, which is the only moment a row with an owner could exist. Both
+   halves are asserted at the end of this file, in a browser.
+
    The rule this suite exists for is untouched. A roleless account is still
-   sent to the chooser by every surface that holds data, and is still never
-   delivered into the patient application by a clinical denial — which was the
-   original bug. /engine.html holds no data to be roleless in front of. */
+   sent to the chooser by every surface that holds data, is still never
+   delivered into the patient application by a clinical denial — the original
+   bug — and still cannot own a row anywhere. What changed is that reading a
+   public page is no longer treated as entering the product. */
 const PATIENT_AREA = ['/patient-dashboard.html','/health-passport.html','/settings.html',
-                      '/questionnaire.html','/ask.html'];
+                      '/questionnaire.html'];
 const CLINICAL_AREA = ['/dashboard.html','/anesthesia-cases.html',
                        '/questionnaires.html','/admin.html','/users.html'];
 const PUBLIC_AREA   = ['/index.html','/patients.html','/videos.html',
-                       '/engine.html','/scores.html','/references.html'];
+                       '/engine.html','/scores.html','/references.html','/ask.html'];
 
 (async () => {
   const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -277,8 +285,45 @@ const PUBLIC_AREA   = ['/index.html','/patients.html','/videos.html',
       /role === 'pending' && !isAdmin[\s\S]{0,120}role-select\.html/.test(authSrc));
     t('the deny target for a WRONG role is unchanged',
       /opts\.deny \|\| \(isStaff \? '\/dashboard\.html' : '\/patient-dashboard\.html'\)/.test(authSrc));
+    /* ASK MOVED FROM PATIENT_AREA TO PUBLIC_AREA, and this assertion moved
+       with it. It read "ask.html now calls requireAuth()", which was the fix
+       for a page that had no guard at all — but requireAuth() answers "may
+       this person be here?", and the answer for a page of anesthesiologist-
+       written FAQ is yes. Guarding the READ made the public "Ask a question"
+       link bounce every visitor to the homepage.
+
+       The rule this suite defends is not weakened, it is aimed at the thing
+       that actually creates a row. A roleless account may read the page and is
+       sent to the chooser the moment it tries to send a question — asserted
+       live below, because a claim about behaviour deserves a browser. */
     const ask = fs.readFileSync('/home/user/anestheo-website/ask.html', 'utf8');
-    t('ask.html now calls requireAuth()', /window\.requireAuth\(\)/.test(ask));
+    t('ask.html does not guard the READ',
+      !/requireAuth\s*\(/.test(ask.replace(/\/\*[\s\S]*?\*\//g, ' ')));
+    t('ask.html sends a roleless account to the chooser before it can own a row',
+      /profile\.role === 'pending'[\s\S]{0,120}role-select\.html/.test(ask));
+    {
+      const r = await land(b, '/ask.html', NEW_GOOGLE, [{provider:'google'}]);
+      t('pending on /ask.html   → reads it, no bounce', r.url === '/ask.html', r.url);
+      const pg2 = await (async () => {
+        const ctx = await b.newContext({ viewport:{ width:1440, height:900 } });
+        await ctx.route('**/*', rq => { const u = rq.request().url();
+          if (/cdn\.jsdelivr|unpkg/.test(u)) return rq.fulfill({status:200,contentType:'text/javascript',body:MOCK});
+          if (/googleapis|gstatic/.test(u)) return rq.fulfill({status:200,contentType:'text/css',body:''});
+          if (/youtube|ytimg|supabase\.co/.test(u)) return rq.fulfill({status:200,contentType:'application/json',body:'[]'});
+          return rq.continue(); });
+        const p = await ctx.newPage();
+        await p.addInitScript('window.__TEST_PROFILE=' + JSON.stringify(NEW_GOOGLE) + ';');
+        await p.goto(BASE + '/ask.html', { waitUntil:'networkidle' });
+        await p.waitForTimeout(1500);
+        await p.fill('#ask-question', 'test');
+        await p.click('#ask-btn');
+        await p.waitForTimeout(1500);
+        const url = new URL(p.url()).pathname;
+        await ctx.close();
+        return url;
+      })();
+      t('pending SUBMITTING on /ask.html → role-select', pg2 === '/role-select.html', pg2);
+    }
   }
 
   await b.close();

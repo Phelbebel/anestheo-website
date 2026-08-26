@@ -61,7 +61,18 @@ async function load(){
     var r=await window.sb.from("questions").select("*").order("created_at",{ascending:false});
     var qs=r.data||[];
     var rows=qs.length?qs.map(function(x){
-      return "<tr><td>"+esc(x.name)+"</td><td>"+esc(x.topic)+"</td><td>"+esc(x.question)+"</td><td>"+esc(x.email||"\u2014")+"</td></tr>";
+      /* THE SAME FALLBACK THE DOCTOR WORKSPACE ALREADY USES. This table read
+         only the legacy contact-form columns \u2014 name, topic, question, email.
+         v2_ask_migration.sql moved the canonical model to patient_id, subject,
+         message and status without dropping the old columns, so legacy rows
+         still render from the left-hand side of each `||` and rows written by
+         the corrected /ask.html render from the right.
+
+         Without this, every question submitted from today onwards would
+         appear here as four empty cells. Nothing else on this page changes:
+         same query, same admin guard, same columns. */
+      return "<tr><td>"+esc(x.name||x.patient_id||"\u2014")+"</td><td>"+esc(x.subject||x.topic||"\u2014")+
+             "</td><td>"+esc(x.message||x.question||"")+"</td><td>"+esc(x.email||x.status||"\u2014")+"</td></tr>";
     }).join(""):"<tr><td colspan=\"4\" class=\"empty\">No questions yet</td></tr>";
     document.getElementById("tb").innerHTML=rows;
   }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan=\"4\" class=\"empty\">Questions table not available</td></tr>"; }

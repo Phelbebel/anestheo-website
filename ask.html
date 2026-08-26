@@ -42,7 +42,43 @@
 .faq-item.open .faq-chev{transform:rotate(180deg);}
 .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease;}
 .faq-a-inner{padding:0 16px 15px;font-size:13.5px;line-height:1.65;color:var(--muted);}
+/* Public topic chips — what people ask about, readable with no account. */
+.ask-topics{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
+.ask-topic{font-size:13px;font-weight:600;color:var(--muted);background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-pill);padding:8px 14px;}
+/* The guest gate. Same card family as the form it stands in for, so the page
+   does not visibly change shape when a session appears. */
+.ask-gate{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:26px 28px;max-width:580px;}
+.ask-gate h3{font-family:var(--sans);font-size:19px;font-weight:700;color:var(--ink);margin-bottom:8px;}
+.ask-gate p{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:18px;max-width:48ch;}
+.ask-gate .ask-gate-note{font-size:12.5px;color:var(--ink-faint);margin:14px 0 0;}
+.ask-who{font-size:12.5px;color:var(--ink-faint);margin-top:12px;line-height:1.55;}
+/* SAME DEFECT AS .btn-teal, DIFFERENT CLASS. .btn-primary in styles.css is
+   var(--brand-grad) — linear-gradient(135deg,#2FA88C,#1B6B5A) — with white
+   text, and white on the bright stop is 2.96:1 where 15px/650 needs 4.5:1.
+   The gradient's two ends are too far apart for any one ink to sit on, which
+   is the same arithmetic that flattened .btn-teal on the homepage.
+
+   Scoped to this page's two buttons on purpose. .btn-primary is used on
+   sixteen pages, and repainting all of them is its own branch with its own
+   review — reported, not taken here. What this rule refuses to do is ship a
+   brand-new call to action at 2.96:1 because the class it reuses is broken.
+
+   --teal on this page is var(--brand), the DARK #1B6B5A — dark ink on it is
+   2.97:1, which is how the first attempt at this rule failed its own test.
+   --brand-mid is the lifted #2FA88C the graphite ground uses, and
+   --on-accent is the ink that belongs on it: 6.39:1. */
+.ask-gate .btn-primary,
+.ask-form .btn-primary{background:var(--brand-mid);color:var(--on-accent);box-shadow:none;}
+.ask-gate .btn-primary:hover,
+.ask-form .btn-primary:hover{background:#38BC9D;}
 @media(max-width:820px){.ask-cols{grid-template-columns:1fr;gap:30px;}}
+@media(max-width:560px){
+  .ask-gate{padding:22px 18px;}
+  .ask-gate .btn-primary{width:100%;}
+  .ask-form{padding:22px 18px;}
+}
 </style>
 </head>
 <body>
@@ -63,32 +99,34 @@
       <h2 class="section-title">Have a question before surgery?</h2>
       <p class="section-sub">Submit your question and receive a clear, evidence-based response. Reviewed by experienced anesthesiology professionals.</p>
 
-      <div class="ask-form">
-        <label>Your name</label>
-        <input type="text" id="ask-name" placeholder="First name">
-        <label>I am a</label>
-        <select id="ask-role">
-          <option value="patient">Patient</option>
-          <option value="family">Family member</option>
-          <option value="nurse">Nurse</option>
-          <option value="student">Medical student</option>
-          <option value="other">Other</option>
-        </select>
-        <label>Topic</label>
-        <select id="ask-topic">
-          <option value="general">General anesthesia</option>
-          <option value="regional">Regional / spinal / epidural</option>
-          <option value="fasting">Fasting and preparation</option>
-          <option value="medications">Medications</option>
-          <option value="recovery">Recovery</option>
-          <option value="other">Other</option>
-        </select>
-        <label>Your question</label>
+      <!-- WHAT PEOPLE ASK ABOUT — public, and useful on its own. The topics
+           were previously visible only as options inside a <select> that a
+           signed-out visitor never reached. -->
+      <div class="ask-topics" id="ask-topics"></div>
+
+      <!-- THE GUEST GATE. Shown when there is no session. The page is public;
+           sending a personal question is not, because questions.q_insert_own
+           is `auth.uid() = patient_id` and an answer has to reach somebody. -->
+      <div class="ask-gate" id="ask-gate" hidden>
+        <h3>Ask my question</h3>
+        <p>Create a free account or log in to send your question and receive your answer.
+           Your anesthesiologist&rsquo;s reply appears in My Space, where only you can read it.</p>
+        <button class="btn-primary" type="button" id="ask-gate-btn">Ask my question</button>
+        <p class="ask-gate-note">Everything else on this page — the answers below, the topics
+          above — stays open whether or not you sign up.</p>
+      </div>
+
+      <!-- THE REAL FORM. Rendered only for a session that can actually own a
+           question. Name, "I am a" and Email are gone; see the audit note in
+           the script below for what each one was doing and why. -->
+      <div class="ask-form" id="ask-form" hidden>
+        <label for="ask-topic">Topic</label>
+        <select id="ask-topic"></select>
+        <label for="ask-question">Your question</label>
         <textarea id="ask-question" placeholder="Type your question here..."></textarea>
-        <label>Email (optional — for a direct reply)</label>
-        <input type="email" id="ask-email" placeholder="your@email.com">
+        <p class="ask-who" id="ask-who"></p>
         <div style="margin-top:18px;">
-          <button class="btn-primary" id="ask-btn" onclick="submitQuestion()">Submit question</button>
+          <button class="btn-primary" id="ask-btn" onclick="submitQuestion()">Send my question</button>
         </div>
         <div class="ask-msg ask-ok"  id="ask-ok"></div>
         <div class="ask-msg ask-err" id="ask-err"></div>
@@ -116,59 +154,168 @@
 </footer>
 
 <script>
-/* ── THE GUARD THIS PAGE NEVER HAD ─────────────────────────────────────────
-   Ask the Anesthesiologist is a patient destination: it is listed in the
-   patient navigation, the phone tab bar and the More sheet, and nowhere in
-   the public navigation. Its table agrees — q_insert_own is
-   `auth.uid() = patient_id`, so a question with no account behind it is not
-   something the database will accept.
+/* ── THE PAGE IS PUBLIC; SENDING A QUESTION IS NOT ─────────────────────────
+   This page called requireAuth() on load, so "Ask a question" on the public
+   For Patients page took a visitor to /ask.html and /ask.html immediately took
+   them to the homepage. The guard was mine, and it was too blunt: it answered
+   "may this person send a question?" by refusing to let them read the page.
 
-   It was nonetheless the one patient page with no guard of any kind. It never
-   asked who was reading it, so a signed-out visitor and a signed-in account
-   with no role chosen both got the form. requireAuth() now answers both:
-   signed out goes to the homepage, no role chosen goes to the chooser.
+   Those are two questions. Reading is public — the explanation, the topics and
+   ten anesthesiologist-written answers are exactly what somebody should be
+   able to use before deciding whether to sign up. Sending is not, and cannot
+   be: questions.q_insert_own is `auth.uid() = patient_id`, so a question with
+   nobody behind it is a row the database refuses and an answer with nowhere to
+   go. No anonymous insert is added here and no policy is touched.
 
-   SEPARATE, PRE-EXISTING DEFECT, NOT FIXED HERE. submitQuestion() posts
-   { name, role, topic, question, email }. The questions table has none of
-   those columns — it has patient_id, subject, message, status — so the insert
-   below cannot succeed on the current schema and has not been able to since
-   v2_ask_migration.sql. The guard does not cause that and does not cure it;
-   changing the insert means deciding how the form's fields map onto
-   subject/message, which is a product decision rather than a security one. */
+   A ROLELESS ACCOUNT still goes to the chooser, but only when it tries to
+   send. Reading is public for them as for anyone.
+
+   ── THE SUBMISSION WAS BROKEN, AND THIS FIXES IT ──────────────────────────
+   submitQuestion() posted { name, role, topic, question, email }. Every one of
+   those is a column from the original contact-form table. v2_ask_migration.sql
+   evolved `questions` into a portal table — patient_id, subject, message,
+   status — and added the RLS that governs it. It adds columns
+   non-destructively and drops nothing, so the legacy columns may still exist;
+   what does not exist is any way for that payload to succeed. patient_id would
+   be null, `auth.uid() = patient_id` is false, and the insert is rejected —
+   as it has been since the migration ran, for every question anyone typed.
+
+   WHAT HAPPENED TO EACH OLD FIELD, because none should vanish unexplained:
+
+     name   - replaced by patient_id. Identity comes from the account now; a
+              free-text first name established nothing and could say anything.
+              Staff resolve the person through the profile.
+     I am a - deleted. It had no column in the canonical model and no reader
+              anywhere in the codebase. If "asking on behalf of a relative"
+              should be a real distinction, it needs a column, not a select
+              whose value was dropped on the floor.
+     email  - deleted, and the most misleading of the three. It promised "for
+              a direct reply"; replies live in question_replies and surface in
+              My Space. Nothing ever emailed anybody.
+     Topic  - kept, now written to `subject` as readable text rather than a
+              slug, because readable text is what the doctor workspace renders.
+     Your question - kept, now written to `message`. */
+var ASK_TOPICS = [
+  'General anesthesia',
+  'Regional, spinal or epidural',
+  'Fasting and preparation',
+  'Medications',
+  'Recovery',
+  'Something else'
+];
+var _askSession = null;
+
+function askEl(id){ return document.getElementById(id); }
+
+function askShowTopics(){
+  var host = askEl('ask-topics');
+  if(host) host.innerHTML = ASK_TOPICS.map(function(t){
+    return '<span class="ask-topic">' + t + '</span>';
+  }).join('');
+  var sel = askEl('ask-topic');
+  if(sel) sel.innerHTML = ASK_TOPICS.map(function(t){
+    return '<option value="' + t + '">' + t + '</option>';
+  }).join('');
+}
+
+/* Two states, one page. Neither hides the FAQ, the topics or the explanation:
+   those render for everybody and this function never touches them. */
+function askSetState(session, profile){
+  _askSession = session || null;
+  var gate = askEl('ask-gate'), form = askEl('ask-form');
+  if(!gate || !form) return;
+  var signedIn = !!session;
+  gate.hidden = signedIn;
+  form.hidden = !signedIn;
+  if(signedIn){
+    var who = askEl('ask-who');
+    var name = (profile && profile.full_name) ? profile.full_name.split(' ')[0] : '';
+    if(who) who.textContent = 'Sent from your Anestheo account' + (name ? ', ' + name : '') +
+      '. Your anesthesiologist’s reply appears in My Space.';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function(){
-  if (typeof window.requireAuth === 'function') window.requireAuth();
+  askShowTopics();
+  /* No redirect on read. getSession() is asked directly rather than through
+     requireAuth() precisely because requireAuth()'s job is to send people
+     away, and nobody should be sent away from a public page. */
+  if(typeof window.getSession !== 'function'){ askSetState(null, null); return; }
+  Promise.resolve(window.getSession()).then(function(s){
+    if(!s){ askSetState(null, null); return; }
+    if(typeof window.getProfile === 'function'){
+      Promise.resolve(window.getProfile(s.user.id))
+        .then(function(p){ askSetState(s, p); })
+        .catch(function(){ askSetState(s, null); });
+    } else askSetState(s, null);
+  }).catch(function(){ askSetState(null, null); });
+
+  var btn = askEl('ask-gate-btn');
+  if(btn) btn.addEventListener('click', function(){
+    /* The EXISTING modal, not a second sign-in. nbOpenModal() also covers the
+       case where a session appeared in another tab: it reuses it rather than
+       asking again. */
+    if(window.nbOpenModal) window.nbOpenModal();
+    else window.location.href = '/index.html';
+  });
 });
 
 async function submitQuestion(){
-  var btn = document.getElementById('ask-btn');
-  var ok  = document.getElementById('ask-ok');
-  var err = document.getElementById('ask-err');
+  var btn = askEl('ask-btn'), ok = askEl('ask-ok'), err = askEl('ask-err');
   ok.style.display = err.style.display = 'none';
 
-  var question = (document.getElementById('ask-question').value || '').trim();
+  var question = (askEl('ask-question').value || '').trim();
   if(!question){ err.textContent = 'Please write your question.'; err.style.display='block'; return; }
 
-  btn.disabled = true; btn.textContent = 'Submitting\u2026';
+  /* Re-checked at submit time rather than trusted from page load: a session
+     can expire while somebody is typing, and the honest answer then is "sign
+     in again", not a rejected insert with a database error in it. */
+  var session = _askSession;
+  try { if(typeof window.getSession === 'function') session = await window.getSession(); } catch(e){}
+  if(!session){
+    askSetState(null, null);
+    if(window.nbOpenModal) window.nbOpenModal();
+    return;
+  }
+  /* A roleless account chooses first, exactly as on every other surface.
+     Reading this page never required that; owning a question does. */
+  var profile = null;
+  try { if(typeof window.getProfile === 'function') profile = await window.getProfile(session.user.id); } catch(e){}
+  if(!profile || !profile.role || profile.role === 'pending'){
+    window.location.href = '/role-select.html';
+    return;
+  }
 
+  btn.disabled = true; btn.textContent = 'Sending…';
   try {
-    var data = {
-      name:     (document.getElementById('ask-name').value  || '').trim() || 'Anonymous',
-      role:     document.getElementById('ask-role').value,
-      topic:    document.getElementById('ask-topic').value,
-      question: question,
-      email:    (document.getElementById('ask-email').value || '').trim() || null
-    };
-    var r = await window.sb.from('questions').insert(data);
-    btn.disabled = false; btn.textContent = 'Submit question';
-    if(r.error){ err.textContent = r.error.message; err.style.display='block'; return; }
-    ok.textContent = '\u2713 Question submitted. Thank you \u2014 we will review it shortly.';
+    /* THE CANONICAL MODEL. patient_id is the authenticated user and nothing
+       else - it is what q_insert_own checks, and it is how the answer finds
+       its way back. status starts at 'new', one of the four values
+       questions_status_check allows. */
+    var r = await window.sb.from('questions').insert({
+      patient_id: session.user.id,
+      subject:    askEl('ask-topic').value || 'Something else',
+      message:    question,
+      status:     'new'
+    });
+    btn.disabled = false; btn.textContent = 'Send my question';
+    if(r && r.error){
+      /* Supabase's own wording never reaches a patient. A policy name or a
+         column error is a message for the console, not for somebody who is
+         about to have surgery. */
+      console.error('questions insert failed:', r.error.message);
+      err.textContent = 'Your question could not be sent just now. Please try again in a moment.';
+      err.style.display = 'block';
+      return;
+    }
+    ok.innerHTML = '✓ Your question has been sent. You will find it, and your ' +
+      'anesthesiologist’s reply, in <a href="/patient-dashboard.html">My Space</a>.';
     ok.style.display = 'block';
-    document.getElementById('ask-question').value = '';
-    document.getElementById('ask-name').value     = '';
-    document.getElementById('ask-email').value    = '';
+    askEl('ask-question').value = '';
   } catch(e){
-    btn.disabled = false; btn.textContent = 'Submit question';
-    err.textContent = 'Network error. Please try again.';
+    btn.disabled = false; btn.textContent = 'Send my question';
+    console.error('questions insert exception:', e && e.message);
+    err.textContent = 'Your question could not be sent just now. Please try again in a moment.';
     err.style.display = 'block';
   }
 }
