@@ -3302,7 +3302,12 @@ function wsRenderAsk(){
     var msg = q.message || q.question || '';
     return '<div class="ws-row"><div class="ws-row-top"><div><div class="ws-row-name">'+wsEsc(subj)+'</div>' +
       '<div class="ws-row-meta">'+wsEsc(msg).slice(0,160)+'</div></div><span class="ws-badge '+(bmap[st]||'b-new')+'">'+(blab[st]||'New')+'</span></div>' +
-      '<div class="ws-row-actions"><a class="ws-btn" href="/ask.html">Open &amp; reply</a></div></div>';
+      /* WAS href="/ask.html" — the PATIENT's own Ask page, which offers a
+         clinician nothing to reply with. The reply surface is
+         /questions.html, deep-linked to this question so it opens on the
+         thread instead of a list to search. */
+      '<div class="ws-row-actions"><a class="ws-btn" href="/questions.html?q=' + wsEsc(q.id) +
+      '">Open &amp; reply</a></div></div>';
   }).join('');
 }
 

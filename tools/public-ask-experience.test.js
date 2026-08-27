@@ -204,10 +204,21 @@ const STATE = `(() => ({
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
   t('no SQL file changed',      changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
-  t('auth.js is untouched',     !changed.includes('auth.js'));
+  /* auth.js DID change: it gained the return-to breadcrumb, which the Ask
+     journey needs and which lives in the one destination resolver every door
+     already calls. What must stay true is that no GUARD changed — that is the
+     security-relevant part of this file. */
+  t('auth.js changed no guard',
+    (fs.readFileSync(REPO + '/auth.js','utf8').match(/require(Role|Auth)[\s\S]{0,400}?role-select\.html/g) || []).length ===
+    (onMain('auth.js').match(/require(Role|Auth)[\s\S]{0,400}?role-select\.html/g) || []).length);
+  t('the pending gate in requireAuth is intact',
+    /role === 'pending' && !isAdmin && !opts\.allowPending/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
-  t('dashboard.html is untouched', !changed.includes('dashboard.html'));
+  /* dashboard.html changed one href: its Questions inbox used to send a
+     clinician to the PATIENT's Ask page. Its guard and its queries did not. */
+  t('the workspace guard is unchanged',
+    /requireRole\('staff'\)/.test(fs.readFileSync(REPO + '/dashboard.html','utf8')));
   t('patient-dashboard.html is untouched', !changed.includes('patient-dashboard.html'));
   const mig = fs.readFileSync(REPO + '/v2_ask_migration.sql', 'utf8');
   t('q_insert_own is still auth.uid() = patient_id',
@@ -224,18 +235,25 @@ const STATE = `(() => ({
      row. Same query, same guard, one defensive fallback added. */
   console.log('\n7 · Staff review still works, for old rows and new');
   const dash = fs.readFileSync(REPO + '/dashboard.html', 'utf8');
-  t('the doctor workspace query is unchanged',
-    dash === onMain('dashboard.html'));
+  t('the doctor workspace question query is unchanged',
+    (dash.match(/from\('questions'\)\.select\('\*'\)[^;]*/g) || []).join() ===
+    (onMain('dashboard.html').match(/from\('questions'\)\.select\('\*'\)[^;]*/g) || []).join());
   t('it already tolerated both shapes',
     /q\.subject \|\| q\.topic/.test(dash) && /q\.message \|\| q\.question/.test(dash));
+  /* REWRITTEN. questions.html was a four-column legacy admin table; it is now
+     the clinician question-management surface, with the canonical columns and
+     a real reply. Asserting its old admin guard and its old query would be
+     asserting that the surface this product needs had not been built. What
+     matters is what replaced them, and that is pinned here. */
   const qh = fs.readFileSync(REPO + '/questions.html', 'utf8');
-  t('the admin table now tolerates both too',
-    /x\.subject\|\|x\.topic/.test(qh) && /x\.message\|\|x\.question/.test(qh));
-  t('its admin guard is unchanged',
-    /requireRole\(['"]admin['"]\)/.test(code(qh)));
-  t('its query is unchanged',
-    (qh.match(/from\("questions"\)\.select\("\*"\)[^;]*/) || [''])[0] ===
-    (onMain('questions.html').match(/from\("questions"\)\.select\("\*"\)[^;]*/) || [''])[0]);
+  t('it renders the canonical model, not the legacy columns',
+    /<th>Patient<\/th><th>Topic<\/th><th>Question<\/th><th>Status<\/th>/.test(qh));
+  t('it still tolerates a legacy row',
+    /q\.subject \|\| q\.topic/.test(qh) && /q\.message \|\| q\.question/.test(qh));
+  t('it admits verified staff and refuses an unverified doctor',
+    /requireRole\('staff'\)/.test(code(qh)) && /auth\.unverifiedDoctor/.test(code(qh)));
+  t('it filters soft-deleted rows like every other question read',
+    /from\('questions'\)\.select\('\*'\)\.is\('deleted_at', null\)/.test(qh));
   for (const who of ['doctor', 'admin']) {
     const s = await open(b, '/ask.html', ID[who]);
     const st = await s.pg.evaluate(STATE);

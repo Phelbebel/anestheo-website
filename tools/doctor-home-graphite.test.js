@@ -276,7 +276,19 @@ const MAIN_AH = (MAIN_HTML.match(/^\.ah\{--bd:[^\n]*\n[^\n]*\n[^\n]*$/m) || ['']
   const authNow = decomment(fs.readFileSync(REPO + '/auth.js','utf8'));
   const authMain = decomment(onMain('auth.js'));
   t('the comment stripper still sees real code', authNow.length > 4000, authNow.length + ' chars');
-  t('auth.js changed in comments only',    authNow === authMain);
+  /* WAS "comments only". That was true when this branch's whole auth.js
+     change was one stale comment; the Ask work has since added the return-to
+     breadcrumb, which is real code. What this suite protects is the doctor
+     home, so the durable claim is narrower and sharper: nothing auth.js gained
+     touches a guard, a role test, or the palette. */
+  const authAdded = authNow.split('\n').filter(l => !authMain.includes(l.trim()) && l.trim());
+  t('auth.js added no guard and no role test',
+    !authAdded.some(l => /require(Role|Auth)|is_admin|role ===|verification_status/.test(l)),
+    authAdded.filter(l => /require(Role|Auth)|role ===/.test(l)).slice(0,2));
+  t('the pending gate is still there',
+    /role === 'pending' && !isAdmin && !opts\.allowPending/.test(authNow));
+  t('auth.js knows nothing about the doctor home',
+    !/doctor-home|patient-home|--dh-/.test(authNow));
   t('the stale v9 claim is gone',
     !/v9_doctor_access_model\.sql, now deployed, removes those policies/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
   t('the comment now names the v9_5 boundary',

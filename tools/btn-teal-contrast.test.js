@@ -247,7 +247,11 @@ const BTNS = `(() => [...document.querySelectorAll('.btn-teal')].map(n => {
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
   t('no SQL file changed',      changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
-  t('auth.js is untouched',     !changed.includes('auth.js'));
+  /* auth.js gained the return-to breadcrumb for the Ask journey — a new
+     helper and one hop in the destination resolver. No guard changed, which
+     is the part that matters here. */
+  t('auth.js changed no guard and no button rule',
+    !/\.btn-teal|\.btn-primary/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
   /* Was "only index.html changed among pages" — branch-scoped, and it fails

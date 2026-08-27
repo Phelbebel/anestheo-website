@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Submitted Questions — Anestheo Admin</title>
+<title>Patient Questions — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.21-03"></script>
@@ -34,6 +34,33 @@
 .act-reject:hover{background:rgba(192,57,43,.12);}
 .empty{text-align:center;color:var(--hint);padding:30px;}
 .tbl-wrap{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);padding:6px 18px 12px;overflow-x:auto;}
+.q-tabs{display:flex;gap:8px;margin:14px 0 16px;flex-wrap:wrap;}
+.q-tab{font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);background:transparent;
+  border:1px solid var(--border);border-radius:var(--radius-pill);padding:0 15px;min-height:44px;cursor:pointer;}
+.q-tab.active{color:var(--ink);border-color:var(--accent);background:rgba(126,207,192,.10);}
+.b-new{background:rgba(232,168,56,.13);color:var(--warning);border:1px solid rgba(232,168,56,.3);}
+.b-review{background:rgba(91,168,255,.13);color:#B9D7FF;border:1px solid rgba(91,168,255,.3);}
+.b-answered{background:rgba(27,107,90,.22);color:var(--accent);border:1px solid rgba(42,138,116,.35);}
+.b-closed{background:rgba(255,255,255,.06);color:var(--hint);border:1px solid var(--border);}
+.q-msg{white-space:pre-wrap;max-width:46ch;}
+/* The reply drawer — one open at a time, inside the row it belongs to. */
+.q-open{background:rgba(255,255,255,.03);}
+.q-panel td{padding:0 12px 16px;}
+.q-panel-in{border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 18px;background:rgba(255,255,255,.02);}
+.q-thread{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+.q-bub{border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 13px;font-size:13px;line-height:1.6;color:var(--ink);max-width:70ch;}
+.q-bub.them{background:rgba(255,255,255,.03);}
+.q-bub.us{background:rgba(126,207,192,.08);border-color:rgba(126,207,192,.28);}
+.q-bub .who{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);margin-bottom:5px;}
+.q-reply{width:100%;min-height:96px;background:var(--surface-3);border:1px solid var(--line);border-radius:var(--radius-sm);
+  color:var(--ink);font-family:inherit;font-size:14px;padding:11px 12px;outline:none;resize:vertical;}
+.q-reply:focus{border-color:var(--teal2);}
+.q-send{font-family:inherit;font-size:13.5px;font-weight:700;min-height:44px;padding:0 18px;margin-top:11px;
+  border:none;border-radius:var(--radius-sm);cursor:pointer;background:var(--brand-mid);color:var(--on-accent);}
+.q-send:hover{background:#38BC9D;}
+.q-send:disabled{opacity:.6;cursor:default;}
+.q-note{font-size:12.5px;margin-top:10px;}
+.q-note.ok{color:var(--accent);} .q-note.err{color:rgba(255,160,140,.93);}
 </style>
 </head>
 <body>
@@ -41,42 +68,224 @@
 <div id="nb-placeholder"></div>
 <div id="app">
   <div class="page-wrap">
-    <div class="crumb"><a href="/dashboard.html">Dashboard</a> &rsaquo; <a href="/admin.html">Admin</a> &rsaquo; Submitted Questions</div>
+    <div class="crumb"><a href="/dashboard.html">Dashboard</a> &rsaquo; Patient questions</div>
     <div class="section">
-      <div class="section-tag">Admin</div>
-      <h2 class="section-title">Submitted Questions</h2>
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Topic</th><th>Question</th><th>Email</th></tr></thead><tbody id="tb"></tbody></table></div>
+      <div class="section-tag">Clinician</div>
+      <h2 class="section-title">Patient questions</h2>
+      <p class="section-sub" id="q-sub">Questions sent from Ask the Anesthesiologist. Replies reach the patient in My Space.</p>
+      <div class="q-tabs"><button class="q-tab active" data-f="pending" type="button">Pending</button><button class="q-tab" data-f="answered" type="button">Answered</button><button class="q-tab" data-f="all" type="button">All</button></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Patient</th><th>Topic</th><th>Question</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead><tbody id="tb"></tbody></table></div>
     </div>
   </div>
 </div>
 <script>
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+/* ── WHO MAY BE HERE ────────────────────────────────────────────────────────
+   Was requireRole('admin'), which locked out the doctors who actually answer
+   patients. It is now the same pair the database uses: a VERIFIED doctor or a
+   platform administrator. An unverified doctor is refused here and — more
+   importantly — by v9_7's policies, which is the boundary that counts. The
+   frontend check exists so they meet an explanation instead of an empty table.
+
+   auth.unverifiedDoctor comes from requireRole() and is derived from the
+   profile row the server returned, not from anything this page decides. */
+var _me = null, _isAdmin = false;
 async function guard(){
-  var auth = await window.requireRole('admin');
+  var auth = await window.requireRole('staff');
   if(!auth) return null;
+  if(auth.unverifiedDoctor){
+    document.getElementById('loader').innerHTML =
+      '<div style="text-align:center;padding:30px;font-family:sans-serif;max-width:420px;">' +
+      '<p style="color:var(--ink);font-size:15px;font-weight:600;">Verification required</p>' +
+      '<p style="color:rgba(255,255,255,.55);font-size:13px;margin-top:8px;line-height:1.6;">' +
+      'Patient questions are part of the verified clinician inbox. Your clinical tools stay open in the meantime.</p>' +
+      '<p style="margin-top:16px;"><a href="/doctor-pending.html" style="color:#7ECFC0;font-size:13px;">About verification</a>' +
+      ' &nbsp;·&nbsp; <a href="/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to workspace</a></p></div>';
+    return null;
+  }
+  _me = auth;
+  _isAdmin = auth.isAdmin === true || (auth.profile && auth.profile.role === 'admin');
   return auth;
 }
-async function load(){
-  try{
-    var r=await window.sb.from("questions").select("*").order("created_at",{ascending:false});
-    var qs=r.data||[];
-    var rows=qs.length?qs.map(function(x){
-      /* THE SAME FALLBACK THE DOCTOR WORKSPACE ALREADY USES. This table read
-         only the legacy contact-form columns \u2014 name, topic, question, email.
-         v2_ask_migration.sql moved the canonical model to patient_id, subject,
-         message and status without dropping the old columns, so legacy rows
-         still render from the left-hand side of each `||` and rows written by
-         the corrected /ask.html render from the right.
 
-         Without this, every question submitted from today onwards would
-         appear here as four empty cells. Nothing else on this page changes:
-         same query, same admin guard, same columns. */
-      return "<tr><td>"+esc(x.name||x.patient_id||"\u2014")+"</td><td>"+esc(x.subject||x.topic||"\u2014")+
-             "</td><td>"+esc(x.message||x.question||"")+"</td><td>"+esc(x.email||x.status||"\u2014")+"</td></tr>";
-    }).join(""):"<tr><td colspan=\"4\" class=\"empty\">No questions yet</td></tr>";
-    document.getElementById("tb").innerHTML=rows;
-  }catch(e){ document.getElementById("tb").innerHTML="<tr><td colspan=\"4\" class=\"empty\">Questions table not available</td></tr>"; }
+/* ── STATE ─────────────────────────────────────────────────────────────────*/
+var _qs = [], _replies = {}, _names = {}, _filter = 'pending', _openId = null;
+
+var BADGE = { new:['b-new','New'], under_review:['b-review','Under review'],
+              answered:['b-answered','Answered'], closed:['b-closed','Closed'] };
+
+function fmtDate(d){
+  if(!d) return '—';
+  try { return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
+  catch(e){ return '—'; }
 }
+
+/* A UUID IS NOT A NAME. The table used to print whatever was in the legacy
+   `name` column, and a canonical row has no such column — so without this the
+   Patient cell would show a raw auth id, which is neither useful to a
+   clinician nor something to put on screen. Names come from profiles; when
+   the lookup returns nothing the cell says so rather than leaking the id. */
+async function loadNames(ids){
+  var want = ids.filter(function(id){ return id && !(id in _names); });
+  if(!want.length) return;
+  try {
+    var r = await window.sb.from('profiles').select('id,full_name,email').in('id', want);
+    ((r && r.data) || []).forEach(function(p){
+      _names[p.id] = (p.full_name || '').trim() || (p.email || '').split('@')[0] || '';
+    });
+  } catch(e){}
+  want.forEach(function(id){ if(!(id in _names)) _names[id] = ''; });
+}
+function patientLabel(q){
+  if(q.patient_id && _names[q.patient_id]) return _names[q.patient_id];
+  if(q.name) return q.name;                       // a legacy contact-form row
+  if(q.patient_id) return 'Patient account';      // known, but unnamed
+  return 'Unknown sender';                        // legacy row with no owner
+}
+
+async function load(){
+  var tb = document.getElementById('tb');
+  try{
+    var r = await window.sb.from('questions').select('*').is('deleted_at', null)
+              .order('created_at',{ascending:false});
+    if(r && r.error) throw new Error(r.error.message);
+    _qs = (r && r.data) || [];
+    await loadNames(_qs.map(function(q){ return q.patient_id; }));
+    var ids = _qs.map(function(q){ return q.id; });
+    if(ids.length){
+      try {
+        var rr = await window.sb.from('question_replies').select('*').in('question_id', ids)
+                   .order('created_at',{ascending:true});
+        _replies = {};
+        (((rr && rr.data) || [])).forEach(function(x){
+          (_replies[x.question_id] = _replies[x.question_id] || []).push(x);
+        });
+      } catch(e){ _replies = {}; }
+    }
+    render();
+  }catch(e){
+    console.error('questions load failed:', e && e.message);
+    tb.innerHTML = '<tr><td colspan="6" class="empty">Patient questions could not be loaded just now.</td></tr>';
+  }
+}
+
+function visible(){
+  return _qs.filter(function(q){
+    var st = q.status || 'new';
+    if(_filter === 'pending')  return st === 'new' || st === 'under_review';
+    if(_filter === 'answered') return st === 'answered' || st === 'closed';
+    return true;
+  });
+}
+
+function render(){
+  var tb = document.getElementById('tb');
+  var list = visible();
+  if(!list.length){
+    tb.innerHTML = '<tr><td colspan="6" class="empty">No questions in this view.</td></tr>';
+    return;
+  }
+  tb.innerHTML = list.map(function(q){
+    var st = q.status || 'new';
+    var b  = BADGE[st] || BADGE.new;
+    var subj = q.subject || q.topic || '—';
+    var body = q.message || q.question || '';
+    var row = '<tr class="' + (String(q.id) === _openId ? 'q-open' : '') + '">' +
+      '<td>' + esc(patientLabel(q)) + '</td>' +
+      '<td>' + esc(subj) + '</td>' +
+      '<td class="q-msg">' + esc(body.slice(0,180)) + (body.length > 180 ? '…' : '') + '</td>' +
+      '<td><span class="badge ' + b[0] + '">' + b[1] + '</span></td>' +
+      '<td>' + esc(fmtDate(q.created_at)) + '</td>' +
+      '<td><button class="act act-approve" type="button" data-open="' + esc(q.id) + '">' +
+        (String(q.id) === _openId ? 'Close' : 'Open &amp; reply') + '</button></td></tr>';
+    if(String(q.id) === _openId) row += panel(q);
+    return row;
+  }).join('');
+}
+
+/* The thread and the reply box, inside the row they belong to. */
+function panel(q){
+  var thread = (_replies[q.id] || []).map(function(x){
+    var mine = x.author_role && x.author_role !== 'patient';
+    return '<div class="q-bub ' + (mine ? 'us' : 'them') + '"><span class="who">' +
+      esc(mine ? 'Anesthesiologist' : patientLabel(q)) + ' · ' + esc(fmtDate(x.created_at)) +
+      '</span>' + esc(x.message) + '</div>';
+  }).join('');
+  return '<tr class="q-panel"><td colspan="6"><div class="q-panel-in">' +
+    '<div class="q-thread">' +
+      '<div class="q-bub them"><span class="who">' + esc(patientLabel(q)) + ' · ' +
+        esc(fmtDate(q.created_at)) + '</span>' + esc(q.message || q.question || '') + '</div>' +
+      thread +
+    '</div>' +
+    '<label for="q-reply-box" style="display:block;font-size:11px;letter-spacing:.06em;' +
+      'text-transform:uppercase;color:var(--hint);font-weight:600;margin-bottom:6px;">Your reply</label>' +
+    '<textarea class="q-reply" id="q-reply-box" placeholder="Write your reply to this patient…"></textarea>' +
+    '<button class="q-send" type="button" id="q-send" data-id="' + esc(q.id) + '">Send reply</button>' +
+    '<div class="q-note" id="q-note"></div>' +
+  '</div></td></tr>';
+}
+
+/* ── THE REPLY ─────────────────────────────────────────────────────────────
+   Two writes, in the order that keeps the patient's view honest: the reply
+   first, then the status. If the status update fails the patient still has
+   their answer and the question merely looks unanswered in this list — the
+   other order would mark it answered with nothing to read. */
+async function sendReply(qid, btn, note){
+  var box = document.getElementById('q-reply-box');
+  var text = (box.value || '').trim();
+  note.className = 'q-note';
+  note.textContent = '';
+  if(!text){ note.className = 'q-note err'; note.textContent = 'Please write a reply.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    var role = _isAdmin ? 'admin' : 'doctor';
+    var ins = await window.sb.from('question_replies').insert({
+      question_id: qid,
+      author_id:   _me.session.user.id,   // pinned to the caller; the policy checks it too
+      author_role: role,
+      message:     text
+    });
+    if(ins && ins.error) throw new Error(ins.error.message);
+
+    var upd = await window.sb.from('questions').update({ status: 'answered' }).eq('id', qid);
+    if(upd && upd.error) console.warn('status update failed:', upd.error.message);
+
+    box.value = '';
+    note.className = 'q-note ok';
+    note.textContent = '✓ Reply sent. The patient sees it in My Space.';
+    btn.disabled = false; btn.textContent = 'Send reply';
+    await load();
+  } catch(e){
+    console.error('reply failed:', e && e.message);
+    btn.disabled = false; btn.textContent = 'Send reply';
+    note.className = 'q-note err';
+    note.textContent = 'The reply could not be sent just now. Please try again in a moment.';
+  }
+}
+
+document.addEventListener('click', function(e){
+  var tab = e.target.closest && e.target.closest('.q-tab');
+  if(tab){
+    _filter = tab.getAttribute('data-f');
+    document.querySelectorAll('.q-tab').forEach(function(b){ b.classList.remove('active'); });
+    tab.classList.add('active');
+    _openId = null;
+    render();
+    return;
+  }
+  var open = e.target.closest && e.target.closest('[data-open]');
+  if(open){
+    var id = open.getAttribute('data-open');
+    _openId = (_openId === id) ? null : id;
+    render();
+    return;
+  }
+  var send = e.target.closest && e.target.closest('#q-send');
+  if(send){ sendReply(send.getAttribute('data-id'), send, document.getElementById('q-note')); }
+});
+
 document.addEventListener("DOMContentLoaded",async function(){
   // Safety: never let the spinner persist beyond 8s
   var safety=setTimeout(function(){
@@ -87,15 +296,27 @@ document.addEventListener("DOMContentLoaded",async function(){
   },8000);
   try {
     var auth=await guard();
-    if(!auth){ clearTimeout(safety); return; } // redirected
+    if(!auth){ clearTimeout(safety); return; } // redirected or refused
     await load();
     clearTimeout(safety);
     document.getElementById("loader").style.display="none";
     document.getElementById("app").style.display="block";
+    /* Deep link from the workspace inbox: /questions.html?q=<id> opens that
+       thread rather than making the clinician find it again. */
+    try {
+      var want = new URLSearchParams(location.search).get('q');
+      if(want && _qs.some(function(x){ return String(x.id) === want; })){
+        _filter = 'all';
+        document.querySelectorAll('.q-tab').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-f') === 'all'); });
+        _openId = want;
+        render();
+      }
+    } catch(e){}
   } catch(e){
     clearTimeout(safety);
     console.error("PAGE ERROR:",e.message);
-    document.getElementById("loader").innerHTML='<div style="text-align:center;padding:30px;font-family:sans-serif;"><p style="color:rgba(255,160,140,.9);font-size:14px;">Could not load this page.</p><p style="color:rgba(255,255,255,.4);font-size:12px;margin-top:6px;">'+e.message+'</p><p style="margin-top:14px;"><a href="/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to dashboard</a></p></div>';
+    document.getElementById("loader").innerHTML='<div style="text-align:center;padding:30px;font-family:sans-serif;"><p style="color:rgba(255,160,140,.9);font-size:14px;">Could not load this page.</p><p style="margin-top:14px;"><a href="/dashboard.html" style="color:#7ECFC0;font-size:13px;">Back to dashboard</a></p></div>';
   }
 });
 </script>

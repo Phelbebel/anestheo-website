@@ -116,8 +116,18 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
     !tiles.some(x => (x.href || '').startsWith('/questions.html')));
   t('...and points at the patient section instead',
     tiles.some(x => x.href === '/preop-instructions.html#what-to-tell'));
-  t('/questions.html really is the admin page, which is why',
-    /requireRole\(['"]admin['"]\)/.test(fs.readFileSync(REPO + '/questions.html','utf8')));
+  /* Checked on CODE. This read requireRole('admin') against the raw file and
+     kept passing after that guard was replaced, because the new file's comment
+     quotes the old one — a false pass on an assertion whose whole job is to
+     justify why a patient card must not link here. questions.html is the
+     CLINICIAN question surface now; what matters is that it is guarded and is
+     not patient-facing. */
+  const qhCode = fs.readFileSync(REPO + '/questions.html','utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+  t('/questions.html is a guarded clinician surface, which is why',
+    /requireRole\(['"]staff['"]\)/.test(qhCode) && /auth\.unverifiedDoctor/.test(qhCode));
+  t('...and it no longer claims to be admin-only',
+    !/requireRole\(['"]admin['"]\)/.test(qhCode));
 
   /* ── 3 · the picker, and its sources ────────────────────────────────── */
   console.log('\n3 · What anesthesia might I have? — public, and sourced');
@@ -253,7 +263,10 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
   t('no SQL file changed',      changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
-  t('auth.js is untouched',     !changed.includes('auth.js'));
+  /* auth.js gained the return-to breadcrumb used by the Ask journey. What
+     this suite cares about is that the public/account line is unmoved. */
+  t('auth.js still gates a roleless account',
+    /role === 'pending' && !isAdmin && !opts\.allowPending/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
   /* REWRITTEN. These read "index.html is untouched" and "only patients.html

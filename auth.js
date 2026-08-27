@@ -795,6 +795,63 @@ async function signInWithProvider(provider) {
 }
 window.signInWithProvider = signInWithProvider;
 
+/* ── RETURN-TO ──────────────────────────────────────────────────────────────
+   A NARROW BREADCRUMB, NOT A SECOND AUTH SYSTEM.
+
+   Sign-in had no memory of where it started. Every door — the navbar modal,
+   the OAuth callback, the role chooser, the recovery page — asks
+   resolveAuthDestination() and goes where it says, and that answer was derived
+   from the role alone. So a visitor who opened the sign-in modal from
+   /ask.html was returned to their patient home instead, having lost the thing
+   they came to do.
+
+   The fix is one key and one validator, read by the one resolver every door
+   already calls. Nothing new authenticates anything.
+
+   THE VALIDATION IS THE WHOLE SAFETY ARGUMENT. A stored path is attacker-
+   influenceable — anything that can run script in this origin can write
+   sessionStorage — so it is never used as given. It must be an exact member of
+   an allowlist of internal pages. Not "starts with /", which admits
+   //evil.example and /\evil.example, both of which browsers treat as
+   protocol-relative and would send a freshly-authenticated user off-site. An
+   allowlist cannot be talked around.
+
+   sessionStorage, not localStorage: the intent belongs to this tab and this
+   visit. An email-confirmation link opened in a NEW tab has no breadcrumb and
+   falls back to the role-based destination, which is correct rather than
+   surprising. */
+var AUTH_RETURN_KEY = 'anestheo.auth.returnTo';
+var AUTH_RETURN_ALLOW = [
+  '/ask.html',
+  '/patients.html',
+  '/procedures.html',
+  '/videos.html',
+  '/recovery.html',
+  '/preop-instructions.html',
+  '/health-passport.html'
+];
+
+function setAuthReturnTo(path) {
+  if (AUTH_RETURN_ALLOW.indexOf(path) === -1) return false;
+  try { sessionStorage.setItem(AUTH_RETURN_KEY, path); return true; } catch (e) { return false; }
+}
+/* Read WITHOUT consuming. The chooser needs the breadcrumb to survive one
+   extra hop: a brand-new account goes /ask.html → modal → role-select →
+   Patient → /ask.html, and role-select asks the resolver a second time. */
+function peekAuthReturnTo() {
+  try {
+    var v = sessionStorage.getItem(AUTH_RETURN_KEY);
+    return (v && AUTH_RETURN_ALLOW.indexOf(v) !== -1) ? v : null;
+  } catch (e) { return null; }
+}
+function clearAuthReturnTo() {
+  try { sessionStorage.removeItem(AUTH_RETURN_KEY); } catch (e) {}
+}
+window.setAuthReturnTo   = setAuthReturnTo;
+window.peekAuthReturnTo  = peekAuthReturnTo;
+window.clearAuthReturnTo = clearAuthReturnTo;
+window.AUTH_RETURN_ALLOW = AUTH_RETURN_ALLOW;
+
 /* ── resolveAndRoute ────────────────────────────────────────────────────────
    The single decision point after ANY landing that carries a session: social
    callback, email confirmation, or a recovery link that has finished.
@@ -824,8 +881,22 @@ async function resolveAuthDestination() {
   // No role yet — a brand-new social user, or a confirmation for an account
   // that never finished onboarding. Send them to the existing chooser.
   if (!role || role === 'pending') {
+    /* The breadcrumb is deliberately NOT consumed here. Onboarding is not the
+       destination, it is a detour on the way to one — role-select.html asks
+       this resolver again once a role exists, and the return target has to
+       still be there when it does. */
     return { ok: true, dest: '/role-select.html', role: 'pending', verification: verif };
   }
+
+  /* A FINISHED ACCOUNT MAY GO BACK WHERE IT CAME FROM. Consumed on use, so a
+     return target survives exactly one authentication and cannot redirect a
+     later, unrelated sign-in. */
+  var back = peekAuthReturnTo();
+  if (back) {
+    clearAuthReturnTo();
+    return { ok: true, dest: back, role: role, verification: verif, returned: true };
+  }
+
   if (admin) return { ok: true, dest: '/dashboard.html', role: 'admin', verification: verif };
 
   /* Patient Home is /index.html in its authenticated state — that is the

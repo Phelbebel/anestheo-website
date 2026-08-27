@@ -171,14 +171,24 @@
    send. Reading is public for them as for anyone.
 
    ── THE SUBMISSION WAS BROKEN, AND THIS FIXES IT ──────────────────────────
-   submitQuestion() posted { name, role, topic, question, email }. Every one of
-   those is a column from the original contact-form table. v2_ask_migration.sql
-   evolved `questions` into a portal table — patient_id, subject, message,
-   status — and added the RLS that governs it. It adds columns
-   non-destructively and drops nothing, so the legacy columns may still exist;
-   what does not exist is any way for that payload to succeed. patient_id would
-   be null, `auth.uid() = patient_id` is false, and the insert is rejected —
-   as it has been since the migration ran, for every question anyone typed.
+   submitQuestion() posted { name, role, topic, question, email } — the
+   original contact-form columns.
+
+   REQUIRES v9_7_questions_portal.sql. A direct read of the live database
+   showed public.questions still holding only that contact-form shape: no
+   patient_id, no subject, no message, no status, and public.question_replies
+   absent entirely. An earlier note in this file claimed v2_ask_migration.sql
+   had already moved production to the portal model. It had not — that file
+   describes a migration production never received, and writing this page
+   against it would have failed on a missing column rather than a policy.
+
+   v9_7 adds the canonical columns beside the legacy ones, drops NOT NULL from
+   the old `question` column so a canonical insert need not fabricate a legacy
+   value, creates question_replies, and replaces three production policies of
+   the form USING (true) with a real model. THIS PAGE MUST NOT SHIP BEFORE IT.
+
+   Once applied, patient_id is what q_insert_patient checks — the row is the
+   caller's or it is refused — and it is how the answer finds its way back.
 
    WHAT HAPPENED TO EACH OLD FIELD, because none should vanish unexplained:
 
@@ -252,6 +262,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
   var btn = askEl('ask-gate-btn');
   if(btn) btn.addEventListener('click', function(){
+    /* Leave the breadcrumb BEFORE opening the modal. resolveAuthDestination()
+       reads it after a successful sign-in — one resolver, every door, so this
+       works for the modal, for an OAuth callback, and for a brand-new account
+       that has to pass through the role chooser on the way back. */
+    if(window.setAuthReturnTo) window.setAuthReturnTo('/ask.html');
     /* The EXISTING modal, not a second sign-in. nbOpenModal() also covers the
        case where a session appeared in another tab: it reuses it rather than
        asking again. */
@@ -274,6 +289,7 @@ async function submitQuestion(){
   try { if(typeof window.getSession === 'function') session = await window.getSession(); } catch(e){}
   if(!session){
     askSetState(null, null);
+    if(window.setAuthReturnTo) window.setAuthReturnTo('/ask.html');
     if(window.nbOpenModal) window.nbOpenModal();
     return;
   }

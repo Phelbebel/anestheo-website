@@ -330,7 +330,11 @@ function ratio(fg, bg) {
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
   t('no SQL file changed',      changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
-  t('auth.js is untouched',     !changed.includes('auth.js'));
+  /* auth.js gained the return-to breadcrumb for the Ask journey — a new
+     helper and one hop in the destination resolver. No guard changed, which
+     is the part that matters here. */
+  t('auth.js still carries the pending gate',
+    /role === 'pending' && !isAdmin && !opts\.allowPending/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
   t('patients.html is untouched', !changed.includes('patients.html'));
@@ -359,8 +363,16 @@ function ratio(fg, bg) {
       /if\(role === 'patient'\)\{ window\.location\.href = '\/dashboard\.html'; return; \}/.test(src(f)));
   }
   /* The one gate that had a reason to exist keeps it, untouched. */
-  t('dashboard.html is byte-identical to main',
-    src('dashboard.html') === onMain('dashboard.html'));
+  /* dashboard.html changed one href — its Questions inbox used to send a
+     clinician to the PATIENT's Ask page and now deep-links the reply surface.
+     Byte-identity was the right claim while this branch was purely about
+     access; the durable one is that the workspace still guards itself and
+     still asks the database for the same things. */
+  t('the workspace guard is unchanged',
+    /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
+  t('the workspace queries are unchanged',
+    (src('dashboard.html').match(/\.from\('[a-z_]+'\)/g) || []).join() ===
+    (onMain('dashboard.html').match(/\.from\('[a-z_]+'\)/g) || []).join());
   t('requireRole(\'staff\') still guards the workspace',
     /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
   t('patient-dashboard.html is byte-identical to main',
