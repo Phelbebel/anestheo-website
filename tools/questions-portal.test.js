@@ -78,6 +78,8 @@ function compile(sqlExpr) {
     .replace(/auth\.uid\(\)/gi, "who.uid")
     .replace(/\bpatient_id\b/g, "row.patient_id")
     .replace(/\bauthor_id\b/g, "row.author_id")
+    .replace(/\bauthor_role\b/g, "row.author_role")
+    .replace(/\bstatus\b/g, "row.status")
     .replace(/\bnot\b/gi, "!")
     .replace(/\band\b/gi, "&&")
     .replace(/\bor\b/gi, "||")
@@ -159,7 +161,12 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     permissive.every(p => /^authenticated$/.test(p.roles)), permissive.map(p => p.name + '=' + p.roles));
 
   /* Now evaluate. */
-  const rowOwnedBy = uid => ({ patient_id: uid, author_id: uid, parentOwner: uid });
+  /* author_role has to match the identity now that r_insert_clinician checks
+     it. A fixed 'doctor' made the generic matrix fail an admin for the wrong
+     reason; the forgery cases are covered explicitly further down. */
+  const roleOf = who => who.admin ? 'admin' : (who.verifiedDoctor ? 'doctor' : 'patient');
+  const rowFor = (who, uid) => ({ patient_id: uid, author_id: uid, parentOwner: uid,
+                                  status: 'new', author_role: roleOf(who) });
   const results = {};
   for (const p of pol) {
     const usingFn = p.using ? compile(p.using) : null;
@@ -167,8 +174,8 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     for (const [who, id] of Object.entries(WHO)) {
       /* A policy scoped `to authenticated` simply does not apply to anon. */
       const applies = id.authenticated || !/authenticated/.test(p.roles);
-      const own   = rowOwnedBy(id.uid);
-      const other = rowOwnedBy(UID.B === id.uid ? UID.A : UID.B);
+      const own   = rowFor(id, id.uid);
+      const other = rowFor(id, UID.B === id.uid ? UID.A : UID.B);
       results[p.name + '/' + who] = {
         own:   applies && (usingFn ? usingFn(id, own)   : true) && (checkFn ? checkFn(id, own)   : true),
         other: applies && (usingFn ? usingFn(id, other) : true) && (checkFn ? checkFn(id, other) : true)
@@ -190,15 +197,22 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
   t('gains nothing from the clinician read', !R('q_select_clinician', 'patientA'));
   t('cannot update a question',
     !R('q_update_clinician', 'patientA') && !pol.some(p => p.table === 'questions' && p.cmd === 'update' &&
-      compile(p.using)(WHO.patientA, rowOwnedBy(UID.A))));
+      compile(p.using)(WHO.patientA, rowFor(WHO.patientA, UID.A))));
   t('may read replies on their own thread', R('r_select_participant', 'patientA'));
   t('cannot read replies on Patient B\'s thread', !R('r_select_participant', 'patientA', 'other'));
-  t('may reply on their own thread only',
-    R('r_insert_patient', 'patientA') && !R('r_insert_patient', 'patientA', 'other'));
+  /* NOT SHIPPED THIS RELEASE. r_insert_patient existed in an earlier draft;
+     nothing in the patient product appends to a thread, so a permission with
+     no caller is a permission nobody watches. Its absence is the assertion. */
+  t('patients get no reply permission at all',
+    !pol.some(p => p.name === 'r_insert_patient'), pol.map(p => p.name));
+  t('...and the migration says why',
+    /NO PATIENT REPLY POLICY IN THIS RELEASE/.test(SQL));
 
   console.log('\n   PATIENT B — the mirror');
   t('cannot see Patient A\'s question',    !R('q_select_own', 'patientB', 'other'));
-  t('cannot reply into Patient A\'s thread', !R('r_insert_patient', 'patientB', 'other'));
+  t('has no reply route to forge at all',
+    !pol.some(p => p.table === 'question_replies' && p.cmd === 'insert' &&
+      compile(p.check)(WHO.patientB, { author_id:UID.B, patient_id:UID.B, parentOwner:UID.B, author_role:'patient' })));
 
   console.log('\n   PENDING DOCTOR — no patient questions at all');
   t('not admitted by the clinician read',  !R('q_select_clinician', 'pendingDr'));
@@ -209,9 +223,9 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
   const restr = pol.filter(p => p.restrictive);
   t('a restrictive gate exists on replies', restr.some(p => p.table === 'question_replies'), restr.map(p => p.name));
   t('...and it removes a pending doctor',
-    restr.every(p => !compile(p.using)(WHO.pendingDr, rowOwnedBy(UID.PD))));
+    restr.every(p => !compile(p.using)(WHO.pendingDr, rowFor(WHO.pendingDr, UID.PD))));
   t('...while leaving a verified doctor',
-    restr.every(p => compile(p.using)(WHO.verifiedDr, rowOwnedBy(UID.VD))));
+    restr.every(p => compile(p.using)(WHO.verifiedDr, rowFor(WHO.verifiedDr, UID.VD))));
 
   console.log('\n   VERIFIED DOCTOR / ADMIN');
   for (const who of ['verifiedDr', 'admin']) {
@@ -224,22 +238,100 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     t(who + ' is not admitted as a patient author', !R('q_insert_patient', who));
   }
 
-  console.log('\n   GRANTS');
+  console.log('\n   GRANTS — column level, because RLS limits rows not columns');
   t('anon loses everything on questions',        /revoke all on public\.questions\s+from anon/i.test(SQL));
   t('anon loses everything on question_replies', /revoke all on public\.question_replies from anon/i.test(SQL));
-  t('authenticated gets select/insert/update on questions',
-    /grant select, insert, update on public\.questions\s+to authenticated/i.test(SQL));
-  t('authenticated gets select/insert on replies',
-    /grant select, insert\s+on public\.question_replies to authenticated/i.test(SQL));
-  t('nobody gets DELETE',                 /revoke delete on public\.questions\s+from anon, authenticated/i.test(SQL));
-  t('replies cannot be edited after the fact',
-    /revoke update on public\.question_replies from anon, authenticated/i.test(SQL));
-  /* Comments stripped: the header explains the anon grants that exist today
-     and the VERIFY block queries `grantee in ('anon',…)`, both of which a raw
-     match reads as a grant being issued. */
-  const SQLCODE = SQL.replace(/--.*$/gm, ' ');
+  t('authenticated is reset before being granted anything',
+    /revoke all on public\.questions from authenticated/i.test(SQL) &&
+    /revoke all on public\.question_replies from authenticated/i.test(SQL));
+
+  /* THE ASSERTION THIS ROUND EXISTS FOR. A table-wide UPDATE lets any
+     clinician who passes q_update_clinician rewrite message, subject or
+     patient_id — the policy cannot say "only this column", so the grant must. */
+  const SQLC = SQL.replace(/--.*$/gm, ' ');
+  t('NO table-wide UPDATE on questions',
+    !/grant[^;(]*\bupdate\b[^;(]*on public\.questions\s+to/i.test(SQLC),
+    (SQLC.match(/grant[^;]*update[^;]*questions[^;]*/i) || [''])[0].trim().slice(0,70));
+  t('NO table-wide INSERT on questions',
+    !/grant[^;(]*\binsert\b[^;(]*on public\.questions\s+to/i.test(SQLC));
+  t('UPDATE is granted on (status) only',
+    /grant update \(status\)\s+on public\.questions to authenticated/i.test(SQLC));
+  t('INSERT is granted on (patient_id, subject, message)',
+    /grant insert \(patient_id, subject, message\) on public\.questions to authenticated/i.test(SQLC));
+  t('status is NOT insertable from a client',
+    !/grant insert \([^)]*\bstatus\b[^)]*\) on public\.questions/i.test(SQLC));
+  t('no legacy column is writable from a client',
+    !/grant (insert|update) \([^)]*\b(name|topic|question|email|is_answered|is_published)\b/i.test(SQLC));
+  t('soft-delete columns are not client-writable',
+    !/grant (insert|update) \([^)]*\b(deleted_at|deleted_by|delete_reason)\b/i.test(SQLC));
+  t('table SELECT is the only table-level grant on questions',
+    /grant select on public\.questions to authenticated/i.test(SQLC));
+
+  t('replies: INSERT is column-scoped',
+    /grant insert \(question_id, author_id, author_role, message\)\s*on public\.question_replies to authenticated/i.test(SQLC));
+  t('replies: created_at is server-owned',
+    !/grant insert \([^)]*created_at/i.test(SQLC));
+  t('replies: no UPDATE, no DELETE for anyone',
+    /revoke update, delete on public\.question_replies from anon, authenticated/i.test(SQLC));
+  t('questions: no DELETE for anyone',
+    /revoke delete\s+on public\.questions\s+from anon, authenticated/i.test(SQLC));
   t('no grant to anon anywhere in the file',
-    !/\bgrant\b[^;]*\bto\b[^;]*\banon\b/i.test(SQLCODE));
+    !/\bgrant\b[^;]*\bto\b[^;]*\banon\b/i.test(SQLC));
+
+  console.log('\n   A PATIENT CANNOT PRE-ANSWER THEIR OWN QUESTION');
+  const qip = pol.find(p => p.name === 'q_insert_patient');
+  t('q_insert_patient requires status = new',   /status\s*=\s*'new'/.test(qip.check), qip.check.trim().slice(0,80));
+  const chk = compile(qip.check);
+  for (const bad of ['answered', 'closed', 'under_review']) {
+    t('...so status=' + bad + ' is refused',
+      !chk(WHO.patientA, { patient_id:UID.A, status:bad }), bad);
+  }
+  t('...and status=new is accepted',            chk(WHO.patientA, { patient_id:UID.A, status:'new' }));
+
+  console.log('\n   AUTHOR ROLE CANNOT BE FORGED');
+  const ric = compile(pol.find(p => p.name === 'r_insert_clinician').check);
+  const reply = (who, role) => ({ author_id: who.uid, author_role: role, parentOwner: UID.A });
+  t('a verified doctor may sign as doctor',      ric(WHO.verifiedDr, reply(WHO.verifiedDr, 'doctor')));
+  t('...but not as admin',                      !ric(WHO.verifiedDr, reply(WHO.verifiedDr, 'admin')));
+  t('...and not as patient',                    !ric(WHO.verifiedDr, reply(WHO.verifiedDr, 'patient')));
+  t('an admin may sign as admin',                ric(WHO.admin, reply(WHO.admin, 'admin')));
+  t('...but not as doctor',                     !ric(WHO.admin, reply(WHO.admin, 'doctor')));
+  t('a patient cannot sign as doctor',          !ric(WHO.patientA, reply(WHO.patientA, 'doctor')));
+  t('a patient cannot sign as admin',           !ric(WHO.patientA, reply(WHO.patientA, 'admin')));
+  t('a pending doctor cannot sign as anything',
+    ['doctor','admin','patient'].every(r => !ric(WHO.pendingDr, reply(WHO.pendingDr, r))));
+  t('a clinician cannot forge another author_id',
+    !ric(WHO.verifiedDr, { author_id: UID.AD, author_role:'doctor', parentOwner:UID.A }));
+
+  console.log('\n   THE SENDER-LABEL RPC');
+  const fn = (SQL.match(/create or replace function public\.get_question_sender_labels\(\)[\s\S]*?\$\$;/) || [''])[0];
+  t('the function exists',                       fn.length > 200);
+  t('it is SECURITY DEFINER',                    /security definer/i.test(fn));
+  t('it pins search_path',                       /set search_path = public, pg_temp/i.test(fn));
+  t('it takes no arguments',                     /get_question_sender_labels\(\)/.test(fn));
+  t('it authorises itself, verified staff only',
+    /if not \(public\.is_verified_doctor\(\) or public\.is_platform_admin\(\)\) then/i.test(fn));
+  t('it raises rather than returning empty',     /raise exception[\s\S]{0,120}42501/i.test(fn));
+  t('it returns two columns only',               /returns table \(patient_id uuid, label text\)/i.test(fn));
+  t('it exposes no contact or clinical field',
+    !/\b(email|phone|country|hospital|specialty|date_of_birth|dob|address|verification_status|is_admin|role)\b/i
+      .test(fn.replace(/p\.role = 'patient'/g, ' ').replace(/split_part\(coalesce\(p\.email, ''\), '@', 1\)/g, ' ')),
+    (fn.match(/\b(phone|country|hospital|specialty|address|dob)\b/i) || [])[0]);
+  t('the email is never returned whole',
+    !/p\.email(?!, '@', 1)/.test(fn.replace(/split_part\(coalesce\(p\.email, ''\), '@', 1\)/g, 'LOCALPART')));
+  t('it covers only patients who own a question',
+    /where p\.role = 'patient'[\s\S]{0,200}exists \([\s\S]{0,200}q\.patient_id = p\.id/i.test(fn));
+  t('it is revoked from PUBLIC and anon',
+    /revoke all on function public\.get_question_sender_labels\(\) from public, anon/i.test(SQL));
+  t('...and granted only to authenticated',
+    /grant execute on function public\.get_question_sender_labels\(\) to authenticated/i.test(SQL));
+  /* The three identities it must refuse, read off its own guard clause. */
+  const rpcOk = who => who.verifiedDoctor || who.admin;
+  t('a pending doctor is refused',              !rpcOk(WHO.pendingDr));
+  t('a patient is refused',                     !rpcOk(WHO.patientA));
+  t('anon is refused',                          !rpcOk(WHO.anon));
+  t('a verified doctor is admitted',             rpcOk(WHO.verifiedDr));
+  t('an admin is admitted',                      rpcOk(WHO.admin));
 
   console.log('\n   SHAPE');
   t('legacy `question` loses NOT NULL',
@@ -281,6 +373,15 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     ', peek at ' + RESOLVER.indexOf('peekAuthReturnTo()'));
   t('it is an allowlist, not a prefix check',
     /AUTH_RETURN_ALLOW\.indexOf\(path\) === -1/.test(AUTH));
+  /* ONE ENTRY. The first draft listed seven plausible public pages; only
+     /ask.html has a caller, and an entry with no caller is reachable only by
+     something that should not be writing this key. */
+  t('the allowlist contains exactly /ask.html',
+    /var AUTH_RETURN_ALLOW = \['\/ask\.html'\];/.test(AUTH),
+    (AUTH.match(/var AUTH_RETURN_ALLOW = \[[^\]]*\]/) || [''])[0]);
+  t('...and /ask.html is the only page that calls setAuthReturnTo',
+    execSync('git -C ' + REPO + ' grep -l "setAuthReturnTo(" -- "*.html" || true', { encoding:'utf8' })
+      .split('\n').filter(Boolean).join() === 'ask.html');
   t('sessionStorage, not localStorage',
     /sessionStorage\.setItem\(AUTH_RETURN_KEY/.test(AUTH) &&
     !/localStorage\.(set|get|remove)Item\(\s*AUTH_RETURN_KEY/.test(AUTH));
@@ -321,10 +422,14 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
   const pay = (ins[0] || {}).payload || {};
   t('one insert into questions',          ins.length === 1 && ins[0].table === 'questions', ins.map(i => i.table));
   t('patient_id === auth.uid()',          pay.patient_id === uid, pay.patient_id);
-  t('subject / message / status',
-    pay.subject === 'Fasting and preparation' && pay.message === 'Will I be awake for a spinal?' && pay.status === 'new', pay);
-  t('exactly the four canonical keys',
-    JSON.stringify(Object.keys(pay).sort()) === JSON.stringify(['message','patient_id','status','subject']), Object.keys(pay));
+  t('subject and message carry the question',
+    pay.subject === 'Fasting and preparation' && pay.message === 'Will I be awake for a spinal?', pay);
+  /* THREE KEYS, NOT FOUR. status is no longer insertable — v9_7 grants INSERT
+     on (patient_id, subject, message) only, so the column takes DEFAULT 'new'
+     and a patient cannot submit a question pre-marked answered. */
+  t('exactly the three insertable columns',
+    JSON.stringify(Object.keys(pay).sort()) === JSON.stringify(['message','patient_id','subject']), Object.keys(pay));
+  t('status is not sent by the client',      !('status' in pay), Object.keys(pay));
   t('the page names v9_7 as its prerequisite', /v9_7_questions_portal\.sql/.test(ASK));
 
   /* ══ 5 · THE COMPLETE MODAL JOURNEY ═════════════════════════════════════ */
@@ -342,7 +447,11 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
       window.__TEST_ROLE = sessionStorage.getItem('e2e.in') ? 'session' : 'anon';
       window.__TEST_PROFILE = ${JSON.stringify(PATIENT)};
       (function(){
-        var E2E_USER = { id:'e2e-uid', email:'p@e.com' };
+        /* The mock's own SESSION_UID: getProfile() only resolves that id, and a
+           mismatch made resolveAuthDestination() see no profile, read the role as
+           'pending', and route to the chooser — a harness artefact that looked
+           exactly like a broken return-to. */
+        var E2E_USER = { id:'9e000000-0000-4000-8000-00000000cafe', email:'p@e.com' };
         function install(){
           if(!window.sb || !window.sb.auth) return false;
           var signedIn = !!sessionStorage.getItem('e2e.in');
@@ -388,6 +497,41 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     await j.ctx.close();
   }
 
+  /* ══ 5b · WHO SEES A FORM THE DATABASE WILL ACCEPT ══════════════════════ */
+  /* askSetState() treated any session as eligible. q_insert_patient admits
+     only role='patient', so a doctor or an administrator was being offered a
+     form the database would refuse — the worst kind of control, because they
+     write the question before finding out. */
+  console.log('\n5b · The form appears only for a patient');
+  for (const [who, prof, wantForm, wantGate, wantClin] of [
+    ['guest',           null,  false, true,  false],
+    ['patient',         PATIENT, true,  false, false],
+    ['pending account', { email:'new@g.com', role:'pending', verification_status:'not_required', is_admin:false }, false, true, false],
+    ['verified doctor', VDOC,  false, false, true],
+    ['admin',           ADMIN, false, false, true]
+  ]) {
+    const s2 = await open(b, '/ask.html', prof === null ? 'window.__TEST_ROLE="anon";' : asProfile(prof));
+    const st = await s2.pg.evaluate(`(() => {
+      const h = id => { const n = document.getElementById(id); return n ? !n.hidden : null; };
+      return { url:location.pathname, form:h('ask-form'), gate:h('ask-gate'), clin:h('ask-clin'),
+               faq:document.querySelectorAll('.faq-item').length,
+               submit:!!(document.getElementById('ask-btn') || {}).offsetParent }; })()`);
+    await s2.ctx.close();
+    t(who + ': stays on the public page',   st.url === '/ask.html' && st.faq === 10, st.url);
+    t(who + ': submission form ' + (wantForm ? 'shown' : 'hidden'), st.form === wantForm, st);
+    t(who + ': account gate ' + (wantGate ? 'shown' : 'hidden'),    st.gate === wantGate, st);
+    t(who + ': clinician note ' + (wantClin ? 'shown' : 'hidden'),  st.clin === wantClin, st);
+    if (!wantForm) t(who + ': no submit control at all', st.submit === false, st.submit);
+  }
+  {
+    const s3 = await open(b, '/ask.html', asProfile(VDOC));
+    const link = await s3.pg.evaluate(`(() => { const a = document.querySelector('#ask-clin a');
+      return a ? { href:a.getAttribute('href'), text:a.textContent.trim() } : null; })()`);
+    await s3.ctx.close();
+    t('a clinician is pointed at their inbox instead',
+      !!link && link.href === '/questions.html', link);
+  }
+
   /* ══ 6 · CLINICIAN INBOX AND REPLY ══════════════════════════════════════ */
   console.log('\n6 · The clinician surface');
   t('the workspace no longer sends clinicians to /ask.html',
@@ -400,7 +544,10 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
   t('the table is the canonical model',
     /<th>Patient<\/th><th>Topic<\/th><th>Question<\/th><th>Status<\/th><th>Submitted<\/th><th>Action<\/th>/.test(QP));
   t('no raw uuid is printed as a name',   /patientLabel/.test(QP) && !/esc\(x\.patient_id\)/.test(QP));
-  t('names are resolved from profiles',   /from\('profiles'\)\.select\('id,full_name,email'\)/.test(QP));
+  t('names come from the keyhole RPC, not a profiles SELECT',
+    /rpc\('get_question_sender_labels'\)/.test(QP) && !/from\('profiles'\)/.test(QP));
+  t('a missing label degrades to "Patient account", not an error',
+    /console\.warn\('sender labels unavailable/.test(QP) && /'Patient account'/.test(QP));
   t('a reply writes question_replies',    /from\('question_replies'\)\.insert\(/.test(QP));
   t('author_id is the caller',            /author_id:\s*_me\.session\.user\.id/.test(QP));
   t('the status is set to answered',      /update\(\{ status: 'answered' \}\)/.test(QP));
@@ -430,8 +577,36 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
   t('and the reply text itself is rendered',
     /ms-crq-reply[\s\S]{0,120}rep\[rep\.length-1\]\.message/.test(PD));
   t('a waiting question says so',         /Waiting for reply/.test(PD));
-  t('patient-dashboard.html was not rewritten',
-    PD === onMain('patient-dashboard.html'));
+  /* It IS edited now — three labels that promised destinations which do not
+     exist. Everything else about the file is unchanged, which is the claim. */
+  /* Checked on CODE: each replacement is explained in a comment that quotes
+     the label it replaced, so a raw match finds the explanation. */
+  const PDC = code(PD);
+  /* SCOPED TO renderQuestions(). A whole-file match for "View summary" hits an
+     unrelated, working control: the questionnaire summary button at the top of
+     My Space, which has a real pdSummary() handler. Only the consultations
+     renderer changed, so only it is inspected. */
+  const RQ = PDC.slice(PDC.indexOf('function renderQuestions'),
+                       PDC.indexOf('function renderQuestions') + 2600);
+  t('My Space no longer offers "Continue conversation"', !/Continue conversation/.test(RQ));
+  t('...it says what the link does',        /Ask another question/.test(RQ));
+  t('the phantom "View summary" is gone from consultations', !/View summary/.test(RQ));
+  t('the questionnaire summary button is untouched',
+    /onclick="pdSummary\(\)">View summary/.test(PDC));
+  t('the phantom Edit/View pair is gone',   !/' Edit<\/a>/.test(RQ));
+  t('the reply itself still renders',       /rep\[rep\.length-1\]\.message/.test(RQ));
+  /* THE DIFF IS THREE `acts = …` ASSIGNMENTS AND NOTHING ELSE. A character
+     window around renderQuestions() was the wrong instrument — comments shift
+     offsets between the two versions, so it compared misaligned text. Blanking
+     every acts assignment and requiring the rest to match says precisely what
+     the change is: which action links are emitted, and only that. */
+  t('the only change is which action links are emitted',
+    (() => { const norm = x => code(x).replace(/acts = [^;]*;/g, 'ACTS;').replace(/\s+/g, ' ');
+      return norm(PD) === norm(onMain('patient-dashboard.html')); })());
+  t('...and there are exactly three of them',
+    (code(PD).match(/acts = [^;]*;/g) || []).length ===
+    (code(onMain('patient-dashboard.html')).match(/acts = [^;]*;/g) || []).length,
+    (code(PD).match(/acts = [^;]*;/g) || []).length);
 
   /* ══ 8 · SCOPE ══════════════════════════════════════════════════════════ */
   console.log('\n8 · What else moved');
@@ -451,7 +626,12 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
   t('v2_ask_migration.sql is untouched',  !changed.includes('v2_ask_migration.sql'));
   t('navbar.js is untouched',             !changed.includes('navbar.js'));
   t('supabase.js is untouched',           !changed.includes('supabase.js'));
-  t('patient-dashboard.html is untouched',!changed.includes('patient-dashboard.html'));
+  /* It changed — three labels. The invariant is that its DATA path did not. */
+  t('My Space still reads only the patient\'s own questions',
+    /from\('questions'\)\.select\('\*'\)\.eq\('patient_id', _uid\)/.test(PD));
+  t('My Space adds no write of any kind',
+    (PD.match(/from\('question_replies'\)\.[a-z]+/g) || []).join() ===
+    (onMain('patient-dashboard.html').match(/from\('question_replies'\)\.[a-z]+/g) || []).join());
   t('auth.js changed only to add return-to',
     (() => { const a = code(AUTH), m = code(onMain('auth.js'));
       const strip = s => s.replace(/var AUTH_RETURN_KEY[\s\S]*?window\.AUTH_RETURN_ALLOW = AUTH_RETURN_ALLOW;/, '')

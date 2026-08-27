@@ -121,21 +121,32 @@ function fmtDate(d){
   catch(e){ return '—'; }
 }
 
-/* A UUID IS NOT A NAME. The table used to print whatever was in the legacy
-   `name` column, and a canonical row has no such column — so without this the
-   Patient cell would show a raw auth id, which is neither useful to a
-   clinician nor something to put on screen. Names come from profiles; when
-   the lookup returns nothing the cell says so rather than leaking the id. */
-async function loadNames(ids){
-  var want = ids.filter(function(id){ return id && !(id in _names); });
-  if(!want.length) return;
+/* A UUID IS NOT A NAME — AND profiles WILL NOT GIVE US ONE.
+
+   This selected id/full_name/email straight from public.profiles. In
+   production that returns nothing for an ordinary verified doctor: profiles
+   RLS lets a user read their own row and lets platform admins read others,
+   and a doctor is not automatically an admin. Every Patient cell would have
+   read "Patient account", and the tempting fix — widening profiles RLS so
+   clinicians can read patient profiles — would expose every field on every
+   patient in order to print one name.
+
+   v9_7 adds get_question_sender_labels() instead: a SECURITY DEFINER function
+   that authorises itself (verified doctor or admin, exception otherwise),
+   takes no arguments, returns two columns, and covers only patients who
+   actually own a question. It is a keyhole, not a window. */
+async function loadNames(){
   try {
-    var r = await window.sb.from('profiles').select('id,full_name,email').in('id', want);
-    ((r && r.data) || []).forEach(function(p){
-      _names[p.id] = (p.full_name || '').trim() || (p.email || '').split('@')[0] || '';
+    var r = await window.sb.rpc('get_question_sender_labels');
+    if(r && r.error) throw new Error(r.error.message);
+    ((r && r.data) || []).forEach(function(row){
+      if(row && row.patient_id) _names[row.patient_id] = (row.label || '').trim();
     });
-  } catch(e){}
-  want.forEach(function(id){ if(!(id in _names)) _names[id] = ''; });
+  } catch(e){
+    /* A label is a nicety; the inbox still works without one. The clinician
+       sees "Patient account" rather than an error about a function name. */
+    console.warn('sender labels unavailable:', e && e.message);
+  }
 }
 function patientLabel(q){
   if(q.patient_id && _names[q.patient_id]) return _names[q.patient_id];
@@ -151,7 +162,7 @@ async function load(){
               .order('created_at',{ascending:false});
     if(r && r.error) throw new Error(r.error.message);
     _qs = (r && r.data) || [];
-    await loadNames(_qs.map(function(q){ return q.patient_id; }));
+    await loadNames();
     var ids = _qs.map(function(q){ return q.id; });
     if(ids.length){
       try {

@@ -160,11 +160,13 @@ const STATE = `(() => ({
   t('patient_id IS the authenticated user',  pay.patient_id === uid, pay.patient_id + ' vs ' + uid);
   t('subject carries the topic as readable text', pay.subject === 'Fasting and preparation', pay.subject);
   t('message carries the question',          pay.message === 'Will I be awake for a spinal?', pay.message);
-  t('status starts at new',                  pay.status === 'new', pay.status);
-  t('status is one the CHECK constraint allows',
-    ['new','under_review','answered','closed'].includes(pay.status), pay.status);
-  t('the payload has exactly the four canonical keys',
-    JSON.stringify(Object.keys(pay).sort()) === JSON.stringify(['message','patient_id','status','subject']),
+  /* status LEFT the payload. v9_7 grants INSERT on (patient_id, subject,
+     message) only, so status is not the client's to set — the column takes
+     DEFAULT 'new'. A patient therefore cannot submit a question pre-marked
+     answered even by mistake, and the grant is what says so. */
+  t('status is not sent by the client',      !('status' in pay), Object.keys(pay));
+  t('the payload has exactly the three insertable columns',
+    JSON.stringify(Object.keys(pay).sort()) === JSON.stringify(['message','patient_id','subject']),
     Object.keys(pay));
   t('no legacy column is posted',
     !['name','role','topic','question','email'].some(k => k in pay), Object.keys(pay));
@@ -188,14 +190,20 @@ const STATE = `(() => ({
     /could not be sent just now/.test(ASK));
 
   /* A roleless account reads freely, but chooses before it can own a row. */
+  /* A ROLELESS ACCOUNT NO LONGER SEES THE FORM AT ALL. It used to, and was
+     redirected on submit; showing a control that cannot work and correcting
+     it afterwards is the weaker of the two designs. They get the gate, and
+     the gate's CTA routes them to the chooser through the existing modal
+     logic — nbOpenModal() reuses a live session rather than asking again. */
   const pend = await open(b, '/ask.html', ID.pending);
   const pendState = await pend.pg.evaluate(STATE);
   t('a roleless account may still READ the page', pendState.url === '/ask.html', pendState.url);
+  t('...and is shown the gate, not the form',
+    pendState.gate === true && pendState.form === false, pendState);
   await pend.pg.evaluate(PROBE);
-  await pend.pg.fill('#ask-question', 'test');
-  await pend.pg.click('#ask-btn');
-  await pend.pg.waitForTimeout(1200);
-  t('...but submitting sends it to the chooser',
+  await pend.pg.click('#ask-gate-btn');
+  await pend.pg.waitForTimeout(1600);
+  t('...and asking sends them to the chooser',
     new URL(pend.pg.url()).pathname === '/role-select.html', new URL(pend.pg.url()).pathname);
   await pend.ctx.close();
 
@@ -203,7 +211,13 @@ const STATE = `(() => ({
   console.log('\n6 · Nothing was weakened to make this work');
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
-  t('no SQL file changed',      changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
+  /* WAS "no SQL file changed". It was true when this page's fix was purely
+     frontend; the production audit then showed the schema it wrote against
+     does not exist, so the branch now carries v9_7. What must stay true is
+     that no EXISTING migration was edited. */
+  t('only the new migration is added',
+    changed.filter(f => /\.sql$/.test(f)).join() === 'v9_7_questions_portal.sql',
+    changed.filter(f => /\.sql$/.test(f)));
   /* auth.js DID change: it gained the return-to breadcrumb, which the Ask
      journey needs and which lives in the one destination resolver every door
      already calls. What must stay true is that no GUARD changed — that is the
@@ -219,7 +233,14 @@ const STATE = `(() => ({
      clinician to the PATIENT's Ask page. Its guard and its queries did not. */
   t('the workspace guard is unchanged',
     /requireRole\('staff'\)/.test(fs.readFileSync(REPO + '/dashboard.html','utf8')));
-  t('patient-dashboard.html is untouched', !changed.includes('patient-dashboard.html'));
+  /* Three action labels changed — they promised destinations that do not
+     exist. The data path did not. */
+  const pdNow = fs.readFileSync(REPO + '/patient-dashboard.html','utf8');
+  t('My Space still reads only the patient\'s own questions',
+    /from\('questions'\)\.select\('\*'\)\.eq\('patient_id', _uid\)/.test(pdNow));
+  t('My Space writes nothing new',
+    (pdNow.match(/from\('question_replies'\)\.[a-z]+/g) || []).join() ===
+    (onMain('patient-dashboard.html').match(/from\('question_replies'\)\.[a-z]+/g) || []).join());
   const mig = fs.readFileSync(REPO + '/v2_ask_migration.sql', 'utf8');
   t('q_insert_own is still auth.uid() = patient_id',
     /create policy q_insert_own on public\.questions\s*for insert with check \(\s*auth\.uid\(\) = patient_id\s*\)/.test(mig));

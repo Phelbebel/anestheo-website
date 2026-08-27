@@ -821,15 +821,11 @@ window.signInWithProvider = signInWithProvider;
    falls back to the role-based destination, which is correct rather than
    surprising. */
 var AUTH_RETURN_KEY = 'anestheo.auth.returnTo';
-var AUTH_RETURN_ALLOW = [
-  '/ask.html',
-  '/patients.html',
-  '/procedures.html',
-  '/videos.html',
-  '/recovery.html',
-  '/preop-instructions.html',
-  '/health-passport.html'
-];
+/* ONE ENTRY, because one page calls setAuthReturnTo(). The first draft listed
+   seven plausible public pages; none of the other six has a caller, and an
+   allowlist entry with no caller is reachable only by something that should
+   not be writing this key. It grows when a page actually needs it. */
+var AUTH_RETURN_ALLOW = ['/ask.html'];
 
 function setAuthReturnTo(path) {
   if (AUTH_RETURN_ALLOW.indexOf(path) === -1) return false;

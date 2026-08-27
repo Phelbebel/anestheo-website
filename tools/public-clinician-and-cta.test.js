@@ -329,7 +329,12 @@ function ratio(fg, bg) {
   console.log('\n5 · Security, SQL and the rest of the page');
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
-  t('no SQL file changed',      changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
+  /* WAS "no SQL file changed" — branch scope, not this suite's concern. The
+     Ask work legitimately adds v9_7_questions_portal.sql; what must not happen
+     is an EXISTING migration being edited. */
+  t('no existing migration was edited',
+    changed.filter(f => /\.sql$/.test(f)).every(f => f === 'v9_7_questions_portal.sql'),
+    changed.filter(f => /\.sql$/.test(f)));
   /* auth.js gained the return-to breadcrumb for the Ask journey — a new
      helper and one hop in the destination resolver. No guard changed, which
      is the part that matters here. */
@@ -375,8 +380,14 @@ function ratio(fg, bg) {
     (onMain('dashboard.html').match(/\.from\('[a-z_]+'\)/g) || []).join());
   t('requireRole(\'staff\') still guards the workspace',
     /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
-  t('patient-dashboard.html is byte-identical to main',
-    src('patient-dashboard.html') === onMain('patient-dashboard.html'));
+  /* Three consultation labels changed in the Ask work; they promised
+     destinations that do not exist. This suite's concern is the ACCESS model,
+     so the durable claim is that My Space still guards itself and still reads
+     only its own owner's rows. */
+  t('My Space still requires a session',
+    /requireAuth\s*\(/.test(src('patient-dashboard.html')));
+  t('My Space still reads only its own owner\'s questions',
+    /from\('questions'\)\.select\('\*'\)\.eq\('patient_id', _uid\)/.test(src('patient-dashboard.html')));
   /* Opening a page must not have meant opening a write path. */
   for (const f of ['engine.html','scores.html', ...REFS]) {
     t(f + ': still makes no Supabase call',

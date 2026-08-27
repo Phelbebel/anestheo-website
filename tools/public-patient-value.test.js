@@ -262,7 +262,12 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
   console.log('\n9 · Security, SQL and the other roles');
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
-  t('no SQL file changed',      changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
+  /* WAS "no SQL file changed", which is branch scope, not this suite's
+     concern — the Ask work legitimately adds v9_7_questions_portal.sql. What
+     this suite owns is that the PUBLIC PATIENT surfaces gained no database
+     dependency, and that is asserted directly above. */
+  t('no existing migration was edited',
+    changed.filter(f => /\.sql$/.test(f)).every(f => f === 'v9_7_questions_portal.sql'), changed.filter(f => /\.sql$/.test(f)));
   /* auth.js gained the return-to breadcrumb used by the Ask journey. What
      this suite cares about is that the public/account line is unmoved. */
   t('auth.js still gates a roleless account',

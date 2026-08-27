@@ -252,7 +252,12 @@ const MAIN_AH = (MAIN_HTML.match(/^\.ah\{--bd:[^\n]*\n[^\n]*\n[^\n]*$/m) || ['']
      commit lands and cannot be satisfied by simply not having committed. */
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
-  t('no SQL file changed',                 changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
+  /* WAS "no SQL file changed" — branch scope, not this suite's concern. The
+     Ask work legitimately adds v9_7_questions_portal.sql; what must not happen
+     is an EXISTING migration being edited. */
+  t('no existing migration was edited',
+    changed.filter(f => /\.sql$/.test(f)).every(f => f === 'v9_7_questions_portal.sql'),
+    changed.filter(f => /\.sql$/.test(f)));
   t('navbar.js is not in the diff',        !changed.includes('navbar.js'));
   t('supabase.js is not in the diff',      !changed.includes('supabase.js'));
 

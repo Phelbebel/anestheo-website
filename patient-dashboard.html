@@ -1986,17 +1986,26 @@ function renderQuestions(qs, replies){
     if(st === 'closed'){
       cls = 'closed';
       badge = '<span class="ms-cbadge closed"><span class="bd"></span>Closed</span>' + (when?' '+esc(when):'');
-      acts = '<a class="ms-link muted" href="/ask.html">View summary</a>';
+      /* "View summary" promised a per-question view that does not exist —
+         /ask.html starts a NEW question. The answer is already shown inline
+         below, so a closed consultation needs no destination at all. */
+      acts = '';
     } else if(st === 'answered'){
       cls = '';
       badge = '<span class="ms-cbadge reply"><span class="bd"></span>Reply received</span>' + (rep.length?' Answered':'');
-      acts = '<a class="ms-btn ms-btn-con ms-btn-sm" href="/ask.html">Continue conversation &rarr;</a>';
+      /* WAS "Continue conversation", which /ask.html cannot do: it creates a
+         new question, and this release grants patients no INSERT on
+         question_replies at all. The label now says what the link does. */
+      acts = '<a class="ms-btn ms-btn-con ms-btn-sm" href="/ask.html">Ask another question &rarr;</a>';
       if(rep.length) replyHtml = '<div class="ms-crq-reply"><b>'+esc(rep[rep.length-1].author_role||'Reply')+':</b> '+esc(rep[rep.length-1].message||'')+'</div>';
     } else {
       cls = '';
       var waitLbl = st === 'under_review' ? 'Under review' : 'Waiting for reply';
       badge = '<span class="ms-cbadge wait"><span class="bd"></span>'+waitLbl+'</span>' + (when?' Sent '+esc(when):'');
-      acts = '<a class="ms-link" href="/ask.html">'+iconHtml('pencil')+' Edit</a><a class="ms-link" href="/ask.html">View</a>';
+      /* Neither "Edit" nor "View" existed: a submitted question cannot be
+         edited (no patient UPDATE policy) and there is no single-question
+         view. One honest link instead. */
+      acts = '<a class="ms-link" href="/ask.html">Ask another question</a>';
     }
     return '<div class="ms-crq '+cls+'">' +
       '<div class="ms-crq-ico">'+iconHtml('stethoscope')+'</div>' +

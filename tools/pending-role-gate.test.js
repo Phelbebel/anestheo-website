@@ -299,8 +299,9 @@ const PUBLIC_AREA   = ['/index.html','/patients.html','/videos.html',
     const ask = fs.readFileSync('/home/user/anestheo-website/ask.html', 'utf8');
     t('ask.html does not guard the READ',
       !/requireAuth\s*\(/.test(ask.replace(/\/\*[\s\S]*?\*\//g, ' ')));
-    t('ask.html sends a roleless account to the chooser before it can own a row',
-      /profile\.role === 'pending'[\s\S]{0,120}role-select\.html/.test(ask));
+    t('ask.html shows a roleless account no submission form',
+      /gate\.hidden = !!session && \(isPatient \|\| isClinician\)/.test(ask) &&
+      /form\.hidden = !isPatient/.test(ask));
     {
       const r = await land(b, '/ask.html', NEW_GOOGLE, [{provider:'google'}]);
       t('pending on /ask.html   → reads it, no bounce', r.url === '/ask.html', r.url);
@@ -315,14 +316,15 @@ const PUBLIC_AREA   = ['/index.html','/patients.html','/videos.html',
         await p.addInitScript('window.__TEST_PROFILE=' + JSON.stringify(NEW_GOOGLE) + ';');
         await p.goto(BASE + '/ask.html', { waitUntil:'networkidle' });
         await p.waitForTimeout(1500);
-        await p.fill('#ask-question', 'test');
-        await p.click('#ask-btn');
-        await p.waitForTimeout(1500);
+        /* The gate, not the form: a roleless account is no longer shown a
+           submission control the database would refuse. */
+        await p.click('#ask-gate-btn');
+        await p.waitForTimeout(1800);
         const url = new URL(p.url()).pathname;
         await ctx.close();
         return url;
       })();
-      t('pending SUBMITTING on /ask.html → role-select', pg2 === '/role-select.html', pg2);
+      t('pending ASKING on /ask.html   → role-select', pg2 === '/role-select.html', pg2);
     }
   }
 

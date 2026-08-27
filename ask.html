@@ -54,6 +54,11 @@
 .ask-gate p{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:18px;max-width:48ch;}
 .ask-gate .ask-gate-note{font-size:12.5px;color:var(--ink-faint);margin:14px 0 0;}
 .ask-who{font-size:12.5px;color:var(--ink-faint);margin-top:12px;line-height:1.55;}
+.ask-clin{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
+  padding:22px 24px;max-width:580px;}
+.ask-clin p{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:14px;max-width:48ch;}
+.ask-clin-link{display:inline-flex;align-items:center;min-height:44px;font-size:14px;
+  font-weight:600;color:var(--accent);}
 /* SAME DEFECT AS .btn-teal, DIFFERENT CLASS. .btn-primary in styles.css is
    var(--brand-grad) — linear-gradient(135deg,#2FA88C,#1B6B5A) — with white
    text, and white on the bright stop is 2.96:1 where 15px/650 needs 4.5:1.
@@ -114,6 +119,15 @@
         <button class="btn-primary" type="button" id="ask-gate-btn">Ask my question</button>
         <p class="ask-gate-note">Everything else on this page — the answers below, the topics
           above — stays open whether or not you sign up.</p>
+      </div>
+
+      <!-- A CLINICIAN'S SIDE OF THIS PAGE. Not a form — the database would
+           refuse it — just the door to where their half of the conversation
+           lives. -->
+      <div class="ask-clin" id="ask-clin" hidden>
+        <p>You are signed in as a clinician. Patient questions sent from this page
+           arrive in your inbox.</p>
+        <a class="ask-clin-link" href="/questions.html">Open patient question inbox &rarr;</a>
       </div>
 
       <!-- THE REAL FORM. Rendered only for a session that can actually own a
@@ -228,16 +242,36 @@ function askShowTopics(){
   }).join('');
 }
 
-/* Two states, one page. Neither hides the FAQ, the topics or the explanation:
-   those render for everybody and this function never touches them. */
+/* FOUR STATES, ONE PAGE — because "signed in" was the wrong question.
+
+   This showed the submission form to ANY session. But q_insert_patient admits
+   only role='patient', so a doctor or an administrator was being offered a
+   form the database would refuse. Offering somebody a control that cannot
+   work is worse than not offering it: they write the question first and find
+   out afterwards.
+
+     no session      the gate, and an invitation to create an account
+     patient         the form
+     pending role    the gate; choosing a role happens when they try to send
+     doctor / admin  no form at all. They read the public page like anyone
+                     else, plus one line pointing at the inbox where their
+                     side of this actually lives.
+
+   None of the four hides the FAQ, the topics or the explanation. */
 function askSetState(session, profile){
   _askSession = session || null;
-  var gate = askEl('ask-gate'), form = askEl('ask-form');
+  var gate = askEl('ask-gate'), form = askEl('ask-form'), clin = askEl('ask-clin');
   if(!gate || !form) return;
-  var signedIn = !!session;
-  gate.hidden = signedIn;
-  form.hidden = !signedIn;
-  if(signedIn){
+  var role = (profile && profile.role) || (session ? 'pending' : null);
+  var isClinician = role === 'doctor' || role === 'admin' ||
+                    !!(profile && profile.is_admin === true);
+  var isPatient = role === 'patient';
+
+  gate.hidden = !!session && (isPatient || isClinician);
+  form.hidden = !isPatient;
+  if(clin) clin.hidden = !isClinician;
+
+  if(isPatient){
     var who = askEl('ask-who');
     var name = (profile && profile.full_name) ? profile.full_name.split(' ')[0] : '';
     if(who) who.textContent = 'Sent from your Anestheo account' + (name ? ', ' + name : '') +
@@ -308,11 +342,15 @@ async function submitQuestion(){
        else - it is what q_insert_own checks, and it is how the answer finds
        its way back. status starts at 'new', one of the four values
        questions_status_check allows. */
+    /* THREE COLUMNS, AND status IS NOT ONE OF THEM. v9_7 grants INSERT on
+       (patient_id, subject, message) and nothing else, so status is not the
+       client's to set — it takes its DEFAULT 'new'. Sending it would be
+       rejected by the column privilege, which is the point: a patient cannot
+       submit a question pre-marked answered even by accident. */
     var r = await window.sb.from('questions').insert({
       patient_id: session.user.id,
       subject:    askEl('ask-topic').value || 'Something else',
-      message:    question,
-      status:     'new'
+      message:    question
     });
     btn.disabled = false; btn.textContent = 'Send my question';
     if(r && r.error){

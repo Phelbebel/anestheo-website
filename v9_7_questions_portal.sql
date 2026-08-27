@@ -210,6 +210,7 @@ create policy q_insert_patient on public.questions
   for insert to authenticated
   with check (
     patient_id = auth.uid()
+    and status = 'new'
     and exists (
       select 1 from public.profiles p
        where p.id = auth.uid() and p.role = 'patient'
@@ -257,21 +258,21 @@ create policy r_select_participant on public.question_replies
 create policy r_insert_clinician on public.question_replies
   for insert to authenticated
   with check (
-    ( public.is_verified_doctor() or public.is_platform_admin() )
-    and author_id = auth.uid()
-  );
-
--- A patient may continue their own thread, and only their own.
-create policy r_insert_patient on public.question_replies
-  for insert to authenticated
-  with check (
     author_id = auth.uid()
-    and exists (
-      select 1 from public.questions q
-       where q.id = question_replies.question_id
-         and q.patient_id = auth.uid()
+    and (
+      ( public.is_verified_doctor() and author_role = 'doctor' )
+      or
+      ( public.is_platform_admin()  and author_role = 'admin'  )
     )
   );
+
+/* NO PATIENT REPLY POLICY IN THIS RELEASE, and its absence is deliberate.
+   An earlier draft granted patients INSERT on question_replies so they could
+   continue a thread. Nothing in the patient product does that: My Space's
+   "Continue conversation" opened /ask.html, which starts a NEW question. A
+   permission with no caller is a permission nobody is watching, so it is not
+   shipped. Patients create questions and read the answers; thread
+   continuation becomes a feature when there is a UI that means it. */
 
 /* v9_5's RESTRICTIVE gate, re-asserted on the new table so the two agree.
    RESTRICTIVE policies AND with everything else, so this can only ever remove
@@ -283,7 +284,71 @@ create policy replies_require_verified on public.question_replies
   using      ( not public.is_pending_doctor() )
   with check ( not public.is_pending_doctor() );
 
--- ── 5 · GRANTS ──────────────────────────────────────────────────────────────
+-- ── 5 · SENDER LABELS FOR THE CLINICIAN INBOX ──────────────────────────────
+/* THE INBOX NEEDS A NAME, AND profiles WILL NOT GIVE IT ONE.
+
+   questions.html resolved the sender by selecting id/full_name/email straight
+   from public.profiles. In production that returns nothing for an ordinary
+   verified doctor: profiles RLS lets a user read their own row, and platform
+   admins read others. A doctor is not automatically an admin, so the inbox
+   would have shown "Patient account" for every row — or, worse, tempted
+   somebody to widen profiles RLS and expose every patient profile to every
+   clinician in order to print a name.
+
+   So the name comes through a keyhole instead. This function is the ONLY way
+   the inbox learns who sent a question, and it is deliberately poor at
+   everything else:
+
+     * it returns two columns. No email, no phone, no date of birth, no
+       address, no verification state, no role, no is_admin. A caller who
+       wants those must find another door, and there isn't one.
+     * it returns only patients who actually own a question. It cannot be used
+       to enumerate the user table, or to test whether a given person has an
+       account.
+     * it authorises itself. SECURITY DEFINER bypasses RLS, so the check is
+       inside: verified doctor or platform admin, and nobody else. A pending
+       doctor gets an exception, not an empty set — silence would read as
+       "no patients" rather than "not for you".
+     * it takes no arguments, so there is no id to probe with.
+
+   full_name may be empty; the label falls back to the email LOCAL PART only,
+   which is what the clinician already sees elsewhere in the workspace, and
+   never the domain. If both are empty the caller gets an empty string and the
+   UI says "Patient account". */
+create or replace function public.get_question_sender_labels()
+returns table (patient_id uuid, label text)
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if not (public.is_verified_doctor() or public.is_platform_admin()) then
+    raise exception 'Not authorised to read patient question senders'
+      using errcode = '42501';
+  end if;
+
+  return query
+    select p.id,
+           coalesce(
+             nullif(btrim(p.full_name), ''),
+             nullif(split_part(coalesce(p.email, ''), '@', 1), ''),
+             ''
+           )::text
+      from public.profiles p
+     where p.role = 'patient'
+       and exists (
+         select 1 from public.questions q
+          where q.patient_id = p.id
+            and q.deleted_at is null
+       );
+end
+$$;
+
+revoke all on function public.get_question_sender_labels() from public, anon;
+grant execute on function public.get_question_sender_labels() to authenticated;
+
+-- ── 6 · GRANTS ──────────────────────────────────────────────────────────────
 /* THE PUBLIC ASK PAGE NEEDS NO DATABASE ACCESS AT ALL. Its hero, its topics
    and its ten answers are static text in ask.html. Nothing anonymous reads or
    writes these tables, so anon holds nothing on them — belt as well as braces,
@@ -291,14 +356,43 @@ create policy replies_require_verified on public.question_replies
 revoke all on public.questions        from anon;
 revoke all on public.question_replies from anon;
 
-grant select, insert, update on public.questions        to authenticated;
-grant select, insert          on public.question_replies to authenticated;
+/* COLUMN-LEVEL, BECAUSE RLS LIMITS ROWS AND NOT COLUMNS.
 
--- Deletion is not a thing either side does from the client. Soft delete
--- (deleted_at) and the admin purge tooling own it, matching v4_2.
-revoke delete on public.questions        from anon, authenticated;
-revoke delete on public.question_replies from anon, authenticated;
-revoke update on public.question_replies from anon, authenticated;
+   The earlier draft granted SELECT, INSERT, UPDATE on the whole table. The
+   stated invariant is that a clinician moves the STATUS and never the
+   patient's words — but q_update_clinician passes for any row a clinician can
+   see, and with table-wide UPDATE that clinician could rewrite message,
+   subject, or patient_id itself and the policy would not object. A policy
+   cannot express "only this column". A grant can, so the grant is where the
+   invariant lives.
+
+   status is NOT insertable. It is not in the INSERT column list at all, so a
+   patient cannot submit a question pre-marked 'answered' — the column takes
+   its DEFAULT 'new'. q_insert_patient also checks status = 'new', which is
+   redundant today and is the thing that still holds if this grant is ever
+   widened. Two locks, one door.
+
+   Legacy columns are absent from both lists: nothing may write name, topic,
+   question or email from a client again. */
+revoke all on public.questions from authenticated;
+grant select on public.questions to authenticated;
+grant insert (patient_id, subject, message) on public.questions to authenticated;
+grant update (status)                       on public.questions to authenticated;
+
+/* Same reasoning for replies. created_at is server-owned and absent from the
+   list, so a caller cannot backdate a reply; id and the rest default. */
+revoke all on public.question_replies from authenticated;
+grant select on public.question_replies to authenticated;
+grant insert (question_id, author_id, author_role, message)
+  on public.question_replies to authenticated;
+
+/* No UPDATE and no DELETE for anybody, on either table. A reply is a record of
+   what was said, not a draft. Soft delete (deleted_at) and the admin purge
+   run through admin_record_action() and the existing SECURITY DEFINER tooling,
+   which is why deleted_at/deleted_by/delete_reason are not granted here — a
+   direct client UPDATE on them would be a second, unaudited delete path. */
+revoke update, delete on public.question_replies from anon, authenticated;
+revoke delete         on public.questions        from anon, authenticated;
 
 commit;
 
@@ -309,13 +403,29 @@ commit;
 --   from pg_policies where schemaname='public' and tablename in ('questions','question_replies')
 --  order by tablename, policyname;
 --
+-- -- COLUMN-level grants, which is where the least-privilege claim lives:
+-- select table_name, grantee, privilege_type, column_name
+--   from information_schema.column_privileges
+--  where table_schema='public' and table_name in ('questions','question_replies')
+--    and grantee in ('anon','authenticated')
+--  order by table_name, grantee, privilege_type, column_name;
+--
+-- -- and the table-level ones, which should show SELECT and nothing else:
 -- select grantee, privilege_type from information_schema.role_table_grants
 --  where table_schema='public' and table_name in ('questions','question_replies')
 --    and grantee in ('anon','authenticated') order by grantee, privilege_type;
 --
--- Expected: no policy named "Allow % questions"; anon appears in NEITHER
--- result set; authenticated holds SELECT/INSERT/UPDATE on questions and
--- SELECT/INSERT on question_replies.
+-- Expected:
+--   * no policy named "Allow % questions";
+--   * anon appears in NEITHER result set;
+--   * authenticated holds table-level SELECT only;
+--   * authenticated holds INSERT on questions(patient_id, subject, message)
+--     and UPDATE on questions(status) — nothing else, and NOT status on insert;
+--   * authenticated holds INSERT on question_replies(question_id, author_id,
+--     author_role, message) and no UPDATE or DELETE anywhere.
+--
+-- select has_function_privilege('anon', 'public.get_question_sender_labels()', 'execute');
+--   -> expected false
 --
 -- ROLLBACK
 -- --------
