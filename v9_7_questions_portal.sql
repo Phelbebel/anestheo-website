@@ -104,10 +104,42 @@ alter table public.questions add column if not exists message    text;
 alter table public.questions add column if not exists status     text default 'new';
 alter table public.questions add column if not exists updated_at timestamptz default now();
 
--- Status is a closed set. Dropped first so a re-run does not error.
+/* STATUS IS NOT NULLABLE, and production having zero rows is what makes this
+   safe to say now rather than later. An earlier draft wrote
+   `check (status is null or status in (...))`, which permitted NULL for the
+   benefit of legacy rows that do not exist. A nullable status means every
+   reader has to write `status || 'new'` forever and one that forgets shows a
+   question in no state at all.
+
+   Backfilled first so the SET NOT NULL cannot fail on a row added between the
+   audit and the apply. */
+update public.questions set status = 'new' where status is null;
+alter table public.questions alter column status set default 'new';
+alter table public.questions alter column status set not null;
+
+-- Status is a closed set, and NULL is no longer one of its members.
 alter table public.questions drop constraint if exists questions_status_check;
 alter table public.questions add  constraint questions_status_check
-  check (status is null or status in ('new','under_review','answered','closed'));
+  check (status in ('new','under_review','answered','closed'));
+
+/* WHAT A PATIENT QUESTION HAS TO CONTAIN, enforced at the boundary rather
+   than in JavaScript. The form validates too, but a form is a courtesy: the
+   API is reachable directly with a token, and "subject and message are real
+   text of a sane size" is a property of the data, not of the page.
+
+   The upper bounds are deliberately generous for a person describing a
+   worry, and deliberately finite so a direct caller cannot post a megabyte.
+   They apply to every row, not only to patient inserts, so a clinician
+   cannot widen them by editing through some other path either. */
+alter table public.questions drop constraint if exists questions_content_check;
+alter table public.questions add  constraint questions_content_check
+  check (
+    patient_id is null            -- legacy contact-form rows are exempt
+    or (
+      subject is not null and btrim(subject) <> '' and char_length(subject) <= 200
+      and message is not null and btrim(message) <> '' and char_length(message) <= 5000
+    )
+  );
 
 /* THE LEGACY `question` COLUMN LOSES ITS NOT NULL, and this is the line that
    makes the whole thing work. A canonical insert writes message and leaves
@@ -211,6 +243,8 @@ create policy q_insert_patient on public.questions
   with check (
     patient_id = auth.uid()
     and status = 'new'
+    and subject is not null and btrim(subject) <> '' and char_length(subject) <= 200
+    and message is not null and btrim(message) <> '' and char_length(message) <= 5000
     and exists (
       select 1 from public.profiles p
        where p.id = auth.uid() and p.role = 'patient'
@@ -311,10 +345,10 @@ create policy replies_require_verified on public.question_replies
        "no patients" rather than "not for you".
      * it takes no arguments, so there is no id to probe with.
 
-   full_name may be empty; the label falls back to the email LOCAL PART only,
-   which is what the clinician already sees elsewhere in the workspace, and
-   never the domain. If both are empty the caller gets an empty string and the
-   UI says "Patient account". */
+   full_name may be empty. The label is then the empty string and the UI says
+   "Patient account" — there is no fallback to the email or to any part of it,
+   because a local part identifies a person as readily as the whole address
+   and this function exists precisely to return no contact detail. */
 create or replace function public.get_question_sender_labels()
 returns table (patient_id uuid, label text)
 language plpgsql
@@ -328,13 +362,14 @@ begin
       using errcode = '42501';
   end if;
 
+  /* THE EMAIL IS NOT A NAME, AND IS NOT RETURNED IN ANY FORM.
+     An earlier draft fell back to split_part(email, '@', 1) when full_name was
+     blank. That is still the email — a local part identifies a person as
+     readily as the whole address, and this function's entire justification is
+     that it returns no contact detail. Blank name, blank label; the inbox
+     already renders "Patient account" for an empty one. */
   return query
-    select p.id,
-           coalesce(
-             nullif(btrim(p.full_name), ''),
-             nullif(split_part(coalesce(p.email, ''), '@', 1), ''),
-             ''
-           )::text
+    select p.id, coalesce(nullif(btrim(p.full_name), ''), '')::text
       from public.profiles p
      where p.role = 'patient'
        and exists (

@@ -44,6 +44,10 @@ const t = (n, ok, d) => {
 };
 
 const SQL  = fs.readFileSync(REPO + '/v9_7_questions_portal.sql', 'utf8');
+/* Comment-free. This file explains every change by quoting what it replaced —
+   the old CHECK, the old email fallback — so text assertions run against the
+   statements, never against the prose describing them. */
+const SQLONLY = SQL.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--.*$/gm, ' ');
 const ASK  = fs.readFileSync(REPO + '/ask.html', 'utf8');
 const QP   = fs.readFileSync(REPO + '/questions.html', 'utf8');
 const AUTH = fs.readFileSync(REPO + '/auth.js', 'utf8');
@@ -80,6 +84,14 @@ function compile(sqlExpr) {
     .replace(/\bauthor_id\b/g, "row.author_id")
     .replace(/\bauthor_role\b/g, "row.author_role")
     .replace(/\bstatus\b/g, "row.status")
+    .replace(/char_length\(subject\)/gi, "String(row.subject == null ? '' : row.subject).length")
+    .replace(/char_length\(message\)/gi, "String(row.message == null ? '' : row.message).length")
+    .replace(/btrim\(subject\)/gi,  "String(row.subject == null ? '' : row.subject).trim()")
+    .replace(/btrim\(message\)/gi,  "String(row.message == null ? '' : row.message).trim()")
+    .replace(/\bsubject is not null\b/gi, "(row.subject != null)")
+    .replace(/\bmessage is not null\b/gi, "(row.message != null)")
+    .replace(/\bpatient_id is null\b/gi, "(row.patient_id == null)")
+    .replace(/<>/g, "!==")
     .replace(/\bnot\b/gi, "!")
     .replace(/\band\b/gi, "&&")
     .replace(/\bor\b/gi, "||")
@@ -166,7 +178,8 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
      reason; the forgery cases are covered explicitly further down. */
   const roleOf = who => who.admin ? 'admin' : (who.verifiedDoctor ? 'doctor' : 'patient');
   const rowFor = (who, uid) => ({ patient_id: uid, author_id: uid, parentOwner: uid,
-                                  status: 'new', author_role: roleOf(who) });
+                                  status: 'new', author_role: roleOf(who),
+                                  subject: 'Medications', message: 'A real question.' });
   const results = {};
   for (const p of pol) {
     const usingFn = p.using ? compile(p.using) : null;
@@ -286,7 +299,47 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     t('...so status=' + bad + ' is refused',
       !chk(WHO.patientA, { patient_id:UID.A, status:bad }), bad);
   }
-  t('...and status=new is accepted',            chk(WHO.patientA, { patient_id:UID.A, status:'new' }));
+  const good = { patient_id:UID.A, status:'new', subject:'Medications', message:'A real question.' };
+  t('...and status=new is accepted',            chk(WHO.patientA, good));
+  t('a null status is refused',                !chk(WHO.patientA, Object.assign({}, good, { status:null })));
+
+  console.log('\n   AND IT MUST CONTAIN SOMETHING');
+  for (const [label, row] of [
+    ['a null subject',      { subject:null }],
+    ['a blank subject',     { subject:'   ' }],
+    ['an empty subject',    { subject:'' }],
+    ['a null message',      { message:null }],
+    ['a blank message',     { message:'\n\t  ' }],
+    ['an empty message',    { message:'' }],
+    ['a 201-char subject',  { subject:'x'.repeat(201) }],
+    ['a 5001-char message', { message:'x'.repeat(5001) }]
+  ]) {
+    t('the policy refuses ' + label, !chk(WHO.patientA, Object.assign({}, good, row)), label);
+  }
+  t('a 200-char subject is still fine',  chk(WHO.patientA, Object.assign({}, good, { subject:'x'.repeat(200) })));
+  t('a 5000-char message is still fine', chk(WHO.patientA, Object.assign({}, good, { message:'x'.repeat(5000) })));
+
+  console.log('\n   STATUS IS A COLUMN INVARIANT, NOT A CONVENTION');
+  t('status is NOT NULL',
+    /alter table public\.questions alter column status set not null/i.test(SQL));
+  t('...with DEFAULT new',
+    /alter table public\.questions alter column status set default 'new'/i.test(SQL));
+  t('...backfilled before the constraint, so the apply cannot fail',
+    SQL.indexOf("update public.questions set status = 'new' where status is null") <
+    SQL.indexOf('alter column status set not null'));
+  t('the CHECK no longer permits NULL',
+    /check \(status in \('new','under_review','answered','closed'\)\)/.test(SQLONLY) &&
+    !/check \(status is null or status in/.test(SQLONLY));
+  t('only the four canonical values are accepted',
+    (SQLONLY.match(/check \(status in \('new','under_review','answered','closed'\)\)/g) || []).length === 1);
+  /* A clinician cannot null it either: the column refuses, before any policy
+     is consulted. That is stronger than a policy clause and needs no policy. */
+  t('a clinician cannot update status to null — the column forbids it',
+    /alter column status set not null/i.test(SQL));
+  t('the content rule is a table constraint too, not only a policy',
+    /constraint questions_content_check[\s\S]{0,400}char_length\(subject\) <= 200/i.test(SQL));
+  t('...and it exempts legacy rows that have no owner',
+    /patient_id is null\s*--/.test(SQL) || /patient_id is null/.test(SQL));
 
   console.log('\n   AUTHOR ROLE CANNOT BE FORGED');
   const ric = compile(pol.find(p => p.name === 'r_insert_clinician').check);
@@ -304,7 +357,7 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     !ric(WHO.verifiedDr, { author_id: UID.AD, author_role:'doctor', parentOwner:UID.A }));
 
   console.log('\n   THE SENDER-LABEL RPC');
-  const fn = (SQL.match(/create or replace function public\.get_question_sender_labels\(\)[\s\S]*?\$\$;/) || [''])[0];
+  const fn = (SQLONLY.match(/create or replace function public\.get_question_sender_labels\(\)[\s\S]*?\$\$;/) || [''])[0];
   t('the function exists',                       fn.length > 200);
   t('it is SECURITY DEFINER',                    /security definer/i.test(fn));
   t('it pins search_path',                       /set search_path = public, pg_temp/i.test(fn));
@@ -317,8 +370,15 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     !/\b(email|phone|country|hospital|specialty|date_of_birth|dob|address|verification_status|is_admin|role)\b/i
       .test(fn.replace(/p\.role = 'patient'/g, ' ').replace(/split_part\(coalesce\(p\.email, ''\), '@', 1\)/g, ' ')),
     (fn.match(/\b(phone|country|hospital|specialty|address|dob)\b/i) || [])[0]);
-  t('the email is never returned whole',
-    !/p\.email(?!, '@', 1)/.test(fn.replace(/split_part\(coalesce\(p\.email, ''\), '@', 1\)/g, 'LOCALPART')));
+  /* NO EMAIL IN ANY FORM. An earlier draft fell back to the local part when
+     full_name was blank; a local part identifies a person as readily as the
+     whole address, and this function's justification is that it returns no
+     contact detail at all. */
+  t('the email is not referenced anywhere in the body', !/p\.email/.test(fn));
+  t('no split_part / local-part derivation survives', !/split_part/i.test(fn));
+  t('a blank name yields a blank label',
+    /coalesce\(nullif\(btrim\(p\.full_name\), ''\), ''\)/.test(fn));
+  t('the inbox degrades to "Patient account"', /'Patient account'/.test(QP));
   t('it covers only patients who own a question',
     /where p\.role = 'patient'[\s\S]{0,200}exists \([\s\S]{0,200}q\.patient_id = p\.id/i.test(fn));
   t('it is revoked from PUBLIC and anon',
@@ -338,10 +398,23 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     /alter table public\.questions alter column question drop not null/i.test(SQL));
   t('no legacy column is dropped',        !/alter table public\.questions drop column/i.test(SQL));
   t('question_replies is created',        /create table if not exists public\.question_replies/i.test(SQL));
-  t('the status CHECK lists the four values',
-    /check \(status is null or status in \('new','under_review','answered','closed'\)\)/i.test(SQL));
+  t('the status CHECK lists the four values, and not NULL',
+    /check \(status in \('new','under_review','answered','closed'\)\)/i.test(SQLONLY));
   t('updated_at has a trigger',           /create trigger trg_questions_updated_at/i.test(SQL));
-  t('the file writes no data',            !/^\s*(insert into|update public\.\w+ set)/im.test(SQL.replace(/--.*$/gm,'')));
+  /* IT WRITES ONCE, AND ONLY ONCE. Making status NOT NULL requires that no
+     row holds NULL, so the backfill runs first. It is idempotent, it touches
+     only the column being constrained, and it is the single DML statement in
+     the file — which is the assertion, rather than the weaker claim that
+     there is none. */
+  const dml = (SQLONLY.match(/\b(insert into|update public\.\w+ set|delete from)\b[^;]*/gi) || [])
+    .map(x => x.replace(/\s+/g, ' ').trim());
+  t('the only data written is the status backfill',
+    dml.length === 1 && /^update public\.questions set status = 'new' where status is null$/i.test(dml[0]), dml);
+  t('it runs before the NOT NULL it exists for',
+    SQLONLY.indexOf("update public.questions set status") <
+    SQLONLY.indexOf('alter column status set not null'));
+  t('nothing is inserted or deleted',
+    !/\binsert into\b|\bdelete from\b/i.test(SQLONLY));
   t('it is not applied by this branch',   true, 'review only');
 
   /* ══ 2 · THE PUBLIC PAGE ════════════════════════════════════════════════ */
@@ -530,6 +603,72 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     await s3.ctx.close();
     t('a clinician is pointed at their inbox instead',
       !!link && link.href === '/questions.html', link);
+  }
+
+  /* ══ 5c · A NEW DOCTOR DOES NOT INHERIT THE ASK BREADCRUMB ══════════════ */
+  /* Ask stores anestheo.auth.returnTo=/ask.html before opening the modal. The
+     patient path consumes it, because submitPatient() goes through
+     resolveAuthDestination(). submitDoctor() navigates straight to the
+     workspace, so without an explicit clear the key survived and the next
+     thing to resolve a destination in that tab would have sent a brand-new
+     doctor to the patient Ask form. */
+  console.log('\n5c · Choosing Doctor clears the Ask breadcrumb');
+  t('all three doctor exits clear it',
+    (code(fs.readFileSync(REPO + '/role-select.html','utf8'))
+      .match(/clearAuthReturnTo\(\)/g) || []).length === 3);
+  t('the legacy fallback path clears it too',
+    /clearAuthReturnTo\(\);\s*window\.location\.replace\('\/doctor-pending\.html'\)/.test(
+      code(fs.readFileSync(REPO + '/role-select.html','utf8'))));
+  t('the patient path still lets the resolver consume it',
+    !/clearAuthReturnTo[\s\S]{0,200}submitPatient/.test(code(fs.readFileSync(REPO + '/role-select.html','utf8'))));
+  {
+    /* The journey, in a browser: a session with no role lands on the chooser
+       carrying the breadcrumb, picks Doctor, and arrives at the workspace with
+       the key gone. */
+    const boot = `
+      window.__TEST_PROFILE = ${JSON.stringify({ email:'new@g.com', role:'pending', verification_status:'not_required', is_admin:false })};
+      /* SET ONCE. addInitScript runs on EVERY navigation, so seeding the
+         breadcrumb unconditionally re-created it after the doctor path had
+         correctly cleared it — the harness rewriting the very key it was
+         checking. The flag makes it a starting condition rather than an
+         invariant. */
+      try { if(!sessionStorage.getItem('e2e.seeded')){
+              sessionStorage.setItem('anestheo.auth.returnTo', '/ask.html');
+              sessionStorage.setItem('e2e.seeded', '1'); } } catch(e){}
+      /* create_doctor_account() is not modelled by the shared mock, so
+         submitDoctor() otherwise takes its LEGACY branch and stops at the
+         practice form — the direct exit never runs and the test reports a
+         missing clear that is its own doing. Stubbed to the success the RPC
+         returns in production; the legacy branch's two exits are asserted
+         statically just above. */
+      window.addEventListener('DOMContentLoaded', function(){
+        window.createDoctorAccount = function(){
+          return Promise.resolve({ ok:true, legacy:false, data:{ ok:true } });
+        };
+      });`;
+    /* The mock profile stays role='pending', so /dashboard.html bounces this
+       account back to the chooser via requireRole('staff'). That is correct
+       product behaviour for a profile the mock never updates; what is being
+       tested is the breadcrumb, and it must be gone either way. */
+    const rs = await open(b, '/role-select.html', boot);
+    const before = await rs.pg.evaluate(`sessionStorage.getItem('anestheo.auth.returnTo')`);
+    t('the chooser opens still carrying it', before === '/ask.html', before);
+    /* The real controls, in the real order: pick the Doctor card, give the
+       name the step requires, submit. An earlier version clicked the first
+       thing matching /doctor/i and never reached submitDoctor(), so the clear
+       never ran and the test reported a bug that was its own. */
+    await rs.pg.click('#ro-doctor');
+    await rs.pg.waitForTimeout(500);
+    await rs.pg.fill('#d-name', 'Dana Levi');
+    await rs.pg.click('#d-submit');
+    await rs.pg.waitForTimeout(2500);
+    const after = await rs.pg.evaluate(`(() => { try { return sessionStorage.getItem('anestheo.auth.returnTo'); }
+      catch(e){ return 'unreadable'; } })()`);
+    const where = new URL(rs.pg.url()).pathname;
+    await rs.ctx.close();
+    t('choosing Doctor leaves no Ask breadcrumb', after === null, after);
+    t('...and nothing sent them to the patient Ask form',
+      where !== '/ask.html', where);
   }
 
   /* ══ 6 · CLINICIAN INBOX AND REPLY ══════════════════════════════════════ */

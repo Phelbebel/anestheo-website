@@ -419,6 +419,14 @@ async function submitDoctor(){
     return;
   }
 
+  /* THE ASK BREADCRUMB IS NOT THIS PERSON'S ANY MORE.
+     Somebody can start at /ask.html, be sent here to choose a role, and pick
+     Doctor. The patient path consumes the breadcrumb because submitPatient()
+     goes through resolveAuthDestination(); this path navigates directly, so
+     without this the key survives in sessionStorage and the NEXT thing that
+     resolves a destination in this tab sends a brand-new doctor to the patient
+     Ask form. Clear it where the decision is made, not where it is noticed. */
+  if(window.clearAuthReturnTo) window.clearAuthReturnTo();
   window.location.replace('/dashboard.html');
 }
 
@@ -476,6 +484,9 @@ async function submitPractice(){
         'You can add them from Become a Verified Clinician.');
       return;
     }
+    /* Same breadcrumb, same reason — this is the legacy fallback path and it
+       exits to a doctor destination too. */
+    if(window.clearAuthReturnTo) window.clearAuthReturnTo();
     window.location.replace('/doctor-pending.html');
     return;
   }
@@ -485,6 +496,7 @@ async function submitPractice(){
     showErr('practice-err', res.message);
     return;
   }
+  if(window.clearAuthReturnTo) window.clearAuthReturnTo();
   window.location.replace('/dashboard.html');
 }
 </script>

@@ -137,7 +137,7 @@
         <label for="ask-topic">Topic</label>
         <select id="ask-topic"></select>
         <label for="ask-question">Your question</label>
-        <textarea id="ask-question" placeholder="Type your question here..."></textarea>
+        <textarea id="ask-question" maxlength="5000" placeholder="Type your question here..."></textarea>
         <p class="ask-who" id="ask-who"></p>
         <div style="margin-top:18px;">
           <button class="btn-primary" id="ask-btn" onclick="submitQuestion()">Send my question</button>
@@ -313,8 +313,19 @@ async function submitQuestion(){
   var btn = askEl('ask-btn'), ok = askEl('ask-ok'), err = askEl('ask-err');
   ok.style.display = err.style.display = 'none';
 
+  /* The same bounds the database enforces, said earlier and more kindly.
+     questions_content_check and q_insert_patient both require non-blank text
+     within 200/5000 characters; catching it here means a friendly sentence
+     instead of a constraint violation, and the database still has the final
+     word for anything that reaches it another way. */
   var question = (askEl('ask-question').value || '').trim();
   if(!question){ err.textContent = 'Please write your question.'; err.style.display='block'; return; }
+  if(question.length > 5000){
+    err.textContent = 'That is longer than we can send — please shorten it to about 5000 characters.';
+    err.style.display = 'block'; return;
+  }
+  var topic = (askEl('ask-topic').value || '').trim();
+  if(!topic || topic.length > 200){ topic = 'Something else'; }
 
   /* Re-checked at submit time rather than trusted from page load: a session
      can expire while somebody is typing, and the honest answer then is "sign
@@ -349,7 +360,7 @@ async function submitQuestion(){
        submit a question pre-marked answered even by accident. */
     var r = await window.sb.from('questions').insert({
       patient_id: session.user.id,
-      subject:    askEl('ask-topic').value || 'Something else',
+      subject:    topic,
       message:    question
     });
     btn.disabled = false; btn.textContent = 'Send my question';
