@@ -33,6 +33,7 @@ const fs = require('fs');
 const REPO = '/home/user/anestheo-website';
 const BASE = process.env.NB_BASE || 'http://127.0.0.1:8890';
 const MOCK = fs.readFileSync(process.env.NB_MOCK || '/tmp/adm/mock.js', 'utf8');
+const MAIN = process.env.NB_MAIN || 'origin/main';
 
 let pass = 0, fail = 0;
 const fmt = d => d === undefined ? '' : (typeof d === 'string' ? d : JSON.stringify(d)).slice(0, 150);
@@ -309,17 +310,40 @@ const RAW_PG = 'permission denied for function patient_lifecycle_eligibility';
     t('...so "if(!win) location.href=url" was unreachable', probe.truthy === true);
   }
 
-  /* THE FIX, read from the shipped source. */
-  const emailFn = (DASH.match(/async function wsSendEmail\(id\)\{[\s\S]*?\n\}/) || [''])[0];
+  /* THE FIX, read from the shipped source.
+   *
+   * THESE FOUR ASSERTIONS MOVED, and the reason is a real product change
+   * rather than drift. This suite was written when wsSendEmail built a mailto
+   * and assigned it to location.href. That was correct and still did not
+   * work everywhere: location.href reaches the OS handler, but on a machine
+   * with NO handler registered nothing happens at all, silently — and the
+   * product then claimed "Email draft opened — status set to Sent". A delivery
+   * claim the product cannot verify must not be made by the product.
+   *
+   * So wsSendEmail now validates and opens a share modal, and the mailto lives
+   * on that modal's anchor href — which is strictly more reliable, because the
+   * browser performs the external-protocol navigation itself and the doctor
+   * keeps the text in front of them if nothing opens. The PROPERTIES asserted
+   * here have not changed at all: unencoded address, encoded subject and body,
+   * nothing marked sent without an address. They are simply read from the pair
+   * of functions that now implement them. */
+  const emailFn  = (DASH.match(/async function wsSendEmail\(id\)\{[\s\S]*?\n\}/) || [''])[0];
+  const emailMod = (DASH.match(/function wsEmailModal\(p, to\)\{[\s\S]*?\n\}/) || [''])[0];
   const emailFnC = code(emailFn);
+  const emailAll = code(emailFn + '\n' + emailMod);
   t('wsSendEmail exists', emailFn.length > 0);
-  t('it no longer uses window.open', !/window\.open/.test(emailFnC), emailFnC.match(/window\.open[^\n]*/) || 'none');
-  t('it hands the mailto to the OS via location.href',
-    /window\.location\.href\s*=\s*url/.test(emailFnC));
+  t('wsEmailModal exists', emailMod.length > 0);
+  t('neither uses window.open', !/window\.open/.test(emailAll), emailAll.match(/window\.open[^\n]*/) || 'none');
+  t('the mailto is offered as a real anchor href',
+    /<a [^']*id="ws-em-open" href="'\s*\+\s*wsEsc\(mailto\)/.test(emailMod) &&
+    /'mailto:'\s*\+\s*to/.test(emailAll),
+    (emailMod.match(/ws-em-open[^\n]{0,50}/) || [''])[0]);
   t('the address is NOT percent-encoded',
-    !/encodeURIComponent\(\s*(p\.email|to)/.test(emailFnC) && /'mailto:'\s*\+\s*to/.test(emailFnC));
-  t('the subject is encoded', /encodeURIComponent\('Your pre-anaesthesia questionnaire'\)/.test(emailFnC));
-  t('the body is encoded',    /'&body='\s*\+\s*encodeURIComponent\(wsMessage\(p\)\)/.test(emailFnC));
+    !/encodeURIComponent\(\s*(p\.email|to)\s*\)/.test(emailAll) && /'mailto:'\s*\+\s*to/.test(emailAll));
+  t('the subject is encoded', /encodeURIComponent\(subject\)/.test(emailAll) &&
+    /var subject = 'Your pre-anaesthesia questionnaire'/.test(emailMod));
+  t('the body is encoded',    /'&body='\s*\+\s*encodeURIComponent\(body\)/.test(emailAll) &&
+    /var body\s*=\s*wsMessage\(p\)/.test(emailMod));
   t('the body is plain text, not HTML', !/<[a-z]+>/i.test(code(DASH.match(/function wsMessage\(p\)\{[\s\S]*?\n\}/)[0])));
   t('it makes no Supabase read or write of its own beyond the existing lookup',
     (emailFnC.match(/window\.sb\./g) || []).length === 1, (emailFnC.match(/window\.sb\.[a-z]+/g) || []));
@@ -374,8 +398,17 @@ const RAW_PG = 'permission denied for function patient_lifecycle_eligibility';
     /No email address is saved for this patient\./.test(emailFn));
   t('...and returns before building any mailto',
     /if\(!to\)\{[\s\S]*?return;/.test(emailFnC));
-  t('nothing is marked sent when there is no address',
-    emailFnC.indexOf('return;') < emailFnC.indexOf('wsMarkSent'), 'guard precedes wsMarkSent');
+  /* STRONGER THAN BEFORE, not weaker. This used to check that the guard's
+     `return;` came BEFORE wsMarkSent in the same function. wsSendEmail no
+     longer contains wsMarkSent at all — the only call now sits behind the
+     modal's "I sent it" button — so the property is asserted as absence,
+     which cannot be defeated by reordering. */
+  t('wsSendEmail never marks anything sent',
+    !/wsMarkSent/.test(emailFnC), (emailFnC.match(/wsMarkSent[^\n]*/) || ['absent'])[0]);
+  t('only the "I sent it" handler does',
+    /ws-em-sent'\)\.onclick[\s\S]{0,200}wsMarkSent/.test(emailMod));
+  t('...and it is the sole wsMarkSent in the email path',
+    (code(emailFn + emailMod).match(/wsMarkSent\(/g) || []).length === 1);
   t('the old unconditional mark-sent is gone',
     !/await wsMarkSent\(id\); wsToast\('Email draft opened/.test(DASHC));
 
@@ -492,8 +525,16 @@ const RAW_PG = 'permission denied for function patient_lifecycle_eligibility';
     .split('\n').filter(Boolean)
     .concat(execSync('git -C ' + REPO + ' ls-files --others --exclude-standard', { encoding:'utf8' })
       .split('\n').filter(Boolean));
-  t('only the repair migration is new among SQL',
-    changed.filter(f => /\.sql$/.test(f)).every(f => f === MIG), changed.filter(f => /\.sql$/.test(f)));
+  /* WAS: the only new .sql may be v4_4. That named one file and so failed the
+     moment v4_5_lifecycle_questions_schema_repair.sql was added to fix the
+     q.surgery_id outage — a new migration, which is exactly how corrections
+     are made here. The durable rule is the one this repo has settled on:
+     rewriting an already-applied migration is the fault; adding one is not. */
+  const modifiedSql = execSync(
+    'git -C ' + REPO + ' diff --name-only --diff-filter=M ' + MAIN + ' -- "*.sql"',
+    { encoding:'utf8' }).split('\n').filter(Boolean);
+  t('no already-applied migration was rewritten', modifiedSql.length === 0, modifiedSql);
+  t('the v4_4 repair itself is unedited', !modifiedSql.includes(MIG), MIG);
   for (const f of ['auth.js','navbar.js','supabase.js','clinical-open.js','ask.html','questions.html',
                    'role-select.html','doctor-pending.html','patients.html','anesthesia-types.html'])
     t('untouched: ' + f, !changed.includes(f));

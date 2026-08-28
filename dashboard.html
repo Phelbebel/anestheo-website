@@ -3183,19 +3183,97 @@ async function wsSendEmail(id){
     return;                                   // no draft, and nothing marked sent
   }
 
-  var url = 'mailto:' + to +
-            '?subject=' + encodeURIComponent('Your pre-anaesthesia questionnaire') +
-            '&body='    + encodeURIComponent(wsMessage(p));
-  try {
-    window.location.href = url;               // hands off to the OS mail handler
-  } catch(e){
-    try { console.error('[dashboard] mailto handoff failed', e); } catch(x){}
-    wsToast('Could not open your mail app. Use Copy link instead.');
-    return;
+  wsEmailModal(p, to);
+}
+
+/* THE SHARE MODAL, AND WHY THE MAILTO ALONE WAS NOT ENOUGH.
+   Handing the URL to location.href is the correct way to reach an OS mail
+   handler, but "correct" is not "observable": on a machine with no handler
+   registered — a plain Chrome profile, a locked-down clinic desktop — nothing
+   happens at all, silently. The old code then said "Email draft opened —
+   status set to Sent" and wrote questionnaire_status='sent', so a
+   questionnaire nobody had received was recorded as delivered. A delivery
+   claim the product cannot verify must not be made by the product.
+
+   So the mail app is offered, never assumed. The doctor sees exactly what
+   would be sent, can take it out by hand if the handoff does nothing, and the
+   only thing that marks the record Sent is the doctor saying they sent it.
+   That is the same rule WhatsApp already follows — it marks sent only when the
+   window really opened — applied to a channel that cannot report back. */
+function wsEmailModal(p, to){
+  var ex = document.getElementById('ws-email-modal'); if(ex) ex.remove();
+  var subject = 'Your pre-anaesthesia questionnaire';
+  var body    = wsMessage(p);
+  var link    = wsLink(p);
+  var mailto  = 'mailto:' + to +
+                '?subject=' + encodeURIComponent(subject) +
+                '&body='    + encodeURIComponent(body);
+
+  var d = document.createElement('div');
+  d.id = 'ws-email-modal'; d.className = 'ws-modal-bg open';
+  d.innerHTML =
+    '<div class="ws-modal ws-modal-lg" role="dialog" aria-modal="true" aria-labelledby="ws-em-h">' +
+      '<h3 id="ws-em-h">Send the questionnaire by email</h3>' +
+      '<div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:4px;">' +
+        'Anestheo does not send this for you. Open your mail app, or copy the text and send it ' +
+        'however you prefer &mdash; then mark it sent.</div>' +
+      '<label for="ws-em-to">To</label>' +
+      '<input id="ws-em-to" readonly value="' + wsEsc(to) + '">' +
+      '<label for="ws-em-subj">Subject</label>' +
+      '<input id="ws-em-subj" readonly value="' + wsEsc(subject) + '">' +
+      '<label for="ws-em-body">Message</label>' +
+      '<textarea id="ws-em-body" readonly rows="7" style="min-height:150px;">' + wsEsc(body) + '</textarea>' +
+      '<label for="ws-em-link">Patient link</label>' +
+      '<input id="ws-em-link" readonly value="' + wsEsc(link) + '">' +
+      '<div class="ws-modal-btns">' +
+        '<a class="ws-btn pc-green" id="ws-em-open" href="' + wsEsc(mailto) + '">Open in email app</a>' +
+        '<button class="ws-btn" id="ws-em-copytext">Copy email text</button>' +
+        '<button class="ws-btn" id="ws-em-copylink">Copy link</button>' +
+      '</div>' +
+      '<div class="ws-modal-btns">' +
+        '<button class="ws-btn ws-btn-wa" id="ws-em-sent">I sent it</button>' +
+        '<button class="ws-btn" id="ws-em-cancel">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(d);
+
+  function close(){ var n=document.getElementById('ws-email-modal'); if(n) n.remove(); }
+  d.onclick = function(e){ if(e.target === d) close(); };
+
+  /* "Open in email app" is a plain anchor, so the browser performs the
+     external-protocol navigation itself — the most reliable form there is, and
+     it cannot be swallowed by a click handler. It deliberately does NOT close
+     the modal and does NOT mark anything: if no handler exists, the doctor is
+     still looking at the text they can copy. */
+  document.getElementById('ws-em-copytext').onclick = function(){
+    wsCopyText('To: ' + to + '\nSubject: ' + subject + '\n\n' + body, 'Email text copied');
+  };
+  document.getElementById('ws-em-copylink').onclick = function(){
+    wsCopyText(link, 'Link copied');
+  };
+  document.getElementById('ws-em-cancel').onclick = close;
+
+  // The ONLY path that records delivery. A human asserting a fact the product
+  // cannot observe is better than the product inventing one.
+  document.getElementById('ws-em-sent').onclick = async function(){
+    close();
+    await wsMarkSent(p.id);
+    wsToast('Marked as sent');
+    await wsLoadPatients(); wsLoadCases();
+  };
+}
+
+/* One clipboard helper for the modal, with the same execCommand fallback
+   wsFallbackCopy already uses for links. */
+function wsCopyText(text, okMsg){
+  function fallback(){
+    var t=document.createElement('textarea'); t.value=text;
+    document.body.appendChild(t); t.select();
+    try{ document.execCommand('copy'); wsToast(okMsg); }catch(e){ wsToast('Copy failed'); }
+    document.body.removeChild(t);
   }
-  await wsMarkSent(id);
-  wsToast('Email draft opened — status set to Sent');
-  wsLoadCases();
+  if(navigator.clipboard) navigator.clipboard.writeText(text).then(function(){ wsToast(okMsg); }, fallback);
+  else fallback();
 }
 // Compact questionnaire actions (clinic-created / invited patients).
 function wsQActions(id, sent){
@@ -3205,6 +3283,7 @@ function wsQActions(id, sent){
     '<button class="ws-btn ws-q-btn" title="Copy questionnaire link" onclick="event.stopPropagation();wsCopyLink(\''+id+'\')">&#128279; Copy link</button>';
 }
 window.wsSendEmail=wsSendEmail; window.wsQActions=wsQActions;
+window.wsEmailModal=wsEmailModal; window.wsCopyText=wsCopyText; window.wsValidEmail=wsValidEmail;
 
 // Compatibility: the form "Send questionnaire" button → create then WhatsApp
 async function wsSend(id){ return wsSendWhatsApp(id); }
