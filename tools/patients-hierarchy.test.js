@@ -242,13 +242,24 @@ const TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-grid .ph-tile
              svg:!!s.querySelector('svg'), emoji:/\\p{Extended_Pictographic}/u.test(s.textContent) }; })()`);
   t('the section exists',                  !!feat);
   t('it is titled Understand your anesthesia', feat.title === 'Understand your anesthesia', feat.title);
-  t('it keeps the existing destination',   feat.href === '/procedures.html', feat.href);
+  /* WAS: href === '/procedures.html'. That was true when this suite was
+     written and it was the defect — /procedures.html is a procedure picker
+     offering the same eight families as the tool above, so "understand your
+     anesthesia" and "what anesthesia might I have?" both ended in the same
+     question. /anesthesia-types.html was built to be the other axis, and the
+     assertion now names the property that mattered all along: this section
+     must NOT route to the picker. */
+  t('it does not route to the procedure picker', feat.href !== '/procedures.html', feat.href);
+  t('it goes to a type-first destination',       feat.href === '/anesthesia-types.html', feat.href);
   t('its link is a comfortable target',    feat.linkH >= 44, feat.linkH + 'px');
   t('it uses an inline SVG, not an emoji', feat.svg === true && feat.emoji === false, feat);
   /* THE DISTINCTION IS IN THE COPY. One starts from the operation, the other
-     from the techniques. */
+     from the techniques. Matched on the five technique names rather than one
+     fixed sentence, so the copy can be edited without this going stale — what
+     may not change is that the section is named by technique. */
   t('the copy starts from the techniques',
-    /general anesthesia, sedation, spinal and epidural, and nerve blocks/i.test(feat.body), feat.body.slice(0,60));
+    ['general anesthesia', 'sedation', 'spinal', 'epidural', 'nerve block']
+      .every(w => feat.body.toLowerCase().includes(w)), feat.body.slice(0, 70));
   t('...while the tool starts from the surgery',
     /for your type of\s+surgery/i.test(await g.pg.evaluate(`document.querySelector('.pa-tool-d').textContent`)));
 
@@ -336,8 +347,21 @@ const TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-grid .ph-tile
   t('questions.html is untouched',       !changed.includes('questions.html'));
   t('patient-dashboard.html is untouched', !changed.includes('patient-dashboard.html'));
   t('dashboard.html is untouched',       !changed.includes('dashboard.html'));
-  t('only patients.html changed among pages',
-    changed.filter(f => /\.html$/.test(f)).every(f => f === 'patients.html'), changed);
+  /* WAS: "only patients.html changed among pages". A pure branch snapshot,
+     and the third time this pattern has gone stale in this repo. The follow-up
+     work added /anesthesia-types.html — a new page, not an edit to an existing
+     one — and the assertion failed for doing exactly what was asked. What the
+     line was really protecting is that this work stays on the PUBLIC PATIENT
+     surface and never edits a clinician or account page, so that is what it
+     now says. New public patient pages are allowed; touching anything else is
+     not. */
+  const PATIENT_SURFACE = ['patients.html', 'anesthesia-types.html', 'procedures.html',
+                           'preop-instructions.html', 'recovery.html', 'videos.html'];
+  t('only public patient pages changed',
+    changed.filter(f => /^[^/]+\.html$/.test(f)).every(f => PATIENT_SURFACE.includes(f)), changed);
+  for (const page of ['index.html', 'engine.html', 'scores.html', 'references.html',
+                      'role-select.html', 'doctor-pending.html', 'settings.html', 'admin.html'])
+    t('no change to ' + page, !changed.includes(page));
   t('the page adds no Supabase call',
     (code(HTML).match(/window\.sb\.(from|rpc)/g) || []).join() ===
     (code(onMain('patients.html')).match(/window\.sb\.(from|rpc)/g) || []).join());

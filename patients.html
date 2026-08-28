@@ -328,13 +328,14 @@
          card in the grid, which put a whole guided experience beside "fasting"
          and "videos" as though they were the same size of thing.
 
-         WHAT THE AUDIT FOUND, and it is worth knowing before reading the copy:
-         there is no anesthesia-TYPES destination in this repository.
-         /procedures.html is a procedure picker — the same eight categories as
-         the tool above, each opening its guide. So the type-first framing
-         lives in this section's words, and the link hands over to the guides
-         where the detail actually is. A dedicated types page is the honest
-         next step; inventing one here was not this branch's job. -->
+         THE DESTINATION IS /anesthesia-types.html, and it had to be built.
+         This first pointed at /procedures.html, which is a procedure picker —
+         the same eight families the tool above already offers — so both routes
+         asked the reader the same question and the distinction was a claim the
+         page could not keep. The types page starts from the technique: what
+         each is, awake or asleep, what it affects, where it is commonly used.
+         It carries no procedure grid, and it links back here for anyone who
+         would rather start from their operation. -->
     <section class="pa-feat" id="pa-understand">
       <span class="pa-feat-ico" aria-hidden="true">
         <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"
@@ -347,9 +348,13 @@
       </span>
       <div class="pa-feat-tx">
         <h2 class="pa-feat-t">Understand your anesthesia</h2>
-        <p class="pa-feat-d">General anesthesia, sedation, spinal and epidural, and nerve blocks.
-          Understand how they differ, what each one feels like, and what matters to you.</p>
-        <a class="pa-feat-go" href="/procedures.html">Understand anesthesia
+        <!-- No em dash. This is one of the four patient surfaces where visible
+             decorative dashes are barred, and the first draft of this line
+             reintroduced one. -->
+        <p class="pa-feat-d">General anesthesia, sedation, spinal, epidural and nerve blocks, one
+          technique at a time: whether you are awake or asleep, what each one affects, and where
+          each is commonly used.</p>
+        <a class="pa-feat-go" href="/anesthesia-types.html">See the types of anesthesia
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M6 4l4 4-4 4"/></svg></a>
@@ -685,6 +690,15 @@ function paInitAnes(){
     head.focus();                       // never strand focus inside a hidden region
     head.scrollIntoView({ block:'nearest' });
   });
+
+  /* /anesthesia-types.html links back here as the procedure-first door. Landing
+     on a collapsed panel would make that link a dead end, so the hash opens it.
+     Read-only, no history entry, and the panel still starts closed on a plain
+     visit — the default this branch established does not move. */
+  if(window.location.hash === '#pa-anes'){
+    setOpen(true);
+    head.scrollIntoView({ block:'start' });
+  }
 }
 
 /* ── BEFORE SURGERY CHECKLIST ─────────────────────────────────────────────

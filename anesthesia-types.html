@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Types of anesthesia — Anestheo</title>
+<meta name="description" content="General anesthesia, sedation, spinal, epidural and nerve blocks explained for patients: what each one is, whether you are awake or asleep, and where each is commonly used.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase.js?v=2026.08.21-03"></script>
+<script src="/auth.js?v=2026.08.21-03"></script>
+<script src="/clinical-index.js?v=2026.08.21-03"></script>
+<script src="/clinical-search.js?v=2026.08.21-03"></script>
+<script src="/navbar.js?v=2026.08.21-03"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
+<style>
+/* ── TYPES OF ANESTHESIA · THE TYPE-FIRST HALF OF THE PAIR ────────────────
+   /patients.html asks "what anesthesia might I have?" and starts from the
+   SURGERY. This page starts from the TECHNIQUE. That is the whole reason it
+   exists: before it, "Understand your anesthesia" pointed at
+   /procedures.html, which is a procedure picker — the same eight families the
+   tool already offers — so both routes ended in the same question.
+
+   There is deliberately NO procedure grid on this page. The links out are
+   inline, inside the sentence that earns them, and each one goes to the guide
+   the sentence was taken from.
+
+   Every clinical claim below is a condensation of a patient guide already on
+   this site — csection, orthopedic, ent, dental, general-surgery, urology,
+   plastic, oncogynecology. Nothing here was written from outside knowledge.
+   The test suite checks the wording stays non-prescriptive: "commonly used",
+   "may be", never "you should" or "best for you". /regional.html is NOT a
+   source — it is a clinician reference with mg/kg dosing tables.
+
+   Public by design. No auth guard, no Supabase call of its own, no writes. */
+
+.at-crumb{font-size:12px;color:var(--hint);margin-bottom:16px;}
+.at-crumb a{color:var(--accent);text-decoration:none;}
+.at-crumb a:hover{text-decoration:underline;}
+
+/* Hero. Restrained on purpose: this is the SECOND door into the same subject,
+   and it must not out-shout the tool on /patients.html that is the first. */
+.at-h1{font-family:var(--sans);font-size:clamp(24px,3vw,31px);font-weight:700;
+  color:var(--ink);line-height:1.2;margin-bottom:10px;}
+.at-lede{font-size:15px;color:var(--muted);line-height:1.65;max-width:60ch;}
+
+/* The decision sentence, said once and said early — the same sentence the
+   tool on /patients.html shows, so the two doors cannot drift apart. */
+.at-who{display:flex;gap:14px;align-items:flex-start;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:18px 20px;margin:24px 0 0;}
+.at-who svg{flex:0 0 auto;width:20px;height:20px;color:var(--accent);margin-top:2px;}
+.at-who p{font-size:14px;color:var(--ink-2);line-height:1.7;margin:0;max-width:64ch;}
+
+.at-note{font-size:13.5px;color:var(--muted);line-height:1.7;margin:18px 0 0;max-width:66ch;}
+.at-note b{color:var(--ink-2);font-weight:600;}
+
+/* Jump strip. Anchors, not a picker — no state, no JS. */
+.at-jump{display:flex;flex-wrap:wrap;gap:9px;margin:26px 0 0;}
+.at-jump a{display:inline-flex;align-items:center;gap:8px;min-height:40px;
+  padding:0 15px;border-radius:var(--radius-xl);background:var(--surface);
+  border:1px solid var(--border);color:var(--ink-2);font-size:13.5px;
+  font-weight:600;text-decoration:none;transition:border-color .18s,color .18s,background .18s;}
+.at-jump a:hover{border-color:var(--hair-2);color:var(--ink);background:var(--surface-2);}
+.at-jump a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.at-jump svg{width:16px;height:16px;color:var(--accent);}
+
+/* One card per technique. */
+.at-card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-xl);padding:26px 28px;margin-top:16px;
+  scroll-margin-top:26px;}
+.at-head{display:flex;align-items:flex-start;gap:18px;}
+.at-ico{flex:0 0 auto;width:48px;height:48px;border-radius:var(--radius-lg);
+  background:var(--brand-tint-2);border:1px solid var(--border);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;}
+.at-ico svg{width:27px;height:27px;}
+.at-head > div{min-width:0;}
+.at-t{font-family:var(--sans);font-size:21px;font-weight:700;color:var(--ink);margin-bottom:7px;}
+.at-sum{font-size:14.5px;color:var(--ink-2);line-height:1.7;max-width:62ch;margin:0;}
+
+/* The two orienting facts, answered before any list. */
+.at-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:2px;margin:20px 0 0;border-radius:var(--radius-md);overflow:hidden;}
+.at-fact{background:var(--surface-2);padding:14px 16px;}
+.at-fact dt{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--hint);margin-bottom:6px;}
+.at-fact dd{font-size:13.5px;color:var(--ink-2);line-height:1.6;margin:0;}
+
+.at-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px 28px;margin:22px 0 0;}
+.at-blk h3{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:10px;}
+.at-blk ul{list-style:none;margin:0;padding:0;}
+.at-blk li{font-size:13.5px;color:var(--ink-2);line-height:1.65;
+  padding:5px 0 5px 18px;position:relative;}
+.at-blk li:before{content:'';position:absolute;left:2px;top:12px;width:5px;height:5px;
+  border-radius:50%;background:var(--accent);opacity:.75;}
+.at-blk a{color:var(--accent);text-decoration:none;}
+.at-blk a:hover{text-decoration:underline;}
+/* "Things to keep in mind" is not a warning box. Same weight as the
+   advantages beside it — a limitation stated calmly is still education. */
+.at-blk.at-mind h3{color:var(--ink-muted);}
+.at-blk.at-mind li:before{background:var(--ink-faint);}
+
+.at-src{font-size:12.5px;color:var(--hint);line-height:1.7;margin:20px 0 0;
+  padding-top:16px;border-top:1px solid var(--border);}
+.at-src a{color:var(--accent);text-decoration:none;}
+.at-src a:hover{text-decoration:underline;}
+
+/* Closing. The cross-link back to the procedure-first door is the point of
+   the pair — neither page is a dead end. */
+.at-pair{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:16px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-xl);padding:22px 24px;margin-top:26px;}
+.at-pair-t{font-size:15.5px;font-weight:600;color:var(--ink);}
+.at-pair-d{font-size:13.5px;color:var(--muted);line-height:1.6;margin-top:4px;max-width:52ch;}
+.at-pair-go{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;
+  border-radius:var(--radius-md);border:1px solid var(--line-2);color:var(--ink);
+  font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap;}
+.at-pair-go:hover{border-color:var(--accent);background:var(--brand-tint-2);}
+.at-pair-go:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.at-pair-go svg{width:15px;height:15px;transition:transform .2s;}
+.at-pair-go:hover svg{transform:translateX(3px);}
+
+.at-ask{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:16px;background:var(--brand-tint-2);border:1px solid var(--line-2);
+  border-radius:var(--radius-xl);padding:22px 24px;margin-top:14px;}
+.at-ask-t{font-size:15.5px;font-weight:600;color:var(--ink);}
+.at-ask-d{font-size:13.5px;color:var(--muted);margin-top:4px;}
+/* SAME DEFECT, SAME SCOPE AS ask.html. .btn-primary in styles.css is
+   var(--brand-grad) with white ink — 2.96:1 on the bright stop, where 4.5:1
+   is required. Sixteen pages carry it and repainting them is its own branch;
+   what this rule refuses to do is ship a NEW button at 2.96:1. --brand-mid
+   with --on-accent is 6.39:1. */
+.at-ask .btn-primary{background:var(--brand-mid);color:var(--on-accent);box-shadow:none;}
+.at-ask .btn-primary:hover{background:#38BC9D;}
+
+.at-disc{font-size:12px;color:var(--hint);line-height:1.7;margin:22px 0 0;
+  background:var(--warning-bg);border:1px solid var(--warning-bd);
+  border-radius:var(--radius-md);padding:12px 15px;}
+.at-disc strong{color:var(--warning);}
+
+@media(max-width:640px){
+  .at-card{padding:22px 18px;}
+  .at-head{gap:14px;}
+  .at-ico{width:42px;height:42px;}
+  .at-ico svg{width:24px;height:24px;}
+  .at-cols{gap:18px;}
+  .at-pair,.at-ask{padding:20px 18px;}
+  .at-pair-go,.at-ask .btn-primary{width:100%;justify-content:center;text-align:center;}
+}
+</style>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+
+<div class="page-wrap" style="max-width:880px;">
+
+  <div class="at-crumb"><a href="/patients.html">For Patients</a> &rsaquo; Types of anesthesia</div>
+
+  <h1 class="at-h1">The main kinds of anesthesia, explained</h1>
+  <p class="at-lede">Start from the technique itself: what each one is, whether you are awake or
+    asleep, what part of the body it affects, and the situations where it is commonly used.</p>
+
+  <div class="at-who">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><path d="M12 16.5v-5"/><path d="M12 8h.01"/></svg>
+    <p>This is general education about what <b>may</b> be used, not a plan for you. Your
+      anesthesiologist decides based on your health, your procedure and the circumstances on the
+      day &mdash; and will discuss it with you beforehand.</p>
+  </div>
+
+  <p class="at-note"><b>Spinal, epidural and nerve blocks are all forms of regional anesthesia</b>
+    &mdash; they numb one part of the body while you stay awake. They appear separately below
+    because they are placed differently and feel different. <b>Local anesthesia</b> &mdash; numbing
+    of the area being operated on, and nothing more &mdash; is often used on its own for small
+    procedures, or together with sedation.</p>
+
+  <nav class="at-jump" aria-label="Jump to an anesthesia type">
+    <a href="#at-general"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.5a8.5 8.5 0 1 1-9.9-9.9 6.8 6.8 0 0 0 9.9 9.9z"/></svg>General anesthesia</a>
+    <a href="#at-sedation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 17l4.2-4.2"/></svg>Sedation</a>
+    <a href="#at-spinal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4h4M10 8h4M10 12h4M10 16h4M10 20h4"/><path d="M20 12h-3"/></svg>Spinal</a>
+    <a href="#at-epidural"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h4M8 8h4M8 12h4M8 16h4M8 20h4"/><path d="M15 12c3 0 4 2 4 4v3"/></svg>Epidural</a>
+    <a href="#at-regional"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h5l2.5-3M8 12l2.5 3"/><circle cx="15" cy="12" r="3.2"/><path d="M18.2 12H21"/></svg>Nerve blocks</a>
+  </nav>
+
+  <!-- ══ 1 · GENERAL ANESTHESIA ═══════════════════════════════════════════
+       Icon: crescent. Asleep, whole body, nothing regional about it. -->
+  <article class="at-card" id="at-general">
+    <div class="at-head">
+      <span class="at-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.5 13.5a8.5 8.5 0 1 1-9.9-9.9 6.8 6.8 0 0 0 9.9 9.9z"/></svg>
+      </span>
+      <div>
+        <h2 class="at-t">General anesthesia</h2>
+        <p class="at-sum">Medication that keeps you fully asleep for the whole operation, with your
+          breathing supported and monitored throughout.</p>
+      </div>
+    </div>
+    <dl class="at-facts">
+      <div class="at-fact"><dt>Awake or asleep</dt>
+        <dd>Fully asleep. You are not aware of the operation.</dd></div>
+      <div class="at-fact"><dt>What it affects</dt>
+        <dd>Your whole body. A breathing tube is often used to protect the airway while you sleep.</dd></div>
+    </dl>
+    <div class="at-cols">
+      <section class="at-blk">
+        <h3>Commonly used for</h3>
+        <ul>
+          <li>Most <a href="/general-surgery.html">general surgery</a> &mdash; gallbladder removal,
+            hernia repair, appendix surgery.</li>
+          <li>Most <a href="/ent.html">ENT surgery</a>, because the operation often involves the
+            airway itself.</li>
+          <li><a href="/oncogynecology.html">Gynecologic cancer surgery</a>, sometimes combined
+            with an epidural or spinal for pain relief.</li>
+          <li>Longer or open <a href="/urology.html">urology procedures</a>, and larger or longer
+            <a href="/plastic.html">plastic surgery</a>.</li>
+          <li>Wisdom teeth removal and major <a href="/dental.html">oral surgery</a>.</li>
+          <li><a href="/csection.html">Cesarean section</a> in emergencies, or when regional
+            anesthesia is not suitable.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>What you may feel</h3>
+        <ul>
+          <li>A drip (IV) is placed first, and the medicine is given through it.</li>
+          <li>You wake up in the recovery area, where your breathing is monitored closely.</li>
+          <li>A mild sore throat or hoarseness is common if a breathing tube was used.</li>
+          <li>Nausea afterwards is common and treatable.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>Advantages</h3>
+        <ul>
+          <li>You are unaware and completely still for the whole operation.</li>
+          <li>The airway is protected, which matters when the surgery involves the airway itself.</li>
+          <li>Suited to long or complex operations.</li>
+        </ul>
+      </section>
+      <section class="at-blk at-mind">
+        <h3>Things to keep in mind</h3>
+        <ul>
+          <li>Sore throat and nausea are the usual after-effects, and both are treatable.</li>
+          <li>You will need an escort home, and should plan to rest for the remainder of the day.</li>
+          <li>Fasting instructions apply.</li>
+        </ul>
+      </section>
+    </div>
+    <p class="at-src">Where this comes from:
+      <a href="/general-surgery.html">General surgery</a>,
+      <a href="/ent.html">ENT</a>,
+      <a href="/oncogynecology.html">Oncogynecology</a> guides.</p>
+  </article>
+
+  <!-- ══ 2 · SEDATION ═════════════════════════════════════════════════════
+       Icon: a dial at half travel. Awareness turned down, not off — which is
+       the one thing patients most often get wrong about sedation. -->
+  <article class="at-card" id="at-sedation">
+    <div class="at-head">
+      <span class="at-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 17l4.2-4.2"/><path d="M12 17h.01"/></svg>
+      </span>
+      <div>
+        <h2 class="at-t">Sedation</h2>
+        <p class="at-sum">Medication that makes you relaxed and drowsy while you keep breathing on
+          your own. It is often given alongside local or spinal anesthesia, which does the numbing.</p>
+      </div>
+    </div>
+    <dl class="at-facts">
+      <div class="at-fact"><dt>Awake or asleep</dt>
+        <dd>In between &mdash; drowsy and relaxed rather than fully asleep. You may not remember much.</dd></div>
+      <div class="at-fact"><dt>What it affects</dt>
+        <dd>Your awareness and comfort, not sensation. Numbing comes from the local or regional
+          anesthesia given with it.</dd></div>
+    </dl>
+    <div class="at-cols">
+      <section class="at-blk">
+        <h3>Commonly used for</h3>
+        <ul>
+          <li><a href="/dental.html">Dental and oral surgery</a>, particularly where there is dental
+            anxiety, and for more complex work.</li>
+          <li>Shorter, minimally invasive <a href="/urology.html">urology procedures</a>.</li>
+          <li>Alongside spinal anesthesia in <a href="/orthopedic.html">orthopedic surgery</a>, to
+            keep you comfortable.</li>
+          <li><a href="/plastic.html">Plastic surgery</a> where local anesthesia alone would not be
+            comfortable.</li>
+          <li>Some minor <a href="/ent.html">ENT procedures</a>.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>What you may feel</h3>
+        <ul>
+          <li>Relaxed and drowsy; many people remember little of the procedure.</li>
+          <li>You keep breathing on your own.</li>
+          <li>You are monitored throughout, as you are for general anesthesia.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>Advantages</h3>
+        <ul>
+          <li>Lighter than general anesthesia.</li>
+          <li>Often the option offered when anxiety is the main difficulty.</li>
+          <li>Safe when given by trained professionals with monitoring.</li>
+        </ul>
+      </section>
+      <section class="at-blk at-mind">
+        <h3>Things to keep in mind</h3>
+        <ul>
+          <li>Drowsiness lasts afterwards &mdash; no driving that day, and you need an escort home.</li>
+          <li>Fasting instructions apply when sedation is planned.</li>
+          <li>It does not numb on its own; something else provides that.</li>
+        </ul>
+      </section>
+    </div>
+    <p class="at-src">Where this comes from:
+      <a href="/dental.html">Dental</a>,
+      <a href="/urology.html">Urology</a>,
+      <a href="/plastic.html">Plastic surgery</a> guides.</p>
+  </article>
+
+  <!-- ══ 3 · SPINAL ═══════════════════════════════════════════════════════
+       Icon: a spine with ONE marked level. Paired deliberately with the
+       epidural icon below, which is the same spine with a line that carries
+       on — single injection versus something that can be kept going. -->
+  <article class="at-card" id="at-spinal">
+    <div class="at-head">
+      <span class="at-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.5 4h5M9.5 8h5M9.5 12h5M9.5 16h5M9.5 20h5"/>
+          <path d="M20.5 12H17"/><circle cx="17" cy="12" r=".9" fill="currentColor" stroke="none"/></svg>
+      </span>
+      <div>
+        <h2 class="at-t">Spinal anesthesia</h2>
+        <p class="at-sum">A single injection in the lower back that numbs you from roughly the chest
+          down, while you stay awake.</p>
+      </div>
+    </div>
+    <dl class="at-facts">
+      <div class="at-fact"><dt>Awake or asleep</dt>
+        <dd>Awake. You can be lightly sedated as well, where you prefer that and it is safe.</dd></div>
+      <div class="at-fact"><dt>What it affects</dt>
+        <dd>The lower half of the body. Feeling and movement return over a few hours.</dd></div>
+    </dl>
+    <div class="at-cols">
+      <section class="at-blk">
+        <h3>Commonly used for</h3>
+        <ul>
+          <li>Most planned <a href="/csection.html">cesarean sections</a>.</li>
+          <li>Knee and hip replacement, very often together with a nerve block
+            &mdash; see <a href="/orthopedic.html">orthopedic surgery</a>.</li>
+          <li>Many minimally invasive <a href="/urology.html">urology procedures</a>, such as
+            cystoscopy.</li>
+          <li>Some <a href="/general-surgery.html">general surgery</a>, instead of or alongside
+            general anesthesia.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>What you may feel</h3>
+        <ul>
+          <li>It is given with you sitting or lying on your side, and works within minutes.</li>
+          <li>You may feel pulling and pressure during surgery, but not sharp pain.</li>
+          <li>Your legs feel heavy and numb for several hours.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>Advantages</h3>
+        <ul>
+          <li>You stay awake &mdash; after a cesarean, you can meet your baby right away.</li>
+          <li>No breathing tube is needed.</li>
+          <li>For joint replacement, a spinal with a nerve block is common and can speed recovery.</li>
+        </ul>
+      </section>
+      <section class="at-blk at-mind">
+        <h3>Things to keep in mind</h3>
+        <ul>
+          <li>Blood pressure can drop shortly afterwards &mdash; common, and quickly treated.</li>
+          <li>Temporary difficulty passing urine can occur.</li>
+          <li>Headache afterwards is uncommon, and treatable.</li>
+          <li>Blood thinners affect whether a spinal is safe and when it can be given &mdash; tell
+            your team about all your medicines.</li>
+        </ul>
+      </section>
+    </div>
+    <p class="at-src">Where this comes from:
+      <a href="/csection.html">C-section</a>,
+      <a href="/orthopedic.html">Orthopedic</a>,
+      <a href="/urology.html">Urology</a> guides.</p>
+  </article>
+
+  <!-- ══ 4 · EPIDURAL ═════════════════════════════════════════════════════ -->
+  <article class="at-card" id="at-epidural">
+    <div class="at-head">
+      <span class="at-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 4h5M7 8h5M7 12h5M7 16h5M7 20h5"/>
+          <path d="M14.5 12c3.2 0 4.5 1.9 4.5 4.2V20"/></svg>
+      </span>
+      <div>
+        <h2 class="at-t">Epidural</h2>
+        <p class="at-sum">Pain relief given in the back that can be topped up and kept going during
+          and after the operation.</p>
+      </div>
+    </div>
+    <dl class="at-facts">
+      <div class="at-fact"><dt>Awake or asleep</dt>
+        <dd>Awake when it is used on its own, as in childbirth. For larger surgery it is usually
+          combined with general anesthesia, purely for pain relief.</dd></div>
+      <div class="at-fact"><dt>What it affects</dt>
+        <dd>Pain from the part of the body the operation involves. In childbirth, the lower body.</dd></div>
+    </dl>
+    <div class="at-cols">
+      <section class="at-blk">
+        <h3>Commonly used for</h3>
+        <ul>
+          <li>Labor. If a labor epidural is already in place, it can often be topped up for a
+            <a href="/csection.html">cesarean section</a>, avoiding a separate spinal.</li>
+          <li><a href="/oncogynecology.html">Gynecologic cancer surgery</a>, alongside general
+            anesthesia, for pain relief during and after.</li>
+          <li>Some <a href="/general-surgery.html">general surgery</a>, as one option for pain
+            relief alongside general anesthesia.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>What you may feel</h3>
+        <ul>
+          <li>It is placed in the back, as a spinal is.</li>
+          <li>You may feel pressure and movement, but not sharp pain.</li>
+          <li>Afterwards it can keep working, giving pain relief in the first days after major
+            surgery.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>Advantages</h3>
+        <ul>
+          <li>It can be continued after surgery &mdash; an epidural or a patient-controlled
+            analgesia (PCA) pump gives excellent pain relief in the first days.</li>
+          <li>Where a labor epidural is already in place, it can often be used for the cesarean.</li>
+        </ul>
+      </section>
+      <section class="at-blk at-mind">
+        <h3>Things to keep in mind</h3>
+        <ul>
+          <li>Headache after a spinal or epidural is uncommon, and treatable.</li>
+          <li>Blood thinners affect the safety and the timing of an epidural.</li>
+          <li>Tell your team about back problems, bleeding disorders, or previous anesthesia
+            issues.</li>
+        </ul>
+      </section>
+    </div>
+    <p class="at-src">Where this comes from:
+      <a href="/csection.html">C-section</a>,
+      <a href="/oncogynecology.html">Oncogynecology</a> guides.</p>
+  </article>
+
+  <!-- ══ 5 · REGIONAL / NERVE BLOCKS ══════════════════════════════════════
+       Icon: a nerve branching into a targeted ring. NOT linked to
+       /regional.html — that page is clinician reference with mg/kg tables. -->
+  <article class="at-card" id="at-regional">
+    <div class="at-head">
+      <span class="at-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.5 12h5l2.6-3.2M7.5 12l2.6 3.2"/>
+          <circle cx="14.5" cy="12" r="3.4"/><path d="M17.9 12h3.6"/></svg>
+      </span>
+      <div>
+        <h2 class="at-t">Regional anesthesia and nerve blocks</h2>
+        <p class="at-sum">An injection near nerves that numbs a specific area and gives strong pain
+          relief after surgery. Spinal and epidural anesthesia are also regional techniques; a nerve
+          block targets one limb or region.</p>
+      </div>
+    </div>
+    <dl class="at-facts">
+      <div class="at-fact"><dt>Awake or asleep</dt>
+        <dd>Either. A block may be placed while you are awake, sedated, or already asleep, and is
+          often combined with a spinal or with general anesthesia.</dd></div>
+      <div class="at-fact"><dt>What it affects</dt>
+        <dd>One limb or one part of the body. It is placed using ultrasound guidance.</dd></div>
+    </dl>
+    <div class="at-cols">
+      <section class="at-blk">
+        <h3>Commonly used for</h3>
+        <ul>
+          <li><a href="/orthopedic.html">Orthopedic limb surgery</a> &mdash; often combined with
+            spinal anesthesia for knee and hip replacement.</li>
+          <li>Some <a href="/general-surgery.html">general surgery</a>, combined with general
+            anesthesia to help with pain relief.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>What you may feel</h3>
+        <ul>
+          <li>The numb limb may feel heavy and weak for several hours.</li>
+          <li>The block wears off gradually &mdash; start your pain medication before it fully
+            wears off.</li>
+        </ul>
+      </section>
+      <section class="at-blk">
+        <h3>Advantages</h3>
+        <ul>
+          <li>It can keep the limb pain-free for many hours after surgery, reducing the need for
+            strong opioids.</li>
+          <li>It adds to a spinal or to general anesthesia rather than replacing them.</li>
+        </ul>
+      </section>
+      <section class="at-blk at-mind">
+        <h3>Things to keep in mind</h3>
+        <ul>
+          <li>Temporary numbness or weakness in the blocked limb is expected, and resolves.</li>
+          <li>Nerve injury is rare &mdash; report numbness or weakness that persists.</li>
+          <li>Blood thinners affect the timing and safety of a block.</li>
+        </ul>
+      </section>
+    </div>
+    <p class="at-src">Where this comes from:
+      <a href="/orthopedic.html">Orthopedic</a>,
+      <a href="/general-surgery.html">General surgery</a> guides.</p>
+  </article>
+
+  <div class="at-pair">
+    <div>
+      <div class="at-pair-t">Prefer to start from your surgery?</div>
+      <p class="at-pair-d">Pick your procedure and see which of these techniques are commonly used
+        for it. No account needed.</p>
+    </div>
+    <a class="at-pair-go" href="/patients.html#pa-anes">What anesthesia might I have?
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 4l4 4-4 4"/></svg></a>
+  </div>
+
+  <div class="at-ask">
+    <div>
+      <div class="at-ask-t">Still have questions?</div>
+      <div class="at-ask-d">Send them directly to an anesthesiologist.</div>
+    </div>
+    <a href="/ask.html" class="btn-primary">Ask the Anesthesiologist</a>
+  </div>
+
+  <div class="at-disc"><strong>Educational information only.</strong> This page describes anesthesia
+    techniques in general and is not a substitute for medical advice. Always follow the instructions
+    from your own surgical and anesthesia team.</div>
+
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a href="/index.html" class="footer-logo">Anest<span>heo</span></a>
+    <div class="footer-links">
+      <a href="/index.html">Home</a>
+      <a href="/patients.html">For Patients</a>
+      <a href="/procedures.html">Procedure guides</a>
+      <a href="/videos.html">Videos</a>
+    </div>
+  </div>
+  <div class="footer-inner"><p class="footer-copy">&copy; 2026 Anestheo. Educational information
+    only &mdash; not a substitute for medical advice.</p></div>
+</footer>
+</body>
+</html>
