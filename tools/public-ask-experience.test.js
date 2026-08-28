@@ -113,7 +113,11 @@ const STATE = `(() => ({
   /* The whole point of the fix: the page must not call the guard that was
      sending people away. */
   t('ask.html no longer calls requireAuth', !/requireAuth\s*\(/.test(code(ASK)));
-  t('main did call it',                     /requireAuth\s*\(/.test(code(onMain('ask.html'))));
+  /* WAS "main did call it" — a comparison with the branch this fix came
+     from. That branch is merged, so main now carries the fix and the
+     assertion inverts. The durable claim is about the page itself. */
+  t('nothing guards the READ any more',
+    !/requireAuth\s*\(|requireRole\s*\(/.test(code(ASK)));
 
   console.log('\n2 · The FAQ works logged out');
   await g.pg.click('.faq-q');
@@ -182,8 +186,8 @@ const STATE = `(() => ({
   console.log('\n5 · Failures stay readable');
   t('the raw Supabase message is not rendered',
     !/err\.textContent\s*=\s*r\.error\.message/.test(code(ASK)));
-  t('main did render it',
-    /err\.textContent\s*=\s*r\.error\.message/.test(code(onMain('ask.html'))));
+  t('no raw error text reaches the patient anywhere on the page',
+    !/textContent\s*=\s*[^;]*\berror\.message/.test(code(ASK)));
   t('the error goes to the console instead',
     /console\.error\('questions insert failed:'/.test(ASK));
   t('the patient-facing text is plain',
@@ -211,13 +215,10 @@ const STATE = `(() => ({
   console.log('\n6 · Nothing was weakened to make this work');
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
-  /* WAS "no SQL file changed". It was true when this page's fix was purely
-     frontend; the production audit then showed the schema it wrote against
-     does not exist, so the branch now carries v9_7. What must stay true is
-     that no EXISTING migration was edited. */
-  t('only the new migration is added',
-    changed.filter(f => /\.sql$/.test(f)).join() === 'v9_7_questions_portal.sql',
-    changed.filter(f => /\.sql$/.test(f)));
+  /* v9_7 is merged into main, so this branch adds no SQL at all — which is
+     the stronger statement and the one that stays true. */
+  t('this branch changes no SQL',
+    changed.filter(f => /\.sql$/.test(f)).length === 0, changed.filter(f => /\.sql$/.test(f)));
   /* auth.js DID change: it gained the return-to breadcrumb, which the Ask
      journey needs and which lives in the one destination resolver every door
      already calls. What must stay true is that no GUARD changed — that is the

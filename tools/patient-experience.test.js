@@ -308,8 +308,14 @@ const probe = pg => pg.evaluate(() => {
   {
     const { ctx, pg, errs } = await open(b, '/patients.html', null);
     const s = await probe(pg);
-    t('the value band renders', s.tiles >= 6, s.tiles);
-    t('...covering anesthesia, fasting, questions, videos, recovery, journey',
+    /* WAS ">= 6 tiles". The six-card band was the thing the hierarchy pass
+       broke up on purpose: the two that were product features left the grid
+       for their own sections, so four resource cards is the correct count and
+       six would now be a regression. The subject matter is still all present
+       — asserted on the page text just below — it is simply no longer all in
+       one grid of equal-looking cards. */
+    t('the resource band renders four cards', s.tiles === 4, s.tiles);
+    t('...and the page still covers every subject it used to',
       ['anesthesia','Fasting','Questions','videos','Recovery','journey']
         .every(k => new RegExp(k, 'i').test(s.txt)), s.preview);
     const band = await pg.evaluate(() => {

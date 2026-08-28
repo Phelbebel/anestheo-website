@@ -86,15 +86,18 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
     !titles.some(x => /your surgery journey/i.test(x)), titles);
   t('...and nothing links to the old anchor',
     !HTML.includes('/patients.html#hp-feat-guest'));
-  for (const keep of ['Understand your anesthesia', 'Fasting and medications',
-                      'Questions worth asking', 'Short explainer videos',
-                      'Recovery, and what is normal']) {
+  /* THE GRID IS FOUR SUPPORTING RESOURCES NOW. "Understand your anesthesia"
+     and "What anesthesia might I have?" both left it: the first opens a whole
+     guided experience, the second is the page's primary tool, and neither was
+     ever the same size of thing as "fasting". Their new homes are asserted in
+     tools/patients-hierarchy.test.js; what this suite still owns is that the
+     four remaining resources are genuinely public and genuinely open. */
+  for (const keep of ['Fasting and medications', 'Questions worth asking',
+                      'Short explainer videos', 'Recovery, and what is normal']) {
     t('kept: ' + keep, titles.includes(keep));
   }
-  t('the sixth tile is the anesthesia picker',
-    titles.includes('What anesthesia might I have?'));
-  t('the picker is a button, not a link off the page',
-    (tiles.find(x => /What anesthesia/.test(x.title)) || {}).tag === 'BUTTON');
+  t('the two features are no longer cards',
+    !titles.some(x => /what anesthesia|understand your anesthesia/i.test(x)), titles);
   t('the hero CTA still exists',
     await v.pg.evaluate(`(() => [...document.querySelectorAll('#ph-guest button')]
       .some(x => /Start my surgery journey/i.test(x.textContent)))()`));
@@ -131,10 +134,11 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
 
   /* ── 3 · the picker, and its sources ────────────────────────────────── */
   console.log('\n3 · What anesthesia might I have? — public, and sourced');
-  t('the panel starts closed', await v.pg.evaluate(`document.getElementById('pa-anes').hidden`));
+  /* The section is always present; its BODY is what collapses. */
+  t('the tool body starts closed', await v.pg.evaluate(`document.getElementById('pa-anes-body').hidden`));
   await v.pg.click('#pa-anes-open');
   await v.pg.waitForTimeout(400);
-  t('it opens with no session',   !(await v.pg.evaluate(`document.getElementById('pa-anes').hidden`)));
+  t('it opens with no session',   !(await v.pg.evaluate(`document.getElementById('pa-anes-body').hidden`)));
   const chips = await v.pg.evaluate(`(() => [...document.querySelectorAll('.pa-chip')]
     .map(n => ({ k:n.getAttribute('data-k'), label:n.textContent.trim() })))()`);
   t('every requested category is offered', [
@@ -307,7 +311,7 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
   const pv = await p.pg.evaluate(`(() => ({
     home: !!document.getElementById('ph-home') && getComputedStyle(document.getElementById('ph-home')).display !== 'none',
     guest: getComputedStyle(document.getElementById('ph-guest')).display !== 'none',
-    picker: !!document.querySelector('#pa-anes:not([hidden])'),
+    picker: !!document.querySelector('#pa-anes-body:not([hidden])'),
     chkWired: document.querySelectorAll('.pa-chk-row').length,
     passport: !!document.querySelector('#hp-feat-home .hp-feat')
   }))()`);

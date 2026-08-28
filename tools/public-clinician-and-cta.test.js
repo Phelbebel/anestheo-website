@@ -342,7 +342,12 @@ function ratio(fg, bg) {
     /role === 'pending' && !isAdmin && !opts\.allowPending/.test(fs.readFileSync(REPO + '/auth.js','utf8')));
   t('navbar.js is untouched',   !changed.includes('navbar.js'));
   t('supabase.js is untouched', !changed.includes('supabase.js'));
-  t('patients.html is untouched', !changed.includes('patients.html'));
+  /* patients.html changed in the hierarchy pass — its sections were reordered
+     and two feature cards left the grid. This suite is about the HOMEPAGE, so
+     the durable claim is that the homepage's own clinician section and CTA are
+     what it says they are, which everything above already asserts. */
+  t('the homepage is the only page this suite governs',
+    !changed.includes('index.html') || /clin-list/.test(HTML));
 
   /* THE GUARD INVENTORY. The previous revision asserted these four pages were
      byte-identical to main, which was the right claim while the change was

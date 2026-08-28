@@ -101,9 +101,81 @@
 .pa-sub{font-size:14px;color:var(--muted);line-height:1.65;margin-top:6px;max-width:56ch;}
 .pa-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);
   padding:24px 24px 20px;margin:18px 0 0;}
+
+/* ── THE PRIMARY TOOL ──────────────────────────────────────────────────────
+   Weight comes from size, space and one restrained glow — not from colour.
+   The supporting cards below are deliberately quieter; if this panel and a
+   resource tile look equally loud, the hierarchy has failed. */
+.pa-tool{margin:30px 0 0;border:1px solid rgba(126,207,192,.22);border-radius:var(--radius-2xl);
+  background:
+    radial-gradient(ellipse 70% 120% at 12% 0%, rgba(47,168,140,.10), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 18px 44px -30px rgba(0,0,0,.8);
+  overflow:hidden;scroll-margin-top:76px;}
+.pa-tool-head{display:flex;align-items:center;gap:20px;width:100%;text-align:left;
+  background:none;border:none;font-family:inherit;cursor:pointer;color:inherit;
+  padding:26px 28px;transition:background .18s;}
+.pa-tool-head:hover{background:rgba(255,255,255,.022);}
+.pa-tool-head:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;}
+.pa-tool-ico{flex:0 0 auto;width:52px;height:52px;border-radius:var(--radius-lg);
+  display:flex;align-items:center;justify-content:center;color:var(--accent);
+  background:rgba(47,168,140,.10);border:1px solid rgba(126,207,192,.22);}
+.pa-tool-ico svg{width:28px;height:28px;}
+.pa-tool-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;}
+.pa-tool-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--accent);}
+.pa-tool-t{font-family:var(--sans);font-size:clamp(20px,2.4vw,25px);font-weight:700;
+  line-height:1.2;color:var(--ink);letter-spacing:-.01em;}
+.pa-tool-d{font-size:14px;color:var(--muted);line-height:1.6;max-width:56ch;}
+.pa-tool-cta{flex:0 0 auto;display:inline-flex;align-items:center;gap:9px;min-height:44px;
+  padding:0 18px;border-radius:var(--radius-pill);border:1px solid rgba(126,207,192,.34);
+  font-size:14px;font-weight:650;color:var(--accent);white-space:nowrap;}
+.pa-tool-head:hover .pa-tool-cta{border-color:var(--accent);background:rgba(126,207,192,.08);}
+.pa-chev{width:16px;height:16px;transition:transform .22s;}
+.pa-tool-head[aria-expanded="true"] .pa-chev{transform:rotate(180deg);}
+.pa-tool-body{padding:0 28px 26px;border-top:1px solid var(--border);}
+.pa-tool-body .pa-sub{margin:20px 0 0;}
+.pa-collapse{display:inline-flex;align-items:center;gap:8px;margin-top:20px;min-height:44px;
+  padding:0 16px;border-radius:var(--radius-pill);border:1px solid var(--border);
+  background:none;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;}
+.pa-collapse svg{width:15px;height:15px;}
+.pa-collapse:hover{color:var(--ink);border-color:var(--hair-2);}
+.pa-collapse:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+/* ── THE SECOND FEATURE ────────────────────────────────────────────────────
+   Important, and visibly one step down from the tool: a flat card, no glow,
+   no eyebrow. */
+.pa-feat{display:flex;align-items:flex-start;gap:20px;margin:18px 0 0;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);
+  padding:24px 26px;scroll-margin-top:76px;}
+.pa-feat-ico{flex:0 0 auto;width:46px;height:46px;border-radius:var(--radius-md);
+  display:flex;align-items:center;justify-content:center;color:var(--accent);
+  background:rgba(255,255,255,.035);border:1px solid var(--border);}
+.pa-feat-ico svg{width:26px;height:26px;}
+.pa-feat-tx{min-width:0;}
+.pa-feat-t{font-family:var(--sans);font-size:19px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.pa-feat-d{font-size:14px;color:var(--muted);line-height:1.65;max-width:58ch;margin-bottom:14px;}
+.pa-feat-go{display:inline-flex;align-items:center;gap:7px;min-height:44px;
+  font-size:14px;font-weight:650;color:var(--accent);}
+.pa-feat-go svg{width:15px;height:15px;transition:transform .2s;}
+.pa-feat-go:hover svg{transform:translateX(3px);}
+
+/* Four supporting resources, and only four. */
+.ph-grid-4{grid-template-columns:repeat(4,1fr);}
+@media(max-width:1000px){ .ph-grid-4{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:560px){ .ph-grid-4{grid-template-columns:1fr;} }
+
+@media(max-width:640px){
+  .pa-tool-head{flex-wrap:wrap;gap:14px;padding:20px 18px;}
+  .pa-tool-ico{width:44px;height:44px;}
+  .pa-tool-ico svg{width:24px;height:24px;}
+  .pa-tool-cta{width:100%;justify-content:center;}
+  .pa-tool-body{padding:0 18px 22px;}
+  .pa-feat{flex-direction:column;gap:14px;padding:20px 18px;}
+}
 /* The navbar is fixed at 56px. Without this, opening the picker scrolls its
    own heading underneath it and the panel appears to start mid-sentence. */
-#pa-anes,#pa-chk{scroll-margin-top:76px;}
+#pa-chk{scroll-margin-top:76px;}
 .pa-panel-h{display:flex;align-items:flex-start;gap:14px;}
 .pa-panel-h > div{flex:1;min-width:0;}
 .pa-close{flex:0 0 auto;width:44px;height:44px;border-radius:var(--radius-md);
@@ -194,66 +266,122 @@
          already uses. No new CSS: those classes are already on the token
          system, so this band cannot drift from the rest of the page.
          ═══════════════════════════════════════════════════════════════════ -->
+    <!-- ═══ 2 · WHAT ANESTHESIA MIGHT I HAVE? ═══════════════════════════════
+         THE TOOL IS THE SECTION NOW. It used to be a small card in the grid
+         that expanded a duplicate panel further down: two things wearing the
+         same name, and a click that jumped the page. The panel is always here,
+         collapsed, and expands in place. Nothing navigates.
+
+         EDUCATION, NOT A RECOMMENDATION. It never says what a visitor will
+         get. It answers "what is commonly used for this kind of operation" —
+         a question about practice, not about them — and says so with every
+         result rather than once at the top where it can be scrolled past.
+
+         The option text is not written here. Every line condenses the
+         "Anesthesia commonly used" section of the public guide it links to,
+         and tools/public-patient-value.test.js opens each guide and asserts
+         the option name is still in it. -->
+    <section class="pa-tool" id="pa-anes">
+      <button type="button" class="pa-tool-head" id="pa-anes-open"
+              aria-expanded="false" aria-controls="pa-anes-body">
+        <span class="pa-tool-ico" aria-hidden="true">
+          <!-- An anesthesia mask over a breathing trace. Line art in the
+               current system, not an emoji: the old one was a meditating
+               figure, which reads as wellness rather than an operating room. -->
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5.5h10a3 3 0 0 1 3 3v6.2a9 9 0 0 1-3.6 7.2l-2.2 1.6a2 2 0 0 1-2.4 0l-2.2-1.6A9 9 0 0 1 8 15.7V8.5a3 3 0 0 1 3-3Z"/>
+            <path d="M24 10.5h2.5a2 2 0 0 1 2 2v3"/>
+            <path d="M3.5 26.5h5l1.6-3.4 2.2 5 2.1-6.2 1.8 4.6H28.5" opacity=".65"/>
+          </svg>
+        </span>
+        <span class="pa-tool-tx">
+          <span class="pa-tool-eyebrow">Interactive tool</span>
+          <span class="pa-tool-t">What anesthesia might I have?</span>
+          <span class="pa-tool-d">Explore the anesthesia techniques commonly used for your type of
+            surgery. No account needed.</span>
+        </span>
+        <span class="pa-tool-cta" aria-hidden="true">
+          <span class="pa-tool-cta-lbl">Explore options</span>
+          <svg class="pa-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6l4 4 4-4"/></svg>
+        </span>
+      </button>
+
+      <div class="pa-tool-body" id="pa-anes-body" hidden>
+        <p class="pa-sub">Choose the kind of procedure you are preparing for. You will see the
+          options commonly used for it.</p>
+        <div class="pa-chips" id="pa-chips" role="group" aria-label="Procedure category"></div>
+        <div id="pa-result" aria-live="polite"></div>
+        <button type="button" class="pa-collapse" id="pa-anes-close">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 10l4-4 4 4"/></svg>Collapse
+        </button>
+      </div>
+    </section>
+
+    <!-- ═══ 3 · UNDERSTAND YOUR ANESTHESIA ═══════════════════════════════════
+         THE OTHER AXIS. The tool above starts from the operation someone is
+         having; this starts from the techniques themselves. It was a small
+         card in the grid, which put a whole guided experience beside "fasting"
+         and "videos" as though they were the same size of thing.
+
+         WHAT THE AUDIT FOUND, and it is worth knowing before reading the copy:
+         there is no anesthesia-TYPES destination in this repository.
+         /procedures.html is a procedure picker — the same eight categories as
+         the tool above, each opening its guide. So the type-first framing
+         lives in this section's words, and the link hands over to the guides
+         where the detail actually is. A dedicated types page is the honest
+         next step; inventing one here was not this branch's job. -->
+    <section class="pa-feat" id="pa-understand">
+      <span class="pa-feat-ico" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 6.5c-2.2-1.6-4.6-2.2-7.5-2A1.6 1.6 0 0 0 7 6.1v14.6a1.6 1.6 0 0 0 1.7 1.6c2.7-.2 5 .4 7.3 1.9"/>
+          <path d="M16 6.5c2.2-1.6 4.6-2.2 7.5-2A1.6 1.6 0 0 1 25 6.1v14.6a1.6 1.6 0 0 1-1.7 1.6c-2.7-.2-5 .4-7.3 1.9"/>
+          <path d="M16 6.5v17.7"/>
+          <path d="M11 11.5h2.5M18.5 11.5H21M11 15.5h2.5M18.5 15.5H21" opacity=".6"/>
+        </svg>
+      </span>
+      <div class="pa-feat-tx">
+        <h2 class="pa-feat-t">Understand your anesthesia</h2>
+        <p class="pa-feat-d">General anesthesia, sedation, spinal and epidural, and nerve blocks.
+          Understand how they differ, what each one feels like, and what matters to you.</p>
+        <a class="pa-feat-go" href="/procedures.html">Understand anesthesia
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 4l4 4-4 4"/></svg></a>
+      </div>
+    </section>
+
+    <!-- ═══ 4 · HOW ANESTHEO HELPS ═══════════════════════════════════════════
+         FOUR SUPPORTING RESOURCES, and nothing that is really a product
+         feature. "Understand your anesthesia" and "What anesthesia might I
+         have?" both left this grid: one opens a whole guided experience, the
+         other is the page's primary tool, and neither belongs beside
+         "fasting" at the same visual weight.
+
+         Still .ph-grid / .ph-tile — the card family the signed-in home uses —
+         so these cannot drift from the rest of the product. -->
     <div class="ph-qa-label">How Anestheo helps</div>
-    <div class="ph-grid">
-      <a class="ph-tile" href="/procedures.html"><span class="ph-tile-ico">&#128214;</span>
-        <span class="ph-tile-t">Understand your anesthesia</span>
-        <span class="ph-tile-d">What happens, what it feels like, and what the risks really are for your procedure.</span></a>
+    <div class="ph-grid ph-grid-4">
       <a class="ph-tile" href="/preop-instructions.html"><span class="ph-tile-ico">&#9201;&#65039;</span>
         <span class="ph-tile-t">Fasting and medications</span>
         <span class="ph-tile-d">When to stop eating and drinking, and which of your medicines to take or hold.</span></a>
-      <!-- WAS /questions.html, WHICH IS THE ADMIN INBOX. That page is
-           "Submitted Questions — Anestheo Admin" and is guarded by
-           requireRole('admin'), so this card offered a visitor a page that
-           redirects them straight back out. The patient-facing answer to
-           "what should I ask" is the section the signed-in home already
-           links to, and it opens for anybody. -->
+      <!-- WAS /questions.html, WHICH IS THE ADMIN INBOX, guarded by
+           requireRole('admin') — a card that bounced a visitor straight out. -->
       <a class="ph-tile" href="/preop-instructions.html#what-to-tell"><span class="ph-tile-ico">&#128172;</span>
         <span class="ph-tile-t">Questions worth asking</span>
         <span class="ph-tile-d">What to raise with your anesthesiologist, so nothing is left until the day.</span></a>
-      <a class="ph-tile" href="/videos.html"><span class="ph-tile-ico">&#127916;</span>
-        <span class="ph-tile-t">Short explainer videos</span>
-        <span class="ph-tile-d">A few minutes each, from a certified anesthesiologist.</span></a>
       <a class="ph-tile" href="/recovery.html"><span class="ph-tile-ico">&#10084;&#65039;</span>
         <span class="ph-tile-t">Recovery, and what is normal</span>
         <span class="ph-tile-d">Pain, nausea, when to rest and the warning signs worth a phone call.</span></a>
-      <!-- WAS "Your surgery journey", pointing at #hp-feat-guest — the same
-           page, scrolled down to the Health Passport. A card promising a
-           surgery journey and delivering an anchor jump is the definition of a
-           low-value tile, and the hero CTA already offers the real thing.
-           Replaced with something a visitor can actually use unregistered. -->
-      <button type="button" class="ph-tile" id="pa-anes-open" aria-expanded="false" aria-controls="pa-anes">
-        <span class="ph-tile-ico">&#129496;</span>
-        <span class="ph-tile-t">What anesthesia might I have?</span>
-        <span class="ph-tile-d">Explore the common anesthesia options used for your type of procedure and what each one means.</span></button>
+      <a class="ph-tile" href="/videos.html"><span class="ph-tile-ico">&#127916;</span>
+        <span class="ph-tile-t">Short explainer videos</span>
+        <span class="ph-tile-d">A few minutes each, from a certified anesthesiologist.</span></a>
     </div>
-
-    <!-- ═══ WHAT ANESTHESIA MIGHT I HAVE? ═══════════════════════════════════
-         EDUCATION, NOT A RECOMMENDATION. This picker never says what a visitor
-         will get. It answers "what is commonly used for this kind of
-         operation", which is a question about anesthesia practice, not about
-         them — and it says so in the panel, every time, not once at the top of
-         the page where it can be scrolled past.
-
-         The option text is not written here. Every line is drawn from the
-         "Anesthesia commonly used" section of the public procedure guide it
-         links to, and tools/public-patient-value.test.js asserts that each
-         option name still appears in its source page — so this cannot quietly
-         drift away from what an anesthesiologist wrote. -->
-    <section id="pa-anes" hidden>
-      <div class="pa-panel">
-        <div class="pa-panel-h">
-          <div>
-            <h2 class="pa-h">What anesthesia might I have?</h2>
-            <p class="pa-sub">Choose the kind of procedure you are preparing for. You will see the options
-              commonly used for it — no account needed.</p>
-          </div>
-          <button type="button" class="pa-close" id="pa-anes-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="pa-chips" id="pa-chips" role="group" aria-label="Procedure category"></div>
-        <div id="pa-result" aria-live="polite"></div>
-      </div>
-    </section>
 
     <!-- ═══ BEFORE SURGERY CHECKLIST ════════════════════════════════════════
          Works with no account, no network and no Supabase. The only thing that
@@ -537,16 +665,26 @@ function paPick(k){
     '</div>';
 }
 function paInitAnes(){
-  var open = ge('pa-anes-open'), panel = ge('pa-anes'), close = ge('pa-anes-close');
-  if(!open || !panel) return;
+  var head = ge('pa-anes-open'), body = ge('pa-anes-body'),
+      close = ge('pa-anes-close');
+  if(!head || !body) return;
   paRenderChips();
+
+  /* One panel, two states. aria-expanded is on the control that owns it, and
+     the body is genuinely hidden rather than merely shrunk, so a screen reader
+     and a sighted visitor agree about what is on the page. */
   function setOpen(on){
-    panel.hidden = !on;
-    open.setAttribute('aria-expanded', on ? 'true' : 'false');
-    if(on){ panel.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+    body.hidden = !on;
+    head.setAttribute('aria-expanded', on ? 'true' : 'false');
+    var lbl = head.querySelector('.pa-tool-cta-lbl');
+    if(lbl) lbl.textContent = on ? 'Hide options' : 'Explore options';
   }
-  open.addEventListener('click', function(){ setOpen(panel.hidden); });
-  if(close) close.addEventListener('click', function(){ setOpen(false); open.focus(); });
+  head.addEventListener('click', function(){ setOpen(body.hidden); });
+  if(close) close.addEventListener('click', function(){
+    setOpen(false);
+    head.focus();                       // never strand focus inside a hidden region
+    head.scrollIntoView({ block:'nearest' });
+  });
 }
 
 /* ── BEFORE SURGERY CHECKLIST ─────────────────────────────────────────────

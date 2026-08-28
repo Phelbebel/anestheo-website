@@ -756,10 +756,16 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     .split('\n').filter(Boolean)
     .concat(execSync('git -C ' + REPO + ' ls-files --others --exclude-standard', { encoding:'utf8' })
       .split('\n').filter(Boolean));
+  /* WAS "the migration is the only SQL added". It is merged now, so a diff
+     against main shows no SQL at all — and asserting otherwise would demand
+     that a shipped migration keep re-appearing. What stays true is that the
+     file exists, unedited, and that nothing else has joined it. */
   const sqlChanged = changed.filter(f => /\.sql$/.test(f));
-  t('the migration file is present in the change set', sqlChanged.length === 1, sqlChanged);
-  t('the migration is the only SQL added',
-    sqlChanged.join() === 'v9_7_questions_portal.sql', sqlChanged);
+  t('the migration is on main, not in the diff', sqlChanged.length === 0, sqlChanged);
+  t('...and the file it applied is still here',
+    fs.existsSync(REPO + '/v9_7_questions_portal.sql'));
+  t('...unchanged since it was applied',
+    SQL === onMain('v9_7_questions_portal.sql'));
   t('no existing migration was edited',
     !changed.some(f => /\.sql$/.test(f) && f !== 'v9_7_questions_portal.sql'));
   t('v2_ask_migration.sql is untouched',  !changed.includes('v2_ask_migration.sql'));
