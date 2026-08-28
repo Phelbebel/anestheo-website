@@ -2051,10 +2051,15 @@ async function wsLcToggle(domId, kind, id, state, starred){
     map  = await window.PatientLifecycle.eligibilityFor(kind, id, need);
   } catch(err){
     if(_wsLcOpen!==domId) return;
-    var why = (err && (err.message || err.hint)) || String(err);
+    /* THE SECOND LEAK. This printed err.message into the menu, which is how
+       "permission denied for function patient_lifecycle_eligibility" reached a
+       doctor's screen by a route that never passed through refusal(). The
+       server's words go to the console; the doctor gets one sentence they can
+       act on. Nothing here can be a clinical reason: a clinical reason arrives
+       as a structured code in the resolved answer, never as a thrown error. */
     try { console.error('[dashboard] eligibility failed', kind, id, err); } catch(e){}
     menu.querySelectorAll('.ws-lc-hint').forEach(function(h){
-      h.textContent = 'Could not check this action: ' + why;
+      h.textContent = 'Could not check this action right now. Please try again.';
       h.className = 'ws-lc-hint tone-block';
     });
     return;
@@ -2083,26 +2088,65 @@ window.wsLcToggle=wsLcToggle; window.wsLcCloseAll=wsLcCloseAll;
 
 // Star is instant and needs no confirmation: it changes nothing clinical and
 // is trivially reversible.
+//
+// SERVER FIRST, NOT OPTIMISTIC. Nothing on screen moves until the write has
+// been acknowledged, so there is no local state to roll back when it fails —
+// the star simply never changed. That is deliberate: an optimistic star that
+// silently reverts a second later is worse than a star that waits, because the
+// doctor has already moved on and believes the record is flagged.
 async function wsLcStar(kind, id, starred){
   var r=await window.PatientLifecycle.setStarred(kind, id, starred);
   if(!r || r.ok!==true){
+    // refusal() gives a real reason for a real refusal and one human sentence
+    // for a transport failure; neither is ever raw Postgres text.
     var f=window.PatientLifecycle.refusal(r, 'Could not change this.');
     wsToast(f.text); return;
   }
   wsToast(starred?'Marked as Important.':'Removed from Important.');
   wsLcApplyLocalStar(kind, id, starred);
   wsRenderMyPatients();
+  // If the detail modal is open on this patient, move its star too. Toggling
+  // the one chip rather than calling wsDetail() again is deliberate: wsDetail's
+  // third argument is the "archived on <date>" banner, this function does not
+  // have it, and redrawing without it would silently delete a banner that is
+  // telling the doctor something true.
+  if(_wsDetailId && _wsDetailId===id){
+    var nameEl=document.querySelector('#ws-detail-modal .ws-d-name');
+    if(nameEl){
+      var chip=nameEl.querySelector('.ws-star');
+      if(starred && !chip){
+        var s=document.createElement('span');
+        s.className='ws-star on'; s.title='Important'; s.innerHTML='&#9733;';
+        nameEl.insertBefore(document.createTextNode(' '), nameEl.firstChild);
+        nameEl.insertBefore(s, nameEl.firstChild);
+      } else if(!starred && chip){
+        chip.remove();
+      }
+    }
+  }
 }
 window.wsLcStar=wsLcStar;
 
 // Update what is already on screen rather than re-reading everything: the
 // doctor's filter, search, scroll and open patient all survive.
+//
+// wsRenderMyPatients() below rebuilds every row from these objects, so setting
+// .starred here is what makes the row's star, its sort position, the Important
+// counter, the Important filter and the menu's own label ("Mark as Important"
+// / "Remove from Important") all agree in the same frame.
 function wsLcApplyLocalStar(kind, id, starred){
   (_wsMyPatients||[]).forEach(function(p){
     if(p.openKind===kind && p.openId===id) p.starred=starred;
     if(kind==='journey' && p.surgeryId===id) p.starred=starred;
   });
   if(_wsCtx && _wsCtx.surgeryId===id) _wsCtx.starred=starred;
+  // The clinic-patient cache the detail modal reads from is a different array,
+  // and the modal can be open on this very patient while the menu is used.
+  // Without this the star chip in its header kept the old value until the
+  // doctor closed and reopened it.
+  (_wsPatients||[]).forEach(function(p){
+    if(kind==='clinic_patient' && p.id===id) p.is_starred=starred;
+  });
 }
 
 // Archive / restore / delete. Confirmation copy comes from the shared module,
@@ -3080,15 +3124,78 @@ function wsOpenLink(id){
   var url = wsLink(p); if(!url){ wsToast('No link yet'); return; }
   window.open(url, '_blank');
 }
-// Send the questionnaire by Email (opens the doctor's mail client with the link).
+/* Send the questionnaire by Email — opens the DOCTOR'S OWN mail client with a
+   draft. Nothing is sent from a server; there is no SMTP and no Edge Function
+   in this path, and this function deliberately does not invent one.
+
+   WHY IT USED TO DO NOTHING, measured rather than guessed. The old line was
+
+       var win = window.open(url,'_blank'); if(!win){ location.href = url; }
+
+   which is the shape WhatsApp uses one function above — and that is exactly
+   why it looked correct. But window.open() is only reliable for http(s). For a
+   mailto: it opens an about:blank tab, hands nothing to the OS, and RETURNS A
+   TRUTHY WINDOW: measured in this project's own Chromium the call answered
+   {typeof:'object', closed:false, location:'about:blank'} and the browser
+   logged a new page whose URL was the bare string ":". So `!win` was never
+   true, the location.href fallback below it was unreachable dead code, and the
+   doctor got a blank tab. WhatsApp worked because https is a scheme
+   window.open actually navigates.
+
+   Assigning location.href is the documented way to hand an external protocol
+   to the OS handler. It does not navigate away from the dashboard — the
+   browser fires the handler and the page stays — so no state is lost.
+
+   TWO MORE FAULTS IN THE SAME THREE LINES:
+
+   * encodeURIComponent() was applied to the ADDRESS, turning
+     ana.p+test@example.com into ana.p%2Btest%40example.com. RFC 6068 allows
+     '@' unencoded in the to-field, and %2B for '+' is a well-known breaker for
+     web mail handlers. The address is now validated and passed through; only
+     subject and body are encoded, which is where encoding belongs.
+
+   * A missing address produced "mailto:?subject=…" — a compose window with no
+     recipient, and no way for the doctor to know why. It is now an explicit
+     refusal.
+
+   And the status write moves to AFTER the handoff, matching WhatsApp: nothing
+   is marked 'sent' unless something was actually launched. The old code marked
+   sent unconditionally, including on the blank-tab path, so a questionnaire
+   nobody ever received was recorded as delivered. */
+function wsValidEmail(s){
+  s = (s == null ? '' : String(s)).trim();
+  // Deliberately permissive: this only has to reject blanks and obvious
+  // nonsense before handing the address to a mail client that will validate it
+  // properly. No spaces, one @, something either side, a dot in the domain.
+  return /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(s) ? s : '';
+}
+
 async function wsSendEmail(id){
   var p = wsFindP(id);
   if(!p){ try { var r=await window.sb.from('clinic_patients').select('*').eq('id',id).maybeSingle(); p=r.data; }catch(e){} }
   if(!p) return;
   if(!p.token){ wsToast('This patient has no questionnaire link yet.'); return; }
-  var url='mailto:'+encodeURIComponent(p.email||'')+'?subject='+encodeURIComponent('Your pre-anaesthesia questionnaire')+'&body='+encodeURIComponent(wsMessage(p));
-  var win=window.open(url,'_blank'); if(!win){ try{ location.href=url; }catch(e){} }
-  await wsMarkSent(id); wsToast('Email draft opened — status set to Sent'); wsLoadCases();
+
+  var to = wsValidEmail(p.email);
+  if(!to){
+    wsToast(p.email ? 'That email address does not look valid. Check it in the patient record.'
+                    : 'No email address is saved for this patient.');
+    return;                                   // no draft, and nothing marked sent
+  }
+
+  var url = 'mailto:' + to +
+            '?subject=' + encodeURIComponent('Your pre-anaesthesia questionnaire') +
+            '&body='    + encodeURIComponent(wsMessage(p));
+  try {
+    window.location.href = url;               // hands off to the OS mail handler
+  } catch(e){
+    try { console.error('[dashboard] mailto handoff failed', e); } catch(x){}
+    wsToast('Could not open your mail app. Use Copy link instead.');
+    return;
+  }
+  await wsMarkSent(id);
+  wsToast('Email draft opened — status set to Sent');
+  wsLoadCases();
 }
 // Compact questionnaire actions (clinic-created / invited patients).
 function wsQActions(id, sent){

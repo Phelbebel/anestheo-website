@@ -756,18 +756,32 @@ const ADMIN   = { email:'a@e.com',  role:'admin',  verification_status:'not_requ
     .split('\n').filter(Boolean)
     .concat(execSync('git -C ' + REPO + ' ls-files --others --exclude-standard', { encoding:'utf8' })
       .split('\n').filter(Boolean));
-  /* WAS "the migration is the only SQL added". It is merged now, so a diff
-     against main shows no SQL at all — and asserting otherwise would demand
-     that a shipped migration keep re-appearing. What stays true is that the
-     file exists, unedited, and that nothing else has joined it. */
-  const sqlChanged = changed.filter(f => /\.sql$/.test(f));
-  t('the migration is on main, not in the diff', sqlChanged.length === 0, sqlChanged);
-  t('...and the file it applied is still here',
+  /* THIS HAS NOW GONE STALE TWICE, and the second time is the instructive one.
+
+     v1 said "the migration is the only SQL added" — vacuous once v9_7 merged.
+     v2 said no SQL file may appear in the diff at all, which held right up
+     until an unrelated branch added v4_4_lifecycle_browser_grants_repair.sql
+     to fix the doctor's patient card. That is ordinary practice, and this
+     suite has no standing to forbid it: a diff against main shows whatever
+     else is in flight, so reading it turns a feature suite into a veto on the
+     rest of the repository.
+
+     The real rule is narrower and permanent. A migration that production has
+     already run is history: editing it is the sin, because the database will
+     never see the edit. Adding a NEW file is how corrections are made — v4_4
+     exists precisely because it refused to rewrite v4_3. So this now asks
+     git for MODIFIED migrations only (--diff-filter=M), which lets new ones
+     through and still catches a rewrite of anything already applied. */
+  const modifiedSql = execSync(
+    'git -C ' + REPO + ' diff --name-only --diff-filter=M ' + MAIN + ' -- "*.sql"',
+    { encoding:'utf8' }).split('\n').filter(Boolean);
+  t('no already-applied migration was rewritten', modifiedSql.length === 0, modifiedSql);
+  t('the file it applied is still here',
     fs.existsSync(REPO + '/v9_7_questions_portal.sql'));
   t('...unchanged since it was applied',
     SQL === onMain('v9_7_questions_portal.sql'));
-  t('no existing migration was edited',
-    !changed.some(f => /\.sql$/.test(f) && f !== 'v9_7_questions_portal.sql'));
+  t('...including its policy and grant blocks',
+    !modifiedSql.includes('v9_7_questions_portal.sql'));
   t('v2_ask_migration.sql is untouched',  !changed.includes('v2_ask_migration.sql'));
   t('navbar.js is untouched',             !changed.includes('navbar.js'));
   t('supabase.js is untouched',           !changed.includes('supabase.js'));

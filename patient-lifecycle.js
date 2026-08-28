@@ -18,8 +18,19 @@
    and "there is a signed anesthesia record" are three different problems with
    three different remedies, and the production bug this replaces
    ("Could not check eligibility right now") was exactly the cost of pretending
-   otherwise. A transport failure is reported as a transport failure, with the
-   real message, and logged. */
+   otherwise.
+
+   THE ONE LINE THAT MOVED. This file used to report a transport failure with
+   the server's real message too, on the same reasoning. That reasoning was
+   right about refusals and wrong about transport: when a GRANT drifted in
+   production the doctor's menu printed
+
+       permission denied for function patient_lifecycle_eligibility
+
+   which is not a remedy, it is a stack trace. So rpc_error — and nothing else —
+   now resolves to one human sentence, and the server's words go to the console
+   and to refusal().technical. Every genuine refusal still says exactly what the
+   server said. See refusal() at the bottom of this file. */
 (function (global) {
 'use strict';
 
@@ -282,12 +293,49 @@ function confirmCopy(action){
 
 /* A refusal, phrased for a human, keeping the server's own words when it has
    them. The tone tells the page whether to style it as a block or as a
-   neutral "already true". */
+   neutral "already true".
+
+   ONE CODE IS DIFFERENT, AND THE DISTINCTION IS THE WHOLE POINT.
+
+   Every code except rpc_error carries a sentence an anesthesiologist wrote for
+   a clinician: "A consultation request is still open for this patient",
+   "This record is already archived", "You are not signed in". Those are the
+   answer, and replacing any of them with something vaguer is the bug this
+   module was built to end — see the header.
+
+   rpc_error is not that. It is whatever the transport said, and the transport
+   says things like
+
+       permission denied for function patient_lifecycle_eligibility
+
+   which is what production showed a doctor when a GRANT drifted. That sentence
+   names an internal function, tells the reader nothing they can act on, and
+   reads like the product is broken rather than momentarily unreachable. So
+   rpc_error — and ONLY rpc_error — gets a human sentence here, while the real
+   message travels on as .technical for console.error and stays in the object
+   the caller already logged. A missing grant, a dropped function, a network
+   failure and RLS refusing at the transport layer are one thing to a doctor:
+   try again, and if it persists it is ours to fix. */
+var TECHNICAL_FAILURE = 'Could not check this action right now. Please try again.';
+
 function refusal(res, fallback){
   var code = (res && res.code) || 'rpc_error';
   var tone = toneOf(code);
-  var text = (res && res.reason) || shortOf(code) || fallback || 'That action is not available.';
-  return { code:code, tone:tone, text:text, short:shortOf(code) || text };
+  var raw  = (res && res.reason) || null;
+
+  if (code === 'rpc_error') {
+    /* The caller's `fallback` is deliberately IGNORED here. Those strings are
+       written for a refusal — "That action was refused.", "Could not change
+       this." — and a transport failure is not a refusal. Saying "refused"
+       about a missing GRANT tells the doctor a rule stopped them when nothing
+       did, which sends them looking for a clinical reason that does not exist. */
+    try { if (raw) console.error('[patient-lifecycle] technical failure: ' + raw); } catch (e) {}
+    return { code:code, tone:tone, text:TECHNICAL_FAILURE,
+             short:TECHNICAL_FAILURE, technical:raw };
+  }
+
+  var text = raw || shortOf(code) || fallback || 'That action is not available.';
+  return { code:code, tone:tone, text:text, short:shortOf(code) || text, technical:null };
 }
 
 /* Turn the purge dependency preview into plain lines. Two lists, because they

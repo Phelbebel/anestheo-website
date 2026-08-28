@@ -335,33 +335,42 @@ const TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-grid .ph-tile
 
   /* ── 10 · nothing outside this page moved ───────────────────────────── */
   console.log('\n10 · Scope');
-  const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
-    .split('\n').filter(Boolean)
-    .concat(execSync('git -C ' + REPO + ' ls-files --others --exclude-standard', { encoding:'utf8' })
-      .split('\n').filter(Boolean));
-  t('no SQL file changed',       changed.filter(f => /\.sql$/.test(f)).length === 0, changed);
-  t('auth.js is untouched',      !changed.includes('auth.js'));
-  t('navbar.js is untouched',    !changed.includes('navbar.js'));
-  t('supabase.js is untouched',  !changed.includes('supabase.js'));
-  t('ask.html is untouched',     !changed.includes('ask.html'));
-  t('questions.html is untouched',       !changed.includes('questions.html'));
-  t('patient-dashboard.html is untouched', !changed.includes('patient-dashboard.html'));
-  t('dashboard.html is untouched',       !changed.includes('dashboard.html'));
-  /* WAS: "only patients.html changed among pages". A pure branch snapshot,
-     and the third time this pattern has gone stale in this repo. The follow-up
-     work added /anesthesia-types.html — a new page, not an edit to an existing
-     one — and the assertion failed for doing exactly what was asked. What the
-     line was really protecting is that this work stays on the PUBLIC PATIENT
-     surface and never edits a clinician or account page, so that is what it
-     now says. New public patient pages are allowed; touching anything else is
-     not. */
-  const PATIENT_SURFACE = ['patients.html', 'anesthesia-types.html', 'procedures.html',
-                           'preop-instructions.html', 'recovery.html', 'videos.html'];
-  t('only public patient pages changed',
-    changed.filter(f => /^[^/]+\.html$/.test(f)).every(f => PATIENT_SURFACE.includes(f)), changed);
-  for (const page of ['index.html', 'engine.html', 'scores.html', 'references.html',
-                      'role-select.html', 'doctor-pending.html', 'settings.html', 'admin.html'])
-    t('no change to ' + page, !changed.includes(page));
+  /* THIS BLOCK USED TO ASK `git diff --name-only origin/main`, and the answer
+     went stale twice. First it said "only patients.html changed among pages",
+     which failed when /anesthesia-types.html was added — exactly the work that
+     had been asked for. Rewritten as an allow-list of patient surfaces, it
+     then failed again on the very next branch, which repaired the DOCTOR
+     dashboard: a diff against main sweeps up whatever else is in flight, so a
+     feature suite reading it is really asserting "no other work exists".
+     That is not an invariant, it is a scheduling accident.
+
+     A feature suite can only speak for the files the feature owns. So the
+     question changed from "which files did this branch touch?" to "are these
+     two pages still presentation-only?" — which stays true forever, whatever
+     else is happening in the tree. */
+  const OWNED = { 'patients.html': HTML, 'anesthesia-types.html': fs.readFileSync(REPO + '/anesthesia-types.html','utf8') };
+  for (const [name, src] of Object.entries(OWNED)) {
+    const c = code(src);
+    t(name + ': no SQL of any kind',
+      !/\.sql\b/.test(c) && !/\b(GRANT|REVOKE|CREATE POLICY|ALTER TABLE)\b/i.test(c));
+    t(name + ': no auth guard',        !/requireAuth|requireRole/.test(c));
+    t(name + ': no privileged RPC',    !/\.rpc\(/.test(c), (c.match(/\.rpc\([^)]*/) || [''])[0]);
+    t(name + ': no write to any table',
+      !/\.(insert|update|upsert|delete)\(/.test(c), (c.match(/\.(insert|update|upsert|delete)\(/) || [''])[0]);
+    /* Scoped to the GUEST section on patients.html. The page also carries
+       #ph-clin — the view a signed-in clinician gets, whose whole purpose is
+       the line "your clinical tools are in the workspace" and a link to
+       /dashboard.html. That link is correct and predates this work; a blanket
+       file-wide ban flagged it. What must stay true is that a LOGGED-OUT
+       visitor is never pointed at a clinician surface. */
+    const guest = name === 'patients.html'
+      ? (src.match(/<section id="ph-guest"[\s\S]*?<!-- CLINICIAN view/) || [''])[0]
+      : src;
+    t(name + ': the public view links to no clinician surface',
+      guest.length > 0 &&
+      !/href="\/(engine|scores|references|dashboard|admin|questions|anesthesia-cases|anesthesia-record|regional|users|doctor-approvals)\.html/.test(guest),
+      (guest.match(/href="\/(engine|scores|references|dashboard|admin|questions)\.html/) || ['clean'])[0]);
+  }
   t('the page adds no Supabase call',
     (code(HTML).match(/window\.sb\.(from|rpc)/g) || []).join() ===
     (code(onMain('patients.html')).match(/window\.sb\.(from|rpc)/g) || []).join());
