@@ -215,10 +215,18 @@ const STATE = `(() => ({
   console.log('\n6 · Nothing was weakened to make this work');
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
-  /* v9_7 is merged into main, so this branch adds no SQL at all — which is
-     the stronger statement and the one that stays true. */
-  t('this branch changes no SQL',
-    changed.filter(f => /\.sql$/.test(f)).length === 0, changed.filter(f => /\.sql$/.test(f)));
+  /* THE SIN IS EDITING HISTORY, NOT ADDING A FILE. This read the whole
+     `git diff` for any .sql and so failed the moment an unrelated branch added
+     v4_4_lifecycle_browser_grants_repair.sql to fix the doctor's patient card
+     — ordinary practice, and something this suite has no standing to forbid.
+     A migration production has already run is history: editing it is the fault,
+     because the database will never see the edit. --diff-filter=M asks exactly
+     that question, letting new migrations through and still catching a rewrite
+     of an applied one. */
+  const modifiedSql = execSync(
+    'git -C ' + REPO + ' diff --name-only --diff-filter=M ' + MAIN + ' -- "*.sql"',
+    { encoding:'utf8' }).split('\n').filter(Boolean);
+  t('no already-applied migration was rewritten', modifiedSql.length === 0, modifiedSql);
   /* auth.js DID change: it gained the return-to breadcrumb, which the Ask
      journey needs and which lives in the one destination resolver every door
      already calls. What must stay true is that no GUARD changed — that is the

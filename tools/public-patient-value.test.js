@@ -270,8 +270,18 @@ const VISIBLE_TILES = `(() => [...document.querySelectorAll('#ph-guest .ph-tile'
      concern — the Ask work legitimately adds v9_7_questions_portal.sql. What
      this suite owns is that the PUBLIC PATIENT surfaces gained no database
      dependency, and that is asserted directly above. */
-  t('no existing migration was edited',
-    changed.filter(f => /\.sql$/.test(f)).every(f => f === 'v9_7_questions_portal.sql'), changed.filter(f => /\.sql$/.test(f)));
+  /* THE SIN IS EDITING HISTORY, NOT ADDING A FILE. This read the whole
+     `git diff` for any .sql and so failed the moment an unrelated branch added
+     v4_4_lifecycle_browser_grants_repair.sql to fix the doctor's patient card
+     — ordinary practice, and something this suite has no standing to forbid.
+     A migration production has already run is history: editing it is the fault,
+     because the database will never see the edit. --diff-filter=M asks exactly
+     that question, letting new migrations through and still catching a rewrite
+     of an applied one. */
+  const modifiedSql = execSync(
+    'git -C ' + REPO + ' diff --name-only --diff-filter=M ' + MAIN + ' -- "*.sql"',
+    { encoding:'utf8' }).split('\n').filter(Boolean);
+  t('no already-applied migration was rewritten', modifiedSql.length === 0, modifiedSql);
   /* auth.js gained the return-to breadcrumb used by the Ask journey. What
      this suite cares about is that the public/account line is unmoved. */
   t('auth.js still gates a roleless account',

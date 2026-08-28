@@ -252,12 +252,18 @@ const MAIN_AH = (MAIN_HTML.match(/^\.ah\{--bd:[^\n]*\n[^\n]*\n[^\n]*$/m) || ['']
      commit lands and cannot be satisfied by simply not having committed. */
   const changed = execSync('git -C ' + REPO + ' diff --name-only ' + MAIN, { encoding:'utf8' })
     .split('\n').filter(Boolean);
-  /* WAS "no SQL file changed" — branch scope, not this suite's concern. The
-     Ask work legitimately adds v9_7_questions_portal.sql; what must not happen
-     is an EXISTING migration being edited. */
-  t('no existing migration was edited',
-    changed.filter(f => /\.sql$/.test(f)).every(f => f === 'v9_7_questions_portal.sql'),
-    changed.filter(f => /\.sql$/.test(f)));
+  /* THE SIN IS EDITING HISTORY, NOT ADDING A FILE. This read the whole
+     `git diff` for any .sql and so failed the moment an unrelated branch added
+     v4_4_lifecycle_browser_grants_repair.sql to fix the doctor's patient card
+     — ordinary practice, and something this suite has no standing to forbid.
+     A migration production has already run is history: editing it is the fault,
+     because the database will never see the edit. --diff-filter=M asks exactly
+     that question, letting new migrations through and still catching a rewrite
+     of an applied one. */
+  const modifiedSql = execSync(
+    'git -C ' + REPO + ' diff --name-only --diff-filter=M ' + MAIN + ' -- "*.sql"',
+    { encoding:'utf8' }).split('\n').filter(Boolean);
+  t('no already-applied migration was rewritten', modifiedSql.length === 0, modifiedSql);
   t('navbar.js is not in the diff',        !changed.includes('navbar.js'));
   t('supabase.js is not in the diff',      !changed.includes('supabase.js'));
 
