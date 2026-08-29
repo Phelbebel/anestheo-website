@@ -486,6 +486,63 @@ async function open(b, path, prof, w, h) {
     'comments clean');
 
   /* Zero, page-wide, in source and in what a reader sees. */
+  /* ── ZERO RENDERED EM DASHES ON BOTH PAGES ─────────────────────────────
+     founder.html was cleaned earlier; about.html kept two until now, in the
+     <title> and around the tool list in For clinicians. Both are gone, and
+     both pages are now asserted the same way: not in the source, and not in
+     what a reader actually sees. Rendered text is the one that matters, which
+     is why it is measured in the browser rather than grepped. */
+  for (const [file, src] of [['founder.html', FND], ['about.html', ABOUT]]) {
+    t(file + ': no em dash in the source',
+      !/—|&mdash;/i.test(src), (src.match(/.{0,28}(—|&mdash;).{0,28}/i) || ['clean'])[0]);
+    const rendered = await (async () => {
+      const s = await open(b, '/' + file, null);
+      const v = await s.pg.evaluate(`document.body.innerText`);
+      await s.ctx.close();
+      return v;
+    })();
+    t(file + ': no em dash in the rendered page',
+      rendered.indexOf('—') < 0, (rendered.match(/.{0,28}—.{0,28}/) || ['clean'])[0]);
+  }
+  t('about.html title uses a pipe, matching the founder page',
+    /<title>About \| Anestheo<\/title>/.test(ABOUT) &&
+    /<title>About the founder \| Anestheo<\/title>/.test(FND), 'both piped');
+  t('the For clinicians sentence kept every tool it listed',
+    ABOUT.includes('drug dosing, airway, regional, TIVA/TCI and sedation, emergency protocols and clinical scores') &&
+    ABOUT.includes('Anestheo brings patient management, secure pre-operative questionnaires'),
+    'list intact');
+
+  /* ── HOMEPAGE -> ABOUT -> FOUNDER ──────────────────────────────────────
+     About must be reachable by an ordinary logged-out visitor, and the route
+     has to work in both directions. Founder deliberately stays OUT of the
+     navbar; it is reached through the About teaser and nowhere else. */
+  for (const [w, h, label] of [[1440, 1150, 'desktop'], [390, 844, 'mobile 390']]) {
+    const home = await open(b, '/index.html', null, w, h);
+    const v = await home.pg.evaluate(`(() => {
+      const as = [...document.querySelectorAll('a[href="/about.html"]')].map(a => {
+        const r = a.getBoundingClientRect(), cs = getComputedStyle(a);
+        return { text: a.textContent.trim(),
+                 visible: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
+                 inFooter: !!a.closest('footer, .foot-in, .foot-links, .site-footer, .ah-foot') }; });
+      const de = document.documentElement;
+      return { links: as,
+               founderInNav: document.querySelectorAll('.nb a[href="/founder.html"], header a[href="/founder.html"]').length,
+               founderAnywhere: document.querySelectorAll('a[href="/founder.html"]').length,
+               overflow: de.scrollWidth - de.clientWidth }; })()`);
+    await home.ctx.close();
+    const shown = v.links.filter(x => x.visible);
+    t(label + ': the homepage shows a visible About link', shown.length >= 1, v.links);
+    t(label + ': ...labelled About',    shown.some(x => /^about$/i.test(x.text)), shown.map(x => x.text));
+    t(label + ': ...in the footer',     shown.every(x => x.inFooter), shown);
+    t(label + ': Founder is NOT in the homepage navigation', v.founderInNav === 0, v.founderInNav);
+    t(label + ': ...nor anywhere else on the homepage',      v.founderAnywhere === 0, v.founderAnywhere);
+    t(label + ': no overflow introduced',                    v.overflow <= 0, v.overflow);
+  }
+  t('/about.html exists and is the link target', fs.existsSync(REPO + '/about.html'));
+  t('About links on to the founder page',        /href="\/founder\.html"/.test(ABOUT));
+  t('the founder breadcrumb links back to About',
+    /class="fd-crumb"[\s\S]{0,120}href="\/about\.html"/.test(FND));
+
   t('not one em dash anywhere in founder.html source',
     !/—|&mdash;/.test(FND), (FND.match(/.{0,30}(—|&mdash;).{0,30}/) || ['clean'])[0]);
   t('the page title uses a pipe, not a dash',
