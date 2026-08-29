@@ -40,12 +40,11 @@
   background:var(--surface-2);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;}
 .fd-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-/* Placeholder. Restrained on purpose: initials on the panel colour, not an
-   avatar circle and not a stock silhouette. It reads as "photo pending",
-   which is true, rather than pretending to be a picture. */
-.fd-ph{display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--ink-faint);}
-.fd-ph-mono{font-family:var(--sans);font-size:34px;font-weight:600;letter-spacing:.06em;color:var(--ink-muted);}
-.fd-ph-lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;}
+/* If the photograph is not on the server yet, onerror leaves this frame empty
+   rather than showing a broken-image icon. Nothing is drawn in its place: no
+   initials, no label, no silhouette. An empty frame is honest; a monogram
+   pretending to be a portrait is not. */
+.fd-photo-pending{background:var(--surface-2);}
 
 .fd-intro{flex:1;min-width:0;}
 .fd-name{font-family:var(--sans);font-size:clamp(25px,3.2vw,32px);font-weight:700;
@@ -103,26 +102,29 @@
   </nav>
 
   <!-- ══ 1 · HERO ══════════════════════════════════════════════════════════
-       TO ADD THE PHOTO: drop the file at /images/founder-giga-nadiradze.jpg
-       and replace the whole <div class="fd-ph">…</div> below with
+       THE PORTRAIT IS A REAL <img>, and the file it wants is
 
-         <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
-              alt="Dr. Giga Nadiradze">
+           /images/founder-giga-nadiradze.jpg
 
-       Nothing else changes: .fd-photo already sizes and crops it (object-fit:
-       cover, 4:5), and the mobile rule already stacks it above the text. A
-       portrait around 760×950 is more than enough at this size. -->
+       which is NOT yet in this repository. A photograph exists on the Hostinger
+       document root, but this environment's network policy refuses CONNECT to
+       anestheo.com (the proxy logs "gateway answered 403 to CONNECT" for every
+       external host), so it could not be fetched, and ROOT_CUTOVER.md records
+       that "V1 root files are not in the repository and cannot be
+       reconstructed". Rather than invent a file or substitute another image,
+       the markup is finished and waiting: drop the real photograph at that
+       path and it appears, with no edit to this file.
+
+       onerror hides the image and leaves a plain frame if the file is not there
+       yet — no initials, no "Photograph" label, and no broken-image icon. -->
   <div class="fd-hero">
     <div class="fd-portrait">
       <div class="fd-photo">
-        <div class="fd-ph" role="img" aria-label="Portrait of Dr. Giga Nadiradze, photograph to be added">
-          <span class="fd-ph-mono" aria-hidden="true">GN</span>
-          <span class="fd-ph-lbl" aria-hidden="true">Photograph</span>
-        </div>
+        <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
+             alt="Dr. Giga Nadiradze"
+             width="380" height="475" decoding="async"
+             onerror="this.style.display='none';this.parentNode.classList.add('fd-photo-pending');">
       </div>
-      <!-- No caption under the portrait: the name is the h1 immediately beside
-           it on desktop and immediately below it on mobile, so a caption is the
-           same words twice. -->
     </div>
 
     <div class="fd-intro">

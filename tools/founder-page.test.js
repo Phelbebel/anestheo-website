@@ -215,28 +215,84 @@ async function open(b, path, prof, w, h) {
   t('reuses about.html\'s own framing of reference vs instruction',
     /reference rather than as instruction|reference rather than instruction/i.test(shape.text));
 
-  /* Nobody invented a founder photo either. */
+  /* ── THE PORTRAIT ──────────────────────────────────────────────────────
+     A REAL <img>, not a monogram. The photograph lives on the Hostinger
+     document root and could not be fetched here — this environment's network
+     policy answers 403 to CONNECT for every external host — so the file is
+     not in the repository yet and the markup is finished and waiting for it.
+
+     These assertions are written to FLIP BY THEMSELVES the moment the file is
+     added: "tracked and non-trivial" is asserted when the file exists, and
+     "still correctly referenced" when it does not. Neither branch can pass by
+     accident, and no branch permits the initials placeholder to return. */
   const photo = await f.pg.evaluate(`(() => {
     const box = document.querySelector('.fd-photo');
     const img = box && box.querySelector('img');
-    const ph  = box && box.querySelector('.fd-ph');
-    return { box: !!box, img: img ? img.getAttribute('src') : null,
-             placeholder: !!ph,
-             aria: ph ? ph.getAttribute('aria-label') : null,
+    return { box: !!box,
+             img: img ? img.getAttribute('src') : null,
+             alt: img ? img.getAttribute('alt') : null,
+             onerror: img ? (img.getAttribute('onerror') || '') : null,
+             fit: img ? getComputedStyle(img).objectFit : null,
              w: box ? Math.round(box.getBoundingClientRect().width) : 0,
              h: box ? Math.round(box.getBoundingClientRect().height) : 0,
-             radius: box ? getComputedStyle(box).borderTopLeftRadius : null }; })()`);
-  t('a portrait slot exists', photo.box === true);
-  t('either a real photo or an explicit placeholder',
-    (photo.img !== null) !== photo.placeholder, photo);
-  t('no image file is referenced that does not exist',
-    photo.img === null || fs.existsSync(REPO + photo.img.split('?')[0]), photo.img);
-  t('the placeholder says what it is', /photograph/i.test(photo.aria || ''), photo.aria);
+             radius: box ? getComputedStyle(box).borderTopLeftRadius : null,
+             initials: !!box && /\bGN\b/.test(box.textContent),
+             label: !!box && /photograph/i.test(box.textContent) }; })()`);
+  t('the portrait is a real <img> element', photo.img !== null, photo.img);
+  t('it points at the tracked asset path',
+    photo.img.split('?')[0] === PHOTO_PATH, photo.img);
+  t('it carries meaningful alt text', photo.alt === 'Dr. Giga Nadiradze', photo.alt);
+  t('NO initials placeholder remains',  photo.initials === false, photo.initials);
+  t('NO "Photograph" label remains',    photo.label === false, photo.label);
+  t('no .fd-ph placeholder markup or styles survive in the source',
+    !/fd-ph-mono|fd-ph-lbl|class="fd-ph"/.test(FND), 'clean');
+  t('the same is true of the About teaser source',
+    !/ab-fd-mono/.test(ABOUT), 'clean');
+  t('object-fit is cover',              photo.fit === 'cover', photo.fit);
   t('the portrait is moderate, not a hero', photo.w <= 240 && photo.h <= 300, photo);
   t('...and rounded, not a circular avatar',
     parseFloat(photo.radius) > 0 && parseFloat(photo.radius) < photo.w / 2, photo.radius);
-  t('the exact upload path is documented in both files',
-    ABOUT.includes(PHOTO_PATH) && FND.includes(PHOTO_PATH), PHOTO_PATH);
+  t('a missing file degrades to an empty frame, never a broken-image icon',
+    /this\.style\.display='none'/.test(photo.onerror || ''), photo.onerror);
+  t('the exact asset path appears in both pages', ABOUT.includes(PHOTO_PATH) && FND.includes(PHOTO_PATH), PHOTO_PATH);
+
+  const onDisk = fs.existsSync(REPO + PHOTO_PATH);
+  if (onDisk) {
+    const st = fs.statSync(REPO + PHOTO_PATH);
+    const tracked = execSync('git -C ' + REPO + ' ls-files -- "' + PHOTO_PATH.slice(1) + '"',
+      { encoding:'utf8' }).trim();
+    t('the photograph is in the repository',      st.size > 5000, st.size + ' bytes');
+    t('...and is tracked by git, not just on disk', tracked.length > 0, tracked);
+    t('...and is a real image, not a text stub',
+      (b => b[0] === 0xFF && b[1] === 0xD8)(fs.readFileSync(REPO + PHOTO_PATH).slice(0, 2)) ||
+      /\.(png|webp)$/.test(PHOTO_PATH), 'JPEG magic');
+  } else {
+    t('the photograph is NOT yet in the repository — reported, not faked', true,
+      'add ' + PHOTO_PATH.slice(1) + ' and these three assertions take over');
+    t('...and the page says so rather than pretending', /not yet in this repository/i.test(FND));
+    t('...and nothing else was substituted in its place',
+      !/unsplash|placeholder\.|via\.placeholder|dummyimage|gravatar|\.svg/i.test(FND), 'no stand-in');
+  }
+
+  /* The teaser uses the SAME asset, smaller. */
+  const tphoto = await (async () => {
+    const s = await open(b, '/about.html', null);
+    const v = await s.pg.evaluate(`(() => {
+      const box = document.querySelector('.ab-fd-photo');
+      const img = box && box.querySelector('img');
+      return { img: img ? img.getAttribute('src') : null, alt: img ? img.getAttribute('alt') : null,
+               w: box ? Math.round(box.getBoundingClientRect().width) : 0,
+               initials: !!box && /\bGN\b/.test(box.textContent) }; })()`);
+    await s.ctx.close();
+    return v;
+  })();
+  t('the teaser shows the same photograph',
+    tphoto.img && tphoto.img.split('?')[0] === PHOTO_PATH, tphoto.img);
+  t('...with the same alt text',        tphoto.alt === 'Dr. Giga Nadiradze', tphoto.alt);
+  t('...no initials there either',      tphoto.initials === false);
+  t('...and smaller than the founder portrait',
+    tphoto.w > 0 && tphoto.w < photo.w, { teaser: tphoto.w, founder: photo.w });
+
   t('no emoji anywhere on the founder page',
     !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u.test(shape.text), 'clean');
 
