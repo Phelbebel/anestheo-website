@@ -290,11 +290,13 @@ async function open(b, path, prof, w, h) {
   t('...with truthful alt text',
     shot.figAlt === 'Dr. Giga Nadiradze at work in the operating room', shot.figAlt);
 
-  /* ── THE BANNER ────────────────────────────────────────────────────────
-     It used to sit beside the Clinical background paragraphs. It now sits
-     BETWEEN Clinical background and Why I created Anestheo, as a quiet break
-     rather than an illustration, so the assertions are about position and
-     proportion rather than about which section owns it. */
+  /* ── THE OPENING BANNER ────────────────────────────────────────────────
+     It has now been in three places: beside the Clinical background text, then
+     between that section and Why I created Anestheo, and now at the very top
+     between the breadcrumb and the hero. So these assertions pin the ORDER of
+     the page rather than which section owns the image, because the section
+     that owns it has changed twice and the order is the thing that was
+     actually being asked for: room, then person, then story. */
   const banner = await (async () => {
     const s = await open(b, '/founder.html', null);
     const v = await s.pg.evaluate(`(() => {
@@ -306,35 +308,58 @@ async function open(b, path, prof, w, h) {
         return h ? y(h.closest('section')) : null; };
       const r = img.getBoundingClientRect();
       const cs = getComputedStyle(img);
-      const wrap = document.querySelector('.page-wrap').getBoundingClientRect();
+      const wrap = document.querySelector('.page-wrap');
+      const clinical = [...document.querySelectorAll('.fd-h')]
+        .filter(x => x.textContent.trim() === 'Clinical background')[0].closest('section');
       return { w: Math.round(r.width), h: Math.round(r.height),
-               top: y(img), clinical: secTop('Clinical background'), why: secTop('Why I created Anestheo'),
+               top: y(img),
+               crumb: y(document.querySelector('.fd-crumb')),
+               hero: y(document.querySelector('.fd-hero')),
+               about: secTop('About me'), clinicalTop: secTop('Clinical background'),
+               why: secTop('Why I created Anestheo'), how: secTop('How I think about anesthesia care'),
+               back: secTop('Back to Anestheo'),
+               count: document.querySelectorAll('img[src*="founder-giga-nadiradze-2"]').length,
+               inClinical: clinical.querySelectorAll('img').length,
                radius: cs.borderTopLeftRadius, border: cs.borderTopWidth, outline: cs.outlineWidth,
-               fit: cs.objectFit, pos: cs.objectPosition,
+               fit: cs.objectFit, pos: cs.objectPosition, bgImage: cs.backgroundImage,
+               overlays: el.children.length,
+               elText: el.textContent,
                colW: (n => Math.round(n.clientWidth - parseFloat(getComputedStyle(n).paddingLeft)
-                                                        - parseFloat(getComputedStyle(n).paddingRight)))(document.querySelector('.page-wrap')),
-               inSplit: !!el.closest('.fd-split'), split: document.querySelectorAll('.fd-split, .fd-figure').length,
-               caption: document.querySelectorAll('.fd-banner figcaption').length,
+                                                    - parseFloat(getComputedStyle(n).paddingRight)))(wrap),
                docW: document.documentElement.clientWidth }; })()`);
     await s.ctx.close();
     return v;
   })();
-  t('the banner is NOT beside Clinical background any more',
-    banner.inSplit === false && banner.split === 0, { inSplit: banner.inSplit, leftovers: banner.split });
-  t('it sits AFTER Clinical background',        banner.top > banner.clinical, banner);
-  t('...and BEFORE Why I created Anestheo',     banner.top < banner.why, banner);
-  t('it spans the content column',              Math.abs(banner.w - banner.colW) <= 2, { img: banner.w, col: banner.colW });
-  t('...and not edge to edge',                  banner.w < banner.docW - 40, { img: banner.w, doc: banner.docW });
-  t('desktop: wider than it is tall',           banner.w > banner.h, banner);
-  t('...at roughly 3:1 to 4:1',
-    (banner.w / banner.h) >= 3 && (banner.w / banner.h) <= 4.2, (banner.w / banner.h).toFixed(2));
-  t('object-fit cover',                         banner.fit === 'cover', banner.fit);
-  t('...cropped above centre so the face survives', /20%|25%/.test(banner.pos), banner.pos);
-  t('restrained rounded corners',               parseFloat(banner.radius) > 0 && parseFloat(banner.radius) <= 26, banner.radius);
-  t('no decorative border',                     parseFloat(banner.border) === 0, banner.border);
-  t('no teal outline',                          !/px/.test(banner.outline) || parseFloat(banner.outline) === 0, banner.outline);
-  t('no caption',                               banner.caption === 0, banner.caption);
-  t('no gradient anywhere in the banner rules', !/fd-banner[^}]*gradient/.test(FND));
+
+  t('the secondary photograph appears exactly once', banner.count === 1, banner.count);
+  t('it sits BELOW the breadcrumb',        banner.top > banner.crumb, banner);
+  t('...and ABOVE the founder hero',       banner.top < banner.hero, banner);
+  t('Clinical background holds no image at all', banner.inClinical === 0, banner.inClinical);
+  t('no .fd-split or .fd-figure scaffolding survives',
+    !/fd-split|fd-figure/.test(FND), 'clean');
+
+  /* The full running order the brief specified. */
+  const order2 = [banner.crumb, banner.top, banner.hero, banner.about,
+                  banner.clinicalTop, banner.why, banner.how, banner.back];
+  t('the page runs breadcrumb, banner, hero, About me, Clinical background, Why, How, Back',
+    order2.every((v, i) => i === 0 || v > order2[i - 1]), order2);
+
+  t('it spans the content column',    Math.abs(banner.w - banner.colW) <= 2, { img: banner.w, col: banner.colW });
+  t('...and not the whole browser',   banner.w < banner.docW - 40, { img: banner.w, doc: banner.docW });
+  t('desktop: wide landscape',        banner.w > banner.h * 3, banner);
+  t('...at roughly 3.2:1 to 4:1',
+    (banner.w / banner.h) >= 3.2 && (banner.w / banner.h) <= 4.05, (banner.w / banner.h).toFixed(2));
+  t('object-fit cover',               banner.fit === 'cover', banner.fit);
+  t('...cropped above centre so the subjects survive', /20%|25%/.test(banner.pos), banner.pos);
+  t('restrained rounded corners',     parseFloat(banner.radius) > 0 && parseFloat(banner.radius) <= 26, banner.radius);
+  t('no border',                      parseFloat(banner.border) === 0, banner.border);
+  t('no teal outline',                !/px/.test(banner.outline) || parseFloat(banner.outline) === 0, banner.outline);
+  t('no gradient overlay',            banner.bgImage === 'none', banner.bgImage);
+  t('no text overlay: the banner holds only the image',
+    banner.overlays === 1 && banner.elText.trim() === '',
+    { children: banner.overlays, text: JSON.stringify(banner.elText) });
+  t('no caption element',             !/figcaption/.test(FND), 'none');
+  t('no gradient in any banner rule', !/fd-banner[^}]*gradient/.test(FND));
 
   const bmob = await (async () => {
     const s = await open(b, '/founder.html', null, 390, 844);
@@ -342,20 +367,31 @@ async function open(b, path, prof, w, h) {
       const img = document.querySelector('.fd-banner img');
       const r = img.getBoundingClientRect();
       const de = document.documentElement;
+      const wrap = document.querySelector('.page-wrap');
       return { w: Math.round(r.width), h: Math.round(r.height),
                ratio: +(r.width / r.height).toFixed(2),
+               top: Math.round(r.top + scrollY),
+               crumb: Math.round(document.querySelector('.fd-crumb').getBoundingClientRect().top + scrollY),
+               hero: Math.round(document.querySelector('.fd-hero').getBoundingClientRect().top + scrollY),
                overflow: de.scrollWidth - de.clientWidth,
                colW: (n => Math.round(n.clientWidth - parseFloat(getComputedStyle(n).paddingLeft)
-                                                        - parseFloat(getComputedStyle(n).paddingRight)))(document.querySelector('.page-wrap')) }; })()`);
+                                                    - parseFloat(getComputedStyle(n).paddingRight)))(wrap) }; })()`);
     await s.ctx.close();
     return v;
   })();
+  t('mobile: the banner is still between breadcrumb and hero',
+    bmob.top > bmob.crumb && bmob.top < bmob.hero, bmob);
+  t('mobile: it is not a narrow strip', bmob.h >= 150, bmob.h + 'px tall');
   t('mobile: the banner uses a gentler crop',   bmob.ratio > 1.5 && bmob.ratio < 2.1, bmob.ratio);
   t('...full content-column width',             Math.abs(bmob.w - bmob.colW) <= 2, bmob);
   t('...and no horizontal overflow',            bmob.overflow <= 0, bmob.overflow);
 
-  t('the founder page shows exactly these two images', 
-    JSON.stringify(shot.allImgs) === JSON.stringify([PHOTO_MAIN, PHOTO_2ND]), shot.allImgs);
+  /* The ORDER flipped with the restructure and that is the point of it: the
+     banner now opens the page, so photo2 comes first in document order and the
+     portrait second. Asserted as a sequence rather than a set, because "which
+     one does the reader meet first" is the thing that changed. */
+  t('the founder page shows exactly these two images, banner first',
+    JSON.stringify(shot.allImgs) === JSON.stringify([PHOTO_2ND, PHOTO_MAIN]), shot.allImgs);
   t('no image on the page is broken', shot.broken === 0, shot.broken);
   t('the hero portrait is unchanged: a 190x238 frame at the top of the page',
     shot.heroFrame.w === 190 && shot.heroFrame.h === 238 && shot.heroTop < 400,

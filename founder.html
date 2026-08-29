@@ -32,7 +32,7 @@
    certifications, no affiliations are claimed, because nothing supports
    them. */
 
-.fd-crumb{font-size:12px;color:var(--hint);margin-bottom:20px;}
+.fd-crumb{font-size:12px;color:var(--hint);margin-bottom:16px;}
 .fd-crumb a{color:var(--accent);text-decoration:none;}
 .fd-crumb a:hover{text-decoration:underline;}
 
@@ -44,18 +44,16 @@
   display:flex;align-items:center;justify-content:center;}
 .fd-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 42%;display:block;}
 
-/* THE SECOND PHOTOGRAPH, as a banner rather than an illustration. It sits
-   between Clinical background and Why I created Anestheo and does one job:
-   give the eye somewhere to rest before the longest section of the page. So
-   it spans the content column and nothing wider, carries no border and no
-   outline, and is cropped hard enough to read as a band rather than a picture
-   asking to be admired.
+/* THE OPENING PHOTOGRAPH. It sits between the breadcrumb and the hero and
+   establishes where this person works before saying who he is. Full content
+   column and nothing wider, so it reads as editorial rather than as a website
+   hero; no border, no outline, no overlay, no caption.
 
    height:auto is load-bearing. The <img> carries width/height attributes for
    the intrinsic 2000x1334, and an explicit height makes aspect-ratio inert.
    Without it an earlier version of this rule rendered 300x1334 and swallowed
    the section it was meant to decorate. */
-.fd-banner{margin:38px 0 0;}
+.fd-banner{margin:0 0 30px;}
 .fd-banner img{width:100%;height:auto;aspect-ratio:3.5/1;object-fit:cover;
   object-position:50% 20%;display:block;border-radius:var(--radius-lg);}
 
@@ -117,6 +115,18 @@
     <a href="/about.html">About Anestheo</a> &rsaquo; Founder
   </nav>
 
+  <!-- ══ OPENING BANNER ═══════════════════════════════════════════════════
+       The page now opens on the room rather than on the person: theatre
+       first, portrait second, story third. That order is the whole reason
+       this is a banner and not a card. No caption, no border, no overlay and
+       no text on top of it; an editorial opening photograph carries itself,
+       and anything laid over it would turn the page into a landing page. -->
+  <div class="fd-banner">
+    <img src="/images/founder-giga-nadiradze-2.jpg?v=2026.08.21-03"
+         alt="Dr. Giga Nadiradze at work in the operating room"
+         width="2000" height="1334" decoding="async">
+  </div>
+
   <!-- ══ 1 · HERO ══════════════════════════════════════════════════════════
        The portrait is the founder's own photograph, tracked in this repository
        at images/founder-giga-nadiradze.jpg. object-position sits slightly above
@@ -168,15 +178,6 @@
       the same practice. That is also why it is presented as reference rather than as instruction.
       Tools support judgement; they do not replace it.</p>
   </section>
-
-  <!-- The banner, between Clinical background and Why I created Anestheo. No
-       caption: the scrubs, the mask and the theatre say where this is, and a
-       line of text beneath would only repeat the alt attribute. -->
-  <div class="fd-banner">
-    <img src="/images/founder-giga-nadiradze-2.jpg?v=2026.08.21-03"
-         alt="Dr. Giga Nadiradze at work in the operating room"
-         width="2000" height="1334" decoding="async" loading="lazy">
-  </div>
 
   <!-- ══ 4 · WHY I CREATED ANESTHEO ════════════════════════════════════════ -->
   <section class="fd-sec">
