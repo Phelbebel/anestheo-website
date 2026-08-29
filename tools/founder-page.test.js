@@ -296,6 +296,72 @@ async function open(b, path, prof, w, h) {
   t('no emoji anywhere on the founder page',
     !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/u.test(shape.text), 'clean');
 
+  /* ── HOUSE STYLE: NO EM DASHES IN THIS BRANCH'S BODY COPY ───────────────
+     An em dash every other sentence is a rhythm tic, and it is the single
+     clearest tell that prose was machine-written. Periods, commas, colons and
+     parentheses do the same work and read as a person wrote them.
+
+     Scoped to the copy this branch authored. Two em dashes survive on purpose
+     and are asserted below rather than quietly excluded:
+       * the <title>, which follows the site-wide "Page — Anestheo" pattern
+         used by patients.html, videos.html, ask.html and the rest;
+       * the shared footer line "Educational information only — not a
+         substitute for medical advice", which appears verbatim on
+         preop-instructions, recovery and every procedure guide.
+     Both are existing site conventions, not prose written here, and changing
+     either on this page alone would make it the odd one out. */
+  const proseDashes = await (async () => {
+    const s = await open(b, '/founder.html', null);
+    const v = await s.pg.evaluate(`(() => {
+      const sel = '.fd-lede, .fd-sec p, .fd-val-t, .fd-val-d, .fd-quote p, .fd-note, .fd-role, .fd-role-2, .fd-name';
+      return [...document.querySelectorAll(sel)]
+        .map(n => n.textContent).filter(x => x.indexOf('\u2014') >= 0)
+        .map(x => x.slice(0, 90)); })()`);
+    await s.ctx.close();
+    return v.map(x => x.replace(/\s+/g, ' ').trim());
+  })();
+  t('no em dash in any founder body copy', proseDashes.length === 0, proseDashes);
+
+  const teaserDashes = await (async () => {
+    const s = await open(b, '/about.html', null);
+    const v = await s.pg.evaluate(`(() => [...document.querySelectorAll('.ab-founder *')]
+      .map(n => n.childNodes.length === 1 ? n.textContent : '')
+      .filter(x => x.indexOf('\u2014') >= 0).map(x => x.slice(0, 90)))()`);
+    await s.ctx.close();
+    return v.map(x => x.replace(/\s+/g, ' ').trim());
+  })();
+  t('no em dash in the About teaser', teaserDashes.length === 0, teaserDashes);
+
+  t('none in the new source comments or styles either',
+    (FND.match(/<!--[\s\S]*?-->|<style[\s\S]*?<\/style>/g) || []).join('').indexOf('\u2014') < 0 &&
+    (ABOUT.match(/<!--[\s\S]*?-->|<style[\s\S]*?<\/style>/g) || []).join('').indexOf('\u2014') < 0,
+    'comments clean');
+
+  /* The two that stay, and the reason each is legitimate. */
+  t('the page title keeps the site-wide "— Anestheo" pattern',
+    /<title>About the founder — Anestheo<\/title>/.test(FND) &&
+    /<title>For Patients — Anestheo<\/title>/.test(read('patients.html')), 'site convention');
+  const flat = x => x.replace(/\s+/g, ' ');
+  t('the shared footer line is quoted verbatim, not rewritten here',
+    flat(FND).includes('Educational information only &mdash; not a substitute for medical advice') &&
+    flat(read('recovery.html')).includes('Educational information only — not a substitute for medical advice'),
+    'shared string');
+
+  /* The hero paragraph, exactly as specified. */
+  const hero = await (async () => {
+    const s = await open(b, '/founder.html', null);
+    const v = await s.pg.evaluate(`(document.querySelector('.fd-lede')||{}).textContent`);
+    await s.ctx.close();
+    return (v || '').replace(/\s+/g, ' ').trim();
+  })();
+  t('the hero paragraph is the supplied text',
+    hero === 'Anesthesia is the part of surgery patients understand least and worry about most. ' +
+             'I started Anestheo to explain it in simple words: clear, calm and honest, with no jargon. ' +
+             'I also wanted to give clinicians a practical place to work from when they explain anesthesia to patients.',
+    hero.slice(0, 90));
+  t('...and it uses a colon where the dash used to be', /simple words: clear, calm and honest/.test(hero));
+  t('...in three sentences', (hero.match(/\. /g) || []).length === 2, (hero.match(/\. /g)||[]).length + ' breaks');
+
   /* Breadcrumb back to About. */
   t('a breadcrumb returns to About Anestheo',
     /About Anestheo\s*›\s*Founder/.test(shape.crumb) && shape.crumbHref === '/about.html', shape.crumb);
