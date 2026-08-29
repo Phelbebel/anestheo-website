@@ -39,12 +39,25 @@
 .fd-photo{width:190px;height:238px;border-radius:var(--radius-lg);overflow:hidden;
   background:var(--surface-2);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;}
-.fd-photo img{width:100%;height:100%;object-fit:cover;display:block;}
-/* If the photograph is not on the server yet, onerror leaves this frame empty
-   rather than showing a broken-image icon. Nothing is drawn in its place: no
-   initials, no label, no silhouette. An empty frame is honest; a monogram
-   pretending to be a portrait is not. */
-.fd-photo-pending{background:var(--surface-2);}
+.fd-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 42%;display:block;}
+
+/* THE SECOND PHOTOGRAPH, and why it looks nothing like the first. The hero is
+   a tall portrait card: the person, at the top of the page, introduced. This
+   one sits inside Clinical background as a wide, short landscape card beside
+   the text, because it is illustrating a paragraph rather than introducing
+   anyone. Different shape, smaller radius, smaller rendered area, no position
+   of its own in the reading order. That is what keeps a founder page from
+   turning into a portfolio. */
+.fd-split{display:flex;gap:24px;align-items:flex-start;}
+.fd-split-tx{flex:1;min-width:0;}
+.fd-figure{flex:0 0 auto;width:300px;margin:4px 0 0;}
+/* height:auto is load-bearing. The <img> carries width/height attributes for
+   the intrinsic 2000x1334, and an explicit height makes aspect-ratio inert, so
+   without this the figure rendered 300x1334 and swallowed the section. */
+.fd-figure img{width:100%;height:auto;aspect-ratio:20/9;object-fit:cover;
+  object-position:56% 38%;display:block;
+  border-radius:var(--radius-md);border:1px solid var(--border);}
+.fd-figure figcaption{font-size:11.5px;color:var(--hint);line-height:1.5;margin-top:8px;}
 
 .fd-intro{flex:1;min-width:0;}
 .fd-name{font-family:var(--sans);font-size:clamp(25px,3.2vw,32px);font-weight:700;
@@ -88,6 +101,8 @@
   .fd-hero{flex-direction:column;gap:22px;}      /* photo above text on mobile */
   .fd-portrait{width:100%;max-width:200px;}
   .fd-photo{width:100%;height:auto;aspect-ratio:4/5;}
+  .fd-split{flex-direction:column;gap:18px;}     /* figure below the paragraph */
+  .fd-figure{width:100%;max-width:290px;}        /* still smaller than the hero */
   .fd-back a{width:100%;justify-content:center;}
 }
 </style>
@@ -102,28 +117,15 @@
   </nav>
 
   <!-- ══ 1 · HERO ══════════════════════════════════════════════════════════
-       THE PORTRAIT IS A REAL <img>, and the file it wants is
-
-           /images/founder-giga-nadiradze.jpg
-
-       which is NOT yet in this repository. A photograph exists on the Hostinger
-       document root, but this environment's network policy refuses CONNECT to
-       anestheo.com (the proxy logs "gateway answered 403 to CONNECT" for every
-       external host), so it could not be fetched, and ROOT_CUTOVER.md records
-       that "V1 root files are not in the repository and cannot be
-       reconstructed". Rather than invent a file or substitute another image,
-       the markup is finished and waiting: drop the real photograph at that
-       path and it appears, with no edit to this file.
-
-       onerror hides the image and leaves a plain frame if the file is not there
-       yet, no initials, no "Photograph" label, and no broken-image icon. -->
+       The portrait is the founder's own photograph, tracked in this repository
+       at images/founder-giga-nadiradze.jpg. object-position sits slightly above
+       centre so the 4:5 card keeps the face rather than the theatre light. -->
   <div class="fd-hero">
     <div class="fd-portrait">
       <div class="fd-photo">
         <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
              alt="Dr. Giga Nadiradze"
-             width="380" height="475" decoding="async"
-             onerror="this.style.display='none';this.parentNode.classList.add('fd-photo-pending');">
+             width="2000" height="1334" decoding="async">
       </div>
     </div>
 
@@ -158,12 +160,23 @@
        than inventing a curriculum vitae to fill the space. -->
   <section class="fd-sec">
     <h2 class="fd-h">Clinical background</h2>
-    <p>My work is anesthesiology and intensive care: assessing people before surgery, looking after
-      them during it, and caring for them afterwards when recovery is the difficult part. Those
-      three vantage points are not separable in practice, and Anestheo is shaped by all of them.</p>
-    <p>The educational videos on this site are mine, and the reference material is written from
-      the same practice. That is also why it is presented as reference rather than as instruction.
-      Tools support judgement; they do not replace it.</p>
+    <div class="fd-split">
+      <div class="fd-split-tx">
+        <p>My work is anesthesiology and intensive care: assessing people before surgery, looking
+          after them during it, and caring for them afterwards when recovery is the difficult part.
+          Those three vantage points are not separable in practice, and Anestheo is shaped by all
+          of them.</p>
+        <p>The educational videos on this site are mine, and the reference material is written from
+          the same practice. That is also why it is presented as reference rather than as
+          instruction. Tools support judgement; they do not replace it.</p>
+      </div>
+      <figure class="fd-figure">
+        <img src="/images/founder-giga-nadiradze-2.jpg?v=2026.08.21-03"
+             alt="Dr. Giga Nadiradze at work in the operating room"
+             width="2000" height="1334" decoding="async" loading="lazy">
+        <figcaption>In the operating room.</figcaption>
+      </figure>
+    </div>
   </section>
 
   <!-- ══ 4 · WHY I CREATED ANESTHEO ════════════════════════════════════════ -->
