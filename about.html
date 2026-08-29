@@ -12,6 +12,36 @@
 <script src="/clinical-search.js?v=2026.08.21-03"></script>
 <script src="/navbar.js?v=2026.08.21-03"></script>
 <link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
+<style>
+/* ── FOUNDER TEASER ────────────────────────────────────────────────────────
+   A pointer, not a biography. This page is the company story and stays that
+   way; the full account lives at /founder.html and is one click from here.
+   Sized to sit below the mission sections without competing with them. */
+.ab-founder{display:flex;gap:20px;align-items:flex-start;margin:36px 0 0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:22px 24px;}
+.ab-fd-photo{flex:0 0 auto;width:74px;height:92px;border-radius:var(--radius-md);
+  background:var(--surface-2);border:1px solid var(--border);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;}
+.ab-fd-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.ab-fd-mono{font-family:var(--sans);font-size:19px;font-weight:600;letter-spacing:.05em;
+  color:var(--ink-muted);}
+.ab-fd-tx{flex:1;min-width:0;}
+.ab-fd-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:8px;}
+.ab-founder .ab-fd-name{font-family:var(--sans);font-size:19px;font-weight:700;
+  color:var(--ink);margin-bottom:3px;}
+.ab-fd-role{font-size:13.5px;color:var(--muted);margin-bottom:11px;}
+.ab-founder p.ab-fd-d{font-size:14px;color:var(--text-2);line-height:1.7;
+  max-width:56ch;margin-bottom:13px;font-weight:300;}
+.ab-fd-go{display:inline-flex;align-items:center;gap:7px;min-height:44px;
+  font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;}
+.ab-fd-go svg{width:15px;height:15px;transition:transform .2s;}
+.ab-fd-go:hover svg{transform:translateX(3px);}
+@media(max-width:600px){
+  .ab-founder{flex-direction:column;gap:16px;padding:20px 18px;}
+}
+</style>
 </head>
 <body>
 <div id="nb-placeholder"></div>
@@ -26,6 +56,32 @@
   <p>Anestheo brings patient management, secure pre-operative questionnaires, and a suite of bedside reference tools &mdash; drug dosing, airway, regional, TIVA/TCI and sedation, emergency protocols and clinical scores &mdash; into one workspace.</p>
   <h2>Reference, not advice</h2>
   <p>All tools and content are provided for information and education only. They support, but never replace, the professional judgement of a qualified clinician.</p>
+
+  <!-- MEET THE FOUNDER. Placed after the mission, before the contact note: the
+       company story is what this page is for, and the person comes after it.
+       Two sentences and a link — the full account is at /founder.html.
+
+       TO ADD THE PHOTO: drop /images/founder-giga-nadiradze.jpg and replace the
+       <span class="ab-fd-mono"> below with
+         <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03" alt="Dr. Giga Nadiradze"> -->
+  <div class="ab-founder">
+    <div class="ab-fd-photo">
+      <span class="ab-fd-mono" aria-hidden="true">GN</span>
+    </div>
+    <div class="ab-fd-tx">
+      <div class="ab-fd-eyebrow">Meet the founder</div>
+      <div class="ab-fd-name">Dr. Giga Nadiradze</div>
+      <div class="ab-fd-role">Anesthesiologist and ICU Doctor</div>
+      <p class="ab-fd-d">Anestheo is built by a practising anesthesiologist and ICU doctor, which
+        is why it reads as reference rather than instruction. It began with explaining anesthesia
+        to patients in simple words, and grew into the tools their clinicians use alongside it.</p>
+      <a class="ab-fd-go" href="/founder.html">About the founder
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 4l4 4-4 4"/></svg></a>
+    </div>
+  </div>
+
   <div class="legal-note">Questions or feedback? Email us at <a href="mailto:support@anestheo.com">support@anestheo.com</a>.</div>
 </div>
 </body>

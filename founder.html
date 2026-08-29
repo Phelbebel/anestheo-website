@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About the founder — Anestheo</title>
+<meta name="description" content="Dr. Giga Nadiradze, anesthesiologist and ICU doctor, on why he built Anestheo: anesthesia explained in clear, calm, honest language.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase.js?v=2026.08.21-03"></script>
+<script src="/auth.js?v=2026.08.21-03"></script>
+<script src="/clinical-index.js?v=2026.08.21-03"></script>
+<script src="/clinical-search.js?v=2026.08.21-03"></script>
+<script src="/navbar.js?v=2026.08.21-03"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
+<style>
+/* ── FOUNDER ───────────────────────────────────────────────────────────────
+   The person behind the product, at the weight a person deserves and no more.
+   /about.html stays the company story; this page is reached from it and
+   returns to it. Deliberately NOT in the navbar: About is footer-only on this
+   site, and a founder page promoted above the product would invert what
+   Anestheo is for.
+
+   EVERY BIOGRAPHICAL CLAIM ON THIS PAGE IS SOURCED. The archived v1 site
+   (v1-source/videos.html) is the only place this repository has ever named
+   the founder, and it supports exactly four things: the name, the title
+   "Anesthesiologist and ICU Doctor", the voice — "clear, calm, honest
+   language. No jargon." — and that he created Anestheo for patients and
+   doctors. No years, no hospitals, no certifications, no affiliations are
+   claimed here, because none are written down anywhere in this repository. */
+
+.fd-crumb{font-size:12px;color:var(--hint);margin-bottom:20px;}
+.fd-crumb a{color:var(--accent);text-decoration:none;}
+.fd-crumb a:hover{text-decoration:underline;}
+
+/* Hero: portrait beside the name on desktop, portrait above it on mobile. */
+.fd-hero{display:flex;gap:30px;align-items:flex-start;}
+.fd-portrait{flex:0 0 auto;width:190px;}
+.fd-photo{width:190px;height:238px;border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;}
+.fd-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+/* Placeholder. Restrained on purpose: initials on the panel colour, not an
+   avatar circle and not a stock silhouette. It reads as "photo pending",
+   which is true, rather than pretending to be a picture. */
+.fd-ph{display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--ink-faint);}
+.fd-ph-mono{font-family:var(--sans);font-size:34px;font-weight:600;letter-spacing:.06em;color:var(--ink-muted);}
+.fd-ph-lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;}
+
+.fd-intro{flex:1;min-width:0;}
+.fd-name{font-family:var(--sans);font-size:clamp(25px,3.2vw,32px);font-weight:700;
+  color:var(--ink);line-height:1.15;margin-bottom:8px;}
+.fd-role{font-size:15px;color:var(--accent);font-weight:600;margin-bottom:3px;}
+.fd-role-2{font-size:14px;color:var(--muted);margin-bottom:16px;}
+.fd-lede{font-size:15.5px;color:var(--ink-2);line-height:1.75;max-width:56ch;}
+
+.fd-sec{margin-top:38px;}
+.fd-h{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:14px;}
+.fd-sec p{font-size:15px;color:var(--ink-2);line-height:1.8;font-weight:300;
+  margin-bottom:13px;max-width:66ch;}
+.fd-sec p:last-child{margin-bottom:0;}
+.fd-sec p b{color:var(--ink);font-weight:600;}
+
+/* "How I think about anesthesia care" — four principles, stated plainly. */
+.fd-vals{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:4px;}
+.fd-val{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:18px 20px;}
+.fd-val-t{font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.fd-val-d{font-size:13.5px;color:var(--muted);line-height:1.65;}
+
+.fd-quote{border-left:2px solid var(--accent);padding:4px 0 4px 18px;margin:22px 0 0;}
+.fd-quote p{font-size:16px;color:var(--ink);line-height:1.7;font-weight:400;font-style:italic;margin:0;}
+
+.fd-back{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+.fd-back a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;
+  border-radius:var(--radius-md);border:1px solid var(--line-2);color:var(--ink);
+  font-size:14px;font-weight:600;text-decoration:none;}
+.fd-back a:hover{border-color:var(--accent);background:var(--brand-tint-2);}
+.fd-back a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.fd-back a.primary{background:var(--brand-mid);color:var(--on-accent);border-color:transparent;}
+.fd-back a.primary:hover{background:#38BC9D;}
+
+.fd-note{font-size:12px;color:var(--hint);line-height:1.7;margin-top:30px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:13px 16px;}
+
+@media(max-width:720px){
+  .fd-hero{flex-direction:column;gap:22px;}      /* photo above text on mobile */
+  .fd-portrait{width:100%;max-width:200px;}
+  .fd-photo{width:100%;height:auto;aspect-ratio:4/5;}
+  .fd-back a{width:100%;justify-content:center;}
+}
+</style>
+</head>
+<body>
+<div id="nb-placeholder"></div>
+
+<div class="page-wrap" style="max-width:860px;">
+
+  <nav class="fd-crumb" aria-label="Breadcrumb">
+    <a href="/about.html">About Anestheo</a> &rsaquo; Founder
+  </nav>
+
+  <!-- ══ 1 · HERO ══════════════════════════════════════════════════════════
+       TO ADD THE PHOTO: drop the file at /images/founder-giga-nadiradze.jpg
+       and replace the whole <div class="fd-ph">…</div> below with
+
+         <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
+              alt="Dr. Giga Nadiradze">
+
+       Nothing else changes: .fd-photo already sizes and crops it (object-fit:
+       cover, 4:5), and the mobile rule already stacks it above the text. A
+       portrait around 760×950 is more than enough at this size. -->
+  <div class="fd-hero">
+    <div class="fd-portrait">
+      <div class="fd-photo">
+        <div class="fd-ph" role="img" aria-label="Portrait of Dr. Giga Nadiradze, photograph to be added">
+          <span class="fd-ph-mono" aria-hidden="true">GN</span>
+          <span class="fd-ph-lbl" aria-hidden="true">Photograph</span>
+        </div>
+      </div>
+      <!-- No caption under the portrait: the name is the h1 immediately beside
+           it on desktop and immediately below it on mobile, so a caption is the
+           same words twice. -->
+    </div>
+
+    <div class="fd-intro">
+      <h1 class="fd-name">Dr. Giga Nadiradze</h1>
+      <div class="fd-role">Anesthesiologist and ICU Doctor</div>
+      <div class="fd-role-2">Founder of Anestheo</div>
+      <p class="fd-lede">Anesthesia is the part of surgery patients understand least and worry about
+        most. I started Anestheo to explain it in simple words &mdash; clear, calm and honest, with
+        no jargon &mdash; and to give the clinicians doing that explaining somewhere practical to
+        work from.</p>
+    </div>
+  </div>
+
+  <!-- ══ 2 · ABOUT ME ══════════════════════════════════════════════════════ -->
+  <section class="fd-sec">
+    <h2 class="fd-h">About me</h2>
+    <p>I am an anesthesiologist and ICU doctor. Most of what I do happens in the two places
+      patients see least: the operating room while they are asleep, and intensive care while they
+      are recovering. It is a strange kind of work &mdash; the better it goes, the less of it
+      anyone remembers.</p>
+    <p>That gap is what pulled me toward explaining it. I began making videos for patients because
+      the same questions came up before every operation, always in the last few minutes, when
+      there was least time to answer them properly. <b>Anesthesia explained in simple words</b> was
+      the whole brief, and it still is.</p>
+  </section>
+
+  <!-- ══ 3 · CLINICAL BACKGROUND ═══════════════════════════════════════════
+       SHORT ON PURPOSE. This repository records the founder's specialty and
+       nothing else — no institutions, dates, qualifications or numbers — so
+       this section describes the perspective the product comes from rather
+       than inventing a curriculum vitae to fill the space. -->
+  <section class="fd-sec">
+    <h2 class="fd-h">Clinical background</h2>
+    <p>My work is anesthesiology and intensive care: assessing people before surgery, looking after
+      them during it, and caring for them afterwards when recovery is the difficult part. Those
+      three vantage points are not separable in practice, and Anestheo is shaped by all of them.</p>
+    <p>The educational videos on this site are mine, and the reference material is written from
+      the same practice &mdash; which is also why it is presented as reference rather than as
+      instruction. Tools support judgement; they do not replace it.</p>
+  </section>
+
+  <!-- ══ 4 · WHY I CREATED ANESTHEO ════════════════════════════════════════ -->
+  <section class="fd-sec">
+    <h2 class="fd-h">Why I created Anestheo</h2>
+    <p>Two problems, and they are the same problem seen from opposite sides.</p>
+    <p><b>Patients arrive without knowing what is about to happen to them.</b> They have often
+      searched for hours and found either nothing that applies to them or something frightening
+      that does not. They meet their anesthesiologist for the first time shortly before surgery,
+      which is the worst possible moment to begin learning what the options are, what to ask, how
+      to prepare and what recovery will feel like.</p>
+    <p><b>Clinicians are explaining all of that under time pressure.</b> The conversation that
+      would settle a patient properly takes longer than the schedule allows, and it starts from
+      zero every single time.</p>
+    <p>Anestheo exists to move that conversation earlier. Patients can read about the techniques
+      commonly used for their operation, work through what to ask, and prepare before the day
+      instead of on it. Clinicians get a pre-operative questionnaire they can review in advance
+      and reference material in one place instead of six. Nobody is diagnosed and nothing is
+      decided here &mdash; your anesthesiologist decides that with you. What changes is how much
+      you already understand when that conversation starts.</p>
+    <div class="fd-quote">
+      <p>The most feared part of surgery, explained in clear, calm, honest language. No jargon.</p>
+    </div>
+  </section>
+
+  <!-- ══ 5 · HOW I THINK ABOUT ANESTHESIA CARE ═════════════════════════════ -->
+  <section class="fd-sec">
+    <h2 class="fd-h">How I think about anesthesia care</h2>
+    <div class="fd-vals">
+      <div class="fd-val">
+        <div class="fd-val-t">Clarity</div>
+        <div class="fd-val-d">If an explanation needs a second explanation, it was not one. Plain
+          words are not a simplification of medicine; they are the point of it.</div>
+      </div>
+      <div class="fd-val">
+        <div class="fd-val-t">Preparation</div>
+        <div class="fd-val-d">Most of what makes a day go well happens before it. Fasting,
+          medicines, questions ready &mdash; small things, decided in advance.</div>
+      </div>
+      <div class="fd-val">
+        <div class="fd-val-t">Individual care</div>
+        <div class="fd-val-d">There is no standard patient. What is commonly used for an operation
+          is education; what is right for one person is a conversation.</div>
+      </div>
+      <div class="fd-val">
+        <div class="fd-val-t">Communication</div>
+        <div class="fd-val-d">A patient who understands the plan is easier to care for and less
+          frightened by it. That is worth the time it takes.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 6 · BACK TO ANESTHEO ══════════════════════════════════════════════ -->
+  <section class="fd-sec">
+    <h2 class="fd-h">Back to Anestheo</h2>
+    <div class="fd-back">
+      <a class="primary" href="/index.html">Explore Anestheo</a>
+      <a href="/patients.html">For Patients</a>
+      <a href="/index.html#clinicians">For Clinicians</a>
+      <a href="/videos.html">Educational videos</a>
+    </div>
+  </section>
+
+  <div class="fd-note">Everything on Anestheo is provided for information and education only. It
+    supports, but never replaces, the professional judgement of a qualified clinician. Questions or
+    feedback? Email <a href="mailto:support@anestheo.com">support@anestheo.com</a>.</div>
+
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a href="/index.html" class="footer-logo">Anest<span>heo</span></a>
+    <div class="footer-links">
+      <a href="/index.html">Home</a>
+      <a href="/about.html">About</a>
+      <a href="/patients.html">For Patients</a>
+      <a href="/videos.html">Videos</a>
+    </div>
+  </div>
+  <div class="footer-inner"><p class="footer-copy">&copy; 2026 Anestheo. Educational information
+    only &mdash; not a substitute for medical advice.</p></div>
+</footer>
+</body>
+</html>
