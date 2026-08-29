@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>About the founder | Anestheo</title>
-<meta name="description" content="Dr. Giga Nadiradze, anesthesiologist and ICU doctor, on why he built Anestheo: anesthesia explained in clear, calm, honest language.">
+<meta name="description" content="Dr. Giga Nadiradze, anesthesiologist and pain specialist, on why he built Anestheo: anesthesia explained in clear, calm, honest language.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.21-03"></script>
@@ -22,12 +22,15 @@
    Anestheo is for.
 
    EVERY BIOGRAPHICAL CLAIM ON THIS PAGE IS SOURCED. The archived v1 site
-   (v1-source/videos.html) is the only place this repository has ever named
-   the founder, and it supports exactly four things: the name, the title
-   "Anesthesiologist and ICU Doctor", the voice, "clear, calm, honest
+   (v1-source/videos.html) supplies the name, the voice, "clear, calm, honest
    language. No jargon.", and that he created Anestheo for patients and
-   doctors. No years, no hospitals, no certifications, no affiliations are
-   claimed here, because none are written down anywhere in this repository. */
+   doctors. The subtitle "Anesthesiologist and Pain Specialist" comes from the
+   founder directly rather than from the archive, which still reads
+   "Anesthesiologist and ICU Doctor"; a person is the authority on their own
+   title, and the two are recorded separately here so nobody later mistakes
+   the new one for something the archive said. No years, no hospitals, no
+   certifications, no affiliations are claimed, because nothing supports
+   them. */
 
 .fd-crumb{font-size:12px;color:var(--hint);margin-bottom:20px;}
 .fd-crumb a{color:var(--accent);text-decoration:none;}
@@ -41,23 +44,20 @@
   display:flex;align-items:center;justify-content:center;}
 .fd-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 42%;display:block;}
 
-/* THE SECOND PHOTOGRAPH, and why it looks nothing like the first. The hero is
-   a tall portrait card: the person, at the top of the page, introduced. This
-   one sits inside Clinical background as a wide, short landscape card beside
-   the text, because it is illustrating a paragraph rather than introducing
-   anyone. Different shape, smaller radius, smaller rendered area, no position
-   of its own in the reading order. That is what keeps a founder page from
-   turning into a portfolio. */
-.fd-split{display:flex;gap:24px;align-items:flex-start;}
-.fd-split-tx{flex:1;min-width:0;}
-.fd-figure{flex:0 0 auto;width:300px;margin:4px 0 0;}
-/* height:auto is load-bearing. The <img> carries width/height attributes for
-   the intrinsic 2000x1334, and an explicit height makes aspect-ratio inert, so
-   without this the figure rendered 300x1334 and swallowed the section. */
-.fd-figure img{width:100%;height:auto;aspect-ratio:20/9;object-fit:cover;
-  object-position:56% 38%;display:block;
-  border-radius:var(--radius-md);border:1px solid var(--border);}
-.fd-figure figcaption{font-size:11.5px;color:var(--hint);line-height:1.5;margin-top:8px;}
+/* THE SECOND PHOTOGRAPH, as a banner rather than an illustration. It sits
+   between Clinical background and Why I created Anestheo and does one job:
+   give the eye somewhere to rest before the longest section of the page. So
+   it spans the content column and nothing wider, carries no border and no
+   outline, and is cropped hard enough to read as a band rather than a picture
+   asking to be admired.
+
+   height:auto is load-bearing. The <img> carries width/height attributes for
+   the intrinsic 2000x1334, and an explicit height makes aspect-ratio inert.
+   Without it an earlier version of this rule rendered 300x1334 and swallowed
+   the section it was meant to decorate. */
+.fd-banner{margin:38px 0 0;}
+.fd-banner img{width:100%;height:auto;aspect-ratio:3.5/1;object-fit:cover;
+  object-position:50% 20%;display:block;border-radius:var(--radius-lg);}
 
 .fd-intro{flex:1;min-width:0;}
 .fd-name{font-family:var(--sans);font-size:clamp(25px,3.2vw,32px);font-weight:700;
@@ -101,8 +101,9 @@
   .fd-hero{flex-direction:column;gap:22px;}      /* photo above text on mobile */
   .fd-portrait{width:100%;max-width:200px;}
   .fd-photo{width:100%;height:auto;aspect-ratio:4/5;}
-  .fd-split{flex-direction:column;gap:18px;}     /* figure below the paragraph */
-  .fd-figure{width:100%;max-width:290px;}        /* still smaller than the hero */
+  /* A 3.5:1 slot on a 342px column is 98px tall, which turns a photograph into
+     a stripe. 16:9 keeps the room and the people in it legible. */
+  .fd-banner img{aspect-ratio:16/9;object-position:50% 25%;}
   .fd-back a{width:100%;justify-content:center;}
 }
 </style>
@@ -131,7 +132,7 @@
 
     <div class="fd-intro">
       <h1 class="fd-name">Dr. Giga Nadiradze</h1>
-      <div class="fd-role">Anesthesiologist and ICU Doctor</div>
+      <div class="fd-role">Anesthesiologist and Pain Specialist</div>
       <div class="fd-role-2">Founder of Anestheo</div>
       <p class="fd-lede">Anesthesia is the part of surgery patients understand least and worry
         about most. I started Anestheo to explain it in simple words: clear, calm and honest, with
@@ -160,24 +161,22 @@
        than inventing a curriculum vitae to fill the space. -->
   <section class="fd-sec">
     <h2 class="fd-h">Clinical background</h2>
-    <div class="fd-split">
-      <div class="fd-split-tx">
-        <p>My work is anesthesiology and intensive care: assessing people before surgery, looking
-          after them during it, and caring for them afterwards when recovery is the difficult part.
-          Those three vantage points are not separable in practice, and Anestheo is shaped by all
-          of them.</p>
-        <p>The educational videos on this site are mine, and the reference material is written from
-          the same practice. That is also why it is presented as reference rather than as
-          instruction. Tools support judgement; they do not replace it.</p>
-      </div>
-      <figure class="fd-figure">
-        <img src="/images/founder-giga-nadiradze-2.jpg?v=2026.08.21-03"
-             alt="Dr. Giga Nadiradze at work in the operating room"
-             width="2000" height="1334" decoding="async" loading="lazy">
-        <figcaption>In the operating room.</figcaption>
-      </figure>
-    </div>
+    <p>My work is anesthesiology and intensive care: assessing people before surgery, looking after
+      them during it, and caring for them afterwards when recovery is the difficult part. Those
+      three vantage points are not separable in practice, and Anestheo is shaped by all of them.</p>
+    <p>The educational videos on this site are mine, and the reference material is written from
+      the same practice. That is also why it is presented as reference rather than as instruction.
+      Tools support judgement; they do not replace it.</p>
   </section>
+
+  <!-- The banner, between Clinical background and Why I created Anestheo. No
+       caption: the scrubs, the mask and the theatre say where this is, and a
+       line of text beneath would only repeat the alt attribute. -->
+  <div class="fd-banner">
+    <img src="/images/founder-giga-nadiradze-2.jpg?v=2026.08.21-03"
+         alt="Dr. Giga Nadiradze at work in the operating room"
+         width="2000" height="1334" decoding="async" loading="lazy">
+  </div>
 
   <!-- ══ 4 · WHY I CREATED ANESTHEO ════════════════════════════════════════ -->
   <section class="fd-sec">

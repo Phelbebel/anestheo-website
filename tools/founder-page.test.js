@@ -7,10 +7,13 @@
  * the easiest place in a product to write something that is not true — a
  * board certification, a hospital, a number of years, a university — because
  * the sentences read so naturally. This repository names the founder in
- * exactly one place, the archived v1 site, and supports exactly four facts:
- * the name, the title "Anesthesiologist and ICU Doctor", the voice ("clear,
- * calm, honest language. No jargon.") and that he created Anestheo for
- * patients and doctors. Section 4 enforces that nothing else was invented,
+ * exactly one place, the archived v1 site: the name, the voice ("clear, calm,
+ * honest language. No jargon.") and that he created Anestheo for patients and
+ * doctors. The subtitle is the one claim NOT from the archive -- the founder
+ * supplied "Anesthesiologist and Pain Specialist" himself, and a person is the
+ * authority on their own title. That distinction is asserted rather than
+ * blurred, so the archive check below cannot quietly start passing for a
+ * string the archive never contained. Section 4 enforces that nothing else was invented,
  * against the RENDERED text, so a comment explaining the rule cannot satisfy
  * the rule.
  *
@@ -128,7 +131,7 @@ async function open(b, path, prof, w, h) {
   t('exactly one founder teaser on the page', teaser.count === 1, teaser.count);
   t('labelled Meet the founder',   /meet the founder/i.test(teaser.eyebrow), teaser.eyebrow);
   t('it names the founder',        teaser.name.trim() === 'Dr. Giga Nadiradze', teaser.name);
-  t('...and his title',            /Anesthesiologist and ICU Doctor/.test(teaser.role), teaser.role);
+  t('...and his title',            teaser.role.trim() === 'Anesthesiologist and Pain Specialist', teaser.role);
   t('the summary is short — two or three sentences',
     (teaser.body.match(/\.\s|\.$/g) || []).length <= 3 && teaser.body.length < 340,
     (teaser.body.match(/\.\s|\.$/g) || []).length + ' sentences, ' + teaser.body.length + ' chars');
@@ -171,11 +174,20 @@ async function open(b, path, prof, w, h) {
     crumbHref: (document.querySelector('.fd-crumb a')||{}).getAttribute('href'),
     text: document.body.innerText }))()`);
   t('the name is the h1',        shape.h1.trim() === 'Dr. Giga Nadiradze', shape.h1);
-  t('the title is present',      /Anesthesiologist and ICU Doctor/.test(shape.role), shape.role);
-  t('...and it is the one the archive supports',
-    onMain('v1-source/videos.html').includes('Anesthesiologist and ICU Doctor'), 'v1-source');
-  t('...as is the name',
+  t('the subtitle is exactly the supplied title',
+    shape.role.trim() === 'Anesthesiologist and Pain Specialist', shape.role);
+  t('...and ICU Doctor is not reintroduced as a subtitle anywhere',
+    !/class="fd-role"[^>]*>[^<]*ICU/i.test(FND) && !/class="ab-fd-role"[^>]*>[^<]*ICU/i.test(ABOUT),
+    'no ICU subtitle');
+  t('...nor in the founder page meta description',
+    !/name="description"[^>]*ICU/i.test(FND));
+  t('the About teaser carries the same subtitle, so one person has one title',
+    /class="ab-fd-role">Anesthesiologist and Pain Specialist</.test(ABOUT));
+  t('the name still comes from the archive',
     onMain('v1-source/videos.html').includes('Dr. Giga Nadiradze'), 'v1-source');
+  t('...and the archive genuinely does NOT contain the new subtitle',
+    !onMain('v1-source/videos.html').includes('Pain Specialist'),
+    'title is founder-supplied, not archive-sourced');
   t('he is identified as the founder', /Founder of Anestheo/.test(shape.role2), shape.role2);
   t('the page title names the founder', /founder/i.test(shape.title), shape.title);
 
@@ -241,20 +253,18 @@ async function open(b, path, prof, w, h) {
     const s = await open(b, '/founder.html', null);
     const v = await s.pg.evaluate(`(() => {
       const hero = document.querySelector('.fd-photo img');
-      const fig  = document.querySelector('.fd-figure img');
+      const fig  = document.querySelector('.fd-banner img');
       const box  = n => { const r = n.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
-      const sec  = fig && fig.closest('section');
       return {
         heroSrc: hero.getAttribute('src'), heroAlt: hero.getAttribute('alt'),
-        heroBox: box(hero), heroLoaded: hero.complete && hero.naturalWidth > 0,
+        heroBox: box(hero), heroFrame: box(hero.parentNode),
+        heroLoaded: hero.complete && hero.naturalWidth > 0,
         heroNat: [hero.naturalWidth, hero.naturalHeight],
         heroFit: getComputedStyle(hero).objectFit,
         heroRadius: getComputedStyle(hero.parentNode).borderTopLeftRadius,
         figSrc: fig.getAttribute('src'), figAlt: fig.getAttribute('alt'),
         figBox: box(fig), figLoaded: fig.complete && fig.naturalWidth > 0,
         figNat: [fig.naturalWidth, fig.naturalHeight],
-        figSection: sec ? (sec.querySelector('.fd-h')||{}).textContent : null,
-        figCaption: (document.querySelector('.fd-figure figcaption')||{}).textContent || '',
         heroTop: Math.round(hero.getBoundingClientRect().top + scrollY),
         figTop: Math.round(fig.getBoundingClientRect().top + scrollY),
         allImgs: [...document.querySelectorAll('.page-wrap img')].map(i => i.getAttribute('src').split('?')[0]),
@@ -276,21 +286,90 @@ async function open(b, path, prof, w, h) {
   t('...and not oversized', shot.heroBox.w <= 240 && shot.heroBox.h <= 300, shot.heroBox);
 
   t('the secondary photograph appears once', shot.figSrc.split('?')[0] === PHOTO_2ND, shot.figSrc);
-  t('...and it decoded too', shot.figLoaded === true, shot.figNat);
-  t('...inside Clinical background', /Clinical background/i.test(shot.figSection || ''), shot.figSection);
-  t('...below the hero, not in it', shot.figTop > shot.heroTop + 200, { hero: shot.heroTop, fig: shot.figTop });
+  t('...and it decoded', shot.figLoaded === true, shot.figNat);
   t('...with truthful alt text',
     shot.figAlt === 'Dr. Giga Nadiradze at work in the operating room', shot.figAlt);
-  t('...and a short caption', /operating room/i.test(shot.figCaption), shot.figCaption.trim());
-  t('...visually SUBORDINATE to the hero by rendered area',
-    shot.figBox.w * shot.figBox.h < shot.heroBox.w * shot.heroBox.h,
-    { fig: shot.figBox.w * shot.figBox.h, hero: shot.heroBox.w * shot.heroBox.h });
-  t('...and a different shape, so it does not echo the hero',
-    (shot.figBox.w / shot.figBox.h) > 1.5 && (shot.heroBox.w / shot.heroBox.h) < 1, 
-    { fig: (shot.figBox.w/shot.figBox.h).toFixed(2), hero: (shot.heroBox.w/shot.heroBox.h).toFixed(2) });
+
+  /* ── THE BANNER ────────────────────────────────────────────────────────
+     It used to sit beside the Clinical background paragraphs. It now sits
+     BETWEEN Clinical background and Why I created Anestheo, as a quiet break
+     rather than an illustration, so the assertions are about position and
+     proportion rather than about which section owns it. */
+  const banner = await (async () => {
+    const s = await open(b, '/founder.html', null);
+    const v = await s.pg.evaluate(`(() => {
+      const el = document.querySelector('.fd-banner');
+      const img = el && el.querySelector('img');
+      const y = n => Math.round(n.getBoundingClientRect().top + scrollY);
+      const secTop = label => {
+        const h = [...document.querySelectorAll('.fd-h')].filter(x => x.textContent.trim() === label)[0];
+        return h ? y(h.closest('section')) : null; };
+      const r = img.getBoundingClientRect();
+      const cs = getComputedStyle(img);
+      const wrap = document.querySelector('.page-wrap').getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height),
+               top: y(img), clinical: secTop('Clinical background'), why: secTop('Why I created Anestheo'),
+               radius: cs.borderTopLeftRadius, border: cs.borderTopWidth, outline: cs.outlineWidth,
+               fit: cs.objectFit, pos: cs.objectPosition,
+               colW: (n => Math.round(n.clientWidth - parseFloat(getComputedStyle(n).paddingLeft)
+                                                        - parseFloat(getComputedStyle(n).paddingRight)))(document.querySelector('.page-wrap')),
+               inSplit: !!el.closest('.fd-split'), split: document.querySelectorAll('.fd-split, .fd-figure').length,
+               caption: document.querySelectorAll('.fd-banner figcaption').length,
+               docW: document.documentElement.clientWidth }; })()`);
+    await s.ctx.close();
+    return v;
+  })();
+  t('the banner is NOT beside Clinical background any more',
+    banner.inSplit === false && banner.split === 0, { inSplit: banner.inSplit, leftovers: banner.split });
+  t('it sits AFTER Clinical background',        banner.top > banner.clinical, banner);
+  t('...and BEFORE Why I created Anestheo',     banner.top < banner.why, banner);
+  t('it spans the content column',              Math.abs(banner.w - banner.colW) <= 2, { img: banner.w, col: banner.colW });
+  t('...and not edge to edge',                  banner.w < banner.docW - 40, { img: banner.w, doc: banner.docW });
+  t('desktop: wider than it is tall',           banner.w > banner.h, banner);
+  t('...at roughly 3:1 to 4:1',
+    (banner.w / banner.h) >= 3 && (banner.w / banner.h) <= 4.2, (banner.w / banner.h).toFixed(2));
+  t('object-fit cover',                         banner.fit === 'cover', banner.fit);
+  t('...cropped above centre so the face survives', /20%|25%/.test(banner.pos), banner.pos);
+  t('restrained rounded corners',               parseFloat(banner.radius) > 0 && parseFloat(banner.radius) <= 26, banner.radius);
+  t('no decorative border',                     parseFloat(banner.border) === 0, banner.border);
+  t('no teal outline',                          !/px/.test(banner.outline) || parseFloat(banner.outline) === 0, banner.outline);
+  t('no caption',                               banner.caption === 0, banner.caption);
+  t('no gradient anywhere in the banner rules', !/fd-banner[^}]*gradient/.test(FND));
+
+  const bmob = await (async () => {
+    const s = await open(b, '/founder.html', null, 390, 844);
+    const v = await s.pg.evaluate(`(() => {
+      const img = document.querySelector('.fd-banner img');
+      const r = img.getBoundingClientRect();
+      const de = document.documentElement;
+      return { w: Math.round(r.width), h: Math.round(r.height),
+               ratio: +(r.width / r.height).toFixed(2),
+               overflow: de.scrollWidth - de.clientWidth,
+               colW: (n => Math.round(n.clientWidth - parseFloat(getComputedStyle(n).paddingLeft)
+                                                        - parseFloat(getComputedStyle(n).paddingRight)))(document.querySelector('.page-wrap')) }; })()`);
+    await s.ctx.close();
+    return v;
+  })();
+  t('mobile: the banner uses a gentler crop',   bmob.ratio > 1.5 && bmob.ratio < 2.1, bmob.ratio);
+  t('...full content-column width',             Math.abs(bmob.w - bmob.colW) <= 2, bmob);
+  t('...and no horizontal overflow',            bmob.overflow <= 0, bmob.overflow);
+
   t('the founder page shows exactly these two images', 
     JSON.stringify(shot.allImgs) === JSON.stringify([PHOTO_MAIN, PHOTO_2ND]), shot.allImgs);
   t('no image on the page is broken', shot.broken === 0, shot.broken);
+  t('the hero portrait is unchanged: a 190x238 frame at the top of the page',
+    shot.heroFrame.w === 190 && shot.heroFrame.h === 238 && shot.heroTop < 400,
+    { frame: shot.heroFrame, img: shot.heroBox });
+
+  /* The four principles, kept verbatim. "Individual care" especially. */
+  const vals = await (async () => {
+    const s = await open(b, '/founder.html', null);
+    const v = await s.pg.evaluate(`[...document.querySelectorAll('.fd-val-t')].map(n => n.textContent.trim())`);
+    await s.ctx.close();
+    return v;
+  })();
+  t('the four care principles are unchanged',
+    JSON.stringify(vals) === JSON.stringify(['Clarity','Preparation','Individual care','Communication']), vals);
 
   /* The About teaser: the main photo, smaller, and NOT the secondary one. */
   const tshot = await (async () => {
