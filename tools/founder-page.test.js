@@ -301,15 +301,15 @@ async function open(b, path, prof, w, h) {
      clearest tell that prose was machine-written. Periods, commas, colons and
      parentheses do the same work and read as a person wrote them.
 
-     Scoped to the copy this branch authored. Two em dashes survive on purpose
-     and are asserted below rather than quietly excluded:
-       * the <title>, which follows the site-wide "Page — Anestheo" pattern
-         used by patients.html, videos.html, ask.html and the rest;
-       * the shared footer line "Educational information only — not a
-         substitute for medical advice", which appears verbatim on
-         preop-instructions, recovery and every procedure guide.
-     Both are existing site conventions, not prose written here, and changing
-     either on this page alone would make it the odd one out. */
+     NO EXCEPTIONS ON THIS PAGE. An earlier version of this suite kept two:
+     the <title>, which followed the site-wide "Page - Anestheo" pattern, and
+     the shared footer line quoted from the procedure guides. Both were
+     defensible as house style and both were still an em dash on the page, so
+     both are gone: the title now uses a pipe, and the footer says "Educational
+     information only. Not a substitute for medical advice." Those two changes
+     are scoped to founder.html; the other eleven pages that carry the footer
+     string are untouched, which does leave this page slightly out of step with
+     them and is a deliberate, instructed trade. */
   const proseDashes = await (async () => {
     const s = await open(b, '/founder.html', null);
     const v = await s.pg.evaluate(`(() => {
@@ -337,15 +337,26 @@ async function open(b, path, prof, w, h) {
     (ABOUT.match(/<!--[\s\S]*?-->|<style[\s\S]*?<\/style>/g) || []).join('').indexOf('\u2014') < 0,
     'comments clean');
 
-  /* The two that stay, and the reason each is legitimate. */
-  t('the page title keeps the site-wide "— Anestheo" pattern',
-    /<title>About the founder — Anestheo<\/title>/.test(FND) &&
-    /<title>For Patients — Anestheo<\/title>/.test(read('patients.html')), 'site convention');
+  /* Zero, page-wide, in source and in what a reader sees. */
+  t('not one em dash anywhere in founder.html source',
+    !/—|&mdash;/.test(FND), (FND.match(/.{0,30}(—|&mdash;).{0,30}/) || ['clean'])[0]);
+  t('the page title uses a pipe, not a dash',
+    /<title>About the founder \| Anestheo<\/title>/.test(FND), (FND.match(/<title>[^<]*/) || [''])[0]);
   const flat = x => x.replace(/\s+/g, ' ');
-  t('the shared footer line is quoted verbatim, not rewritten here',
-    flat(FND).includes('Educational information only &mdash; not a substitute for medical advice') &&
-    flat(read('recovery.html')).includes('Educational information only — not a substitute for medical advice'),
-    'shared string');
+  t('the footer line on THIS page is dash-free',
+    flat(FND).includes('Educational information only. Not a substitute for medical advice'), 'rewritten here');
+  t('...and the other pages that share it were left alone',
+    flat(read('recovery.html')).includes('Educational information only — not a substitute for medical advice') &&
+    flat(read('preop-instructions.html')).includes('Educational information only — not a substitute for medical advice'),
+    'unchanged elsewhere');
+  const rendered = await (async () => {
+    const s = await open(b, '/founder.html', null);
+    const v = await s.pg.evaluate(`document.body.innerText`);
+    await s.ctx.close();
+    return v;
+  })();
+  t('and none in the rendered page a visitor reads',
+    rendered.indexOf('\u2014') < 0, (rendered.match(/.{0,30}—.{0,30}/) || ['clean'])[0]);
 
   /* The hero paragraph, exactly as specified. */
   const hero = await (async () => {
