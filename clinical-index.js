@@ -779,6 +779,12 @@ function visibleDrugsInGroup(groupId, wt){
       return { id:d.id, name:d.name, val:r.val, unit:r.unit,
                ind:supportLine(d, dose, wt), prep:d.prep,
                use:[dose.route, dose.label].filter(Boolean).join(' · '),
+               /* Passed through if a dose ever carries one. No record does
+                  today — there is no duration, onset or offset field anywhere
+                  in DRUGS — so this is the wire, not a value. Nothing here
+                  manufactures one, and the table's Dur. column stays absent
+                  until real data arrives. */
+               duration:(dose.duration || ''),
                doseRule:rule,
                aliasLine:(d.aliases && d.aliases.length > 1 ? d.aliases[1] : ''),
                warn:d.warn, severity:d.severity, hi:d.hi,

@@ -276,18 +276,32 @@ table.dtab tr:last-child td{border-bottom:none;}
 .dtab-d2{font-size:11.5px;color:var(--ink-3);margin-top:3px;}
 .dtab-warn{font-size:11.5px;color:var(--warning);margin-top:4px;line-height:1.45;}
 .dtab-warn.crit{color:#ff8a72;font-weight:600;}
+/* ══ TABLE: WARNING, DURATION AND THE CHEVRON ═════════════════════════════
+   Three narrow columns at the right edge. The warning marker is scannable
+   down the column; the text it marks stays in the dose cell. The chevron
+   replaces a "Details" button that spent 74px saying what a chevron says in
+   22, which is the width the warning column now uses. */
+.dtab-w{width:30px;text-align:center;}
+.dtab-go{width:34px;text-align:right;}
+.dtab-dur{width:78px;font-variant-numeric:tabular-nums;color:var(--ink-2);}
+.dtab-wi{display:inline-block;font-size:13px;line-height:1.3;color:var(--warning);cursor:help;}
+.dtab-wi.crit{color:#ff8a72;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .dtab-more{background:transparent;border:1px solid var(--line);color:var(--ink-3);
   border-radius:var(--radius-xs);font-family:inherit;font-size:10.5px;font-weight:700;
   padding:0 9px;height:26px;cursor:pointer;white-space:nowrap;}
 .dtab-more:hover{color:#fff;border-color:var(--accent);}
+.dtab-go .dtab-more{padding:0;width:26px;height:26px;font-size:16px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);}
 .dref-empty{padding:22px 14px;color:var(--ink-3);font-size:13px;}
 
 
 .dref-lead{margin-bottom:0;}
 table.dtab .dtab-cls{width:110px;}
-table.dtab .dtab-name{width:20%;}
-table.dtab .dtab-use{width:13%;}
-table.dtab .dtab-dose{width:26%;}
+table.dtab .dtab-name{width:19%;}
+table.dtab .dtab-use{width:12%;}
+table.dtab .dtab-dose{width:27%;}
 table.dtab .dtab-prep{width:17%;}
 
 @media(max-width:900px){
@@ -369,69 +383,14 @@ table.dtab .dtab-prep{width:17%;}
 .pest-off b{color:var(--ink-2);font-weight:700;}
 .pest-i{flex:0 0 auto;font-size:13px;color:var(--ink-3);line-height:1.5;}
 
-/* ══ PATIENT CONTEXT STRIP ═══════════════════════════════════════════════
-   The workstation patient banner. Once a patient is entered this replaces
-   the six form inputs: a clinician mid-case reads the patient, they do not
-   re-enter it. Large value, small label, in the anaesthesia-machine idiom.
-   The form is not deleted, only hidden, so every input id, handler and
-   calculation on this page keeps working untouched. */
-.pctx{display:grid;grid-template-columns:repeat(5,minmax(0,auto)) minmax(0,1.4fr) auto;
-  background:var(--pane);border:1px solid var(--line);border-radius:var(--radius-lg);
-  margin:0 0 8px;overflow:hidden;}
-.pctx-c{padding:10px 16px;border-left:1px solid var(--line);min-width:0;}
-.pctx-c:first-child{border-left:none;}
-.pctx-v{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1.2;
-  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pctx-l{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-3);margin-top:3px;line-height:1.25;}
-.pctx-proc .pctx-v{font-size:16px;white-space:normal;line-height:1.25;}
-.pctx-est{color:var(--warning);font-weight:700;}
-.pctx-act{display:flex;align-items:center;gap:8px;padding:10px 14px;border-left:1px solid var(--line);}
-.pctx-edit,.pctx-new{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);
-  border-radius:var(--radius-sm);padding:0 13px;height:34px;font-size:12.5px;font-weight:700;
-  font-family:inherit;cursor:pointer;white-space:nowrap;}
-.pctx-edit:hover,.pctx-new:hover{border-color:var(--accent);color:#fff;}
-.pctx-empty{display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:14px 16px;background:var(--pane);border:1px solid var(--line);
-  border-radius:var(--radius-lg);margin:0 0 8px;}
-.pctx-empty-t{font-size:13.5px;color:var(--ink-2);}
-.pctx-empty-t b{color:#fff;font-weight:700;}
-
-/* ══ CONTEXT / DERIVED STRIP ══════════════════════════════════════════════
-   One row, and WHICH row depends on the patient. The previous build showed
-   adult Devine IBW, LBW and adjusted body weight for every patient: for a
-   10 kg one-year-old that rendered IBW 50 kg, LBW 5 kg and ABW 34 kg, three
-   numbers that are not merely unhelpful but wrong to put in front of someone
-   drawing up a dose. Values are unchanged; which ones are shown is not. */
-.dctx{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--pane);
-  border:1px solid var(--line);border-radius:var(--radius-lg);margin:0 0 8px;overflow:hidden;}
-.dctx-tag{display:flex;align-items:center;gap:7px;padding:9px 15px;font-size:10px;
-  font-weight:800;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
-  background:rgba(126,207,192,.10);color:var(--accent);}
-.dctx.peds .dctx-tag{background:rgba(232,168,56,.13);color:var(--warning);}
-.dctx-d{display:flex;align-items:baseline;gap:6px;padding:9px 15px;border-left:1px solid var(--line);
-  white-space:nowrap;}
-.dctx-l{font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);}
-.dctx-v{font-size:15px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;}
-.dctx-u{font-size:10.5px;color:var(--hint);}
-
-@media(max-width:900px){
-  .pctx{grid-template-columns:repeat(4,minmax(0,1fr));}
-  /* Status is the fifth cell, so it lands alone at the start of row two and
-     left three empty cells beside it. The procedure takes the rest of that
-     row instead of starting a third one. */
-  .pctx-proc{grid-column:2 / -1;}
-  .pctx-act{grid-column:1 / -1;border-left:none;border-top:1px solid var(--line);}
-  .pctx-edit,.pctx-new{flex:1 1 0;}
-}
-@media(max-width:560px){
-  .pctx{grid-template-columns:repeat(2,minmax(0,1fr));}
-  /* Two columns leave no room to share a row; the procedure gets its own. */
-  .pctx-proc{grid-column:1 / -1;}
-  .pctx-c{padding:9px 13px;}
-  .pctx-v{font-size:17px;}
-  .dctx-tag,.dctx-d{padding:8px 12px;}
-}
+/* ══ DERIVED STRIP: THE PEDIATRIC CONTEXT TAG ════════════════════════════
+   The strip itself is the cockpit's own .cw-derived grid, untouched. The only
+   addition is the small tag beside the section title that names which content
+   set is showing, because "BSA / EBV / Maintenance / ETT" and "BMI / IBW /
+   LBW / Adjusted BW" are different enough that the reader deserves to be told
+   which one they are looking at rather than inferring it. */
+#acc-derived-tag{font-size:10px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--warning);}
 
 /* Drug dosing cards */
 .drug-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
@@ -631,20 +590,38 @@ table.dtab .dtab-prep{width:17%;}
      being the document and starts being the domain. */
   #output .panels{flex-direction:column;}
   #output .stack + .stack{border-left:none;}
-  #output[data-domain] .panel{display:none;}
-  #output[data-domain="drugs"]     .panel[data-domain="drugs"],
-  #output[data-domain="infusions"] .panel[data-domain="infusions"],
-  #output[data-domain="regional"]  .panel[data-domain="regional"],
-  #output[data-domain="airway"]    .panel[data-domain="airway"],
-  #output[data-domain="bleeding"]  .panel[data-domain="bleeding"],
-  #output[data-domain="monitor"]   .panel[data-domain="monitor"],
-  #output[data-domain="scores"]    .panel[data-domain="scores"],
-  #output[data-domain="emergency"] .panel[data-domain="emergency"]{display:block;}
   /* an emptied stack must not leave its rule or its space behind */
   #output .stack:empty,#output .panels-wide:empty{display:none;}
 }
 /* Above the breakpoint every domain is present: the attribute is inert. */
-@media(min-width:901px){ #output[data-domain] .panel{display:block;} }
+/* ══ ONE ACTIVE CLINICAL DOMAIN, AT EVERY WIDTH ══════════════════════════
+   This rule used to live inside @media(max-width:900px), with a desktop
+   override right here that put every panel back on screen. The desktop was
+   therefore a 13-module document with the tabs acting as anchor links, and
+   the workstation the brief asks for is not a document: choosing Drugs should
+   give the drug workspace and the Crisis rail, not the drug workspace on top
+   of Regional, Airway, Vasopressors, TIVA, Fluids, Monitoring, Antibiotics,
+   Blocks, Ventilation and Scores.
+
+   Nothing is deleted and no content is lost — only one domain is rendered at
+   a time, and every route into a hidden module (search, deep link, the crisis
+   rail, the anchors) switches domain first through setDomain(). */
+#output[data-domain] .panel{display:none;}
+#output[data-domain="drugs"]     .panel[data-domain="drugs"],
+#output[data-domain="infusions"] .panel[data-domain="infusions"],
+#output[data-domain="regional"]  .panel[data-domain="regional"],
+#output[data-domain="airway"]    .panel[data-domain="airway"],
+#output[data-domain="bleeding"]  .panel[data-domain="bleeding"],
+#output[data-domain="monitor"]   .panel[data-domain="monitor"],
+#output[data-domain="scores"]    .panel[data-domain="scores"],
+#output[data-domain="emergency"] .panel[data-domain="emergency"]{display:block;}
+
+/* A stack whose every panel belongs to another domain must not hold a column
+   open. :empty cannot see this — the panels are present and hidden — so
+   setDomain() marks them and this hides them. The surviving stack then takes
+   the whole clinical column on its own, which is flex:1 1 0 doing its job. */
+#output .stack.dom-empty,#output .panels-wide.dom-empty{display:none;}
+#output .panels.dom-single .stack + .stack{border-left:none;}
 
 /* ── PANE ───────────────────────────────────────────────────────────────
    No shadow. No gradient. A hairline edge in the same value the rows use,
@@ -897,6 +874,14 @@ table.dtab .dtab-prep{width:17%;}
    touch target; the packaging around them does the shrinking. */
 .eng-wrap #acc-patient .cw-acc-head,
 .eng-wrap #acc-derived .cw-acc-head{display:none;}      /* the fields say it */
+/* ...except for a child, where the fields say something DIFFERENT and the
+   reader deserves to be told which set they are looking at. ETT and LMA in
+   place of IBW and LBW is a large change to make silently, so the pediatric
+   case — and only the pediatric case — gets one line naming it. The adult
+   strip is untouched and looks exactly as it always has. */
+.eng-wrap #acc-derived.has-tag .cw-acc-head{display:flex;align-items:center;
+  gap:9px;padding:7px 12px 0;}
+.eng-wrap #acc-derived.has-tag .cw-acc-t{display:none;}   /* the tag is the title */
 .eng-wrap #acc-patient,.eng-wrap #acc-derived{margin-bottom:6px;}
 .eng-wrap #acc-patient .cw-acc-body,
 .eng-wrap #acc-derived .cw-acc-body{padding:8px 12px;}
@@ -1629,7 +1614,7 @@ body .nb-search-wrap{display:none !important;}
          its natural place in the flow rather than ahead of the drugs. -->
     <nav class="cmd" id="cmd-strip" aria-label="Clinical domains">
       <div class="cmd-in">
-        <a class="cmd-b" href="#/drugs"     data-jump="drug-references" data-domain="drugs">Drugs</a>
+        <a class="cmd-b" href="#/drugs"     data-jump="drug-reference" data-domain="drugs">Drugs</a>
         <a class="cmd-b" href="#/infusions" data-jump="vasopressors" data-domain="infusions">Infusions</a>
         <a class="cmd-b" href="#/airway"    data-jump="airway-tubes" data-domain="airway">Airway</a>
         <a class="cmd-b" href="#/regional"  data-jump="regional" data-domain="regional">Regional</a>
@@ -1638,7 +1623,11 @@ body .nb-search-wrap{display:none !important;}
         <a class="cmd-b" href="#/scores"    data-jump="risk-scores" data-domain="scores">Scores</a>
         <button class="cmd-b cmd-find" type="button" onclick="if(window.ClinicalSearch)window.ClinicalSearch.open('')"
                 aria-label="Search all clinical content"><span>Search</span><kbd>/</kbd></button>
-        <button class="cmd-b cmd-sos" type="button" onclick="crisisJump()"
+        <!-- Carries data-domain so it lights up like every other selector when
+             the emergency workspace is the one on screen. It is still a button
+             and still calls crisisJump(), which opens the protocol as well as
+             switching the domain. -->
+        <button class="cmd-b cmd-sos" type="button" onclick="crisisJump()" data-domain="emergency"
                 aria-label="Open the Crisis Center emergency protocols">Emergency</button>
       </div>
     </nav>
@@ -1668,26 +1657,39 @@ body .nb-search-wrap{display:none !important;}
     <!-- ── CURRENT CASE BAR ────────────────────────────────────────────────
          The case command area. It sits above Patient Identity and Patient
          Details so it can never be inside anything collapsible, and it is
-         the only home for the reset action at any width. -->
-    <!-- ── PATIENT CONTEXT ──────────────────────────────────────────────
-         Rendered by renderPatientStrip() from patientContext. Two states: a
-         one-line prompt before a patient exists, the banner after. Edit
-         reveals the form below, which is the same form as before. -->
-    <div id="pctx-host"></div>
+         the only home for the reset action at any width.
 
-    <!-- The derived row, also rendered from patientContext, so what is shown
-         and what is calculated can never disagree. -->
-    <div id="dctx-host"></div>
+         PHASE 6 RESTORED THIS. Phase 1 replaced the bar and the open input row
+         with a rendered patient banner; that banner is gone again and this
+         cockpit is the approved visual reference. What did NOT come back is
+         the clinical behaviour of that build — the derived strip below still
+         decides its contents from patientContext, and the applicability layer
+         is untouched. This is a restoration of the shell, not of the bugs. -->
+    <div class="case-bar">
+      <button type="button" class="case-state" id="case-state" onclick="ptToggle()"
+              aria-controls="acc-patient">No active patient</button>
+      <span class="case-edit">Edit</span>
+      <button type="button" class="case-new" onclick="newCaseAsk()"
+              aria-label="Start a new case — clears the current patient, calculations and timers">New case</button>
+    </div>
 
-    <!-- Procedure applicability. Empty in the ordinary case; carries the
-         mismatch notice when the recorded procedure cannot apply to the
-         recorded patient. Rendered from patientContext, never from an inline
-         condition. -->
-    <div id="proc-notice"></div>
+    <!-- ── MOBILE PATIENT CONTEXT ──────────────────────────────────────────
+         On a phone the six inputs and seven derived values cost 615px before
+         the first dose. They are not removed — every value on the page is
+         calculated from them — but by default they collapse to one readable
+         line of context plus the derived band, with the form one tap away.
+         Desktop never sees this: the strip is display:none above 900px. -->
+    <div class="pt-row">
+      <button type="button" class="pt-sum" id="pt-sum" onclick="ptToggle()"
+              aria-expanded="false" aria-controls="acc-patient">
+        <span class="pt-sum-line" id="pt-sum-line">Enter patient details</span>
+        <span class="pt-sum-edit">Edit</span>
+      </button>
+    </div>
 
     <!-- Patient Details — always expanded (drives the calculations) -->
-    <section class="cw-acc" id="acc-patient" hidden>
-      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span><button type="button" class="pctx-edit" style="margin-left:auto;" onclick="ptEdit(false)">Done</button></div>
+    <section class="cw-acc" id="acc-patient">
+      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span></div>
       <div class="cw-acc-body"><div class="input-bar">
         <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
           <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
@@ -1716,21 +1718,31 @@ body .nb-search-wrap{display:none !important;}
       </div></div>
     </details>
 
-    <!-- Derived Values — always expanded -->
-    <!-- ══ WORKSTATION ═══════════════════════════════════════════════════
-         Clinical reference on the left, Crisis Center rail on the right. -->
-    <div class="ws-grid">
-      <div id="output">
-        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
-        <button class="cw-open-pt" onclick="ptEdit(true)">Enter patient details</button></div>
-      </div>
-      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
-    </div>
+    <!-- ── DERIVED VALUES ──────────────────────────────────────────────
+         The horizontal strip, in the shape the cockpit has always had. What
+         changed in Phase 4 and stays changed is WHICH values it holds:
+         renderContextStrip() fills it from patientContext, so a one-year-old
+         no longer reads adult Devine IBW, adult LBW and adjusted body weight —
+         three numbers that are not merely unhelpful but wrong to put in front
+         of someone drawing up a dose. Same strip, right contents. -->
+    <section class="cw-acc" id="acc-derived">
+      <div class="cw-acc-head"><span class="cw-acc-t">Derived Values</span>
+        <span class="cw-acc-sub" id="acc-derived-tag"></span></div>
+      <div class="cw-acc-body"><div class="cw-derived" id="cw-derived"></div></div>
+    </section>
 
-    <!-- ── LIVE TIMERS (intraoperative workflow) — below Derived Values ── -->
-    <!-- Timers are a running-case tool, not a lookup. They cost 180px at the
-         very top of the workspace, ahead of every clinical answer. Folded by
-         default; the summary keeps them one click away and shows their state. -->
+    <!-- Procedure applicability. Empty in the ordinary case; carries the
+         mismatch notice when the recorded procedure cannot apply to the
+         recorded patient. Rendered from patientContext, never from an inline
+         condition. It sits here because the three fields it talks about —
+         age, sex and procedure — are directly above it. -->
+    <div id="proc-notice"></div>
+
+    <!-- ── LIVE TIMERS (intraoperative workflow) — last row of the cockpit ── -->
+    <!-- Timers close the cockpit and the workstation begins under them. They
+         are folded by default, so the cost above the first clinical answer is
+         the summary bar and nothing more; the summary carries their running
+         state, so a case in progress is legible without expanding. -->
     <details class="lt-strip lt-fold" id="live-timers">
       <summary class="lt-bar"><span class="lt-dot"></span><i>Live timers</i>
         <span class="lt-micro" id="lt-micro"></span>
@@ -1763,6 +1775,18 @@ body .nb-search-wrap{display:none !important;}
         </div>
       </div>
     </details>
+
+    <!-- ══ WORKSTATION ═══════════════════════════════════════════════════
+         Everything above is the cockpit. The workstation starts here:
+         clinical reference on the left, Crisis Center rail on the right. -->
+    <div class="ws-grid">
+      <div id="output">
+        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
+        <button class="cw-open-pt" onclick="ptFocus()">Enter patient details</button></div>
+      </div>
+      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
+    </div>
+
 
     <!-- PACU / Recovery — separate from the intraoperative timer strip -->
     <div class="pacu-mod">
@@ -1859,7 +1883,7 @@ function compute(){
       estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height });
     renderPatientStrip(); renderContextStrip(); renderProcNotice(); renderPedsEstimate();
     out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>'+
-      '<button class="cw-open-pt" onclick="ptEdit(true)">Open Patient Details</button></div>';
+      '<button class="cw-open-pt" onclick="ptFocus()">Open Patient Details</button></div>';
     return;
   }
   var isPeds=age<16;
@@ -2547,9 +2571,38 @@ function drefDoseCell(d){
   return '<div class="dtab-d1">'+main+'</div>' + (rule ? '<div class="dtab-d2">'+rule+'</div>' : '');
 }
 
+/* DURATION IS NOT IN THE DATASET. The brief's column list includes DUR, and
+   there is nowhere to read it from: every record in DRUGS carries id, name,
+   group, pclass, aliases, klass, indications, doses[{label, route, low, high,
+   unit, basis, basisWeight, population, type}], prep, warn, severity and
+   provenance, and not one duration, onset or offset among them. A column of
+   twenty-five em dashes in a dense clinical table is worse than no column, and
+   filling it would mean inventing pharmacokinetics, so the column appears when
+   the data does: set `duration` on a dose and it renders. Nothing else about
+   the table changes when it arrives. */
+function drefHasDuration(rows){
+  for(var i=0;i<rows.length;i++){ if(rows[i].duration) return true; }
+  return false;
+}
+
+/* THE WARNING COLUMN IS A MARKER, NOT A REPLACEMENT. It gives the reader
+   something scannable down the edge of the table — which of twenty-five rows
+   carry a caution and which carry a contraindication — while the warning text
+   itself stays where it was, under the dose, in full. Compressing a line like
+   "only after confirming you can ventilate" into an icon would be a safety
+   regression dressed as a layout improvement, so the icon is additive. */
+function drefWarnCell(d){
+  if(!d.warn) return '<td class="dtab-w"></td>';
+  var crit = d.severity === 'critical';
+  return '<td class="dtab-w"><span class="dtab-wi'+(crit?' crit':'')+'" title="'+
+         esc_(d.warn)+'" aria-label="'+(crit?'Critical warning':'Caution')+': '+
+         esc_(d.warn)+'">&#9888;</span></td>';
+}
+
 function drefTable(rows){
   if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
   var CC = window.ClinicalContent;
+  var dur = drefHasDuration(rows);
   var body = rows.map(function(d){
     var meta = CC.classMeta(d.pclass);
     var col  = meta ? meta.color : 'transparent';
@@ -2561,12 +2614,19 @@ function drefTable(rows){
       '<td class="dtab-use">'+(d.use || d.ind || '&mdash;')+'</td>'+
       '<td class="dtab-dose">'+drefDoseCell(d)+warn+'</td>'+
       '<td class="dtab-prep">'+(d.prep || '&mdash;')+'</td>'+
-      '<td><button type="button" class="dtab-more" onclick="drefDetails(\''+d.id+'\')">Details</button></td>'+
+      (dur ? '<td class="dtab-dur">'+(d.duration || '&mdash;')+'</td>' : '')+
+      drefWarnCell(d)+
+      '<td class="dtab-go"><button type="button" class="dtab-more" '+
+        'onclick="drefDetails(\''+d.id+'\')" aria-label="Open the full reference for '+
+        esc_(d.name)+'" title="Full reference">&#8250;</button></td>'+
     '</tr>';
   }).join('');
   return '<table class="dtab"><thead><tr>'+
     '<th class="dtab-cls">Class</th><th class="dtab-name">Drug</th><th class="dtab-use">Use</th>'+
-    '<th class="dtab-dose">Patient dose</th><th class="dtab-prep">Preparation</th><th>Details</th>'+
+    '<th class="dtab-dose">Patient dose</th><th class="dtab-prep">Preparation</th>'+
+    (dur ? '<th class="dtab-dur">Dur.</th>' : '')+
+    '<th class="dtab-w"><span aria-label="Warnings">&#9888;</span></th>'+
+    '<th class="dtab-go"><span class="sr-only">Full reference</span></th>'+
     '</tr></thead><tbody>'+body+'</tbody></table>';
 }
 
@@ -2665,7 +2725,11 @@ function panelKey(title){ return (title||'').replace(/<[^>]+>/g,'').replace(/&[^
    this is inert; on a phone it is what lets one domain be the active stream
    while the rest stay out of the document. */
 var PANEL_DOMAIN = {
-  'drug-references':'drugs', 'antibiotic-prophylaxis':'drugs',
+  /* Phase 3 renamed the panel from "Drug references" to "Drug reference", so
+     panelKey() now yields drug-reference. Both keys are listed: the new one is
+     what the page builds, the old one costs nothing and means a stale bookmark
+     or a saved layout still resolves to a domain instead of defaulting. */
+  'drug-reference':'drugs', 'drug-references':'drugs', 'antibiotic-prophylaxis':'drugs',
   'vasopressors':'infusions', 'tiva-tci-sedation':'infusions',
   'regional':'regional', 'blocks-ultrasound':'regional',
   'airway-tubes':'airway', 'airway':'airway',
@@ -2722,8 +2786,12 @@ function panel(ico,title,tag,body,cls){
 function balanceRows(){
   var w=document.querySelector('#output .panels'); if(!w) return;
   var cols=(getComputedStyle(w).gridTemplateColumns||'').split(' ').filter(Boolean).length;
-  var ps=[].slice.call(w.querySelectorAll('.panel'));
-  ps.forEach(function(p){ p.style.gridColumn=''; });
+  /* Only the panels actually on screen. With one domain rendered at a time
+     the rest are display:none, and balancing a row around a module nobody can
+     see puts the stretch on the wrong panel. */
+  var all=[].slice.call(w.querySelectorAll('.panel'));
+  all.forEach(function(p){ p.style.gridColumn=''; });
+  var ps=all.filter(function(p){ return p.offsetParent !== null || p.classList.contains('panels-wide'); });
   if(cols<2) return;                                  // single column: nothing to balance
   function baseSpan(p){
     // `grid-column: span 4` resolves to start "span 4" / end "auto", so both
@@ -2865,7 +2933,10 @@ function renderCrisisRail(){
   }).join('');
   host.innerHTML =
     '<div class="wsc-head"><span aria-hidden="true">&#9888;</span>Crisis Center</div>'+
-    '<div class="wsc-sub">Protocols</div>'+
+    /* What the rail actually indexes into: each entry opens a protocol whose
+       panel carries its weight-aware doses and its algorithm. The three words
+       name that, rather than promising three separate sections. */
+    '<div class="wsc-sub">Protocols &middot; Doses &middot; Algorithms</div>'+
     '<ul class="wsc-list">'+items+'</ul>'+
     '<button type="button" class="wsc-go" onclick="crisisJump()">Go to Crisis Center</button>'+
     '<p class="wsc-note">Red is reserved for true emergencies. Every protocol is '+
@@ -3231,17 +3302,34 @@ function renderPedsEstimate(){
 window.renderPedsEstimate = renderPedsEstimate;
 
 /* ── The patient banner ─────────────────────────────────────────────────── */
-function ptEdit(on){
-  var f = ge('acc-patient'); if(!f) return;
-  f.hidden = !on;
-  if(on){ f.scrollIntoView({behavior:'smooth',block:'center'}); var a=ge('i-age'); if(a) a.focus(); }
-  renderPatientStrip();
+/* ptToggle is the phone control again: it opens and closes the input row,
+   which above 900px is always visible and where the class is inert. This is
+   the behaviour the restored cockpit needs — Phase 1's hide-until-Edit form is
+   gone, so there is nothing on desktop left to toggle. */
+function ptToggle(){
+  var w = document.getElementById('app'); if(!w) return;
+  var open = w.classList.toggle('pt-open');
+  var b = ge('pt-sum'); if(b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if(open){ var f = ge('i-age'); if(f && isPhone()) setTimeout(function(){ f.focus(); }, 120); }
 }
-window.ptEdit = ptEdit;
-/* ptToggle predates this and is still called by older handlers; it now means
-   the same thing as ptEdit(true) so nothing that used it breaks. */
-function ptToggle(){ var f=ge('acc-patient'); ptEdit(!!(f && f.hidden)); }
 window.ptToggle = ptToggle;
+
+/* The empty workstation's one button. The form is on screen already on a
+   desktop, so this puts the caret in it rather than revealing anything; on a
+   phone it opens the row first. */
+function ptFocus(){
+  var w = document.getElementById('app');
+  if(w && !w.classList.contains('pt-open') && isPhone()) ptToggle();
+  var f = ge('acc-patient'); if(f) f.scrollIntoView({behavior:'smooth',block:'center'});
+  var a = ge('i-age'); if(a) a.focus();
+}
+window.ptFocus = ptFocus;
+
+/* ptEdit was Phase 1's show/hide for the patient form. The form is no longer
+   hidden, so the name is kept only so that any older handler still calling it
+   lands somewhere sensible instead of throwing. */
+function ptEdit(on){ if(on !== false) ptFocus(); }
+window.ptEdit = ptEdit;
 
 function esc_(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -3255,67 +3343,80 @@ function ptAgeLabel(ctx){
   return y + (y===1?' year':' years');
 }
 
-function renderPatientStrip(){
-  var host = ge('pctx-host'); if(!host) return;
-  var ctx = window.patientContext;
-  var editing = !!(ge('acc-patient') && !ge('acc-patient').hidden);
-
-  if(!ctx || !ctx.complete){
-    host.innerHTML =
-      '<div class="pctx-empty"><span class="pctx-empty-t"><b>No active patient.</b> '+
-      'Enter age, sex, height and weight and every calculation activates.</span>'+
-      '<span style="display:flex;gap:8px;">'+
-      '<button type="button" class="pctx-edit" onclick="ptEdit(true)">'+(editing?'Editing':'Enter patient details')+'</button>'+
-      '<button type="button" class="pctx-new" onclick="newCaseAsk()">New case</button></span></div>';
-    return;
-  }
-  function cell(v, l, cls, est){
-    return '<div class="pctx-c '+(cls||'')+'"><div class="pctx-v">'+v+'</div>'+
-           '<div class="pctx-l">'+l+(est?' &middot; <span class="pctx-est">EST.</span>':'')+'</div></div>';
-  }
-  host.innerHTML = '<div class="pctx">'+
-    cell(esc_(ptAgeLabel(ctx)), 'Age') +
-    cell(ctx.sex === 'M' ? 'Male' : (ctx.sex === 'F' ? 'Female' : '—'), 'Sex') +
-    cell(esc_(ctx.height) + ' cm', 'Height', '', ctx.estimatedHeight) +
-    cell(esc_(ctx.weight) + ' kg', 'Weight', '', ctx.estimatedWeight) +
-    cell(ctx.asa ? 'ASA ' + esc_(ctx.asa) : '—', 'Status') +
-    cell(esc_(ctx.procedure || 'Not specified'), 'Procedure', 'pctx-proc') +
-    '<div class="pctx-act">'+
-      '<button type="button" class="pctx-edit" onclick="ptEdit('+(editing?'false':'true')+')">'+
-        (editing ? 'Done' : 'Edit patient')+'</button>'+
-      '<button type="button" class="pctx-new" onclick="newCaseAsk()">New case</button>'+
-    '</div></div>';
-}
+/* ── The Current Case bar and the mobile summary ─────────────────────────
+   Both are written by ptSummary(); this keeps the name renderPatientStrip so
+   every existing call site is unchanged, and makes it mean "refresh the case
+   line" now that the banner it used to draw is gone. */
+function renderPatientStrip(){ ptSummary(); }
 window.renderPatientStrip = renderPatientStrip;
 
-/* ── The context strip ──────────────────────────────────────────────────── */
+/* ── The derived strip ───────────────────────────────────────────────────
+   One strip, two content sets, chosen by patientContext and by nothing else.
+   The adult set is the seven values this cockpit has always shown. The
+   pediatric set drops adult Devine IBW, LBW and adjusted body weight, which
+   are not defined for a child and were rendered for one anyway — a 10 kg
+   one-year-old read IBW 50 kg, LBW 5 kg, ABW 34 kg — and puts in their place
+   the weight-based numbers this engine already calculates and already shows
+   in the airway and fluid panels. Nothing here is a new formula: every value
+   comes from ctx.derived, which compute() filled from its own working. */
 function renderContextStrip(){
-  var host = ge('dctx-host'); if(!host) return;
+  var host = ge('cw-derived'); if(!host) return;
+  var tagEl = ge('acc-derived-tag');
   var ctx = window.patientContext;
-  if(!ctx || !ctx.complete){ host.innerHTML = ''; return; }
-  var d = ctx.derived || {};
-  function v(label, val, unit){
-    if(val == null || val === '' ) return '';
-    return '<div class="dctx-d"><span class="dctx-l">'+label+'</span>'+
-           '<span class="dctx-v">'+val+'</span>'+(unit?'<span class="dctx-u">'+unit+'</span>':'')+'</div>';
+
+  function cell(label, val, unit, sub){
+    if(val == null || val === '') return '';
+    return '<div class="cw-d"><span class="cw-d-l">'+label+
+           (sub ? ' <small>'+sub+'</small>' : '')+'</span>'+
+           '<span class="cw-d-val">'+val+'</span>'+
+           (unit ? '<span class="cw-d-u">'+unit+'</span>' : '')+'</div>';
   }
-  var tag, cells;
+  /* Before a patient exists the strip keeps its shape and shows em dashes,
+     the way it always did, rather than collapsing and moving everything below
+     it up and then back down again on the first keystroke. */
+  function blank(labels){
+    return labels.map(function(l){
+      return '<div class="cw-d"><span class="cw-d-l">'+l[0]+
+             (l[2]?' <small>'+l[2]+'</small>':'')+'</span>'+
+             '<span class="cw-d-val">&mdash;</span>'+
+             (l[1]?'<span class="cw-d-u">'+l[1]+'</span>':'')+'</div>';
+    }).join('');
+  }
+
+  if(!ctx || !ctx.complete){
+    if(tagEl) tagEl.textContent = '';
+    var s0 = ge('acc-derived'); if(s0) s0.classList.remove('has-tag');
+    host.className = 'cw-derived';
+    host.innerHTML = blank([['BMI',''],['IBW','kg'],['LBW','kg'],['Adjusted BW','kg'],
+                            ['BSA','m&sup2;'],['EBV','mL'],['MAC','','age-adj']]);
+    return;
+  }
+
+  var d = ctx.derived || {}, tag, cells;
   if(ctx.pediatric){
-    /* Adult Devine IBW, LBW and adjusted body weight are deliberately absent:
-       they are not defined for children and were previously displayed anyway. */
     tag = (ctx.neonate ? 'Neonatal' : ctx.infant ? 'Infant' : 'Pediatric') + ' context';
-    cells = v('BSA', d.bsa, 'm&sup2;') + v('EBV', d.ebv, 'mL') +
-            v('Maintenance', d.maint, 'mL/h') +
-            v('ETT', d.ett, 'mm ID') + v('Depth', d.ettDepth, 'cm') +
-            v('LMA', d.lma, '');
+    cells = cell('BSA', d.bsa, 'm&sup2;') +
+            cell('EBV', d.ebv, 'mL') +
+            cell('Maintenance', d.maint, 'mL/h') +
+            cell('ETT', d.ett, 'mm ID') +
+            cell('ETT depth', d.ettDepth, 'cm') +
+            cell('LMA / i-gel', d.lma, '') +
+            cell('MAC', d.mac, '', 'age-adj');
   } else {
     tag = 'Adult context';
-    cells = v('BMI', d.bmi, '') + v('IBW', d.ibw, 'kg') + v('LBW', d.lbw, 'kg') +
-            v('Adj. BW', d.abw, 'kg') + v('BSA', d.bsa, 'm&sup2;') +
-            v('EBV', d.ebv, 'mL') + v('MAC', d.mac, '');
+    cells = cell('BMI', d.bmi, '') +
+            cell('IBW', d.ibw, 'kg') +
+            cell('LBW', d.lbw, 'kg') +
+            cell('Adjusted BW', d.abw, 'kg') +
+            cell('BSA', d.bsa, 'm&sup2;') +
+            cell('EBV', d.ebv, 'mL') +
+            cell('MAC', d.mac, '', 'age-adj');
   }
-  host.innerHTML = '<div class="dctx'+(ctx.pediatric?' peds':'')+'">'+
-    '<div class="dctx-tag">'+tag+'</div>'+cells+'</div>';
+  if(tagEl) tagEl.textContent = ctx.pediatric ? tag : '';
+  var sec = ge('acc-derived');
+  if(sec) sec.classList.toggle('has-tag', !!ctx.pediatric);
+  host.className = 'cw-derived' + (ctx.pediatric ? ' peds' : '');
+  host.innerHTML = cells;
 }
 window.renderContextStrip = renderContextStrip;
 
@@ -3326,23 +3427,46 @@ function setDomain(dom){
   var out = ge('output'); if(!out) return false;
   if(!out.querySelector('.panel[data-domain="'+dom+'"]')) return false;
   out.setAttribute('data-domain', dom);
-  var links = document.querySelectorAll('#cmd-strip .cmd-b[data-jump]');
+  var links = document.querySelectorAll('#cmd-strip .cmd-b[data-domain]');
   [].forEach.call(links, function(a){
     a.classList.toggle('on', a.getAttribute('data-domain')===dom);
     a.setAttribute('aria-current', a.getAttribute('data-domain')===dom ? 'true' : 'false');
   });
+  domReflow(dom);
   return true;
 }
 window.setDomain=setDomain;
 
+/* Which containers still hold something. CSS cannot ask "does this stack have
+   a visible child", so it is asked here and answered with a class. */
+function domReflow(dom){
+  var out = ge('output'); if(!out) return;
+  var groups = out.querySelectorAll('.stack, .panels-wide');
+  var live = 0;
+  [].forEach.call(groups, function(g){
+    var has = !!g.querySelector('.panel[data-domain="'+dom+'"]');
+    g.classList.toggle('dom-empty', !has);
+    if(has && g.classList.contains('stack')) live++;
+  });
+  var wrap = out.querySelector('.panels');
+  if(wrap) wrap.classList.toggle('dom-single', live < 2);
+  if(window.balanceRows) balanceRows();
+}
+window.domReflow=domReflow;
+
 /* Given a module key, make sure its domain is the one on screen. Search and
    the exact anchors both go through here, so a hit in a domain that happens
    to be hidden brings its domain forward instead of silently failing. */
+/* Every route to a module goes through here, and now it has to: with one
+   domain on screen at a time, a search hit or a deep link in a domain that is
+   not showing would land on a display:none element and look like a dead
+   result. The phone-only guard is gone precisely because the desktop now
+   behaves the same way. */
 function revealDomainFor(pk){
   var el = document.querySelector('.panel[data-pk="'+pk+'"]');
   if(!el) return false;
   var dom = el.getAttribute('data-domain');
-  if(isPhone() && dom) setDomain(dom);
+  if(dom) setDomain(dom);
   return true;
 }
 window.revealDomainFor=revealDomainFor;
@@ -3366,31 +3490,30 @@ function cmdInit(){
   var strip = ge('cmd-strip'); if(!strip) return;
   var links = [].slice.call(strip.querySelectorAll('.cmd-b[data-jump]'));
   links.forEach(function(a){
+    /* A TAB IS A SELECTOR NOW, NOT AN ANCHOR. It used to scroll to a module
+       inside one long document; it now chooses which workspace is rendered.
+       setDomain() is therefore the action and the scroll is the follow-up,
+       which also means a tab whose lead module was renamed still works: the
+       domain comes from the tab itself, not from finding a panel key. */
     a.addEventListener('click', function(e){
       e.preventDefault();
-      if(cmdJump(a.getAttribute('data-jump'))){
-        links.forEach(function(o){ o.classList.remove('on'); });
-        a.classList.add('on');
-      }
+      var dom = a.getAttribute('data-domain');
+      if(!dom || !setDomain(dom)) return;
+      var jump = a.getAttribute('data-jump');
+      var el = jump && document.querySelector('.panel[data-pk="'+jump+'"]');
+      if(el) el.classList.remove('collapsed');
+      /* The workstation, not the module: with one domain on screen the first
+         module IS the top of the workspace. */
+      var out = ge('output'), off = strip.getBoundingClientRect().height + 8;
+      if(out) window.scrollTo({ top:Math.max(0, out.getBoundingClientRect().top + window.scrollY - off),
+                                behavior:'smooth' });
     });
   });
-  /* On a phone the active domain is whatever the clinician selected, so
-     scroll tracking would fight it. Desktop keeps the where-am-I readout. */
-  var t=null;
-  window.addEventListener('scroll', function(){
-    if(t || isPhone()) return;
-    t = setTimeout(function(){
-      t=null;
-      var best=null, bestD=Infinity, line=(strip.getBoundingClientRect().height||0)+90;
-      links.forEach(function(a){
-        var el=document.querySelector('.panel[data-pk="'+a.getAttribute('data-jump')+'"]');
-        if(!el) return;
-        var d=Math.abs(el.getBoundingClientRect().top-line);
-        if(el.getBoundingClientRect().top<=line+40 && d<bestD){ bestD=d; best=a; }
-      });
-      links.forEach(function(o){ o.classList.toggle('on', o===best); });
-    }, 120);
-  }, {passive:true});
+  /* THE SCROLL SPY IS GONE. It answered "where am I" by measuring which
+     module was under the command strip, which was the right question for a
+     document containing every module at once. One domain at a time makes the
+     answer constant, and a spy that reassigns .on while the reader scrolls
+     would now fight the selection they just made. */
 }
 window.cmdInit=cmdInit;
 
