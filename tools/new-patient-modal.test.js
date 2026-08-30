@@ -169,9 +169,11 @@ const CREATE = `(async () => {
   const save = DASHC.slice(DASHC.indexOf('async function wsSavePatient'),
                            DASHC.indexOf('function wsLink('));
   t('wsSavePatient renders the created view', /wsAddCreatedRender\(/.test(save));
+  const flat = save.replace(/\s+/g, ' ');
   t('...and only closes when the insert returned no row',
-    /if\(r\.data\)\{ wsAddCreatedRender[\s\S]{0,80}else \{ wsCloseAddModal\(\); \}/.test(save.replace(/\s+/g,' ')) ||
-    /else \{ wsCloseAddModal\(\); \}/.test(save.replace(/\s+/g,' ')), true);
+    /if\(r\.data\)\{ wsAddCreatedRender\([^)]*\) ; \} else \{ wsCloseAddModal\(\);/.test(flat) ||
+    /if\(r\.data\)\{ wsAddCreatedRender[^}]*\} else \{ wsCloseAddModal\(\);/.test(flat),
+    (flat.match(/if\(r\.data\)[\s\S]{0,110}/) || [''])[0]);
   t('the created view never calls wsMarkSent', !/wsMarkSent/.test(
     DASHC.slice(DASHC.indexOf('function wsAddCreatedRender'), DASHC.indexOf('function wsAddCreatedRefresh'))));
   /* Three call sites, and each one is a delivery that actually launched:

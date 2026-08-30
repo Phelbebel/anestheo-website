@@ -3186,9 +3186,10 @@ async function wsSavePatient(thenSend){
     await wsLoadPatients();
     await wsLoadCases();
     if(r.data){ wsAddCreatedRender(wsFindP(r.data.id) || r.data); }
-    else { wsCloseAddModal(); }
+    else { wsCloseAddModal(); wsToast('Patient saved'); }
+    /* No "Patient saved" toast on the created screen: the screen IS the
+       confirmation, and a toast on top of it says the same thing twice. */
     if(thenSend && r.data){ wsSend(r.data.id); }
-    else { wsToast('Patient saved'); }
   } catch(e){
     console.error('Creating the clinic patient failed unexpectedly.');
     wsToast('Insert exception: ' + (e && e.message ? e.message : e));
