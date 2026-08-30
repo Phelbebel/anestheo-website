@@ -11,6 +11,7 @@
 <script src="/navbar.js?v=2026.08.21-03"></script>
 <script src="/clinical-index.js?v=2026.08.21-03"></script>
 <script src="/clinical-search.js?v=2026.08.21-03"></script>
+<script src="/procedures.js?v=2026.08.21-03"></script>
 <script src="/evidence-api.js?v=2026.08.21-03"></script>
 <script src="/evidence-drawer.js?v=2026.08.21-03"></script>
 <link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
@@ -473,6 +474,14 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
   border-radius:var(--radius-md);font-size:12.5px;line-height:1.6;color:var(--ink-2);}
 .proc-warn b{color:#f0c674;font-weight:700;}
 .proc-warn-i{flex:0 0 auto;font-size:14px;color:#f0c674;line-height:1.4;}
+/* Two of the four states show here, and they are not the same problem. A
+   conflict is a contradiction between what was recorded and what the
+   procedure is; a missing field is just not filled in yet, and dressing that
+   in warning amber would cry wolf on an ordinary half-entered case. */
+.proc-warn.needs{background:rgba(126,207,192,.07);border-color:rgba(126,207,192,.28);
+  color:var(--ink-2);}
+.proc-warn.needs b{color:var(--accent);}
+.proc-warn.needs .proc-warn-i{color:var(--accent);}
 
 /* ══ PEDIATRIC ESTIMATE OFFER ═════════════════════════════════════════════
    Sits inside the patient form, under the fields it is offering to fill. The
@@ -1989,7 +1998,8 @@ function compute(){
   var out=ge('output');
   if(age==null||!sex||ht==null||wt==null){
     window.patientContext = buildPatientContext({
-      ageYears:age, ageDays:(ageC?ageC.days:null), sex:sex,
+      ageYears:age, ageDays:(ageC?ageC.days:null),
+      ageValue:(ageC?ageC.value:null), ageUnit:(ageC?ageC.unit:null), sex:sex,
       height:ht, weight:wt, asa:ge('i-asa').value, procedure:ge('i-proc').value,
       estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height });
     renderPatientStrip(); renderContextStrip(); renderProcNotice(); renderPedsEstimate();
@@ -2001,7 +2011,7 @@ function compute(){
   /* Resolved here, once, from the applicability layer, because panels built
      further down need the answer before patientContext is assembled. It is the
      same function patientContext uses, so the two cannot drift. */
-  var isOb = obstetricContextFor(sex, ge('i-proc').value);
+  var isOb = obstetricContextFor(sex, ge('i-proc').value, age);
   var ageDays=ageC.days, isInfant=age<1, isNeo=ageDays<28;
   var wbAir=isPeds && (isInfant || wt<5);          // A1b: weight-based airway precedence
   var htM=ht/100;
@@ -2245,7 +2255,8 @@ function compute(){
     _pedsLMA = lmaForWeight(wt);
   }
   window.patientContext = buildPatientContext({
-    ageYears:age, ageDays:ageC.days, sex:sex, height:ht, weight:wt,
+    ageYears:age, ageDays:ageC.days, ageValue:ageC.value, ageUnit:ageC.unit,
+    sex:sex, height:ht, weight:wt,
     asa:ge('i-asa').value, procedure:ge('i-proc').value,
     estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height,
     derived:{ bmi:r1(bmi), ibw:r0(ibw), lbw:r0(lbw), abw:r0(abw),
@@ -2645,7 +2656,8 @@ function drefCat(d){ var c = d.pclass || 'other'; return DREF_MERGE[c] || c; }
 
 function drefDrugs(){
   var CC = window.ClinicalContent; if(!CC) return [];
-  var wt = (window.patientContext && window.patientContext.weight) || null;
+  var pc = window.patientContext;
+  var wt = (pc && pc.anthropometrics && pc.anthropometrics.weight) || null;
   var seen = {}, out = [];
   CC.GROUPS.forEach(function(g){
     CC.visibleDrugsInGroup(g.id, wt).forEach(function(d){
@@ -3286,107 +3298,144 @@ window.patientContext = null;
 
 function buildPatientContext(o){
   var days = o.ageDays, y = o.ageYears;
-  var meta = procedureMetaFor(o.procedure);
-  var band = 'adult';
+  var band = null;
   if (days != null){
     if (days < 28)        band = 'neonate';
     else if (y < 1)       band = 'infant';
     else if (y < 12)      band = 'child';
     else if (y < 16)      band = 'adolescent';
+    else                  band = 'adult';
   }
-  var peds = (y != null && y < 16);
+  var peds  = (y != null && y < 16);
+  var adult = (y != null && y >= 16);
+  var d = o.derived || {};
+
+  /* The procedure is resolved through the procedure catalogue, never through
+     the drug index, and its compatibility with this patient is decided in one
+     place. See PROCEDURE_INDEX / procedureCompatibility(). */
+  var proc = resolveProcedure(o.procedure, { ageYears:y, ageDays:days, sex:o.sex||null, band:band });
+
   return {
-    ageYears: y, ageDays: days, ageBand: band,
-    sex: o.sex || null, weight: o.weight, height: o.height,
-    asa: o.asa || null, procedure: o.procedure || null,
-    procedureMeta: meta,
-    pediatric: peds, adult: (y != null && y >= 16),
-    neonate: band === 'neonate', infant: band === 'infant',
-    /* Never inferred from sex alone. A named obstetric procedure AND a
-       patient the procedure can apply to; either half missing means no
-       obstetric references. */
-    obstetricContext: obstetricContextFor(o.sex, o.procedure),
-    estimatedWeight: !!o.estimatedWeight, estimatedHeight: !!o.estimatedHeight,
-    complete: (y != null && !!o.sex && o.height != null && o.weight != null),
-    derived: o.derived || {}
+    /* ── AGE, in every unit anything on this page asks for ─────────────── */
+    age: { value:o.ageValue != null ? o.ageValue : null, unit:o.ageUnit || null,
+           years:y, months:(days != null ? Math.round(days/30.44) : null),
+           days:days, band:band },
+
+    sex: o.sex || null,
+
+    /* ── MEASURED OR ESTIMATED, and which ──────────────────────────────── */
+    anthropometrics: {
+      weight:o.weight, height:o.height,
+      weightSource:(o.weight == null ? null : (o.estimatedWeight ? 'estimated' : 'measured')),
+      heightSource:(o.height == null ? null : (o.estimatedHeight ? 'estimated' : 'measured'))
+    },
+
+    asa: o.asa || null,
+
+    procedure: proc,
+
+    /* ── WHAT KIND OF CASE THIS IS ─────────────────────────────────────── */
+    context: {
+      pediatric:peds, neonate:band === 'neonate', infant:band === 'infant',
+      child:band === 'child', adolescent:band === 'adolescent', adult:adult,
+      /* NEVER inferred from sex, age, hysterectomy, gynaecology or pelvic
+         surgery. Only a recognised obstetric procedure whose context is not
+         contradicted, or an explicit obstetric context, sets this. */
+      obstetric: proc.compatibility === 'valid' && proc.activatesObstetric === true
+    },
+
+    /* ── SCALARS A DOSE MAY BE DEFINED AGAINST ─────────────────────────── */
+    dosingScalars: { tbw:o.weight, ibw:d.ibw, lbw:d.lbw, abw:d.abw, bsa:d.bsa },
+
+    /* ── PAEDIATRIC WORKING VALUES ─────────────────────────────────────── */
+    pediatric: { ebv:d.ebv, maintenance421:d.maint, ett:d.ett,
+                 ettDepth:d.ettDepth, lma:d.lma, igel:d.lma },
+
+    /* Kept because the strip and several panels read them directly. */
+    derived: d,
+    complete: (y != null && !!o.sex && o.height != null && o.weight != null)
   };
 }
 
+/* dosingScalars ARE defined for a child where the formula is defined — a drug
+   whose rule is written against BSA still needs BSA at any age. What must not
+   happen is the UI presenting adult Devine IBW, LBW and adjusted body weight
+   as ordinary paediatric readings, which is a presentation rule and lives in
+   renderContextStrip(), not here. */
+
 /* ══ PROCEDURE APPLICABILITY ══════════════════════════════════════════════
-   One rules table, consulted through patientContext. The page previously
-   decided obstetric content with a conditional written inline:
+   The rules used to be one regex written inline at the only place that read
+   it, and its match list included `hysterect` and `gyn`. A woman having a
+   hysterectomy was therefore shown Caesarean spinal dosing, labour epidural
+   mixes and uterotonics, because the page had inferred that a gynaecological
+   field meant an obstetric patient. It does not.
 
-     var isOb = sex==='F' && (isCS || /obstet|labou?r|.../.test(procL));
+   Procedures now live in their own catalogue, procedures.js, separate from
+   the drug index; this file only asks it questions. Obstetric context comes
+   from a procedure that IS obstetric, never from sex, age or surgical field.
 
-   which is the scattered-condition pattern the brief bans: the rule lived at
-   the only place that used it, so nothing else could ask the same question
-   and get the same answer. It is now data.
+   FOUR STATES, and the caller can tell them apart:
+     free-text        unrecognised. Allowed, nothing activates, nothing claimed.
+     valid            recognised and uncontradicted.
+     requires-context recognised, but a field the rule needs is blank.
+     incompatible     recognised and contradicted. */
+function resolveProcedure(raw, who){
+  var text = (raw == null ? '' : String(raw)).trim();
+  var PI = window.ProcedureIndex;
+  var empty = { raw:text || null, recognized:false, id:null, label:null,
+                specialty:null, contextTags:[], compatibility:'free-text',
+                reasons:[], activatesObstetric:false };
+  if(!text || !PI) return empty;
 
-   THE RULE SET IS DELIBERATELY SMALL. Only structural incompatibilities that
-   are defensible without inventing a cutoff are encoded. Obstetric delivery
-   requires a female patient: that is what the procedure is. There is no
-   arbitrary minimum age here, and no speculative "sounds paediatric" or
-   "sounds geriatric" rule, because the brief asked for none and I have
-   nothing to source one from. Adding a rule means adding a row here, not a
-   condition somewhere in the render path.
+  var p = PI.match(text);
+  if(!p) return empty;
 
-   The match list is the ORIGINAL list, moved, not rewritten: the same terms
-   the inline conditional tested, unioned and case-insensitive instead of
-   pre-lowercased. This is a refactor, so a case that showed the obstetric
-   panel before shows it now. Two of those terms — `hysterect` and `gyn` — are
-   gynaecological rather than obstetric, and the panel they open is Caesarean
-   spinal dosing and uterotonics, which is not the reference a hysterectomy
-   needs. That is a pre-existing content question, so it is reported rather
-   than silently narrowed here. */
-var PROC_RULES = [
-  { id:'obstetric',
-    label:'Obstetric delivery',
-    match:/cesar|caesar|c-?section|c\/s|obstet|labou?r|delivery|hysterect|gyn/i,
-    requires:{ sex:'F' },
-    activates:'obstetric',
-    why:'Obstetric references apply to a delivering patient.' }
-];
-
-/* The single definition of "this is an obstetric case". buildPatientContext
-   stores it; compute() needs the answer earlier than it builds the context,
-   so it asks the same function rather than repeating the test. */
-function obstetricContextFor(sex, procedure){
-  var m = procedureMetaFor(procedure);
-  return !!(m && m.activates === 'obstetric' && sex === 'F');
+  var c = PI.compatibility(p, who || {});
+  return {
+    raw:text, recognized:true, id:p.id, label:p.label,
+    specialty:p.specialty || null, contextTags:(p.contextTags || []).slice(),
+    compatibility:c.state, reasons:c.reasons,
+    /* Only a valid obstetric procedure turns obstetric content on. An
+       incompatible one is named, explained, and loads nothing. */
+    activatesObstetric: !!p.obstetricOnly
+  };
 }
+window.resolveProcedure = resolveProcedure;
 
-function procedureMetaFor(procedure){
-  if(!procedure) return null;
-  for(var i=0;i<PROC_RULES.length;i++){
-    if(PROC_RULES[i].match.test(procedure)) return PROC_RULES[i];
-  }
-  return null;   /* unrecognised text is not incompatible, it is just free text */
+/* The single definition of "this is an obstetric case", for the few places
+   that need the answer before patientContext has been assembled. */
+function obstetricContextFor(sex, procedure, ageYears){
+  var r = resolveProcedure(procedure, { sex:sex || null, ageYears:(ageYears == null ? null : ageYears) });
+  return r.compatibility === 'valid' && r.activatesObstetric === true;
 }
+window.obstetricContextFor = obstetricContextFor;
 
-/* Does this recognised procedure fit this patient? Returns null when there is
-   nothing to say, or a reason when there is. */
-function procedureConflict(ctx){
-  var m = ctx && ctx.procedureMeta;
-  if(!m || !m.requires) return null;
-  var req = m.requires, bad = [];
-  if(req.sex && ctx.sex && ctx.sex !== req.sex)
-    bad.push('recorded sex is ' + (ctx.sex === 'M' ? 'male' : 'female'));
-  if(req.minAgeYears != null && ctx.ageYears != null && ctx.ageYears < req.minAgeYears)
-    bad.push('recorded age is ' + ptAgeLabel(ctx));
-  if(!bad.length) return null;
-  return { label:m.label, why:m.why, bad:bad };
-}
-
+/* ── The procedure notice ────────────────────────────────────────────────
+   Says which of the four states the recorded procedure is in, and never more
+   than the state supports. Free text gets no notice at all: typing something
+   the catalogue does not know is normal, not a problem. */
 function renderProcNotice(){
   var host = ge('proc-notice'); if(!host) return;
   var ctx = window.patientContext;
-  var c = ctx ? procedureConflict(ctx) : null;
-  if(!c){ host.innerHTML = ''; return; }
+  var p = ctx && ctx.procedure;
+  if(!p || !p.recognized || p.compatibility === 'valid'){ host.innerHTML = ''; return; }
+
+  var why = (p.reasons || []).join(' and ');
+  if(p.compatibility === 'incompatible'){
+    host.innerHTML =
+      '<div class="proc-warn incompat" role="status">'+
+      '<span class="proc-warn-i" aria-hidden="true">&#9888;</span><div>'+
+      '<b>Procedure conflict.</b> ' + esc_(p.label) + ' is an obstetric procedure and '+
+      'does not match the current patient context&nbsp;&mdash; ' + esc_(why) + '. '+
+      'Obstetric references are not activated. The procedure is kept as entered; '+
+      'check age, sex and procedure.</div></div>';
+    return;
+  }
   host.innerHTML =
-    '<div class="proc-warn" role="status"><span class="proc-warn-i" aria-hidden="true">&#9888;</span>'+
-    '<div><b>' + c.label + ' does not fit this patient context.</b> ' + c.why + ' Here the ' +
-    c.bad.join(' and ') + '. Check age, sex and procedure. ' +
-    'Obstetric references are not loaded for this case, and the text is kept as entered.</div></div>';
+    '<div class="proc-warn needs" role="status">'+
+    '<span class="proc-warn-i" aria-hidden="true">&#9432;</span><div>'+
+    '<b>' + esc_(p.label) + ' needs more context.</b> ' + esc_(why[0].toUpperCase() + why.slice(1)) + '. '+
+    'Procedure-specific references stay off until it is.</div></div>';
 }
 window.renderProcNotice = renderProcNotice;
 
@@ -3434,9 +3483,9 @@ var _estApplying = false;
 function pedsEstimate(ctx){
   var ref = window.PEDS_GROWTH_REFERENCE;
   if(!ref || typeof ref.lookup !== 'function') return null;
-  if(!ctx || !ctx.pediatric || ctx.ageDays == null || !ctx.sex) return null;
+  if(!ctx || !ctx.context.pediatric || ctx.age.days == null || !ctx.sex) return null;
   var r;
-  try { r = ref.lookup({ ageDays:ctx.ageDays, ageYears:ctx.ageYears, sex:ctx.sex }); }
+  try { r = ref.lookup({ ageDays:ctx.age.days, ageYears:ctx.age.years, sex:ctx.sex }); }
   catch(e){ console.error('[peds-estimate] reference lookup failed', e); return null; }
   if(!r) return null;
   return { weightKg: (typeof r.weightKg === 'number' ? r.weightKg : null),
@@ -3471,8 +3520,9 @@ function pedsWatchManualEntry(){
 function renderPedsEstimate(){
   var host = ge('peds-est'); if(!host) return;
   var ctx = window.patientContext;
-  var needs = ctx && ctx.pediatric && ctx.ageDays != null &&
-              (ctx.weight == null || ctx.height == null);
+  var a = ctx && ctx.anthropometrics;
+  var needs = ctx && ctx.context.pediatric && ctx.age.days != null &&
+              (a.weight == null || a.height == null);
   if(!needs){ host.innerHTML = ''; return; }
 
   var est = pedsEstimate(ctx);
@@ -3482,16 +3532,16 @@ function renderPedsEstimate(){
       '<div class="pest pest-off"><span class="pest-i" aria-hidden="true">&#8505;</span>'+
       '<div><b>Estimate from age is unavailable.</b> '+
       'Reference dataset required before enabling estimates. Enter the measured '+
-      (ctx.weight == null && ctx.height == null ? 'weight and height' :
-       ctx.weight == null ? 'weight' : 'height')+
+      (a.weight == null && a.height == null ? 'weight and height' :
+       a.weight == null ? 'weight' : 'height')+
       ' to activate the calculations.</div></div>';
     return;
   }
   var btns = '';
-  if(ctx.weight == null && est.weightKg != null)
+  if(a.weight == null && est.weightKg != null)
     btns += '<button type="button" class="pest-b" onclick="pedsApplyEstimate(\'weight\')">'+
             'Use '+(Math.round(est.weightKg*10)/10)+' kg</button>';
-  if(ctx.height == null && est.heightCm != null)
+  if(a.height == null && est.heightCm != null)
     btns += '<button type="button" class="pest-b" onclick="pedsApplyEstimate(\'height\')">'+
             'Use '+(Math.round(est.heightCm*10)/10)+' cm</button>';
   if(!btns){ host.innerHTML = ''; return; }
@@ -3537,8 +3587,8 @@ function esc_(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
 function ptAgeLabel(ctx){
-  if(ctx.ageDays == null) return '—';
-  var d = ctx.ageDays;
+  if(!ctx || ctx.age.days == null) return '—';
+  var d = ctx.age.days;
   if(d < 28)  return d + (d===1?' day':' days');
   if(d < 365){ var m = Math.round(d/30.44); return m + (m===1?' month':' months'); }
   var y = Math.floor(d/365.25);
@@ -3595,29 +3645,36 @@ function renderContextStrip(){
   }
 
   var d = ctx.derived || {}, tag, cells;
-  if(ctx.pediatric){
-    tag = (ctx.neonate ? 'Neonatal' : ctx.infant ? 'Infant' : 'Pediatric') + ' context';
-    cells = cell('BSA', d.bsa, 'm&sup2;') +
-            cell('EBV', d.ebv, 'mL') +
-            cell('Maintenance', d.maint, 'mL/h') +
-            cell('ETT', d.ett, 'mm ID') +
-            cell('ETT depth', d.ettDepth, 'cm') +
-            cell('LMA / i-gel', d.lma, '') +
+  if(ctx.context.pediatric){
+    tag = (ctx.context.neonate ? 'Neonatal' : ctx.context.infant ? 'Infant' : 'Pediatric') + ' context';
+    /* From ctx.pediatric, not from the adult scalars. Devine IBW, LBW and
+       adjusted body weight are deliberately absent: they are not paediatric
+       readings and presenting them as such is what made a 10 kg one-year-old
+       read IBW 50 kg. They remain in ctx.dosingScalars for any drug whose
+       rule is genuinely defined against one. */
+    var P = ctx.pediatric || {};
+    cells = cell('BSA', ctx.dosingScalars.bsa, 'm&sup2;') +
+            cell('EBV', P.ebv, 'mL') +
+            cell('Maintenance', P.maintenance421, 'mL/h') +
+            cell('ETT', P.ett, 'mm ID') +
+            cell('ETT depth', P.ettDepth, 'cm') +
+            cell('LMA / i-gel', P.lma, '') +
             cell('MAC', d.mac, '', 'age-adj');
   } else {
     tag = 'Adult context';
+    var S = ctx.dosingScalars || {};
     cells = cell('BMI', d.bmi, '') +
-            cell('IBW', d.ibw, 'kg') +
-            cell('LBW', d.lbw, 'kg') +
-            cell('Adjusted BW', d.abw, 'kg') +
-            cell('BSA', d.bsa, 'm&sup2;') +
+            cell('IBW', S.ibw, 'kg') +
+            cell('LBW', S.lbw, 'kg') +
+            cell('Adjusted BW', S.abw, 'kg') +
+            cell('BSA', S.bsa, 'm&sup2;') +
             cell('EBV', d.ebv, 'mL') +
             cell('MAC', d.mac, '', 'age-adj');
   }
-  if(tagEl) tagEl.textContent = ctx.pediatric ? tag : '';
+  if(tagEl) tagEl.textContent = ctx.context.pediatric ? tag : '';
   var sec = ge('acc-derived');
-  if(sec) sec.classList.toggle('has-tag', !!ctx.pediatric);
-  host.className = 'cw-derived' + (ctx.pediatric ? ' peds' : '');
+  if(sec) sec.classList.toggle('has-tag', !!ctx.context.pediatric);
+  host.className = 'cw-derived' + (ctx.context.pediatric ? ' peds' : '');
   host.innerHTML = cells;
 }
 window.renderContextStrip = renderContextStrip;
