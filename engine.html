@@ -417,12 +417,17 @@ table.dtab .dtab-prep{width:17%;}
 
 @media(max-width:900px){
   .pctx{grid-template-columns:repeat(4,minmax(0,1fr));}
-  .pctx-proc{grid-column:1 / -1;}
+  /* Status is the fifth cell, so it lands alone at the start of row two and
+     left three empty cells beside it. The procedure takes the rest of that
+     row instead of starting a third one. */
+  .pctx-proc{grid-column:2 / -1;}
   .pctx-act{grid-column:1 / -1;border-left:none;border-top:1px solid var(--line);}
   .pctx-edit,.pctx-new{flex:1 1 0;}
 }
 @media(max-width:560px){
   .pctx{grid-template-columns:repeat(2,minmax(0,1fr));}
+  /* Two columns leave no room to share a row; the procedure gets its own. */
+  .pctx-proc{grid-column:1 / -1;}
   .pctx-c{padding:9px 13px;}
   .pctx-v{font-size:17px;}
   .dctx-tag,.dctx-d{padding:8px 12px;}
