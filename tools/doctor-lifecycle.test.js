@@ -611,8 +611,31 @@ const showStage = stage => `(async () => {
   {
     const mainDash = execSync('git -C ' + REPO + ' show ' + MAIN + ':dashboard.html', { encoding:'utf8', maxBuffer:1<<26 });
     const grab = (src, name) => (src.match(new RegExp('function ' + name + '\\([^)]*\\)\\{[\\s\\S]*?\\n\\}')) || [''])[0];
-    for (const fn of ['wsSendWhatsApp','wsCopyLink','wsFallbackCopy','wsOpenLink','wsLink','wsMessage','wsMarkSent','wsValidEmail'])
+    for (const fn of ['wsSendWhatsApp','wsCopyLink','wsFallbackCopy','wsOpenLink','wsLink','wsMessage','wsValidEmail'])
       t(fn + ' is byte-identical to main', grab(DASH, fn) === grab(mainDash, fn) && grab(DASH, fn).length > 0, fn);
+
+    /* wsMarkSent MOVED. The New Patient dialog became a shared module that
+       Live Tools opens too, and it needed the same write; a second copy of the
+       one statement deciding whether a patient was contacted is the drift that
+       module exists to prevent, so there is one implementation and this page
+       delegates to it. Byte-identity here would report the move as a change to
+       the rule, when the rule is what stayed the same.
+
+       What matters to THIS suite is that the lifecycle's delivery write is
+       still the same statement, still called from the same places, and still
+       singular. All three are asserted, and the third would have caught the
+       moment there were briefly two. */
+    const NPSRC = fs.readFileSync(REPO + '/new-patient.js', 'utf8');
+    const npMark = (NPSRC.match(/function markSent\(id\)\{[\s\S]*?\n  \}/) || [''])[0];
+    t('wsMarkSent delegates to the shared module',
+      /return window\.NewPatient\.markSent\(id\);/.test(code(grab(DASH, 'wsMarkSent'))),
+      grab(DASH, 'wsMarkSent').replace(/\s+/g, ' ').slice(0, 90));
+    t('...and that statement writes what main wrote',
+      /questionnaire_status\s*:\s*'sent'/.test(npMark) && /sent_at\s*:/.test(npMark) &&
+      /\.eq\('id',\s*id\)/.test(npMark), npMark.replace(/\s+/g, ' ').slice(0, 110));
+    t('...and the product holds exactly one of it',
+      ((DASH + NPSRC).match(/questionnaire_status\s*:\s*'sent'/g) || []).length === 1,
+      ((DASH + NPSRC).match(/questionnaire_status\s*:\s*'sent'/g) || []).length);
     t('WhatsApp still marks sent only when its window opened',
       /if\(win\)\{[\s\S]{0,120}wsMarkSent/.test(code(grab(DASH,'wsSendWhatsApp'))));
     t('the three share buttons still exist on the card',
