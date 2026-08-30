@@ -642,9 +642,32 @@ async function open(b, path, prof, w, h) {
   const newSql = execSync('git -C ' + REPO + ' diff --name-only --diff-filter=A ' + MAIN + ' -- "*.sql"',
     { encoding:'utf8' }).split('\n').filter(Boolean);
   t('this branch adds no SQL at all', newSql.length === 0, newSql);
-  for (const file of ['auth.js','supabase.js','navbar.js','clinical-open.js','patient-lifecycle.js',
-                      'dashboard.html','ask.html','questions.html','patients.html'])
+  /* THE SECURITY SURFACE, held to byte equality. These five files are the
+     claim this section makes: the founder page adds no auth, no session
+     handling, no lifecycle call and no navigation privilege. */
+  for (const file of ['auth.js','supabase.js','navbar.js','clinical-open.js','patient-lifecycle.js'])
     t('untouched: ' + file, read(file) === onMain(file), file);
+
+  /* THE FOUR APPLICATION PAGES were also held to byte equality, and that was
+     the wrong instrument. Byte equality against main is a branch-scope guard,
+     not a property of the founder work: it fails the moment any LATER branch
+     edits one of these pages for a reason that has nothing to do with the
+     founder page. That is what happened — the Live Tools workstation branch
+     reworks dashboard.html's New Patient dialog, and this assertion failed on
+     a file the founder page has never touched.
+
+     The claim worth keeping is the one the founder work actually makes: the
+     founder page did not spill into the product pages. So these are asserted
+     for what would show a spill — founder content and security text — rather
+     than for being frozen forever. The five files above stay byte-exact,
+     because there the freeze IS the claim. */
+  for (const file of ['dashboard.html','ask.html','questions.html','patients.html']) {
+    const src = read(file);
+    t('no founder content leaked into ' + file,
+      !/founder\.html|founder-giga|Meet the founder/i.test(src), file);
+    t('no security text was introduced in ' + file,
+      !/\b(GRANT|REVOKE|CREATE POLICY|ALTER TABLE)\b/.test(src), file);
+  }
   for (const src of [ABOUTC, FNDC]) {
     t('page carries no GRANT/REVOKE/policy text',
       !/\b(GRANT|REVOKE|CREATE POLICY|ALTER TABLE|row-level security)\b/i.test(src));
