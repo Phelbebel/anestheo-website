@@ -225,6 +225,77 @@ html,body{background:var(--ground);}
 .sum-more-btn:hover{background:rgba(255,255,255,.04);}
 
 
+
+/* ══ DRUG REFERENCE: TABLE ════════════════════════════════════════════════
+   Desktop leads with a table because a table is what a scan is for: eight
+   drugs compared down a column beats eight cards compared across a page.
+   Cards remain, and take over below 900px where a table stops being one.
+
+   Colour is semantic and confined: the class label, and a 3px marker at the
+   row's leading edge. The row ground stays graphite. Values come from
+   ClinicalContent.PCLASS, which follows the ISO 26825 syringe-label hues, so
+   what is on screen is what is on the syringe. */
+.dref-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px 14px;
+  border-bottom:1px solid var(--hair);}
+.dref-search{flex:1 1 220px;min-width:0;background:rgba(255,255,255,.05);
+  border:1px solid var(--line);border-radius:var(--radius-sm);color:#fff;
+  font-family:inherit;font-size:13.5px;padding:0 12px;height:36px;outline:none;}
+.dref-search:focus{border-color:var(--accent);}
+.dref-view{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;}
+.dref-view button{background:transparent;border:0;color:var(--ink-3);font-family:inherit;
+  font-size:12px;font-weight:700;padding:0 13px;height:36px;cursor:pointer;}
+.dref-view button.on{background:var(--brand-tint-2);color:#fff;}
+.dref-cats{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--hair);}
+.dref-cat{background:transparent;border:1px solid var(--line);color:var(--ink-3);
+  border-radius:var(--radius-xs);font-family:inherit;font-size:10.5px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;padding:0 10px;height:28px;cursor:pointer;white-space:nowrap;}
+.dref-cat:hover{color:#fff;border-color:var(--line-2);}
+.dref-cat.on{background:var(--brand-tint-2);border-color:var(--accent);color:#fff;}
+.dref-cat .n{opacity:.55;margin-left:5px;font-weight:600;}
+
+table.dtab{width:100%;border-collapse:collapse;table-layout:fixed;}
+table.dtab th{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:9px 10px;border-bottom:1px solid var(--hair-2);
+  white-space:nowrap;}
+table.dtab td{padding:10px;border-bottom:1px solid var(--hair);vertical-align:top;font-size:13px;
+  color:var(--ink-2);}
+table.dtab tr:last-child td{border-bottom:none;}
+.dtab-cls{width:104px;}
+.dtab-cls td{position:relative;}
+.dtab td.dtab-cls{padding-left:15px;}
+.dtab td.dtab-cls::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--pc,transparent);}
+.dtab-name{width:22%;}
+.dtab-use{width:16%;}
+.dtab-dose{width:23%;}
+.dtab-prep{width:15%;}
+.dtab-n{font-size:14.5px;font-weight:700;color:#fff;line-height:1.25;}
+.dtab-alias{font-size:11px;color:var(--hint);margin-top:2px;}
+.dtab-d1{font-size:16px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;line-height:1.2;}
+.dtab-d1 span{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:3px;}
+.dtab-d2{font-size:11.5px;color:var(--ink-3);margin-top:3px;}
+.dtab-warn{font-size:11.5px;color:var(--warning);margin-top:4px;line-height:1.45;}
+.dtab-warn.crit{color:#ff8a72;font-weight:600;}
+.dtab-more{background:transparent;border:1px solid var(--line);color:var(--ink-3);
+  border-radius:var(--radius-xs);font-family:inherit;font-size:10.5px;font-weight:700;
+  padding:0 9px;height:26px;cursor:pointer;white-space:nowrap;}
+.dtab-more:hover{color:#fff;border-color:var(--accent);}
+.dref-empty{padding:22px 14px;color:var(--ink-3);font-size:13px;}
+
+
+.dref-lead{margin-bottom:0;}
+table.dtab .dtab-cls{width:110px;}
+table.dtab .dtab-name{width:20%;}
+table.dtab .dtab-use{width:13%;}
+table.dtab .dtab-dose{width:26%;}
+table.dtab .dtab-prep{width:17%;}
+
+@media(max-width:900px){
+  /* A table stops being a table at 390px. Cards below this width, always. */
+  .dref-view{display:none;}
+  table.dtab{display:none;}
+}
+
 /* ══ WORKSTATION GRID ═════════════════════════════════════════════════════
    Reference on the left, Crisis Center on the right, and the rail is sticky
    so the protocols stay reachable from anywhere in a long drug list rather
@@ -1872,13 +1943,12 @@ function compute(){
   // ── DRUG REFERENCES — rendered from the shared clinical model.
   //    Rows, aliases, search and provenance all read from clinical-index.js;
   //    nothing is duplicated here. Unpublished entries never render.
+  /* The Drug reference is now a filterable table (cards below 900px), painted
+     by drefRender() after this panel is in the DOM. The groups it used to
+     print in four fixed blocks are the same drugs; the table draws every
+     publishable class, so nothing was dropped by flattening them. */
   var drugRows =
-    drugGroups([
-      { id:'induction', label:'Induction and sedation' },
-      { id:'nmb',       label:'Neuromuscular blockade' },
-      { id:'analgesia', label:'Opioids and analgesia' },
-      { id:'reversal',  label:'Reversal' }
-    ], wt) +
+    '<div id="dref-head"></div><div id="dref-body"></div>' +
     foot('Standard reference ranges'+(wt?(' calculated for '+r0(wt)+' kg'):'')+
          '. Verify against your local formulary and the product label.');
 
@@ -2230,9 +2300,16 @@ function compute(){
      ends in a long tail of empty workspace. Induction stays upper-left,
      Regional upper-right, Airway directly under Regional, and the
      vasoactive drugs keep a fixed place under Drug references. */
-  out.innerHTML='<div class="panels">'+
+  /* THE DRUG REFERENCE LEADS, AT FULL COLUMN WIDTH. It was sharing a
+     half-width stack with Regional, which is fine for a card list and not
+     fine for a six-column table: the dose and preparation columns collapsed
+     into each other. It is the workspace the brief puts first, so it spans
+     the clinical column and the two domain stacks follow beneath it. */
+  out.innerHTML='<div class="panels-wide dref-lead">'+
+      panel('&#128138;','Drug reference','Weight-based',drugRows,'')+
+  '</div>'+
+  '<div class="panels">'+
     '<div class="stack" id="stack-drugs">'+
-      panel('&#128138;','Drug references','Weight-based',drugRows,'')+
       panel('&#128137;','Vasopressors','Infusions &amp; boluses',pressorRows,'')+
       panel('&#128138;','TIVA / TCI &amp; sedation','Reference',sedBody,'sed-panel')+
       panel('&#129656;','Fluids &amp; blood',isPeds?'Paediatric':'Adult',fluidsBloodBody,'')+
@@ -2254,6 +2331,8 @@ function compute(){
   '<div class="panels-wide">'+
     panel('&#128680;','Crisis Center','Emergency',crisisCardBody,'crisis-panel full')+
   '</div>';
+  /* The Drug reference panel is in the DOM now, so paint its table into it. */
+  drefRender();
   /* balanceRows() belonged to the 12-column row grid: it padded a short row
      so it would not end with an empty column. Column flow has no row tracks
      to balance, so it no longer has anything to do. */
@@ -2320,6 +2399,153 @@ function m2(label,sub,value,unit){
   return row({ name:label, sub:sub, val:value, unit:unit, txt:(isPhrase(value)&&!unit) });
 }
 /* group: quiet uppercase label above a full-bleed hairline */
+/* ══ DRUG REFERENCE — TABLE AND CARDS ═════════════════════════════════════
+   One renderer, two presentations, one data source. Every value below comes
+   from ClinicalContent: the doses, the per-kg rules, the weight basis, the
+   preparation, the warnings and the class colours. Nothing is recomputed and
+   no clinical range is altered to fit the layout.
+
+   THE DOSE CELL is the point of the table. ClinicalContent.renderDose already
+   converts a per-kg rule into the absolute amount for this patient, and
+   already refuses to for rates, because mcg/kg/min is set on a pump and does
+   not become a number of millilitres. So the cell shows the amount to draw up
+   large, and the rule it came from beneath it. The clinician does not
+   multiply; they can still see what was multiplied. */
+var DREF = { cat:'all', view:'table', q:'' };
+
+/* Filters are built from the classes that are actually present in the
+   publishable drug set, not from a wish list, so no category can render
+   empty. Labels follow the brief: OPIOIDS never "narcotics", NEUROMUSCULAR
+   BLOCKERS never "relaxants". */
+var DREF_LABEL = {
+  induction:'Hypnotics', benzo:'Hypnotics', opioid:'Opioids',
+  nmb:'Neuromuscular blockers', vasopressor:'Vasopressors',
+  anticholinergic:'Anticholinergics', reversal:'Reversal',
+  local:'Local anesthetics', uterotonic:'Uterotonics',
+  betablocker:'Beta-blockers', haemostatic:'Hemostatics'
+};
+/* Hypnotics is one filter over two classes; the badge on each row still says
+   which of the two it is. */
+var DREF_MERGE = { benzo:'induction' };
+function drefCat(d){ var c = d.pclass || 'other'; return DREF_MERGE[c] || c; }
+
+function drefDrugs(){
+  var CC = window.ClinicalContent; if(!CC) return [];
+  var wt = (window.patientContext && window.patientContext.weight) || null;
+  var seen = {}, out = [];
+  CC.GROUPS.forEach(function(g){
+    CC.visibleDrugsInGroup(g.id, wt).forEach(function(d){
+      if(seen[d.id]) return; seen[d.id] = 1; out.push(d);
+    });
+  });
+  return out;
+}
+
+function drefMatch(d, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  if((d.name||'').toLowerCase().indexOf(q) >= 0) return true;
+  var src = window.ClinicalContent.byId ? window.ClinicalContent.byId(d.id) : null;
+  var al = (src && src.aliases) || [];
+  for(var i=0;i<al.length;i++) if(String(al[i]).toLowerCase().indexOf(q) >= 0) return true;
+  return false;
+}
+
+function drefRows(){
+  var all = drefDrugs();
+  return all.filter(function(d){
+    if(DREF.cat !== 'all' && drefCat(d) !== DREF.cat) return false;
+    return drefMatch(d, DREF.q);
+  });
+}
+
+function drefCats(){
+  var counts = {}, all = drefDrugs();
+  all.forEach(function(d){ var c = drefCat(d); counts[c] = (counts[c]||0)+1; });
+  var order = ['induction','opioid','nmb','vasopressor','anticholinergic','reversal',
+               'local','betablocker','uterotonic','haemostatic','other'];
+  var out = [{ id:'all', label:'All', n:all.length }];
+  order.forEach(function(c){
+    if(!counts[c]) return;
+    out.push({ id:c, label:(DREF_LABEL[c] || 'Miscellaneous'), n:counts[c] });
+  });
+  return out;
+}
+
+function drefDoseCell(d){
+  /* d.val / d.unit are already the patient-specific amount when a weight is
+     known, produced by ClinicalContent.renderDose. d.sub carries the rule. */
+  var main = (d.val != null && d.val !== '') ? (d.val + (d.unit ? '<span>'+d.unit+'</span>' : '')) : '&mdash;';
+  var rule = d.doseRule || '';
+  return '<div class="dtab-d1">'+main+'</div>' + (rule ? '<div class="dtab-d2">'+rule+'</div>' : '');
+}
+
+function drefTable(rows){
+  if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
+  var CC = window.ClinicalContent;
+  var body = rows.map(function(d){
+    var meta = CC.classMeta(d.pclass);
+    var col  = meta ? meta.color : 'transparent';
+    var warn = d.warn ? '<div class="dtab-warn'+(d.severity==='critical'?' crit':'')+'">'+d.warn+'</div>' : '';
+    return '<tr>'+
+      '<td class="dtab-cls" style="--pc:'+col+'">'+(CC.classBadge(d.pclass)||'')+'</td>'+
+      '<td class="dtab-name"><div class="dtab-n">'+d.name+'</div>'+
+        (d.aliasLine ? '<div class="dtab-alias">'+d.aliasLine+'</div>' : '')+'</td>'+
+      '<td class="dtab-use">'+(d.use || d.ind || '&mdash;')+'</td>'+
+      '<td class="dtab-dose">'+drefDoseCell(d)+warn+'</td>'+
+      '<td class="dtab-prep">'+(d.prep || '&mdash;')+'</td>'+
+      '<td><button type="button" class="dtab-more" onclick="drefDetails(\''+d.id+'\')">Details</button></td>'+
+    '</tr>';
+  }).join('');
+  return '<table class="dtab"><thead><tr>'+
+    '<th class="dtab-cls">Class</th><th class="dtab-name">Drug</th><th class="dtab-use">Use</th>'+
+    '<th class="dtab-dose">Patient dose</th><th class="dtab-prep">Preparation</th><th>Details</th>'+
+    '</tr></thead><tbody>'+body+'</tbody></table>';
+}
+
+/* Cards reuse rx(), the row renderer the rest of the page already uses, so
+   the card presentation cannot drift from every other module on the page. */
+function drefCards(rows){
+  if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
+  return rows.map(function(d){ return rx(d); }).join('');
+}
+
+function drefSet(k, v){
+  DREF[k] = v;
+  if(k === 'q'){ drefPaint(); } else { drefRender(); }
+}
+window.drefSet = drefSet;
+function drefDetails(id){
+  if(window.ClinicalSearch && window.ClinicalSearch.open){ window.ClinicalSearch.open(id); return; }
+  var el = document.getElementById('ev-'+id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+window.drefDetails = drefDetails;
+
+function drefPaint(){
+  var host = ge('dref-body'); if(!host) return;
+  var rows = drefRows();
+  var phone = window.matchMedia && window.matchMedia('(max-width:900px)').matches;
+  host.innerHTML = (DREF.view === 'cards' || phone) ? drefCards(rows) : drefTable(rows);
+}
+function drefRender(){
+  var head = ge('dref-head'); if(!head) return;
+  head.innerHTML =
+    '<div class="dref-bar">'+
+      '<input class="dref-search" id="dref-q" type="search" placeholder="Search drugs…" '+
+        'value="'+String(DREF.q).replace(/"/g,'&quot;')+'" oninput="drefSet(\'q\', this.value)">'+
+      '<div class="dref-view">'+
+        '<button type="button" class="'+(DREF.view==='table'?'on':'')+'" onclick="drefSet(\'view\',\'table\')">Table</button>'+
+        '<button type="button" class="'+(DREF.view==='cards'?'on':'')+'" onclick="drefSet(\'view\',\'cards\')">Cards</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="dref-cats">'+ drefCats().map(function(c){
+      return '<button type="button" class="dref-cat'+(DREF.cat===c.id?' on':'')+'" '+
+             'onclick="drefSet(\'cat\',\''+c.id+'\')">'+c.label+'<span class="n">'+c.n+'</span></button>';
+    }).join('') +'</div>';
+  drefPaint();
+}
+window.drefRender = drefRender;
+
 function grp(head,body,note){
   return '<div class="grp"><div class="grp-h">'+head+(note?'<em>'+note+'</em>':'')+'</div>'+body+'</div>';
 }

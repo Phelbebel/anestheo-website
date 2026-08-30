@@ -93,7 +93,9 @@ var PCLASS = {
   benzo:        { label:'Benzodiazepine', color:'#FFA23E', short:'BENZO' },
   betablocker:  { label:'Beta-blocker',   color:'#FFA23E', short:'BETA-BLOCKER' },
   opioid:       { label:'Opioid',         color:'#6BB6FF', short:'OPIOID' },
-  nmb:          { label:'Neuromuscular blocker', color:'#FF7A6B', short:'RELAXANT' },
+  /* NMB, not RELAXANT. The class is neuromuscular blockade; "relaxant" is
+     ward shorthand and reads as a sedative to anyone outside theatre. */
+  nmb:          { label:'Neuromuscular blocker', color:'#FF7A6B', short:'NMB' },
   vasopressor:  { label:'Vasopressor / inotrope', color:'#C79BFF', short:'VASOPRESSOR' },
   anticholinergic:{ label:'Anticholinergic', color:'#4FE39B', short:'ANTICHOLINERGIC' },
   local:        { label:'Local anaesthetic', color:'#C3D2CD', short:'LOCAL' },
@@ -763,8 +765,22 @@ function visibleDrugsInGroup(groupId, wt){
     .map(function(d){
       var dose = d.doses[0];
       var r = renderDose(dose, wt);
+      /* ADDITIVE FIELDS for the table view. `ind` is unchanged and still
+         carries the whole supporting line, so every existing consumer of this
+         function renders exactly as before. `use`, `doseRule` and `aliasLine`
+         split the same values into columns; nothing new is computed and no
+         range is altered. */
+      var rule = '';
+      if (dose.basisWeight){
+        rule = (dose.low != null ? (dose.low+'–'+dose.high) : String(dose.value)) +
+               ' ' + dose.unit + (dose.basis ? (' '+dose.basis) : '');
+      } else if (dose.basis){ rule = dose.basis; }
+      if (dose.max) rule += (rule ? ' · ' : '') + 'max ' + dose.max;
       return { id:d.id, name:d.name, val:r.val, unit:r.unit,
                ind:supportLine(d, dose, wt), prep:d.prep,
+               use:[dose.route, dose.label].filter(Boolean).join(' · '),
+               doseRule:rule,
+               aliasLine:(d.aliases && d.aliases.length > 1 ? d.aliases[1] : ''),
                warn:d.warn, severity:d.severity, hi:d.hi,
                pclass:classOf(d), badge:classBadge(classOf(d)) };
     });
