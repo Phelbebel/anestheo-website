@@ -224,6 +224,47 @@ html,body{background:var(--ground);}
 .sum-more-btn{margin-top:9px;background:none;border:1px solid var(--border);color:var(--accent);border-radius:var(--radius-sm);padding:6px 12px;font-size:11.5px;font-family:inherit;cursor:pointer;}
 .sum-more-btn:hover{background:rgba(255,255,255,.04);}
 
+
+/* ══ WORKSTATION GRID ═════════════════════════════════════════════════════
+   Reference on the left, Crisis Center on the right, and the rail is sticky
+   so the protocols stay reachable from anywhere in a long drug list rather
+   than requiring a scroll back. Below 1180px the rail would be squeezing the
+   clinical column, so it collapses: the command strip already carries a
+   permanent Emergency button, which is the persistent access the rail
+   provides on desktop. The existing inline Crisis panel is untouched and
+   still lives inside the output stream; this rail indexes into it. */
+.ws-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start;}
+.ws-crisis{position:sticky;top:76px;background:var(--pane);border:1px solid rgba(255,138,114,.30);
+  border-radius:var(--radius-lg);overflow:hidden;}
+.wsc-head{display:flex;align-items:center;gap:8px;padding:11px 14px;
+  background:rgba(255,110,90,.10);border-bottom:1px solid rgba(255,138,114,.24);
+  font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ff8a72;}
+.wsc-sub{padding:9px 14px 4px;font-size:9.5px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-3);}
+.wsc-list{list-style:none;margin:0;padding:0 6px 6px;}
+.wsc-list li{margin:0;}
+.wsc-b{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:0;
+  color:var(--ink-2);font-family:inherit;font-size:13px;text-align:left;padding:7px 8px;
+  border-radius:var(--radius-sm);cursor:pointer;min-height:34px;}
+.wsc-b:hover{background:rgba(255,110,90,.10);color:#fff;}
+.wsc-b:focus-visible{outline:2px solid #ff8a72;outline-offset:-2px;}
+.wsc-n{flex:0 0 auto;width:18px;font-size:10.5px;font-weight:800;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;}
+.wsc-b:hover .wsc-n{color:#ff8a72;}
+.wsc-go{display:block;width:calc(100% - 16px);margin:4px 8px 10px;min-height:40px;
+  background:rgba(255,110,90,.14);border:1px solid rgba(255,138,114,.42);color:#ffb3a3;
+  border-radius:var(--radius-sm);font-family:inherit;font-size:12px;font-weight:800;
+  letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+.wsc-go:hover{background:rgba(255,110,90,.22);color:#fff;}
+.wsc-note{padding:0 14px 12px;font-size:11px;color:var(--hint);line-height:1.5;}
+
+@media(max-width:1179px){
+  .ws-grid{grid-template-columns:minmax(0,1fr);}
+  /* Emergency stays one tap away in the command strip, so the rail does not
+     need to hold a column it would only crowd. */
+  .ws-crisis{display:none;}
+}
+
 /* ══ PATIENT CONTEXT STRIP ═══════════════════════════════════════════════
    The workstation patient banner. Once a patient is entered this replaces
    the six form inputs: a clinician mid-case reads the patient, they do not
@@ -1557,9 +1598,14 @@ body .nb-search-wrap{display:none !important;}
     </details>
 
     <!-- Derived Values — always expanded -->
-    <div id="output">
-      <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
-      <button class="cw-open-pt" onclick="var a=ge('acc-patient');if(a)a.scrollIntoView({behavior:'smooth',block:'center'});var f=ge('i-age');if(f)f.focus();">Enter patient details</button></div>
+    <!-- ══ WORKSTATION ═══════════════════════════════════════════════════
+         Clinical reference on the left, Crisis Center rail on the right. -->
+    <div class="ws-grid">
+      <div id="output">
+        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
+        <button class="cw-open-pt" onclick="ptEdit(true)">Enter patient details</button></div>
+      </div>
+      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
     </div>
 
     <!-- ── LIVE TIMERS (intraoperative workflow) — below Derived Values ── -->
@@ -2511,6 +2557,29 @@ function crisisJump(){
   if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
 }
 window.crisisInline=crisisInline; window.crisisJump=crisisJump;
+/* ── CRISIS RAIL ──────────────────────────────────────────────────────────
+   An index, not a second implementation. It renders from the same CRISIS
+   array the inline panel renders from, and every entry calls the existing
+   crisisInline() / crisisJump(), so the protocols, their steps and their
+   weight-aware doses have exactly one definition. Red lives here and in the
+   command strip's Emergency button; it is not spread through the rest of the
+   workstation chrome. */
+function renderCrisisRail(){
+  var host = ge('ws-crisis'); if(!host || typeof CRISIS === 'undefined') return;
+  var items = CRISIS.map(function(c, i){
+    return '<li><button type="button" class="wsc-b" onclick="crisisInline('+i+');crisisJump();">'+
+           '<span class="wsc-n">'+(i+1)+'</span><span>'+c[1]+'</span></button></li>';
+  }).join('');
+  host.innerHTML =
+    '<div class="wsc-head"><span aria-hidden="true">&#9888;</span>Crisis Center</div>'+
+    '<div class="wsc-sub">Protocols</div>'+
+    '<ul class="wsc-list">'+items+'</ul>'+
+    '<button type="button" class="wsc-go" onclick="crisisJump()">Go to Crisis Center</button>'+
+    '<p class="wsc-note">Red is reserved for true emergencies. Every protocol is '+
+    'weight-aware and uses the current patient.</p>';
+}
+window.renderCrisisRail = renderCrisisRail;
+
 
 /* ── COMMAND STRIP BEHAVIOUR ──────────────────────────────────────────────
    Each button jumps to a clinical domain and marks itself active. The active
@@ -3279,6 +3348,7 @@ function sedInline(i){
 window.sedInline=sedInline;
 
 document.addEventListener('DOMContentLoaded',async function(){
+  renderCrisisRail();   /* static index; the panel it points at is unchanged */
   try{
     /* THE ?embed=1 BRANCH IS GONE, AND WITH IT A ROLE-CHECK BYPASS.
        It existed for exactly one caller — the iframe on the Doctor Dashboard —
