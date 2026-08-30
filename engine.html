@@ -284,6 +284,12 @@ html,body{background:var(--ground);}
 .dref-cat.tinted.on{background:color-mix(in srgb,var(--cc) 26%,transparent);
   border-color:var(--cc);color:#fff;}
 .dref-cat .n{opacity:.6;font-weight:700;letter-spacing:0;}
+/* Full name while the strip has room for it, abbreviation when it does not. */
+.dref-cat .sm{display:none;}
+@media(max-width:1279px){
+  .dref-cat .lg{display:none;}
+  .dref-cat .sm{display:inline;}
+}
 
 .dref-foot{padding:11px 16px;border-top:1px solid var(--hair);text-align:center;
   font-size:11px;color:var(--ink-3);}
@@ -2176,7 +2182,7 @@ function compute(){
       m2('Marsh','Plasma target &middot; total body weight, no age term','TBW','')+
       m2('Schnider','Effect-site target &middot; age, height, lean body mass','Ce','')+
       m2('Minto (remifentanil)','Effect-site &middot; age and lean body mass','Ce','')) +
-    note('Reduce targets with opioid synergy and with age. TIVA with a relaxant needs depth-of-anaesthesia monitoring.');
+    note('Reduce targets with opioid synergy and with age. TIVA with a neuromuscular blocker needs depth-of-anaesthesia monitoring.');
   var tivaHelpers='';
 
   // VASOPRESSORS / INOTROPES
@@ -2425,7 +2431,7 @@ function compute(){
     grp('Standard monitoring',
       metric('Always','ECG · SpO₂ · NIBP · capnography','')+
       metric('Temperature','Any anaesthetic over 30 min','')+
-      metric('Neuromuscular','Whenever a relaxant is given','')+
+      metric('Neuromuscular','Whenever a neuromuscular blocker is given','')+
       metric('Agent / FiO₂','With alarms enabled','')) +
     grp('Arterial line',
       metric('Adult cannula','20','G')+
@@ -2650,14 +2656,21 @@ var DREF = { cat:'all', view:'table', q:'' };
    publishable drug set, not from a wish list, so no category can render
    empty. Labels follow the brief: OPIOIDS never "narcotics", NEUROMUSCULAR
    BLOCKERS never "relaxants". */
+/* THE FILTER NAMES ARE THE APPROVED ONES. Never "narcotics" — the class is
+   opioid, and "narcotic" is a legal category that reads as a slur on the drug
+   in half the world. Never "relaxants" — the class is neuromuscular blockade,
+   and "relaxant" is ward shorthand that sounds like a sedative to anyone
+   outside theatre. "Opiates" is not the umbrella either: it means the natural
+   alkaloids and excludes fentanyl and remifentanil, which is most of the list.
+
+   Neuromuscular blockers is written in full and abbreviates to NMB only when
+   the strip would otherwise wrap; the abbreviation is the same one the row
+   badge uses, so nothing has to be learned twice. */
 var DREF_LABEL = {
   induction:'Hypnotics', benzo:'Hypnotics', opioid:'Opioids',
-  /* NMB on the chip, "Neuromuscular blocker" on the row badge and in full in
-     the reference. The short form is the one that fits a filter strip beside
-     seven others without wrapping, and it is the same abbreviation the badge
-     uses, so nothing has to be learned twice. Never "relaxants". */
-  nmb:'NMB', vasopressor:'Vasopressors',
-  anticholinergic:'Anticholinergics', reversal:'Reversal',
+  nmb:'<span class="lg">Neuromuscular blockers</span><span class="sm">NMB</span>',
+  vasopressor:'Vasopressors',
+  anticholinergic:'Anticholinergics', reversal:'Reversal agents',
   local:'Local anesthetics', uterotonic:'Uterotonics',
   betablocker:'Beta-blockers', haemostatic:'Hemostatics'
 };
@@ -3883,7 +3896,7 @@ var TUBES = [
   cuffnote:'Tracheal capillary perfusion pressure is around 30 cmH₂O — sustained cuff pressure above that risks mucosal ischaemia. Nitrous oxide diffuses into the cuff and raises pressure over time.',
   ind:['Routine general anaesthesia with a secured airway','Aspiration risk / full stomach','Prone, shared-airway or long cases','Any case needing high airway pressures'],
   pro:['Definitive airway protection','Reliable positive-pressure ventilation','Allows suctioning and bronchoscopy'],
-  con:['Requires laryngoscopy and usually a relaxant','Sore throat and airway trauma','More haemodynamic response than a supraglottic device'],
+  con:['Requires laryngoscopy and usually a neuromuscular blocker','Sore throat and airway trauma','More haemodynamic response than a supraglottic device'],
   warn:['Confirm with continuous capnography — no other sign is sufficient.','Right endobronchial intubation is the commonest depth error; check bilateral air entry after every position change.'],
   mist:['Fixing at a "standard" depth without auscultating','Over-inflating the cuff until the leak stops, then never measuring it','Using cuff pressure to compensate for a tube that is too small'],
   pearl:['Depth ≈ 3 × the tube size in children.','If the leak needs a high cuff pressure to stop, the tube is probably too small — change it rather than inflate further.','Re-check cuff pressure after N₂O has been running and after any head reposition.'] },
