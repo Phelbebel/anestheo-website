@@ -678,7 +678,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 /* Generic modal (New Patient) */
 .ws-modal-bg{display:none;position:fixed;inset:0;background:var(--scrim);z-index:6500;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
 .ws-modal-bg.open{display:flex;}
-.ws-modal{background:var(--ground-2);border:1px solid rgba(42,138,116,.4);border-radius:var(--radius-lg);max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);}
+/* max-width is NOT set here. A second .ws-modal rule further down this file
+   also declares one, at equal specificity and later in source order, so it
+   always won and the 460px written here has never taken effect. Width is
+   settled in one place now; see .ws-modal / .ws-modal-lg / .ws-modal-xl. */
+.ws-modal{background:var(--ground-2);border:1px solid rgba(42,138,116,.4);border-radius:var(--radius-lg);width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);}
 .ws-modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid rgba(42,138,116,.25);}
 .ws-modal-title{font-size:16px;font-weight:800;}
 .ws-modal-body{padding:16px 18px;display:flex;flex-direction:column;}
@@ -735,6 +739,45 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-modal-bg.open{display:flex;}
 .ws-modal{background:var(--dark2);border:1px solid rgba(27,107,90,.3);border-radius:var(--radius-lg);padding:24px;max-width:440px;width:100%;}
 .ws-modal-lg{max-width:560px;}
+/* The New Patient dialog. It is a record-creation form, not a confirmation
+   prompt, and at 440px its eight fields ran as one tall column that pushed the
+   footer off a laptop screen. At 820px it reads in two columns and the whole
+   form is visible at once. */
+.ws-modal-xl{max-width:820px;}
+@media(max-width:860px){ .ws-modal-xl{max-width:100%;} }
+
+/* Two-column form grid inside the wide dialog. Name, procedure and notes are
+   the fields people write most in, so they keep the full width; the short,
+   structured fields pair up. */
+.wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
+.wa-grid .wa-full{grid-column:1 / -1;}
+@media(max-width:700px){ .wa-grid{grid-template-columns:1fr;} }
+
+/* ══ CREATED STATE ════════════════════════════════════════════════════════
+   The dialog does not close on save. Creating the patient is the middle of
+   the job, not the end of it: the next thing the doctor does is send the
+   questionnaire, and closing the dialog used to send them back to the board to
+   find the row they had just made. The same dialog becomes the handover. */
+.wa-done-h{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;}
+.wa-tick{flex:0 0 auto;width:34px;height:34px;border-radius:50%;
+  background:rgba(47,168,140,.16);border:1px solid rgba(47,168,140,.5);
+  color:#7ECFC0;display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;}
+.wa-done-t{font-family:var(--sans);font-size:19px;font-weight:700;color:#fff;margin-bottom:3px;}
+.wa-done-s{font-size:13px;color:var(--muted);line-height:1.6;}
+.wa-facts{display:flex;flex-wrap:wrap;gap:8px 22px;padding:13px 15px;margin-bottom:16px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);}
+.wa-fact{min-width:0;}
+.wa-fact b{display:block;font-size:9.5px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--hint);margin-bottom:3px;}
+.wa-fact span{font-size:14px;color:#fff;}
+.wa-sec{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--hint);margin:0 0 9px;}
+.wa-status{display:inline-flex;align-items:center;gap:7px;margin-top:12px;
+  font-size:12.5px;color:var(--muted);}
+.wa-dot{width:8px;height:8px;border-radius:50%;background:var(--hint);flex:0 0 auto;}
+.wa-dot.on{background:#2FA88C;}
+.wa-rule{height:1px;background:rgba(42,138,116,.25);margin:18px 0;}
 .ws-modal h3{font-family:var(--sans);font-size:21px;margin-bottom:14px;}
 .ws-modal label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:12px 0 5px;}
 .ws-modal input,.ws-modal textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:44px;}
@@ -2811,10 +2854,100 @@ async function wsLoadPatients(){
     if(r.error) throw new Error(r.error.message);
     _wsPatients = (r.data || []).filter(function(p){ return !p.deleted_at; });
   } catch(e){ _wsPatients = []; }
+  wsAddCreatedRefresh();
 }
-function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m) return; m.classList.add('open'); var n=document.getElementById('wa-name'); if(n) n.focus(); }
-function wsCloseAddModal(){ var m=document.getElementById('ws-add-modal'); if(m) m.classList.remove('open'); }
+/* ══ NEW PATIENT DIALOG ═══════════════════════════════════════════════════
+   Two views in one dialog: the form, and what the record became. Opening
+   always returns to the form; the created view is torn down with it, so the
+   dialog never reopens showing the last patient. */
+var _wsCreatedId = null;
+
+function wsAddShowForm(){
+  var f=document.getElementById('wa-form-view'), c=document.getElementById('wa-created-view'),
+      t=document.getElementById('wa-title');
+  if(f) f.hidden=false;
+  if(c){ c.hidden=true; c.innerHTML=''; }
+  if(t) t.innerHTML='&#10133; New Patient';
+  _wsCreatedId = null;
+}
+function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m) return; wsAddShowForm(); m.classList.add('open'); var n=document.getElementById('wa-name'); if(n) n.focus(); }
+function wsCloseAddModal(){ var m=document.getElementById('ws-add-modal'); if(m) m.classList.remove('open'); wsAddShowForm(); }
 window.wsOpenAddModal=wsOpenAddModal; window.wsCloseAddModal=wsCloseAddModal;
+
+/* The created view. Every fact on it comes from the row the insert returned or
+   from a later read of that row — nothing is echoed back from the form, so
+   what is shown is what the database holds. */
+function wsAddCreatedRender(p){
+  var host=document.getElementById('wa-created-view'); if(!host||!p) return;
+  var f=document.getElementById('wa-form-view'), t=document.getElementById('wa-title');
+  if(f) f.hidden=true;
+  if(t) t.innerHTML='&#10004; Patient created';
+  host.hidden=false;
+  _wsCreatedId = p.id;
+
+  var link = wsLink(p);
+  var sent = p.questionnaire_status === 'sent';
+  var mail = wsValidEmail(p.email);
+  var phone = (p.phone_number||'').replace(/[^0-9]/g,'');
+
+  function fact(label, val){
+    return '<div class="wa-fact"><b>'+label+'</b><span>'+wsEsc(val||'Not recorded')+'</span></div>';
+  }
+  host.innerHTML =
+    '<div class="ws-modal-body">'+
+      '<div class="wa-done-h"><div class="wa-tick" aria-hidden="true">&#10004;</div>'+
+        '<div><div class="wa-done-t">'+wsEsc(p.patient_name||'Patient')+' is on your list</div>'+
+        '<div class="wa-done-s">The record exists and the questionnaire link is live. '+
+        'Nothing has been sent yet &mdash; sending is the next step, and it is yours to take.</div></div></div>'+
+
+      '<div class="wa-facts">'+
+        fact('Procedure', p.procedure)+
+        fact('Surgery date', p.surgery_date)+
+        fact('Hospital', p.hospital)+
+      '</div>'+
+
+      '<div class="wa-sec">Send the questionnaire</div>'+
+      '<div class="ws-modal-btns">'+
+        (mail
+          ? '<button class="ws-btn ws-btn-wa" id="wa-c-email" onclick="wsSendEmail(\''+p.id+'\')">&#9993;&#65039; Email</button>'
+          : '<button class="ws-btn" id="wa-c-email" disabled title="No valid email address is saved for this patient">&#9993;&#65039; Email</button>')+
+        (phone
+          ? '<button class="ws-btn ws-btn-wa" id="wa-c-wa" onclick="wsSendWhatsApp(\''+p.id+'\')">&#128241; WhatsApp</button>'
+          : '<button class="ws-btn" id="wa-c-wa" disabled title="No phone number is saved for this patient">&#128241; WhatsApp</button>')+
+        '<button class="ws-btn" id="wa-c-copy" onclick="wsCopyText('+JSON.stringify(link)+',\'Link copied\')">&#128279; Copy link</button>'+
+      '</div>'+
+      '<div class="wa-status" id="wa-c-status"><span class="wa-dot'+(sent?' on':'')+'"></span>'+
+        (sent ? 'Invitation sent' : 'Invitation not sent yet')+'</div>'+
+
+      '<div class="wa-rule"></div>'+
+      '<div class="ws-modal-btns">'+
+        '<button class="ws-btn" onclick="wsAddOpenCreated()">Open patient</button>'+
+        '<a class="ws-btn" href="/engine.html">Open Live Tools</a>'+
+        '<button class="ws-btn ws-btn-wa" onclick="wsCloseAddModal()">Done</button>'+
+      '</div>'+
+    '</div>';
+}
+
+/* Called at the end of wsLoadPatients so the invitation line reflects the row
+   rather than an assumption. Both send paths already refresh that list, which
+   is why this needs no timers of its own. */
+function wsAddCreatedRefresh(){
+  if(!_wsCreatedId) return;
+  var m=document.getElementById('ws-add-modal');
+  if(!m || !m.classList.contains('open')) return;
+  var p=wsFindP(_wsCreatedId); if(!p) return;
+  var line=document.getElementById('wa-c-status'); if(!line) return;
+  var sent = p.questionnaire_status === 'sent';
+  line.innerHTML='<span class="wa-dot'+(sent?' on':'')+'"></span>'+
+    (sent ? 'Invitation sent' : 'Invitation not sent yet');
+}
+function wsAddOpenCreated(){
+  var id=_wsCreatedId; if(!id) return;
+  wsCloseAddModal();
+  wsDetail(id);
+}
+window.wsAddCreatedRender=wsAddCreatedRender; window.wsAddOpenCreated=wsAddOpenCreated;
+window.wsAddShowForm=wsAddShowForm;
 // Patient Management navigation: two workflows, each with internal stages.
 var _wsWf='mypatients', _wsMpStage='awaiting', _wsCrStage='new', _wsMpSearch='', _wsMpSort='surgery';
 function wsWf(w){
@@ -3046,8 +3179,14 @@ async function wsSavePatient(thenSend){
         hospital:rec.hospital||null, contact_email:rec.email||null, care_state:lane }); }catch(e){ console.warn('record create:', e&&e.message); }
     }
     wsClearForm();
-    wsCloseAddModal();
+    /* The dialog stays open and becomes the created view. Closing here was the
+       old behaviour and it dropped the doctor back on the board to hunt for the
+       row they had just made, at the exact moment they still had to send the
+       invitation. Nothing about the insert changes. */
+    await wsLoadPatients();
     await wsLoadCases();
+    if(r.data){ wsAddCreatedRender(wsFindP(r.data.id) || r.data); }
+    else { wsCloseAddModal(); }
     if(thenSend && r.data){ wsSend(r.data.id); }
     else { wsToast('Patient saved'); }
   } catch(e){
@@ -3964,24 +4103,35 @@ document.addEventListener('DOMContentLoaded', async function(){
 
 <!-- New Patient modal (surgical; no workflow selector) -->
 <div class="ws-modal-bg" id="ws-add-modal" onmousedown="window._waBgDown=(event.target===this)" onclick="if(event.target===this&&window._waBgDown)wsCloseAddModal()">
-  <div class="ws-modal">
-    <div class="ws-modal-head"><div class="ws-modal-title">&#10133; New Patient</div>
+  <div class="ws-modal ws-modal-xl">
+    <div class="ws-modal-head"><div class="ws-modal-title" id="wa-title">&#10133; New Patient</div>
       <button class="ws-btn" onclick="wsCloseAddModal()">&times;</button></div>
-    <div class="ws-modal-body">
-      <label>Patient name</label><input id="wa-name" type="text" placeholder="Full name">
-      <label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">
-      <label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">
-      <div class="wa-hint">Email enables the full patient portal (documents + plan). Optional.</div>
-      <label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy">
-      <label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic">
-      <label>Surgery date</label><input id="wa-date" type="date">
-      <label>Notes</label><textarea id="wa-notes" placeholder="Optional"></textarea>
+
+    <!-- FORM VIEW. Same fields, same ids, same handlers as before; only the
+         column layout is new. -->
+    <div id="wa-form-view">
+      <div class="ws-modal-body">
+        <div class="wa-grid">
+          <div class="wa-full"><label>Patient name</label><input id="wa-name" type="text" placeholder="Full name"></div>
+          <div><label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567"></div>
+          <div><label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">
+            <div class="wa-hint">Email enables the full patient portal (documents + plan). Optional.</div></div>
+          <div class="wa-full"><label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy"></div>
+          <div><label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic"></div>
+          <div><label>Surgery date</label><input id="wa-date" type="date"></div>
+          <div class="wa-full"><label>Notes</label><textarea id="wa-notes" placeholder="Optional"></textarea></div>
+        </div>
+      </div>
+      <div class="ws-modal-foot">
+        <button class="ws-btn" onclick="wsCloseAddModal()">Cancel</button>
+        <button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save</button>
+        <button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">&#128241; Save &amp; Send WhatsApp</button>
+      </div>
     </div>
-    <div class="ws-modal-foot">
-      <button class="ws-btn" onclick="wsCloseAddModal()">Cancel</button>
-      <button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save</button>
-      <button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">&#128241; Save &amp; Send WhatsApp</button>
-    </div>
+
+    <!-- CREATED VIEW. Rendered by wsAddCreatedRender() from the row the insert
+         actually returned; empty and hidden until then. -->
+    <div id="wa-created-view" hidden></div>
   </div>
 </div>
 
