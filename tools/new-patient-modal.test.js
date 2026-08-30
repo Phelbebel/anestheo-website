@@ -120,7 +120,8 @@ async function openDash(b, viewport) {
 /* Fill the form and save. Returns everything the created view is showing. */
 const CREATE = `(async () => {
   wsOpenAddModal();
-  document.getElementById('wa-name').value     = 'Nino Beridze';
+  document.getElementById('wa-fname').value    = 'Nino';
+  document.getElementById('wa-lname').value    = 'Beridze';
   document.getElementById('wa-phone').value    = '+995 555 11 22 33';
   document.getElementById('wa-email').value    = 'nino@example.com';
   document.getElementById('wa-proc').value     = 'Knee arthroscopy';
@@ -213,6 +214,26 @@ const CREATE = `(async () => {
     t('WhatsApp is offered', r.wa && /WhatsApp/.test(r.wa.text));
     t('...and is enabled, because a phone number was entered', r.wa && !r.wa.disabled);
     t('Copy link is offered', r.copy && /Copy link/.test(r.copy.text));
+    /* IT MUST ALSO WORK. The previous assertion checked only that the button
+       was enabled, and the button threw on every click: its onclick embedded
+       a JSON string inside a double-quoted attribute, so the URL's own quote
+       closed the attribute. Clicking it here is the assertion. */
+    const copied = await pg.evaluate(`(() => {
+      const errs = [];
+      const prior = window.onerror;
+      window.onerror = function(m){ errs.push(String(m)); return true; };
+      let toast = '';
+      const priorToast = window.wsToast;
+      window.wsToast = function(t){ toast = t; };
+      document.getElementById('wa-c-copy').click();
+      window.onerror = prior; window.wsToast = priorToast;
+      return { errs, status:(document.getElementById('wa-c-status')||{}).innerText||'',
+               updates: window.__NP.updates.length };
+    })()`);
+    t('Copy link click raises nothing', copied.errs.length === 0, copied.errs);
+    t('...and says copied, not sent', /copied/i.test(copied.status) && /not sent/i.test(copied.status),
+      copied.status.replace(/\s+/g, ' ').trim());
+    t('...and still writes nothing to the row', copied.updates === 0, copied.updates);
     t('the invitation reads as not sent', /not sent yet/i.test(r.status), r.status.trim());
     t('...and its dot is off', r.statusOn === false);
     t('NOTHING was written back to the row', r.updates.length === 0, r.updates);
@@ -224,6 +245,9 @@ const CREATE = `(async () => {
     console.log('\n5. THE THREE EXITS');
     t('Open patient is offered', r.actions.some(a => /Open patient/.test(a)), r.actions);
     t('Live Tools is offered', r.actions.some(a => /Live Tools/.test(a)));
+    /* The form asks for a name in two halves and stores one column. */
+    t('first and last name are joined into patient_name',
+      r.payload && r.payload.patient_name === 'Nino Beridze', r.payload && r.payload.patient_name);
     t('Done is offered', r.actions.some(a => /^Done$/.test(a)));
 
     /* Reopening must not show the last patient. */
@@ -241,7 +265,8 @@ const CREATE = `(async () => {
     console.log('\n6. A CHANNEL WITH NO ADDRESS IS DISABLED, NOT BROKEN');
     const bare = await pg.evaluate(`(async () => {
       wsCloseAddModal(); wsOpenAddModal();
-      document.getElementById('wa-name').value = 'No Contact';
+      document.getElementById('wa-fname').value = 'No';
+      document.getElementById('wa-lname').value = 'Contact';
       await wsSavePatient(false);
       await new Promise(r => setTimeout(r, 400));
       const made = document.getElementById('wa-created-view');

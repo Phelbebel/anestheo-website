@@ -744,11 +744,28 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
    footer off a laptop screen. At 820px it reads in two columns and the whole
    form is visible at once. */
 .ws-modal-xl{max-width:820px;}
-@media(max-width:860px){ .ws-modal-xl{max-width:100%;} }
+/* On a phone a centred dialog with margins wastes the only axis there is. It
+   becomes a sheet: full width, full height, its own scroll, footer reachable. */
+@media(max-width:860px){
+  .ws-modal-xl{max-width:100%;}
+}
+@media(max-width:600px){
+  .ws-modal-bg:has(.ws-modal-xl){padding:0;}
+  .ws-modal-xl{min-height:100dvh;border-radius:0;border-left:0;border-right:0;
+    display:flex;flex-direction:column;}
+  .ws-modal-xl > #wa-form-view{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
+  .ws-modal-xl .ws-modal-body{flex:1 1 auto;overflow-y:auto;}
+  .ws-modal-xl .ws-modal-foot{position:sticky;bottom:0;background:var(--ground-2);}
+  .ws-modal-xl .ws-modal-foot .ws-btn{flex:1 1 0;}
+}
 
 /* Two-column form grid inside the wide dialog. Name, procedure and notes are
    the fields people write most in, so they keep the full width; the short,
    structured fields pair up. */
+.wa-sec{font-size:9.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--hint);margin:16px 0 2px;padding-top:14px;border-top:1px solid var(--border);}
+.ws-modal-body > .wa-sec:first-child{margin-top:2px;padding-top:0;border-top:0;}
+.wa-note{font-size:12px;color:var(--muted);line-height:1.55;margin:10px 0 2px;}
 .wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
 .wa-grid .wa-full{grid-column:1 / -1;}
 @media(max-width:700px){ .wa-grid{grid-template-columns:1fr;} }
@@ -2870,7 +2887,7 @@ function wsAddShowForm(){
   if(t) t.innerHTML='&#10133; New Patient';
   _wsCreatedId = null;
 }
-function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m) return; wsAddShowForm(); m.classList.add('open'); var n=document.getElementById('wa-name'); if(n) n.focus(); }
+function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m) return; wsAddShowForm(); m.classList.add('open'); var n=document.getElementById('wa-fname'); if(n) n.focus(); }
 function wsCloseAddModal(){ var m=document.getElementById('ws-add-modal'); if(m) m.classList.remove('open'); wsAddShowForm(); }
 window.wsOpenAddModal=wsOpenAddModal; window.wsCloseAddModal=wsCloseAddModal;
 
@@ -2914,7 +2931,12 @@ function wsAddCreatedRender(p){
         (phone
           ? '<button class="ws-btn ws-btn-wa" id="wa-c-wa" onclick="wsSendWhatsApp(\''+p.id+'\')">&#128241; WhatsApp</button>'
           : '<button class="ws-btn" id="wa-c-wa" disabled title="No phone number is saved for this patient">&#128241; WhatsApp</button>')+
-        '<button class="ws-btn" id="wa-c-copy" onclick="wsCopyText('+JSON.stringify(link)+',\'Link copied\')">&#128279; Copy link</button>'+
+        /* NO STRING IS EMBEDDED IN THIS ATTRIBUTE. It used to interpolate
+           JSON.stringify(link) into a double-quoted onclick, so the first
+           quote of the URL closed the attribute and the handler was a syntax
+           error — Copy link threw on every click and had done since it was
+           written. The id is enough; the handler looks the link up itself. */
+        '<button class="ws-btn" id="wa-c-copy" onclick="wsAddCopyLink()">&#128279; Copy link</button>'+
       '</div>'+
       '<div class="wa-status" id="wa-c-status"><span class="wa-dot'+(sent?' on':'')+'"></span>'+
         (sent ? 'Invitation sent' : 'Invitation not sent yet')+'</div>'+
@@ -2922,7 +2944,7 @@ function wsAddCreatedRender(p){
       '<div class="wa-rule"></div>'+
       '<div class="ws-modal-btns">'+
         '<button class="ws-btn" onclick="wsAddOpenCreated()">Open patient</button>'+
-        '<a class="ws-btn" href="/engine.html">Open Live Tools</a>'+
+        '<button class="ws-btn" onclick="wsAddToLiveTools()">Open in Live Tools</button>'+
         '<button class="ws-btn ws-btn-wa" onclick="wsCloseAddModal()">Done</button>'+
       '</div>'+
     '</div>';
@@ -2941,6 +2963,48 @@ function wsAddCreatedRefresh(){
   line.innerHTML='<span class="wa-dot'+(sent?' on':'')+'"></span>'+
     (sent ? 'Invitation sent' : 'Invitation not sent yet');
 }
+/* COPY LINK HAS ITS OWN TRUTHFUL STATE. Copying is not sending: nobody has
+   received anything, and the invitation line must not imply otherwise. It says
+   what actually happened and leaves the record alone. */
+function wsAddCopyLink(){
+  var p = _wsCreatedId ? wsFindP(_wsCreatedId) : null;
+  var link = p ? wsLink(p) : '';
+  if(!link){ wsToast('No questionnaire link for this patient yet.'); return; }
+  wsCopyText(link, 'Link copied');
+  var line = document.getElementById('wa-c-status');
+  if(line) line.innerHTML = '<span class="wa-dot"></span>Link copied &mdash; not sent yet. '+
+    'The invitation is recorded as sent only when you send it.';
+}
+window.wsAddCopyLink = wsAddCopyLink;
+
+/* OPEN IN LIVE TOOLS. The two pages share one case key, and the only field
+   this form collects that Live Tools also holds is the procedure — it asks for
+   no age, sex, height or weight, so there is nothing else to carry.
+
+   It will not overwrite a case already loaded there. Live Tools is a running
+   workspace; silently replacing the patient someone is mid-case with is a
+   worse failure than making them clear it themselves. */
+var ENG_CASE_KEY = 'anestheo-engine-inputs';
+function wsAddToLiveTools(){
+  var p = _wsCreatedId ? wsFindP(_wsCreatedId) : null;
+  var proc = (p && p.procedure) || '';
+  var existing = null;
+  try { existing = JSON.parse(localStorage.getItem(ENG_CASE_KEY) || 'null'); } catch(e){}
+  var busy = existing && (existing.age || existing.sex || existing.height ||
+                          existing.weight || existing.asa || existing.proc);
+  if(busy){
+    wsToast('Live Tools already has a case open — it was left as it is.');
+    window.open('/engine.html', '_blank');
+    return;
+  }
+  if(proc){
+    try { localStorage.setItem(ENG_CASE_KEY, JSON.stringify({
+      age:'', ageUnit:'y', sex:'', height:'', weight:'', asa:'', proc:proc })); } catch(e){}
+  }
+  window.open('/engine.html', '_blank');
+}
+window.wsAddToLiveTools = wsAddToLiveTools;
+
 function wsAddOpenCreated(){
   var id=_wsCreatedId; if(!id) return;
   wsCloseAddModal();
@@ -3130,8 +3194,13 @@ window.wsPreview = wsPreview;
 
 // ── ADD PATIENT (inline form, no modal) ──
 function wsCollectAdd(){
-  var name = document.getElementById('wa-name').value.trim();
-  if(!name){ wsToast('Patient name is required'); return null; }
+  /* Two fields, one column. clinic_patients stores patient_name and nothing
+     finer, so the halves are joined here rather than pretending the database
+     keeps them apart. A last name on its own is still a name. */
+  var f = (document.getElementById('wa-fname').value || '').trim();
+  var l = (document.getElementById('wa-lname').value || '').trim();
+  var name = [f, l].filter(Boolean).join(' ');
+  if(!name){ wsToast('A first or last name is required'); return null; }
   return {
     doctor_id: window.__wsUserId,
     patient_name: name,
@@ -3144,11 +3213,11 @@ function wsCollectAdd(){
   };
 }
 function wsClearForm(){
-  ['name','phone','email','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
+  ['fname','lname','phone','email','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
 }
 async function wsSavePatient(thenSend){
   var rec = wsCollectAdd(); if(!rec) return;
-  var btn = document.getElementById(thenSend ? 'wa-send' : 'wa-save');
+  var btn = document.getElementById(thenSend ? 'wa-send' : 'wa-save') || document.getElementById('wa-save');
   btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Saving…';
   rec.token = wsToken();
   rec.questionnaire_status = 'not_sent';
@@ -3189,6 +3258,9 @@ async function wsSavePatient(thenSend){
     else { wsCloseAddModal(); wsToast('Patient saved'); }
     /* No "Patient saved" toast on the created screen: the screen IS the
        confirmation, and a toast on top of it says the same thing twice. */
+    /* thenSend is retained for any caller that still asks for it; the
+       dialog's own footer no longer offers Save & Send, because sending is
+       what the created screen is for. */
     if(thenSend && r.data){ wsSend(r.data.id); }
   } catch(e){
     console.error('Creating the clinic patient failed unexpectedly.');
@@ -4112,21 +4184,38 @@ document.addEventListener('DOMContentLoaded', async function(){
          column layout is new. -->
     <div id="wa-form-view">
       <div class="ws-modal-body">
+        <div class="wa-sec">Patient</div>
         <div class="wa-grid">
-          <div class="wa-full"><label>Patient name</label><input id="wa-name" type="text" placeholder="Full name"></div>
-          <div><label>Phone number</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567"></div>
-          <div><label>Email</label><input id="wa-email" type="email" placeholder="patient@email.com">
-            <div class="wa-hint">Email enables the full patient portal (documents + plan). Optional.</div></div>
-          <div class="wa-full"><label>Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy"></div>
-          <div><label>Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic"></div>
-          <div><label>Surgery date</label><input id="wa-date" type="date"></div>
-          <div class="wa-full"><label>Notes</label><textarea id="wa-notes" placeholder="Optional"></textarea></div>
+          <div><label for="wa-fname">First name</label><input id="wa-fname" type="text" placeholder="First name"></div>
+          <div><label for="wa-lname">Last name</label><input id="wa-lname" type="text" placeholder="Last name"></div>
+          <!-- AGE AND SEX ARE NOT ASKED HERE ON PURPOSE. They are questions the
+               questionnaire already puts to the patient, who is the one who
+               knows them, and clinic_patients has no column for either. A
+               field that silently discards what is typed into it is worse than
+               no field, so this says where they come from instead. -->
+          <div class="wa-full wa-note">Age and sex come from the questionnaire the
+            patient completes; they appear on the patient record once returned.</div>
+        </div>
+
+        <div class="wa-sec">Surgery</div>
+        <div class="wa-grid">
+          <div class="wa-full"><label for="wa-proc">Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy"></div>
+          <div><label for="wa-date">Surgery date</label><input id="wa-date" type="date"></div>
+          <div><label for="wa-hospital">Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic"></div>
+        </div>
+
+        <div class="wa-sec">Contact</div>
+        <div class="wa-grid">
+          <div><label for="wa-email">Email</label><input id="wa-email" type="email" placeholder="patient@email.com">
+            <div class="wa-hint">Enables the full patient portal. Optional.</div></div>
+          <div><label for="wa-phone">Mobile / WhatsApp</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">
+            <div class="wa-hint">Needed to send by WhatsApp. Optional.</div></div>
+          <div class="wa-full"><label for="wa-notes">Notes</label><textarea id="wa-notes" placeholder="Optional"></textarea></div>
         </div>
       </div>
       <div class="ws-modal-foot">
         <button class="ws-btn" onclick="wsCloseAddModal()">Cancel</button>
-        <button class="ws-btn" id="wa-save" onclick="wsSavePatient(false)">Save</button>
-        <button class="ws-btn ws-btn-wa" id="wa-send" onclick="wsSavePatient(true)">&#128241; Save &amp; Send WhatsApp</button>
+        <button class="ws-btn ws-btn-wa" id="wa-save" onclick="wsSavePatient(false)">Create patient</button>
       </div>
     </div>
 
