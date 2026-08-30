@@ -223,6 +223,66 @@ html,body{background:var(--ground);}
 .sm-cell b{font-size:14px;color:#cfe;font-weight:600;}
 .sum-more-btn{margin-top:9px;background:none;border:1px solid var(--border);color:var(--accent);border-radius:var(--radius-sm);padding:6px 12px;font-size:11.5px;font-family:inherit;cursor:pointer;}
 .sum-more-btn:hover{background:rgba(255,255,255,.04);}
+
+/* ══ PATIENT CONTEXT STRIP ═══════════════════════════════════════════════
+   The workstation patient banner. Once a patient is entered this replaces
+   the six form inputs: a clinician mid-case reads the patient, they do not
+   re-enter it. Large value, small label, in the anaesthesia-machine idiom.
+   The form is not deleted, only hidden, so every input id, handler and
+   calculation on this page keeps working untouched. */
+.pctx{display:grid;grid-template-columns:repeat(5,minmax(0,auto)) minmax(0,1.4fr) auto;
+  background:var(--pane);border:1px solid var(--line);border-radius:var(--radius-lg);
+  margin:0 0 8px;overflow:hidden;}
+.pctx-c{padding:10px 16px;border-left:1px solid var(--line);min-width:0;}
+.pctx-c:first-child{border-left:none;}
+.pctx-v{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.01em;line-height:1.2;
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pctx-l{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);margin-top:3px;line-height:1.25;}
+.pctx-proc .pctx-v{font-size:16px;white-space:normal;line-height:1.25;}
+.pctx-est{color:var(--warning);font-weight:700;}
+.pctx-act{display:flex;align-items:center;gap:8px;padding:10px 14px;border-left:1px solid var(--line);}
+.pctx-edit,.pctx-new{background:transparent;border:1px solid var(--line-2);color:var(--ink-2);
+  border-radius:var(--radius-sm);padding:0 13px;height:34px;font-size:12.5px;font-weight:700;
+  font-family:inherit;cursor:pointer;white-space:nowrap;}
+.pctx-edit:hover,.pctx-new:hover{border-color:var(--accent);color:#fff;}
+.pctx-empty{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:14px 16px;background:var(--pane);border:1px solid var(--line);
+  border-radius:var(--radius-lg);margin:0 0 8px;}
+.pctx-empty-t{font-size:13.5px;color:var(--ink-2);}
+.pctx-empty-t b{color:#fff;font-weight:700;}
+
+/* ══ CONTEXT / DERIVED STRIP ══════════════════════════════════════════════
+   One row, and WHICH row depends on the patient. The previous build showed
+   adult Devine IBW, LBW and adjusted body weight for every patient: for a
+   10 kg one-year-old that rendered IBW 50 kg, LBW 5 kg and ABW 34 kg, three
+   numbers that are not merely unhelpful but wrong to put in front of someone
+   drawing up a dose. Values are unchanged; which ones are shown is not. */
+.dctx{display:flex;flex-wrap:wrap;align-items:stretch;background:var(--pane);
+  border:1px solid var(--line);border-radius:var(--radius-lg);margin:0 0 8px;overflow:hidden;}
+.dctx-tag{display:flex;align-items:center;gap:7px;padding:9px 15px;font-size:10px;
+  font-weight:800;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;
+  background:rgba(126,207,192,.10);color:var(--accent);}
+.dctx.peds .dctx-tag{background:rgba(232,168,56,.13);color:var(--warning);}
+.dctx-d{display:flex;align-items:baseline;gap:6px;padding:9px 15px;border-left:1px solid var(--line);
+  white-space:nowrap;}
+.dctx-l{font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);}
+.dctx-v{font-size:15px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;}
+.dctx-u{font-size:10.5px;color:var(--hint);}
+
+@media(max-width:900px){
+  .pctx{grid-template-columns:repeat(4,minmax(0,1fr));}
+  .pctx-proc{grid-column:1 / -1;}
+  .pctx-act{grid-column:1 / -1;border-left:none;border-top:1px solid var(--line);}
+  .pctx-edit,.pctx-new{flex:1 1 0;}
+}
+@media(max-width:560px){
+  .pctx{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .pctx-c{padding:9px 13px;}
+  .pctx-v{font-size:17px;}
+  .dctx-tag,.dctx-d{padding:8px 12px;}
+}
+
 /* Drug dosing cards */
 .drug-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
 .drug-card{background:rgba(0,0,0,.2);border:1px solid rgba(42,138,116,.22);border-radius:var(--radius-sm);padding:10px 11px;}
@@ -1459,31 +1519,19 @@ body .nb-search-wrap{display:none !important;}
          The case command area. It sits above Patient Identity and Patient
          Details so it can never be inside anything collapsible, and it is
          the only home for the reset action at any width. -->
-    <div class="case-bar">
-      <button type="button" class="case-state" id="case-state" onclick="ptToggle()"
-              aria-controls="acc-patient">No active patient</button>
-      <span class="case-edit">Edit</span>
-      <button type="button" class="case-new" onclick="newCaseAsk()"
-              aria-label="Start a new case — clears the current patient, calculations and timers">New case</button>
-    </div>
+    <!-- ── PATIENT CONTEXT ──────────────────────────────────────────────
+         Rendered by renderPatientStrip() from patientContext. Two states: a
+         one-line prompt before a patient exists, the banner after. Edit
+         reveals the form below, which is the same form as before. -->
+    <div id="pctx-host"></div>
 
-    <!-- ── MOBILE PATIENT CONTEXT ──────────────────────────────────────────
-         On a phone the six inputs and seven derived values cost 615px before
-         the first dose. They are not removed — every value on the page is
-         calculated from them — but by default they collapse to one readable
-         line of context plus the derived band, with the form one tap away.
-         Desktop never sees this: the strip is display:none above 900px. -->
-    <div class="pt-row">
-      <button type="button" class="pt-sum" id="pt-sum" onclick="ptToggle()"
-              aria-expanded="false" aria-controls="acc-patient">
-        <span class="pt-sum-line" id="pt-sum-line">Enter patient details</span>
-        <span class="pt-sum-edit">Edit</span>
-      </button>
-    </div>
+    <!-- The derived row, also rendered from patientContext, so what is shown
+         and what is calculated can never disagree. -->
+    <div id="dctx-host"></div>
 
     <!-- Patient Details — always expanded (drives the calculations) -->
-    <section class="cw-acc" id="acc-patient">
-      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span></div>
+    <section class="cw-acc" id="acc-patient" hidden>
+      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span><button type="button" class="pctx-edit" style="margin-left:auto;" onclick="ptEdit(false)">Done</button></div>
       <div class="cw-acc-body"><div class="input-bar">
         <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
           <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
@@ -1509,18 +1557,10 @@ body .nb-search-wrap{display:none !important;}
     </details>
 
     <!-- Derived Values — always expanded -->
-    <section class="cw-acc" id="acc-derived">
-      <div class="cw-acc-head"><span class="cw-acc-t">Derived Values</span></div>
-      <div class="cw-acc-body"><div class="cw-derived" id="cw-derived">
-        <div class="cw-d"><span class="cw-d-l">BMI</span><span class="cw-d-val" id="cw-bmi">&mdash;</span></div>
-        <div class="cw-d"><span class="cw-d-l">IBW</span><span class="cw-d-val" id="cw-ibw">&mdash;</span><span class="cw-d-u">kg</span></div>
-        <div class="cw-d"><span class="cw-d-l">LBW</span><span class="cw-d-val" id="cw-lbw">&mdash;</span><span class="cw-d-u">kg</span></div>
-        <div class="cw-d"><span class="cw-d-l">Adjusted BW</span><span class="cw-d-val" id="cw-abw">&mdash;</span><span class="cw-d-u">kg</span></div>
-        <div class="cw-d"><span class="cw-d-l">BSA</span><span class="cw-d-val" id="cw-bsa">&mdash;</span><span class="cw-d-u">m&sup2;</span></div>
-        <div class="cw-d"><span class="cw-d-l">EBV</span><span class="cw-d-val" id="cw-ebv">&mdash;</span><span class="cw-d-u">mL</span></div>
-        <div class="cw-d"><span class="cw-d-l">MAC <small>age-adj</small></span><span class="cw-d-val" id="cw-mac">&mdash;</span></div>
-      </div></div>
-    </section>
+    <div id="output">
+      <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
+      <button class="cw-open-pt" onclick="var a=ge('acc-patient');if(a)a.scrollIntoView({behavior:'smooth',block:'center'});var f=ge('i-age');if(f)f.focus();">Enter patient details</button></div>
+    </div>
 
     <!-- ── LIVE TIMERS (intraoperative workflow) — below Derived Values ── -->
     <!-- Timers are a running-case tool, not a lookup. They cost 180px at the
@@ -1558,11 +1598,6 @@ body .nb-search-wrap{display:none !important;}
         </div>
       </div>
     </details>
-
-    <div id="output">
-      <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
-      <button class="cw-open-pt" onclick="var a=ge('acc-patient');if(a)a.scrollIntoView({behavior:'smooth',block:'center'});var f=ge('i-age');if(f)f.focus();">Enter patient details</button></div>
-    </div>
 
     <!-- PACU / Recovery — separate from the intraoperative timer strip -->
     <div class="pacu-mod">
@@ -1653,9 +1688,12 @@ function compute(){
   var age=ageC?ageC.years:null, sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
   var out=ge('output');
   if(age==null||!sex||ht==null||wt==null){
+    window.patientContext = buildPatientContext({
+      ageYears:age, ageDays:(ageC?ageC.days:null), sex:sex,
+      height:ht, weight:wt, asa:ge('i-asa').value, procedure:ge('i-proc').value });
+    renderPatientStrip(); renderContextStrip();
     out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>'+
-      '<button class="cw-open-pt" onclick="var a=ge(\'acc-patient\');a.open=true;a.scrollIntoView({behavior:\'smooth\',block:\'center\'});var f=ge(\'i-age\');if(f)f.focus();">Open Patient Details</button></div>';
-    cwClearDerived();
+      '<button class="cw-open-pt" onclick="ptEdit(true)">Open Patient Details</button></div>';
     return;
   }
   var isPeds=age<16;
@@ -1875,13 +1913,26 @@ function compute(){
   // "Derived Values" section — reuses the values already computed above (no new
   // formulas); MAC is the standard age-adjustment factor relative to a 40-year-old.
   var macAge = Math.pow(10, -0.00269*((age||40)-40));
-  cwSetDerived('cw-bmi', r1(bmi));
-  cwSetDerived('cw-ibw', r0(ibw));
-  cwSetDerived('cw-lbw', r0(lbw));
-  cwSetDerived('cw-abw', r0(abw));
-  cwSetDerived('cw-bsa', r2(bsa));
-  cwSetDerived('cw-ebv', r0(ebv));
-  cwSetDerived('cw-mac', r2(macAge)+'&times;');
+  /* ONE context object, built from the values computed above. Nothing here
+     recalculates anything: bmi, ibw, lbw, abw, bsa, ebv, macAge, h421 and the
+     airway sizes are the same variables the rest of compute() already uses.
+     The pediatric airway numbers come from the same weight-based helpers the
+     airway panel renders, so the strip and the panel cannot disagree. */
+  var _pedsETT = null, _pedsDepth = null, _pedsLMA = null;
+  if(isPeds){
+    var _e = wbAir ? neoETT(wt) : (age/4 + 4);
+    if(_e != null){ _pedsETT = r1(_e); _pedsDepth = r1(_e * 3); }
+    _pedsLMA = lmaForWeight(wt);
+  }
+  window.patientContext = buildPatientContext({
+    ageYears:age, ageDays:ageC.days, sex:sex, height:ht, weight:wt,
+    asa:ge('i-asa').value, procedure:ge('i-proc').value,
+    derived:{ bmi:r1(bmi), ibw:r0(ibw), lbw:r0(lbw), abw:r0(abw),
+              bsa:r2(bsa), ebv:r0(ebv), mac:r2(macAge)+'&times;',
+              maint:r0(h421), ett:_pedsETT, ettDepth:_pedsDepth, lma:_pedsLMA }
+  });
+  renderPatientStrip();
+  renderContextStrip();
   // Collapsed-section glances (the doctor reads patient status without expanding)
   var ageStr=(ageC && ageC.years>=2)?(ageLabel(ageC)+' y'):ageLabel(ageC);
   var ps=ge('acc-patient-sub'); if(ps) ps.textContent=ageStr+' • '+(sex==='M'?'Male':'Female')+' • '+r0(wt)+' kg'+(asa?(' • ASA '+asa):'');
@@ -2585,13 +2636,132 @@ function ptSummary(){
 }
 window.ptSummary=ptSummary;
 
-function ptToggle(){
-  var w=document.getElementById('app'); if(!w) return;
-  var open=w.classList.toggle('pt-open');
-  var b=ge('pt-sum'); if(b) b.setAttribute('aria-expanded', open?'true':'false');
-  if(open){ var f=ge('i-age'); if(f && isPhone()) setTimeout(function(){ f.focus(); },120); }
+/* ══ patientContext — ONE SOURCE OF TRUTH ═════════════════════════════════
+   Every applicability decision on this page reads this object. The rule the
+   brief sets, and the rule this enforces, is that modules ask the context
+   whether they apply; nothing scatters `if (sex === 'M') hide obstetric`
+   through the render path. compute() builds it from the same inputs it
+   already used, so no calculation changes: this is the shape those numbers
+   are handed round in.
+
+   ageBand is derived once, here, from days rather than years, because the
+   neonatal and infant boundaries are the ones that change airway and blood
+   volume and they are wrong at year resolution. */
+window.patientContext = null;
+
+function buildPatientContext(o){
+  var days = o.ageDays, y = o.ageYears;
+  var band = 'adult';
+  if (days != null){
+    if (days < 28)        band = 'neonate';
+    else if (y < 1)       band = 'infant';
+    else if (y < 12)      band = 'child';
+    else if (y < 16)      band = 'adolescent';
+  }
+  var peds = (y != null && y < 16);
+  return {
+    ageYears: y, ageDays: days, ageBand: band,
+    sex: o.sex || null, weight: o.weight, height: o.height,
+    asa: o.asa || null, procedure: o.procedure || null,
+    procedureMeta: null,          /* filled by Phase 4 applicability rules */
+    pediatric: peds, adult: (y != null && y >= 16),
+    neonate: band === 'neonate', infant: band === 'infant',
+    obstetricContext: false,      /* Phase 4: never inferred from sex alone */
+    estimatedWeight: !!o.estimatedWeight, estimatedHeight: !!o.estimatedHeight,
+    complete: (y != null && !!o.sex && o.height != null && o.weight != null),
+    derived: o.derived || {}
+  };
 }
-window.ptToggle=ptToggle;
+
+/* ── The patient banner ─────────────────────────────────────────────────── */
+function ptEdit(on){
+  var f = ge('acc-patient'); if(!f) return;
+  f.hidden = !on;
+  if(on){ f.scrollIntoView({behavior:'smooth',block:'center'}); var a=ge('i-age'); if(a) a.focus(); }
+  renderPatientStrip();
+}
+window.ptEdit = ptEdit;
+/* ptToggle predates this and is still called by older handlers; it now means
+   the same thing as ptEdit(true) so nothing that used it breaks. */
+function ptToggle(){ var f=ge('acc-patient'); ptEdit(!!(f && f.hidden)); }
+window.ptToggle = ptToggle;
+
+function esc_(v){ return String(v==null?'':v).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function ptAgeLabel(ctx){
+  if(ctx.ageDays == null) return '—';
+  var d = ctx.ageDays;
+  if(d < 28)  return d + (d===1?' day':' days');
+  if(d < 365){ var m = Math.round(d/30.44); return m + (m===1?' month':' months'); }
+  var y = Math.floor(d/365.25);
+  return y + (y===1?' year':' years');
+}
+
+function renderPatientStrip(){
+  var host = ge('pctx-host'); if(!host) return;
+  var ctx = window.patientContext;
+  var editing = !!(ge('acc-patient') && !ge('acc-patient').hidden);
+
+  if(!ctx || !ctx.complete){
+    host.innerHTML =
+      '<div class="pctx-empty"><span class="pctx-empty-t"><b>No active patient.</b> '+
+      'Enter age, sex, height and weight and every calculation activates.</span>'+
+      '<span style="display:flex;gap:8px;">'+
+      '<button type="button" class="pctx-edit" onclick="ptEdit(true)">'+(editing?'Editing':'Enter patient details')+'</button>'+
+      '<button type="button" class="pctx-new" onclick="newCaseAsk()">New case</button></span></div>';
+    return;
+  }
+  function cell(v, l, cls, est){
+    return '<div class="pctx-c '+(cls||'')+'"><div class="pctx-v">'+v+'</div>'+
+           '<div class="pctx-l">'+l+(est?' &middot; <span class="pctx-est">EST.</span>':'')+'</div></div>';
+  }
+  host.innerHTML = '<div class="pctx">'+
+    cell(esc_(ptAgeLabel(ctx)), 'Age') +
+    cell(ctx.sex === 'M' ? 'Male' : (ctx.sex === 'F' ? 'Female' : '—'), 'Sex') +
+    cell(esc_(ctx.height) + ' cm', 'Height', '', ctx.estimatedHeight) +
+    cell(esc_(ctx.weight) + ' kg', 'Weight', '', ctx.estimatedWeight) +
+    cell(ctx.asa ? 'ASA ' + esc_(ctx.asa) : '—', 'Status') +
+    cell(esc_(ctx.procedure || 'Not specified'), 'Procedure', 'pctx-proc') +
+    '<div class="pctx-act">'+
+      '<button type="button" class="pctx-edit" onclick="ptEdit('+(editing?'false':'true')+')">'+
+        (editing ? 'Done' : 'Edit patient')+'</button>'+
+      '<button type="button" class="pctx-new" onclick="newCaseAsk()">New case</button>'+
+    '</div></div>';
+}
+window.renderPatientStrip = renderPatientStrip;
+
+/* ── The context strip ──────────────────────────────────────────────────── */
+function renderContextStrip(){
+  var host = ge('dctx-host'); if(!host) return;
+  var ctx = window.patientContext;
+  if(!ctx || !ctx.complete){ host.innerHTML = ''; return; }
+  var d = ctx.derived || {};
+  function v(label, val, unit){
+    if(val == null || val === '' ) return '';
+    return '<div class="dctx-d"><span class="dctx-l">'+label+'</span>'+
+           '<span class="dctx-v">'+val+'</span>'+(unit?'<span class="dctx-u">'+unit+'</span>':'')+'</div>';
+  }
+  var tag, cells;
+  if(ctx.pediatric){
+    /* Adult Devine IBW, LBW and adjusted body weight are deliberately absent:
+       they are not defined for children and were previously displayed anyway. */
+    tag = (ctx.neonate ? 'Neonatal' : ctx.infant ? 'Infant' : 'Pediatric') + ' context';
+    cells = v('BSA', d.bsa, 'm&sup2;') + v('EBV', d.ebv, 'mL') +
+            v('Maintenance', d.maint, 'mL/h') +
+            v('ETT', d.ett, 'mm ID') + v('Depth', d.ettDepth, 'cm') +
+            v('LMA', d.lma, '');
+  } else {
+    tag = 'Adult context';
+    cells = v('BMI', d.bmi, '') + v('IBW', d.ibw, 'kg') + v('LBW', d.lbw, 'kg') +
+            v('Adj. BW', d.abw, 'kg') + v('BSA', d.bsa, 'm&sup2;') +
+            v('EBV', d.ebv, 'mL') + v('MAC', d.mac, '');
+  }
+  host.innerHTML = '<div class="dctx'+(ctx.pediatric?' peds':'')+'">'+
+    '<div class="dctx-tag">'+tag+'</div>'+cells+'</div>';
+}
+window.renderContextStrip = renderContextStrip;
+
 
 /* Make a clinical domain the active mobile stream. Above the breakpoint the
    attribute is inert, so the same call is safe from any code path. */
@@ -3154,21 +3324,11 @@ function cwIdentity(){
 }
 window.cwIdentity=cwIdentity;
 // Derived-value setters — smooth flash when a value changes (presentation only).
-function cwSetDerived(id,val){
-  var e=ge(id); if(!e) return; var s=String(val);
-  if(e.innerHTML!==s){ e.innerHTML=s; e.classList.remove('cw-flash'); void e.offsetWidth; e.classList.add('cw-flash'); }
-}
 // Collapsed Laboratory Results glance — only the labs the doctor actually entered.
 function cwLabSummary(){
   var parts=[], fields=[['i-hb','Hb'],['i-plt','Plt'],['i-inr','INR'],['i-cr','Cr'],['i-na','Na']];
   fields.forEach(function(f){ var el=ge(f[0]); if(el && el.value!=='' && !isNaN(parseFloat(el.value))) parts.push(f[1]+' '+el.value); });
   return parts.join(' • ');
-}
-function cwClearDerived(){
-  ['cw-bmi','cw-ibw','cw-lbw','cw-abw','cw-bsa','cw-ebv','cw-mac'].forEach(function(id){ var e=ge(id); if(e) e.innerHTML='&mdash;'; });
-  var ps=ge('acc-patient-sub'); if(ps) ps.textContent='Not entered';
-  var ds=ge('acc-derived-sub'); if(ds) ds.textContent='Not entered';
-  var ls=ge('acc-lab-sub'); if(ls){ var lsum=cwLabSummary(); ls.textContent=lsum||'Not entered'; }
 }
 
 
