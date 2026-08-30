@@ -3116,11 +3116,12 @@ function wsMessage(p){
          'Please complete your pre-operative anesthesia questionnaire before your surgery.\n\n' +
          wsLink(p) + '\n\nThank you.';
 }
-async function wsMarkSent(id){
-  try {
-    await window.sb.from('clinic_patients').update({ questionnaire_status: 'sent', sent_at: new Date().toISOString() }).eq('id', id);
-  } catch(e){ console.warn('mark sent failed:', e.message); }
-}
+/* ONE STATEMENT IN THE PRODUCT CAN RECORD A DELIVERY, and it is in
+   new-patient.js. This page's card actions used to carry a second copy of it;
+   two writes that decide whether a patient was contacted is exactly the drift
+   the shared module exists to prevent, and the count of clinic_patients writes
+   is asserted against main because of it. */
+async function wsMarkSent(id){ return window.NewPatient.markSent(id); }
 function wsFindP(id){ return _wsPatients.find(function(x){ return x.id === id; }); }
 
 // Send via WhatsApp — only mark 'sent' if the WhatsApp window actually opened.

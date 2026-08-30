@@ -340,6 +340,9 @@
   root.NewPatient = {
     open: open,
     close: close,
+    /* THE write, exported. The dashboard's card actions call it too, so the
+       one statement that can record a delivery exists once in the product. */
+    markSent: markSent,
     /* exposed for tests and for hosts that need the same link/message text */
     _link: link, _message: message, _validEmail: validEmail,
     get created(){ return CREATED; }

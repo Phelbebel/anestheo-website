@@ -386,9 +386,19 @@ function ratio(fg, bg) {
      still asks the database for the same things. */
   t('the workspace guard is unchanged',
     /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
+  /* The claim is about the WORKSPACE, and the workspace is now two files: the
+     New Patient dialog moved out of dashboard.html into the shared
+     new-patient.js that Live Tools also opens. Comparing one file against main
+     would report a relocation as a change in data access, which is the wrong
+     alarm — so the comparison spans both, as a multiset, and still fails if a
+     single query is added, removed or altered anywhere in the workspace.
+     Measured at the time of the move: identical to main. */
+  const wsQueries = src('dashboard.html') + src('new-patient.js');
+  const tally = s => (s.match(/\.from\('[a-z_]+'\)/g) || []).sort().join();
   t('the workspace queries are unchanged',
-    (src('dashboard.html').match(/\.from\('[a-z_]+'\)/g) || []).join() ===
-    (onMain('dashboard.html').match(/\.from\('[a-z_]+'\)/g) || []).join());
+    tally(wsQueries) === tally(onMain('dashboard.html')),
+    tally(wsQueries) === tally(onMain('dashboard.html')) ? 'identical' :
+      { now:tally(wsQueries).slice(0,120), main:tally(onMain('dashboard.html')).slice(0,120) });
   t('requireRole(\'staff\') still guards the workspace',
     /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
   /* Three consultation labels changed in the Ask work; they promised

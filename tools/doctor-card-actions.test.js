@@ -417,9 +417,31 @@ const RAW_PG = 'permission denied for function patient_lifecycle_eligibility';
   const { execSync } = require('child_process');
   const mainDash = execSync('git -C ' + REPO + ' show origin/main:dashboard.html', { encoding:'utf8', maxBuffer:1<<26 });
   const grab = (src, name) => (src.match(new RegExp('function ' + name + '\\([^)]*\\)\\{[\\s\\S]*?\\n\\}')) || [''])[0];
-  for (const fn of ['wsSendWhatsApp', 'wsCopyLink', 'wsFallbackCopy', 'wsOpenLink', 'wsLink', 'wsMessage', 'wsMarkSent'])
+  for (const fn of ['wsSendWhatsApp', 'wsCopyLink', 'wsFallbackCopy', 'wsOpenLink', 'wsLink', 'wsMessage'])
     t(fn + ' is byte-identical to main',
       grab(DASH, fn) === grab(mainDash, fn) && grab(DASH, fn).length > 0, fn);
+
+  /* wsMarkSent MOVED, and byte-identity in dashboard.html would report that as
+     a change to the rule when the rule is what stayed the same. The New Patient
+     dialog is now a shared module that Live Tools opens too, and it needed the
+     same write; a second copy of the one statement that decides whether a
+     patient was contacted is precisely the drift worth preventing, so there is
+     one implementation and this page delegates to it.
+
+     The claim therefore has three parts, and all three are stronger than the
+     freeze was: the statement itself is unchanged, this page no longer carries
+     its own, and the product contains exactly one of it. */
+  const NP = read('new-patient.js');
+  const npMark = (NP.match(/function markSent\(id\)\{[\s\S]*?\n  \}/) || [''])[0];
+  t('wsMarkSent delegates rather than reimplementing',
+    /function wsMarkSent\([^)]*\)\{\s*return window\.NewPatient\.markSent\(id\);\s*\}/
+      .test(code(grab(DASH, 'wsMarkSent'))), grab(DASH, 'wsMarkSent').slice(0, 90));
+  t('...to a statement that still writes exactly what main wrote',
+    /questionnaire_status\s*:\s*'sent'/.test(npMark) && /sent_at\s*:/.test(npMark) &&
+    /\.eq\('id',\s*id\)/.test(npMark), npMark.replace(/\s+/g, ' ').slice(0, 110));
+  t('...and the product holds exactly one such write',
+    ((DASH + NP).match(/questionnaire_status\s*:\s*'sent'/g) || []).length === 1,
+    ((DASH + NP).match(/questionnaire_status\s*:\s*'sent'/g) || []).length);
   t('WhatsApp still opens via window.open on https',
     /window\.open\(wa,\s*'_blank'\)/.test(code(grab(DASH,'wsSendWhatsApp'))) &&
     /https:\/\/wa\.me\//.test(grab(DASH,'wsSendWhatsApp')));
