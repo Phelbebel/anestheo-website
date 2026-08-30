@@ -499,10 +499,43 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 .pest-tx{flex:1 1 260px;min-width:0;font-size:12.5px;line-height:1.6;color:var(--ink-2);}
 .pest-tx b{color:var(--ink);font-weight:700;}
 .pest-a{display:flex;gap:8px;flex-wrap:wrap;}
-.pest-b{min-height:38px;padding:0 15px;background:rgba(47,168,140,.16);
+.pest-b{min-height:36px;padding:0 14px;background:rgba(47,168,140,.16);
   border:1px solid rgba(47,168,140,.44);color:#7ECFC0;border-radius:var(--radius-sm);
-  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+  font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;width:100%;}
 .pest-b:hover{background:rgba(47,168,140,.26);color:#fff;}
+/* One card per offered value: what it is, the number, that it is an estimate,
+   and the only control that makes it real. */
+.pest-card{flex:0 0 auto;min-width:158px;padding:10px 12px;border-radius:var(--radius-md);
+  background:rgba(255,255,255,.04);border:1px solid var(--border);}
+.pest-lab{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:4px;}
+.pest-val{font-size:22px;font-weight:800;color:#fff;line-height:1.1;
+  font-variant-numeric:tabular-nums;}
+.pest-val span{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:4px;}
+.pest-tag{display:inline-block;margin:5px 0 9px;padding:2px 7px;border-radius:3px;
+  font-size:8.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--warning);background:rgba(232,168,56,.14);}
+
+/* ══ PROCEDURE SELECTOR ═══════════════════════════════════════════════════ */
+.inp-proc{position:relative;}
+.proc-pop{position:absolute;left:0;right:0;top:100%;z-index:40;margin-top:4px;
+  background:var(--ground-2,#111820);border:1px solid var(--line-2);
+  border-radius:var(--radius-md);box-shadow:0 16px 40px rgba(0,0,0,.5);
+  overflow:hidden;max-height:264px;overflow-y:auto;}
+.proc-opt{display:flex;align-items:baseline;gap:10px;width:100%;background:transparent;
+  border:0;border-bottom:1px solid var(--hair);color:var(--ink-2);font-family:inherit;
+  font-size:13px;text-align:left;padding:9px 12px;cursor:pointer;min-height:38px;}
+.proc-opt:last-child{border-bottom:0;}
+.proc-opt:hover,.proc-opt.on{background:var(--brand-tint-2);color:#fff;}
+.proc-opt-l{flex:1 1 auto;min-width:0;}
+.proc-opt-s{flex:0 0 auto;font-size:9.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);}
+.proc-state{margin-top:5px;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  min-height:13px;color:var(--ink-3);}
+.proc-state.ok{color:var(--accent);}
+.proc-state.need{color:var(--accent);}
+.proc-state.bad{color:#f0c674;}
+.proc-state.free{color:var(--hint);font-weight:600;}
 .pest-off{display:flex;gap:11px;align-items:flex-start;
   background:var(--surface-2,rgba(255,255,255,.03));border-color:var(--border);
   font-size:12.5px;line-height:1.6;color:var(--ink-3);}
@@ -1825,7 +1858,20 @@ body .nb-search-wrap{display:none !important;}
         <div class="inp"><label>Height (cm)</label><input id="i-height" type="number" inputmode="numeric" placeholder="cm" oninput="compute()"></div>
         <div class="inp"><label>Weight (kg)</label><input id="i-weight" type="number" inputmode="numeric" placeholder="kg" oninput="compute()"></div>
         <div class="inp"><label>ASA</label><select id="i-asa" onchange="compute()"><option value="">—</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></div>
-        <div class="inp"><label>Procedure</label><input id="i-proc" type="text" placeholder="e.g. Laparoscopy" oninput="compute()"></div>
+        <!-- The procedure selector. Free text is always allowed and always
+             kept; the list only offers what the catalogue recognises, and a
+             recognised procedure is what lets the page say anything about
+             applicability at all. -->
+        <div class="inp inp-proc">
+          <label for="i-proc">Procedure</label>
+          <input id="i-proc" type="text" placeholder="e.g. Laparoscopic cholecystectomy"
+                 autocomplete="off" role="combobox" aria-expanded="false"
+                 aria-autocomplete="list" aria-controls="proc-list"
+                 oninput="procInput()" onkeydown="procKey(event)"
+                 onfocus="procInput()" onblur="procBlur()">
+          <div class="proc-pop" id="proc-list" role="listbox" hidden></div>
+          <div class="proc-state" id="proc-state"></div>
+        </div>
       </div>
       <!-- Paediatric estimate offer. Only appears for a paediatric age with a
            missing weight or height, and only offers a number when a growth
@@ -2020,7 +2066,7 @@ function compute(){
       ageValue:(ageC?ageC.value:null), ageUnit:(ageC?ageC.unit:null), sex:sex,
       height:ht, weight:wt, asa:ge('i-asa').value, procedure:ge('i-proc').value,
       estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height });
-    renderPatientStrip(); renderContextStrip(); renderProcNotice(); renderPedsEstimate();
+    renderPatientStrip(); renderContextStrip(); renderProcNotice(); renderProcState(); renderPedsEstimate();
     out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>'+
       '<button class="cw-open-pt" onclick="ptFocus()">Open Patient Details</button></div>';
     return;
@@ -2284,6 +2330,7 @@ function compute(){
   renderPatientStrip();
   renderContextStrip();
   renderProcNotice();
+  renderProcState();
   renderPedsEstimate();
   renderCrisisRail();   /* the Doses view quotes weight-aware rescue doses */
   // Collapsed-section glances (the doctor reads patient status without expanding)
@@ -3464,6 +3511,88 @@ function renderProcNotice(){
 }
 window.renderProcNotice = renderProcNotice;
 
+/* ══ THE PROCEDURE SELECTOR ═══════════════════════════════════════════════
+   A search over the procedure catalogue, using the same interaction the drug
+   search uses and none of its data. Typing never blocks: whatever is in the
+   field is the procedure, recognised or not. Choosing from the list is only a
+   faster way to type something the catalogue knows, and knowing it is what
+   allows the page to say whether it fits the patient.
+
+   The inline state line is deliberately quiet. It reports one of the four
+   states in a few words; the fuller explanation of a conflict belongs under
+   the derived strip, next to the age and sex it is talking about. */
+var _procSel = -1;
+
+function procInput(){
+  var el = ge('i-proc'), pop = ge('proc-list');
+  if(!el || !pop) return;
+  compute();                                   /* the field is live, as before */
+  var PI = window.ProcedureIndex;
+  var q = el.value.trim();
+  var hits = (PI && q.length >= 2) ? PI.search(q, 7) : [];
+  /* An exact hit needs no list: offering one option identical to what is
+     already typed is noise. */
+  if(hits.length === 1 && PI.normalize(hits[0].label) === PI.normalize(q)) hits = [];
+  if(!hits.length){ procClose(); return; }
+  _procSel = -1;
+  pop.innerHTML = hits.map(function(p, i){
+    return '<button type="button" class="proc-opt" role="option" aria-selected="false" '+
+           'data-i="'+i+'" onmousedown="event.preventDefault()" '+
+           'onclick="procPick('+JSON.stringify(p.label).replace(/"/g,'&quot;')+')">'+
+           '<span class="proc-opt-l">'+esc_(p.label)+'</span>'+
+           '<span class="proc-opt-s">'+esc_(p.specialty || '')+'</span></button>';
+  }).join('');
+  pop.hidden = false;
+  el.setAttribute('aria-expanded','true');
+}
+function procClose(){
+  var pop = ge('proc-list'), el = ge('i-proc');
+  if(pop){ pop.hidden = true; pop.innerHTML = ''; }
+  if(el) el.setAttribute('aria-expanded','false');
+  _procSel = -1;
+}
+function procBlur(){ setTimeout(procClose, 120); }
+function procPick(label){
+  var el = ge('i-proc'); if(!el) return;
+  el.value = label; procClose(); compute(); el.focus();
+}
+function procKey(e){
+  var pop = ge('proc-list'); if(!pop || pop.hidden) return;
+  var opts = pop.querySelectorAll('.proc-opt');
+  if(!opts.length) return;
+  if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    e.preventDefault();
+    _procSel += (e.key === 'ArrowDown' ? 1 : -1);
+    if(_procSel < 0) _procSel = opts.length - 1;
+    if(_procSel >= opts.length) _procSel = 0;
+    [].forEach.call(opts, function(o, i){
+      o.classList.toggle('on', i === _procSel);
+      o.setAttribute('aria-selected', i === _procSel ? 'true' : 'false');
+    });
+  } else if(e.key === 'Enter' && _procSel >= 0){
+    e.preventDefault(); opts[_procSel].click();
+  } else if(e.key === 'Escape'){ procClose(); }
+}
+window.procInput=procInput; window.procPick=procPick; window.procKey=procKey;
+window.procBlur=procBlur; window.procClose=procClose;
+
+/* The one-line state under the field. Four states, four sentences. */
+function renderProcState(){
+  var host = ge('proc-state'); if(!host) return;
+  var p = window.patientContext && window.patientContext.procedure;
+  if(!p || !p.raw){ host.className = 'proc-state'; host.textContent = ''; return; }
+  var map = {
+    'valid':            ['ok',   'Recognised'],
+    'requires-context': ['need', 'Needs more context'],
+    'incompatible':     ['bad',  'Does not fit this patient'],
+    'free-text':        ['free', 'Free text — no procedure references']
+  };
+  var m = map[p.compatibility] || map['free-text'];
+  host.className = 'proc-state ' + m[0];
+  host.textContent = m[1] + (p.recognized && p.specialty ? ' · ' + p.specialty : '');
+}
+window.renderProcState = renderProcState;
+
 /* ══ PEDIATRIC WEIGHT / HEIGHT ESTIMATE ═══════════════════════════════════
    The brief asks for an estimate offer when a paediatric age is entered and
    weight or height is blank, and for the estimate to be marked as an estimate
@@ -3497,6 +3626,54 @@ window.renderProcNotice = renderProcNotice;
    dataset is large, it is versioned, and it should not be pasted into a page
    that is already 4000 lines. Nothing below fabricates a fallback if lookup
    is absent or returns null — it returns null and the control stays off. */
+/* ══ WHAT DATASET THIS NEEDS, SPECIFICALLY ════════════════════════════════
+   Asked for, and answered here so it survives in the repository rather than
+   in a chat log. NOTE ON PROVENANCE: this describes the WHO standards from
+   knowledge, not from a file in this repo and not from a fetch — outbound
+   network access is blocked in the build environment. Verify against who.int
+   before anyone builds the table.
+
+   WHICH TABLES
+     1. WHO Child Growth Standards (2006) — birth to 60 months.
+        · weight-for-age        AVAILABLE, 0–60 months, boys and girls separately
+        · length/height-for-age AVAILABLE, 0–60 months (recumbent length to 24
+          months, standing height from 24 months; the two are not
+          interchangeable and the tables say which is which)
+     2. WHO Growth Reference (2007) — 5 to 19 years.
+        · weight-for-age        AVAILABLE ONLY TO 10 YEARS. WHO does not publish
+          weight-for-age beyond 121 months, on the stated grounds that it does
+          not separate height from body mass through puberty.
+        · height-for-age        AVAILABLE, 5–19 years
+        · BMI-for-age           AVAILABLE, 5–19 years
+
+   THE COVERAGE GAP THAT FOLLOWS
+     A weight estimate can be offered from 0 to 10 years and NOT from 10 to 16.
+     The component must therefore be able to offer height but not weight for
+     part of its range, which is why pedsEstimate() returns each independently
+     and renderPedsEstimate() draws a card per available value. Do not paper
+     over the gap with a different reference for the missing band without
+     saying so on screen.
+
+   RECOMMENDED LOCAL REPRESENTATION
+     Ship the LMS parameters, not the percentile grids. Each row is
+     (sex, ageDays, L, M, S) and any centile or z-score is recoverable from
+     them, so one small table answers every question the UI can ask:
+
+         X(z) = M * (1 + L*S*z)^(1/L)      for L != 0
+         X(z) = M * exp(S*z)               for L == 0
+
+     M alone is the median, which is the "suggested typical value" the UI
+     offers, so the common case is a lookup with no arithmetic at all.
+
+     Four tables — weight-for-age and height-for-age, boys and girls — at
+     roughly 1,850 rows each for the 0–5y daily tables and far fewer if
+     monthly resolution is accepted. As a separate versioned file, e.g.
+     growth-reference.js, carrying its own `source` and `revision` strings,
+     which the UI already displays. Interpolate between rows linearly on age;
+     do not extrapolate beyond a table's ends — return null instead.
+
+   UNTIL THAT FILE EXISTS this stays null and the component renders its
+   unavailable state. Nothing below fabricates a fallback. */
 window.PEDS_GROWTH_REFERENCE = window.PEDS_GROWTH_REFERENCE || null;
 
 /* Which of the two fields the user has been given by the reference rather
@@ -3551,30 +3728,45 @@ function renderPedsEstimate(){
   if(!needs){ host.innerHTML = ''; return; }
 
   var est = pedsEstimate(ctx);
+
+  /* THE UNAVAILABLE STATE, and today the only reachable one. It names what is
+     missing rather than hinting, because the next person to read this needs to
+     know it is a data gap and not a bug. */
   if(!est){
-    /* The honest state, and currently the only reachable one. */
     host.innerHTML =
       '<div class="pest pest-off"><span class="pest-i" aria-hidden="true">&#8505;</span>'+
-      '<div><b>Estimate from age is unavailable.</b> '+
+      '<div><b>Suggested typical values are not available.</b> '+
       'Reference dataset required before enabling estimates. Enter the measured '+
       (a.weight == null && a.height == null ? 'weight and height' :
        a.weight == null ? 'weight' : 'height')+
       ' to activate the calculations.</div></div>';
     return;
   }
-  var btns = '';
-  if(a.weight == null && est.weightKg != null)
-    btns += '<button type="button" class="pest-b" onclick="pedsApplyEstimate(\'weight\')">'+
-            'Use '+(Math.round(est.weightKg*10)/10)+' kg</button>';
-  if(a.height == null && est.heightCm != null)
-    btns += '<button type="button" class="pest-b" onclick="pedsApplyEstimate(\'height\')">'+
-            'Use '+(Math.round(est.heightCm*10)/10)+' cm</button>';
-  if(!btns){ host.innerHTML = ''; return; }
+
+  /* THE AVAILABLE STATE. Never auto-filled. The value is offered, labelled as
+     an estimate, and stays an offer until the clinician presses Use — at which
+     point anthropometrics.weightSource becomes 'estimated' and every place the
+     number appears is marked EST. A reference value that silently became the
+     patient's weight would be indistinguishable from a measurement. */
+  function card(kind, value, unit){
+    return '<div class="pest-card">'+
+      '<div class="pest-lab">Suggested typical '+kind+'</div>'+
+      '<div class="pest-val">~'+ (Math.round(value*10)/10) +'<span>'+unit+'</span></div>'+
+      '<div class="pest-tag">Estimated</div>'+
+      '<button type="button" class="pest-b" onclick="pedsApplyEstimate(\''+kind+'\')">'+
+      'Use estimate</button></div>';
+  }
+  var cards = '';
+  if(a.weight == null && est.weightKg != null) cards += card('weight', est.weightKg, 'kg');
+  if(a.height == null && est.heightCm != null) cards += card('height', est.heightCm, 'cm');
+  if(!cards){ host.innerHTML = ''; return; }
+
   host.innerHTML =
-    '<div class="pest"><div class="pest-tx"><b>Estimate from age</b> '+
+    '<div class="pest"><div class="pest-tx"><b>Estimate from age and sex</b><br>'+
     esc_(est.source)+(est.basis ? ' &middot; '+esc_(est.basis) : '')+
-    '. An estimate is a starting point, not a measurement; it is marked EST. '+
-    'wherever it is used.</div><div class="pest-a">'+btns+'</div></div>';
+    '. An estimate is a starting point, not a measurement, and nothing is '+
+    'filled in until you choose it.</div>'+
+    '<div class="pest-a">'+cards+'</div></div>';
 }
 window.renderPedsEstimate = renderPedsEstimate;
 
