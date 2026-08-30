@@ -1756,11 +1756,9 @@ body .nb-search-wrap{display:none !important;}
 .case-np:hover{background:rgba(47,168,140,.26);color:#fff;border-color:var(--accent);}
 .case-np:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 @media(max-width:900px){ .case-np{min-height:40px;font-size:11.5px;padding:0 12px;} }
-/* On the narrowest screens the pair abbreviates rather than wrapping. */
-@media(max-width:430px){
-  .case-np{padding:0 10px;}
-  .case-np .lg,.case-new .lg{display:none;}
-}
+/* A previous revision hid a .lg span inside these buttons to abbreviate them.
+   No such span was ever added, so the rule matched nothing; the bar now wraps
+   instead, which keeps both labels readable. */
 @media(max-width:900px){
   .case-bar{padding:6px 10px;}
   .case-new{min-height:40px;font-size:11.5px;padding:0 12px;}
@@ -1775,6 +1773,23 @@ body .nb-search-wrap{display:none !important;}
   .pt-row{display:none;}                 /* the case bar is the summary now */
   .case-state{cursor:pointer;min-height:40px;display:flex;align-items:center;}
   .case-edit{display:inline-flex;align-items:center;min-height:40px;}
+}
+/* THE CASE LINE STOPPED FITTING WHEN NEW PATIENT JOINED THE BAR. Three
+   controls beside an ellipsised summary left the summary about six characters,
+   so a phone read "CURREN" and nothing else — the case bar had become a row of
+   buttons with a decorative prefix.
+
+   Below 900px — the same boundary at which this cockpit already switches to
+   its phone behaviour — the summary takes a row of its own and wraps, and the
+   controls sit under it. Nothing is hidden and no label is abbreviated away;
+   the bar stops pretending it is one line wide. */
+@media(max-width:900px){
+  .case-bar{flex-wrap:wrap;gap:8px 10px;}
+  .case-state{flex:1 1 100%;white-space:normal;overflow:visible;line-height:1.45;
+    min-height:0;display:block;padding:2px 0;}
+  .case-edit{order:2;}
+  .case-new,.case-np{flex:1 1 0;justify-content:center;display:inline-flex;
+    align-items:center;order:3;}
 }
 </style>
 </head>
@@ -3755,7 +3770,10 @@ window.renderProcState = renderProcState;
    no zone values at all. Every number this component could show would
    therefore be a number I made up, on a page whose output is drug doses, so
    the component is built and left switched off rather than filled with a
-   guess. It renders a disabled control that says what is missing.
+   guess. Under the deferred plan it renders NOTHING AT ALL — not a disabled
+   control, not a notice — because a control describing a feature the product
+   cannot perform is a promise it does not keep. growth-reference.js is the
+   source boundary; fill it and this appears.
 
    DATA INTERFACE. Supplying the dataset means setting, before compute() runs:
 

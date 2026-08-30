@@ -677,13 +677,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
   .ws-mp-datechip{flex:1;text-align:left;width:auto;}
   .ws-mp-act{width:auto;flex:1;}
 }
-/* Generic modal (New Patient) */
+/* Generic modal. Used by the email share sheet, the portal-link box and the
+   patient detail view; the New Patient dialog is no longer one of them. */
 .ws-modal-bg{display:none;position:fixed;inset:0;background:var(--scrim);z-index:6500;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
 .ws-modal-bg.open{display:flex;}
 /* max-width is NOT set here. A second .ws-modal rule further down this file
    also declares one, at equal specificity and later in source order, so it
    always won and the 460px written here has never taken effect. Width is
-   settled in one place now; see .ws-modal / .ws-modal-lg / .ws-modal-xl. */
+   settled in one place now; see .ws-modal and .ws-modal-lg. */
 .ws-modal{background:var(--ground-2);border:1px solid rgba(42,138,116,.4);border-radius:var(--radius-lg);width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6);}
 .ws-modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid rgba(42,138,116,.25);}
 .ws-modal-title{font-size:16px;font-weight:800;}
@@ -741,62 +742,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-modal-bg.open{display:flex;}
 .ws-modal{background:var(--dark2);border:1px solid rgba(27,107,90,.3);border-radius:var(--radius-lg);padding:24px;max-width:440px;width:100%;}
 .ws-modal-lg{max-width:560px;}
-/* The New Patient dialog. It is a record-creation form, not a confirmation
-   prompt, and at 440px its eight fields ran as one tall column that pushed the
-   footer off a laptop screen. At 820px it reads in two columns and the whole
-   form is visible at once. */
-.ws-modal-xl{max-width:820px;}
-/* On a phone a centred dialog with margins wastes the only axis there is. It
-   becomes a sheet: full width, full height, its own scroll, footer reachable. */
-@media(max-width:860px){
-  .ws-modal-xl{max-width:100%;}
-}
-@media(max-width:600px){
-  .ws-modal-bg:has(.ws-modal-xl){padding:0;}
-  .ws-modal-xl{min-height:100dvh;border-radius:0;border-left:0;border-right:0;
-    display:flex;flex-direction:column;}
-  .ws-modal-xl > #wa-form-view{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;}
-  .ws-modal-xl .ws-modal-body{flex:1 1 auto;overflow-y:auto;}
-  .ws-modal-xl .ws-modal-foot{position:sticky;bottom:0;background:var(--ground-2);}
-  .ws-modal-xl .ws-modal-foot .ws-btn{flex:1 1 0;}
-}
-
-/* Two-column form grid inside the wide dialog. Name, procedure and notes are
-   the fields people write most in, so they keep the full width; the short,
-   structured fields pair up. */
-.wa-sec{font-size:9.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--hint);margin:16px 0 2px;padding-top:14px;border-top:1px solid var(--border);}
-.ws-modal-body > .wa-sec:first-child{margin-top:2px;padding-top:0;border-top:0;}
-.wa-note{font-size:12px;color:var(--muted);line-height:1.55;margin:10px 0 2px;}
-.wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
-.wa-grid .wa-full{grid-column:1 / -1;}
-@media(max-width:700px){ .wa-grid{grid-template-columns:1fr;} }
-
-/* ══ CREATED STATE ════════════════════════════════════════════════════════
-   The dialog does not close on save. Creating the patient is the middle of
-   the job, not the end of it: the next thing the doctor does is send the
-   questionnaire, and closing the dialog used to send them back to the board to
-   find the row they had just made. The same dialog becomes the handover. */
-.wa-done-h{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;}
-.wa-tick{flex:0 0 auto;width:34px;height:34px;border-radius:50%;
-  background:rgba(47,168,140,.16);border:1px solid rgba(47,168,140,.5);
-  color:#7ECFC0;display:flex;align-items:center;justify-content:center;
-  font-size:16px;font-weight:800;}
-.wa-done-t{font-family:var(--sans);font-size:19px;font-weight:700;color:#fff;margin-bottom:3px;}
-.wa-done-s{font-size:13px;color:var(--muted);line-height:1.6;}
-.wa-facts{display:flex;flex-wrap:wrap;gap:8px 22px;padding:13px 15px;margin-bottom:16px;
-  background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);}
-.wa-fact{min-width:0;}
-.wa-fact b{display:block;font-size:9.5px;font-weight:800;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--hint);margin-bottom:3px;}
-.wa-fact span{font-size:14px;color:#fff;}
-.wa-sec{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--hint);margin:0 0 9px;}
-.wa-status{display:inline-flex;align-items:center;gap:7px;margin-top:12px;
-  font-size:12.5px;color:var(--muted);}
-.wa-dot{width:8px;height:8px;border-radius:50%;background:var(--hint);flex:0 0 auto;}
-.wa-dot.on{background:#2FA88C;}
-.wa-rule{height:1px;background:rgba(42,138,116,.25);margin:18px 0;}
+/* THE NEW PATIENT DIALOG'S STYLING LEFT WITH THE DIALOG. Roughly sixty lines
+   of .ws-modal-xl and .wa-* rules stayed behind when the workflow moved into
+   new-patient.js — a phone sheet, a two-column grid and a whole created-state
+   treatment, none of them matching a single element on this page any more.
+   Dead CSS is not inert: it is the next person's false lead when they go
+   looking for where the dialog is styled. The shared component brings its own
+   stylesheet, new-patient.css, and that is where those rules live now. */
 .ws-modal h3{font-family:var(--sans);font-size:21px;margin-bottom:14px;}
 .ws-modal label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--hint);margin:12px 0 5px;}
 .ws-modal input,.ws-modal textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;color:#fff;font-size:14px;font-family:inherit;outline:none;min-height:44px;}

@@ -300,7 +300,15 @@ async function openEngine(b, viewport) {
         set('i-age','1'); set('i-sex','M'); set('i-height','76'); set('i-weight','10');
         set('i-asa','I'); set('i-proc','Inguinal hernia'); compute();
         const y = e => e ? Math.round(e.getBoundingClientRect().top + scrollY) : null;
-        return { grid:y(document.querySelector('.ws-grid')),
+        const cs = document.getElementById('case-state');
+        /* \\s, not \s. This line lives inside a template literal, where
+           JavaScript resolves \s to a bare "s" before the browser ever sees
+           it — so /\s+/ became /s+/ and the assertion quietly deleted every
+           lowercase s from the text it was checking ("Current ca e"). */
+        return { caseText:cs.textContent.replace(/\\s+/g,' ').trim(),
+                 caseClipped: cs.scrollWidth > cs.clientWidth + 1,
+                 caseScroll: cs.scrollWidth, caseClient: cs.clientWidth,
+                 grid:y(document.querySelector('.ws-grid')),
                  timers:y(document.getElementById('live-timers')),
                  pacu:y(document.querySelector('.pacu-mod')),
                  newPatient:!!document.querySelector('.case-np') &&
@@ -311,6 +319,15 @@ async function openEngine(b, viewport) {
       t(w + ': the workstation precedes the timers', g.grid < g.timers, [g.grid, g.timers]);
       t(w + ': ...and precedes PACU', g.grid < g.pacu, [g.grid, g.pacu]);
       t(w + ': New Patient is visible in the case bar', g.newPatient === true);
+      /* ADDING THAT BUTTON BROKE THE CASE LINE ON A PHONE. Three controls
+         beside an ellipsised summary left it about six characters, so 390px
+         read "CURREN" and nothing else. The bar wraps below 900px now, and
+         this asserts the summary is fully rendered rather than clipped —
+         which is the property the ellipsis was silently destroying. */
+      t(w + ': the case summary is not clipped', g.caseClipped === false,
+        { text:g.caseText, scroll:g.caseScroll, client:g.caseClient });
+      t(w + ': ...and still names the patient and procedure',
+        /1y/.test(g.caseText) && /Inguinal hernia/i.test(g.caseText), g.caseText);
       t(w + ': Opioids, never Narcotics',
         g.chips.some(c => /OPIOIDS/i.test(c)) && !g.chips.some(c => /NARCOTIC/i.test(c)), g.chips);
       t(w + ': Neuromuscular blockers, never Relaxants',
