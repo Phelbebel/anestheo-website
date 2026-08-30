@@ -12,9 +12,12 @@
 <script src="/clinical-index.js?v=2026.08.21-03"></script>
 <script src="/clinical-search.js?v=2026.08.21-03"></script>
 <script src="/procedures.js?v=2026.08.21-03"></script>
+<script src="/growth-reference.js?v=2026.08.21-03"></script>
+<script src="/new-patient.js?v=2026.08.21-03"></script>
 <script src="/evidence-api.js?v=2026.08.21-03"></script>
 <script src="/evidence-drawer.js?v=2026.08.21-03"></script>
 <link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
+<link rel="stylesheet" href="/new-patient.css?v=2026.08.21-03">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -536,6 +539,11 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 .proc-state.need{color:var(--accent);}
 .proc-state.bad{color:#f0c674;}
 .proc-state.free{color:var(--hint);font-weight:600;}
+.proc-act{margin-top:9px;}
+.proc-confirm{min-height:34px;padding:0 14px;background:rgba(47,168,140,.16);
+  border:1px solid rgba(47,168,140,.46);color:#7ECFC0;border-radius:var(--radius-sm);
+  font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;}
+.proc-confirm:hover{background:rgba(47,168,140,.27);color:#fff;}
 .pest-off{display:flex;gap:11px;align-items:flex-start;
   background:var(--surface-2,rgba(255,255,255,.03));border-color:var(--border);
   font-size:12.5px;line-height:1.6;color:var(--ink-3);}
@@ -1737,6 +1745,22 @@ body .nb-search-wrap{display:none !important;}
 .case-new:hover{color:#F0A882;border-color:rgba(232,150,110,.55);
   background:rgba(232,150,110,.09);}
 .case-new:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+/* New patient sits beside New case: both end the current thing, one by
+   clearing it and one by creating the next. Teal rather than the amber-tinted
+   reset, because creating is the constructive half of that pair. */
+.case-np{flex:0 0 auto;font:inherit;font-size:12px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;line-height:1;color:#7ECFC0;background:rgba(47,168,140,.14);
+  border:1px solid rgba(47,168,140,.44);border-radius:var(--radius-xs);
+  padding:0 14px;min-height:34px;cursor:pointer;white-space:nowrap;
+  transition:color .14s ease,border-color .14s ease,background .14s ease;}
+.case-np:hover{background:rgba(47,168,140,.26);color:#fff;border-color:var(--accent);}
+.case-np:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media(max-width:900px){ .case-np{min-height:40px;font-size:11.5px;padding:0 12px;} }
+/* On the narrowest screens the pair abbreviates rather than wrapping. */
+@media(max-width:430px){
+  .case-np{padding:0 10px;}
+  .case-np .lg,.case-new .lg{display:none;}
+}
 @media(max-width:900px){
   .case-bar{padding:6px 10px;}
   .case-new{min-height:40px;font-size:11.5px;padding:0 12px;}
@@ -1830,6 +1854,10 @@ body .nb-search-wrap{display:none !important;}
       <span class="case-edit">Edit</span>
       <button type="button" class="case-new" onclick="newCaseAsk()"
               aria-label="Start a new case — clears the current patient, calculations and timers">New case</button>
+      <!-- The SAME dialog the dashboard opens, from new-patient.js. Live Tools
+           does not have a New Patient form of its own. -->
+      <button type="button" class="case-np" onclick="ltNewPatient()"
+              aria-label="Create a new patient record and send the questionnaire">New patient</button>
     </div>
 
     <!-- ── MOBILE PATIENT CONTEXT ──────────────────────────────────────────
@@ -2057,6 +2085,7 @@ function neoETT(wt){
 
 function compute(){
   saveInputs();
+  obConfirmSync();          /* a confirmation is only for the procedure it named */
   var ageC=ageCanon();
   var age=ageC?ageC.years:null, sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
   var out=ge('output');
@@ -3280,6 +3309,10 @@ function newCase(){
     if(e.tagName==='SELECT') e.selectedIndex = 0;
   });
   var au=ge('i-age-unit'); if(au) au.value='y';
+  /* An obstetric confirmation belongs to the case that was confirmed, and this
+     is a different case. */
+  PT_OB_CONFIRM = false; _obConfirmFor = null;
+  PT_EST.weight = false; PT_EST.height = false;
   /* 4. recompute, so no figure derived from the previous patient survives
         on screen. compute() re-renders every module from empty inputs. */
   if(window.compute) window.compute();
@@ -3378,14 +3411,21 @@ function buildPatientContext(o){
     else if (y < 16)      band = 'adolescent';
     else                  band = 'adult';
   }
-  var peds  = (y != null && y < 16);
+  /* null, not false, when age is unknown: a rule that needs the band must be
+     able to tell "not paediatric" from "not yet known". */
+  var peds  = (y == null ? null : y < 16);
   var adult = (y != null && y >= 16);
+  var pedsFlag = peds;                     /* null when age is unknown */
   var d = o.derived || {};
 
   /* The procedure is resolved through the procedure catalogue, never through
      the drug index, and its compatibility with this patient is decided in one
-     place. See PROCEDURE_INDEX / procedureCompatibility(). */
-  var proc = resolveProcedure(o.procedure, { ageYears:y, ageDays:days, sex:o.sex||null, band:band });
+     place. `pediatric` is handed in rather than re-derived there, so the age
+     boundary stays the one this application already uses and procedures.js
+     holds no clinical threshold of its own. */
+  var proc = resolveProcedure(o.procedure, { ageYears:y, ageDays:days, sex:o.sex||null,
+                                             band:band, pediatric:pedsFlag,
+                                             obstetricConfirmed:!!PT_OB_CONFIRM });
 
   return {
     /* ── AGE, in every unit anything on this page asks for ─────────────── */
@@ -3408,7 +3448,7 @@ function buildPatientContext(o){
 
     /* ── WHAT KIND OF CASE THIS IS ─────────────────────────────────────── */
     context: {
-      pediatric:peds, neonate:band === 'neonate', infant:band === 'infant',
+      pediatric:!!peds, neonate:band === 'neonate', infant:band === 'infant',
       child:band === 'child', adolescent:band === 'adolescent', adult:adult,
       /* NEVER inferred from sex, age, hysterectomy, gynaecology or pelvic
          surgery. Only a recognised obstetric procedure whose context is not
@@ -3477,10 +3517,114 @@ window.resolveProcedure = resolveProcedure;
 /* The single definition of "this is an obstetric case", for the few places
    that need the answer before patientContext has been assembled. */
 function obstetricContextFor(sex, procedure, ageYears){
-  var r = resolveProcedure(procedure, { sex:sex || null, ageYears:(ageYears == null ? null : ageYears) });
+  var y = (ageYears == null ? null : ageYears);
+  var r = resolveProcedure(procedure, { sex:sex || null, ageYears:y,
+                                        pediatric:(y != null && y < 16),
+                                        obstetricConfirmed:!!PT_OB_CONFIRM });
   return r.compatibility === 'valid' && r.activatesObstetric === true;
 }
 window.obstetricContextFor = obstetricContextFor;
+
+/* ══ NEW PATIENT, FROM LIVE TOOLS ═════════════════════════════════════════
+   Opens the shared dialog in new-patient.js — the same one the dashboard
+   opens, not a copy of it. The only difference is which exits it offers:
+   here, "Use this patient" loads the record into this workspace and closes,
+   because the clinician is already standing in the place they wanted to end
+   up. No round trip through the dashboard. */
+function ltNewPatient(){
+  if(!window.NewPatient){ return; }
+  window.NewPatient.open({
+    host:'livetools',
+    doctorId: (window.__wsUserId || null),
+    onUse: ltUsePatient,
+    onOpen: function(row){ if(row) window.open('/dashboard.html#patient-'+row.id, '_blank'); }
+  });
+}
+window.ltNewPatient = ltNewPatient;
+
+/* USE THIS PATIENT. Loads the fields the record actually holds. The create
+   form asks for no age, sex, height or weight — they come from the
+   questionnaire — so procedure is what there is to carry, and pretending
+   otherwise would put empty boxes where measurements belong.
+
+   IT WILL NOT SILENTLY REPLACE A CASE IN PROGRESS. If this workspace already
+   has patient data, the clinician is asked first; a running case is somebody's
+   anaesthetic, and overwriting it to save a click is not a trade worth making. */
+function ltUsePatient(row){
+  if(!row) return;
+  var proc = row.procedure || '';
+  if(caseHasData()){
+    ltUseConfirm(row, proc);
+    return;
+  }
+  ltApplyPatient(proc, row.patient_name);
+}
+function ltApplyPatient(proc, name){
+  var e = ge('i-proc'); if(e) e.value = proc || '';
+  compute();
+  if(window.NewPatient) window.NewPatient.close();
+  ltNotice((name ? name + ' loaded' : 'Patient loaded') +
+           (proc ? ' — procedure set to ' + proc : '') +
+           '. Enter age, sex, height and weight to activate the calculations.');
+}
+function ltUseConfirm(row, proc){
+  var host = document.getElementById('lt-use-confirm');
+  if(host) host.remove();
+  var d = document.createElement('div');
+  d.id = 'lt-use-confirm'; d.className = 'np-bg open';
+  d.innerHTML =
+    '<div class="np-box" style="max-width:520px;">'+
+      '<div class="np-head"><div class="np-title">Replace the current case?</div></div>'+
+      '<div class="np-body"><div class="np-form">'+
+        '<div class="np-note">Live Tools already has patient data entered. Loading '+
+        esc_(row.patient_name || 'this patient')+' will clear the current case, its '+
+        'calculations and its timers.</div></div>'+
+      '<div class="np-foot">'+
+        '<button type="button" class="np-btn" id="lt-uc-no">Keep the current case</button>'+
+        '<button type="button" class="np-btn np-go" id="lt-uc-yes">Replace it</button>'+
+      '</div></div></div>';
+  document.body.appendChild(d);
+  d.querySelector('#lt-uc-no').onclick = function(){ d.remove(); };
+  d.querySelector('#lt-uc-yes').onclick = function(){
+    d.remove();
+    newCase();
+    ltApplyPatient(proc, row.patient_name);
+  };
+}
+window.ltUsePatient = ltUsePatient;
+
+/* Live Tools has no toast of its own; new-patient.js falls back to one, and
+   this reuses it so both speak in the same voice. */
+function ltNotice(msg){
+  var n = document.createElement('div');
+  n.className = 'np-toast'; n.textContent = msg;
+  document.body.appendChild(n);
+  setTimeout(function(){ n.classList.add('out'); }, 3200);
+  setTimeout(function(){ if(n.parentNode) n.parentNode.removeChild(n); }, 3700);
+}
+window.ltNotice = ltNotice;
+
+/* The clinician's explicit confirmation that a paediatric-aged patient is an
+   obstetric case. Off by default, cleared whenever the procedure changes or a
+   new case starts, and never inferred from anything. It is the only thing that
+   can move a paediatric obstetric selection from requires-context to valid. */
+var PT_OB_CONFIRM = false;
+var _obConfirmFor = null;
+function obConfirm(){
+  PT_OB_CONFIRM = true;
+  _obConfirmFor = (ge('i-proc') ? ge('i-proc').value.trim().toLowerCase() : null);
+  compute();
+}
+window.obConfirm = obConfirm;
+/* A confirmation belongs to the procedure it was given for. Type a different
+   one and it is withdrawn, so it can never carry over to a case it was not
+   meant for. */
+function obConfirmSync(){
+  if(!PT_OB_CONFIRM) return;
+  var now = ge('i-proc') ? ge('i-proc').value.trim().toLowerCase() : null;
+  if(now !== _obConfirmFor){ PT_OB_CONFIRM = false; _obConfirmFor = null; }
+}
+window.obConfirmSync = obConfirmSync;
 
 /* ── The procedure notice ────────────────────────────────────────────────
    Says which of the four states the recorded procedure is in, and never more
@@ -3503,11 +3647,16 @@ function renderProcNotice(){
       'check age, sex and procedure.</div></div>';
     return;
   }
+  var confirmable = /paediatric/.test(why);
   host.innerHTML =
     '<div class="proc-warn needs" role="status">'+
     '<span class="proc-warn-i" aria-hidden="true">&#9432;</span><div>'+
     '<b>' + esc_(p.label) + ' needs more context.</b> ' + esc_(why[0].toUpperCase() + why.slice(1)) + '. '+
-    'Procedure-specific references stay off until it is.</div></div>';
+    'Obstetric references stay off until it is.'+
+    (confirmable ? '<div class="proc-act">'+
+      '<button type="button" class="proc-confirm" onclick="obConfirm()">'+
+      'Confirm obstetric case</button></div>' : '')+
+    '</div></div>';
 }
 window.renderProcNotice = renderProcNotice;
 
@@ -3674,6 +3823,8 @@ window.renderProcState = renderProcState;
 
    UNTIL THAT FILE EXISTS this stays null and the component renders its
    unavailable state. Nothing below fabricates a fallback. */
+/* Set by growth-reference.js, which is the source boundary and currently
+   holds no data. Never assigned here. */
 window.PEDS_GROWTH_REFERENCE = window.PEDS_GROWTH_REFERENCE || null;
 
 /* Which of the two fields the user has been given by the reference rather
@@ -3729,19 +3880,15 @@ function renderPedsEstimate(){
 
   var est = pedsEstimate(ctx);
 
-  /* THE UNAVAILABLE STATE, and today the only reachable one. It names what is
-     missing rather than hinting, because the next person to read this needs to
-     know it is a data gap and not a bug. */
-  if(!est){
-    host.innerHTML =
-      '<div class="pest pest-off"><span class="pest-i" aria-hidden="true">&#8505;</span>'+
-      '<div><b>Suggested typical values are not available.</b> '+
-      'Reference dataset required before enabling estimates. Enter the measured '+
-      (a.weight == null && a.height == null ? 'weight and height' :
-       a.weight == null ? 'weight' : 'height')+
-      ' to activate the calculations.</div></div>';
-    return;
-  }
+  /* NO REFERENCE, NO COMPONENT. Not a disabled panel, not an explanatory
+     notice — nothing at all. A control that describes a feature the product
+     cannot perform is a promise the product does not keep, and on a page whose
+     output is drug doses that promise is worse than the absence.
+
+     growth-reference.js is the boundary: fill it and this renders. Until then
+     the assistant is invisible in production, which is the deferred state
+     rather than a broken one. */
+  if(!est){ host.innerHTML = ''; return; }
 
   /* THE AVAILABLE STATE. Never auto-filled. The value is offered, labelled as
      an estimate, and stays an offer until the clinician presses Use — at which

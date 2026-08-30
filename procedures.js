@@ -228,7 +228,8 @@
        valid            recognised, and nothing in the recorded context
                         contradicts it.
        requires-context recognised, but a field the rule needs has not been
-                        recorded yet. Not an error — a gap.
+                        recorded yet, or a combination needs confirming before
+                        it can be acted on. Not an error — a gap.
        incompatible     recognised, and the recorded context contradicts it.
 
      `reasons` are written for a clinician to read, not for a log. */
@@ -240,14 +241,36 @@
     if (p.obstetricOnly){
       if (ctx.sex == null || ctx.sex === '') missing.push('sex has not been recorded');
       else if (ctx.sex !== 'F') conflicts.push('the recorded sex is male');
+      /* A PAEDIATRIC FEMALE MUST NOT BECOME VALID BY DEFAULT. Sex alone made
+         a one-year-old girl a valid Caesarean, which is not a rule anyone
+         would write down.
+
+         The fix is not an invented minimum age. This file still contains no
+         age number at all: `pediatric` is supplied by the caller, from the
+         band the application has always used to decide paediatric airway and
+         fluid behaviour, and it is that existing definition being reused
+         rather than a new clinical threshold being asserted here.
+
+         The state is requires-context, not incompatible, and that distinction
+         is the point. An adolescent obstetric case is real, and the answer to
+         it is to let the clinician confirm the case explicitly — not to
+         silently reject it, and not to silently accept it either. Nothing
+         obstetric loads while this is unconfirmed. */
+      else if (ctx.pediatric && !ctx.obstetricConfirmed)
+        missing.push('the recorded age is paediatric, so an obstetric case needs confirming');
     }
+    /* These two read the same caller-supplied band as the obstetric rule, so
+       the age boundary lives in exactly one place — the application's existing
+       paediatric definition — and this file asserts no number of its own. No
+       catalogue entry sets either flag today; the branches exist so that one
+       can, without a threshold being smuggled in with it. */
     if (p.pediatricOnly){
-      if (ctx.ageYears == null) missing.push('age has not been recorded');
-      else if (ctx.ageYears >= 16) conflicts.push('the recorded age is adult');
+      if (ctx.pediatric == null) missing.push('age has not been recorded');
+      else if (!ctx.pediatric) conflicts.push('the recorded age is adult');
     }
     if (p.adultOnly){
-      if (ctx.ageYears == null) missing.push('age has not been recorded');
-      else if (ctx.ageYears < 16) conflicts.push('the recorded age is paediatric');
+      if (ctx.pediatric == null) missing.push('age has not been recorded');
+      else if (ctx.pediatric) conflicts.push('the recorded age is paediatric');
     }
     /* ageApplicability is honoured if a catalogue entry ever carries one.
        None does today, deliberately — see the header. */

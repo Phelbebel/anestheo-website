@@ -13,7 +13,9 @@
 <script src="/clinical-open.js?v=2026.08.21-03"></script>
 <script src="/patient-lifecycle.js?v=2026.08.21-03"></script>
 <script src="/navbar.js?v=2026.08.21-03"></script>
+<script src="/new-patient.js?v=2026.08.21-03"></script>
 <link rel="stylesheet" href="/tokens.css?v=2026.08.21-03">
+<link rel="stylesheet" href="/new-patient.css?v=2026.08.21-03">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff; min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -2871,111 +2873,26 @@ async function wsLoadPatients(){
     if(r.error) throw new Error(r.error.message);
     _wsPatients = (r.data || []).filter(function(p){ return !p.deleted_at; });
   } catch(e){ _wsPatients = []; }
-  wsAddCreatedRefresh();
+  /* The created screen used to be refreshed from here; it lives in
+     new-patient.js now and keeps its own status line current. */
 }
-/* ══ NEW PATIENT DIALOG ═══════════════════════════════════════════════════
-   Two views in one dialog: the form, and what the record became. Opening
-   always returns to the form; the created view is torn down with it, so the
-   dialog never reopens showing the last patient. */
-var _wsCreatedId = null;
-
-function wsAddShowForm(){
-  var f=document.getElementById('wa-form-view'), c=document.getElementById('wa-created-view'),
-      t=document.getElementById('wa-title');
-  if(f) f.hidden=false;
-  if(c){ c.hidden=true; c.innerHTML=''; }
-  if(t) t.innerHTML='&#10133; New Patient';
-  _wsCreatedId = null;
+/* ══ NEW PATIENT ══════════════════════════════════════════════════════════
+   The dialog is not this page's any more. new-patient.js owns the create
+   workflow and Live Tools opens exactly the same one; the dashboard's copy is
+   gone rather than kept beside it, because two implementations of a flow that
+   records a delivery would drift, and only one of them would be the one that
+   lies. These two names stay because every existing call site uses them. */
+function wsOpenAddModal(){
+  window.NewPatient.open({
+    host:'dashboard',
+    doctorId: window.__wsUserId || null,
+    refresh: async function(){ await wsLoadPatients(); await wsLoadCases(); },
+    onOpen:  function(row){ if(row) wsDetail(row.id); },
+    onTools: function(row){ wsAddToLiveTools(row); }
+  });
 }
-function wsOpenAddModal(){ var m=document.getElementById('ws-add-modal'); if(!m) return; wsAddShowForm(); m.classList.add('open'); var n=document.getElementById('wa-fname'); if(n) n.focus(); }
-function wsCloseAddModal(){ var m=document.getElementById('ws-add-modal'); if(m) m.classList.remove('open'); wsAddShowForm(); }
+function wsCloseAddModal(){ if(window.NewPatient) window.NewPatient.close(); }
 window.wsOpenAddModal=wsOpenAddModal; window.wsCloseAddModal=wsCloseAddModal;
-
-/* The created view. Every fact on it comes from the row the insert returned or
-   from a later read of that row — nothing is echoed back from the form, so
-   what is shown is what the database holds. */
-function wsAddCreatedRender(p){
-  var host=document.getElementById('wa-created-view'); if(!host||!p) return;
-  var f=document.getElementById('wa-form-view'), t=document.getElementById('wa-title');
-  if(f) f.hidden=true;
-  if(t) t.innerHTML='&#10004; Patient created';
-  host.hidden=false;
-  _wsCreatedId = p.id;
-
-  var link = wsLink(p);
-  var sent = p.questionnaire_status === 'sent';
-  var mail = wsValidEmail(p.email);
-  var phone = (p.phone_number||'').replace(/[^0-9]/g,'');
-
-  function fact(label, val){
-    return '<div class="wa-fact"><b>'+label+'</b><span>'+wsEsc(val||'Not recorded')+'</span></div>';
-  }
-  host.innerHTML =
-    '<div class="ws-modal-body">'+
-      '<div class="wa-done-h"><div class="wa-tick" aria-hidden="true">&#10004;</div>'+
-        '<div><div class="wa-done-t">'+wsEsc(p.patient_name||'Patient')+' is on your list</div>'+
-        '<div class="wa-done-s">The record exists and the questionnaire link is live. '+
-        'Nothing has been sent yet &mdash; sending is the next step, and it is yours to take.</div></div></div>'+
-
-      '<div class="wa-facts">'+
-        fact('Procedure', p.procedure)+
-        fact('Surgery date', p.surgery_date)+
-        fact('Hospital', p.hospital)+
-      '</div>'+
-
-      '<div class="wa-sec">Send the questionnaire</div>'+
-      '<div class="ws-modal-btns">'+
-        (mail
-          ? '<button class="ws-btn ws-btn-wa" id="wa-c-email" onclick="wsSendEmail(\''+p.id+'\')">&#9993;&#65039; Email</button>'
-          : '<button class="ws-btn" id="wa-c-email" disabled title="No valid email address is saved for this patient">&#9993;&#65039; Email</button>')+
-        (phone
-          ? '<button class="ws-btn ws-btn-wa" id="wa-c-wa" onclick="wsSendWhatsApp(\''+p.id+'\')">&#128241; WhatsApp</button>'
-          : '<button class="ws-btn" id="wa-c-wa" disabled title="No phone number is saved for this patient">&#128241; WhatsApp</button>')+
-        /* NO STRING IS EMBEDDED IN THIS ATTRIBUTE. It used to interpolate
-           JSON.stringify(link) into a double-quoted onclick, so the first
-           quote of the URL closed the attribute and the handler was a syntax
-           error — Copy link threw on every click and had done since it was
-           written. The id is enough; the handler looks the link up itself. */
-        '<button class="ws-btn" id="wa-c-copy" onclick="wsAddCopyLink()">&#128279; Copy link</button>'+
-      '</div>'+
-      '<div class="wa-status" id="wa-c-status"><span class="wa-dot'+(sent?' on':'')+'"></span>'+
-        (sent ? 'Invitation sent' : 'Invitation not sent yet')+'</div>'+
-
-      '<div class="wa-rule"></div>'+
-      '<div class="ws-modal-btns">'+
-        '<button class="ws-btn" onclick="wsAddOpenCreated()">Open patient</button>'+
-        '<button class="ws-btn" onclick="wsAddToLiveTools()">Open in Live Tools</button>'+
-        '<button class="ws-btn ws-btn-wa" onclick="wsCloseAddModal()">Done</button>'+
-      '</div>'+
-    '</div>';
-}
-
-/* Called at the end of wsLoadPatients so the invitation line reflects the row
-   rather than an assumption. Both send paths already refresh that list, which
-   is why this needs no timers of its own. */
-function wsAddCreatedRefresh(){
-  if(!_wsCreatedId) return;
-  var m=document.getElementById('ws-add-modal');
-  if(!m || !m.classList.contains('open')) return;
-  var p=wsFindP(_wsCreatedId); if(!p) return;
-  var line=document.getElementById('wa-c-status'); if(!line) return;
-  var sent = p.questionnaire_status === 'sent';
-  line.innerHTML='<span class="wa-dot'+(sent?' on':'')+'"></span>'+
-    (sent ? 'Invitation sent' : 'Invitation not sent yet');
-}
-/* COPY LINK HAS ITS OWN TRUTHFUL STATE. Copying is not sending: nobody has
-   received anything, and the invitation line must not imply otherwise. It says
-   what actually happened and leaves the record alone. */
-function wsAddCopyLink(){
-  var p = _wsCreatedId ? wsFindP(_wsCreatedId) : null;
-  var link = p ? wsLink(p) : '';
-  if(!link){ wsToast('No questionnaire link for this patient yet.'); return; }
-  wsCopyText(link, 'Link copied');
-  var line = document.getElementById('wa-c-status');
-  if(line) line.innerHTML = '<span class="wa-dot"></span>Link copied &mdash; not sent yet. '+
-    'The invitation is recorded as sent only when you send it.';
-}
-window.wsAddCopyLink = wsAddCopyLink;
 
 /* OPEN IN LIVE TOOLS. The two pages share one case key, and the only field
    this form collects that Live Tools also holds is the procedure — it asks for
@@ -2985,9 +2902,8 @@ window.wsAddCopyLink = wsAddCopyLink;
    workspace; silently replacing the patient someone is mid-case with is a
    worse failure than making them clear it themselves. */
 var ENG_CASE_KEY = 'anestheo-engine-inputs';
-function wsAddToLiveTools(){
-  var p = _wsCreatedId ? wsFindP(_wsCreatedId) : null;
-  var proc = (p && p.procedure) || '';
+function wsAddToLiveTools(row){
+  var proc = (row && row.procedure) || '';
   var existing = null;
   try { existing = JSON.parse(localStorage.getItem(ENG_CASE_KEY) || 'null'); } catch(e){}
   var busy = existing && (existing.age || existing.sex || existing.height ||
@@ -3005,13 +2921,7 @@ function wsAddToLiveTools(){
 }
 window.wsAddToLiveTools = wsAddToLiveTools;
 
-function wsAddOpenCreated(){
-  var id=_wsCreatedId; if(!id) return;
-  wsCloseAddModal();
-  wsDetail(id);
-}
-window.wsAddCreatedRender=wsAddCreatedRender; window.wsAddOpenCreated=wsAddOpenCreated;
-window.wsAddShowForm=wsAddShowForm;
+window.wsAddToLiveTools = wsAddToLiveTools;
 // Patient Management navigation: two workflows, each with internal stages.
 var _wsWf='mypatients', _wsMpStage='awaiting', _wsCrStage='new', _wsMpSearch='', _wsMpSort='surgery';
 function wsWf(w){
@@ -3193,81 +3103,8 @@ window.wsPrint = wsPrint;
 window.wsPreview = wsPreview;
 
 // ── ADD PATIENT (inline form, no modal) ──
-function wsCollectAdd(){
-  /* Two fields, one column. clinic_patients stores patient_name and nothing
-     finer, so the halves are joined here rather than pretending the database
-     keeps them apart. A last name on its own is still a name. */
-  var f = (document.getElementById('wa-fname').value || '').trim();
-  var l = (document.getElementById('wa-lname').value || '').trim();
-  var name = [f, l].filter(Boolean).join(' ');
-  if(!name){ wsToast('A first or last name is required'); return null; }
-  return {
-    doctor_id: window.__wsUserId,
-    patient_name: name,
-    phone_number: document.getElementById('wa-phone').value.trim() || null,
-    email: (document.getElementById('wa-email') ? document.getElementById('wa-email').value.trim() : '') || null,
-    procedure: document.getElementById('wa-proc').value.trim() || null,
-    hospital: document.getElementById('wa-hospital').value.trim() || null,
-    surgery_date: document.getElementById('wa-date').value || null,
-    notes: document.getElementById('wa-notes').value.trim() || null
-  };
-}
-function wsClearForm(){
-  ['fname','lname','phone','email','proc','hospital','date','notes'].forEach(function(f){ var el=document.getElementById('wa-'+f); if(el) el.value=''; });
-}
-async function wsSavePatient(thenSend){
-  var rec = wsCollectAdd(); if(!rec) return;
-  var btn = document.getElementById(thenSend ? 'wa-send' : 'wa-save') || document.getElementById('wa-save');
-  btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Saving…';
-  rec.token = wsToken();
-  rec.questionnaire_status = 'not_sent';
-  rec.consultation_status = 'not_arrived';
-  rec.patient_status = 'awaiting_questionnaire';
-  // NOTE: clinic_patients has no 'origin' column (origin lives on the bridge
-  // table patient_surgeries). Every clinic_patients row is clinic-created by
-  // definition, so no origin field is needed here.
-
-  try {
-    var r = await window.sb.from('clinic_patients').insert(rec).select().maybeSingle();
-    if(r.error){
-      console.error('Creating the clinic patient failed.');
-      // TEMP: surface the real error to the screen (revert to generic before launch)
-      wsToast('Insert error: ' + r.error.message + (r.error.details ? ' — ' + r.error.details : ''));
-      btn.disabled = false; btn.textContent = orig;
-      return;
-    }
-    // Create the canonical record (patient_surgeries) for this doctor-created
-    // patient — auth-optional, back-linked by clinic_patient_id, with the chosen
-    // lane. Documents / notes / recommendations attach here from day one.
-    if(r.data){
-      var laneEl=document.getElementById('wa-lane');
-      var lane=(laneEl&&laneEl.value==='consultation')?'consultation':'surgical';
-      try{ await window.sb.from('patient_surgeries').insert({
-        patient_id:null, assigned_doctor_id:(window.__wsUserId||null), clinic_patient_id:r.data.id,
-        patient_name:rec.patient_name, procedure_type:rec.procedure||null, surgery_date:rec.surgery_date||null,
-        hospital:rec.hospital||null, contact_email:rec.email||null, care_state:lane }); }catch(e){ console.warn('record create:', e&&e.message); }
-    }
-    wsClearForm();
-    /* The dialog stays open and becomes the created view. Closing here was the
-       old behaviour and it dropped the doctor back on the board to hunt for the
-       row they had just made, at the exact moment they still had to send the
-       invitation. Nothing about the insert changes. */
-    await wsLoadPatients();
-    await wsLoadCases();
-    if(r.data){ wsAddCreatedRender(wsFindP(r.data.id) || r.data); }
-    else { wsCloseAddModal(); wsToast('Patient saved'); }
-    /* No "Patient saved" toast on the created screen: the screen IS the
-       confirmation, and a toast on top of it says the same thing twice. */
-    /* thenSend is retained for any caller that still asks for it; the
-       dialog's own footer no longer offers Save & Send, because sending is
-       what the created screen is for. */
-    if(thenSend && r.data){ wsSend(r.data.id); }
-  } catch(e){
-    console.error('Creating the clinic patient failed unexpectedly.');
-    wsToast('Insert exception: ' + (e && e.message ? e.message : e));
-  }
-  btn.disabled = false; btn.textContent = orig;
-}
+/* wsCollectAdd / wsClearForm / wsSavePatient moved to new-patient.js with the
+   dialog they belonged to. The insert payload is unchanged, field for field. */
 
 // ── DELIVERY ─────────────────────────────────────────────────
 // "sent" is recorded ONLY after a real delivery action launches
@@ -3653,7 +3490,7 @@ async function wsSaveNotes(id){
   } catch(e){ wsToast('Could not save notes'); }
 }
 
-window.wsSavePatient=wsSavePatient; window.wsSend=wsSend; window.wsSendWhatsApp=wsSendWhatsApp; window.wsSendSms=wsSendSms;
+window.wsSend=wsSend; window.wsSendWhatsApp=wsSendWhatsApp; window.wsSendSms=wsSendSms;
 window.wsCopyLink=wsCopyLink; window.wsOpenLink=wsOpenLink; window.wsAdvance=wsAdvance; window.wsReady=wsReady;
 window.wsDetail=wsDetail; window.wsCloseDetail=wsCloseDetail; window.wsSaveNotes=wsSaveNotes;
 
@@ -4174,56 +4011,8 @@ document.addEventListener('DOMContentLoaded', async function(){
   </div>
 </div>
 
-<!-- New Patient modal (surgical; no workflow selector) -->
-<div class="ws-modal-bg" id="ws-add-modal" onmousedown="window._waBgDown=(event.target===this)" onclick="if(event.target===this&&window._waBgDown)wsCloseAddModal()">
-  <div class="ws-modal ws-modal-xl">
-    <div class="ws-modal-head"><div class="ws-modal-title" id="wa-title">&#10133; New Patient</div>
-      <button class="ws-btn" onclick="wsCloseAddModal()">&times;</button></div>
-
-    <!-- FORM VIEW. Same fields, same ids, same handlers as before; only the
-         column layout is new. -->
-    <div id="wa-form-view">
-      <div class="ws-modal-body">
-        <div class="wa-sec">Patient</div>
-        <div class="wa-grid">
-          <div><label for="wa-fname">First name</label><input id="wa-fname" type="text" placeholder="First name"></div>
-          <div><label for="wa-lname">Last name</label><input id="wa-lname" type="text" placeholder="Last name"></div>
-          <!-- AGE AND SEX ARE NOT ASKED HERE ON PURPOSE. They are questions the
-               questionnaire already puts to the patient, who is the one who
-               knows them, and clinic_patients has no column for either. A
-               field that silently discards what is typed into it is worse than
-               no field, so this says where they come from instead. -->
-          <div class="wa-full wa-note">Age and sex come from the questionnaire the
-            patient completes; they appear on the patient record once returned.</div>
-        </div>
-
-        <div class="wa-sec">Surgery</div>
-        <div class="wa-grid">
-          <div class="wa-full"><label for="wa-proc">Procedure</label><input id="wa-proc" type="text" placeholder="e.g. Knee arthroscopy"></div>
-          <div><label for="wa-date">Surgery date</label><input id="wa-date" type="date"></div>
-          <div><label for="wa-hospital">Hospital</label><input id="wa-hospital" type="text" placeholder="Hospital / clinic"></div>
-        </div>
-
-        <div class="wa-sec">Contact</div>
-        <div class="wa-grid">
-          <div><label for="wa-email">Email</label><input id="wa-email" type="email" placeholder="patient@email.com">
-            <div class="wa-hint">Enables the full patient portal. Optional.</div></div>
-          <div><label for="wa-phone">Mobile / WhatsApp</label><input id="wa-phone" type="tel" placeholder="e.g. +972 50 123 4567">
-            <div class="wa-hint">Needed to send by WhatsApp. Optional.</div></div>
-          <div class="wa-full"><label for="wa-notes">Notes</label><textarea id="wa-notes" placeholder="Optional"></textarea></div>
-        </div>
-      </div>
-      <div class="ws-modal-foot">
-        <button class="ws-btn" onclick="wsCloseAddModal()">Cancel</button>
-        <button class="ws-btn ws-btn-wa" id="wa-save" onclick="wsSavePatient(false)">Create patient</button>
-      </div>
-    </div>
-
-    <!-- CREATED VIEW. Rendered by wsAddCreatedRender() from the row the insert
-         actually returned; empty and hidden until then. -->
-    <div id="wa-created-view" hidden></div>
-  </div>
-</div>
+<!-- The New Patient dialog lives in new-patient.js and is created on demand;
+     both this page and Live Tools open that one. -->
 
 <!-- Approval confirmation modal (above the workspace) -->
 <div class="ws-cfm-bg" id="ws-cfm" onclick="if(event.target===this)wsCfmClose()">
