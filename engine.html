@@ -1858,7 +1858,29 @@ body .nb-search-wrap{display:none !important;}
          age, sex and procedure — are directly above it. -->
     <div id="proc-notice"></div>
 
-    <!-- ── LIVE TIMERS (intraoperative workflow) — last row of the cockpit ── -->
+
+    <!-- ══ WORKSTATION ═══════════════════════════════════════════════════
+         Everything above is the cockpit. The workstation starts here:
+         clinical reference on the left, Crisis Center rail on the right. -->
+    <div class="ws-grid">
+      <div id="output">
+        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
+        <button class="cw-open-pt" onclick="ptFocus()">Enter patient details</button></div>
+      </div>
+      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
+    </div>
+
+    <!-- ══ AFTER THE WORKSTATION ═══════════════════════════════════════════
+         Live Timers and PACU are running-case tools, not lookups. They were
+         above the workstation, which put roughly 180px of stopwatch between
+         the clinician and the first dose on every single page view, including
+         the overwhelming majority where no case is running at all.
+
+         Nothing about them changes but their position: same markup, same ids,
+         same handlers, same persistence, same restore-on-load. They remain one
+         scroll away and the timer strip still shows its own state in the
+         summary bar, so a case in progress is legible without expanding. -->
+    <!-- ── LIVE TIMERS (intraoperative workflow) — below the workstation ── -->
     <!-- Timers close the cockpit and the workstation begins under them. They
          are folded by default, so the cost above the first clinical answer is
          the summary bar and nothing more; the summary carries their running
@@ -1896,18 +1918,6 @@ body .nb-search-wrap{display:none !important;}
       </div>
     </details>
 
-    <!-- ══ WORKSTATION ═══════════════════════════════════════════════════
-         Everything above is the cockpit. The workstation starts here:
-         clinical reference on the left, Crisis Center rail on the right. -->
-    <div class="ws-grid">
-      <div id="output">
-        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
-        <button class="cw-open-pt" onclick="ptFocus()">Enter patient details</button></div>
-      </div>
-      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
-    </div>
-
-
     <!-- PACU / Recovery — separate from the intraoperative timer strip -->
     <div class="pacu-mod">
       <div class="pacu-mod-head"><span class="lt-ico">&#129658;</span> PACU / Recovery</div>
@@ -1926,6 +1936,8 @@ body .nb-search-wrap{display:none !important;}
       </div>
       <div class="lt-rec" id="lt-rec">Enter scores for an educational suggestion.</div>
     </div>
+
+
 
     <!-- The safety statement is unchanged in wording. It moved from ahead of
          the first clinical answer to the end of the workspace, where a
