@@ -235,74 +235,149 @@ html,body{background:var(--ground);}
    row's leading edge. The row ground stays graphite. Values come from
    ClinicalContent.PCLASS, which follows the ISO 26825 syringe-label hues, so
    what is on screen is what is on the syringe. */
-.dref-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px 14px;
-  border-bottom:1px solid var(--hair);}
-.dref-search{flex:1 1 220px;min-width:0;background:rgba(255,255,255,.05);
-  border:1px solid var(--line);border-radius:var(--radius-sm);color:#fff;
-  font-family:inherit;font-size:13.5px;padding:0 12px;height:36px;outline:none;}
-.dref-search:focus{border-color:var(--accent);}
-.dref-view{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;}
-.dref-view button{background:transparent;border:0;color:var(--ink-3);font-family:inherit;
-  font-size:12px;font-weight:700;padding:0 13px;height:36px;cursor:pointer;}
-.dref-view button.on{background:var(--brand-tint-2);color:#fff;}
-.dref-cats{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--hair);}
-.dref-cat{background:transparent;border:1px solid var(--line);color:var(--ink-3);
-  border-radius:var(--radius-xs);font-family:inherit;font-size:10.5px;font-weight:700;
-  letter-spacing:.07em;text-transform:uppercase;padding:0 10px;height:28px;cursor:pointer;white-space:nowrap;}
-.dref-cat:hover{color:#fff;border-color:var(--line-2);}
-.dref-cat.on{background:var(--brand-tint-2);border-color:var(--accent);color:#fff;}
-.dref-cat .n{opacity:.55;margin-left:5px;font-weight:600;}
+/* ══ DRUG REFERENCE — WORKSTATION CHROME ══════════════════════════════════
+   Title and controls on one line, coloured class filters beneath, then the
+   table. The panel's own furniture — grip, icon, chevron, resize — is stood
+   down for this module: it is the workspace, not one card among thirteen,
+   and a drag handle on the thing that fills the column is noise. */
+.dref-panel > .panel-head{padding:13px 16px;gap:12px;align-items:center;
+  border-bottom:1px solid var(--hair);cursor:default;}
+.dref-panel > .panel-head .panel-grip,
+.dref-panel > .panel-head .panel-ico,
+.dref-panel > .panel-head .panel-chev,
+.dref-panel > .panel-head .panel-resize{display:none;}
+.dref-panel > .panel-head .panel-title{font-size:11px;font-weight:800;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);}
+.dref-panel > .panel-head .panel-tag{margin-left:auto;background:none;border:none;
+  padding:0;text-transform:none;letter-spacing:0;}
+.dref-panel > .panel-body{padding:0;}
 
+.dref-ctl{display:flex;align-items:center;gap:9px;}
+.dref-search{width:210px;background:rgba(255,255,255,.05);border:1px solid var(--line);
+  border-radius:var(--radius-sm);padding:0 11px;height:32px;color:#fff;font-family:inherit;
+  font-size:12.5px;outline:none;}
+.dref-search::placeholder{color:var(--ink-3);}
+.dref-search:focus{border-color:var(--accent);}
+.dref-view{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--radius-sm);
+  overflow:hidden;height:32px;}
+.dref-view button{background:transparent;border:0;color:var(--ink-3);font-family:inherit;
+  font-size:12px;font-weight:700;padding:0 13px;cursor:pointer;white-space:nowrap;}
+.dref-view button.on{background:var(--brand-tint-2);color:#fff;}
+
+/* THE CLASS FILTERS. Tinted in the drug's own class colour, at the strength
+   the reference uses: a filled wash, a border of the same hue, the label in
+   it. --cc is set per chip from PCLASS, so the chip, the row badge and the
+   row's left rule are one colour and one idea. */
+.dref-cats{display:flex;flex-wrap:wrap;gap:6px;padding:11px 16px;
+  border-bottom:1px solid var(--hair);}
+.dref-cat{background:transparent;border:1px solid var(--line);color:var(--ink-3);
+  border-radius:999px;padding:0 11px;height:26px;font-family:inherit;font-size:9.5px;
+  font-weight:800;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+  transition:background .14s ease,border-color .14s ease,color .14s ease;}
+.dref-cat:hover{color:#fff;border-color:var(--line-2);}
+.dref-cat.tinted{color:var(--cc);border-color:color-mix(in srgb,var(--cc) 42%,transparent);
+  background:color-mix(in srgb,var(--cc) 11%,transparent);}
+.dref-cat.tinted:hover{background:color-mix(in srgb,var(--cc) 19%,transparent);color:#fff;}
+.dref-cat.on{background:var(--brand-tint-2);border-color:var(--accent);color:#fff;}
+.dref-cat.tinted.on{background:color-mix(in srgb,var(--cc) 26%,transparent);
+  border-color:var(--cc);color:#fff;}
+.dref-cat .n{opacity:.6;font-weight:700;letter-spacing:0;}
+
+.dref-foot{padding:11px 16px;border-top:1px solid var(--hair);text-align:center;
+  font-size:11px;color:var(--ink-3);}
+
+/* ══ THE TABLE ════════════════════════════════════════════════════════════
+   Compact, one drug per row, aligned in columns the eye can run down. The
+   header is a quiet uppercase rule; the rows carry the weight. */
 table.dtab{width:100%;border-collapse:collapse;table-layout:fixed;}
-table.dtab th{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-3);text-align:left;padding:9px 10px;border-bottom:1px solid var(--hair-2);
-  white-space:nowrap;}
-table.dtab td{padding:10px;border-bottom:1px solid var(--hair);vertical-align:top;font-size:13px;
-  color:var(--ink-2);}
-table.dtab tr:last-child td{border-bottom:none;}
+table.dtab th{font-size:9.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.018);white-space:nowrap;}
+table.dtab td{padding:7px 10px;border-bottom:1px solid var(--hair);vertical-align:middle;
+  font-size:12.5px;color:var(--ink-2);}
+table.dtab tbody tr:last-child td{border-bottom:none;}
+table.dtab tbody tr.dtab-r:hover td{background:rgba(255,255,255,.022);}
+/* A drug and its open caution are one object; the divider belongs after both. */
+table.dtab tbody tr.dtab-r:has(+ .dtab-wrow:not([hidden])) td{border-bottom:none;}
+
+/* The class column: a coloured left rule and a pill in the same hue. */
 .dtab-cls{width:104px;}
-.dtab-cls td{position:relative;}
-.dtab td.dtab-cls{padding-left:15px;}
+.dtab td.dtab-cls{position:relative;padding-left:16px;}
 .dtab td.dtab-cls::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
   background:var(--pc,transparent);}
-.dtab-name{width:22%;}
-.dtab-use{width:16%;}
-.dtab-dose{width:23%;}
-.dtab-prep{width:15%;}
-.dtab-n{font-size:14.5px;font-weight:700;color:#fff;line-height:1.25;}
-.dtab-alias{font-size:11px;color:var(--hint);margin-top:2px;}
-.dtab-d1{font-size:16px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;line-height:1.2;}
-.dtab-d1 span{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:3px;}
-.dtab-d2{font-size:11.5px;color:var(--ink-3);margin-top:3px;}
-.dtab-warn{font-size:11.5px;color:var(--warning);margin-top:4px;line-height:1.45;}
-.dtab-warn.crit{color:#ff8a72;font-weight:600;}
-/* ══ TABLE: WARNING, DURATION AND THE CHEVRON ═════════════════════════════
-   Three narrow columns at the right edge. The warning marker is scannable
-   down the column; the text it marks stays in the dose cell. The chevron
-   replaces a "Details" button that spent 74px saying what a chevron says in
-   22, which is the width the warning column now uses. */
-.dtab-w{width:30px;text-align:center;}
-.dtab-go{width:34px;text-align:right;}
+.dtab-name{width:20%;}
+.dtab-use{width:17%;}
+.dtab-dose{width:19%;}
+.dtab-prep{width:16%;}
 .dtab-dur{width:78px;font-variant-numeric:tabular-nums;color:var(--ink-2);}
-.dtab-wi{display:inline-block;font-size:13px;line-height:1.3;color:var(--warning);cursor:help;}
-.dtab-wi.crit{color:#ff8a72;}
+.dtab-w{width:54px;text-align:center;}
+.dtab-go{width:52px;text-align:center;}
+
+.dtab-n{font-size:13.5px;font-weight:700;color:#fff;line-height:1.25;}
+.dtab-alias{font-size:10.5px;color:var(--hint);margin-top:1px;line-height:1.3;}
+.dtab-use{color:var(--ink-3);}
+
+/* The dose column is the strongest thing in the row. The rule reads first
+   because that is what the clinician recognises; the amount for THIS patient
+   sits under it in the accent, because that is what gets drawn up. */
+.dtab-d1{font-size:13.5px;font-weight:700;color:#fff;line-height:1.3;}
+.dtab-d1 span{font-size:10.5px;font-weight:600;color:var(--ink-3);margin-left:3px;}
+.dtab-d2{font-size:13px;font-weight:800;color:var(--accent);margin-top:2px;
+  font-variant-numeric:tabular-nums;line-height:1.25;}
+.dtab-d2 span{font-size:10.5px;font-weight:700;color:var(--accent);opacity:.75;margin-left:3px;}
+.dtab-prep{color:var(--ink-2);font-size:12px;}
+/* THE CLASS BADGE, IN THE TABLE ONLY. Elsewhere on the page the chip is a
+   restrained marker beside a drug name; in a table it is the first column and
+   it is what the eye runs down, so it becomes the solid block the schema
+   draws. That is also the ISO 26825 syringe label itself — a filled colour
+   field with dark text — rather than a tint of it, and dark-on-colour clears
+   AA on every one of the seven colours by a wide margin. Scoped to .dtab so
+   no other module changes. */
+#output .dtab .pc{
+  display:inline-block;font-size:9px;font-weight:800;letter-spacing:.06em;
+  padding:4px 8px;border-radius:3px;border-left:0;margin-right:0;
+  background:var(--pc);color:#0B1620;opacity:1;top:0;}
+#output .dtab .pc-zebra{
+  color:#0B1620;border-left:0;
+  background:repeating-linear-gradient(-45deg,#5FE0A4 0 5px,#BFF3DC 5px 10px);}
+#output .dtab .pc[data-pc="uterotonic"]{background:#fff;color:#0B1620;}
+
+.dtab-p1{font-weight:700;color:#fff;font-size:12.5px;line-height:1.3;}
+.dtab-p2{font-size:10.5px;color:var(--hint);margin-top:1px;line-height:1.35;}
+table.dtab tbody tr.dtab-r.alt td{background:rgba(255,255,255,.016);}
+table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
+
+/* The caution marker, and the row it opens. Folded by default so the table
+   keeps its density; one press puts the text under the row it belongs to. */
+.dtab-wi{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border:1px solid rgba(232,168,56,.34);border-radius:var(--radius-sm);font-size:12.5px;
+  color:var(--warning);cursor:pointer;background:rgba(232,168,56,.11);font-family:inherit;
+  padding:0;transition:background .14s ease,border-color .14s ease;}
+.dtab-wi:hover,.dtab-wi.open{background:rgba(232,168,56,.22);border-color:rgba(232,168,56,.6);}
+.dtab-wi.crit{color:#ff8a72;background:rgba(255,110,90,.13);border-color:rgba(255,138,114,.4);}
+.dtab-wi.crit:hover,.dtab-wi.crit.open{background:rgba(255,110,90,.24);border-color:rgba(255,138,114,.7);}
+.dtab-wi:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.dtab-wrow > td{padding:0 10px 9px 16px;border-bottom:1px solid var(--hair);}
+.dtab-warn{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.5;
+  color:var(--warning);background:rgba(232,168,56,.07);border-left:2px solid rgba(232,168,56,.5);
+  padding:7px 11px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
+.dtab-warn.crit{color:#ffb3a3;background:rgba(255,110,90,.09);border-left-color:#ff8a72;
+  font-weight:600;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip:rect(0,0,0,0);white-space:nowrap;border:0;}
-.dtab-more{background:transparent;border:1px solid var(--line);color:var(--ink-3);
-  border-radius:var(--radius-xs);font-family:inherit;font-size:10.5px;font-weight:700;
-  padding:0 9px;height:26px;cursor:pointer;white-space:nowrap;}
-.dtab-more:hover{color:#fff;border-color:var(--accent);}
-.dtab-go .dtab-more{padding:0;width:26px;height:26px;font-size:16px;line-height:1;
-  display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);}
+.dtab-more{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink-2);
+  border-radius:var(--radius-sm);font-family:inherit;font-size:15px;line-height:1;
+  width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;padding:0;}
+.dtab-more:hover{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);}
 .dref-empty{padding:22px 14px;color:var(--ink-3);font-size:13px;}
 
 
 .dref-lead{margin-bottom:0;}
-table.dtab .dtab-cls{width:110px;}
-table.dtab .dtab-name{width:19%;}
-table.dtab .dtab-use{width:12%;}
-table.dtab .dtab-dose{width:27%;}
-table.dtab .dtab-prep{width:17%;}
+/* The column widths were declared twice — once in the table block and again
+   here at higher specificity, so the first set never applied. One source now;
+   see the .dtab-* widths above. */
 
 @media(max-width:900px){
   /* A table stops being a table at 390px. Cards below this width, always. */
@@ -319,29 +394,65 @@ table.dtab .dtab-prep{width:17%;}
    provides on desktop. The existing inline Crisis panel is untouched and
    still lives inside the output stream; this rail indexes into it. */
 .ws-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start;}
-.ws-crisis{position:sticky;top:76px;background:var(--pane);border:1px solid rgba(255,138,114,.30);
-  border-radius:var(--radius-lg);overflow:hidden;}
-.wsc-head{display:flex;align-items:center;gap:8px;padding:11px 14px;
-  background:rgba(255,110,90,.10);border-bottom:1px solid rgba(255,138,114,.24);
-  font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ff8a72;}
-.wsc-sub{padding:9px 14px 4px;font-size:9.5px;font-weight:700;letter-spacing:.11em;
-  text-transform:uppercase;color:var(--ink-3);}
-.wsc-list{list-style:none;margin:0;padding:0 6px 6px;}
+/* ══ CRISIS CENTER RAIL ═══════════════════════════════════════════════════
+   Deliberately not a graphite panel with a red title. The rail is a different
+   kind of object from the reference workspace beside it — its own ground, its
+   own border, its own header band — because the moment it is needed, finding
+   it must not require reading. Everything in it comes from the same CRISIS
+   array the inline panel renders from; the rail is an index, not a second
+   implementation. */
+.ws-crisis{position:sticky;top:76px;border-radius:var(--radius-lg);overflow:hidden;
+  background:linear-gradient(180deg,rgba(78,26,22,.34),rgba(30,17,17,.30)),var(--pane);
+  border:1px solid rgba(255,110,90,.34);
+  box-shadow:0 10px 30px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,138,114,.08);}
+.wsc-head{display:flex;align-items:center;gap:8px;padding:12px 14px;
+  background:rgba(255,90,72,.16);border-bottom:1px solid rgba(255,110,90,.30);
+  font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#ff8a72;}
+
+/* Three views of the same eight protocols. The tab does not fetch anything
+   new — it changes what each row says about the protocol it names, so the
+   rail can answer "which protocols", "what do I give" and "what do I do"
+   without leaving the column. */
+.wsc-tabs{display:flex;gap:0;margin:11px 12px 9px;padding:3px;
+  background:rgba(0,0,0,.26);border:1px solid rgba(255,110,90,.18);
+  border-radius:var(--radius-sm);}
+.wsc-tab{flex:1 1 0;min-width:0;background:transparent;border:0;color:#d9a79c;
+  font-family:inherit;font-size:11px;font-weight:700;padding:6px 4px;cursor:pointer;
+  border-radius:calc(var(--radius-sm) - 2px);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;transition:background .14s ease,color .14s ease;}
+.wsc-tab:hover{color:#fff;}
+.wsc-tab.on{background:rgba(255,90,72,.26);color:#fff;}
+.wsc-tab:focus-visible{outline:2px solid #ff8a72;outline-offset:-2px;}
+
+.wsc-list{list-style:none;margin:0;padding:0 8px 6px;}
+/* Hairlines between protocols. Eight items with no separation read as one
+   block of text; under pressure the list has to be countable. */
 .wsc-list li{margin:0;}
-.wsc-b{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:0;
-  color:var(--ink-2);font-family:inherit;font-size:13px;text-align:left;padding:7px 8px;
-  border-radius:var(--radius-sm);cursor:pointer;min-height:34px;}
-.wsc-b:hover{background:rgba(255,110,90,.10);color:#fff;}
+.wsc-list li + li{border-top:1px solid rgba(255,110,90,.13);}
+.wsc-b{display:flex;align-items:flex-start;gap:10px;width:100%;background:transparent;
+  border:0;color:var(--ink-2);font-family:inherit;font-size:12.5px;text-align:left;
+  padding:8px;border-radius:var(--radius-sm);cursor:pointer;min-height:36px;line-height:1.35;}
+.wsc-b:hover{background:rgba(255,110,90,.12);color:#fff;}
 .wsc-b:focus-visible{outline:2px solid #ff8a72;outline-offset:-2px;}
-.wsc-n{flex:0 0 auto;width:18px;font-size:10.5px;font-weight:800;color:var(--ink-3);
+.wsc-n{flex:0 0 auto;width:19px;height:19px;margin-top:1px;display:inline-flex;
+  align-items:center;justify-content:center;border-radius:var(--radius-xs);
+  background:rgba(255,110,90,.16);font-size:10px;font-weight:800;color:#e79a8b;
   font-variant-numeric:tabular-nums;}
-.wsc-b:hover .wsc-n{color:#ff8a72;}
-.wsc-go{display:block;width:calc(100% - 16px);margin:4px 8px 10px;min-height:40px;
-  background:rgba(255,110,90,.14);border:1px solid rgba(255,138,114,.42);color:#ffb3a3;
+.wsc-b:hover .wsc-n{background:rgba(255,110,90,.30);color:#fff;}
+.wsc-t{min-width:0;}
+.wsc-t i{display:block;font-style:normal;font-size:10.5px;color:#b98d84;margin-top:2px;
+  line-height:1.35;}
+
+.wsc-go{display:block;width:calc(100% - 24px);margin:6px 12px 10px;min-height:42px;
+  background:#A0302A;border:1px solid #C4433A;color:#fff;
   border-radius:var(--radius-sm);font-family:inherit;font-size:12px;font-weight:800;
-  letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
-.wsc-go:hover{background:rgba(255,110,90,.22);color:#fff;}
-.wsc-note{padding:0 14px 12px;font-size:11px;color:var(--hint);line-height:1.5;}
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  transition:background .14s ease;}
+.wsc-go:hover{background:#B93A32;}
+.wsc-go:focus-visible{outline:2px solid #ff8a72;outline-offset:2px;}
+.wsc-note{margin:0 12px 12px;padding:9px 11px;font-size:10.5px;color:#a4837c;
+  line-height:1.5;background:rgba(0,0,0,.22);border:1px solid rgba(255,110,90,.14);
+  border-radius:var(--radius-sm);}
 
 @media(max-width:1179px){
   .ws-grid{grid-template-columns:minmax(0,1fr);}
@@ -2025,9 +2136,11 @@ function compute(){
      print in four fixed blocks are the same drugs; the table draws every
      publishable class, so nothing was dropped by flattening them. */
   var drugRows =
-    '<div id="dref-head"></div><div id="dref-body"></div>' +
-    foot('Standard reference ranges'+(wt?(' calculated for '+r0(wt)+' kg'):'')+
-         '. Verify against your local formulary and the product label.');
+    '<div class="dref-cats" id="dref-cats"></div>' +
+    '<div id="dref-body"></div>' +
+    '<div class="dref-foot">Reference only'+(wt?(' &middot; calculated for '+r0(wt)+' kg'):'')+
+    '. Verify against your local formulary and the product label. '+
+    'Clinical judgement overrides all.</div>';
 
   // TIVA / TCI
   var tivaRows =
@@ -2143,6 +2256,7 @@ function compute(){
   renderContextStrip();
   renderProcNotice();
   renderPedsEstimate();
+  renderCrisisRail();   /* the Doses view quotes weight-aware rescue doses */
   // Collapsed-section glances (the doctor reads patient status without expanding)
   var ageStr=(ageC && ageC.years>=2)?(ageLabel(ageC)+' y'):ageLabel(ageC);
   var ps=ge('acc-patient-sub'); if(ps) ps.textContent=ageStr+' • '+(sex==='M'?'Male':'Female')+' • '+r0(wt)+' kg'+(asa?(' • ASA '+asa):'');
@@ -2397,7 +2511,12 @@ function compute(){
      into each other. It is the workspace the brief puts first, so it spans
      the clinical column and the two domain stacks follow beneath it. */
   out.innerHTML='<div class="panels-wide dref-lead">'+
-      panel('&#128138;','Drug reference','Weight-based',drugRows,'')+
+      /* The controls ride in the panel's tag slot so the title and the
+         Table/Cards switch share one line, which is how the reference reads.
+         The head is a collapse target, so the slot swallows its own clicks. */
+      panel('','Drug reference',
+            '<span class="dref-ctl" id="dref-ctl" onclick="event.stopPropagation()"></span>',
+            drugRows,'dref-panel')+
   '</div>'+
   '<div class="panels">'+
     '<div class="stack" id="stack-drugs">'+
@@ -2510,7 +2629,11 @@ var DREF = { cat:'all', view:'table', q:'' };
    BLOCKERS never "relaxants". */
 var DREF_LABEL = {
   induction:'Hypnotics', benzo:'Hypnotics', opioid:'Opioids',
-  nmb:'Neuromuscular blockers', vasopressor:'Vasopressors',
+  /* NMB on the chip, "Neuromuscular blocker" on the row badge and in full in
+     the reference. The short form is the one that fits a filter strip beside
+     seven others without wrapping, and it is the same abbreviation the badge
+     uses, so nothing has to be learned twice. Never "relaxants". */
+  nmb:'NMB', vasopressor:'Vasopressors',
   anticholinergic:'Anticholinergics', reversal:'Reversal',
   local:'Local anesthetics', uterotonic:'Uterotonics',
   betablocker:'Beta-blockers', haemostatic:'Hemostatics'
@@ -2555,20 +2678,39 @@ function drefCats(){
   all.forEach(function(d){ var c = drefCat(d); counts[c] = (counts[c]||0)+1; });
   var order = ['induction','opioid','nmb','vasopressor','anticholinergic','reversal',
                'local','betablocker','uterotonic','haemostatic','other'];
-  var out = [{ id:'all', label:'All', n:all.length }];
+  var CC = window.ClinicalContent;
+  var out = [{ id:'all', label:'All', n:all.length, color:null }];
   order.forEach(function(c){
     if(!counts[c]) return;
-    out.push({ id:c, label:(DREF_LABEL[c] || 'Miscellaneous'), n:counts[c] });
+    var meta = CC && CC.classMeta ? CC.classMeta(c) : null;
+    out.push({ id:c, label:(DREF_LABEL[c] || 'Miscellaneous'),
+               n:counts[c], color:(meta ? meta.color : null) });
   });
   return out;
 }
 
 function drefDoseCell(d){
-  /* d.val / d.unit are already the patient-specific amount when a weight is
-     known, produced by ClinicalContent.renderDose. d.sub carries the rule. */
-  var main = (d.val != null && d.val !== '') ? (d.val + (d.unit ? '<span>'+d.unit+'</span>' : '')) : '&mdash;';
+  /* TWO LINES, RULE THEN PATIENT. The reference puts the per-kg rule on the
+     first line and the amount for this patient beneath it, and that ordering
+     is kept. What is NOT kept is the reference's faint second line: the
+     computed amount is the number that gets drawn up, so it carries the
+     accent rather than the muted ink. Neither value is recomputed here —
+     both come from ClinicalContent, which already refuses to convert a rate.
+
+     When there is no weight yet there is nothing to compute, and the rule
+     stands alone rather than being repeated in two type sizes. */
+  var amount = (d.val != null && d.val !== '')
+    ? (d.val + (d.unit ? '<span>'+d.unit+'</span>' : '')) : '';
   var rule = d.doseRule || '';
-  return '<div class="dtab-d1">'+main+'</div>' + (rule ? '<div class="dtab-d2">'+rule+'</div>' : '');
+  if(!rule) return '<div class="dtab-d1">'+(amount || '&mdash;')+'</div>';
+  /* The figure carries the weight, the unit sits back, exactly as the schema
+     draws it. Both halves come from the data layer already separated. */
+  var head = d.doseNum
+    ? d.doseNum + (d.doseUnit ? '<span>'+d.doseUnit+'</span>' : '')
+    : rule;
+  var same = amount && rule.indexOf(String(d.val)) === 0;   /* rate: rule IS the amount */
+  return '<div class="dtab-d1">'+head+'</div>' +
+         ((amount && !same) ? '<div class="dtab-d2">'+amount+'</div>' : '');
 }
 
 /* DURATION IS NOT IN THE DATASET. The brief's column list includes DUR, and
@@ -2585,48 +2727,71 @@ function drefHasDuration(rows){
   return false;
 }
 
-/* THE WARNING COLUMN IS A MARKER, NOT A REPLACEMENT. It gives the reader
-   something scannable down the edge of the table — which of twenty-five rows
-   carry a caution and which carry a contraindication — while the warning text
-   itself stays where it was, under the dose, in full. Compressing a line like
-   "only after confirming you can ventilate" into an icon would be a safety
-   regression dressed as a layout improvement, so the icon is additive. */
-function drefWarnCell(d){
+/* THE CAUTION COLUMN. The row spec is a compact one — class, drug, use,
+   dose, preparation, caution, details — with the caution as a marker rather
+   than a paragraph. Carrying the full warning inline made rows 71 to 105px
+   against the ~44px the schema asks for, and density is the point of a table.
+
+   So the text is folded, not deleted. The marker is a BUTTON, not a hover
+   target: pressing it opens the warning under the row on any device, and the
+   full reference behind the chevron still carries it. A caution reachable
+   only by mouse-hover would be unreachable on the tablet a lot of theatres
+   actually use, which is the failure this avoids. Critical severity keeps the
+   red treatment so the contraindications can be picked out of twenty-five
+   rows without opening anything. */
+function drefWarnCell(d, i){
   if(!d.warn) return '<td class="dtab-w"></td>';
   var crit = d.severity === 'critical';
-  return '<td class="dtab-w"><span class="dtab-wi'+(crit?' crit':'')+'" title="'+
-         esc_(d.warn)+'" aria-label="'+(crit?'Critical warning':'Caution')+': '+
-         esc_(d.warn)+'">&#9888;</span></td>';
+  return '<td class="dtab-w"><button type="button" class="dtab-wi'+(crit?' crit':'')+'" '+
+         'aria-expanded="false" aria-controls="dw-'+i+'" onclick="drefWarnToggle(this,'+i+')" '+
+         'title="'+esc_(d.warn)+'" aria-label="'+(crit?'Contraindication':'Caution')+
+         ' for '+esc_(d.name)+'">&#9888;</button></td>';
 }
+function drefWarnToggle(btn, i){
+  var row = document.getElementById('dw-'+i); if(!row) return;
+  var opening = row.hasAttribute('hidden');
+  if(opening) row.removeAttribute('hidden'); else row.setAttribute('hidden','');
+  btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+  btn.classList.toggle('open', opening);
+}
+window.drefWarnToggle = drefWarnToggle;
 
 function drefTable(rows){
   if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
   var CC = window.ClinicalContent;
   var dur = drefHasDuration(rows);
-  var body = rows.map(function(d){
+  var span = 7 + (dur ? 1 : 0);
+  var body = rows.map(function(d, i){
     var meta = CC.classMeta(d.pclass);
     var col  = meta ? meta.color : 'transparent';
-    var warn = d.warn ? '<div class="dtab-warn'+(d.severity==='critical'?' crit':'')+'">'+d.warn+'</div>' : '';
-    return '<tr>'+
+    /* Striping by row index, not :nth-child: a caution row sits between two
+       drugs when it is open and would otherwise invert the pattern. */
+    var row = '<tr class="dtab-r'+(i % 2 ? ' alt' : '')+'">'+
       '<td class="dtab-cls" style="--pc:'+col+'">'+(CC.classBadge(d.pclass)||'')+'</td>'+
       '<td class="dtab-name"><div class="dtab-n">'+d.name+'</div>'+
         (d.aliasLine ? '<div class="dtab-alias">'+d.aliasLine+'</div>' : '')+'</td>'+
       '<td class="dtab-use">'+(d.use || d.ind || '&mdash;')+'</td>'+
-      '<td class="dtab-dose">'+drefDoseCell(d)+warn+'</td>'+
-      '<td class="dtab-prep">'+(d.prep || '&mdash;')+'</td>'+
+      '<td class="dtab-dose">'+drefDoseCell(d)+'</td>'+
+      '<td class="dtab-prep">'+(d.prepMain ? ('<div class="dtab-p1">'+d.prepMain+'</div>'+
+        (d.prepNote ? '<div class="dtab-p2">'+d.prepNote+'</div>' : '')) : '&mdash;')+'</td>'+
       (dur ? '<td class="dtab-dur">'+(d.duration || '&mdash;')+'</td>' : '')+
-      drefWarnCell(d)+
+      drefWarnCell(d, i)+
       '<td class="dtab-go"><button type="button" class="dtab-more" '+
         'onclick="drefDetails(\''+d.id+'\')" aria-label="Open the full reference for '+
         esc_(d.name)+'" title="Full reference">&#8250;</button></td>'+
     '</tr>';
+    if(d.warn){
+      row += '<tr class="dtab-wrow" id="dw-'+i+'" hidden><td colspan="'+span+'">'+
+             '<div class="dtab-warn'+(d.severity==='critical'?' crit':'')+'">'+
+             '<span aria-hidden="true">&#9888;</span><span>'+d.warn+'</span></div></td></tr>';
+    }
+    return row;
   }).join('');
   return '<table class="dtab"><thead><tr>'+
     '<th class="dtab-cls">Class</th><th class="dtab-name">Drug</th><th class="dtab-use">Use</th>'+
     '<th class="dtab-dose">Patient dose</th><th class="dtab-prep">Preparation</th>'+
     (dur ? '<th class="dtab-dur">Dur.</th>' : '')+
-    '<th class="dtab-w"><span aria-label="Warnings">&#9888;</span></th>'+
-    '<th class="dtab-go"><span class="sr-only">Full reference</span></th>'+
+    '<th class="dtab-w">Caution</th><th class="dtab-go">Details</th>'+
     '</tr></thead><tbody>'+body+'</tbody></table>';
 }
 
@@ -2655,20 +2820,28 @@ function drefPaint(){
   host.innerHTML = (DREF.view === 'cards' || phone) ? drefCards(rows) : drefTable(rows);
 }
 function drefRender(){
-  var head = ge('dref-head'); if(!head) return;
-  head.innerHTML =
-    '<div class="dref-bar">'+
-      '<input class="dref-search" id="dref-q" type="search" placeholder="Search drugs…" '+
-        'value="'+String(DREF.q).replace(/"/g,'&quot;')+'" oninput="drefSet(\'q\', this.value)">'+
-      '<div class="dref-view">'+
-        '<button type="button" class="'+(DREF.view==='table'?'on':'')+'" onclick="drefSet(\'view\',\'table\')">Table</button>'+
-        '<button type="button" class="'+(DREF.view==='cards'?'on':'')+'" onclick="drefSet(\'view\',\'cards\')">Cards</button>'+
-      '</div>'+
-    '</div>'+
-    '<div class="dref-cats">'+ drefCats().map(function(c){
-      return '<button type="button" class="dref-cat'+(DREF.cat===c.id?' on':'')+'" '+
-             'onclick="drefSet(\'cat\',\''+c.id+'\')">'+c.label+'<span class="n">'+c.n+'</span></button>';
-    }).join('') +'</div>';
+  var ctl = ge('dref-ctl'), cats = ge('dref-cats');
+  if(!ctl || !cats) return;
+  ctl.innerHTML =
+    '<input class="dref-search" id="dref-q" type="search" placeholder="Search drugs&hellip;" '+
+      'value="'+String(DREF.q).replace(/"/g,'&quot;')+'" oninput="drefSet(\'q\', this.value)">'+
+    '<div class="dref-view" role="group" aria-label="Presentation">'+
+      '<button type="button" class="'+(DREF.view==='table'?'on':'')+'" '+
+        'onclick="drefSet(\'view\',\'table\')">&#9636; Table</button>'+
+      '<button type="button" class="'+(DREF.view==='cards'?'on':'')+'" '+
+        'onclick="drefSet(\'view\',\'cards\')">&#9635; Cards</button>'+
+    '</div>';
+  /* Each chip wears its own class colour, the same one the row badge and the
+     row's left rule use, so the filter and the thing it filters are visibly
+     the same object. The colours are the ISO 26825 syringe-label set already
+     in PCLASS; none is chosen here. */
+  cats.innerHTML = drefCats().map(function(c){
+    var style = c.color ? ' style="--cc:'+c.color+'"' : '';
+    return '<button type="button" class="dref-cat'+(c.color?' tinted':'')+
+           (DREF.cat===c.id?' on':'')+'"'+style+
+           ' onclick="drefSet(\'cat\',\''+c.id+'\')">'+c.label+
+           '<span class="n">'+c.n+'</span></button>';
+  }).join('');
   drefPaint();
 }
 window.drefRender = drefRender;
@@ -2925,22 +3098,51 @@ window.crisisInline=crisisInline; window.crisisJump=crisisJump;
    weight-aware doses have exactly one definition. Red lives here and in the
    command strip's Emergency button; it is not spread through the rest of the
    workstation chrome. */
+/* Three views over the same eight protocols, all read from CRISIS. Nothing
+   here is authored: the doses are the protocol's own rescue doses, already
+   weight-aware, and the step count is the length of its own algorithm. */
+var WSC_VIEW = 'protocols';
+function wscSet(v){ WSC_VIEW = v; renderCrisisRail(); }
+window.wscSet = wscSet;
+
 function renderCrisisRail(){
   var host = ge('ws-crisis'); if(!host || typeof CRISIS === 'undefined') return;
+  var w = (typeof crisisWeight === 'function') ? crisisWeight() : null;
+
+  function secondLine(c){
+    if(WSC_VIEW === 'protocols') return '';
+    var data;
+    try { data = c[3](w); } catch(e){ return ''; }
+    if(!data) return '';
+    if(WSC_VIEW === 'doses'){
+      var d = data.doses && data.doses[0];
+      return d ? '<i>' + d[0] + ' &middot; ' + d[1] + '</i>' : '';
+    }
+    var n = (data.steps || []).length;
+    return n ? '<i>' + n + ' step' + (n===1?'':'s') + ' &middot; ' + c[2] + '</i>' : '';
+  }
+
   var items = CRISIS.map(function(c, i){
     return '<li><button type="button" class="wsc-b" onclick="crisisInline('+i+');crisisJump();">'+
-           '<span class="wsc-n">'+(i+1)+'</span><span>'+c[1]+'</span></button></li>';
+           '<span class="wsc-n">'+(i+1)+'</span>'+
+           '<span class="wsc-t">'+c[1]+secondLine(c)+'</span></button></li>';
   }).join('');
+
+  function tab(id, label){
+    return '<button type="button" class="wsc-tab'+(WSC_VIEW===id?' on':'')+'" '+
+           'aria-pressed="'+(WSC_VIEW===id?'true':'false')+'" '+
+           'onclick="wscSet(\''+id+'\')">'+label+'</button>';
+  }
+
   host.innerHTML =
     '<div class="wsc-head"><span aria-hidden="true">&#9888;</span>Crisis Center</div>'+
-    /* What the rail actually indexes into: each entry opens a protocol whose
-       panel carries its weight-aware doses and its algorithm. The three words
-       name that, rather than promising three separate sections. */
-    '<div class="wsc-sub">Protocols &middot; Doses &middot; Algorithms</div>'+
+    '<div class="wsc-tabs" role="group" aria-label="Crisis Center view">'+
+      tab('protocols','Protocols')+tab('doses','Doses')+tab('algorithms','Algorithms')+
+    '</div>'+
     '<ul class="wsc-list">'+items+'</ul>'+
     '<button type="button" class="wsc-go" onclick="crisisJump()">Go to Crisis Center</button>'+
-    '<p class="wsc-note">Red is reserved for true emergencies. Every protocol is '+
-    'weight-aware and uses the current patient.</p>';
+    '<p class="wsc-note">Emergency protocols and rescue drugs for critical situations. '+
+    'Every dose is weight-aware and uses the current patient.</p>';
 }
 window.renderCrisisRail = renderCrisisRail;
 

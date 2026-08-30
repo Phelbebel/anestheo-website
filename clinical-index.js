@@ -760,6 +760,19 @@ function isPublishable(d){
   var st = d.provenance && d.provenance.state;
   return st === 'existing-unchanged' || st === 'reviewed';
 }
+/* prep is authored as "<b>concentration</b> · note". These pull the two
+   halves apart without changing the source string. */
+function prepConc(p){
+  if(!p) return '';
+  var m = /<b>([\s\S]*?)<\/b>/.exec(p);
+  return m ? m[1] : p;
+}
+function prepNote(p){
+  if(!p) return '';
+  var rest = p.replace(/<b>[\s\S]*?<\/b>/, '').trim();
+  return rest.replace(/^[·\u00b7\s]+/, '').trim();
+}
+
 function visibleDrugsInGroup(groupId, wt){
   return DRUGS.filter(function(d){ return d.group === groupId && isPublishable(d) && d.doses && d.doses.length; })
     .map(function(d){
@@ -770,12 +783,16 @@ function visibleDrugsInGroup(groupId, wt){
          function renders exactly as before. `use`, `doseRule` and `aliasLine`
          split the same values into columns; nothing new is computed and no
          range is altered. */
-      var rule = '';
+      var rule = '', ruleNum = '', ruleUnit = '';
       if (dose.basisWeight){
-        rule = (dose.low != null ? (dose.low+'–'+dose.high) : String(dose.value)) +
-               ' ' + dose.unit + (dose.basis ? (' '+dose.basis) : '');
-      } else if (dose.basis){ rule = dose.basis; }
-      if (dose.max) rule += (rule ? ' · ' : '') + 'max ' + dose.max;
+        ruleNum  = (dose.low != null ? (dose.low+'–'+dose.high) : String(dose.value));
+        ruleUnit = dose.unit + (dose.basis ? (' '+dose.basis) : '');
+        rule = ruleNum + ' ' + ruleUnit;
+      } else if (dose.basis){ rule = dose.basis; ruleUnit = dose.basis; }
+      if (dose.max){
+        rule += (rule ? ' · ' : '') + 'max ' + dose.max;
+        ruleUnit += (ruleUnit ? ' · ' : '') + 'max ' + dose.max;
+      }
       return { id:d.id, name:d.name, val:r.val, unit:r.unit,
                ind:supportLine(d, dose, wt), prep:d.prep,
                use:[dose.route, dose.label].filter(Boolean).join(' · '),
@@ -786,7 +803,20 @@ function visibleDrugsInGroup(groupId, wt){
                   until real data arrives. */
                duration:(dose.duration || ''),
                doseRule:rule,
-               aliasLine:(d.aliases && d.aliases.length > 1 ? d.aliases[1] : ''),
+               /* Up to two trade/common names. aliases[0] is the canonical
+                  lowercase form of the name already shown above it, so it is
+                  skipped; one alias reads thin and three wrap the cell. */
+               aliasLine:(d.aliases ? d.aliases.slice(1,3).join(', ') : ''),
+               /* The preparation string is "<b>concentration</b> · note". A
+                  column headed Preparation wants the concentration; the note
+                  is real and is kept, on its own muted line, the same shape
+                  the drug name and its aliases already use. Both halves are
+                  split out here so no consumer has to parse markup. `prep`
+                  itself is untouched for everything that already renders it. */
+               prepMain:prepConc(d.prep), prepNote:prepNote(d.prep),
+               /* Numbers and their unit, separated, so a table can give the
+                  figure the weight and let the unit sit back. */
+               doseNum:ruleNum, doseUnit:ruleUnit,
                warn:d.warn, severity:d.severity, hi:d.hi,
                pclass:classOf(d), badge:classBadge(classOf(d)) };
     });
