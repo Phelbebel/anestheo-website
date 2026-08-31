@@ -454,8 +454,13 @@ const CREATE = (opts = {}) => `(async () => {
 
     /* ── 10. NO SECOND AUTHORIZATION POLICY ─────────────────────────────── */
     console.log('\n10. THE RULE COMES FROM auth.js, NOT FROM A COPY');
+    /* Matches the CALL, not one exact spelling of it: the options argument was
+       added a commit later to make the guard non-redirecting, and a regex
+       demanding requireRole('staff') with an empty argument list then failed
+       on a change that strengthened the very thing it was guarding. */
     t('Live Tools asks auth.js rather than restating the predicate',
-      /requireRole\(['"]staff['"]\)/.test(ENGC) && /unverifiedDoctor/.test(ENGC));
+      /requireRole\(\s*['"]staff['"]/.test(ENGC) && /unverifiedDoctor/.test(ENGC),
+      (ENGC.match(/requireRole\([^)]*\)/) || ['absent'])[0]);
     t('...and does not re-derive verification_status itself',
       !/verification_status/.test(ENGC), (ENGC.match(/verification_status[^\n]{0,40}/)||[''])[0]);
     t('...and auth.js is untouched by this branch',
