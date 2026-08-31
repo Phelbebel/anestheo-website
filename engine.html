@@ -3592,9 +3592,13 @@ async function ltResolveAccess(){
     var staff = (role === 'doctor' || role === 'admin' || a.isAdmin === true);
     if(!staff){ LT_ACCESS.reason = (role || 'no role'); return LT_ACCESS; }
 
-    /* Staff, so this cannot redirect, and it returns auth.js's own verdict on
-       whether the account may do patient management. */
-    var r = await window.requireRole('staff');
+    /* NON-REDIRECTING, EXPLICITLY. Being staff means requireRole's own deny
+       path is unreachable — but requireRole calls requireAuth(opts) first, and
+       without these options that inner call would send the visitor to
+       /index.html if the session had expired between the two awaits. A public
+       page must not be able to navigate anyone away, not even in a race, so
+       the options are passed rather than relied upon being unnecessary. */
+    var r = await window.requireRole('staff', { noRedirect:true, allowPending:true });
     if(!r){ LT_ACCESS.reason = 'denied by requireRole'; return LT_ACCESS; }
     if(r.unverifiedDoctor){ LT_ACCESS.reason = 'unverified doctor'; return LT_ACCESS; }
 

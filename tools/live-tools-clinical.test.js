@@ -311,14 +311,34 @@ async function openEngine(b, viewport) {
                  grid:y(document.querySelector('.ws-grid')),
                  timers:y(document.getElementById('live-timers')),
                  pacu:y(document.querySelector('.pacu-mod')),
-                 newPatient:!!document.querySelector('.case-np') &&
-                            document.querySelector('.case-np').offsetParent !== null,
+                 newPatient:(function(){ var e=document.querySelector('.case-np');
+                   return !!e && getComputedStyle(e).display !== 'none'; })(),
+                 newPatientPresent:!!document.querySelector('.case-np'),
+                 newPatientHidden:(function(){ var e=document.querySelector('.case-np');
+                   return !!e && e.hidden === true; })(),
+                 domains:document.querySelectorAll('#cmd-strip .cmd-b').length,
+                 /* A table above 900px, cards below it — counting only rows
+                    reported an empty drug reference on a phone, where it is
+                    simply a different shape. Count whichever it rendered. */
+                 drugRows:(document.querySelectorAll('.dtab tbody tr.dtab-r').length ||
+                           (document.getElementById('dref-body')||{children:[]}).children.length),
                  chips:[...document.querySelectorAll('.dref-cat')].map(c => c.innerText.split('\\n')[0].trim()),
                  overflow:document.documentElement.scrollWidth - document.documentElement.clientWidth };
       })()`);
       t(w + ': the workstation precedes the timers', g.grid < g.timers, [g.grid, g.timers]);
       t(w + ': ...and precedes PACU', g.grid < g.pacu, [g.grid, g.pacu]);
-      t(w + ': New Patient is visible in the case bar', g.newPatient === true);
+      /* NO SESSION IN THIS SUITE, so the correct answer here is HIDDEN. New
+         Patient is patient management and it is gated on the same rule the
+         dashboard uses; an anonymous visitor gets the whole workstation and
+         not that one action. The authorized case — button present, and the
+         created row owned by the authenticated uid — is driven in
+         new-patient-modal.test.js, which signs in. */
+      t(w + ': New Patient is NOT offered without a session', g.newPatient === false);
+      t(w + ': ...but the button exists and is gated, not deleted',
+        g.newPatientPresent === true && g.newPatientHidden === true,
+        { present:g.newPatientPresent, hidden:g.newPatientHidden });
+      t(w + ': ...and the rest of Live Tools is fully available',
+        g.domains > 0 && g.drugRows > 0, { domains:g.domains, drugRows:g.drugRows });
       /* ADDING THAT BUTTON BROKE THE CASE LINE ON A PHONE. Three controls
          beside an ellipsised summary left it about six characters, so 390px
          read "CURREN" and nothing else. The bar wraps below 900px now, and

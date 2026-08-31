@@ -368,10 +368,39 @@ function ratio(fg, bg) {
   const REFS = ['references.html','airway.html','anticoagulation.html','regional.html','icu.html',
                 'obstetric.html','pediatric.html','last.html','difficult-airway.html','anaphylaxis.html'];
 
-  t('engine.html no longer calls requireRole',   !/requireRole\(/.test(code('engine.html')));
   t('scores.html no longer calls requireRole',   !/requireRole\(/.test(code('scores.html')));
-  t('engine.html calls no guard at all',         !/requireAuth\(/.test(code('engine.html')));
   t('scores.html calls no guard at all',         !/requireAuth\(/.test(code('scores.html')));
+
+  /* ENGINE.HTML IS ASSERTED DIFFERENTLY NOW, AND THE PREMISE IS WHY.
+     "Calls no guard at all" was written when this page made no backend call
+     of any kind — pure arithmetic and localStorage — so a guard could only
+     ever have cost an anonymous clinician the dosing reference. That premise
+     changed: Live Tools now offers New Patient, which writes a row somebody
+     owns, and the page therefore has to know who is asking.
+
+     The property being protected was never "no guard". It was NEVER REDIRECT
+     ANYONE: this page is public and a visitor must not be thrown to a login
+     or a dashboard for opening it. "No guard" was a proxy for that, and a
+     proxy stops being a proxy when the thing it stood for can be asserted
+     directly. So it is:
+
+       every guard call here is non-redirecting, by construction, and
+       the file contains no navigation-away statement at all.
+
+     The second half is the stronger claim, and it is the one that would have
+     caught the hole this change fixed — requireRole was being called with no
+     options, and requireRole calls requireAuth(opts) BEFORE deciding the role,
+     so an expired session between the two awaits would have sent a public
+     visitor to /index.html. */
+  const ENGC = code('engine.html');
+  const guards = ENGC.match(/require(?:Auth|Role)\([^)]*\)/g) || [];
+  t('engine.html guards are all non-redirecting',
+    guards.length > 0 && guards.every(g => /noRedirect:\s*true/.test(g)), guards);
+  t('...and it never navigates the visitor away',
+    !/location\.(href|replace)\s*[=(]/.test(ENGC),
+    (ENGC.match(/location\.(href|replace)\s*[=(][^;\n]{0,50}/) || ['none'])[0]);
+  t('...so the page a guard protects is still only the workspace',
+    /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
   for (const f of REFS) {
     t(f + ': anonymous allowed via noRedirect',
       /requireAuth\(\{\s*noRedirect:\s*true\s*\}\)/.test(src(f)));
