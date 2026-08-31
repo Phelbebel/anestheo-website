@@ -1755,6 +1755,11 @@ body .nb-search-wrap{display:none !important;}
   transition:color .14s ease,border-color .14s ease,background .14s ease;}
 .case-np:hover{background:rgba(47,168,140,.26);color:#fff;border-color:var(--accent);}
 .case-np:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+/* THE PHONE RULE BELOW SETS display ON THIS BUTTON, WHICH BEATS [hidden].
+   Without this the access gate would hold on a desktop and quietly fail on a
+   phone — the worst possible split, because it is the one nobody screenshots.
+   Authorization is not a thing to lose to a specificity accident. */
+.case-np[hidden]{display:none !important;}
 @media(max-width:900px){ .case-np{min-height:40px;font-size:11.5px;padding:0 12px;} }
 /* A previous revision hid a .lg span inside these buttons to abbreviate them.
    No such span was ever added, so the rule matched nothing; the bar now wraps
@@ -1871,7 +1876,9 @@ body .nb-search-wrap{display:none !important;}
               aria-label="Start a new case — clears the current patient, calculations and timers">New case</button>
       <!-- The SAME dialog the dashboard opens, from new-patient.js. Live Tools
            does not have a New Patient form of its own. -->
-      <button type="button" class="case-np" onclick="ltNewPatient()"
+      <!-- Hidden until ltResolveAccess() says this session may manage
+           patients. Live Tools itself stays public; this action does not. -->
+      <button type="button" class="case-np" onclick="ltNewPatient()" hidden
               aria-label="Create a new patient record and send the questionnaire">New patient</button>
     </div>
 
@@ -3546,11 +3553,87 @@ window.obstetricContextFor = obstetricContextFor;
    here, "Use this patient" loads the record into this workspace and closes,
    because the clinician is already standing in the place they wanted to end
    up. No round trip through the dashboard. */
+/* ══ WHO IS ALLOWED TO CREATE A PATIENT FROM HERE ═════════════════════════
+   Live Tools is public on purpose — the calculators, the drug reference and
+   the crisis protocols are open to anyone who lands on the page. Creating a
+   patient is not one of those things: it is patient management, it writes a
+   row somebody owns, and it belongs to the same account class the dashboard
+   already gates it behind.
+
+   THE RULE IS NOT RE-DERIVED HERE. The dashboard's condition is
+   `!auth.unverifiedDoctor` on top of requireRole('staff'), and
+   `unverifiedDoctor` is computed inside auth.js. This asks auth.js the same
+   question and uses its answer; it does not restate the predicate, because a
+   second copy of an authorization rule is a rule that will one day disagree
+   with itself.
+
+   WHY TWO CALLS. requireRole() redirects on denial, which is right for a
+   staff-only page and wrong for a public one — a patient reading the drug
+   table must not be thrown to their own dashboard for scrolling. So identity
+   comes first, without redirecting, and requireRole() is asked only when its
+   answer cannot be a redirect. The staff test below is a routing guard, not
+   the authorization: the authorization is auth.unverifiedDoctor, and it comes
+   from auth.js.
+
+   AND IT IS ONLY A UX GATE. The database is the boundary — v9_5 makes the
+   patient-management tables RESTRICTIVE against is_pending_doctor() — so this
+   decides whether to OFFER an action the server would refuse anyway. */
+var LT_ACCESS = { resolved:false, allowed:false, uid:null, reason:'unresolved' };
+
+async function ltResolveAccess(){
+  try {
+    if(!window.requireAuth){ LT_ACCESS.reason = 'auth unavailable'; return LT_ACCESS; }
+    /* No session, or a role not yet chosen: neither may create, and neither
+       may be redirected off a public page. */
+    var a = await window.requireAuth({ noRedirect:true, allowPending:true });
+    if(!a || !a.user){ LT_ACCESS.reason = 'anonymous'; return LT_ACCESS; }
+
+    var role = (a.profile && a.profile.role) || '';
+    var staff = (role === 'doctor' || role === 'admin' || a.isAdmin === true);
+    if(!staff){ LT_ACCESS.reason = (role || 'no role'); return LT_ACCESS; }
+
+    /* Staff, so this cannot redirect, and it returns auth.js's own verdict on
+       whether the account may do patient management. */
+    var r = await window.requireRole('staff');
+    if(!r){ LT_ACCESS.reason = 'denied by requireRole'; return LT_ACCESS; }
+    if(r.unverifiedDoctor){ LT_ACCESS.reason = 'unverified doctor'; return LT_ACCESS; }
+
+    LT_ACCESS.allowed = true;
+    LT_ACCESS.uid     = r.user.id;
+    LT_ACCESS.reason  = 'authorized';
+    return LT_ACCESS;
+  } catch(e){
+    console.warn('[live-tools] access check failed', e && e.message);
+    LT_ACCESS.reason = 'error';
+    return LT_ACCESS;
+  } finally {
+    LT_ACCESS.resolved = true;
+    ltPaintAccess();
+  }
+}
+window.ltResolveAccess = ltResolveAccess;
+
+/* The button is absent until the answer is known, and stays absent unless the
+   answer is yes. It is not rendered-then-hidden and not disabled-but-present:
+   an action nobody in this session may take is not a thing to look at. */
+function ltPaintAccess(){
+  var btn = document.querySelector('.case-np');
+  if(btn) btn.hidden = !LT_ACCESS.allowed;
+}
+window.ltPaintAccess = ltPaintAccess;
+
 function ltNewPatient(){
-  if(!window.NewPatient){ return; }
+  if(!window.NewPatient) return;
+  /* Belt and braces: the button is not rendered without authorization, and
+     the handler refuses again if it is somehow reached anyway. The component
+     itself refuses a third time when the owner is not a uuid. */
+  if(!LT_ACCESS.allowed || !LT_ACCESS.uid){
+    window.NewPatient.open({ host:'livetools' });   // renders the refusal
+    return;
+  }
   window.NewPatient.open({
     host:'livetools',
-    doctorId: (window.__wsUserId || null),
+    doctorId: LT_ACCESS.uid,
     onUse: ltUsePatient,
     onOpen: function(row){ if(row) window.open('/dashboard.html#patient-'+row.id, '_blank'); }
   });
@@ -4602,6 +4685,9 @@ window.sedInline=sedInline;
 document.addEventListener('DOMContentLoaded',async function(){
   renderCrisisRail();   /* static index; the panel it points at is unchanged */
   pedsWatchManualEntry();
+  /* Asked once, on load. Until it answers, the New patient button stays
+     hidden — the default is no. */
+  if(window.ltResolveAccess) ltResolveAccess();
   try{
     /* THE ?embed=1 BRANCH IS GONE, AND WITH IT A ROLE-CHECK BYPASS.
        It existed for exactly one caller — the iframe on the Doctor Dashboard —

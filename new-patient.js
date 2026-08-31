@@ -112,13 +112,51 @@
     });
   }
 
+  /* ── THE OWNER IS NOT OPTIONAL ───────────────────────────────────────────
+     A clinic patient is owned by the doctor who created them. There is no
+     such thing as an ownerless one: the column IS the ownership record, RLS
+     is written against it, and a null would either be refused by the server
+     or — if a policy ever loosened — create a row nobody can reach.
+
+     This used to read `S.doctorId || window.__wsUserId || null`. Live Tools
+     never set __wsUserId, so the fallback chain ended at null every time, and
+     a permissive test stub accepted it: the tests passed while production
+     would have refused the insert. A default of null for an ownership column
+     is not a default, it is a bug with a fallback's manners.
+
+     The owner is now validated as a UUID before the dialog will open, and
+     again immediately before the insert. Nothing here invents or defaults an
+     id; the host resolves it from the session and hands it in. */
+  var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  function ownerOf(opts){
+    var id = opts && opts.doctorId;
+    return (typeof id === 'string' && UUID_RE.test(id)) ? id : null;
+  }
+  var NO_OWNER = 'Sign in with an authorized clinician account to create a patient.';
+
   function open(opts){
     S = opts || {};
     CREATED = null;
     ensureDom();
+    if (!ownerOf(S)){
+      /* FAIL CLOSED, AND SAY SO. No form, no insert, and deliberately no
+         navigation: throwing someone off the page they are reading is not a
+         permission message. */
+      renderDenied();
+      $('np-modal').classList.add('open');
+      return;
+    }
     renderForm();
     $('np-modal').classList.add('open');
     var f = $('np-fname'); if (f) f.focus();
+  }
+
+  function renderDenied(){
+    var t = $('np-title'); if (t) t.innerHTML = 'New Patient';
+    $('np-body').innerHTML =
+      '<div class="np-form"><div class="np-note" id="np-denied">' + NO_OWNER + '</div></div>' +
+      '<div class="np-foot"><button type="button" class="np-btn" id="np-close">Close</button></div>';
+    $('np-close').onclick = close;
   }
   function close(){
     var m = $('np-modal');
@@ -167,11 +205,14 @@
   }
 
   function collect(){
+    /* Re-validated here, not just at open(): the dialog can outlive a session. */
+    var owner = ownerOf(S);
+    if (!owner){ toast(NO_OWNER); return null; }
     var v = function (id){ var e = $(id); return e ? e.value.trim() : ''; };
     var name = [v('np-fname'), v('np-lname')].filter(Boolean).join(' ');
     if (!name){ toast('A first or last name is required'); return null; }
     return {
-      doctor_id: (S && S.doctorId) || root.__wsUserId || null,
+      doctor_id: owner,
       patient_name: name,
       phone_number: v('np-phone') || null,
       email: v('np-email') || null,
@@ -201,6 +242,7 @@
         /* The canonical record, back-linked, exactly as before. */
         try {
           await root.sb.from('patient_surgeries').insert({
+            /* Same owner, same source: rec.doctor_id is the validated uuid. */
             patient_id:null, assigned_doctor_id:rec.doctor_id, clinic_patient_id:r.data.id,
             patient_name:rec.patient_name, procedure_type:rec.procedure || null,
             surgery_date:rec.surgery_date || null, hospital:rec.hospital || null,
@@ -267,7 +309,7 @@
       /* COPYING IS NOT SENDING. Nobody has received anything and the row is
          untouched; the line says exactly that. */
       var s = $('np-status');
-      if (s) s.innerHTML = '<span class="np-dot"></span>Link copied &mdash; not sent yet. ' +
+      if (s) s.innerHTML = '<span class="np-dot"></span>Link copied: not sent yet. ' +
         'The invitation is recorded as sent only when you send it.';
     };
     /* close() clears S and CREATED, so every exit takes what it needs first. */
@@ -294,7 +336,7 @@
       await markSent(p.id);
       p.questionnaire_status = 'sent';
       setStatus(true);
-      toast('WhatsApp opened — status set to Sent');
+      toast('WhatsApp opened; status set to Sent');
       if (S && S.refresh) { try { await S.refresh(); } catch(e){} }
     } else {
       toast('Pop-up blocked. Use Copy link, or allow pop-ups and try again.');
@@ -313,7 +355,7 @@
       '<div class="np-form">' +
         '<div class="np-sec np-sec-flat">Send by email</div>' +
         '<div class="np-note">Anestheo does not send this for you. Open your mail app, or copy ' +
-          'the text and send it however you prefer &mdash; then mark it sent.</div>' +
+          'the text and send it however you prefer, then mark it sent.</div>' +
         '<label for="np-em-to">To</label><input id="np-em-to" readonly value="' + esc(to) + '">' +
         '<label for="np-em-sub">Subject</label><input id="np-em-sub" readonly value="' + esc(subject) + '">' +
         '<label for="np-em-body">Message</label><textarea id="np-em-body" readonly rows="7">' + esc(body) + '</textarea>' +

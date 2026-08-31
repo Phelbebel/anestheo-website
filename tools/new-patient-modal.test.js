@@ -363,6 +363,105 @@ const CREATE = (opts = {}) => `(async () => {
       !/\bage\s*:/.test(NPC) && !/\bsex\s*:/.test(NPC));
     t('...and the form says where they come from instead',
       /Age and sex come from the questionnaire/.test(NP));
+    /* ── 8. THE OWNERSHIP CONTRACT ──────────────────────────────────────
+       THE DEFECT THIS SECTION EXISTS FOR. Live Tools opened the workflow with
+       `doctorId: window.__wsUserId`, and engine.html never set that variable —
+       so the id was undefined every time, the component's
+       `|| window.__wsUserId || null` chain ended at null, and the stub below
+       cheerfully accepted a clinic patient with no owner. The tests passed
+       while production RLS would have refused the insert. A permissive stub
+       is not a test of an ownership rule; the doctor_id has to be ASSERTED. */
+    console.log('\n8. EVERY CREATED PATIENT HAS A REAL OWNER');
+    t('the component validates the owner as a uuid', /UUID_RE.*test\(id\)/.test(NPC.replace(/\n/g,' ')));
+    t('...and there is no null fallback left anywhere',
+      !/doctor_id\s*:\s*[^,\n]*\|\|\s*null/.test(NPC), (NPC.match(/doctor_id\s*:[^,\n]*/)||[''])[0].trim());
+    t('...nor a __wsUserId fallback inside the component',
+      !/__wsUserId/.test(NPC));
+    t('open() refuses without a resolved owner', /if \(!ownerOf\(S\)\)/.test(NPC));
+    t('collect() refuses again before the insert',
+      /var owner = ownerOf\(S\);[\s\S]{0,80}if \(!owner\)/.test(NPC));
+    t('the refusal is truthful and does not navigate',
+      /Sign in with an authorized clinician account/.test(NP) &&
+      !/location\.(href|replace)/.test(NPC));
+
+    /* Driven, not just read: an authorized doctor's uid must reach BOTH rows. */
+    const AUTHED = '9e000000-0000-4000-8000-00000000cafe';
+    s = await openPage(b, '/engine.html');
+    const owned = await s.pg.evaluate(`(async () => {
+      const btn = document.querySelector('.case-np');
+      const visible = btn && getComputedStyle(btn).display !== 'none';
+      btn.click();
+      await new Promise(r => setTimeout(r, 220));
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('np-fname','Owned'); set('np-lname','Patient');
+      document.getElementById('np-create').click();
+      await new Promise(r => setTimeout(r, 650));
+      const cp = (window.__NP.inserts.find(i => i.table === 'clinic_patients')||{}).rec || {};
+      const ps = (window.__NP.inserts.find(i => i.table === 'patient_surgeries')||{}).rec || {};
+      return { visible, uid:(window.LT_ACCESS||{}).uid,
+               doctor_id:cp.doctor_id, assigned:ps.assigned_doctor_id,
+               inserts:window.__NP.inserts.length };
+    })()`);
+    t('an authorized doctor sees New Patient in Live Tools', owned.visible === true);
+    t('...the resolved session uid is what the component received',
+      owned.uid === AUTHED, owned.uid);
+    t('...clinic_patients.doctor_id === the authenticated uid',
+      owned.doctor_id === AUTHED, owned.doctor_id);
+    t('...patient_surgeries.assigned_doctor_id === the same uid',
+      owned.assigned === AUTHED, owned.assigned);
+    await s.ctx.close();
+
+    /* ── 9. NOBODY ELSE CAN CREATE ──────────────────────────────────────── */
+    console.log('\n9. ANONYMOUS, PATIENT AND UNVERIFIED CANNOT CREATE');
+    const IDENT = {
+      anonymous:  null,
+      patient:    { email:'p@e.com', role:'patient',  verification_status:'not_required', is_admin:false, full_name:'Pat' },
+      unverified: { email:'u@e.com', role:'doctor',   verification_status:'pending',      is_admin:false, full_name:'Dr U' }
+    };
+    for (const [who, prof] of Object.entries(IDENT)) {
+      const ctx = await b.newContext({ viewport:{ width:1440, height:1000 } });
+      await ctx.route('**/*', r => {
+        const u = r.request().url();
+        if (/cdn\.jsdelivr|unpkg/.test(u)) return r.fulfill({status:200,contentType:'text/javascript',body:MOCK});
+        if (/googleapis|gstatic/.test(u))  return r.fulfill({status:200,contentType:'text/css',body:''});
+        if (/youtube|ytimg|supabase\.co/.test(u)) return r.fulfill({status:200,contentType:'application/json',body:'[]'});
+        return r.continue();
+      });
+      const pg = await ctx.newPage();
+      await pg.addInitScript(prof ? ('window.__TEST_PROFILE=' + JSON.stringify(prof) + ';')
+                                  : "window.__TEST_ROLE='anon';");
+      await pg.goto(BASE + '/engine.html', { waitUntil:'domcontentloaded' }).catch(() => {});
+      await pg.addScriptTag({ content: STUB });
+      await pg.waitForTimeout(1600);
+      const r = await pg.evaluate(`(async () => {
+        const btn = document.querySelector('.case-np');
+        const visible = btn ? getComputedStyle(btn).display !== 'none' : false;
+        /* bypass the button entirely — the handler must refuse too */
+        if (window.ltNewPatient) ltNewPatient();
+        await new Promise(r => setTimeout(r, 250));
+        const denied = !!document.getElementById('np-denied');
+        const form = !!document.getElementById('np-fname');
+        return { visible, denied, form, inserts: window.__NP.inserts.length,
+                 reason:(window.LT_ACCESS||{}).reason,
+                 liveToolsWorks: document.querySelectorAll('#cmd-strip .cmd-b').length > 0 };
+      })()`);
+      t(who + ': New Patient is not offered', r.visible === false, r.reason);
+      t(who + ': ...calling the handler anyway is refused', r.denied === true && r.form === false, r);
+      t(who + ': ...and NOTHING is inserted', r.inserts === 0, r.inserts);
+      t(who + ': ...while Live Tools itself still works', r.liveToolsWorks === true);
+      await ctx.close();
+    }
+
+    /* ── 10. NO SECOND AUTHORIZATION POLICY ─────────────────────────────── */
+    console.log('\n10. THE RULE COMES FROM auth.js, NOT FROM A COPY');
+    t('Live Tools asks auth.js rather than restating the predicate',
+      /requireRole\(['"]staff['"]\)/.test(ENGC) && /unverifiedDoctor/.test(ENGC));
+    t('...and does not re-derive verification_status itself',
+      !/verification_status/.test(ENGC), (ENGC.match(/verification_status[^\n]{0,40}/)||[''])[0]);
+    t('...and auth.js is untouched by this branch',
+      require('child_process').execSync('git -C ' + REPO + ' diff --name-only origin/main -- auth.js',
+        { encoding:'utf8' }).trim() === '', 'auth.js unchanged');
+
   } finally {
     await b.close();
   }
