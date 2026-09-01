@@ -695,6 +695,166 @@ async function openEngine(b, viewport) {
     t('engine.html fills the workstation after it builds the host',
       ENGC.indexOf('id="induction-host"') < ENGC.indexOf('window.Induction.render()'));
 
+    /* ── THE CASE HEADER AND THE READING ORDER ──────────────────────────
+       Six inputs, two accordions and a seven-cell derived band stood between
+       the top of the page and the first clinical answer — 560px of a 1440
+       screen spent on values the clinician had just finished typing. The
+       phone already folded the form behind one line; the desktop kept it
+       open permanently.
+
+       Nothing is deleted. The header states the same values and IS the
+       control that brings the form back, and the derived band never folds,
+       because those numbers are how a clinician checks the dose on screen
+       belongs to the patient in front of them. */
+    console.log('\nTHE CASE HEADER');
+    const hdr = await s.pg.evaluate(`(() => {
+      newCase();
+      const app = document.getElementById('app');
+      const form = () => !!document.getElementById('acc-patient').offsetParent;
+      const derived = () => !!document.getElementById('cw-derived').offsetParent;
+      const out = { emptyForm:form() };
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+      set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+      set('i-proc','Laparoscopic cholecystectomy');
+      compute(); ptSummary();
+      out.liveForm = form(); out.liveDerived = derived();
+      out.live = app.classList.contains('case-live');
+      out.workstationY = Math.round(
+        document.querySelector('.ws-grid').getBoundingClientRect().top + window.pageYOffset);
+      out.noticeH = Math.round(document.querySelector('.eng-notice').getBoundingClientRect().height);
+      out.caseText = document.querySelector('.case-state').textContent;
+      document.getElementById('case-state').click();
+      out.openedForm = form(); out.ageKept = document.getElementById('i-age').value;
+      document.getElementById('case-state').click();
+      out.closedAgain = form();
+      /* a value edited through the reopened form still drives everything */
+      document.getElementById('case-state').click();
+      const w = document.getElementById('i-weight'); w.value = '40'; compute(); ptSummary();
+      out.reweighed = (document.querySelector('#induction-host .idc-amt')||{}).textContent||'';
+      out.headerFollowed = /40 kg/.test(document.querySelector('.case-v').textContent);
+      document.getElementById('case-state').click();
+      return out;
+    })()`);
+    t('an empty page shows the form — there would be no way in otherwise',
+      hdr.emptyForm === true);
+    t('a live case folds it, at 1440 as well as on a phone',
+      hdr.live === true && hdr.liveForm === false, hdr);
+    t('...but never the derived band', hdr.liveDerived === true);
+    t('...and the header still states every value',
+      /42y/.test(hdr.caseText) && /75 kg/.test(hdr.caseText) && /175 cm/.test(hdr.caseText) &&
+      /ASA II/.test(hdr.caseText) && /Laparoscopic cholecystectomy/.test(hdr.caseText),
+      hdr.caseText);
+    t('the header is the control: pressing it brings the form back',
+      hdr.openedForm === true && hdr.ageKept === '42' && hdr.closedAgain === false, hdr);
+    t('...and a value edited there still drives every dose',
+      /60/.test(hdr.reweighed) && hdr.headerFollowed === true,
+      { propofolAt40kg:hdr.reweighed, header:hdr.headerFollowed });
+    /* The whole point of the exercise. Measured at 1440x1250 before this
+       pass: 560. */
+    t('the workstation begins in the first screenful',
+      hdr.workstationY < 400, hdr.workstationY);
+    t('the professional notice is kept but no longer dominates',
+      hdr.noticeH < 60, hdr.noticeH);
+
+    /* ── THE READING ORDER WITHIN A SECTION ─────────────────────────────
+       Rank is asserted as a RELATIONSHIP, not as a pixel count, so a later
+       type change has to preserve the hierarchy rather than match a number.
+       A section heading was 19px and a drug name inside it 16px — near enough
+       the same rank that the page read as one flat list. */
+    console.log('\nTYPE HIERARCHY');
+    const rank = await s.pg.evaluate(`(() => {
+      const px = (sel, prop) => { const e = document.querySelector(sel);
+        return e ? parseFloat(getComputedStyle(e)[prop || 'fontSize']) : null; };
+      return { lead:px('.wfl-t'), heading:px('#output .wf-t'),
+               drug:px('.idc-name'), amount:px('.idc-amt'),
+               rule:px('.idc-rule'), label:px('.idc-route'),
+               airwayValue:px('.awp-v'), airwayLabel:px('.awp-l'),
+               timer:px('.ws-rail .lt-time'), timerLabel:px('.ws-rail .lt-head') };
+    })()`);
+    t('the workspace lead outranks a section heading', rank.lead > rank.heading, rank);
+    t('a section heading outranks a drug name inside it', rank.heading > rank.drug, rank);
+    t('a drug name outranks its own labels', rank.drug > rank.label, rank);
+    /* The amount for THIS patient is what gets drawn up, so it is the largest
+       thing on the card — larger than the per-kg rule it came from. */
+    t('the patient amount is the largest thing on a drug card',
+      rank.amount > rank.drug && rank.amount > rank.rule, rank);
+    t('an airway size outranks its device label', rank.airwayValue > rank.airwayLabel, rank);
+    t('a running time is the largest thing in the timer rail',
+      rank.timer > rank.timerLabel * 2, rank);
+
+    /* ── COLOUR ANSWERS ONE QUESTION ────────────────────────────────────
+       "What kind of drug is this." The class colour was a 3px rule on the
+       left edge, which is three pixels of answer. It now runs the card's
+       header band and its badge — and NOTHING ELSE on the page is coloured
+       by it, because a workstation where everything is coloured says
+       nothing. */
+    console.log('\nSEMANTIC COLOUR');
+    const col = await s.pg.evaluate(`(() => {
+      const cards = [...document.querySelectorAll('#induction-host .idc')];
+      const seen = {};
+      cards.forEach(c => { seen[getComputedStyle(c).getPropertyValue('--pc').trim()] = 1; });
+      const first = cards[0];
+      return { cards:cards.length, distinctColours:Object.keys(seen).filter(Boolean).length,
+               bandTinted:getComputedStyle(first.querySelector('.idc-top')).backgroundColor,
+               badgeFilled:getComputedStyle(first.querySelector('.pc')).backgroundColor,
+               everyCardNamesItsClass:cards.every(c => {
+                 const b = c.querySelector('.pc');
+                 return !!b && b.textContent.trim().length > 0; }),
+               dimmed:getComputedStyle(cards[0]).opacity };
+    })()`);
+    t('drug cards carry several distinct class colours',
+      col.distinctColours >= 4, col.distinctColours);
+    t('...the class band is tinted with the card colour, not a hairline',
+      !/rgba\(0, 0, 0, 0\)/.test(col.bandTinted), col.bandTinted);
+    t('...the badge is filled with it', !/rgba\(0, 0, 0, 0\)/.test(col.badgeFilled),
+      col.badgeFilled);
+    /* COLOUR IS NEVER THE ONLY CUE — the same rule clinical-index.js states. */
+    t('...and every card still names its class in text',
+      col.everyCardNamesItsClass === true);
+
+    /* ── THE AIRWAY PLAN IS READ BY SHAPE ───────────────────────────────
+       These were emoji: a microscope for the laryngoscope, a spool of thread
+       for the ETT, a droplet for the LMA. They rendered differently on every
+       platform and none was the object it stood for. */
+    const awp = await s.pg.evaluate(`(() => {
+      const tiles = [...document.querySelectorAll('#induction-host .awp')];
+      return { tiles:tiles.length,
+               drawn:tiles.filter(x => x.querySelector('.awp-i svg')).length,
+               namedInText:tiles.every(x => (x.querySelector('.awp-l')||{}).textContent.trim()),
+               iconsHidden:tiles.every(x => x.querySelector('.awp-i')
+                 .getAttribute('aria-hidden') === 'true'),
+               /* A SENTENCE MUST NOT BE SET AS THOUGH IT WERE A SIZE.
+                  Measured on the VALUE, not on value-plus-unit: appending
+                  "mm ID" to "8.0 (7.5–8.5)" makes an 18-character string out
+                  of a perfectly good number, and that number belongs at
+                  number size. The test that got this wrong first asserted
+                  the opposite of what the rule says. */
+               phrases:(() => {
+                 const vals = [...document.querySelectorAll('#induction-host .awp-v')]
+                   .map(v => ({ txt:v.childNodes[0].textContent.trim(),
+                                long:v.classList.contains('awp-long') }));
+                 /* A LOWERCASE WORD, not any four letters. "Size 4 (90 mm)"
+                    is a size that happens to contain the word Size, and it
+                    belongs at number size; "Yankauer" and "Appropriate size"
+                    are prose. Capital-initial words are how a size names
+                    itself, so the run has to be lowercase to count. */
+                 const prose = t => /[a-z]{4}/.test(t);
+                 return { wordy:vals.filter(v => prose(v.txt)),
+                          numeric:vals.filter(v => !prose(v.txt)) };
+               })() };
+    })()`);
+    t('every airway tile carries a drawn device icon',
+      awp.tiles > 0 && awp.drawn === awp.tiles, awp);
+    t('...and still names its device in text', awp.namedInText === true);
+    t('...with the drawings hidden from a screen reader', awp.iconsHidden === true);
+    t('a phrase is not set as though it were a size',
+      awp.phrases.wordy.length > 0 && awp.phrases.wordy.every(v => v.long),
+      awp.phrases.wordy.filter(v => !v.long));
+    t('...and a size still is, however long it prints',
+      awp.phrases.numeric.length > 0 && awp.phrases.numeric.every(v => !v.long),
+      awp.phrases.numeric.filter(v => v.long));
+
     /* ── THE INLINE CRISIS PREVIEW ──────────────────────────────────────
        Pressing a protocol used to call setDomain('emergency') and scroll the
        page. The workstation was replaced, the induction plan being read was
@@ -952,6 +1112,12 @@ async function openEngine(b, viewport) {
           timersFolded:lt ? !lt.open : null,
           timersH:rail ? Math.round(rail.getBoundingClientRect().height) : null,
           caseH:Math.round(document.querySelector('.case-bar').getBoundingClientRect().height),
+          noticeH:Math.round(document.querySelector('.eng-notice').getBoundingClientRect().height),
+          /* the two ranks the header claims to have */
+          kSize:parseFloat(getComputedStyle(document.querySelector('.case-k')).fontSize),
+          vSize:parseFloat(getComputedStyle(document.querySelector('.case-v')).fontSize),
+          formShown:!!document.getElementById('acc-patient').offsetParent,
+          workstationY:y(document.querySelector('.ws-grid')),
           /* \\s, not \s. This is inside a TEMPLATE LITERAL, where \s is just
              "s" — the first version of this line silently deleted every
              letter s from the case summary and then reported it as clipped. */
@@ -977,8 +1143,15 @@ async function openEngine(b, viewport) {
           m.opened.open && m.opened.picks === 8, m.opened);
         t('390: ...without scrolling or changing workspace',
           m.opened.scrolled === 0 && m.opened.domain === 'induction', m.opened);
-        t('390: the case line is set as a sentence, not a headline',
-          m.caseUpper === 'none' && m.caseH < 130, { transform:m.caseUpper, h:m.caseH });
+        /* It was one uppercase run at 10.5px/.12em over four lines and 159px.
+           It is now a label and a value at two different sizes — which is the
+           whole claim — and smaller than it was despite the value being
+           larger, because the tracking is what was costing the height. */
+        t('390: the case header is a label and a value, at two ranks',
+          m.vSize > m.kSize * 1.4 && m.caseUpper === 'none',
+          { label:m.kSize, value:m.vSize, transform:m.caseUpper });
+        t('390: ...and costs less than the headline it replaced',
+          m.caseH < 150, m.caseH);
         t('390: ...and still says everything, unclipped',
           m.caseClipped === false && /42y/.test(m.caseText) &&
           /Laparoscopic cholecystectomy/i.test(m.caseText) && /ASA II/.test(m.caseText),

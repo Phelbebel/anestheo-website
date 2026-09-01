@@ -238,6 +238,11 @@
    positioning scheme, so there is one behaviour to verify rather than two.
    On a wide screen cpvAnchor() lends it the rail column's left edge and
    width; without those it falls back to the full-width sheet below. */
+/* [hidden] IS A UA display:none AND ANY AUTHOR display WINS. This rule sets
+   display:flex, so without this line the closed preview stayed laid out —
+   invisible only because it had no height, and covering the entire page the
+   moment it was given one. */
+.crisis-preview[hidden]{display:none !important;}
 .crisis-preview{position:fixed; z-index:120;
   left:var(--cpv-left, 0); width:var(--cpv-w, 100%);
   bottom:18px; max-height:calc(100vh - 110px);
@@ -371,3 +376,254 @@ body:has(.crisis-preview:not([hidden])) .ws-sos{opacity:.0; pointer-events:none;
 .cpv-pt{display:flex; flex-direction:column; gap:2px; min-width:0;
   font-size:14px; font-weight:700; color:#fff;}
 .cpv-pt i{font-style:normal; font-size:11.5px; font-weight:500; color:#a4837c;}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   VISUAL HIERARCHY
+   The structure was right and the reading order was wrong. Everything below
+   changes SIZE, WEIGHT and COLOUR ROLE. Not one value, unit, weight basis,
+   warning or piece of markup structure changes with it.
+
+   The rule throughout: colour answers "what kind of drug is this", and
+   nothing else. The workstation stays graphite. ═══════════════════════════ */
+
+/* ── 1 · SECTION HEADINGS ────────────────────────────────────────────────
+   A section heading was 19px and a drug name inside it was 16px, so the
+   section and its contents read as the same rank. The headings are the
+   skeleton of the page and now look like it. */
+#output .wf-h{display:flex; align-items:center; gap:13px; margin-bottom:15px;
+  padding-bottom:11px; border-bottom:1px solid var(--hair,rgba(255,255,255,.07));}
+#output .wf-n{flex:0 0 auto; width:28px; height:28px; display:flex;
+  align-items:center; justify-content:center; border-radius:8px;
+  background:var(--brand-tint-2,rgba(47,168,140,.16));
+  border:1px solid rgba(126,207,192,.30);
+  color:var(--accent,#7ECFC0); font-size:13px; font-weight:800;}
+#output .wf-t{font-size:23px; font-weight:800; letter-spacing:-.015em;
+  text-transform:uppercase; color:#fff; line-height:1.1;}
+#output .wf-sub{margin-left:auto; text-align:right; font-size:12px;}
+#output .wf-sec{margin-bottom:30px;}
+#output .wf-sec:last-child{margin-bottom:0;}
+
+/* The workspace lead is the tab's own title and outranks a section. */
+.wfl-t{font-size:26px; letter-spacing:-.02em;}
+.wfl-s{font-size:13px;}
+
+/* Panel titles are section headings in every other workspace, so they carry
+   the same rank there — TIVA / TCI, Drug reference, Crisis Center. */
+#output .panel-title{font-size:16.5px; font-weight:800; letter-spacing:-.005em;}
+
+/* ── 2 · THE DERIVED BAND ────────────────────────────────────────────────
+   Seven padded cards, 164px, for numbers that are context rather than the
+   answer. One row of dividers instead — the values keep their size, because
+   checking that a dose belongs to this patient is what they are for. */
+.eng-wrap .cw-derived{display:flex; flex-wrap:wrap; gap:0;
+  border:1px solid var(--hair,rgba(255,255,255,.07));
+  border-radius:var(--radius-md,10px); background:rgba(255,255,255,.018);
+  overflow:hidden;}
+.eng-wrap .cw-derived .cw-d{flex:1 1 0; min-width:88px; gap:3px;
+  background:none; border:0; border-radius:0; padding:9px 12px;
+  border-left:1px solid var(--hair,rgba(255,255,255,.07));}
+.eng-wrap .cw-derived .cw-d:first-child{border-left:0;}
+.eng-wrap .cw-derived .cw-d-l{font-size:9px; letter-spacing:.13em;}
+.eng-wrap .cw-derived .cw-d-val{font-size:20px;}
+.eng-wrap .cw-derived .cw-d-u{font-size:11px;}
+.eng-wrap #acc-derived{margin-bottom:14px;}
+.eng-wrap #acc-derived .cw-acc-body{padding:0;}
+
+/* ── 3 · DRUG CARDS ──────────────────────────────────────────────────────
+   The class colour was a 3px rule on the left edge and nothing else, so the
+   answer to "what kind of drug is this" was three pixels wide. The colour
+   now runs the header band, the badge and the edge, and the card is built
+   around the two numbers that matter: the rule, and the amount for THIS
+   patient.
+
+   SELECTED IS LOUDER, ALTERNATIVES STAY LEGIBLE. Not hidden and not greyed
+   into unreadability — a drug you cannot read is a drug you cannot rule out.
+   The header note says in words what the dimming says in weight: this is a
+   menu, not a sequence. */
+.idc-grid{grid-template-columns:repeat(auto-fill,minmax(252px,1fr)); gap:13px;}
+.idc{padding:0; overflow:hidden; opacity:.80;
+  background:rgba(255,255,255,.028); border-left-width:1px;
+  border-top:3px solid color-mix(in srgb, var(--pc) 55%, transparent);}
+.idc.on{opacity:1; background:rgba(255,255,255,.055);
+  border-top-color:var(--pc);
+  border-color:color-mix(in srgb,var(--pc) 32%,transparent);
+  border-top-color:var(--pc);
+  box-shadow:0 6px 20px rgba(0,0,0,.30);}
+.idc-top{margin:0; padding:9px 13px 8px; gap:9px;
+  background:color-mix(in srgb, var(--pc) 9%, transparent);
+  border-bottom:1px solid color-mix(in srgb, var(--pc) 16%, transparent);}
+.idc.on .idc-top{background:color-mix(in srgb, var(--pc) 15%, transparent);}
+.idc-route{margin-left:auto; font-size:9.5px; letter-spacing:.09em;}
+.idc-name{padding:11px 13px 0; font-size:19px; letter-spacing:-.015em;}
+.idc-alias{padding:0 13px; margin-top:2px; font-size:11px;}
+/* rule above, patient amount below and larger — the amount is what is drawn */
+.idc-dose{margin:9px 0 0; padding:9px 13px; display:flex; flex-direction:column; gap:2px;
+  border-top:1px solid var(--hair,rgba(255,255,255,.06));
+  background:rgba(0,0,0,.16);}
+.idc-rule{font-size:12.5px; font-weight:600; color:var(--ink-2,#c8d4da);}
+.idc-amt{font-size:25px; font-weight:800; letter-spacing:-.02em; margin-top:0;
+  color:var(--accent,#7ECFC0);}
+.idc.on .idc-amt{color:#8FE8D6;}
+.idc-amt .idc-u{font-size:12.5px; margin-left:4px;}
+.idc-prep{padding:0 13px; margin-top:9px; font-size:11.5px;}
+.idc-warn{padding:0 13px 12px; margin-top:8px; font-size:11px;}
+/* the class badge is the card's own colour, filled, so the class is read
+   before the name is */
+#output .idc-top .pc{background:var(--pc); color:#0B1620; border-left:0;
+  font-size:9px; padding:4px 8px; margin-right:0;}
+#output .idc-top .pc-zebra{color:#0B1620;}
+
+/* ── 4 · RSI CHOICES ─────────────────────────────────────────────────── */
+.rsi{border-top-width:4px; padding:0; overflow:hidden;
+  background:rgba(255,255,255,.028);}
+.rsi.on{box-shadow:0 6px 20px rgba(0,0,0,.30);}
+.rsi-h{margin:0; padding:10px 15px 9px; gap:10px;
+  background:color-mix(in srgb, var(--pc) 10%, transparent);
+  border-bottom:1px solid color-mix(in srgb, var(--pc) 16%, transparent);}
+.rsi-k{font-size:14px; letter-spacing:.06em;}
+.rsi-name{padding:12px 15px 0; font-size:18px; font-weight:800; letter-spacing:-.01em;}
+.rsi-dose{margin:10px 0 0; padding:9px 15px; font-size:14px;
+  border-top:1px solid var(--hair,rgba(255,255,255,.06)); background:rgba(0,0,0,.16);}
+.rsi-amt{font-size:22px; letter-spacing:-.02em;}
+.rsi-ind{padding:0 15px; margin-top:9px;}
+.rsi-note{padding:0 15px 14px; margin-top:6px;}
+.rsi .idc-warn{padding:0 15px 14px;}
+
+/* ── 5 · AIRWAY PLAN ─────────────────────────────────────────────────────
+   Equipment, read by its shape. The icon carries the device and the size is
+   the largest thing in the tile, because at the moment this is read the
+   question is "which one do I pick up", not "what is this section called". */
+.awp-grid{grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:11px;}
+.awp{flex-direction:column; align-items:flex-start; gap:0; padding:13px 14px 12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
+  border-color:var(--line,rgba(255,255,255,.10));}
+.awp-i{display:flex; align-items:center; justify-content:center;
+  width:38px; height:38px; margin-bottom:11px; border-radius:10px;
+  background:rgba(126,207,192,.13); border:1px solid rgba(126,207,192,.26);
+  /* the drawings stroke with currentColor, so the colour lives here */
+  color:var(--accent,#7ECFC0);}
+.awp-i svg{width:23px; height:23px; display:block;}
+.awp-tx{width:100%;}
+.awp-l{font-size:9.5px; letter-spacing:.13em;}
+.awp-v{font-size:21px; font-weight:800; letter-spacing:-.02em; margin-top:5px;
+  line-height:1.15; font-variant-numeric:tabular-nums;}
+.awp-u{font-size:11px; margin-left:5px;}
+/* A PHRASE IS NOT A SIZE. "≈0.5 mm larger (not routine in adults)" set at
+   21px tabular is a number that isn't one. Marked in induction.js by length
+   and set as the sentence it is. */
+.awp-v.awp-long{font-size:13px; font-weight:600; letter-spacing:0;
+  line-height:1.45; color:var(--ink-2,#c8d4da); font-variant-numeric:normal;}
+
+/* ── 6 · BACKUP DIFFICULT AIRWAY ─────────────────────────────────────────
+   It sits directly under the primary plan and must not read as more of it.
+   Amber, a rule down the leading edge, and its two protocol buttons at real
+   target size — this is the section that gets pressed with one hand. */
+.bkp{padding:0; overflow:hidden; background:rgba(240,180,60,.055);
+  border:1px solid rgba(240,180,60,.30); border-left:4px solid var(--warning,#e8a838);}
+.bkp-row{padding:15px 17px; gap:13px;}
+.bkp-i{display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:9px; font-size:17px;
+  background:rgba(240,180,60,.16); border:1px solid rgba(240,180,60,.30);}
+.bkp-row b{font-size:15.5px; letter-spacing:-.005em;}
+.bkp-list{font-size:13px; margin-top:7px;}
+.bkp-acts{margin:0; padding:0 17px 15px; gap:10px;}
+.bkp-b{min-height:44px; font-size:13.5px; padding:0 17px;}
+.bkp .wf-note{padding:0 17px 15px; margin:0;}
+
+/* ── 7 · PAEDIATRIC CONTEXT ──────────────────────────────────────────── */
+/* Seven values, and seven across at 1440 — at 132px the seventh wrapped to a
+   row of its own and read as an afterthought rather than as part of the set. */
+.pdx-grid{grid-template-columns:repeat(auto-fit,minmax(108px,1fr)); gap:10px;}
+.pdx{padding:12px 14px;}
+.pdx-l{font-size:9.5px; letter-spacing:.13em;}
+.pdx-v{font-size:24px; letter-spacing:-.02em; margin-top:4px;}
+
+/* ── 8 · THE TIMER RAIL ──────────────────────────────────────────────────
+   A stopwatch is read across a room at a glance. The times were 15px with
+   three lines of metadata under them; they are the largest thing in the rail
+   now, and a running timer says so in colour rather than in small print. */
+.ws-rail .lt-card{padding:13px 14px;}
+.ws-rail .lt-head{font-size:9.5px; font-weight:800; letter-spacing:.13em; gap:6px;}
+.ws-rail .lt-time{font-size:27px; font-weight:800; letter-spacing:-.03em;
+  line-height:1.05; margin-top:5px; color:#fff; font-variant-numeric:tabular-nums;}
+.ws-rail .lt-state{font-size:10.5px; margin-top:4px;}
+.ws-rail .lt-btns{margin-top:10px;}
+.ws-rail .lt-btn{min-height:36px; font-size:12.5px; font-weight:700; width:100%;
+  justify-content:center;}
+/* RUNNING IS A STATE, NOT A CAPTION. The rail is scanned, and a colour is
+   scanned faster than the word "running" at 10px. */
+.ws-rail .lt-card.run .lt-time{color:var(--accent,#7ECFC0);}
+.ws-rail .lt-card.run .lt-head{color:var(--accent,#7ECFC0);}
+.ws-rail .lt-card.run{background:rgba(126,207,192,.06);
+  box-shadow:inset 3px 0 0 var(--accent,#7ECFC0);}
+.ws-rail-h{font-size:9.5px; letter-spacing:.16em;}
+
+/* ── 9 · THE CRISIS RAIL ─────────────────────────────────────────────────
+   A protocol on a desktop is read, not glanced at, so the preview gets the
+   room to be read in: the full height of the column rather than a panel
+   pinned under an index. The index is still one press away — the switcher
+   travels with the protocol — so nothing is lost by giving the protocol the
+   space. */
+.wsc-head{font-size:10.5px; letter-spacing:.16em; padding:13px 15px;}
+.wsc-b{min-height:44px;}
+@media(min-width:1180px){
+  .crisis-preview{top:88px; bottom:24px; max-height:none;}
+  .cpv-head{padding:13px 13px 13px 16px;}
+  .cpv-h{font-size:11px; letter-spacing:.16em;}
+  .cpv-body{padding:15px 16px;}
+}
+#output .crisis-emg-t{font-size:19px; font-weight:800; letter-spacing:-.015em;
+  line-height:1.2; margin-bottom:3px;}
+.crisis-preview .crisis-emg-t{font-size:19px; font-weight:800; letter-spacing:-.015em;}
+.crisis-preview .crisis-emg-t span{display:block; font-size:12px; font-weight:500;
+  color:#a4837c; margin-top:3px;}
+.crisis-preview .crisis-sec-t{font-size:9.5px; font-weight:800; letter-spacing:.15em;
+  text-transform:uppercase; color:#ff8a72; margin:15px 0 8px;}
+.crisis-preview .crisis-step{display:flex; gap:10px; align-items:flex-start;
+  font-size:13.5px; line-height:1.5; color:#fff; margin-bottom:9px;}
+.crisis-preview .crisis-num{flex:0 0 auto; width:21px; height:21px; margin-top:1px;
+  display:flex; align-items:center; justify-content:center; border-radius:6px;
+  background:rgba(255,90,72,.22); color:#ff8a72; font-size:11px; font-weight:800;}
+.crisis-preview .crisis-dose{display:flex; justify-content:space-between; gap:12px;
+  align-items:baseline; padding:7px 0; font-size:12.5px; color:var(--ink-2,#c8d4da);
+  border-bottom:1px solid rgba(255,110,90,.12);}
+.crisis-preview .crisis-dose b{font-size:14.5px; font-weight:800; color:#fff;
+  text-align:right; font-variant-numeric:tabular-nums;}
+.cpv-full{min-height:44px; font-size:13px;}
+
+/* ── 10 · THE OTHER WORKSPACES ───────────────────────────────────────────
+   Maintenance and the rest do not need Induction's card density, but they
+   must not leave a single old panel floating in a column built for three.
+   A workspace holding one or two panels lets its rows use the whole width
+   rather than half of it. */
+#output .panels.dom-single .stack{flex:1 1 100%;}
+#output[data-domain]:not([data-domain="induction"]) .panel{
+  background:rgba(255,255,255,.022);
+  border:1px solid var(--hair,rgba(255,255,255,.07));
+  border-radius:var(--radius-md,10px);}
+#output[data-domain]:not([data-domain="induction"]) .stack + .stack{
+  border-left:0; padding-left:0;}
+#output[data-domain]:not([data-domain="induction"]) .panels{gap:14px;}
+
+/* ── 11 · THE PHONE'S TYPE SCALE ─────────────────────────────────────────
+   The desktop sizes are the point of the hierarchy pass and they are wrong
+   at 390px: a 23px uppercase section heading wraps to two lines, and two
+   wrapped lines of heading are less legible than one unwrapped line, not
+   more. The RANKS are preserved — heading over drug name over label — the
+   whole scale simply steps down. */
+@media(max-width:620px){
+  #output .wf-t{font-size:18px;}
+  #output .wf-n{width:25px; height:25px; font-size:12px;}
+  #output .wf-h{gap:10px; margin-bottom:13px;}
+  #output .wf-sub{margin-left:0; flex:1 1 100%; text-align:left; font-size:11.5px;}
+  #output .wf-h{flex-wrap:wrap;}
+  .wfl-t{font-size:21px;}
+  .wfl-s{font-size:12.5px;}
+  .idc-name{font-size:17px;}
+  .idc-amt{font-size:22px;}
+  .awp-v{font-size:19px;}
+  .pdx-v{font-size:21px;}
+  .eng-wrap .cw-derived .cw-d-val{font-size:18px;}
+  /* the floating SOS must not sit on top of the last line of a section */
+  #output .wf-sec:last-child{padding-bottom:64px;}
+}

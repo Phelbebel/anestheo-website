@@ -77,10 +77,13 @@ html,body{background:var(--ground);}
 /* The professional-use notice. Legible rather than decorative — it is the
    sentence the login used to say on this page's behalf. Amber-tinted because
    it is a caution, not an error, and the crisis surfaces already own red. */
-.eng-notice{display:block;margin:0 0 12px;padding:11px 14px;border-radius:var(--radius-md);
-  background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.26);
-  font-size:12.5px;line-height:1.6;color:var(--ink-2);}
-.eng-notice b{color:#E8C16B;font-weight:700;}
+/* KEPT, AND QUIETER. It is a standing condition of using the page, not a
+   finding about this patient, and at four lines of 13px amber it was the
+   loudest thing above the workstation. Same words, one line at rest. */
+.eng-notice{display:block;margin:0 0 10px;padding:7px 12px;border-radius:var(--radius-sm);
+  background:rgba(232,168,56,.055);border:1px solid rgba(232,168,56,.20);
+  font-size:11px;line-height:1.5;color:var(--ink-3);}
+.eng-notice b{color:#d9a94e;font-weight:700;}
 .cw-acc{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:10px;overflow:hidden;background:rgba(255,255,255,.022);}
 .cw-acc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:11px;padding:13px 16px;
   font-size:13.5px;font-weight:800;color:#f1fffb;-webkit-tap-highlight-color:transparent;}
@@ -1153,12 +1156,29 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
   /* the form and its heading collapse behind the line; the DERIVED band does
      not — those numbers are how the clinician checks the dose is for the
      right patient, so they stay visible at all times. */
-  #app:not(.pt-open) #acc-patient{display:none;}
   #app.pt-open .pt-sum{margin-bottom:0;}
   .eng-wrap > details.cw-acc{display:none;}   /* identity / labs: rarely used on a phone */
   #app.pt-open > .eng-wrap > details.cw-acc{display:block;}
 }
-@media(min-width:901px){ .pt-sum,.pt-row > .pt-new{display:none;} }   /* desktop keeps the form */
+@media(min-width:901px){ .pt-sum,.pt-row > .pt-new{display:none;} }
+
+/* ══ THE CASE HEADER ══════════════════════════════════════════════════════
+   THE FORM IS NOT THE WORKSTATION. Six inputs, two accordions and a seven-cell
+   derived band stood between the top of the page and the first clinical
+   answer — 560px of a 1440 screen spent on values the clinician had just
+   finished typing. The phone already collapsed the form behind one line and
+   was right to; the desktop kept it open permanently and was wrong to.
+
+   Once a case is live the form folds at EVERY width, behind the case header
+   that states the same values. Nothing is deleted and nothing is read-only:
+   the header IS the control, and pressing it (or Edit) brings the form back.
+   Before a case is live nothing folds, because there would be no way in.
+
+   The derived band never folds. Those numbers are how a clinician checks the
+   dose on screen belongs to the patient in front of them. */
+#app.case-live:not(.pt-open) #acc-patient,
+#app.case-live:not(.pt-open) > .eng-wrap > details.cw-acc{display:none;}
+#app.case-live.pt-open > .eng-wrap > details.cw-acc{display:inline-block;}
 /* ══ NEW PATIENT ════════════════════════════════════════════════════════
    A primary case-workflow control, so it sits beside the patient context
    rather than in a menu. Restrained: it ends a case, it does not advertise
@@ -1766,14 +1786,23 @@ body .nb-search-wrap{display:none !important;}
    rather than the supporting one, on a bar of its own that sits above
    everything collapsible so it is never inside a disclosure. Still no fill,
    no glow, no gradient, no pill. */
-.case-bar{display:flex;align-items:center;gap:12px;
-  padding:7px 12px;margin:0 0 6px;
-  background:rgba(255,255,255,.03);border:1px solid var(--hair);}
-.case-state{flex:1 1 auto;min-width:0;
-  font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  line-height:1.25;color:var(--ink-3);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.case-state.on{color:var(--ink-2);}
+.case-bar{display:flex;align-items:center;gap:14px;
+  padding:13px 18px;margin:0 0 8px;border-radius:var(--radius-md);
+  background:linear-gradient(180deg,rgba(126,207,192,.055),rgba(255,255,255,.014));
+  border:1px solid rgba(126,207,192,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);}
+.case-state{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px;
+  align-items:flex-start;text-align:left;}
+/* the label, at label size */
+.case-k{font-size:9.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
+  line-height:1;color:var(--accent);}
+/* the patient, at reading size */
+.case-v{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;
+  font-size:17px;font-weight:700;line-height:1.3;color:#fff;letter-spacing:-.005em;}
+.case-v b{font-weight:700;}
+.case-v i{font-style:normal;font-weight:400;color:var(--hint,#66757f);}
+.case-v-empty{font-size:13.5px;font-weight:500;color:var(--ink-3);}
+.case-state.on .case-k{color:var(--accent);}
 .case-new{flex:0 0 auto;font:inherit;
   font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   line-height:1;color:var(--ink-2);background:transparent;
@@ -1842,9 +1871,10 @@ body .nb-search-wrap{display:none !important;}
    in the same order, set as a sentence: nothing is abbreviated, nothing is
    dropped, it simply stops being a headline. */
 @media(max-width:620px){
-  .case-state{text-transform:none;letter-spacing:0;font-size:13px;
-    font-weight:600;line-height:1.4;}
-  .case-bar{padding:8px 10px;}
+  .case-bar{padding:10px 12px;gap:9px;}
+  .case-k{font-size:9px;letter-spacing:.16em;}
+  .case-v{font-size:15px;line-height:1.35;gap:0 8px;}
+  .case-v-empty{font-size:12.5px;}
 }
 </style>
 </head>
@@ -1930,8 +1960,8 @@ body .nb-search-wrap{display:none !important;}
          is untouched. This is a restoration of the shell, not of the bugs. -->
     <div class="case-bar">
       <button type="button" class="case-state" id="case-state" onclick="ptToggle()"
-              aria-controls="acc-patient">No active patient</button>
-      <span class="case-edit">Edit</span>
+              aria-controls="acc-patient" aria-expanded="false">No active patient</button>
+      <span class="case-edit" aria-hidden="true">Edit</span>
       <button type="button" class="case-new" onclick="newCaseAsk()"
               aria-label="Start a new case — clears the current patient, calculations and timers">New case</button>
       <!-- The SAME dialog the dashboard opens, from new-patient.js. Live Tools
@@ -3762,16 +3792,41 @@ function ptSummary(){
   var bits=[];
   if(age) bits.push(age + (u==='y'?'y':u==='mo'?'mo':u==='w'?'w':'d'));
   var sex=txt('i-sex'); if(sex && sex!=='—') bits.push(sex);
-  var ht=v('i-height'); if(ht) bits.push(ht+' cm');
+  /* WEIGHT BEFORE HEIGHT. Almost every number on this page is derived from
+     the weight; the height feeds the derived band and little else. It reads
+     in the order it matters. */
   var wt=v('i-weight'); if(wt) bits.push(wt+' kg');
+  var ht=v('i-height'); if(ht) bits.push(ht+' cm');
   var asa=v('i-asa'); if(asa) bits.push('ASA '+asa);
   var proc=txt('i-proc'); if(proc && proc!=='—') bits.push(proc);
   if(el) el.textContent = bits.length ? bits.join('  ·  ') : 'Enter patient details';
   var b=ge('pt-sum'); if(b) b.classList.toggle('empty', !bits.length);
   /* the case bar says whether a case is loaded, in the same words */
+  /* A LIVE CASE IS ONE THE PAGE CAN CALCULATE FROM. Below that threshold the
+     form stays open at every width, because folding it would leave nothing to
+     type into. The flag is set here rather than in compute() so that it
+     tracks the same values the header is showing. */
+  var app=document.getElementById('app');
+  if(app){
+    var live = !!(v('i-age') && v('i-weight'));
+    app.classList.toggle('case-live', live);
+    if(!live) app.classList.remove('pt-open');
+  }
   var cs=ge('case-state');
   if(cs){
-    cs.textContent = bits.length ? ('Current case  ·  '+bits.join('  ·  ')) : 'No active patient';
+    /* TWO LINES, NOT ONE SENTENCE. "Current case" is a label and belongs at
+       label size; the patient is the thing being read and belongs at reading
+       size. Run together at 10.5px with .12em tracking they were the same
+       weight as each other and neither was legible at a glance. Same values,
+       same order, same separator — only the hierarchy changes. */
+    cs.innerHTML = bits.length
+      ? '<span class="case-k">Current case</span>' +
+        '<span class="case-v">' + bits.map(function(x){
+            return '<b>' + String(x).replace(/[&<>]/g, function(c){
+              return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }) + '</b>';
+          }).join('<i>|</i>') + '</span>'
+      : '<span class="case-k">No active patient</span>' +
+        '<span class="case-v case-v-empty">Enter age, sex, height and weight</span>';
     cs.classList.toggle('on', !!bits.length);
   }
 }
@@ -4402,7 +4457,11 @@ function ptToggle(){
   var w = document.getElementById('app'); if(!w) return;
   var open = w.classList.toggle('pt-open');
   var b = ge('pt-sum'); if(b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if(open){ var f = ge('i-age'); if(f && isPhone()) setTimeout(function(){ f.focus(); }, 120); }
+  var c = ge('case-state'); if(c) c.setAttribute('aria-expanded', open ? 'true' : 'false');
+  /* The form folds on a desktop now too, so opening it there should also put
+     the caret where the clinician is going. It did not before, because on a
+     desktop the form was never closed. */
+  if(open){ var f = ge('i-age'); if(f) setTimeout(function(){ try{ f.focus(); }catch(e){} }, 120); }
 }
 window.ptToggle = ptToggle;
 
@@ -4411,7 +4470,8 @@ window.ptToggle = ptToggle;
    phone it opens the row first. */
 function ptFocus(){
   var w = document.getElementById('app');
-  if(w && !w.classList.contains('pt-open') && isPhone()) ptToggle();
+  if(w && !w.classList.contains('pt-open') &&
+     (isPhone() || w.classList.contains('case-live'))) ptToggle();
   var f = ge('acc-patient'); if(f) f.scrollIntoView({behavior:'smooth',block:'center'});
   var a = ge('i-age'); if(a) a.focus();
 }

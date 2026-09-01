@@ -207,29 +207,81 @@
       'words. No separate RSI figure is asserted here.</p>');
   }
 
-  /* ── 4 · AIRWAY PLAN ─────────────────────────────────────────────────── */
+  /* ── 4 · AIRWAY PLAN ─────────────────────────────────────────────────
+     DEVICE ICONS, DRAWN. These were emoji: a surgical mask for the face
+     mask, a microscope for the laryngoscope, a spool of thread for the ETT,
+     a droplet for the LMA. They rendered differently on every platform and
+     none of them was the object it stood for.
+
+     These are the devices, in outline, at 22px. They are decoration in the
+     accessibility sense — every tile still states its device in text, and
+     the icons carry aria-hidden — but the point of this section is to be
+     read in a hurry, and a shape is read faster than a word. */
+  var SVG = {};
+  (function(){
+    function ic(d, extra){
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" ' +
+        'aria-hidden="true">' + d + (extra || '') + '</svg>';
+    }
+    /* an anatomical face mask: cushion outline with the connector on top */
+    SVG.mask = ic('<path d="M5 10c0-3 3-5 7-5s7 2 7 5c0 4-3 8-7 8s-7-4-7-8z"/>' +
+                  '<path d="M9.5 5.2V3.2h5v2"/><path d="M5.4 11.5 3 12.6M18.6 11.5 21 12.6"/>');
+    /* a laryngoscope: handle plus a curved Macintosh blade */
+    SVG.blade = ic('<path d="M6 3.2h3.6v7.2H6z"/><path d="M9.6 6.8h3.2c4 0 6.8 3 7 7.6"/>' +
+                   '<path d="M12.8 9.4c2.6.3 4.4 2.3 4.8 5"/>');
+    /* an endotracheal tube: curved shaft, pilot balloon, bevelled tip */
+    SVG.ett = ic('<path d="M7 3v7c0 5 2.5 8.6 7.5 11"/><path d="M10.2 3v7c0 4 2 7 6.3 9.2"/>' +
+                 '<circle cx="4.6" cy="13.4" r="1.9"/><path d="M6.2 12.4 8 10.4"/>');
+    /* a supraglottic airway: shaft into an inflatable elliptical cuff */
+    SVG.lma = ic('<path d="M8 3v5.5"/><ellipse cx="8" cy="14.5" rx="3.4" ry="6"/>' +
+                 '<path d="M11.4 12.2h4.2c2.2 0 3.4 1.2 3.4 3"/>');
+    /* an i-gel: the same family, solid non-inflating bowl — deliberately a
+       different silhouette, because they are sized on different scales */
+    SVG.igel = ic('<path d="M9 3v5"/><path d="M5.6 13.4c0-3 1.5-5.4 3.4-5.4s3.4 2.4 3.4 5.4' +
+                  'c0 4-1.6 7-3.4 7s-3.4-3-3.4-7z"/><path d="M12.4 11h4c2 0 3.2 1.1 3.2 2.8"/>');
+    /* an oropharyngeal airway: flange, bite block, curved body */
+    SVG.opa = ic('<path d="M4 6.4v5.2"/><path d="M4 9h3.4"/>' +
+                 '<path d="M7.4 6.6h2.8v4.8H7.4z"/><path d="M10.2 9h2.6c4 0 6.6 2.6 6.6 6.4"/>');
+    /* a nasopharyngeal airway: soft tube with a flared trumpet */
+    SVG.npa = ic('<path d="M4.4 7.2 7 9l-2.6 1.8z"/>' +
+                 '<path d="M7 9h5.6c3.6 0 6 2.4 6 6.2"/><path d="M18.6 15.2v3"/>');
+    /* a Yankauer: rigid angled tip and the suction line */
+    SVG.suction = ic('<path d="M4 19.4c3.4 0 5.8-1.4 7.4-4"/>' +
+                     '<path d="M11.4 15.4 15 9.2a2.6 2.6 0 0 1 4.5 2.6L16 18"/>' +
+                     '<path d="M13.2 7.6 17.7 10"/>');
+    /* a ruler: depth is a measurement, not a device */
+    SVG.depth = ic('<rect x="2.6" y="8.4" width="18.8" height="7.2" rx="1.4"/>' +
+                   '<path d="M7 8.4v3M11 8.4v4.4M15 8.4v3M19 8.4v4.4"/>');
+  })();
+
   function airwaySection(){
     var A = root.airwayPlan;
     if (!A) return '';
     function item(icon, label, value, unit){
       if (value == null || value === '') return '';
+      /* A phrase set at 21px tabular is a number that is not one. The adult
+         uncuffed entry is a sentence, so it is marked and set as one. */
+      var v = String(value);
+      var phrase = v.length > 14 || /[a-z]{4}/.test(v);
       return '<div class="awp"><span class="awp-i" aria-hidden="true">' + icon + '</span>' +
         '<div class="awp-tx"><div class="awp-l">' + label + '</div>' +
-        '<div class="awp-v">' + value + (unit ? '<span class="awp-u">' + unit + '</span>' : '') +
+        '<div class="awp-v' + (phrase ? ' awp-long' : '') + '">' + value +
+        (unit ? '<span class="awp-u">' + unit + '</span>' : '') +
         '</div></div></div>';
     }
     return section(4, 'Airway plan', 'Primary plan with equipment',
       '<div class="awp-grid">' +
-        item('&#128567;', 'Face mask',    A.mask) +
-        item('&#128300;', 'Laryngoscope', A.blade) +
-        item('&#129517;', 'ETT cuffed',   A.ettCuffed, A.ettUnit) +
-        item('&#129517;', 'ETT uncuffed', A.ettUncuffed, A.ettUnit) +
-        item('&#128207;', 'ETT depth',    A.depth, A.depthUnit) +
-        item('&#128167;', 'LMA',          A.lma) +
-        item('&#128167;', 'i-gel',        A.igel) +
-        item('&#128191;', 'Oral airway',  A.opa) +
-        item('&#128191;', 'Nasopharyngeal', A.npa) +
-        item('&#127786;', 'Suction',      A.suction) +
+        item(SVG.mask,    'Face mask',      A.mask) +
+        item(SVG.blade,   'Laryngoscope',   A.blade) +
+        item(SVG.ett,     'ETT cuffed',     A.ettCuffed, A.ettUnit) +
+        item(SVG.ett,     'ETT uncuffed',   A.ettUncuffed, A.ettUnit) +
+        item(SVG.depth,   'ETT depth',      A.depth, A.depthUnit) +
+        item(SVG.lma,     'LMA',            A.lma) +
+        item(SVG.igel,    'i-gel',          A.igel) +
+        item(SVG.opa,     'Oral airway',    A.opa) +
+        item(SVG.npa,     'Nasopharyngeal', A.npa) +
+        item(SVG.suction, 'Suction',        A.suction) +
       '</div>');
   }
 
