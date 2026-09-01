@@ -1835,6 +1835,17 @@ body .nb-search-wrap{display:none !important;}
   .case-new,.case-np{flex:1 1 0;justify-content:center;display:inline-flex;
     align-items:center;order:3;}
 }
+/* AND ON A PHONE, THE TRACKING GOES. Wrapping fixed the clipping; it did not
+   fix the size. Uppercase at .12em tracking spread "42y · Male · 175 cm · 75
+   kg · ASA II · Laparoscopic cholecystectomy" over four lines and 159px —
+   more of a 390px screen than the first clinical answer got. The same words,
+   in the same order, set as a sentence: nothing is abbreviated, nothing is
+   dropped, it simply stops being a headline. */
+@media(max-width:620px){
+  .case-state{text-transform:none;letter-spacing:0;font-size:13px;
+    font-weight:600;line-height:1.4;}
+  .case-bar{padding:8px 10px;}
+}
 </style>
 </head>
 <body>
@@ -2067,6 +2078,12 @@ body .nb-search-wrap{display:none !important;}
       <!-- The rail column holds the index AND the protocol preview beneath
            it. Opening a protocol must not navigate: the preview appears here,
            in place, with the case still on screen behind it. -->
+      <!-- SOS. Below 1180px the Crisis rail withdraws and the command strip
+           scrolls away with the page, so a phone had no fixed route to a
+           protocol. This is that route, and it is the only fixed control on
+           the page. -->
+      <button type="button" class="ws-sos" id="ws-sos" onclick="crisisSOS()"
+              aria-label="Open Crisis Center"><span aria-hidden="true">&#9888;</span>SOS</button>
       <aside class="ws-right">
         <div class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></div>
         <div class="crisis-preview" id="crisis-preview" role="dialog"
@@ -3446,8 +3463,36 @@ function cpvAnchor(){
 }
 window.addEventListener('resize', cpvAnchor);
 
+/* i === null opens the CHOOSER: the eight protocols as full-width targets.
+   That is what the SOS button opens when no protocol has been read yet —
+   below 1180px the rail index does not exist, so without this there would be
+   nothing on a phone between "something is wrong" and a protocol. */
 function crisisPreview(i, takeFocus){
-  var host = ge('crisis-preview'); if(!host || !CRISIS[i]) return;
+  var host = ge('crisis-preview'); if(!host) return;
+  if(i == null){
+    _crisisPrev = -1;                       /* open, but on no protocol yet */
+    host.innerHTML =
+      '<div class="cpv-head">'+
+        '<span class="cpv-tag" aria-hidden="true">&#9888;</span>'+
+        '<span class="cpv-h">Crisis Center</span>'+
+        '<button type="button" class="cpv-x" aria-label="Close" '+
+          'onclick="crisisPreviewClose()">&times;</button>'+
+      '</div>'+
+      '<div class="cpv-body cpv-pick">'+
+        CRISIS.map(function(c, ci){
+          return '<button type="button" class="cpv-p" onclick="crisisPreview('+ci+')">'+
+            '<span class="cpv-pn">'+(ci+1)+'</span>'+
+            '<span class="cpv-pt">'+c[1]+'<i>'+c[2]+'</i></span></button>';
+        }).join('')+
+      '</div>';
+    host.hidden = false;
+    cpvAnchor();
+    if(takeFocus !== false){
+      var cx = host.querySelector('.cpv-x'); if(cx) cx.focus({preventScroll:true});
+    }
+    return;
+  }
+  if(!CRISIS[i]) return;
   _crisisPrev = i;
   var m = crisisMarkup(i);
   /* THE SWITCHER TRAVELS WITH THE PROTOCOL. The rail index can switch
@@ -3513,13 +3558,21 @@ function crisisPreviewByKey(key){
 function crisisPreviewFull(){
   var i = _crisisPrev;
   crisisPreviewClose();
-  if(i != null) crisisInline(i);
+  if(i != null && i >= 0) crisisInline(i);
   crisisJump();
 }
 
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && _crisisPrev != null){ e.preventDefault(); crisisPreviewClose(); }
 });
+/* Reopens the protocol already being read, or the chooser if there is none.
+   Pressed a second time it closes, so the same thumb undoes it. */
+function crisisSOS(){
+  var host = ge('crisis-preview');
+  if(host && !host.hidden){ crisisPreviewClose(); return; }
+  crisisPreview(_crisisPrev != null && _crisisPrev >= 0 ? _crisisPrev : null);
+}
+window.crisisSOS = crisisSOS;
 window.crisisPreview = crisisPreview;
 window.crisisPreviewClose = crisisPreviewClose;
 window.crisisPreviewByKey = crisisPreviewByKey;
@@ -3591,7 +3644,7 @@ function renderCrisisRail(){
 
   /* An open protocol quotes doses for THIS patient, so it is re-rendered when
      the patient changes rather than being left showing the previous weight. */
-  if(_crisisPrev != null) crisisPreview(_crisisPrev, false);
+  if(_crisisPrev != null) crisisPreview(_crisisPrev < 0 ? null : _crisisPrev, false);
 }
 window.renderCrisisRail = renderCrisisRail;
 
@@ -4481,7 +4534,12 @@ function renderDomainLead(dom){
   if(!L){ host.hidden = true; host.innerHTML = ''; return; }
   host.hidden = false;
   host.innerHTML =
-    (L[0] != null ? '<span class="wf-n wfl-n">' + L[0] + '</span>' : '') +
+    /* "PHASE 3", not a numbered circle. The circle is what the Induction
+       sections use for their steps, and on a phone the workspace lead sits
+       directly above section 1 — two identical "1" badges, one meaning the
+       third phase of the case and one meaning the first step of it. The
+       phase keeps its number and stops looking like a step. */
+    (L[0] != null ? '<span class="wfl-n">Phase ' + L[0] + '</span>' : '') +
     '<span class="wfl-tx"><span class="wfl-h">' +
       '<span class="wfl-t">' + L[1] + '</span>' +
       '<span class="wfl-tag" id="wfl-tag" hidden></span></span>' +

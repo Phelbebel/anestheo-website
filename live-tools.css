@@ -115,7 +115,16 @@
 }
 @media(max-width:900px){
   .ws-grid{grid-template-columns:minmax(0,1fr);}
-  .ws-rail{position:static; order:2;}
+  /* THE TIMERS COME FIRST ON A PHONE, NOT LAST. order:2 put them under the
+     workspace, and the workspace on a 390px screen is over seven thousand
+     pixels tall — "under" meant a scroll of the whole page to reach a
+     stopwatch during a case. They sit directly above the workspace instead,
+     folded, so the cost is one 44px bar until they are wanted.
+     The fold's own summary carries the running state, so it is restored here
+     and the rail's separate header withdraws rather than labelling it twice.*/
+  .ws-rail{position:static; order:-1; margin-bottom:16px;}
+  .ws-rail-h{display:none;}
+  .ws-rail .lt-bar{display:flex;}
   .ws-rail .lt-row{flex-direction:row; flex-wrap:wrap;}
   .ws-rail .lt-card{flex:1 1 150px; border-bottom:0; border-right:1px solid var(--hair,rgba(255,255,255,.06));}
   .ws-rail .lt-card:last-child{border-right:0;}
@@ -300,14 +309,13 @@
    phase of the case and shares the Induction sections' numbering, because
    this is one workstation with a sequence rather than eleven pages. Tabs
    reachable at any point in that sequence carry no number. */
-.wf-lead{display:flex; align-items:flex-start; gap:12px; margin:0 0 18px;
+.wf-lead{display:flex; flex-direction:column; gap:4px; margin:0 0 18px;
   padding-bottom:14px; border-bottom:1px solid var(--hair,rgba(255,255,255,.07));}
-.wfl-n{flex:0 0 auto;}
+.wfl-n{align-self:flex-start; font-size:9.5px; font-weight:800; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent,#3fb6a8);}
 .wfl-tx{display:flex; flex-direction:column; gap:3px; min-width:0;}
 .wfl-t{font-size:19px; font-weight:800; color:#fff; letter-spacing:-.01em; line-height:1.2;}
 .wfl-s{font-size:12.5px; color:var(--ink-2,#c8d4da); line-height:1.5;}
-/* A lead with no number keeps the text on the same left edge as one with. */
-.wf-lead:not(:has(.wfl-n)) .wfl-tx{padding-left:0;}
 @media(max-width:520px){
   .wfl-t{font-size:16.5px;}
   .wfl-s{font-size:12px;}
@@ -319,3 +327,47 @@
 /* A panel whose head only repeated the workspace title. The panel and its
    content are untouched; one duplicated line of chrome is not drawn. */
 #output .panel.head-folded > .panel-head{display:none;}
+
+/* ══ SOS ══════════════════════════════════════════════════════════════════
+   The Crisis rail is a column, and a column needs width a phone does not
+   have. Below 1180px it withdraws, and the command strip's Emergency button
+   scrolls away with the page — which left a phone with no fixed route to a
+   protocol at all. This is that route: the one fixed control on the page,
+   under the thumb, above the tab bar, and out of the way until it is not. */
+.ws-sos{display:none;}
+@media(max-width:1179px){
+  .ws-sos{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    position:fixed; right:16px; bottom:calc(18px + env(safe-area-inset-bottom));
+    z-index:110; width:60px; height:60px; border-radius:50%;
+    background:#C0392B; border:1px solid #E05A48; color:#fff;
+    font-family:inherit; font-size:10.5px; font-weight:800; letter-spacing:.10em;
+    line-height:1.1; gap:1px; cursor:pointer;
+    box-shadow:0 8px 26px rgba(0,0,0,.52), 0 0 0 4px rgba(192,57,43,.16);}
+  .ws-sos span{font-size:15px; line-height:1;}
+  .ws-sos:active{background:#a72f23;}
+}
+/* Clear of navbar.js's tab bar, by that bar's own height. */
+@media(max-width:740px){
+  html.nb-has-tabs .ws-sos{bottom:calc(57px + 14px + env(safe-area-inset-bottom));}
+}
+/* The sheet covers it while open, and the sheet has its own close control. */
+.crisis-preview:not([hidden]) ~ .ws-sos,
+body:has(.crisis-preview:not([hidden])) .ws-sos{opacity:.0; pointer-events:none;}
+
+/* ── THE CHOOSER ─────────────────────────────────────────────────────────
+   Eight protocols as full-width targets, because the alternative on a phone
+   is choosing one from a row of pills while something is going wrong. */
+.cpv-pick{padding:8px;}
+.cpv-p{display:flex; align-items:center; gap:11px; width:100%; min-height:52px;
+  padding:8px 10px; text-align:left; background:transparent; border:0;
+  border-bottom:1px solid rgba(255,110,90,.14); color:inherit;
+  font-family:inherit; cursor:pointer;}
+.cpv-p:last-child{border-bottom:0;}
+.cpv-p:hover,.cpv-p:active{background:rgba(255,90,72,.16);}
+.cpv-pn{flex:0 0 auto; width:24px; height:24px; display:flex; align-items:center;
+  justify-content:center; border-radius:6px; background:rgba(255,90,72,.22);
+  color:#ff8a72; font-size:11px; font-weight:800;}
+.cpv-pt{display:flex; flex-direction:column; gap:2px; min-width:0;
+  font-size:14px; font-weight:700; color:#fff;}
+.cpv-pt i{font-style:normal; font-size:11.5px; font-weight:500; color:#a4837c;}

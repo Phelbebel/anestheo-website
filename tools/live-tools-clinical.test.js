@@ -419,9 +419,12 @@ async function openEngine(b, viewport) {
     const doms = Object.keys(leads);
     t('every workflow domain has a lead', doms.every(d => leads[d] && leads[d].title &&
       leads[d].sub), doms.filter(d => !leads[d] || !leads[d].title || !leads[d].sub));
+    /* "Phase 3", not a bare 3 in a circle — the circle is what the Induction
+       sections use for their steps, and on a phone the two sat touching. */
     t('the eight phases of a case are numbered in order',
       ['induction','maintenance','tiva','analgesia','reversal','fluids','vasopressors','local']
-        .map(d => leads[d].num).join(',') === '1,2,3,4,5,6,7,8',
+        .map(d => leads[d].num).join(',') ===
+      'Phase 1,Phase 2,Phase 3,Phase 4,Phase 5,Phase 6,Phase 7,Phase 8',
       ['induction','maintenance','tiva','analgesia','reversal','fluids','vasopressors','local']
         .map(d => d + ':' + leads[d].num));
     /* Reachable at ANY point in the case, so they are not a step in it. The
@@ -571,7 +574,10 @@ async function openEngine(b, viewport) {
       const m = {};
       ${ind('.idc')}.forEach(c => {
         const n = (c.querySelector('.idc-name') || {}).textContent;
-        const d = (c.querySelector('.idc-dose') || {}).textContent.replace(/\s+/g, ' ').trim();
+        /* \\s, not \s — template literal. This one still CAUGHT drift, because
+           before and after went through the same broken normalisation, but it
+           printed dose text with every letter s missing when it reported. */
+        const d = (c.querySelector('.idc-dose') || {}).textContent.replace(/\\s+/g, ' ').trim();
         m[n + '@' + ((c.closest('.wf-sec').querySelector('.wf-n')) || {}).textContent] = d;
       });
       return m;
@@ -886,6 +892,111 @@ async function openEngine(b, viewport) {
       t(w + ': Neuromuscular blockers, never Relaxants',
         g.chips.some(c => /NEUROMUSCULAR|NMB/i.test(c)) && !g.chips.some(c => /RELAXANT/i.test(c)));
       t(w + ': nothing overflows', g.overflow <= 0, g.overflow);
+      await v.ctx.close();
+    }
+
+    /* ── 7. THE PHONE ───────────────────────────────────────────────────
+       Three things were true on a 390px screen and on no other width, which
+       is exactly how they survived: the layout was correct everywhere it was
+       being looked at.
+
+         the timer rail was ordered AFTER the workspace, and the workspace on
+         a phone is over seven thousand pixels tall, so reaching a stopwatch
+         mid-case meant scrolling the entire page
+
+         the Crisis rail withdraws below 1180px and the command strip scrolls
+         away with the page, so there was no fixed route to a protocol at all
+
+         the case line was set in uppercase at .12em tracking and took four
+         lines and 159px — more of the screen than the first clinical answer
+
+       Each is asserted at the width it breaks at AND at the width it does
+       not, because "the timers come first" is only correct on a phone. */
+    console.log('\n7. THE PHONE');
+    for (const w of [390, 1440]) {
+      const v = await openEngine(b, { width:w, height:w === 1440 ? 1200 : 844 });
+      const m = await v.pg.evaluate(`(() => {
+        const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
+        set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+        set('i-asa','II'); set('i-proc','Laparoscopic cholecystectomy'); compute();
+        const y = e => e ? Math.round(e.getBoundingClientRect().top + window.pageYOffset) : null;
+        const rail = document.querySelector('.ws-rail');
+        const out  = document.getElementById('output');
+        const sos  = document.getElementById('ws-sos');
+        const ss   = sos ? getComputedStyle(sos) : null;
+        const cs   = document.querySelector('.case-state');
+        const csS  = getComputedStyle(cs);
+        const before = { y:window.pageYOffset,
+                         domain:out.dataset.domain };
+        let opened = null;
+        if (ss && ss.display !== 'none'){
+          window.scrollTo(0, 2000);
+          const y0 = window.pageYOffset;
+          const r0 = sos.getBoundingClientRect();
+          sos.click();
+          const h = document.getElementById('crisis-preview');
+          opened = { picks:h.querySelectorAll('.cpv-p').length, open:!h.hidden,
+                     scrolled:window.pageYOffset - y0,
+                     domain:out.dataset.domain,
+                     bottomGap:Math.round(window.innerHeight - r0.bottom),
+                     inView:r0.bottom <= window.innerHeight && r0.top >= 0 };
+          crisisPreviewClose();
+          window.scrollTo(0, 0);
+        }
+        const lt = document.getElementById('live-timers');
+        return {
+          sosShown:!!ss && ss.display !== 'none',
+          sosFixed:ss ? ss.position : null,
+          opened,
+          railY:y(rail), outY:y(out),
+          timersFolded:lt ? !lt.open : null,
+          timersH:rail ? Math.round(rail.getBoundingClientRect().height) : null,
+          caseH:Math.round(document.querySelector('.case-bar').getBoundingClientRect().height),
+          /* \\s, not \s. This is inside a TEMPLATE LITERAL, where \s is just
+             "s" — the first version of this line silently deleted every
+             letter s from the case summary and then reported it as clipped. */
+          caseText:cs.textContent.replace(/\\s+/g,' ').trim(),
+          caseClipped:cs.scrollWidth > cs.clientWidth + 1,
+          caseUpper:csS.textTransform,
+          /* the phase eyebrow must not look like a section's step number */
+          phaseIsCircle:!!document.querySelector('#wf-lead .wf-n'),
+          phaseText:(document.querySelector('.wfl-n')||{}).textContent||'',
+          overflow:document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+      })()`);
+
+      if (w === 390) {
+        t('390: the timers come BEFORE the workspace, not after it',
+          m.railY < m.outY, { rail:m.railY, output:m.outY });
+        t('390: ...and cost one folded bar until they are wanted',
+          m.timersFolded === true && m.timersH < 120, m.timersH);
+        t('390: SOS is a fixed control', m.sosShown && m.sosFixed === 'fixed', m.sosFixed);
+        t('390: ...on screen after scrolling 2000px', m.opened.inView === true, m.opened);
+        t('390: ...clear of the tab bar', m.opened.bottomGap >= 57, m.opened.bottomGap);
+        t('390: ...and it opens the eight protocols',
+          m.opened.open && m.opened.picks === 8, m.opened);
+        t('390: ...without scrolling or changing workspace',
+          m.opened.scrolled === 0 && m.opened.domain === 'induction', m.opened);
+        t('390: the case line is set as a sentence, not a headline',
+          m.caseUpper === 'none' && m.caseH < 130, { transform:m.caseUpper, h:m.caseH });
+        t('390: ...and still says everything, unclipped',
+          m.caseClipped === false && /42y/.test(m.caseText) &&
+          /Laparoscopic cholecystectomy/i.test(m.caseText) && /ASA II/.test(m.caseText),
+          m.caseText);
+      } else {
+        /* The rail column exists here, so SOS would be a second answer to a
+           question already answered on screen. */
+        t('1440: SOS stays out of the way where the Crisis rail is',
+          m.sosShown === false);
+        t('1440: the timers keep their own column beside the workspace',
+          m.railY === m.outY, { rail:m.railY, output:m.outY });
+      }
+      /* THE PHASE IS NOT A STEP. Both were numbered circles, and on a phone
+         the workspace lead sits directly above section 1 — two "1" badges
+         meaning different things, touching. */
+      t(w + ': the phase reads as a phase, not as step one',
+        m.phaseIsCircle === false && /^Phase 1$/.test(m.phaseText), m.phaseText);
+      t(w + ': nothing overflows sideways', m.overflow <= 0, m.overflow);
       await v.ctx.close();
     }
   } finally {
