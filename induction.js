@@ -250,7 +250,7 @@
           'Working suction &middot; Capnography</div></div>' +
         '</div>' +
         '<div class="bkp-acts">' +
-          '<button type="button" class="bkp-b" onclick="Induction.protocol(\'airway\')">' +
+          '<button type="button" class="bkp-b" onclick="Induction.protocol(\'da\')">' +
             'Difficult Airway algorithm</button>' +
           '<button type="button" class="bkp-b" onclick="Induction.protocol(\'cico\')">' +
             'CICO — front of neck</button>' +
@@ -327,9 +327,11 @@
     render();
   }
 
-  /* Opens the crisis protocol by name, in place. Wired by engine.html. */
-  function protocol(kind){
-    if (root.crisisPreviewByKey) root.crisisPreviewByKey(kind);
+  /* Opens the crisis protocol IN PLACE — the induction plan stays on screen
+     behind it. The keys are the protocol's own keys in CRISIS, so this names
+     the protocol it means rather than its position in a list. */
+  function protocol(key){
+    if (root.crisisPreviewByKey) root.crisisPreviewByKey(key);
   }
 
   root.Induction = { render:render, choose:choose, protocol:protocol,

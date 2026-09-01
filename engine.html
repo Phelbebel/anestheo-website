@@ -421,7 +421,17 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
    it must not require reading. Everything in it comes from the same CRISIS
    array the inline panel renders from; the rail is an index, not a second
    implementation. */
-.ws-crisis{position:sticky;top:76px;border-radius:var(--radius-lg);overflow:hidden;
+/* NOT STICKY, AND NOT PRETENDING TO BE. This column carried
+   position:sticky;top:76px for as long as it has existed, and it never once
+   stuck: html and body both set overflow-y, which makes them the scrollport
+   and leaves a sticky descendant with nothing to stick to. Measured at
+   1440x1200 the column's top was -843px after scrolling 1400px — it had
+   scrolled away like any static element. Changing the overflow on html and
+   body to repair it would relayout every page on the site, so the declaration
+   goes instead of the claim. What actually needed to stay on screen is the
+   protocol preview, and that is positioned against the viewport directly. */
+.ws-right{display:flex;flex-direction:column;gap:12px;}
+.ws-crisis{border-radius:var(--radius-lg);overflow:hidden;
   background:linear-gradient(180deg,rgba(78,26,22,.34),rgba(30,17,17,.30)),var(--pane);
   border:1px solid rgba(255,110,90,.34);
   box-shadow:0 10px 30px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,138,114,.08);}
@@ -477,8 +487,12 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 @media(max-width:1179px){
   /* single-column collapse is in live-tools.css with the rest of the shell */
   /* Emergency stays one tap away in the command strip, so the rail does not
-     need to hold a column it would only crowd. */
+     need to hold a column it would only crowd. The COLUMN goes; the preview
+     does not, because a protocol opened from the induction screen must still
+     appear. Below this width it opens as a sheet instead — see live-tools.css.
+     .ws-right keeps no height of its own once the index inside it is gone. */
   .ws-crisis{display:none;}
+  .ws-right{position:static;gap:0;}
 }
 
 /* ══ PROCEDURE MISMATCH NOTICE ════════════════════════════════════════════
@@ -2050,7 +2064,14 @@ body .nb-search-wrap{display:none !important;}
         <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
         <button class="cw-open-pt" onclick="ptFocus()">Enter patient details</button></div>
       </div>
-      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
+      <!-- The rail column holds the index AND the protocol preview beneath
+           it. Opening a protocol must not navigate: the preview appears here,
+           in place, with the case still on screen behind it. -->
+      <aside class="ws-right">
+        <div class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></div>
+        <div class="crisis-preview" id="crisis-preview" role="dialog"
+             aria-modal="false" aria-label="Crisis protocol" hidden></div>
+      </aside>
     </div>
 
     <!-- PACU is an end-of-case tool and keeps its own block below the
@@ -3335,22 +3356,145 @@ var CRISIS = [
 var _crisisIdx = 0;
 // Inline Crisis Center: one click on a protocol expands it in place inside the
 // Crisis Center card. No modal, no overlay, no navigation, no second click.
+/* ONE PROTOCOL RENDERER. The full panel and the rail preview both call this,
+   with the same index into the same CRISIS array and the same crisisWeight(),
+   so a protocol cannot say one thing in the panel and another in the preview.
+   There is no second crisis dataset and no simplified copy of one. */
+function crisisMarkup(i){
+  var w = crisisWeight();
+  var data = CRISIS[i][3](w);
+  return {
+    title: '<div class="crisis-emg-t">'+CRISIS[i][1]+' <span>'+CRISIS[i][2]+'</span></div>',
+    steps: '<div class="crisis-sec-t">Immediate actions</div>' + data.steps.map(function(s,si){
+      return '<div class="crisis-step"><span class="crisis-num">'+(si+1)+'</span><span>'+s+'</span></div>';
+    }).join(''),
+    doses: '<div class="crisis-sec-t">Drug doses'+(w?' (for '+w+' kg)':'')+'</div>' + data.doses.map(function(d){
+      return '<div class="crisis-dose"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>';
+    }).join('')
+  };
+}
+
 function crisisInline(i){
   _crisisIdx = i;
   var tabs = ge('crisis-tabs-inline');
   if(tabs) tabs.querySelectorAll('.crisis-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
   var body = ge('crisis-inline-body'); if(!body) return;
-  var w = crisisWeight();
-  var data = CRISIS[i][3](w);
-  var title = '<div class="crisis-emg-t">'+CRISIS[i][1]+' <span>'+CRISIS[i][2]+'</span></div>';
-  var steps = '<div class="crisis-sec-t">Immediate actions</div>' + data.steps.map(function(s,si){
-    return '<div class="crisis-step"><span class="crisis-num">'+(si+1)+'</span><span>'+s+'</span></div>';
-  }).join('');
-  var doses = '<div class="crisis-sec-t">Drug doses'+(w?' (for '+w+' kg)':'')+'</div>' + data.doses.map(function(d){
-    return '<div class="crisis-dose"><span>'+d[0]+'</span><b>'+d[1]+'</b></div>';
-  }).join('');
-  body.innerHTML = title + steps + doses;
+  var m = crisisMarkup(i);
+  body.innerHTML = m.title + m.steps + m.doses;
 }
+
+/* ── THE INLINE CRISIS PREVIEW ────────────────────────────────────────────
+   ONE PRESS, NO NAVIGATION. Pressing a protocol in the rail used to call
+   setDomain('emergency') and scroll the page: the workstation was replaced,
+   the induction plan on screen was gone, and the scroll position with it.
+   Recovering from that costs presses at the exact moment there are none to
+   spare, and the thing the clinician was reading was the thing they needed.
+
+   The protocol now opens where the rail already is, with the case still
+   behind it. Choosing another protocol replaces this one. Escape or the
+   close button dismisses it. Nothing else moves.
+
+   The full Crisis Center is still one press away, but only from a control
+   that says so — never as a side effect of asking to read a protocol. */
+var _crisisPrev = null;
+
+/* The preview is fixed to the viewport so no scroll is ever needed to read
+   it. On a wide screen it must still sit in the rail's column rather than
+   floating anywhere, so it borrows that column's horizontal geometry. On a
+   narrow screen the column is gone and the stylesheet makes it a full-width
+   sheet, so there is nothing to borrow and nothing to set. */
+function cpvAnchor(){
+  var host = ge('crisis-preview'); if(!host || host.hidden) return;
+  var col = ge('ws-crisis');
+  if(col && col.offsetParent !== null){
+    var r = col.getBoundingClientRect();
+    host.style.setProperty('--cpv-left', Math.round(r.left) + 'px');
+    host.style.setProperty('--cpv-w', Math.round(r.width) + 'px');
+  } else {
+    host.style.removeProperty('--cpv-left');
+    host.style.removeProperty('--cpv-w');
+  }
+}
+window.addEventListener('resize', cpvAnchor);
+
+function crisisPreview(i, takeFocus){
+  var host = ge('crisis-preview'); if(!host || !CRISIS[i]) return;
+  _crisisPrev = i;
+  var m = crisisMarkup(i);
+  /* THE SWITCHER TRAVELS WITH THE PROTOCOL. The rail index can switch
+     protocols, but only while it happens to be on screen — and below 1180px
+     the index does not exist at all, so a sheet without this row would be a
+     protocol you can open and then cannot change. One press replaces the
+     protocol from inside the protocol, at every width and any scroll. */
+  var switcher = CRISIS.map(function(c, ci){
+    return '<button type="button" class="cpv-sw'+(ci===i?' on':'')+'" '+
+      'aria-pressed="'+(ci===i?'true':'false')+'" '+
+      'onclick="crisisPreview('+ci+')">'+c[1]+'</button>';
+  }).join('');
+  host.innerHTML =
+    '<div class="cpv-head">'+
+      '<span class="cpv-tag" aria-hidden="true">&#9888;</span>'+
+      '<span class="cpv-h">Protocol</span>'+
+      '<button type="button" class="cpv-x" aria-label="Close protocol" '+
+        'onclick="crisisPreviewClose()">&times;</button>'+
+    '</div>'+
+    '<div class="cpv-sws" role="group" aria-label="Switch protocol">'+switcher+'</div>'+
+    '<div class="cpv-body">'+ m.title + m.steps + m.doses +'</div>'+
+    /* The ONLY thing that leaves this screen, and it is labelled. */
+    '<button type="button" class="cpv-full" onclick="crisisPreviewFull()">'+
+      'View full protocol</button>';
+  host.hidden = false;
+  cpvAnchor();
+  /* Focus the close button on a real press so a keyboard user lands in the
+     protocol. NOT on a refresh: the preview re-renders whenever the weight
+     changes, and stealing focus out of the weight field mid-number would be
+     its own defect. */
+  if(takeFocus !== false){
+    var x = host.querySelector('.cpv-x'); if(x) x.focus({preventScroll:true});
+    /* THE PAGE DOES NOT MOVE. Not by a pixel. A protocol that opens below
+       the fold has not opened, so rather than scrolling to it the preview is
+       positioned against the viewport — see cpvAnchor(). Scrolling would have
+       been a smaller version of the defect this preview exists to remove. */
+  }
+  /* The rail marks which protocol is open so the index and the preview agree. */
+  var list = ge('ws-crisis');
+  if(list) list.querySelectorAll('.wsc-b').forEach(function(b,bi){
+    b.classList.toggle('on', bi===i);
+    b.setAttribute('aria-expanded', bi===i ? 'true' : 'false');
+  });
+}
+
+function crisisPreviewClose(){
+  var host = ge('crisis-preview'); if(!host) return;
+  host.hidden = true; host.innerHTML = ''; _crisisPrev = null;
+  var list = ge('ws-crisis');
+  if(list) list.querySelectorAll('.wsc-b').forEach(function(b){
+    b.classList.remove('on'); b.setAttribute('aria-expanded','false'); });
+}
+
+/* Open by protocol key rather than by position, so a caller elsewhere in the
+   workstation names the protocol it means and keeps naming it if the order of
+   CRISIS ever changes. */
+function crisisPreviewByKey(key){
+  for(var i=0;i<CRISIS.length;i++) if(CRISIS[i][0]===key){ crisisPreview(i); return true; }
+  return false;
+}
+
+/* The explicit secondary action — and the only path that changes domain. */
+function crisisPreviewFull(){
+  var i = _crisisPrev;
+  crisisPreviewClose();
+  if(i != null) crisisInline(i);
+  crisisJump();
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && _crisisPrev != null){ e.preventDefault(); crisisPreviewClose(); }
+});
+window.crisisPreview = crisisPreview;
+window.crisisPreviewClose = crisisPreviewClose;
+window.crisisPreviewByKey = crisisPreviewByKey;
+window.crisisPreviewFull = crisisPreviewFull;
 // Header crisis button: scroll the inline Crisis Center into view (no modal).
 function crisisJump(){
   var p = document.querySelector('.crisis-panel');
@@ -3393,7 +3537,9 @@ function renderCrisisRail(){
   }
 
   var items = CRISIS.map(function(c, i){
-    return '<li><button type="button" class="wsc-b" onclick="crisisInline('+i+');crisisJump();">'+
+    return '<li><button type="button" class="wsc-b'+(_crisisPrev===i?' on':'')+
+           '" aria-expanded="'+(_crisisPrev===i?'true':'false')+
+           '" onclick="crisisPreview('+i+')">'+
            '<span class="wsc-n">'+(i+1)+'</span>'+
            '<span class="wsc-t">'+c[1]+secondLine(c)+'</span></button></li>';
   }).join('');
@@ -3413,6 +3559,10 @@ function renderCrisisRail(){
     '<button type="button" class="wsc-go" onclick="crisisJump()">Go to Crisis Center</button>'+
     '<p class="wsc-note">Emergency protocols and rescue drugs for critical situations. '+
     'Every dose is weight-aware and uses the current patient.</p>';
+
+  /* An open protocol quotes doses for THIS patient, so it is re-rendered when
+     the patient changes rather than being left showing the previous weight. */
+  if(_crisisPrev != null) crisisPreview(_crisisPrev, false);
 }
 window.renderCrisisRail = renderCrisisRail;
 

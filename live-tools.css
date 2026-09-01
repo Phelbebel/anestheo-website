@@ -218,3 +218,79 @@
 .idref{max-height:420px; overflow-y:auto; padding-right:6px;
   border:1px solid var(--hair,rgba(255,255,255,.06)); border-radius:var(--radius-md,10px);
   padding:12px;}
+
+/* ══ THE CRISIS PROTOCOL PREVIEW ══════════════════════════════════════════
+   Below the index on a wide screen, a bottom sheet on a narrow one — the same
+   element and the same markup either way, because a protocol that renders
+   differently depending on the width is a protocol with two behaviours to
+   verify. It is deliberately louder than the workstation behind it: at the
+   moment it is open, nothing else on the page matters. */
+/* FIXED, AT EVERY WIDTH. The same element, the same markup and the same
+   positioning scheme, so there is one behaviour to verify rather than two.
+   On a wide screen cpvAnchor() lends it the rail column's left edge and
+   width; without those it falls back to the full-width sheet below. */
+.crisis-preview{position:fixed; z-index:120;
+  left:var(--cpv-left, 0); width:var(--cpv-w, 100%);
+  bottom:18px; max-height:calc(100vh - 110px);
+  display:flex; flex-direction:column;
+  border-radius:var(--radius-lg,14px); overflow:hidden;
+  background:linear-gradient(180deg,rgba(78,26,22,.44),rgba(24,14,14,.42)),var(--pane,#0f1a22);
+  border:1px solid rgba(255,110,90,.46);
+  box-shadow:0 14px 40px rgba(0,0,0,.44), inset 0 1px 0 rgba(255,138,114,.10);}
+.cpv-head{display:flex; align-items:center; gap:9px; padding:11px 12px 11px 14px;
+  background:rgba(255,90,72,.20); border-bottom:1px solid rgba(255,110,90,.34);}
+.cpv-tag{font-size:13px; line-height:1;}
+.cpv-h{flex:1 1 auto; font-size:10.5px; font-weight:800; letter-spacing:.15em;
+  text-transform:uppercase; color:#ff8a72;}
+/* A 34px target. The close control on an emergency panel is pressed with a
+   thumb, in a hurry, and it must not need aiming. */
+.cpv-x{flex:0 0 auto; width:34px; height:34px; display:flex; align-items:center;
+  justify-content:center; background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,138,114,.30); border-radius:var(--radius-sm,8px);
+  color:#ffb5a4; font-family:inherit; font-size:19px; line-height:1; cursor:pointer;}
+.cpv-x:hover{background:rgba(255,90,72,.26); color:#fff;}
+/* One row, scrolled sideways rather than wrapped into a wall of buttons. The
+   open protocol is marked, so this doubles as "which one am I reading". */
+.cpv-sws{flex:0 0 auto; display:flex; gap:6px; padding:9px 12px;
+  overflow-x:auto; scrollbar-width:thin;
+  border-bottom:1px solid rgba(255,110,90,.22);}
+.cpv-sw{flex:0 0 auto; min-height:30px; padding:0 10px; white-space:nowrap;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,138,114,.26);
+  border-radius:999px; color:#ffb5a4; font-family:inherit; font-size:11.5px;
+  font-weight:700; cursor:pointer;}
+.cpv-sw:hover{background:rgba(255,90,72,.20); color:#fff;}
+.cpv-sw.on{background:#C0392B; border-color:#C0392B; color:#fff;}
+.cpv-body{flex:1 1 auto; min-height:0; padding:13px 14px; overflow-y:auto;}
+.cpv-full{display:block; width:calc(100% - 24px); margin:0 12px 12px; min-height:40px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,138,114,.34);
+  border-radius:var(--radius-sm,8px); color:#ffb5a4; font-family:inherit;
+  font-size:12.5px; font-weight:700; cursor:pointer;}
+.cpv-full:hover{background:rgba(255,90,72,.22); color:#fff;}
+
+/* The index marks which protocol is open, so the list and the preview agree. */
+.wsc-b.on{background:rgba(255,90,72,.20);}
+.wsc-b.on .wsc-n{background:#ff5a48; color:#160b0a;}
+
+/* Below the rail's breakpoint the column is gone, so the preview stops being
+   a panel in a column and becomes a sheet over the case. The case stays
+   visible above it — this is still not navigation. */
+@media(max-width:1179px){
+  .crisis-preview{left:0; width:100%; bottom:0; max-height:78vh;
+    border-radius:var(--radius-lg,14px) var(--radius-lg,14px) 0 0;
+    border-bottom:0; box-shadow:0 -14px 44px rgba(0,0,0,.60);}
+  /* clear of the phone's home indicator */
+  .cpv-full{margin-bottom:max(12px, env(safe-area-inset-bottom, 12px));}
+}
+
+/* THE SHEET STOPS ABOVE THE TAB BAR. An authenticated phone has navbar.js's
+   fixed bottom bar, which sits at z-index 880 and would otherwise cover the
+   drug doses and the "View full protocol" button entirely. 57px is that bar's
+   own height, and .nb-mob already stops above it the same way — this follows
+   the established rule rather than inventing a second offset. A signed-out
+   phone has no bar and the sheet keeps the full height. */
+@media(max-width:740px){
+  html.nb-has-tabs .crisis-preview{
+    bottom:calc(57px + env(safe-area-inset-bottom));
+    max-height:calc(100vh - 57px - 90px);}
+  html.nb-has-tabs .cpv-full{margin-bottom:12px;}
+}

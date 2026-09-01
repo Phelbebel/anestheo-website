@@ -608,6 +608,139 @@ async function openEngine(b, viewport) {
     t('engine.html fills the workstation after it builds the host',
       ENGC.indexOf('id="induction-host"') < ENGC.indexOf('window.Induction.render()'));
 
+    /* ── THE INLINE CRISIS PREVIEW ──────────────────────────────────────
+       Pressing a protocol used to call setDomain('emergency') and scroll the
+       page. The workstation was replaced, the induction plan being read was
+       gone, and the scroll position with it — at the one moment there are no
+       spare presses. Reading a protocol is now not navigation.
+
+       The tests below are the four ways that could quietly come back: a
+       domain change, a scroll, a rebuilt workstation, or a second simplified
+       copy of the crisis data drifting away from the real one. */
+    console.log('\nINLINE CRISIS PREVIEW');
+
+    /* An adult, scrolled well down the page, so a scroll reset would show. */
+    const opened = await s.pg.evaluate(`(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+      set('i-height','175'); set('i-weight','75');
+      compute();
+      window.scrollTo(0, 800);
+      const before = { y:window.pageYOffset,
+                       domain:document.getElementById('output').dataset.domain,
+                       secs:document.querySelectorAll('#induction-host .wf-sec').length };
+      document.querySelectorAll('#ws-crisis .wsc-b')[7].click();   /* Anaphylaxis */
+      const h = document.getElementById('crisis-preview');
+      return { before,
+        after:{ y:window.pageYOffset,
+                domain:document.getElementById('output').dataset.domain,
+                secs:document.querySelectorAll('#induction-host .wf-sec').length },
+        open:!h.hidden,
+        title:(h.querySelector('.crisis-emg-t')||{}).textContent||'',
+        steps:h.querySelectorAll('.crisis-step').length,
+        doses:h.querySelectorAll('.crisis-dose').length,
+        switcher:h.querySelectorAll('.cpv-sw').length,
+        hasClose:!!h.querySelector('.cpv-x'),
+        hasFull:!!h.querySelector('.cpv-full'),
+        railMarked:document.querySelectorAll('#ws-crisis .wsc-b.on').length };
+    })()`);
+    t('one press opens the protocol', opened.open === true &&
+      /Anaphylaxis/.test(opened.title), opened.title);
+    t('...without changing the workflow domain',
+      opened.after.domain === opened.before.domain &&
+      opened.after.domain === 'induction', opened.after.domain);
+    t('...without moving the page', opened.after.y === opened.before.y,
+      { was:opened.before.y, now:opened.after.y });
+    t('...and the induction workstation is still on screen behind it',
+      opened.after.secs === opened.before.secs && opened.after.secs > 0,
+      opened.after.secs);
+    t('the protocol carries its steps and its weight-aware doses',
+      opened.steps > 0 && opened.doses > 0, opened);
+    t('...a close control, and the switcher for every protocol',
+      opened.hasClose && opened.switcher === 8, opened.switcher);
+    t('...and the index marks which protocol is open', opened.railMarked === 1);
+
+    /* THE SAME DATA, NOT A SIMPLIFIED SECOND COPY. The preview and the full
+       panel are rendered from one function over one CRISIS entry, so this
+       compares them protocol by protocol rather than trusting that. */
+    const same = await s.pg.evaluate(`(() => {
+      const bad = [];
+      for (let i = 0; i < CRISIS.length; i++){
+        const m = crisisMarkup(i);
+        crisisPreview(i);
+        const h = document.getElementById('crisis-preview');
+        const pv = [...h.querySelectorAll('.crisis-step, .crisis-dose')]
+          .map(e => e.textContent).join('|');
+        crisisInline(i);
+        const full = [...document.querySelectorAll('#crisis-inline-body .crisis-step, ' +
+          '#crisis-inline-body .crisis-dose')].map(e => e.textContent).join('|');
+        if (pv !== full) bad.push(CRISIS[i][1]);
+      }
+      crisisPreviewClose();
+      return { bad, n:CRISIS.length, names:CRISIS.map(c => c[1]), keys:CRISIS.map(c => c[0]) };
+    })()`);
+    t('the preview and the full panel render identical protocols',
+      same.bad.length === 0, same.bad);
+    t('there is one crisis renderer, not two',
+      /function crisisMarkup/.test(ENGC) &&
+      (ENGC.match(/CRISIS\[i\]\[3\]\(w\)/g) || []).length === 1);
+
+    /* OUR PROTOCOLS, NOT THE MOCKUP'S. The design reference showed
+       laryngospasm, bronchospasm and massive haemorrhage. This application
+       does not carry them, and inventing three protocols to match a picture
+       would be the worst possible reason to write a clinical algorithm. */
+    t('the eight protocols are unchanged', same.n === 8 &&
+      same.keys.join(',') === 'last,mh,brady,tachy,arrest,da,cico,anaph', same.keys);
+    t('no protocol was invented to match the design reference',
+      !/laryngospasm|bronchospasm|massive h(a)?emorrhage/i.test(same.names.join(' ')),
+      same.names);
+
+    /* Replacement, Escape, close — and the ONE control allowed to navigate. */
+    const flow = await s.pg.evaluate(`(() => {
+      const h = document.getElementById('crisis-preview');
+      const out = {};
+      crisisPreview(7);
+      document.querySelectorAll('.cpv-sw')[0].click();      /* switch to LAST */
+      out.replaced = (h.querySelector('.crisis-emg-t')||{}).textContent || '';
+      out.copies = document.querySelectorAll('.crisis-preview').length;
+      out.domainAfterSwitch = document.getElementById('output').dataset.domain;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      out.escClosed = h.hidden;
+      out.railCleared = document.querySelectorAll('#ws-crisis .wsc-b.on').length === 0;
+      crisisPreview(2);
+      h.querySelector('.cpv-x').click();
+      out.xClosed = h.hidden;
+      /* by key, the way the induction backup buttons open one */
+      out.byKey = crisisPreviewByKey('cico') &&
+                  /CICO/.test((h.querySelector('.crisis-emg-t')||{}).textContent||'');
+      out.domainAfterKey = document.getElementById('output').dataset.domain;
+      /* the explicit secondary action, and only it, leaves for the library */
+      h.querySelector('.cpv-full').click();
+      out.domainAfterFull = document.getElementById('output').dataset.domain;
+      out.fullClosedPreview = h.hidden;
+      return out;
+    })()`);
+    t('choosing another protocol replaces this one', /LAST/.test(flow.replaced) &&
+      flow.copies === 1, flow);
+    t('...still without navigating', flow.domainAfterSwitch === 'induction');
+    t('Escape closes it and clears the index', flow.escClosed && flow.railCleared);
+    t('the close button closes it', flow.xClosed === true);
+    t('a protocol can be opened by name from the workstation',
+      flow.byKey === true && flow.domainAfterKey === 'induction');
+    t('"View full protocol" is the one control that goes to the library',
+      flow.domainAfterFull === 'emergency' && flow.fullClosedPreview === true, flow);
+
+    /* THE SOURCE RULE. Opening a protocol must not be wired to a domain
+       change again. The rail's own buttons are checked directly. */
+    const railBtn = /class="wsc-b[\s\S]{0,200}?onclick="([^"]+)"/.exec(ENGC);
+    t('the rail buttons preview in place and nothing else',
+      !!railBtn && /crisisPreview\(/.test(railBtn[1]) &&
+      !/setDomain|crisisJump/.test(railBtn[1]), railBtn && railBtn[1]);
+    t('crisisPreview itself never changes domain and never scrolls',
+      !/setDomain|scrollTo|scrollIntoView/.test(
+        /function crisisPreview\(([\s\S]*?)\n}/.exec(ENGC)[1]));
+
     await s.ctx.close();
 
     /* ── 6. THE FIRST SCREEN ───────────────────────────────────────────── */
