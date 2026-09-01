@@ -294,3 +294,28 @@
     max-height:calc(100vh - 57px - 90px);}
   html.nb-has-tabs .cpv-full{margin-bottom:12px;}
 }
+
+/* ══ THE WORKSPACE LEAD ═══════════════════════════════════════════════════
+   Every workflow tab names itself and says what it holds. The number is the
+   phase of the case and shares the Induction sections' numbering, because
+   this is one workstation with a sequence rather than eleven pages. Tabs
+   reachable at any point in that sequence carry no number. */
+.wf-lead{display:flex; align-items:flex-start; gap:12px; margin:0 0 18px;
+  padding-bottom:14px; border-bottom:1px solid var(--hair,rgba(255,255,255,.07));}
+.wfl-n{flex:0 0 auto;}
+.wfl-tx{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.wfl-t{font-size:19px; font-weight:800; color:#fff; letter-spacing:-.01em; line-height:1.2;}
+.wfl-s{font-size:12.5px; color:var(--ink-2,#c8d4da); line-height:1.5;}
+/* A lead with no number keeps the text on the same left edge as one with. */
+.wf-lead:not(:has(.wfl-n)) .wfl-tx{padding-left:0;}
+@media(max-width:520px){
+  .wfl-t{font-size:16.5px;}
+  .wfl-s{font-size:12px;}
+}
+.wfl-h{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+/* The folded panel's tag, kept rather than lost. */
+.wfl-tag{font-size:10.5px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--ink-3,#7d8b95);}
+/* A panel whose head only repeated the workspace title. The panel and its
+   content are untouched; one duplicated line of chrome is not drawn. */
+#output .panel.head-folded > .panel-head{display:none;}

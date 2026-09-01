@@ -2759,7 +2759,8 @@ function compute(){
   /* The Induction workstation is part of the rebuilt output, not static
      markup: compute() replaces #output wholesale, so a host placed in the
      page would be destroyed on the first keystroke. */
-  out.innerHTML='<div id="induction-host" class="wf-host"></div>'+
+  out.innerHTML='<div id="wf-lead" class="wf-lead" hidden></div>'+
+    '<div id="induction-host" class="wf-host"></div>'+
     '<div class="panels-wide dref-lead">'+
       /* The controls ride in the panel's tag slot so the title and the
          Table/Cards switch share one line, which is how the reference reads.
@@ -3165,6 +3166,34 @@ function panelKey(title){ return (title||'').replace(/<[^>]+>/g,'').replace(/&[^
 /* Every module declares the clinical domain it belongs to. On the desktop
    this is inert; on a phone it is what lets one domain be the active stream
    while the rest stay out of the document. */
+/* ── WHAT EACH WORKSPACE IS ──────────────────────────────────────────────
+   A tab that only filters is a filter. Every workspace names itself and says
+   what it holds, so the answer to "am I in the right place" is on the screen
+   rather than in the clinician's memory of what we filed where.
+
+   The eight numbered ones are the phases of a case, in order, and the number
+   is the same number the Induction sections use — this is one workstation
+   with a sequence, not eleven unrelated pages. Drug reference, Scores and
+   Emergency are reachable at any point in that sequence, so they carry no
+   number; the brief is explicit that the drug reference in particular must
+   stay reachable from everywhere rather than living inside Induction.
+
+   These lines describe WHAT IS ON THE TAB. None of them is clinical advice,
+   none names a drug, and none states a dose. */
+var DOMAIN_LEAD = {
+  induction:   [1, 'Induction', 'Strategy, drug plan, RSI choices, airway plan and backup for this patient.'],
+  maintenance: [2, 'Maintenance', 'Ventilation, monitoring and vascular access, and antibiotic prophylaxis.'],
+  tiva:        [3, 'TIVA / TCI &amp; sedation', 'Target-controlled infusion models and sedation references.'],
+  analgesia:   [4, 'Analgesia', 'Opioids and analgesic adjuncts, scaled to this patient\'s weight.'],
+  reversal:    [5, 'Reversal / end case', 'Neuromuscular reversal and postoperative nausea and vomiting.'],
+  fluids:      [6, 'Fluids &amp; blood', 'Maintenance, deficit and replacement, and blood products.'],
+  vasopressors:[7, 'Vasopressors', 'Infusions and boluses, with their preparations.'],
+  local:       [8, 'Local anaesthetics', 'Regional and neuraxial technique, ultrasound-guided blocks, and the obstetric module.'],
+  drugs:       [null, 'Drug reference', 'Every published drug, filterable by class. Reachable from any point in the case.'],
+  scores:      [null, 'Risk &amp; scores', 'Perioperative risk indices and scoring tools.'],
+  emergency:   [null, 'Crisis Center', 'Emergency protocols and rescue doses, weight-aware for the current patient.']
+};
+
 var PANEL_DOMAIN = {
   /* Phase 3 renamed the panel from "Drug references" to "Drug reference", so
      panelKey() now yields drug-reference. Both keys are listed: the new one is
@@ -4444,10 +4473,27 @@ window.renderContextStrip = renderContextStrip;
 
 /* Make a clinical domain the active mobile stream. Above the breakpoint the
    attribute is inert, so the same call is safe from any code path. */
+/* The workspace names itself. Rendered from DOMAIN_LEAD only — a domain with
+   no entry gets no heading rather than an invented one. */
+function renderDomainLead(dom){
+  var host = ge('wf-lead'); if(!host) return;
+  var L = DOMAIN_LEAD[dom];
+  if(!L){ host.hidden = true; host.innerHTML = ''; return; }
+  host.hidden = false;
+  host.innerHTML =
+    (L[0] != null ? '<span class="wf-n wfl-n">' + L[0] + '</span>' : '') +
+    '<span class="wfl-tx"><span class="wfl-h">' +
+      '<span class="wfl-t">' + L[1] + '</span>' +
+      '<span class="wfl-tag" id="wfl-tag" hidden></span></span>' +
+    '<span class="wfl-s">' + L[2] + '</span></span>';
+}
+window.renderDomainLead = renderDomainLead;
+
 function setDomain(dom){
   var out = ge('output'); if(!out) return false;
   if(!out.querySelector('.panel[data-domain="'+dom+'"]')) return false;
   out.setAttribute('data-domain', dom);
+  renderDomainLead(dom);
   var links = document.querySelectorAll('#cmd-strip .cmd-b[data-domain]');
   [].forEach.call(links, function(a){
     a.classList.toggle('on', a.getAttribute('data-domain')===dom);
@@ -4471,6 +4517,33 @@ function domReflow(dom){
   });
   var wrap = out.querySelector('.panels');
   if(wrap) wrap.classList.toggle('dom-single', live < 2);
+
+  /* ONE TITLE, NOT TWO. Several workspaces hold a single panel whose name is
+     the workspace's name, so the lead and the panel head printed the same
+     words 90px apart. When that is the case the head is folded away and its
+     tag moves up into the lead, which keeps the tag rather than losing it.
+
+     A head carrying CONTROLS is never folded — the drug reference's
+     Table/Cards switch lives in its tag slot, and hiding that head would take
+     a working control off the page. Collapsing a panel that is the only thing
+     in the workspace has nothing to reveal, so nothing is lost by folding. */
+  var vis = [].filter.call(out.querySelectorAll('.panel[data-domain="'+dom+'"]'),
+    function(p){ return p.offsetParent !== null || true; });
+  var L = DOMAIN_LEAD[dom], leadTag = '';
+  [].forEach.call(out.querySelectorAll('.panel'), function(p){ p.classList.remove('head-folded'); });
+  if(L && vis.length === 1){
+    var p = vis[0], h = p.querySelector('.panel-head');
+    var t = h && h.querySelector('.panel-title');
+    var tagEl = h && h.querySelector('.panel-tag');
+    var hasControl = !!(h && h.querySelector('.dref-ctl, input, select, button'));
+    var norm = function(x){ return (x||'').replace(/\s+/g,' ').trim().toLowerCase(); };
+    if(t && !hasControl && norm(t.textContent) === norm(L[1].replace(/&amp;/g,'&'))){
+      p.classList.add('head-folded');
+      leadTag = tagEl ? tagEl.textContent.trim() : '';
+    }
+  }
+  var lt = ge('wfl-tag');
+  if(lt){ lt.textContent = leadTag; lt.hidden = !leadTag; }
   if(window.balanceRows) balanceRows();
 }
 window.domReflow=domReflow;

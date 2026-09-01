@@ -389,6 +389,87 @@ async function openEngine(b, viewport) {
     t('...and each comes from its own helper',
       /_pedsLMA\s*=\s*lmaForWeight/.test(ENGC) && /_pedsIgel\s*=\s*\(igelForWeight/.test(ENGC));
 
+    /* ── EVERY WORKSPACE NAMES ITSELF ───────────────────────────────────
+       A tab that only filters is a filter. Each workspace now states what it
+       is and what it holds, and the eight phases of a case are numbered in
+       the order they happen — the same numbering the Induction sections use,
+       because this is one workstation with a sequence rather than eleven
+       unrelated pages.
+
+       The lead is CHROME. It describes what is on the tab. If one of these
+       lines ever starts naming a drug or quoting a dose it has become
+       unreviewed clinical content in a string literal, which is asserted
+       against below. */
+    console.log('\nWORKSPACE LEADS');
+    const leads = await s.pg.evaluate(`(() => {
+      const out = {};
+      Object.keys(DOMAIN_LEAD).forEach(d => {
+        if (!setDomain(d)) { out[d] = null; return; }
+        const n = document.querySelector('#wf-lead .wfl-n');
+        out[d] = { num:n ? n.textContent : null,
+                   title:(document.querySelector('#wf-lead .wfl-t')||{}).textContent||'',
+                   sub:(document.querySelector('#wf-lead .wfl-s')||{}).textContent||'',
+                   tag:(document.querySelector('#wf-lead .wfl-tag')||{}).textContent||'',
+                   folded:document.querySelectorAll('.panel.head-folded').length,
+                   panels:[...document.querySelectorAll('.panel[data-domain="'+d+'"]')].length };
+      });
+      setDomain('induction');
+      return out;
+    })()`);
+    const doms = Object.keys(leads);
+    t('every workflow domain has a lead', doms.every(d => leads[d] && leads[d].title &&
+      leads[d].sub), doms.filter(d => !leads[d] || !leads[d].title || !leads[d].sub));
+    t('the eight phases of a case are numbered in order',
+      ['induction','maintenance','tiva','analgesia','reversal','fluids','vasopressors','local']
+        .map(d => leads[d].num).join(',') === '1,2,3,4,5,6,7,8',
+      ['induction','maintenance','tiva','analgesia','reversal','fluids','vasopressors','local']
+        .map(d => d + ':' + leads[d].num));
+    /* Reachable at ANY point in the case, so they are not a step in it. The
+       brief is explicit that the drug reference must not live inside
+       Induction, and an unnumbered top-level tab is what that means. */
+    t('drug reference, scores and emergency carry no phase number',
+      ['drugs','scores','emergency'].every(d => leads[d].num === null),
+      ['drugs','scores','emergency'].map(d => d + ':' + leads[d].num));
+    t('the drug reference is a workspace of its own, not a section of Induction',
+      leads.drugs.panels > 0 &&
+      /data-domain="drugs"/.test(ENGC) && !/drug-reference'\s*:\s*'induction'/.test(ENGC));
+
+    /* NO CLINICAL CONTENT IN THE CHROME. A lead may say the tab holds
+       opioids; it may not say how much of one. */
+    const leadText = doms.map(d => leads[d].title + ' ' + leads[d].sub).join(' ');
+    t('no lead quotes a dose', !/\d+\s*(mg|mcg|microgram|ng|mL|units?)\b/i.test(leadText),
+      leadText);
+    t('no lead names a drug',
+      !/propofol|ketamine|rocuronium|suxamethonium|fentanyl|morphine|adrenaline|sugammadex/i
+        .test(leadText));
+
+    /* THE FOLDED HEAD. Where the only panel repeated the workspace title, the
+       head is folded and its tag moves into the lead. Where the head carries
+       a control it is never folded — the drug reference's Table/Cards switch
+       lives in that slot and folding would take a working control off the
+       page. */
+    t('a single panel repeating the workspace title folds its head',
+      leads.tiva.folded === 1 && leads.tiva.tag === 'Reference',
+      { folded:leads.tiva.folded, tag:leads.tiva.tag });
+    t('...and a workspace of several panels folds none',
+      leads.maintenance.folded === 0 && leads.local.folded === 0);
+    const dref = await s.pg.evaluate(`(() => {
+      setDomain('drugs');
+      const p = document.querySelector('.panel[data-domain="drugs"]');
+      const h = p.querySelector('.panel-head');
+      const c = document.getElementById('dref-ctl');
+      const r = { folded:p.classList.contains('head-folded'),
+                  headShown:getComputedStyle(h).display !== 'none',
+                  control:!!c && !!c.offsetParent && c.textContent.trim().length > 0,
+                  buttons:c ? c.querySelectorAll('button').length : 0 };
+      setDomain('induction');
+      return r;
+    })()`);
+    t('the drug reference head is never folded away',
+      dref.folded === false && dref.headShown === true, dref);
+    t('...so its Table / Cards control is still on the page',
+      dref.control === true && dref.buttons > 0, dref);
+
     /* ── DRUG CLASS COLOURS ─────────────────────────────────────────────
        Three drugs carried no class at all, so they rendered a blank badge
        beside drugs that had one. They have one now.
