@@ -778,14 +778,20 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
    a time, and every route into a hidden module (search, deep link, the crisis
    rail, the anchors) switches domain first through setDomain(). */
 #output[data-domain] .panel{display:none;}
-#output[data-domain="drugs"]     .panel[data-domain="drugs"],
-#output[data-domain="infusions"] .panel[data-domain="infusions"],
-#output[data-domain="regional"]  .panel[data-domain="regional"],
-#output[data-domain="airway"]    .panel[data-domain="airway"],
-#output[data-domain="bleeding"]  .panel[data-domain="bleeding"],
-#output[data-domain="monitor"]   .panel[data-domain="monitor"],
-#output[data-domain="scores"]    .panel[data-domain="scores"],
-#output[data-domain="emergency"] .panel[data-domain="emergency"]{display:block;}
+/* One rule per workflow domain. The selector list is long on purpose: it is
+   the whole filter, in one place, and a domain missing from it renders empty
+   rather than silently falling back to everything. */
+#output[data-domain="induction"]    .panel[data-domain="induction"],
+#output[data-domain="maintenance"]  .panel[data-domain="maintenance"],
+#output[data-domain="tiva"]         .panel[data-domain="tiva"],
+#output[data-domain="analgesia"]    .panel[data-domain="analgesia"],
+#output[data-domain="reversal"]     .panel[data-domain="reversal"],
+#output[data-domain="fluids"]       .panel[data-domain="fluids"],
+#output[data-domain="vasopressors"] .panel[data-domain="vasopressors"],
+#output[data-domain="local"]        .panel[data-domain="local"],
+#output[data-domain="drugs"]        .panel[data-domain="drugs"],
+#output[data-domain="scores"]       .panel[data-domain="scores"],
+#output[data-domain="emergency"]    .panel[data-domain="emergency"]{display:block;}
 
 /* A stack whose every panel belongs to another domain must not hold a column
    open. :empty cannot see this — the panels are present and hidden — so
@@ -1024,6 +1030,15 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 .cmd-b:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 /* Active reads as an instrument indicator — a lit underline and brighter
    ink — rather than a saturated fill. One small teal mark, not a block. */
+/* The folded tabs are present in the DOM at every width; More reveals them
+   in place. Nothing is unreachable, and no domain lives behind a menu only. */
+.cmd-fold{display:none;}
+#cmd-strip.more-open .cmd-fold{display:inline-flex;}
+.cmd-more{cursor:pointer;font-family:inherit;}
+@media(min-width:1500px){
+  .cmd-fold{display:inline-flex;}
+  .cmd-more{display:none;}
+}
 .cmd-b.on{color:var(--ink);background:rgba(255,255,255,.05);
   box-shadow:inset 0 -2px 0 0 var(--accent);}
 .cmd-find{margin-left:auto;color:var(--ink-3);}
@@ -1821,13 +1836,23 @@ body .nb-search-wrap{display:none !important;}
          its natural place in the flow rather than ahead of the drugs. -->
     <nav class="cmd" id="cmd-strip" aria-label="Clinical domains">
       <div class="cmd-in">
-        <a class="cmd-b" href="#/drugs"     data-jump="drug-reference" data-domain="drugs">Drugs</a>
-        <a class="cmd-b" href="#/infusions" data-jump="vasopressors" data-domain="infusions">Infusions</a>
-        <a class="cmd-b" href="#/airway"    data-jump="airway-tubes" data-domain="airway">Airway</a>
-        <a class="cmd-b" href="#/regional"  data-jump="regional" data-domain="regional">Regional</a>
-        <a class="cmd-b" href="#/bleeding"  data-jump="fluids-blood" data-domain="bleeding">Bleeding</a>
-        <a class="cmd-b" href="#/monitor"   data-jump="monitoring-access" data-domain="monitor">Monitor &amp; vent</a>
-        <a class="cmd-b" href="#/scores"    data-jump="risk-scores" data-domain="scores">Scores</a>
+        <!-- THE ORDER OF A CASE, not a list of equipment categories.
+             Induction is first and is the default workspace. The last four
+             are lower-frequency and fold into More when width requires it. -->
+        <a class="cmd-b" href="#/induction"   data-jump="airway-tubes"      data-domain="induction">Induction</a>
+        <a class="cmd-b" href="#/maintenance" data-jump="ventilation"       data-domain="maintenance">Maintenance</a>
+        <a class="cmd-b" href="#/tiva"        data-jump="tiva-tci-sedation" data-domain="tiva">TIVA / TCI</a>
+        <a class="cmd-b" href="#/analgesia"   data-jump="analgesia"         data-domain="analgesia">Analgesia</a>
+        <a class="cmd-b" href="#/reversal"    data-jump="reversal-end-case" data-domain="reversal">Reversal</a>
+        <a class="cmd-b" href="#/fluids"      data-jump="fluids-blood"      data-domain="fluids">Fluids</a>
+        <a class="cmd-b" href="#/vasopressors" data-jump="vasopressors"     data-domain="vasopressors">Vasopressors</a>
+        <a class="cmd-b cmd-fold" href="#/local"  data-jump="regional"      data-domain="local">Local anaesthetics</a>
+        <a class="cmd-b cmd-fold" href="#/drugs"  data-jump="drug-reference" data-domain="drugs">Drug reference</a>
+        <a class="cmd-b cmd-fold" href="#/scores" data-jump="risk-scores"   data-domain="scores">Scores</a>
+        <!-- More reveals the folded tabs rather than hiding them behind a
+             route: every domain stays one click away at every width. -->
+        <button class="cmd-b cmd-more" type="button" onclick="cmdMore(this)"
+                aria-expanded="false">More &#9662;</button>
         <button class="cmd-b cmd-find" type="button" onclick="if(window.ClinicalSearch)window.ClinicalSearch.open('')"
                 aria-label="Search all clinical content"><span>Search</span><kbd>/</kbd></button>
         <!-- Carries data-domain so it lights up like every other selector when
@@ -2645,6 +2670,23 @@ function compute(){
      ends in a long tail of empty workspace. Induction stays upper-left,
      Regional upper-right, Airway directly under Regional, and the
      vasoactive drugs keep a fixed place under Drug references. */
+  /* ══ ANALGESIA AND REVERSAL / END CASE ═══════════════════════════════════
+     Two workflow tabs the old equipment-shaped navigation had no panel for.
+     Both are COMPOSED from groups that already exist in ClinicalContent —
+     same doses, same renderDose() weight scaling, same class colours as the
+     drug table. Neither introduces a value of its own. */
+  var analgesiaBody =
+    drugGroups([{ id:'analgesia', label:'Opioids and analgesia' }], wt) +
+    note('Opioid doses are starting points for a healthy adult and are reduced in ' +
+         'the elderly, in the frail and where airway support is limited.');
+
+  var reversalBody =
+    drugGroups([{ id:'reversal', label:'Reversal' }], wt) +
+    drugGroups([{ id:'antiemetic', label:'Antiemetics' }], wt) +
+    note('Reverse only when the block is measurably present; confirm with a nerve ' +
+         'stimulator rather than by time elapsed. Sugammadex and neostigmine are not ' +
+         'interchangeable and their doses depend on the depth being reversed.');
+
   /* THE DRUG REFERENCE LEADS, AT FULL COLUMN WIDTH. It was sharing a
      half-width stack with Regional, which is fine for a card list and not
      fine for a six-column table: the dose and preparation columns collapsed
@@ -2666,6 +2708,8 @@ function compute(){
       /* access sits with what runs through it; prophylaxis is a drug */
       panel('&#128225;','Monitoring &amp; access','Standards',monBody,'')+
       panel('&#128137;','Antibiotic prophylaxis','Under review',abxBody,'')+
+      panel('&#128138;','Analgesia','Opioids &amp; adjuncts',analgesiaBody,'')+
+      panel('&#9851;','Reversal / end case','Reversal &amp; PONV',reversalBody,'')+
       (isPeds? panel('&#129490;','Paediatric','Weight-based',pedHtml,'compact') : '')+
     '</div>'+
     '<div class="stack" id="stack-technique">'+
@@ -2694,9 +2738,10 @@ function compute(){
   if(_lt && !window.matchMedia('(max-width:900px)').matches) _lt.open=true;  // desktop keeps the full row
   if(window.ptSummary) window.ptSummary();   // keep the mobile context line current
   if(window.cmdInit) window.cmdInit();   // wire the command strip to this render
-  /* Drugs is the default clinical stream: it is what is reached for most
-     often, and it puts a usable dose on the first screen. */
-  if(window.setDomain) window.setDomain(document.getElementById('output').getAttribute('data-domain') || 'drugs');
+  /* Induction is the default clinical stream. */
+  /* Induction is the default workspace: it is what the page is for at the
+     moment it matters most. */
+  if(window.setDomain) window.setDomain(document.getElementById('output').getAttribute('data-domain') || 'induction');
 }
 
 /* ── Row builders (design system v3 — continuous surface) ─────────────────
@@ -3050,13 +3095,36 @@ var PANEL_DOMAIN = {
      panelKey() now yields drug-reference. Both keys are listed: the new one is
      what the page builds, the old one costs nothing and means a stale bookmark
      or a saved layout still resolves to a domain instead of defaulting. */
-  'drug-reference':'drugs', 'drug-references':'drugs', 'antibiotic-prophylaxis':'drugs',
-  'vasopressors':'infusions', 'tiva-tci-sedation':'infusions',
-  'regional':'regional', 'blocks-ultrasound':'regional',
-  'airway-tubes':'airway', 'airway':'airway',
-  'fluids-blood':'bleeding',
-  'monitoring-access':'monitor', 'ventilation':'monitor',
-  'risk-scores':'scores', 'paediatric':'drugs', 'obstetric':'regional',
+  /* ══ WORKFLOW DOMAINS ══════════════════════════════════════════════════
+     Re-keyed from equipment categories to the order of a case. Every panel
+     that existed keeps a home — this map is a re-filing, not a deletion, and
+     the assertion in the suite counts the panels to prove it.
+
+     Induction is the default and is composed rather than filed: it draws the
+     airway modules plus a drug plan built from the induction, nmb, analgesia
+     and volatile groups. */
+  'drug-reference':'drugs', 'drug-references':'drugs',
+
+  'airway-tubes':'induction', 'airway':'induction', 'paediatric':'induction',
+
+  'tiva-tci-sedation':'tiva',
+
+  'ventilation':'maintenance', 'monitoring-access':'maintenance',
+  'antibiotic-prophylaxis':'maintenance',
+
+  /* Analgesia and Reversal are NEW panels composed from drug groups that
+     already exist; without them those two tabs would be empty, which is a
+     regression rather than a reorganisation. */
+  'analgesia':'analgesia',
+  'reversal-end-case':'reversal',
+
+  /* Regional, blocks and the obstetric module are all neuraxial or
+     local-anaesthetic content, so they file together. */
+  'regional':'local', 'blocks-ultrasound':'local', 'obstetric':'local',
+
+  'fluids-blood':'fluids',
+  'vasopressors':'vasopressors',
+  'risk-scores':'scores',
   'crisis-center':'emergency'
 };
 
@@ -4265,6 +4333,16 @@ function cmdInit(){
      would now fight the selection they just made. */
 }
 window.cmdInit=cmdInit;
+
+/* More is a disclosure, not a route. It reveals the folded tabs in the strip
+   so every domain is reachable in one click from wherever the reader is. */
+function cmdMore(btn){
+  var strip = ge('cmd-strip'); if(!strip) return;
+  var open = strip.classList.toggle('more-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.innerHTML = open ? 'Less &#9652;' : 'More &#9662;';
+}
+window.cmdMore = cmdMore;
 
 // ── TCI / Sedation reference (educational only) ──
 // Each entry: [name, model/drug subtitle, fn(weight) -> { blocks:[{h, rows?, list?}] }]

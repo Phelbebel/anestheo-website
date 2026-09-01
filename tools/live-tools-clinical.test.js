@@ -289,6 +289,48 @@ async function openEngine(b, viewport) {
       on.manual.source === 'measured', on.manual.source);
 
     t('no page errors across every case', s.errs.length === 0, s.errs.slice(0, 3));
+    /* ── EVERY PANEL HAS A HOME ─────────────────────────────────────────
+       The navigation was re-keyed from equipment categories to the order of a
+       case. That is a re-filing, and the thing a re-filing can silently do is
+       orphan a module: a panel whose data-domain matches no tab renders for
+       nobody and nobody notices, because the page still looks full.
+
+       So this walks every panel actually in the DOM, checks its domain is one
+       the strip can reach, and then visits each domain and requires it to
+       render something. An empty tab is a regression, not a layout. */
+    console.log('\nWORKFLOW NAVIGATION');
+    const DOMAINS = ['induction','maintenance','tiva','analgesia','reversal','fluids',
+                     'vasopressors','local','drugs','scores','emergency'];
+    const nav = await s.pg.evaluate(`(() => {
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      newCase();
+      /* an obstetric-capable adult, so every conditional panel exists */
+      set('i-age','32'); set('i-sex','F'); set('i-height','165'); set('i-weight','72');
+      set('i-proc','Caesarean section'); compute();
+      const panels = [...document.querySelectorAll('#output .panel')]
+        .map(p => ({ pk:p.getAttribute('data-pk'), dom:p.getAttribute('data-domain') }));
+      const tabs = [...document.querySelectorAll('#cmd-strip .cmd-b[data-domain]')]
+        .map(a => a.getAttribute('data-domain'));
+      return { panels, tabs, dflt: document.getElementById('output').getAttribute('data-domain') };
+    })()`);
+    t('Induction is the default workspace', nav.dflt === 'induction', nav.dflt);
+    t('no panel is orphaned by the re-keying',
+      nav.panels.every(p => DOMAINS.indexOf(p.dom) >= 0),
+      nav.panels.filter(p => DOMAINS.indexOf(p.dom) < 0));
+    t('every workflow domain has a tab',
+      DOMAINS.filter(d => d !== 'emergency').every(d => nav.tabs.indexOf(d) >= 0),
+      nav.tabs);
+    for (const d of DOMAINS) {
+      const r = await s.pg.evaluate(`(() => {
+        setDomain('${d}');
+        const shown = [...document.querySelectorAll('#output .panel')]
+          .filter(p => p.offsetParent !== null).map(p => p.getAttribute('data-pk'));
+        return { shown, chars: document.getElementById('output').innerText.trim().length };
+      })()`);
+      t(d + ': renders at least one panel', r.shown.length > 0, r.shown);
+    }
+    await s.pg.evaluate("setDomain('induction')");
+
     /* ── LMA AND i-GEL ARE DIFFERENT DEVICES ────────────────────────────
        lmaForWeight() and igelForWeight() are separate helpers with different
        weight bands, and patientContext published `igel: d.lma` — the LMA size
