@@ -94,6 +94,10 @@ html,body{background:var(--ground);}
 .cw-acc-body .input-bar{background:none;border:none;border-radius:0;padding:0;margin:0;}
 /* derived values grid (inside its section) */
 .cw-derived{display:grid;grid-template-columns:repeat(7,1fr);gap:11px;}
+/* The paediatric set carries eight values now that LMA and i-gel are shown
+   independently, so it gets its own track count rather than squeezing one
+   extra cell into seven. */
+.cw-derived.peds{grid-template-columns:repeat(8,1fr);}
 .cw-d{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 13px;display:flex;flex-direction:column;gap:4px;min-width:0;}
 .cw-d-l{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;line-height:1.25;white-space:nowrap;color:var(--ink-3);}
 .cw-d-l small{font-weight:700;letter-spacing:0;text-transform:none;color:var(--hint);}
@@ -2363,11 +2367,19 @@ function compute(){
      airway sizes are the same variables the rest of compute() already uses.
      The pediatric airway numbers come from the same weight-based helpers the
      airway panel renders, so the strip and the panel cannot disagree. */
-  var _pedsETT = null, _pedsDepth = null, _pedsLMA = null;
+  /* LMA and i-gel are DIFFERENT DEVICES WITH DIFFERENT SIZE BANDS, and the
+     two helpers below disagree at real weights — 10 kg is LMA 2 but i-gel 1.5,
+     22 kg is LMA 2.5 but i-gel 2, 55 kg is LMA 4 but i-gel 3. They are read
+     separately here because publishing one number under both names is how a
+     clinician ends up reaching for the wrong size. */
+  var _pedsETT = null, _pedsDepth = null, _pedsLMA = null, _pedsIgel = null;
   if(isPeds){
     var _e = wbAir ? neoETT(wt) : (age/4 + 4);
     if(_e != null){ _pedsETT = r1(_e); _pedsDepth = r1(_e * 3); }
-    _pedsLMA = lmaForWeight(wt);
+    _pedsLMA  = lmaForWeight(wt);
+    /* The airway panel already shows the full descriptor ("1.5 (infant)");
+       the strip shows the size, matching the kpi() precedent above. */
+    _pedsIgel = (igelForWeight(wt) + '').split(' ')[0];
   }
   window.patientContext = buildPatientContext({
     ageYears:age, ageDays:ageC.days, ageValue:ageC.value, ageUnit:ageC.unit,
@@ -2376,7 +2388,8 @@ function compute(){
     estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height,
     derived:{ bmi:r1(bmi), ibw:r0(ibw), lbw:r0(lbw), abw:r0(abw),
               bsa:r2(bsa), ebv:r0(ebv), mac:r2(macAge)+'&times;',
-              maint:r0(h421), ett:_pedsETT, ettDepth:_pedsDepth, lma:_pedsLMA }
+              maint:r0(h421), ett:_pedsETT, ettDepth:_pedsDepth,
+              lma:_pedsLMA, igel:_pedsIgel }
   });
   renderPatientStrip();
   renderContextStrip();
@@ -3483,7 +3496,11 @@ function buildPatientContext(o){
 
     /* ── PAEDIATRIC WORKING VALUES ─────────────────────────────────────── */
     pediatric: { ebv:d.ebv, maintenance421:d.maint, ett:d.ett,
-                 ettDepth:d.ettDepth, lma:d.lma, igel:d.lma },
+                 /* NOT `igel: d.lma`. That published the LMA size under the
+                    i-gel name, and the two are different devices sized on
+                    different weight bands. Each now comes from its own
+                    helper. */
+                 ettDepth:d.ettDepth, lma:d.lma, igel:d.igel },
 
     /* Kept because the strip and several panels read them directly. */
     derived: d,
@@ -4127,7 +4144,11 @@ function renderContextStrip(){
             cell('Maintenance', P.maintenance421, 'mL/h') +
             cell('ETT', P.ett, 'mm ID') +
             cell('ETT depth', P.ettDepth, 'cm') +
-            cell('LMA / i-gel', P.lma, '') +
+            /* TWO CELLS, NOT ONE. "LMA / i-gel" carrying a single number was
+               true only where the two helpers happen to agree, and wrong at
+               every weight where they do not. */
+            cell('LMA', P.lma, '') +
+            cell('i-gel', P.igel, '') +
             cell('MAC', d.mac, '', 'age-adj');
   } else {
     tag = 'Adult context';

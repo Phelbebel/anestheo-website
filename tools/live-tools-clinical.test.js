@@ -289,6 +289,62 @@ async function openEngine(b, viewport) {
       on.manual.source === 'measured', on.manual.source);
 
     t('no page errors across every case', s.errs.length === 0, s.errs.slice(0, 3));
+    /* ── LMA AND i-GEL ARE DIFFERENT DEVICES ────────────────────────────
+       lmaForWeight() and igelForWeight() are separate helpers with different
+       weight bands, and patientContext published `igel: d.lma` — the LMA size
+       under the i-gel name — while the derived strip showed one cell labelled
+       "LMA / i-gel" carrying only the LMA value. It was right wherever the two
+       happen to agree and wrong everywhere else, including at 10 kg, which is
+       the paediatric case every screenshot of this page has used.
+
+       A supraglottic airway that is one size too large is not a cosmetic
+       defect, so the weights below are the divergence boundaries themselves,
+       not a convenient sample. */
+    console.log('\nLMA / i-GEL INDEPENDENCE');
+    const AIRWAY = [
+      { w:7,  lma:'1.5', igel:'1.5' },   /* agree */
+      { w:10, lma:'2',   igel:'1.5' },   /* diverge */
+      { w:15, lma:'2',   igel:'2'   },   /* agree */
+      { w:22, lma:'2.5', igel:'2'   },   /* diverge */
+      { w:55, lma:'4',   igel:'3'   },   /* diverge */
+      { w:75, lma:'5',   igel:'4'   }    /* diverge */
+    ];
+    for (const a of AIRWAY) {
+      const r = await s.pg.evaluate(`(() => {
+        newCase();
+        const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+        set('i-age','10'); set('i-age-unit','y'); set('i-sex','M');
+        set('i-height','120'); set('i-weight','${a.w}');
+        compute();
+        const P = window.patientContext.pediatric;
+        const cells = [...document.querySelectorAll('#cw-derived .cw-d')].map(d => ({
+          l: d.querySelector('.cw-d-l').textContent.trim().toLowerCase(),
+          v: d.querySelector('.cw-d-val').textContent.trim() }));
+        const get = n => { const c = cells.find(c => c.l === n); return c ? c.v : null; };
+        const flat = document.getElementById('output').textContent.replace(/\\s+/g, ' ');
+        /* The panel emits "LMA size2.5i-gel size2 (small ped)" — label and
+           value are adjacent nodes with no separating text, so the space this
+           regex first demanded never existed and both captures came back null
+           while the values on screen were correct. */
+        const pm = /LMA size\\s*([0-9.]+)/.exec(flat), pi = /i-gel size\\s*([0-9.]+)/.exec(flat);
+        return { ctxLma:P.lma, ctxIgel:P.igel, stripLma:get('lma'), stripIgel:get('i-gel'),
+                 panelLma: pm ? pm[1] : null, panelIgel: pi ? pi[1] : null,
+                 combined: cells.some(c => /lma \\/ i-gel/.test(c.l)) };
+      })()`);
+      const tag = a.w + 'kg';
+      t(tag + ': patientContext carries both, independently',
+        r.ctxLma === a.lma && r.ctxIgel === a.igel, { lma:r.ctxLma, igel:r.ctxIgel });
+      t(tag + ': the strip shows LMA ' + a.lma + ' and i-gel ' + a.igel,
+        r.stripLma === a.lma && r.stripIgel === a.igel, { lma:r.stripLma, igel:r.stripIgel });
+      t(tag + ': the airway panel agrees with the strip',
+        r.panelLma === a.lma && r.panelIgel === a.igel, { lma:r.panelLma, igel:r.panelIgel });
+      t(tag + ': no combined "LMA / i-gel" cell remains', r.combined === false);
+    }
+    /* The defect could only exist because one value fed two names. */
+    t('patientContext never assigns igel from lma', !/igel\s*:\s*d\.lma/.test(ENGC));
+    t('...and each comes from its own helper',
+      /_pedsLMA\s*=\s*lmaForWeight/.test(ENGC) && /_pedsIgel\s*=\s*\(igelForWeight/.test(ENGC));
+
     await s.ctx.close();
 
     /* ── 6. THE FIRST SCREEN ───────────────────────────────────────────── */
