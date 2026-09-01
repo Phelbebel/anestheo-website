@@ -18,6 +18,7 @@
 <script src="/evidence-drawer.js?v=2026.08.21-03"></script>
 <link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
 <link rel="stylesheet" href="/new-patient.css?v=2026.08.21-03">
+<link rel="stylesheet" href="/live-tools.css?v=2026.08.21-03">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 html,body{max-width:100%;overflow-x:hidden;}
@@ -407,7 +408,10 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
    permanent Emergency button, which is the persistent access the rail
    provides on desktop. The existing inline Crisis panel is untouched and
    still lives inside the output stream; this rail indexes into it. */
-.ws-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start;}
+/* .ws-grid now lives in live-tools.css, which owns the three-column shell.
+   The rule that was here declared two columns and, being in this inline
+   <style> AFTER the stylesheet link, would have silently won and left the
+   timer rail without a column of its own. */
 /* ══ CRISIS CENTER RAIL ═══════════════════════════════════════════════════
    Deliberately not a graphite panel with a red title. The rail is a different
    kind of object from the reference workspace beside it — its own ground, its
@@ -469,7 +473,7 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
   border-radius:var(--radius-sm);}
 
 @media(max-width:1179px){
-  .ws-grid{grid-template-columns:minmax(0,1fr);}
+  /* single-column collapse is in live-tools.css with the rest of the shell */
   /* Emergency stays one tap away in the command strip, so the rail does not
      need to hold a column it would only crowd. */
   .ws-crisis{display:none;}
@@ -1994,23 +1998,13 @@ body .nb-search-wrap{display:none !important;}
          Everything above is the cockpit. The workstation starts here:
          clinical reference on the left, Crisis Center rail on the right. -->
     <div class="ws-grid">
-      <div id="output">
-        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
-        <button class="cw-open-pt" onclick="ptFocus()">Enter patient details</button></div>
-      </div>
-      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
-    </div>
-
-    <!-- ══ AFTER THE WORKSTATION ═══════════════════════════════════════════
-         Live Timers and PACU are running-case tools, not lookups. They were
-         above the workstation, which put roughly 180px of stopwatch between
-         the clinician and the first dose on every single page view, including
-         the overwhelming majority where no case is running at all.
-
-         Nothing about them changes but their position: same markup, same ids,
-         same handlers, same persistence, same restore-on-load. They remain one
-         scroll away and the timer strip still shows its own state in the
-         summary bar, so a case in progress is legible without expanding. -->
+      <!-- ── TIMER RAIL ───────────────────────────────────────────────────
+           The four timers this application actually implements. They were
+           below the workstation; a running case needs them beside it, and a
+           190px rail is enough for a stopwatch. Same markup, same ids, same
+           handlers, same persistence — only the column changes. -->
+      <aside class="ws-rail" aria-label="Case timers">
+        <div class="ws-rail-h"><span aria-hidden="true">&#9201;</span>Case timers</div>
     <!-- ── LIVE TIMERS (intraoperative workflow) — below the workstation ── -->
     <!-- Timers close the cockpit and the workstation begins under them. They
          are folded by default, so the cost above the first clinical answer is
@@ -2048,7 +2042,17 @@ body .nb-search-wrap{display:none !important;}
         </div>
       </div>
     </details>
+      </aside>
 
+      <div id="output">
+        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
+        <button class="cw-open-pt" onclick="ptFocus()">Enter patient details</button></div>
+      </div>
+      <aside class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></aside>
+    </div>
+
+    <!-- PACU is an end-of-case tool and keeps its own block below the
+         workstation rather than sitting among the induction timers. -->
     <!-- PACU / Recovery — separate from the intraoperative timer strip -->
     <div class="pacu-mod">
       <div class="pacu-mod-head"><span class="lt-ico">&#129658;</span> PACU / Recovery</div>
@@ -2067,6 +2071,18 @@ body .nb-search-wrap{display:none !important;}
       </div>
       <div class="lt-rec" id="lt-rec">Enter scores for an educational suggestion.</div>
     </div>
+
+    <!-- ══ AFTER THE WORKSTATION ═══════════════════════════════════════════
+         Live Timers and PACU are running-case tools, not lookups. They were
+         above the workstation, which put roughly 180px of stopwatch between
+         the clinician and the first dose on every single page view, including
+         the overwhelming majority where no case is running at all.
+
+         Nothing about them changes but their position: same markup, same ids,
+         same handlers, same persistence, same restore-on-load. They remain one
+         scroll away and the timer strip still shows its own state in the
+         summary bar, so a case in progress is legible without expanding. -->
+
 
 
 

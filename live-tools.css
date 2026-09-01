@@ -1,0 +1,123 @@
+/* live-tools.css — THE WORKSTATION SHELL
+   ═══════════════════════════════════════════════════════════════════════════
+   Layout and presentation for the Live Tools workstation. Split out of
+   engine.html's inline <style>, which had grown past the point where anyone
+   could find a rule in it.
+
+   WHAT LIVES HERE
+     the three-column shell, the timer rail, workflow section typography, and
+     the crisis drawer.
+
+   WHAT DOES NOT
+     anything that decides a clinical value. Colour that carries meaning comes
+     from PCLASS in clinical-index.js via the --pc custom property; this file
+     never names a drug-class colour of its own.
+
+   TOKENS
+     Uses the tokens engine.html already defines (--pane, --line, --ink,
+     --accent, --radius-*). Fallbacks are given so the file is readable in
+     isolation, not so it can be used elsewhere.
+*/
+
+/* ══ THREE COLUMNS ════════════════════════════════════════════════════════
+   Timers left, workspace centre, Crisis Center right. The rail is narrow on
+   purpose: it must be instantly usable and must not compete with the answer
+   in the middle. */
+.ws-grid{
+  display:grid;
+  grid-template-columns:190px minmax(0,1fr) 280px;
+  gap:18px;
+  align-items:start;
+}
+
+/* ── THE TIMER RAIL ─────────────────────────────────────────────────────────
+   The four timers this application actually implements: anaesthesia,
+   relaxant/intubation, surgery, tourniquet. Nothing here is invented — there
+   is no fasting clock, no antibiotic-due countdown, no temperature alert,
+   because none of those has any underlying logic to report.
+
+   Same markup, same ids, same handlers as before; only the shape changes. */
+.ws-rail{
+  position:sticky; top:76px;
+  background:var(--pane,#0f1720);
+  border:1px solid var(--line,rgba(255,255,255,.10));
+  border-radius:var(--radius-lg,14px);
+  overflow:hidden;
+}
+.ws-rail-h{
+  display:flex; align-items:center; gap:7px;
+  padding:10px 13px;
+  border-bottom:1px solid var(--hair,rgba(255,255,255,.06));
+  font-size:9.5px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--ink-3,#7d8b95);
+}
+.ws-rail .lt-strip{margin:0; border:0; border-radius:0; background:transparent;}
+.ws-rail .lt-bar{display:none;}          /* the rail header is the label now */
+.ws-rail .lt-row{
+  display:flex; flex-direction:column; gap:0; padding:0;
+}
+.ws-rail .lt-card{
+  border:0; border-bottom:1px solid var(--hair,rgba(255,255,255,.06));
+  border-radius:0; padding:10px 13px; background:transparent;
+}
+.ws-rail .lt-card:last-child{border-bottom:0;}
+.ws-rail .lt-head{
+  font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3,#7d8b95); margin-bottom:3px; gap:5px;
+}
+.ws-rail .lt-ico{font-size:11px;}
+.ws-rail .lt-time{
+  font-size:20px; font-weight:800; letter-spacing:-.02em; line-height:1.05;
+  font-variant-numeric:tabular-nums; color:#fff;
+}
+.ws-rail .lt-state{font-size:10px; color:var(--hint,#66757f); margin-top:2px; line-height:1.35;}
+.ws-rail .lt-btns{margin-top:7px;}
+.ws-rail .lt-btn{
+  width:100%; min-height:32px; font-size:11.5px; padding:0 8px;
+}
+.ws-rail .lt-relbar{margin-top:6px;}
+
+/* PACU keeps its own block under the rail: it is an end-of-case tool and does
+   not belong beside the induction timers. */
+.ws-rail-pacu{margin-top:14px;}
+
+/* ══ WORKFLOW SECTION TYPOGRAPHY ══════════════════════════════════════════
+   The headings the reference calls for: large enough to navigate by, without
+   shrinking the clinical text underneath to buy the space. */
+.wf-sec{margin:0 0 18px;}
+.wf-sec + .wf-sec{margin-top:26px;}
+.wf-h{
+  display:flex; align-items:center; gap:11px;
+  margin:0 0 12px;
+}
+.wf-n{
+  flex:0 0 auto; width:26px; height:26px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.06); border:1px solid var(--line,rgba(255,255,255,.10));
+  font-size:12px; font-weight:800; color:var(--ink-2,#c8d4da);
+  font-variant-numeric:tabular-nums;
+}
+.wf-t{
+  font-size:19px; font-weight:800; letter-spacing:-.01em; color:#fff;
+  text-transform:uppercase;
+}
+.wf-sub{
+  font-size:12px; color:var(--ink-3,#7d8b95); font-weight:500;
+  text-transform:none; letter-spacing:0;
+}
+
+/* ══ RESPONSIVE ═══════════════════════════════════════════════════════════
+   Below 1180px the Crisis rail withdraws — Emergency stays in the command
+   strip — and below 900px the timer rail moves under the workspace, because
+   three columns in a phone's width is not a layout, it is a squeeze. */
+@media(max-width:1179px){
+  .ws-grid{grid-template-columns:190px minmax(0,1fr);}
+}
+@media(max-width:900px){
+  .ws-grid{grid-template-columns:minmax(0,1fr);}
+  .ws-rail{position:static; order:2;}
+  .ws-rail .lt-row{flex-direction:row; flex-wrap:wrap;}
+  .ws-rail .lt-card{flex:1 1 150px; border-bottom:0; border-right:1px solid var(--hair,rgba(255,255,255,.06));}
+  .ws-rail .lt-card:last-child{border-right:0;}
+  .wf-t{font-size:17px;}
+}
