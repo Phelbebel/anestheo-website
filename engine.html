@@ -14,6 +14,7 @@
 <script src="/procedures.js?v=2026.08.21-03"></script>
 <script src="/growth-reference.js?v=2026.08.21-03"></script>
 <script src="/new-patient.js?v=2026.08.21-03"></script>
+<script src="/induction.js?v=2026.08.21-03"></script>
 <script src="/evidence-api.js?v=2026.08.21-03"></script>
 <script src="/evidence-drawer.js?v=2026.08.21-03"></script>
 <link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
@@ -2246,6 +2247,31 @@ function compute(){
       metric('Confirmation','Capnography is mandatory','');
   }
 
+  /* ── THE AIRWAY PLAN, STRUCTURED ────────────────────────────────────────
+     The Airway panel renders these values; the Induction workstation needs
+     the same ones as data. They are published from the SAME variables rather
+     than recomputed, so the panel and the plan cannot disagree — which is
+     exactly how the LMA/i-gel defect arose the first time. */
+  window.airwayPlan = (isPeds && wbAir)
+    ? { mask:'Appropriate size', blade:bladeW,
+        ettCuffed:(ettWc!=null?r1(ettWc):null), ettUncuffed:(ettW!=null?r1(ettW):null),
+        ettUnit:'mm ID', depth:(depthW!=null?r1(depthW):null), depthUnit:'cm',
+        lma:lmaForWeight(wt), igel:igelForWeight(wt),
+        opa:opaPeds(age), npa:npaPeds(age), suction:'Yankauer' }
+    : isPeds
+    ? { mask:'Appropriate size', blade:pBlade,
+        ettCuffed:r1(ettC), ettUncuffed:r1(ettU), ettUnit:'mm ID',
+        depth:r1(depth), depthUnit:'cm',
+        lma:lmaForWeight(wt), igel:igelForWeight(wt),
+        opa:opaPeds(age), npa:npaPeds(age), suction:'Yankauer' }
+    : { mask:'Appropriate size', blade:mac,
+        ettCuffed:(sex==='M'?'8.0 (7.5–8.5)':'7.0 (7.0–7.5)'),
+        ettUncuffed:'≈0.5 mm larger (not routine in adults)', ettUnit:'mm ID',
+        depth:(sex==='M'?'22 – 24':'20 – 22'), depthUnit:'cm',
+        lma:lmaForWeight(wt), igel:igelForWeight(wt),
+        opa:(sex==='M'?'Size 4 (90 mm)':'Size 3 (80 mm)'),
+        npa:(sex==='M'?'7.0 – 7.5 mm':'6.0 – 6.5 mm'), suction:'Yankauer' };
+
   // ── VENTILATION ──
   var rr=isPeds?20:12;
   var tv6=pbw*6, tv7=pbw*7, tv8=pbw*8, tv9=pbw*9, tv10=pbw*10;
@@ -2708,7 +2734,11 @@ function compute(){
      fine for a six-column table: the dose and preparation columns collapsed
      into each other. It is the workspace the brief puts first, so it spans
      the clinical column and the two domain stacks follow beneath it. */
-  out.innerHTML='<div class="panels-wide dref-lead">'+
+  /* The Induction workstation is part of the rebuilt output, not static
+     markup: compute() replaces #output wholesale, so a host placed in the
+     page would be destroyed on the first keystroke. */
+  out.innerHTML='<div id="induction-host" class="wf-host"></div>'+
+    '<div class="panels-wide dref-lead">'+
       /* The controls ride in the panel's tag slot so the title and the
          Table/Cards switch share one line, which is how the reference reads.
          The head is a collapse target, so the slot swallows its own clicks. */
@@ -2754,7 +2784,9 @@ function compute(){
   if(_lt && !window.matchMedia('(max-width:900px)').matches) _lt.open=true;  // desktop keeps the full row
   if(window.ptSummary) window.ptSummary();   // keep the mobile context line current
   if(window.cmdInit) window.cmdInit();   // wire the command strip to this render
-  /* Induction is the default clinical stream. */
+  /* The workstation composes from what compute() has just published, so it is
+     filled after #induction-host exists, not before. */
+  if(window.Induction) window.Induction.render();
   /* Induction is the default workspace: it is what the page is for at the
      moment it matters most. */
   if(window.setDomain) window.setDomain(document.getElementById('output').getAttribute('data-domain') || 'induction');

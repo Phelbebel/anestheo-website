@@ -59,6 +59,8 @@ const ENGC  = code(ENG);
 const GROW  = read('growth-reference.js');
 const GROWC = code(GROW);
 const IDX   = read('clinical-index.js');
+const IND   = read('induction.js');
+const INDC  = code(IND);
 
 /* Drive one case and report everything that matters about it. */
 const CASE = c => `(() => {
@@ -386,6 +388,144 @@ async function openEngine(b, viewport) {
     t('patientContext never assigns igel from lma', !/igel\s*:\s*d\.lma/.test(ENGC));
     t('...and each comes from its own helper',
       /_pedsLMA\s*=\s*lmaForWeight/.test(ENGC) && /_pedsIgel\s*=\s*\(igelForWeight/.test(ENGC));
+
+    /* ── THE INDUCTION WORKSTATION ──────────────────────────────────────
+       induction.js composes; it must never decide. Three properties keep it
+       honest, and each one is a rule the brief set explicitly:
+
+         a strategy changes emphasis and order, never a dose or a drug
+         an adult renders no paediatric section at all, not a hidden one
+         every number traces to clinical-index.js or to compute()
+
+       The first two are asserted against the live DOM, because a promise in
+       a comment is not a guarantee. The third is asserted against the source,
+       because the way this screen would go wrong is by growing a dose table
+       of its own — and that is visible in the file long before it is visible
+       on screen. */
+    console.log('\nINDUCTION WORKSTATION');
+
+    const ind = sel => `[...document.querySelectorAll('#induction-host ${sel}')]`;
+    const planSnapshot = `(() => {
+      const m = {};
+      ${ind('.idc')}.forEach(c => {
+        const n = (c.querySelector('.idc-name') || {}).textContent;
+        const d = (c.querySelector('.idc-dose') || {}).textContent.replace(/\s+/g, ' ').trim();
+        m[n + '@' + ((c.closest('.wf-sec').querySelector('.wf-n')) || {}).textContent] = d;
+      });
+      return m;
+    })()`;
+
+    /* An adult. Section 6 is paediatric and must not exist in any form. */
+    const adult = await s.pg.evaluate(`(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+      set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+      compute();
+      const host = document.getElementById('induction-host');
+      return { nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent),
+               pedsNodes: ${ind('.pdx, .pdx-grid')}.length,
+               pedsWords: /EBV|Maintenance|Paediatric context/.test(host.textContent),
+               plan: ${planSnapshot},
+               refScrolls: (() => { const r = host.querySelector('.idref');
+                 return !!r && getComputedStyle(r).overflowY === 'auto'; })(),
+               emphasised: ${ind('.idc.on')}.length };
+    })()`);
+    t('adult: the workstation renders its sections in case order',
+      adult.nums.join(',') === '1,2,3,4,5,7', adult.nums);
+    t('adult: the paediatric section does not exist — not hidden, absent',
+      adult.pedsNodes === 0 && adult.pedsWords === false,
+      { nodes:adult.pedsNodes, words:adult.pedsWords });
+    t('adult: nothing is emphasised before a strategy is chosen',
+      adult.emphasised === 0, adult.emphasised);
+    t('adult: the induction reference scrolls in its own box',
+      adult.refScrolls === true);
+
+    /* Choosing a strategy. Emphasis and order may move; a dose may not. */
+    const after = await s.pg.evaluate(`(() => {
+      const b = ${ind('.ist')}.find(x => /Classic RSI/.test(x.textContent));
+      b.click();
+      return { plan: ${planSnapshot},
+               emphasised: ${ind('.idc.on')}.length,
+               pressed: ${ind('.ist')}.map(x => x.getAttribute('aria-pressed')),
+               /* Scoped to the CONTROLS AND CARDS, not the prose. The
+                  strategy note contains the word "recommending" precisely
+                  because it says the application does not do it, and a test
+                  that fails on a disclaimer would push us to delete the
+                  disclaimer. What must not exist is a pathway or a drug
+                  wearing the label. */
+               labelled: [...${ind('.ist')}, ...${ind('.idc-top')},
+                          ...${ind('.wf-t')}, ...${ind('.rsi-h')}]
+                 .some(e => /recommend|preferred|suggested|first.line|drug of choice/i
+                   .test(e.textContent)) };
+    })()`);
+    const drifted = Object.keys(adult.plan)
+      .filter(k => !(k in after.plan) || after.plan[k] !== adult.plan[k]);
+    const gone  = Object.keys(adult.plan).filter(k => !(k in after.plan));
+    const extra = Object.keys(after.plan).filter(k => !(k in adult.plan));
+    t('strategy: not one dose changes', drifted.length === 0, drifted);
+    t('strategy: no drug is removed and none is added',
+      gone.length === 0 && extra.length === 0, { gone, extra });
+    t('strategy: it does change emphasis, or it would do nothing',
+      after.emphasised > 0 && after.pressed.filter(p => p === 'true').length === 1,
+      { on:after.emphasised, pressed:after.pressed });
+    t('strategy: no pathway or drug is labelled recommended or preferred',
+      after.labelled === false);
+
+    const back = await s.pg.evaluate(`(() => {
+      ${ind('.ist')}.find(x => x.getAttribute('aria-pressed') === 'true').click();
+      return { plan: ${planSnapshot}, emphasised: ${ind('.idc.on')}.length };
+    })()`);
+    t('strategy: pressing the chosen one clears it, restoring every dose',
+      back.emphasised === 0 &&
+      JSON.stringify(back.plan) === JSON.stringify(adult.plan));
+
+    /* A child. Section 6 appears, and its values are the ones compute()
+       published — the same ones the derived strip is showing. */
+    const child = await s.pg.evaluate(`(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','4'); set('i-age-unit','y'); set('i-sex','F');
+      set('i-height','103'); set('i-weight','22');
+      compute();
+      const P = window.patientContext.pediatric;
+      const pdx = {};
+      ${ind('.pdx')}.forEach(d => {
+        pdx[d.querySelector('.pdx-l').textContent.trim()] =
+          d.querySelector('.pdx-v').firstChild.textContent.trim(); });
+      return { nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent), pdx,
+               ctxLma:P.lma, ctxIgel:P.igel,
+               airway: window.airwayPlan };
+    })()`);
+    t('child: the paediatric section appears, in position 6',
+      child.nums.join(',') === '1,2,3,4,5,6,7', child.nums);
+    /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
+       recomputed instead of reading compute(), this is where it would show. */
+    t('child: paediatric LMA and i-gel match patientContext at 22 kg',
+      child.pdx['LMA'] === child.ctxLma && child.pdx['i-gel'] === child.ctxIgel &&
+      child.pdx['LMA'] === '2.5' && child.pdx['i-gel'] === '2',
+      { shown:{ lma:child.pdx['LMA'], igel:child.pdx['i-gel'] },
+        ctx:{ lma:child.ctxLma, igel:child.ctxIgel } });
+    t('child: the airway plan is published and carries both devices',
+      !!child.airway && child.airway.lma === '2.5' &&
+      /^2\b/.test(String(child.airway.igel)),
+      child.airway);
+
+    /* THE SOURCE RULE. The workstation may read the clinical data; it may not
+       become clinical data. A dose literal here would be a second source of
+       truth that no drug-table test would ever check. */
+    t('induction.js declares no dose of its own',
+      !/\b(mg|mcg|microgram|units?)\s*\/\s*kg\b/i.test(INDC) &&
+      !/\bdoses\s*:/.test(INDC), 'a dose literal appeared in induction.js');
+    t('...and reads every drug through visibleDrugsInGroup',
+      /visibleDrugsInGroup/.test(INDC));
+    t('...and every airway value through window.airwayPlan',
+      /root\.airwayPlan/.test(INDC) &&
+      !/lmaForWeight|igelForWeight|neoETT/.test(INDC));
+    t('...and no strategy is chosen by default',
+      /var chosen = null/.test(INDC));
+    t('engine.html fills the workstation after it builds the host',
+      ENGC.indexOf('id="induction-host"') < ENGC.indexOf('window.Induction.render()'));
 
     await s.ctx.close();
 
