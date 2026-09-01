@@ -422,12 +422,22 @@ function ratio(fg, bg) {
      alarm — so the comparison spans both, as a multiset, and still fails if a
      single query is added, removed or altered anywhere in the workspace.
      Measured at the time of the move: identical to main. */
+  /* BOTH SIDES SPAN BOTH FILES. The comment above was written while
+     new-patient.js existed only on this side of the comparison, so the
+     baseline stayed at dashboard.html alone. Once the move landed on main,
+     origin/main gained new-patient.js too — and the assertion was comparing
+     46 queries against 43, failing permanently on a relocation it was
+     explicitly written not to flag. Compared file-for-file the workspace's
+     data access is identical to main, which is the claim being made. This is
+     a repair of the baseline, not a relaxation of it: the multiset still
+     fails if a single query is added, removed or altered anywhere. */
   const wsQueries = src('dashboard.html') + src('new-patient.js');
+  const mainQueries = onMain('dashboard.html') + onMain('new-patient.js');
   const tally = s => (s.match(/\.from\('[a-z_]+'\)/g) || []).sort().join();
   t('the workspace queries are unchanged',
-    tally(wsQueries) === tally(onMain('dashboard.html')),
-    tally(wsQueries) === tally(onMain('dashboard.html')) ? 'identical' :
-      { now:tally(wsQueries).slice(0,120), main:tally(onMain('dashboard.html')).slice(0,120) });
+    tally(wsQueries) === tally(mainQueries),
+    tally(wsQueries) === tally(mainQueries) ? 'identical' :
+      { now:tally(wsQueries).slice(0,160), main:tally(mainQueries).slice(0,160) });
   t('requireRole(\'staff\') still guards the workspace',
     /requireRole\(['"]staff['"]\)/.test(src('dashboard.html')));
   /* Three consultation labels changed in the Ask work; they promised
