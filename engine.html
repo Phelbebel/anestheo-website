@@ -243,8 +243,10 @@ html,body{background:var(--ground);}
 
    Colour is semantic and confined: the class label, and a 3px marker at the
    row's leading edge. The row ground stays graphite. Values come from
-   ClinicalContent.PCLASS, which follows the ISO 26825 syringe-label hues, so
-   what is on screen is what is on the syringe. */
+   ClinicalContent.PCLASS. Those are Anestheo interface colours, tuned for a
+   dark screen. They are NOT syringe-label colours and must not be read as
+   confirmation of what is in an ampoule — the class name in text is the
+   identification; the colour only helps the eye find the row again. */
 /* ══ DRUG REFERENCE — WORKSTATION CHROME ══════════════════════════════════
    Title and controls on one line, coloured class filters beneath, then the
    table. The panel's own furniture — grip, icon, chevron, resize — is stood
@@ -346,10 +348,9 @@ table.dtab tbody tr.dtab-r:has(+ .dtab-wrow:not([hidden])) td{border-bottom:none
 /* THE CLASS BADGE, IN THE TABLE ONLY. Elsewhere on the page the chip is a
    restrained marker beside a drug name; in a table it is the first column and
    it is what the eye runs down, so it becomes the solid block the schema
-   draws. That is also the ISO 26825 syringe label itself — a filled colour
-   field with dark text — rather than a tint of it, and dark-on-colour clears
-   AA on every one of the seven colours by a wide margin. Scoped to .dtab so
-   no other module changes. */
+   draws — a filled colour field with dark text rather than a tint of it, and
+   dark-on-colour clears AA on every class colour by a wide margin. Scoped to
+   .dtab so no other module changes. */
 #output .dtab .pc{
   display:inline-block;font-size:9px;font-weight:800;letter-spacing:.06em;
   padding:4px 8px;border-radius:3px;border-left:0;margin-right:0;
@@ -1430,8 +1431,8 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
    DRUG NAME (17/700 white) -> DOSE (22/700 tabular).
 
    Colour is never the only cue: every classified row also states its class in
-   text, so the system holds without colour vision. Hues follow ISO 26825
-   syringe labelling; --pc is set per row from the shared model.
+   text, so the system holds without colour vision. The hues are Anestheo's
+   own; --pc is set per row from the shared model.
    ══════════════════════════════════════════════════════════════════════════ */
 /* The bar is a background gradient, not a border or an inset shadow. A border
    mitres against the bottom hairline and an inset shadow stops short of it —
@@ -2876,7 +2877,12 @@ var DREF_LABEL = {
   vasopressor:'Vasopressors',
   anticholinergic:'Anticholinergics', reversal:'Reversal agents',
   local:'Local anesthetics', uterotonic:'Uterotonics',
-  betablocker:'Beta-blockers', haemostatic:'Hemostatics'
+  betablocker:'Beta-blockers', haemostatic:'Hemostatics',
+  /* Named alongside the rest so that when sevoflurane and ondansetron are
+     reviewed and published they arrive with their own filter rather than
+     falling into Miscellaneous. Empty categories never render: drefCats()
+     skips any class with no visible drug. */
+  inhalational:'Inhalational agents', antiemetic:'Antiemetics'
 };
 /* Hypnotics is one filter over two classes; the badge on each row still says
    which of the two it is. */
@@ -2917,8 +2923,9 @@ function drefRows(){
 function drefCats(){
   var counts = {}, all = drefDrugs();
   all.forEach(function(d){ var c = drefCat(d); counts[c] = (counts[c]||0)+1; });
-  var order = ['induction','opioid','nmb','vasopressor','anticholinergic','reversal',
-               'local','betablocker','uterotonic','haemostatic','other'];
+  var order = ['induction','inhalational','opioid','nmb','vasopressor','anticholinergic',
+               'reversal','local','betablocker','uterotonic','antiemetic','haemostatic',
+               'other'];
   var CC = window.ClinicalContent;
   var out = [{ id:'all', label:'All', n:all.length, color:null }];
   order.forEach(function(c){
@@ -3074,8 +3081,7 @@ function drefRender(){
     '</div>';
   /* Each chip wears its own class colour, the same one the row badge and the
      row's left rule use, so the filter and the thing it filters are visibly
-     the same object. The colours are the ISO 26825 syringe-label set already
-     in PCLASS; none is chosen here. */
+     the same object. The colours come from PCLASS; none is chosen here. */
   cats.innerHTML = drefCats().map(function(c){
     var style = c.color ? ' style="--cc:'+c.color+'"' : '';
     return '<button type="button" class="dref-cat'+(c.color?' tinted':'')+

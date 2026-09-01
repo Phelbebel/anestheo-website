@@ -79,9 +79,16 @@ function supportLine(item, dose, wt){
 }
 
 /* ── PHARMACOLOGIC CLASS — a clinical navigation system ──────────────────
-   Hues follow the ISO 26825 anaesthesia syringe-label convention so the colour
-   on screen matches the colour on the syringe. Values are screen-tuned: every
-   one clears WCAG AA (>=4.5:1) against the dark pane ground.
+   THESE ARE ANESTHEO INTERFACE COLOURS. THEY ARE NOT SYRINGE-LABEL COLOURS.
+   An earlier version of this comment claimed the hues followed ISO 26825 so
+   that "the colour on screen matches the colour on the syringe". That claim
+   is withdrawn: this palette was never derived from ISO 26825, it was tuned
+   for legibility on a dark screen, and inviting a clinician to match a screen
+   colour against a physical ampoule label is a drug-administration hazard.
+   Read the name. The colour is navigation, nothing more.
+
+   Values are screen-tuned: every one clears WCAG AA (>=4.5:1) against the
+   dark pane ground it is drawn on.
 
    Colour is NEVER the only cue. Every row also carries the class name in text,
    so the system works without colour vision and survives a monochrome print.
@@ -100,7 +107,17 @@ var PCLASS = {
   anticholinergic:{ label:'Anticholinergic', color:'#4FE39B', short:'ANTICHOLINERGIC' },
   local:        { label:'Local anaesthetic', color:'#C3D2CD', short:'LOCAL' },
   uterotonic:   { label:'Uterotonic',     color:'#FFFFFF', short:'UTEROTONIC' },
-  reversal:     { label:'Reversal agent', color:'#5FE0A4', short:'REVERSAL', zebra:true }
+  reversal:     { label:'Reversal agent', color:'#5FE0A4', short:'REVERSAL', zebra:true },
+  /* Three classes that had no entry, so sevoflurane, ondansetron and
+     tranexamic acid rendered a blank badge while every drug beside them
+     carried one. Hues are the three clearest gaps in the palette above —
+     cyan, pink and chartreuse — each further from its nearest neighbour
+     (dE 32-37 in CIELAB) than the existing palette's own closest pair
+     (anticholinergic and reversal, dE 8), and each clearing AA on the badge
+     ground at 7.0, 6.4 and 8.2:1. No existing colour is touched. */
+  inhalational: { label:'Inhalational anaesthetic', color:'#45D0D8', short:'INHALATIONAL' },
+  antiemetic:   { label:'Antiemetic',     color:'#FF8FC4', short:'ANTIEMETIC' },
+  haemostatic:  { label:'Haemostatic / Antifibrinolytic', color:'#B8E04A', short:'HAEMOSTATIC' }
 };
 /* Drugs with no class in the approved scheme render a neutral badge rather
    than an invented colour. */
@@ -403,6 +420,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'3 mg/kg' } },
 
 { id:'drug.tranexamic-acid', name:'Tranexamic acid', group:'haemostasis',
+  pclass:'haemostatic',
   aliases:['tranexamic acid','txa','cyklokapron','tranexamic','exacyl'],
   klass:'Antifibrinolytic',
   indications:['massive haemorrhage','trauma','postpartum haemorrhage'],
@@ -445,6 +463,7 @@ var DRUGS = [
                candidateSource:'National formulary', sourceAccessed:false } },
 
 { id:'drug.ondansetron', name:'Ondansetron', group:'antiemetic',
+  pclass:'antiemetic',
   aliases:['ondansetron','zofran','ondanse','setron'],
   klass:'5-HT3 receptor antagonist',
   indications:['postoperative nausea and vomiting','PONV prophylaxis'],
@@ -453,6 +472,7 @@ var DRUGS = [
                candidateSource:'Consensus PONV guideline + SmPC', sourceAccessed:false } },
 
 { id:'drug.sevoflurane', name:'Sevoflurane', group:'volatile',
+  pclass:'inhalational',
   aliases:['sevoflurane','sevo','sevorane','ultane'],
   klass:'Halogenated volatile anaesthetic',
   indications:['inhalational induction','maintenance of anaesthesia'],

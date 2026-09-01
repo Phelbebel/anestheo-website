@@ -389,6 +389,87 @@ async function openEngine(b, viewport) {
     t('...and each comes from its own helper',
       /_pedsLMA\s*=\s*lmaForWeight/.test(ENGC) && /_pedsIgel\s*=\s*\(igelForWeight/.test(ENGC));
 
+    /* ── DRUG CLASS COLOURS ─────────────────────────────────────────────
+       Three drugs carried no class at all, so they rendered a blank badge
+       beside drugs that had one. They have one now.
+
+       The bigger correction is what this palette CLAIMS to be. Five comments
+       across two files said the hues follow ISO 26825 "so the colour on
+       screen matches the colour on the syringe". They never did — the values
+       were chosen for legibility on a dark screen — and a clinician who
+       believes that sentence has been invited to confirm an ampoule by its
+       colour on a phone. The claim is withdrawn everywhere and asserted gone
+       here, because a false safety claim reintroduced by a well-meaning
+       comment would look exactly like a comment. */
+    console.log('\nDRUG CLASS COLOURS');
+    /* The withdrawal note quotes the sentence it is withdrawing, so it is
+       excluded before searching. Removing the quote would leave a future
+       reader no record of what was corrected or why. */
+    const ALLSRC = (ENG + IDX + read('live-tools.css') + IND)
+      .replace(/An earlier version of this comment[\s\S]*?nothing more\./, '');
+    t('no file claims ISO 26825 syringe-label colours', !/26825/.test(ALLSRC),
+      'an ISO 26825 claim is present');
+    t('...and none says the screen colour matches the syringe',
+      !/matche?s? the colour on the syringe|what is on the syringe/i.test(ALLSRC));
+    t('...and the withdrawal itself is still recorded in clinical-index.js',
+      /THEY ARE NOT SYRINGE-LABEL COLOURS/.test(IDX) && /26825/.test(IDX));
+
+    const pal = await s.pg.evaluate(`(() => {
+      const P = window.ClinicalContent.PCLASS || null;
+      const D = window.ClinicalContent.DRUGS;
+      const find = n => D.find(d => d.name === n);
+      return { classes: P ? Object.keys(P) : null,
+               meta: P ? { inhalational:P.inhalational, antiemetic:P.antiemetic,
+                           haemostatic:P.haemostatic } : null,
+               sevo:(find('Sevoflurane')||{}).pclass,
+               onda:(find('Ondansetron')||{}).pclass,
+               txa: (find('Tranexamic acid')||{}).pclass,
+               /* every previously shipped colour, unchanged */
+               kept: P ? [P.induction.color, P.benzo.color, P.opioid.color, P.nmb.color,
+                          P.vasopressor.color, P.anticholinergic.color, P.local.color,
+                          P.uterotonic.color, P.reversal.color].join(',') : null };
+    })()`);
+    t('Sevoflurane is an inhalational anaesthetic', pal.sevo === 'inhalational', pal.sevo);
+    t('Ondansetron is an antiemetic', pal.onda === 'antiemetic', pal.onda);
+    t('Tranexamic acid is a haemostatic / antifibrinolytic',
+      pal.txa === 'haemostatic', pal.txa);
+    t('the three classes carry the labels that were asked for',
+      pal.meta.inhalational.label === 'Inhalational anaesthetic' &&
+      pal.meta.antiemetic.label === 'Antiemetic' &&
+      pal.meta.haemostatic.label === 'Haemostatic / Antifibrinolytic',
+      pal.meta);
+    /* THE POINT OF THE WHOLE DECISION: adding classes must not restyle the
+       established ones. This is the exact shipped string. */
+    t('no established class colour moved',
+      pal.kept === '#FFD84D,#FFA23E,#6BB6FF,#FF7A6B,#C79BFF,#4FE39B,#C3D2CD,#FFFFFF,#5FE0A4',
+      pal.kept);
+
+    /* Contrast, computed rather than asserted from memory. Same rule the
+       comment states: AA against the ground the badge is actually drawn on. */
+    const contrast = await s.pg.evaluate(`(() => {
+      const lin = c => { c /= 255; return c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
+      const lum = ([r,g,b]) => 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b);
+      const hex = h => [1,3,5].map(i => parseInt(h.substr(i,2),16));
+      const page = [10,20,28];
+      const over = (f,a,b) => f.map((v,i) => v*a + b[i]*(1-a));
+      const ground = over([255,255,255], 0.024, page);
+      const P = window.ClinicalContent.PCLASS;
+      const out = {};
+      Object.keys(P).forEach(k => {
+        const c = hex(P[k].color);
+        const l1 = lum(c), l2 = lum(over(c, 0.15, ground));
+        out[k] = +(((Math.max(l1,l2)+0.05)/(Math.min(l1,l2)+0.05)).toFixed(2));
+      });
+      return out;
+    })()`);
+    const belowAA = Object.keys(contrast).filter(k => contrast[k] < 4.5);
+    t('every class colour clears WCAG AA on the badge ground',
+      belowAA.length === 0, belowAA.map(k => k + ' ' + contrast[k]));
+
+    /* Colour is never the only cue — the badge carries the class in text. */
+    t('the badge renderer always emits the class name, not colour alone',
+      /m\.short/.test(code(IDX)));
+
     /* ── THE INDUCTION WORKSTATION ──────────────────────────────────────
        induction.js composes; it must never decide. Three properties keep it
        honest, and each one is a rule the brief set explicitly:
