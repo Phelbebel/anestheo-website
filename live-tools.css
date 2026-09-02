@@ -705,3 +705,157 @@ button.rsi:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset
    taller than every card beside it. */
 .idc-top{flex-wrap:nowrap;}
 .idc-route{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   PHASE 2 · THE WORKSTATION SHELL
+   Identity, clinical-domain navigation and the patient command bar.
+
+   The rule for the whole phase: this is CHROME. It changes where things sit,
+   how dense they are and how loud they read. It computes nothing, stores
+   nothing and claims nothing the application does not already know.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · WORKSTATION IDENTITY ────────────────────────────────────────────
+   One row, 46px, and it says what the instrument is. It does NOT say the
+   instrument is healthy, connected, synced or monitoring: this application
+   holds no device link and no telemetry, and a status light that cannot fail
+   is decoration wearing a safety word. */
+.ws-id{border-bottom:1px solid var(--hair,rgba(255,255,255,.07));
+  background:linear-gradient(180deg,rgba(255,255,255,.022),transparent);}
+.ws-id-in{display:flex; align-items:center; gap:11px; min-height:46px; padding:0;}
+/* A quiet instrument mark, not a logo: two teal rules, the shape of a trace. */
+.ws-id-mark{flex:0 0 auto; width:15px; height:15px; border-radius:3px;
+  background:linear-gradient(150deg,var(--accent,#7ECFC0),rgba(126,207,192,.34));
+  box-shadow:0 0 0 1px rgba(126,207,192,.28) inset;}
+/* PARENT, THEN INSTRUMENT — not a second logo. The global navbar prints
+   "Anestheo" in brand weight 40px above this row; repeating it at the same
+   rank put the word on screen twice inside 70px and read as a duplicated
+   header rather than as a hierarchy. Anestheo is the quiet parent here and
+   LIVE TOOLS is the thing you are actually in. */
+.ws-id-tx{display:flex; flex-direction:column; gap:1px; min-width:0;}
+.ws-id-brand{font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3,#7d8b95); line-height:1;}
+.ws-id-tool{font-size:15px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
+  color:#fff; line-height:1.05; white-space:nowrap;}
+
+.ws-id-b{margin-left:0; flex:0 0 auto; display:inline-flex; align-items:center; gap:7px;
+  min-height:34px; padding:0 12px; font-family:inherit; font-size:12px; font-weight:700;
+  border-radius:var(--radius-sm,8px); cursor:pointer;
+  border:1px solid var(--line,rgba(255,255,255,.11));
+  background:rgba(255,255,255,.03); color:var(--ink-2,#c8d4da);}
+.ws-id-b:hover{background:rgba(255,255,255,.07); color:#fff;}
+.ws-id-b:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+.ws-id-find{margin-left:auto;}
+.ws-id-find kbd{font:inherit; font-size:10px; font-weight:700; color:var(--ink-3,#7d8b95);
+  border:1px solid rgba(255,255,255,.16); border-radius:4px; padding:1px 5px;}
+/* RED MEANS EMERGENCY AND NOTHING ELSE ON THIS PAGE. */
+.ws-id-sos{color:#FF8E76; border-color:rgba(226,90,70,.45); background:rgba(226,90,70,.12);}
+.ws-id-sos:hover{color:#fff; background:#C0392B; border-color:#C0392B;}
+
+/* ── 2 · CLINICAL DOMAIN NAVIGATION ──────────────────────────────────────
+   A control strip, not a tab bar from a web app: flat, dense, and the
+   selected domain marked by an indicator rather than a filled pill.
+
+   COLOUR IS NEVER THE ONLY CUE. The active domain carries a 2px lit rule, a
+   weight change, brighter ink AND aria-current — so it survives monochrome,
+   colour-vision deficiency, and a screen reader. */
+/* SPECIFICITY, NOT PREFERENCE. engine.html's inline <style> is parsed after
+   this file's <link>, so a bare `.cmd-in` here loses to the inline
+   `.cmd-in{padding:7px 0}` and the strip silently keeps its old height. The
+   id is what makes these rules actually apply. This cost 15px of header the
+   first time round and is the same trap the .ws-grid rule hit in Phase 1. */
+nav#cmd-strip{margin:0 0 9px;}
+/* The first tab's LABEL lines up with the identity mark above it, so the
+   left edge of the workstation is one line and not three. The negative inset
+   cancels the tab's own padding without shrinking its hit area. */
+#cmd-strip .cmd-in{gap:2px; padding:0; margin-left:-13px;}
+#cmd-strip .cmd-b{min-height:40px; padding:0 13px; font-size:12.5px; font-weight:600;
+  border:0; border-radius:0; color:var(--ink-3,#7d8b95);
+  box-shadow:inset 0 -2px 0 0 transparent;}
+#cmd-strip .cmd-b:hover{background:rgba(255,255,255,.045); color:var(--ink,#e8f1ee);}
+#cmd-strip .cmd-b.on{color:#fff; font-weight:800; background:rgba(126,207,192,.09);
+  box-shadow:inset 0 -2px 0 0 var(--accent,#7ECFC0);}
+#cmd-strip .cmd-b:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:-2px;}
+#cmd-strip .cmd-more{color:var(--ink-3,#7d8b95); font-weight:700;}
+
+/* The header row cost 46px, so it pays for itself out of the packaging
+   below rather than out of the workstation. Nothing here is content. */
+.eng-wrap .eng-notice{margin:0 0 9px;}
+#app.case-live:not(.pt-open) .case-bar{padding-top:11px; padding-bottom:11px;}
+
+/* ── 3 · THE PATIENT COMMAND BAR ─────────────────────────────────────────
+   The case and the numbers derived from it are one object, because they are
+   one thought: this patient, and what follows from this patient. They were
+   two stacked cards costing 133px; joined and tightened they cost about 92
+   and read as an instrument readout rather than as two panels.
+
+   Joined by BORDER, not by moving markup: renderContextStrip() still owns
+   #cw-derived and compute() still owns every number in it. When the form is
+   open the two separate again, which is correct — the form belongs between
+   them. */
+#app.case-live:not(.pt-open) .case-bar{
+  margin-bottom:0; border-bottom-left-radius:0; border-bottom-right-radius:0;
+  border-bottom-color:transparent;}
+#app.case-live:not(.pt-open) .eng-wrap #acc-derived{
+  margin-top:0; border-top-left-radius:0; border-top-right-radius:0;}
+#app.case-live:not(.pt-open) .eng-wrap .cw-derived{
+  border-top-left-radius:0; border-top-right-radius:0;
+  border-top:1px solid rgba(126,207,192,.14);
+  background:rgba(0,0,0,.20);}
+.eng-wrap .cw-derived .cw-d{padding:8px 13px;}
+.eng-wrap .cw-derived .cw-d-val{font-size:18px;}
+
+/* NEW CASE IS NOT THE POINT OF THE SCREEN. Phase 1 gave it flex:1 so the
+   controls filled the wrapped row; at 768 that made ending the case the
+   widest object on the page. It keeps a comfortable touch target and stops
+   growing. */
+@media(max-width:900px){
+  .case-bar .case-new,.case-bar .case-np{flex:0 1 auto; max-width:220px; min-height:44px;}
+  .case-bar .case-state{min-height:0;}
+}
+
+/* ── 4 · TABLET ──────────────────────────────────────────────────────────
+   Preserve the hierarchy; do not squeeze three desktop rows into one. */
+@media(max-width:900px){
+  .ws-id-in{min-height:52px; gap:9px;}
+  .ws-id-tool{font-size:14px;}
+  .ws-id-find-tx{display:none;}          /* the glyph and the / still say it */
+  /* 44px, NOT 34. A tablet is touched, and the desktop mouse target was
+     being inherited straight through to a finger. This was found by the
+     suite at 900 and 768, where the only shell control on screen was 10px
+     short of a comfortable one. */
+  .ws-id-b{min-height:44px;}
+  .ws-id-find{padding:0 13px; margin-left:auto;}
+  #cmd-strip .cmd-b{min-height:44px; padding:0 12px;}
+}
+/* ONE EMERGENCY CONTROL PER SCREEN. Below 1180px Phase 1's fixed SOS button
+   is on screen at all times and the header one scrolls away — so the header
+   would be carrying a worse duplicate of a control that is already there.
+   Two red buttons that do the same thing is not twice as safe; it is one
+   more thing to read in the second where reading is expensive. */
+@media(max-width:1179px){ .ws-id-sos{display:none;} }
+
+/* ── 5 · PHONE ───────────────────────────────────────────────────────────
+   RECOMPOSED, NOT SHRUNK. The identity row keeps its two actions at 44px and
+   drops the word "Search" rather than the control. The domain strip stays a
+   horizontally scrolled control strip — a native, one-handed gesture — with
+   a fade marking that there is more, because a strip that looks complete and
+   is not is worse than one that scrolls. */
+@media(max-width:620px){
+  .ws-id-in{min-height:46px; gap:8px;}
+  .ws-id-mark{width:13px; height:13px;}
+  .ws-id-brand{font-size:8.5px; letter-spacing:.12em;}
+  .ws-id-tool{font-size:13.5px;}
+  .ws-id-b{min-height:44px; padding:0 13px; font-size:12px;}
+  .cmd{position:sticky; top:0; z-index:40;
+    margin-left:-14px; margin-right:-14px; padding-left:14px; padding-right:14px;}
+  #cmd-strip .cmd-b{min-height:46px; font-size:13px; padding:0 14px;}
+  .cmd-in{position:relative;}
+  /* the strip scrolls; say so */
+  .cmd::after{content:''; position:absolute; top:0; right:0; bottom:0; width:26px;
+    pointer-events:none; background:linear-gradient(90deg,transparent,rgba(10,12,12,.92));}
+  /* two rows of scalars rather than seven squeezed cells */
+  .eng-wrap .cw-derived{flex-wrap:wrap;}
+  .eng-wrap .cw-derived .cw-d{flex:1 1 30%; min-width:0;}
+  .eng-wrap .cw-derived .cw-d-val{font-size:17px;}
+}

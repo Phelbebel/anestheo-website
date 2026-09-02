@@ -1,0 +1,376 @@
+#!/usr/bin/env node
+/* live-tools-shell.test.js — PHASE 2: THE WORKSTATION SHELL
+ *
+ * Identity, clinical-domain navigation and the patient command bar.
+ *
+ * The shell is CHROME. It changes where things sit, how dense they are and
+ * how loud they read. It computes nothing, stores nothing, and claims nothing
+ * the application does not already know. Every assertion below exists to hold
+ * one of those three lines, because chrome is exactly where a clinical claim
+ * can be smuggled onto a screen without anyone reviewing it as clinical.
+ *
+ * The two that matter most:
+ *
+ *   NO INVENTED STATUS. The design reference carries "connected", "monitoring
+ *   active", "system healthy". This application holds no device link, no
+ *   telemetry and no session health. A status light that cannot fail is
+ *   decoration wearing a safety word, and on a clinical screen that is a lie
+ *   with a colour.
+ *
+ *   NO SECOND CALCULATION STORE. Every number in the command bar is read from
+ *   the patientContext that compute() already built. The shell may present
+ *   them; it may not derive them.
+ */
+const { chromium } = require('/home/user/anestheo-website/node_modules/playwright');
+const fs = require('fs');
+
+const REPO = '/home/user/anestheo-website';
+const BASE = process.env.NB_BASE || 'http://127.0.0.1:8890';
+const MOCK = fs.readFileSync(process.env.NB_MOCK || '/tmp/adm/mock.js', 'utf8');
+
+let pass = 0, fail = 0;
+const fmt = d => d === undefined ? '' : (typeof d === 'string' ? d : JSON.stringify(d)).slice(0, 170);
+const t = (n, ok, d) => {
+  if (ok) { pass++; console.log('  ok   ' + n.padEnd(62) + ' ' + fmt(d)); }
+  else    { fail++; console.log('  FAIL ' + n.padEnd(62) + ' ' + fmt(d)); }
+};
+const read = p => fs.readFileSync(REPO + '/' + p, 'utf8');
+const code = s => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+const ENG = read('engine.html'), ENGC = code(ENG);
+const CSS = read('live-tools.css'), CSSC = code(CSS);
+
+const ADULT = { 'i-age':'42','i-sex':'M','i-height':'175','i-weight':'75','i-asa':'II',
+                'i-proc':'Laparoscopic cholecystectomy' };
+const PEDS  = { 'i-age':'4','i-sex':'F','i-height':'103','i-weight':'16','i-asa':'I',
+                'i-proc':'Tonsillectomy' };
+
+async function open(b, w, h, id) {
+  const ctx = await b.newContext({ viewport:{width:w,height:h}, isMobile:w<900, hasTouch:w<900 });
+  if (id) await ctx.addInitScript(({role,profile}) => {
+    window.__TEST_ROLE = role; if (profile) window.__TEST_PROFILE = profile; }, id);
+  await ctx.route('**/*', r => {
+    const u = r.request().url();
+    if (/cdn\.jsdelivr|unpkg/.test(u)) return r.fulfill({status:200,contentType:'text/javascript',body:MOCK});
+    if (/googleapis|gstatic/.test(u))  return r.fulfill({status:200,contentType:'text/css',body:''});
+    if (/youtube|ytimg|supabase\.co/.test(u)) return r.fulfill({status:200,contentType:'application/json',body:'[]'});
+    return r.continue();
+  });
+  const pg = await ctx.newPage();
+  const errs = [];
+  pg.on('pageerror', e => errs.push(String(e.message)));
+  pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  await pg.goto(BASE + '/engine.html', { waitUntil:'domcontentloaded' });
+  await pg.waitForTimeout(1800);
+  return { ctx, pg, errs };
+}
+const fill = (pg, o) => pg.evaluate(o => {
+  if (window.newCase) newCase();
+  const s = (i,v) => { const e = document.getElementById(i);
+    if (e) { e.value = v; e.dispatchEvent(new Event('change',{bubbles:true})); } };
+  Object.keys(o).forEach(k => s(k, o[k]));
+  compute(); if (window.ptSummary) ptSummary();
+}, o);
+
+(async () => {
+  console.log('\n=== LIVE TOOLS · WORKSTATION SHELL ==========================\n');
+
+  /* ── 1. THE SHELL INVENTS NOTHING ─────────────────────────────────────
+     Asserted against the SOURCE, because a fabricated status indicator is
+     a string literal long before it is a pixel. */
+  console.log('1. NO INVENTED STATUS, NO SECOND STORE');
+  const shellText = /<header class="ws-id"[\s\S]*?<\/header>/.exec(ENG);
+  t('the workstation identity block exists', !!shellText);
+  const idBlock = shellText ? shellText[0] : '';
+  t('...and claims no connectivity, monitoring or health state',
+    !/connected|online|offline|monitoring|synced|sync\b|live data|system (ok|healthy)|all systems|status/i
+      .test(code(idBlock)), code(idBlock).replace(/\s+/g,' ').slice(0,150));
+  t('...and names the tool, nothing more',
+    /Anestheo/.test(idBlock) && /Live Tools/i.test(idBlock));
+  /* A green dot is the specific lie this guards against. */
+  t('no status dot is styled into the identity row',
+    !/\.ws-id[^{]*\b(dot|pulse|status|beacon|led)\b/i.test(CSSC));
+
+  /* The shell must not compute. Any of these appearing in the identity or
+     command-bar chrome would be a second source of a clinical number. */
+  t('the shell declares no formula of its own',
+    !/ws-id[\s\S]{0,400}?(Math\.(round|pow|sqrt)|\*\s*weight|weight\s*\*)/i.test(ENGC));
+
+  /* ── 2. NAVIGATION IS HONEST ─────────────────────────────────────────
+     Every entry resolves to a workspace that renders panels. Nothing is
+     listed to match a picture. */
+  const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  try {
+    const s = await open(b, 1440, 1250);
+    await fill(s.pg, ADULT);
+    await s.pg.waitForTimeout(600);
+
+    console.log('\n2. CLINICAL DOMAIN NAVIGATION');
+    const nav = await s.pg.evaluate(`(() => {
+      const tabs = [...document.querySelectorAll('#cmd-strip .cmd-b[data-domain]')];
+      return { labels:tabs.map(a => a.textContent.trim()),
+               domains:tabs.map(a => a.getAttribute('data-domain')),
+               resolvable:tabs.map(a => {
+                 const d = a.getAttribute('data-domain');
+                 return { d, panels:document.querySelectorAll('.panel[data-domain="'+d+'"]').length };
+               }),
+               first:tabs[0] ? tabs[0].getAttribute('data-domain') : null,
+               hasSearchInStrip:!!document.querySelector('#cmd-strip .cmd-find'),
+               hasSosInStrip:!!document.querySelector('#cmd-strip .cmd-sos'),
+               searchInHeader:!!document.querySelector('#ws-id .ws-id-find'),
+               sosInHeader:!!document.querySelector('#ws-id .ws-id-sos') };
+    })()`);
+    t('every navigation entry resolves to a workspace with panels',
+      nav.resolvable.every(r => r.panels > 0), nav.resolvable.filter(r => !r.panels));
+    t('...and no entry exists that has no destination',
+      nav.domains.length === nav.resolvable.filter(r => r.panels > 0).length, nav.domains);
+    t('Induction is first and is the default workspace', nav.first === 'induction', nav.first);
+    /* The strip is domains and only domains now. */
+    t('search and emergency moved out of the domain strip',
+      !nav.hasSearchInStrip && !nav.hasSosInStrip);
+    t('...into the workstation header', nav.searchInHeader && nav.sosInHeader);
+
+    /* SELECTING A DOMAIN CHANGES WHAT IS ON SCREEN AND NOTHING ELSE. */
+    const sw = await s.pg.evaluate(`(() => {
+      const doseSnapshot = () => {
+        const CC = window.ClinicalContent, wt = window.patientContext.anthropometrics.weight, m = {};
+        CC.GROUPS.forEach(g => CC.visibleDrugsInGroup(g.id, wt)
+          .forEach(d => { m[d.id] = [d.val, d.unit, d.doseRule, d.warn].join('|'); }));
+        return JSON.stringify(m);
+      };
+      const before = doseSnapshot();
+      const derivedBefore = JSON.stringify(window.patientContext.derived);
+      const out = { moved:[] };
+      ['maintenance','analgesia','fluids','vasopressors','reversal','tiva','induction']
+        .forEach(d => {
+          const a = document.querySelector('#cmd-strip .cmd-b[data-domain="'+d+'"]');
+          a.click();
+          const cur = document.getElementById('output').dataset.domain;
+          if (cur !== d) out.moved.push(d + '->' + cur);
+        });
+      out.doseDrift = doseSnapshot() !== before;
+      out.derivedDrift = JSON.stringify(window.patientContext.derived) !== derivedBefore;
+      out.finalDomain = document.getElementById('output').dataset.domain;
+      return out;
+    })()`);
+    t('every tab selects the domain it names', sw.moved.length === 0, sw.moved);
+    t('...and selecting a domain changes no dose', sw.doseDrift === false);
+    t('...and no derived patient value', sw.derivedDrift === false);
+
+    /* COLOUR IS NOT THE ONLY SELECTED-STATE CUE. */
+    const state = await s.pg.evaluate(`(() => {
+      const on = document.querySelector('#cmd-strip .cmd-b.on');
+      const off = [...document.querySelectorAll('#cmd-strip .cmd-b[data-domain]')]
+        .find(a => !a.classList.contains('on'));
+      const cs = getComputedStyle(on), co = getComputedStyle(off);
+      return { current:on.getAttribute('aria-current'),
+               weightDiffers:cs.fontWeight !== co.fontWeight,
+               indicator:cs.boxShadow !== 'none' && cs.boxShadow !== co.boxShadow,
+               colourDiffers:cs.color !== co.color,
+               onWeight:cs.fontWeight, offWeight:co.fontWeight };
+    })()`);
+    t('the active domain is announced to a screen reader',
+      state.current === 'true', state.current);
+    t('...marked by an indicator, not only by colour', state.indicator === true);
+    t('...and by weight, so it survives a monochrome screen',
+      state.weightDiffers === true, { on:state.onWeight, off:state.offWeight });
+
+    /* Keyboard. Both element types in the strip must be reachable and fire. */
+    const kb = await s.pg.evaluate(`(() => {
+      const a = document.querySelector('#cmd-strip .cmd-b[data-domain="fluids"]');
+      a.focus();
+      const focused = document.activeElement === a;
+      const before = document.getElementById('output').dataset.domain;
+      a.dispatchEvent(new MouseEvent('click', { bubbles:true }));   /* Enter on an <a> */
+      const after = document.getElementById('output').dataset.domain;
+      const find = document.querySelector('#ws-id .ws-id-find');
+      find.focus();
+      const findFocusable = document.activeElement === find;
+      document.querySelector('#cmd-strip .cmd-b[data-domain="induction"]').click();
+      return { focused, changed: before !== after && after === 'fluids', findFocusable };
+    })()`);
+    t('a domain tab takes keyboard focus and activates', kb.focused && kb.changed, kb);
+    t('...and so does the header search control', kb.findFocusable === true);
+    t('focus-visible styling exists for the shell controls',
+      /#cmd-strip .cmd-b:focus-visible/.test(CSSC) && /\.ws-id-b:focus-visible/.test(CSSC));
+
+    /* ── 3. THE PATIENT COMMAND BAR ────────────────────────────────────
+       Every number read back out of the DOM must equal the value
+       patientContext already holds. */
+    console.log('\n3. PATIENT COMMAND BAR — CANONICAL VALUES ONLY');
+    const bar = await s.pg.evaluate(`(() => {
+      const cells = {};
+      [...document.querySelectorAll('#cw-derived .cw-d')].forEach(d => {
+        cells[d.querySelector('.cw-d-l').textContent.trim().replace(/\\\\s+/g,' ')] =
+          d.querySelector('.cw-d-val').textContent.trim();
+      });
+      const c = window.patientContext;
+      return { cells, ctxDerived:c.derived, ctxScalars:c.dosingScalars,
+               caseLine:document.querySelector('.case-state').textContent.replace(/\\\\s+/g,' ').trim() };
+    })()`);
+    const S = bar.ctxScalars, D = bar.ctxDerived;
+    t('TBW is shown, and it is dosingScalars.tbw',
+      bar.cells['TBW'] === String(S.tbw), { shown:bar.cells['TBW'], ctx:S.tbw });
+    t('IBW / LBW / Adjusted BW come from dosingScalars',
+      bar.cells['IBW'] === String(S.ibw) && bar.cells['LBW'] === String(S.lbw) &&
+      bar.cells['Adjusted BW'] === String(S.abw),
+      { ibw:[bar.cells['IBW'],S.ibw], lbw:[bar.cells['LBW'],S.lbw], abw:[bar.cells['Adjusted BW'],S.abw] });
+    t('BSA comes from dosingScalars, BMI and EBV from derived',
+      bar.cells['BSA'] === String(S.bsa) && bar.cells['BMI'] === String(D.bmi) &&
+      bar.cells['EBV'] === String(D.ebv),
+      { bsa:[bar.cells['BSA'],S.bsa], bmi:[bar.cells['BMI'],D.bmi], ebv:[bar.cells['EBV'],D.ebv] });
+    t('the case line carries age, sex, weight, height, ASA and procedure',
+      /42y/.test(bar.caseLine) && /Male/.test(bar.caseLine) && /75 kg/.test(bar.caseLine) &&
+      /175 cm/.test(bar.caseLine) && /ASA II/.test(bar.caseLine) &&
+      /Laparoscopic cholecystectomy/.test(bar.caseLine), bar.caseLine);
+
+    /* A NEW CASE SHOWS NO STALE NUMBER. This is the failure mode that matters:
+       a dose belonging to the previous patient still on screen. */
+    const stale = await s.pg.evaluate(`(() => {
+      newCase();
+      const vals = [...document.querySelectorAll('#cw-derived .cw-d-val')].map(e => e.textContent.trim());
+      return { vals, allBlank:vals.every(v => v === '\\u2014'),
+               caseLine:document.querySelector('.case-state').textContent.replace(/\\\\s+/g,' ').trim(),
+               ctx:window.patientContext ? window.patientContext.complete : null,
+               placeholders:vals.length };
+    })()`);
+    t('New Case leaves no stale derived value on screen',
+      stale.allBlank === true, stale.vals);
+    t('...keeps the shape of the bar rather than collapsing it',
+      stale.placeholders >= 7, stale.placeholders);
+    t('...and the case line says there is no patient',
+      /No active patient/i.test(stale.caseLine), stale.caseLine);
+
+    /* And the paediatric set stays the paediatric set. Devine IBW/LBW/ABW are
+       deliberately absent for a child — showing them is what once made a
+       10 kg one-year-old read IBW 50 kg. */
+    await fill(s.pg, PEDS); await s.pg.waitForTimeout(500);
+    const ped = await s.pg.evaluate(`(() => {
+      const labels = [...document.querySelectorAll('#cw-derived .cw-d-l')]
+        .map(e => e.textContent.trim().replace(/\\\\s+/g,' '));
+      const cells = {};
+      [...document.querySelectorAll('#cw-derived .cw-d')].forEach(d => {
+        cells[d.querySelector('.cw-d-l').textContent.trim()] = d.querySelector('.cw-d-val').textContent.trim(); });
+      const c = window.patientContext;
+      return { labels, cells, tbw:c.dosingScalars.tbw, lma:c.pediatric.lma, igel:c.pediatric.igel };
+    })()`);
+    t('a child gets the paediatric scalar set',
+      ped.labels.indexOf('IBW') < 0 && ped.labels.indexOf('LBW') < 0 &&
+      ped.labels.indexOf('Adjusted BW') < 0, ped.labels);
+    t('...with TBW, which is the weight and is defined for a child',
+      ped.cells['TBW'] === String(ped.tbw), { shown:ped.cells['TBW'], ctx:ped.tbw });
+    t('...and LMA and i-gel still shown independently',
+      ped.cells['LMA'] === ped.lma && ped.cells['i-gel'] === ped.igel,
+      { lma:[ped.cells['LMA'],ped.lma], igel:[ped.cells['i-gel'],ped.igel] });
+
+    /* ── 4. SEARCH IS THE EXISTING SEARCH ───────────────────────────── */
+    console.log('\n4. SEARCH');
+    t('the header control calls the existing ClinicalSearch',
+      /ws-id-find[\s\S]{0,200}ClinicalSearch\.open/.test(ENG));
+    t('...and no second search implementation was added',
+      !/function\s+\w*[Ss]earch\w*\s*\(/.test(code(CSS)) &&
+      (ENGC.match(/window\.ClinicalSearch/g) || []).length > 0);
+    const search = await s.pg.evaluate(`(() => {
+      let called = null;
+      const real = window.ClinicalSearch;
+      window.ClinicalSearch = { open:function(q){ called = (q === undefined ? '<undef>' : q); } };
+      document.querySelector('#ws-id .ws-id-find').click();
+      window.ClinicalSearch = real;
+      return { called, realExists:!!(real && real.open) };
+    })()`);
+    t('...and pressing it opens that search', search.called === '' && search.realExists,
+      search);
+
+    await s.ctx.close();
+
+    /* ── 5. RESPONSIVE SHELL ─────────────────────────────────────────── */
+    console.log('\n5. RESPONSIVE SHELL');
+    for (const [w, h] of [[1440,1250],[1180,1000],[900,1000],[768,1024],[600,900],[390,844]]) {
+      const v = await open(b, w, h);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(600);
+      const r = await v.pg.evaluate(`(() => {
+        const el = s => document.querySelector(s);
+        const box = s => { const e = el(s); return e ? Math.round(e.getBoundingClientRect().height) : null; };
+        const small = [...document.querySelectorAll('#ws-id button, #cmd-strip .cmd-b, .case-new, .case-np')]
+          .filter(e => e.offsetParent && e.getBoundingClientRect().height < 40)
+          .map(e => (e.className||'') + ':' + Math.round(e.getBoundingClientRect().height));
+        const clipped = [...document.querySelectorAll('.case-state, .case-state *, #cw-derived *, #ws-id *')]
+          .filter(e => e.children.length === 0 && e.scrollWidth > e.clientWidth + 2 &&
+                       getComputedStyle(e).textOverflow !== 'ellipsis')
+          .map(e => (e.className||e.tagName) + ':' + e.textContent.slice(0,24));
+        /* offsetParent IS NULL FOR position:fixed. The SOS button is fixed,
+           so the first version of this line counted it as hidden at every
+           width it is actually the only emergency control — and reported the
+           page as having none. Computed display is the honest test. */
+        const shown = e => { const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+          return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0; };
+        const sos = [...document.querySelectorAll('#ws-id .ws-id-sos, .ws-sos')]
+          .filter(shown).length;
+        return { overflow:document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                 idH:box('#ws-id'), navH:box('#cmd-strip'), small, clipped, sos,
+                 caseText:el('.case-state').textContent.replace(/\\\\s+/g,' ').trim(),
+                 scalars:document.querySelectorAll('#cw-derived .cw-d').length };
+      })()`);
+      const P = w + ': ';
+      t(P + 'no horizontal page overflow', r.overflow <= 0, r.overflow);
+      t(P + 'no clipped command-bar or header content', r.clipped.length === 0, r.clipped);
+      t(P + 'the case line still says everything',
+        /42y/.test(r.caseText) && /75 kg/.test(r.caseText) &&
+        /Laparoscopic cholecystectomy/.test(r.caseText), r.caseText);
+      t(P + 'all scalars present', r.scalars >= 7, r.scalars);
+      /* 44px touch ergonomics wherever a finger is expected. */
+      if (w <= 900) t(P + 'shell controls are at least 40px tall', r.small.length === 0, r.small);
+      t(P + 'exactly one emergency control is on screen', r.sos === 1, r.sos);
+      t(P + 'no runtime errors', v.errs.length === 0, v.errs.slice(0,2));
+      await v.ctx.close();
+    }
+
+    /* ── 6. ACCESS MODEL UNCHANGED ───────────────────────────────────── */
+    console.log('\n6. PUBLIC AND ROLE BEHAVIOUR');
+    /* The shell must not restate an auth predicate. The approved layer is the
+       only place that decides. */
+    const shellSrc = /<header class="ws-id"[\s\S]*?<\/nav>/.exec(ENG);
+    t('the shell restates no authentication predicate',
+      !/verification_status|role\s*===|is_admin|unverifiedDoctor|requireRole|requireAuth/
+        .test(shellSrc ? shellSrc[0] : ''), 'a predicate appeared in the shell markup');
+    t('...and adds no redirect', !/ws-id[\s\S]{0,300}location\.(href|replace)/.test(ENGC));
+
+    const IDS = {
+      anonymous:{ role:'anon', profile:null },
+      'verified doctor':{ role:'session', profile:{ role:'doctor', verification_status:'verified',
+        full_name:'Dr V', professional_level:'specialist', medical_license_number:'L1',
+        country:'GE', hospital:'H', specialty:'anesthesiology' } },
+      patient:{ role:'session', profile:{ role:'patient', verification_status:'not_required',
+        full_name:'Pat' } }
+    };
+    for (const k of Object.keys(IDS)) {
+      const v = await open(b, 1440, 1150, IDS[k]);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(600);
+      const r = await v.pg.evaluate(`(() => {
+        const np = document.querySelector('.case-np');
+        return { url:location.pathname,
+                 shell:!!document.getElementById('ws-id'),
+                 navTabs:document.querySelectorAll('#cmd-strip .cmd-b[data-domain]').length,
+                 clinicalUsable:!!document.getElementById('i-weight') &&
+                   /mg\\/kg/.test(document.getElementById('output').textContent),
+                 search:!!document.querySelector('#ws-id .ws-id-find'),
+                 newPatientPresent:!!np, newPatientVisible:!!(np && np.offsetParent) };
+      })()`);
+      t(k + ': stays on Live Tools, no redirect', r.url === '/engine.html', r.url);
+      t(k + ': gets the whole shell and every domain', r.shell && r.navTabs === 11,
+        { shell:r.shell, tabs:r.navTabs });
+      t(k + ': clinical reference remains usable without logging in',
+        r.clinicalUsable === true);
+      t(k + ': search is available', r.search === true);
+      /* Staff-only stays staff-only, decided by the approved layer. */
+      t(k + ': New Patient is present but not granted by the shell',
+        r.newPatientPresent === true && r.newPatientVisible === false,
+        { present:r.newPatientPresent, visible:r.newPatientVisible });
+      await v.ctx.close();
+    }
+  } finally {
+    await b.close();
+  }
+
+  console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
+  process.exit(fail ? 1 : 0);
+})();

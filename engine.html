@@ -1887,16 +1887,49 @@ body .nb-search-wrap{display:none !important;}
          this tool — a different level, so the two do not compete. Rendered
          from navbar.js so adding a third tool is one entry, not three edits. -->
     <div id="tools-bar"></div>
-    <!-- ── CLINICAL COMMAND STRIP ───────────────────────────────────────
-         The workstation's global navigation. It replaces the marketing hero
-         that used to occupy the top of the page: a clinician arriving mid-case
-         needs to know WHERE THE DOMAINS ARE, not what the product is called.
-         Sticky, so the domains stay reachable from anywhere in the document
-         instead of requiring a scroll back to the top. Emergency is a
-         permanent member, which is what lets the Crisis Center module sit in
-         its natural place in the flow rather than ahead of the drugs. -->
+
+    <!-- ══ WORKSTATION HEADER ═══════════════════════════════════════════
+         WHICH INSTRUMENT THIS IS. #tools-bar above only renders for a doctor
+         or an admin — an anonymous clinician, who is exactly who this page is
+         now open to, sees nothing there — so the identity cannot live in it.
+         It is one row: identity left, the two things that must be reachable
+         from any domain on the right.
+
+         NO STATUS LIGHT. The reference design carries "connected", "monitoring
+         active" and similar reassurances. This application knows none of those
+         things: it holds no device link, no telemetry and no session health,
+         and a green dot claiming otherwise on a clinical screen is a lie with
+         a colour. The only thing said here is what the tool is. -->
+    <header class="ws-id" id="ws-id">
+      <div class="ws-id-in">
+        <span class="ws-id-mark" aria-hidden="true"></span>
+        <span class="ws-id-tx">
+          <span class="ws-id-brand">Anestheo</span>
+          <span class="ws-id-tool">Live Tools</span>
+        </span>
+        <!-- SAME HANDLERS, MOVED. Search still opens clinical-search.js and
+             Emergency still calls crisisJump(); only their position changes,
+             so that the strip below is domains and nothing else. -->
+        <button class="ws-id-b ws-id-find" type="button"
+                onclick="if(window.ClinicalSearch)window.ClinicalSearch.open('')"
+                aria-label="Search all clinical content"><span aria-hidden="true">&#9906;</span><span class="ws-id-find-tx">Search</span><kbd>/</kbd></button>
+        <button class="ws-id-b ws-id-sos" type="button" onclick="crisisJump()"
+                aria-label="Open the Crisis Center emergency protocols">
+          <span aria-hidden="true">&#9888;</span>Emergency</button>
+      </div>
+    </header>
+
+    <!-- ── CLINICAL DOMAIN NAVIGATION ───────────────────────────────────
+         The workstation's global navigation, and now ONLY that: search and
+         emergency moved up into the header, so a row that reads as "where am
+         I in the case" is not also carrying two controls that are not
+         domains. Sticky, so the domains stay reachable from anywhere in the
+         document instead of requiring a scroll back to the top.
+
+         Every entry below resolves to a workspace that actually renders
+         panels. Nothing is listed here to match a picture. -->
     <nav class="cmd" id="cmd-strip" aria-label="Clinical domains">
-      <div class="cmd-in">
+      <div class="cmd-in" role="tablist">
         <!-- THE ORDER OF A CASE, not a list of equipment categories.
              Induction is first and is the default workspace. The last four
              are lower-frequency and fold into More when width requires it. -->
@@ -1914,14 +1947,11 @@ body .nb-search-wrap{display:none !important;}
              route: every domain stays one click away at every width. -->
         <button class="cmd-b cmd-more" type="button" onclick="cmdMore(this)"
                 aria-expanded="false">More &#9662;</button>
-        <button class="cmd-b cmd-find" type="button" onclick="if(window.ClinicalSearch)window.ClinicalSearch.open('')"
-                aria-label="Search all clinical content"><span>Search</span><kbd>/</kbd></button>
-        <!-- Carries data-domain so it lights up like every other selector when
-             the emergency workspace is the one on screen. It is still a button
-             and still calls crisisJump(), which opens the protocol as well as
-             switching the domain. -->
-        <button class="cmd-b cmd-sos" type="button" onclick="crisisJump()" data-domain="emergency"
-                aria-label="Open the Crisis Center emergency protocols">Emergency</button>
+        <!-- The emergency WORKSPACE is a domain like the others and is
+             selected like the others. The loud Emergency ACTION lives in the
+             header, where it is reachable without scrolling this strip. -->
+        <a class="cmd-b cmd-fold" href="#/emergency" data-jump="crisis-center"
+           data-domain="emergency">Crisis Center</a>
       </div>
     </nav>
 
@@ -4543,8 +4573,9 @@ function renderContextStrip(){
     if(tagEl) tagEl.textContent = '';
     var s0 = ge('acc-derived'); if(s0) s0.classList.remove('has-tag');
     host.className = 'cw-derived';
-    host.innerHTML = blank([['BMI',''],['IBW','kg'],['LBW','kg'],['Adjusted BW','kg'],
-                            ['BSA','m&sup2;'],['EBV','mL'],['MAC','','age-adj']]);
+    host.innerHTML = blank([['TBW','kg'],['BMI',''],['IBW','kg'],['LBW','kg'],
+                            ['Adjusted BW','kg'],['BSA','m&sup2;'],['EBV','mL'],
+                            ['MAC','','age-adj']]);
     return;
   }
 
@@ -4557,7 +4588,8 @@ function renderContextStrip(){
        read IBW 50 kg. They remain in ctx.dosingScalars for any drug whose
        rule is genuinely defined against one. */
     var P = ctx.pediatric || {};
-    cells = cell('BSA', ctx.dosingScalars.bsa, 'm&sup2;') +
+    cells = cell('TBW', ctx.dosingScalars.tbw, 'kg') +
+            cell('BSA', ctx.dosingScalars.bsa, 'm&sup2;') +
             cell('EBV', P.ebv, 'mL') +
             cell('Maintenance', P.maintenance421, 'mL/h') +
             cell('ETT', P.ett, 'mm ID') +
@@ -4571,7 +4603,13 @@ function renderContextStrip(){
   } else {
     tag = 'Adult context';
     var S = ctx.dosingScalars || {};
-    cells = cell('BMI', d.bmi, '') +
+    /* TBW LEADS THE SCALARS. Nearly every dose on this page is written
+       "mg/kg TBW", so the basis those rules are against belongs beside the
+       weights they are compared with. It is not a new calculation: it is
+       ctx.dosingScalars.tbw, which compute() already sets to the entered
+       weight, shown rather than left implicit. */
+    cells = cell('TBW', S.tbw, 'kg') +
+            cell('BMI', d.bmi, '') +
             cell('IBW', S.ibw, 'kg') +
             cell('LBW', S.lbw, 'kg') +
             cell('Adjusted BW', S.abw, 'kg') +
