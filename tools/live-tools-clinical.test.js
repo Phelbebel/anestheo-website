@@ -421,10 +421,14 @@ async function openEngine(b, viewport) {
       leads[d].sub), doms.filter(d => !leads[d] || !leads[d].title || !leads[d].sub));
     /* "Phase 3", not a bare 3 in a circle — the circle is what the Induction
        sections use for their steps, and on a phone the two sat touching. */
-    t('the eight phases of a case are numbered in order',
+    /* WAS: "Phase 1..8". "Phase" was development vocabulary that reached the
+       product — a clinician does not think in phases of a rebuild. The
+       ordinal survives because it still orders the eight workspaces of a
+       case; only the word is gone, and its absence is asserted separately. */
+    t('the eight workspaces of a case are numbered in order',
       ['induction','maintenance','tiva','analgesia','reversal','fluids','vasopressors','local']
         .map(d => leads[d].num).join(',') ===
-      'Phase 1,Phase 2,Phase 3,Phase 4,Phase 5,Phase 6,Phase 7,Phase 8',
+      '1 of 8,2 of 8,3 of 8,4 of 8,5 of 8,6 of 8,7 of 8,8 of 8',
       ['induction','maintenance','tiva','analgesia','reversal','fluids','vasopressors','local']
         .map(d => d + ':' + leads[d].num));
     /* Reachable at ANY point in the case, so they are not a step in it. The
@@ -604,93 +608,155 @@ async function openEngine(b, viewport) {
                segOn: ${ind('.pl-sg.on')}.length,
                refScrolls: (() => { const r = host.querySelector('.idref');
                  return !!r && getComputedStyle(r).overflowY === 'auto'; })(),
-               openLists: ${ind('.pl-alts')}.length };
+               openLists: ${ind('.pl-alts')}.length,
+               noRouteControl: !${ind('.pl-sg')}
+                 .some(b => /^(IV|Inhalational)$/i.test(b.textContent.trim())),
+               noDevWords: !/phase\s*\d/i.test(document.querySelector('.eng-wrap').innerText),
+               geo: (() => {
+                 const b = s => { const e = document.querySelector(s);
+                   return e ? e.getBoundingClientRect() : null; };
+                 const m = b('.wf-col-main'), sd = b('.wf-col-side'), f = b('.wf-full');
+                 return m && sd && f ? {
+                   mainX:Math.round(m.x), sideX:Math.round(sd.x),
+                   mainY:Math.round(m.y), sideY:Math.round(sd.y),
+                   refY:Math.round(f.y), refW:Math.round(f.width),
+                   split:Math.round(100*m.width/(m.width+sd.width)) } : null; })() };
     })()`);
     /* THE PAGE IS THE PLAN. Four sections for an adult, and the first one is
        the thing the screen exists to answer. */
-    t('adult: the plan leads, then airway, backup and reference',
+    /* Derived from the geometry above rather than asserted separately. */
+    adult.airwayBeside = !!adult.geo && adult.geo.sideX > adult.geo.mainX &&
+                         Math.abs(adult.geo.sideY - adult.geo.mainY) < 40;
+    adult.refBelowBoth = !!adult.geo && adult.geo.refY > adult.geo.mainY &&
+                         adult.geo.refW > 600;
+    /* THE WORKSTATION GEOMETRY: the plan and the airway are two halves of one
+       decision and sit side by side; the reference spans beneath both. */
+    t('adult: plan, airway with its backup, then the reference',
       adult.titles.join(' / ') ===
-      'Induction plan / Airway plan / Backup difficult airway plan / Induction drug reference',
+      'Induction plan / Airway plan / Backup difficult airway / Quick drug reference',
       adult.titles);
+    t('...the airway column sits BESIDE the plan, not under it',
+      adult.airwayBeside === true, adult.geo);
+    t('...and the reference spans the centre beneath both',
+      adult.refBelowBoth === true, adult.geo);
     t('...with one row per canonical clinical role',
       adult.roles.join(',') === 'induction,analgesia,nmb', adult.roles);
     t('adult: the paediatric section does not exist — not hidden, absent',
       adult.pedsNodes === 0 && adult.pedsWords === false,
       { nodes:adult.pedsNodes, words:adult.pedsWords });
     /* THE CLAIM THAT MATTERS MOST, and it is now checkable in one number. */
+    t('adult: the centre splits about 60/40 between plan and airway',
+      !!adult.geo && adult.geo.split >= 55 && adult.geo.split <= 65,
+      adult.geo && adult.geo.split);
+    /* Development vocabulary must not reach a clinician. */
+    t('adult: no "Phase n" anywhere in the product UI', adult.noDevWords === true);
+    /* The route control duplicated what the agents already say and
+       contradicted itself the moment a plan held both a volatile and an IV
+       agent. It is gone, not hidden. */
+    t('adult: there is no primary Route selector',
+      adult.noRouteControl === true && !/id:'inhalational'/.test(INDC));
     t('adult: nothing is selected, and no control is pre-set',
       adult.selected === 0 && adult.segOn === 0, adult);
     t('adult: no catalogue is open until one is asked for', adult.openLists === 0);
     t('adult: the induction reference scrolls in its own box',
       adult.refScrolls === true);
 
-    /* ── BUILD A PLAN, REPLACE, REMOVE ──────────────────────────────────
-       The workflow a clinician actually performs, in order. */
+    /* ── BUILD A PLAN: ADD, ADD AGAIN, REMOVE ONE ──────────────────────
+       A ROLE MAY HOLD MORE THAN ONE AGENT. An earlier revision made selection
+       a replace, so choosing a second opioid silently removed the first —
+       which is wrong about anaesthesia, not merely opinionated about UI. A
+       plan carrying midazolam and propofol, or fentanyl and remifentanil, is
+       ordinary. These assert that adding adds, and that removal takes exactly
+       one agent out. */
     const built = await s.pg.evaluate(`(() => {
-      const pick = (role, id) => {
-        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] .pl-rb').click();
-        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] [data-alt="'+id+'"]').click();
-      };
+      /* Only one role's list is open at a time, so add() opens the role it
+         needs rather than assuming the previous call left it open. */
+      const sel = (role, x) =>
+        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] '+x);
+      const open = role => { if (!sel(role,'.pl-alts')) sel(role,'.pl-rb').click(); };
+      const add = (role, id) => { open(role); sel(role,'[data-alt="'+id+'"]').click(); };
       const read = () => ${ind('.pl-role')}.map(r => ({
         role:r.dataset.role,
-        drug:(r.querySelector('.pl-sel-n')||{}).textContent||null,
-        rule:(r.querySelector('.pl-rule')||{}).textContent||null,
-        amt:(r.querySelector('.pl-amt')||{}).textContent||null,
-        warn:!!r.querySelector('.idc-warn'),
-        prep:!!r.querySelector('.pl-prep') }));
-      pick('induction','drug.propofol');
-      pick('analgesia','drug.fentanyl');
-      pick('nmb','drug.rocuronium');
+        drugs:[...r.querySelectorAll('.pl-sel-n')].map(e => e.textContent),
+        rules:[...r.querySelectorAll('.pl-rule')].map(e => e.textContent),
+        amts:[...r.querySelectorAll('.pl-amt')].map(e => e.textContent),
+        warns:r.querySelectorAll('.idc-warn').length,
+        preps:r.querySelectorAll('.pl-prep').length }));
+      add('induction','drug.propofol');
+      add('analgesia','drug.fentanyl');
+      add('nmb','drug.rocuronium');
       const three = read();
-      pick('induction','drug.ketamine');          /* replace */
-      const swapped = read();
-      document.querySelector('#induction-host .pl-role[data-role="analgesia"] .pl-x').click();
-      const removed = read();
-      return { three, swapped, removed,
+      /* a SECOND agent in a role the clinician has already filled */
+      add('induction','drug.midazolam');
+      const two = read();
+      /* removing one must not disturb the other */
+      const card = [...document.querySelectorAll('#induction-host .pl-role[data-role="induction"] .pl-sel')]
+        .find(c => /Propofol/.test(c.textContent));
+      card.querySelector('.pl-x').click();
+      const afterRemove = read();
+      /* pressing an already-selected agent in the list takes it out too */
+      add('analgesia','drug.fentanyl');       /* pressing it again removes it */
+      const afterToggleOff = read();
+      return { three, two, afterRemove, afterToggleOff,
                sub:(document.querySelector('#induction-host .wf-sub')||{}).textContent };
     })()`);
-    const byRole = (a, r) => a.filter(x => x.role === r)[0];
+    const R = (a, r) => a.filter(x => x.role === r)[0];
     t('a selected agent enters its role, and only its role',
-      byRole(built.three,'induction').drug === 'Propofol' &&
-      byRole(built.three,'analgesia').drug === 'Fentanyl' &&
-      byRole(built.three,'nmb').drug === 'Rocuronium', built.three.map(x => x.drug));
-    /* CANONICAL DOSE, VISIBLE IMMEDIATELY — the rule and the amount for THIS
-       patient, both straight from renderDose(). 75 kg: 1.5–2.5 mg/kg = 113–188. */
+      R(built.three,'induction').drugs.join() === 'Propofol' &&
+      R(built.three,'analgesia').drugs.join() === 'Fentanyl' &&
+      R(built.three,'nmb').drugs.join() === 'Rocuronium',
+      built.three.map(x => x.drugs));
+    /* CANONICAL DOSE, VISIBLE IMMEDIATELY. 75 kg: 1.5–2.5 mg/kg = 113–188. */
     t('...showing the per-kg rule and the amount for this patient',
-      /1\.5–2\.5\s*mg\/kg TBW/.test(byRole(built.three,'induction').rule) &&
-      /113–188/.test(byRole(built.three,'induction').amt),
-      byRole(built.three,'induction'));
+      /1\.5–2\.5\s*mg\/kg TBW/.test(R(built.three,'induction').rules[0]) &&
+      /113–188/.test(R(built.three,'induction').amts[0]),
+      R(built.three,'induction'));
     t('...with its preparation and its warning',
-      byRole(built.three,'induction').prep && byRole(built.three,'induction').warn &&
-      byRole(built.three,'nmb').warn, built.three);
-    t('choosing another agent for a role REPLACES it',
-      byRole(built.swapped,'induction').drug === 'Ketamine' &&
-      built.swapped.filter(x => x.drug === 'Propofol').length === 0,
-      built.swapped.map(x => x.drug));
-    t('...and the replacement brings its own canonical dose',
-      /1–2\s*mg\/kg TBW/.test(byRole(built.swapped,'induction').rule) &&
-      /75–150/.test(byRole(built.swapped,'induction').amt),
-      byRole(built.swapped,'induction'));
-    t('removing an agent empties its role and leaves the others',
-      byRole(built.removed,'analgesia').drug === null &&
-      byRole(built.removed,'induction').drug === 'Ketamine' &&
-      byRole(built.removed,'nmb').drug === 'Rocuronium',
-      built.removed.map(x => x.drug));
+      R(built.three,'induction').preps === 1 && R(built.three,'induction').warns === 1 &&
+      R(built.three,'nmb').warns === 1, built.three);
+    /* THE CORRECTION. */
+    t('a second agent in the same role JOINS the first',
+      R(built.two,'induction').drugs.length === 2 &&
+      R(built.two,'induction').drugs.indexOf('Propofol') >= 0 &&
+      R(built.two,'induction').drugs.indexOf('Midazolam') >= 0,
+      R(built.two,'induction').drugs);
+    t('...each with its own canonical dose',
+      R(built.two,'induction').amts.length === 2 &&
+      R(built.two,'induction').amts.every(a => a.length > 0),
+      R(built.two,'induction').amts);
+    t('...and the other roles are untouched',
+      R(built.two,'analgesia').drugs.join() === 'Fentanyl' &&
+      R(built.two,'nmb').drugs.join() === 'Rocuronium', built.two.map(x => x.drugs));
+    t('removing one agent leaves the other in that role',
+      R(built.afterRemove,'induction').drugs.join() === 'Midazolam',
+      R(built.afterRemove,'induction').drugs);
+    t('...and leaves every other role alone',
+      R(built.afterRemove,'analgesia').drugs.join() === 'Fentanyl' &&
+      R(built.afterRemove,'nmb').drugs.join() === 'Rocuronium',
+      built.afterRemove.map(x => x.drugs));
+    t('pressing a selected agent in the list removes it too',
+      R(built.afterToggleOff,'analgesia').drugs.length === 0,
+      R(built.afterToggleOff,'analgesia').drugs);
 
     /* ALTERNATIVES ARE STILL ALL THERE — under the role they belong to
        rather than in a catalogue at the bottom of the page. */
     const alts = await s.pg.evaluate(`(() => {
-      document.querySelector('#induction-host .pl-role[data-role="induction"] .pl-rb').click();
+      const btn = document.querySelector('#induction-host .pl-role[data-role="induction"] .pl-rb');
+      if (!document.querySelector('#induction-host .pl-role[data-role="induction"] .pl-alts')) btn.click();
       const open = ${ind('.pl-alts')};
       const names = [...open[0].querySelectorAll('.pl-alt-n')].map(e => e.textContent);
       const doses = [...open[0].querySelectorAll('.pl-alt-d')].map(e => e.textContent.trim());
       const CC = window.ClinicalContent;
       const canonical = CC.visibleDrugsInGroup('induction',
         window.patientContext.anthropometrics.weight).map(d => d.name);
+      /* the plan is listed ABOVE its own menu, not below it */
+      const role = document.querySelector('#induction-host .pl-role[data-role="induction"]');
+      const kids = [...role.children].map(e => e.className.split(' ')[0]);
       /* one list at a time */
       document.querySelector('#induction-host .pl-role[data-role="nmb"] .pl-rb').click();
       const after = ${ind('.pl-alts')}.length;
-      return { names, canonical, doses, openCount:open.length, after };
+      return { names, canonical, doses, openCount:open.length, after,
+               planBeforeMenu: kids.indexOf('pl-cards') < kids.indexOf('pl-alts') };
     })()`);
     t('every canonical agent in the role is offered',
       alts.names.join() === alts.canonical.join(), { shown:alts.names, canonical:alts.canonical });
@@ -698,16 +764,18 @@ async function openEngine(b, viewport) {
       alts.doses.every(d => d.length > 0), alts.doses);
     t('...one role\'s alternatives open at a time',
       alts.openCount === 1 && alts.after === 1, alts);
+    t('...and the plan is listed above its own menu',
+      alts.planBeforeMenu === true);
 
-    /* ── ROUTE AND TECHNIQUE RECORD; THEY DO NOT PRESCRIBE ──────────────
-       The compact controls replace two numbered sections whose effect was
-       invisible. What must not change is that neither touches a dose. */
+    /* ── TECHNIQUE RECORDS; IT DOES NOT PRESCRIBE ───────────────────────
+       There is no route control any more, so only technique is exercised —
+       and what must not change is that it touches no dose. */
     const ctl = await s.pg.evaluate(`(() => {
       const before = ${doseSnapshot};
       const plan = () => ${ind('.pl-sel-n')}.map(e => e.textContent);
       const planBefore = plan();
       const seg = txt => ${ind('.pl-sg')}.find(x => x.textContent.trim() === txt);
-      seg('Inhalational').click();
+      seg('Modified RSI').click();
       const afterRoute = { doses: ${doseSnapshot}, plan: plan(),
         pressed: ${ind('.pl-sg.on')}.map(x => x.textContent.trim()) };
       seg('Classic RSI').click();
@@ -721,19 +789,18 @@ async function openEngine(b, viewport) {
                techniqueOnDrug: ${ind('.pl-sel, .pl-alt')}
                  .some(e => /classic|modified/i.test(e.textContent)) };
     })()`);
-    t('route: not one dose changes',
+    t('technique: switching between techniques changes no dose',
       JSON.stringify(ctl.before) === JSON.stringify(ctl.afterRoute.doses),
       Object.keys(ctl.before).filter(k => ctl.before[k] !== ctl.afterRoute.doses[k]));
-    t('route: and no drug enters or leaves the plan',
+    t('technique: and no drug enters or leaves the plan',
       JSON.stringify(ctl.planBefore) === JSON.stringify(ctl.afterRoute.plan), ctl.afterRoute.plan);
     t('technique: not one dose changes',
       JSON.stringify(ctl.before) === JSON.stringify(ctl.afterTech.doses),
       Object.keys(ctl.before).filter(k => ctl.before[k] !== ctl.afterTech.doses[k]));
     t('technique: and no drug enters or leaves the plan',
       JSON.stringify(ctl.planBefore) === JSON.stringify(ctl.afterTech.plan), ctl.afterTech.plan);
-    t('both record the choice they were given',
-      ctl.afterTech.pressed.indexOf('Inhalational') >= 0 &&
-      ctl.afterTech.pressed.indexOf('Classic RSI') >= 0, ctl.afterTech.pressed);
+    t('it records the choice it was given, and only one at a time',
+      ctl.afterTech.pressed.join() === 'Classic RSI', ctl.afterTech.pressed);
     t('nothing is labelled recommended or preferred', ctl.labelled === false);
     /* A TECHNIQUE IS NOT A BLOCKER. Classic RSI was once bound to
        suxamethonium and Modified RSI to rocuronium; neither name may appear
@@ -777,8 +844,8 @@ async function openEngine(b, viewport) {
     })()`);
     t('child: the paediatric section appears, between backup and the reference',
       child.titles.join(' / ') ===
-      'Induction plan / Airway plan / Backup difficult airway plan / Paediatric context / ' +
-      'Induction drug reference', child.titles);
+      'Induction plan / Airway plan / Backup difficult airway / Paediatric context / ' +
+      'Quick drug reference', child.titles);
     /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
        recomputed instead of reading compute(), this is where it would show. */
     t('child: paediatric LMA and i-gel match patientContext at 22 kg',
@@ -804,10 +871,14 @@ async function openEngine(b, viewport) {
     t('...and its roles are the canonical groups, with no invented one',
       /group:'induction'/.test(INDC) && /group:'analgesia'/.test(INDC) &&
       /group:'nmb'/.test(INDC) && !/adjunct/i.test(INDC));
-    t('...and nothing is chosen by default — not a route, not a technique, ' +
-      'not a drug',
-      /var chosen = null/.test(INDC) && /var technique = null/.test(INDC) &&
-      /var picked = \{\}/.test(INDC));
+    /* WAS: also asserted `var chosen = null` for the route. The route control
+       is gone, and its state went with it rather than being left dangling —
+       so the assertion is that no route state EXISTS, which is stronger than
+       checking it defaults to null. */
+    t('...and nothing is chosen by default — not a technique, not a drug',
+      /var technique = null/.test(INDC) && /var picked = \{\}/.test(INDC));
+    t('...and no route is stored or derived at all',
+      !/var chosen/.test(INDC) && !/STRATEGIES/.test(INDC));
     t('engine.html fills the workstation after it builds the host',
       ENGC.indexOf('id="induction-host"') < ENGC.indexOf('window.Induction.render()'));
     t('...and New Case ends the plan before it recomputes',
@@ -890,7 +961,13 @@ async function openEngine(b, viewport) {
                airwayValue:px('.awp-v'), airwayLabel:px('.awp-l'),
                timer:px('.ws-rail .lt-time'), timerLabel:px('.ws-rail .lt-head') };
     })()`);
-    t('the workspace lead outranks a section heading', rank.lead > rank.heading, rank);
+    /* WAS: "the workspace lead outranks a section heading". That encoded the
+       lead as a page title. It is a one-line breadcrumb now — the tab strip
+       already names the workspace and the first section names itself — so it
+       is deliberately QUIETER than the content it introduces. The ranking
+       that matters, heading over drug over label, is asserted below. */
+    t('the workspace lead is quieter than the content it introduces',
+      rank.lead < rank.heading, rank);
     t('a section heading outranks a drug name inside it', rank.heading > rank.drug, rank);
     t('a drug name outranks its own labels', rank.drug > rank.label, rank);
     /* The amount for THIS patient is what gets drawn up, so it is the largest
@@ -1291,8 +1368,13 @@ async function openEngine(b, viewport) {
       /* THE PHASE IS NOT A STEP. Both were numbered circles, and on a phone
          the workspace lead sits directly above section 1 — two "1" badges
          meaning different things, touching. */
-      t(w + ': the phase reads as a phase, not as step one',
-        m.phaseIsCircle === false && /^Phase 1$/.test(m.phaseText), m.phaseText);
+      /* WAS: /^Phase 1$/. "Phase" was development vocabulary that reached the
+         product; the ordinal stays because it orders the eight workspaces of
+         a case, the word does not. */
+      t(w + ': the workspace ordinal reads as an ordinal, not as step one',
+        m.phaseIsCircle === false && /^1 of 8$/.test(m.phaseText), m.phaseText);
+      t(w + ': ...and no development vocabulary reaches the product',
+        !/phase\s*\d/i.test(m.phaseText), m.phaseText);
       t(w + ': nothing overflows sideways', m.overflow <= 0, m.overflow);
       await v.ctx.close();
     }

@@ -322,9 +322,14 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('...carrying its steps and its weight-aware doses',
       rail.steps > 0 && rail.doses > 0, { steps:rail.steps, doses:rail.doses });
     t('...with the index still reachable', rail.indexStillThere === 8);
-    /* The column widens to read a protocol and returns to a list width. */
+    /* The column widens to read a protocol and returns to a list width.
+       The two widths changed with the workstation geometry (330 resting, 350
+       reading); what is asserted is the RELATIONSHIP and the specified band,
+       not a pair of remembered numbers. */
+    const px = g => parseFloat((g.trim().split(/\s+/).pop() || '0'));
     t('the rail widens for a protocol and narrows again',
-      /380px$/.test(rail.gridOpen) && /280px$/.test(rail.gridClosed),
+      px(rail.gridOpen) > px(rail.gridClosed) &&
+      px(rail.gridClosed) >= 320 && px(rail.gridOpen) <= 350,
       { open:rail.gridOpen, closed:rail.gridClosed });
     t('switching protocols replaces the one shown, one at a time',
       /Anaphylaxis/.test(rail.switchedTitle) && rail.copies === 1, rail.switchedTitle);

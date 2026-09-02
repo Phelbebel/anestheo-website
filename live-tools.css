@@ -1047,3 +1047,215 @@ nav#cmd-strip{margin:0 0 9px;}
   .ws-rail{margin-bottom:12px;}
   #output[data-domain="induction"] .wf-host{margin-bottom:16px;}
 }
+
+/* ══ IMMERSIVE MODE ═══════════════════════════════════════════════════════
+   Scoped to html.lt-immersive, which only engine.html sets. navbar.js is not
+   modified and every other page keeps its chrome exactly as it was. The
+   account control is relocated into the workstation header, so nothing is
+   lost — only the second row of navigation is. */
+html.lt-immersive #nb-nav,
+html.lt-immersive .nb-tabbar,
+html.lt-immersive #nb-app-foot,
+html.lt-immersive #tools-bar{display:none !important;}
+html.lt-immersive.nb-has-tabs body{padding-bottom:0 !important;}
+html.lt-immersive body{padding-top:0 !important;}
+/* the relocated account control sits at the end of the header row */
+.ws-id-acct{flex:0 0 auto; display:inline-flex; align-items:center;}
+.ws-id-acct .nb-avatar-wrap{position:relative;}
+.ws-id-home{display:inline-flex; align-items:center; gap:11px; min-width:0;
+  text-decoration:none; color:inherit; border-radius:var(--radius-sm,8px);}
+.ws-id-home:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:3px;}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   PHASE 2C · WORKSTATION GEOMETRY
+   Three columns outside, two inside the centre, reference across the bottom.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── one header row: identity, domains, search, emergency, account ─────── */
+@media(min-width:1180px){
+  .ws-id-in{gap:18px;}
+  nav#cmd-strip{position:static; margin:0; flex:1 1 auto; min-width:0;
+    background:none; border-bottom:0; backdrop-filter:none;
+    -webkit-backdrop-filter:none;}
+  #cmd-strip .cmd-in{margin-left:0; padding:0;}
+  #cmd-strip .cmd-b{min-height:38px; padding:0 11px; font-size:12px;}
+  .ws-id{position:sticky; top:0; z-index:60;
+    background:rgba(10,12,12,.97); -webkit-backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,.10);
+    margin-bottom:10px;}
+  .ws-id-in{min-height:50px;}
+  .ws-id-find{margin-left:0;}
+}
+
+/* ── three columns ────────────────────────────────────────────────────── */
+@media(min-width:1180px){
+  .ws-grid{grid-template-columns:176px minmax(0,1fr) 330px; gap:16px;}
+  .ws-grid:has(.crisis-preview:not([hidden])){
+    grid-template-columns:176px minmax(0,1fr) 350px;}
+}
+
+/* ── the centre is two columns, then one ──────────────────────────────── */
+.wf-cols{display:grid; grid-template-columns:minmax(0,60fr) minmax(0,40fr); gap:16px;
+  align-items:start;}
+.wf-col-main,.wf-col-side{min-width:0; display:flex; flex-direction:column; gap:14px;}
+.wf-full{margin-top:16px;}
+#output .wf-cols .wf-sec,#output .wf-full .wf-sec{margin-bottom:0;}
+/* The side column is denser: it is equipment, read at a glance. ID
+   specificity, because #output .wf-t sets 23px and a 23px uppercase heading
+   wraps to three lines in a 40% column. */
+#output .wf-col-side .wf-t{font-size:15.5px; letter-spacing:0;}
+#output .wf-col-side .wf-n{width:23px; height:23px; font-size:11px;}
+#output .wf-col-side .wf-h{margin-bottom:11px; padding-bottom:9px; gap:9px;}
+#output .wf-col-side .wf-sub{font-size:10.5px;}
+#output .wf-col-main .wf-t{font-size:19px;}
+.wf-col-side .awp-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:8px;}
+.wf-col-side .awp{padding:10px 11px 9px;}
+.wf-col-side .awp-i{width:30px; height:30px; margin-bottom:7px;}
+.wf-col-side .awp-i svg{width:18px; height:18px;}
+.wf-col-side .awp-v{font-size:16px; margin-top:3px;}
+.wf-col-side .awp-l{font-size:8.5px; letter-spacing:.1em;}
+.wf-col-side .awp-v.awp-long{font-size:11.5px;}
+.wf-col-side .pdx-grid{grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:7px;}
+.wf-col-side .pdx{padding:9px 10px;}
+.wf-col-side .pdx-v{font-size:18px;}
+.wf-col-side .pdx-l{font-size:8.5px;}
+/* backup: a compact amber strip under the equipment, not a second essay */
+.wf-col-side .bkp-row{padding:11px 13px; gap:10px;}
+.wf-col-side .bkp-i{width:28px; height:28px; font-size:14px;}
+.wf-col-side .bkp-row b{font-size:13.5px;}
+.wf-col-side .bkp-list{font-size:11.5px; margin-top:5px;}
+.wf-col-side .bkp-acts{padding:0 13px 12px; gap:8px;}
+.wf-col-side .bkp-b{min-height:38px; font-size:12px; padding:0 12px; flex:1 1 auto;}
+.wf-col-side .bkp .wf-note{display:none;}      /* the heading already says it */
+
+/* ── the plan: technique strip, then dense agent cards ────────────────── */
+.pl-tech{display:flex; align-items:center; gap:11px; flex-wrap:wrap; margin-bottom:13px;}
+.pl-tech-l{font-size:9.5px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--ink-3,#7d8b95);}
+.pl-tech-r{display:flex; border:1px solid var(--line,rgba(255,255,255,.11));
+  border-radius:var(--radius-sm,8px); overflow:hidden;}
+.pl-tech-n{font-size:10.5px; color:var(--hint,#66757f);}
+/* 32px is the floor even for a desktop mouse target — compacting the
+   technique strip took it to 30 and the suite caught it. */
+.pl-sg{min-height:32px; padding:0 11px; font-size:11.5px;}
+
+.pl-roles{gap:9px;}
+.pl-rh{min-height:42px; padding:8px 12px;}
+.pl-rn{flex:0 0 auto; min-width:19px; height:19px; display:inline-flex; align-items:center;
+  justify-content:center; border-radius:5px; background:var(--brand-tint-2,rgba(47,168,140,.2));
+  color:var(--accent,#7ECFC0); font-size:10.5px; font-weight:800;}
+.pl-rl{flex:1 1 auto;}
+.pl-rb{min-height:32px; font-size:11px; padding:0 12px;}
+/* SIDE BY SIDE. Three agents were three full-width rows and pushed the airway
+   plan off the screen; they are cards in a grid now. */
+.pl-cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(178px,1fr)); gap:8px;
+  padding:0 9px 10px;}
+.pl-sel{padding:9px 10px 10px; border-radius:var(--radius-sm,8px);
+  background:rgba(255,255,255,.035); border:1px solid var(--line,rgba(255,255,255,.09));
+  border-left:3px solid var(--pc,transparent);}
+.pl-sel-top{margin-bottom:5px; gap:6px;}
+.pl-sel-use{font-size:8.5px; letter-spacing:.07em;}
+.pl-x{width:24px; height:24px; font-size:14px;}
+.pl-sel-n{font-size:15px; font-weight:800; letter-spacing:-.01em; color:#fff; line-height:1.2;}
+.pl-sel-d{display:flex; flex-direction:column; gap:1px; margin-top:5px;}
+.pl-rule{font-size:10.5px; font-weight:600; color:var(--ink-3,#7d8b95);}
+.pl-amt{font-size:19px; font-weight:800; letter-spacing:-.02em;
+  color:var(--accent,#8FE8D6); font-variant-numeric:tabular-nums; line-height:1.1;}
+.pl-prep{margin-top:5px; font-size:10.5px;}
+.pl-sel .idc-warn{margin-top:6px; font-size:10px; line-height:1.4;}
+.pl-alts{grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:7px; padding:9px;
+  border-top:1px solid var(--hair,rgba(255,255,255,.06)); background:rgba(0,0,0,.22);}
+.pl-role.open .pl-cards{padding-bottom:9px;}
+.pl-alt{padding:8px 9px; gap:3px;}
+.pl-alt-n{font-size:13px;}
+.pl-alt-d{font-size:10px;}
+.pl-alt-d b{font-size:11.5px; margin-left:5px;}
+.pl-alt-tick{margin-left:auto; width:18px; height:18px; display:inline-flex;
+  align-items:center; justify-content:center; border-radius:5px; font-size:11px;
+  font-weight:800; background:rgba(255,255,255,.07); color:var(--ink-3,#7d8b95);}
+.pl-alt.on .pl-alt-tick{background:var(--accent,#2FA88C); color:#0B1620;}
+
+/* ── the quick reference across the bottom ────────────────────────────── */
+.wf-full .idref{max-height:250px;}
+.wf-full .idc-grid{grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:9px;}
+.wf-full .idc-ref{opacity:1;}
+.wf-full .idc-name{font-size:15px; padding:9px 11px 0;}
+.wf-full .idc-amt{font-size:17px;}
+.wf-full .idc-dose{padding:7px 11px;}
+.wf-full .idc-top{padding:7px 11px 6px;}
+.wf-full .idc-prep,.wf-full .idc-alias{padding-left:11px; padding-right:11px;}
+.wf-full .idc-warn{padding:0 11px 10px; font-size:10px;}
+
+/* ── ONE CRISIS RAIL ──────────────────────────────────────────────────── */
+@media(min-width:1180px){
+  /* Reading a protocol is a MODE of the rail, not a second red box under it.
+     The index withdraws and the protocol's own switcher — which already
+     lists every protocol — becomes the way back to the list. */
+  .ws-right:has(.crisis-preview:not([hidden])) #ws-crisis{display:none;}
+  .ws-right:has(.crisis-preview:not([hidden])) .crisis-preview{
+    flex:1 1 auto; min-height:0; margin:0;}
+  .crisis-preview{border-radius:var(--radius-lg,14px);}
+}
+
+/* ── THE WORKSPACE LEAD IS ONE LINE ──────────────────────────────────────
+   Three stacked lines under a tab strip whose selected tab already says
+   "Induction", above a section that already says "Induction plan". It keeps
+   the ordinal — which is the one thing neither of those says — and gives the
+   rest of its ~100px back to the workstation. */
+.wf-lead{flex-direction:row; align-items:baseline; gap:11px; flex-wrap:wrap;
+  margin:0 0 13px; padding-bottom:10px;}
+.wfl-tx{flex-direction:row; align-items:baseline; gap:11px; flex-wrap:wrap;}
+.wfl-t{font-size:17px; letter-spacing:.01em;}
+.wfl-s{font-size:11.5px; color:var(--hint,#66757f);}
+.wfl-n{align-self:baseline;}
+
+/* The account control is navbar.js's own element, hosted here. Its 36px
+   button is a desktop mouse target; inside Live Tools it is also a phone
+   target, so it gets a comfortable size HERE ONLY — navbar.js is untouched
+   and every other page keeps the button exactly as it was. */
+@media(max-width:900px){
+  html.lt-immersive .ws-id-acct .nb-avatar-btn{min-height:44px; min-width:44px;
+    justify-content:center;}
+}
+
+/* ── PHONE: THE ROLE HEADER WRAPS RATHER THAN CLIPS ──────────────────────
+   Label, state and control did not fit on one 390px line, so the label was
+   being cut mid-word. The label takes the row and the control follows; the
+   "None selected" text goes, because "+ Add agent" beside an empty role
+   already says it. */
+@media(max-width:620px){
+  .pl-rh{flex-wrap:wrap; gap:8px 10px; padding:10px 12px;}
+  .pl-rl{flex:1 1 100%; white-space:normal;}
+  .pl-rs{display:none;}
+  .pl-rb{min-height:40px; font-size:12px; margin-left:auto;}
+  .pl-rn{order:-1;}
+  .pl-cards{grid-template-columns:1fr; padding:0 10px 10px;}
+  .pl-alts{grid-template-columns:1fr 1fr;}
+  .pl-tech{gap:8px;}
+  .pl-tech-n{flex:1 1 100%;}
+  .pl-sg{min-height:40px;}
+}
+
+/* ── THE TWO-COLUMN CENTRE IS A DESKTOP IDEA ─────────────────────────────
+   Below 900px the plan and the airway stop competing for a width neither
+   has: the plan comes first because it is the task, the airway follows
+   because it is the next one. A 60/40 split of 390px is two unreadable
+   columns, not a workstation. */
+@media(max-width:899px){
+  .wf-cols{grid-template-columns:minmax(0,1fr); gap:14px;}
+  .wf-full{margin-top:14px;}
+  /* the side column regains desktop sizing once it has the full width */
+  #output .wf-col-side .wf-t{font-size:19px;}
+  #output .wf-col-side .wf-n{width:28px; height:28px; font-size:13px;}
+  .wf-col-side .awp-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px;}
+  .wf-col-side .awp-i{width:36px; height:36px;}
+  .wf-col-side .awp-i svg{width:21px; height:21px;}
+  .wf-col-side .awp-v{font-size:18px;}
+  .wf-col-side .pdx-grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));}
+  .wf-col-side .pdx-v{font-size:21px;}
+}
+/* The technique control is three labels; at 390 they do not fit one row. */
+@media(max-width:620px){
+  .pl-tech-r{flex:1 1 100%; flex-wrap:wrap;}
+  .pl-tech-r .pl-sg{flex:1 1 30%; padding:0 6px; font-size:11.5px;}
+}

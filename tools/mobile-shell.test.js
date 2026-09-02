@@ -210,17 +210,36 @@ const readBar = pg => pg.evaluate(() => {
                             ['/engine.html','verified doctor'], ['/settings.html','patient']]) {
     const { ctx, pg } = await open(b, 390, 844, ACCOUNTS[who], url);
     const geo = await pg.evaluate(() => {
-      const bar = document.getElementById('nb-tabbar').getBoundingClientRect();
+      const el = document.getElementById('nb-tabbar');
+      const bar = el.getBoundingClientRect();
       const pad = parseFloat(getComputedStyle(document.body).paddingBottom);
       window.scrollTo(0, document.body.scrollHeight);
       return { barTop: bar.top, barH: Math.round(bar.height), pad: Math.round(pad),
+               shown: getComputedStyle(el).display !== 'none',
+               immersive: document.documentElement.classList.contains('lt-immersive'),
+               exit: !!document.querySelector('.ws-id-home'),
                vh: window.innerHeight, docW: document.documentElement.scrollWidth,
                winW: window.innerWidth };
     });
     await pg.waitForTimeout(200);
     t(url + ': body clears the bar', geo.pad >= geo.barH, { pad:geo.pad, bar:geo.barH });
-    t(url + ': bar sits on the viewport floor', Math.round(geo.barTop + geo.barH) === geo.vh,
-      { top:Math.round(geo.barTop), h:geo.barH, vh:geo.vh });
+    /* LIVE TOOLS SUPPRESSES THE BAR ON PURPOSE. It is a full-screen clinical
+       instrument, and a site tab bar there both eats permanent clinical space
+       and puts a navigation row beside the emergency control. So the claim on
+       that page is not "the bar sits on the floor" — it is that the bar is
+       gone COMPLETELY (no strip, no reserved padding) and that a way out of
+       the tool still exists. Every other page keeps the original assertion,
+       because navbar.js itself is untouched. */
+    if (geo.immersive) {
+      t(url + ': the site tab bar is suppressed for the workstation',
+        geo.shown === false && geo.barH === 0 && geo.pad === 0,
+        { shown:geo.shown, h:geo.barH, pad:geo.pad });
+      t(url + ': ...and there is still a way back out of Live Tools',
+        geo.exit === true);
+    } else {
+      t(url + ': bar sits on the viewport floor', Math.round(geo.barTop + geo.barH) === geo.vh,
+        { top:Math.round(geo.barTop), h:geo.barH, vh:geo.vh });
+    }
     t(url + ': no horizontal overflow', geo.docW <= geo.winW, { doc:geo.docW, win:geo.winW });
     await ctx.close();
   }

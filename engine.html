@@ -1915,11 +1915,16 @@ body .nb-search-wrap{display:none !important;}
          a colour. The only thing said here is what the tool is. -->
     <header class="ws-id" id="ws-id">
       <div class="ws-id-in">
-        <span class="ws-id-mark" aria-hidden="true"></span>
-        <span class="ws-id-tx">
-          <span class="ws-id-brand">Anestheo</span>
-          <span class="ws-id-tool">Live Tools</span>
-        </span>
+        <!-- The identity is also the way out. With the site navbar suppressed
+             on this page, a clinician needs one obvious route back to
+             Anestheo, and the product name is where anyone would look. -->
+        <a class="ws-id-home" href="/index.html" aria-label="Leave Live Tools and return to Anestheo">
+          <span class="ws-id-mark" aria-hidden="true"></span>
+          <span class="ws-id-tx">
+            <span class="ws-id-brand">Anestheo</span>
+            <span class="ws-id-tool">Live Tools</span>
+          </span>
+        </a>
         <!-- SAME HANDLERS, MOVED. Search still opens clinical-search.js and
              Emergency still calls crisisJump(); only their position changes,
              so that the strip below is domains and nothing else. -->
@@ -1929,6 +1934,11 @@ body .nb-search-wrap{display:none !important;}
         <button class="ws-id-b ws-id-sos" type="button" onclick="crisisJump()"
                 aria-label="Open the Crisis Center emergency protocols">
           <span aria-hidden="true">&#9888;</span>Emergency</button>
+        <!-- The account control is navbar.js's own element, MOVED here rather
+             than rebuilt: its menu is a child of it, its handlers and its
+             sign-out are the real ones, and there is no second copy of an
+             auth-bearing widget to drift. -->
+        <span class="ws-id-acct" id="ws-id-acct"></span>
       </div>
     </header>
 
@@ -3618,7 +3628,7 @@ function crisisPreview(i, takeFocus){
     '<div class="cpv-body">'+ m.title + m.steps + m.doses +'</div>'+
     /* The ONLY thing that leaves this screen, and it is labelled. */
     '<button type="button" class="cpv-full" onclick="crisisPreviewFull()">'+
-      'View full protocol</button>';
+      'View full library</button>';
   host.hidden = false;
   cpvAnchor();
   /* Focus the close button on a real press so a keyboard user lands in the
@@ -4718,12 +4728,12 @@ function renderDomainLead(dom){
   if(!L){ host.hidden = true; host.innerHTML = ''; return; }
   host.hidden = false;
   host.innerHTML =
-    /* "PHASE 3", not a numbered circle. The circle is what the Induction
-       sections use for their steps, and on a phone the workspace lead sits
-       directly above section 1 — two identical "1" badges, one meaning the
-       third phase of the case and one meaning the first step of it. The
-       phase keeps its number and stops looking like a step. */
-    (L[0] != null ? '<span class="wfl-n">Phase ' + L[0] + '</span>' : '') +
+    /* NO "PHASE n". That was development vocabulary that reached the
+       product: a clinician does not think in phases of a rebuild, and the
+       selected tab already says which workspace this is. The step number
+       stays as an ordinal, unlabelled, because it still orders the eight
+       workspaces of a case. */
+    (L[0] != null ? '<span class="wfl-n">' + L[0] + ' of 8</span>' : '') +
     '<span class="wfl-tx"><span class="wfl-h">' +
       '<span class="wfl-t">' + L[1] + '</span>' +
       '<span class="wfl-tag" id="wfl-tag" hidden></span></span>' +
@@ -5745,6 +5755,31 @@ function cwLabSummary(){
    anes_case_insert to is_doctor_account(), so they open records like anyone
    else — and hiding the link to a page they can use is a restriction that no
    longer exists anywhere but here. Being a doctor account is the test now. */
+/* ── IMMERSIVE MODE ───────────────────────────────────────────────────────
+   LIVE TOOLS IS AN INSTRUMENT, NOT A PAGE WITH A SECOND NAVIGATION BELOW IT.
+   The site navbar and the phone tab bar are suppressed HERE ONLY, by a class
+   on this document's root — navbar.js is untouched, still runs, still owns
+   the session, the account menu and sign-out, and every other page is
+   unaffected.
+
+   Nothing is deleted: the account control is MOVED into the workstation
+   header, so it is the real element with the real handlers rather than a copy
+   that could drift out of step with the auth layer. The way back to the site
+   is the product name in that header. */
+document.documentElement.classList.add('lt-immersive');
+function ltAdoptAccount(){
+  var slot = document.getElementById('ws-id-acct');
+  var acct = document.getElementById('nb-avatar-wrap');
+  if(slot && acct && acct.parentElement !== slot) slot.appendChild(acct);
+}
+/* navbar.js builds its shell asynchronously and re-renders on auth changes,
+   so this runs again after those settle rather than once and hopefully. */
+document.addEventListener('DOMContentLoaded', function(){
+  ltAdoptAccount();
+  [250, 800, 2000].forEach(function(t){ setTimeout(ltAdoptAccount, t); });
+});
+window.addEventListener('focus', ltAdoptAccount);
+
 document.addEventListener('DOMContentLoaded', function(){
   var slot = document.getElementById('tools-bar');
   if(!slot || typeof window.nbToolsBar !== 'function') return;
