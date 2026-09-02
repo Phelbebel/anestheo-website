@@ -262,6 +262,79 @@ const fill = (pg, o) => pg.evaluate(o => {
       ped.cells['LMA'] === ped.lma && ped.cells['i-gel'] === ped.igel,
       { lma:[ped.cells['LMA'],ped.lma], igel:[ped.cells['i-gel'],ped.igel] });
 
+    /* ── 3b. THE CRISIS RAIL IS PART OF THE WORKSTATION ────────────────
+       Pressing a protocol must not navigate, must not cover the central plan,
+       and must not replace the page. On a desktop the protocol expands INSIDE
+       the rail: index above, protocol below, induction plan beside. It was a
+       fixed panel floating over its own index, which never covered the plan
+       but read as a window rather than as part of the layout. */
+    console.log('\nCRISIS RAIL — DESKTOP');
+    const rail = await s.pg.evaluate(`(() => {
+      /* build a plan first, so "the plan stays visible" means something */
+      const pick = (role, id) => {
+        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] .pl-rb').click();
+        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] [data-alt="'+id+'"]').click();
+      };
+      pick('induction','drug.propofol'); pick('nmb','drug.rocuronium');
+      const planBefore = [...document.querySelectorAll('#induction-host .pl-sel-n')]
+        .map(e => e.textContent);
+      const y0 = window.pageYOffset;
+      const dom0 = document.getElementById('output').dataset.domain;
+      document.querySelectorAll('#ws-crisis .wsc-b')[0].click();      /* LAST */
+      const h = document.getElementById('crisis-preview');
+      const hr = h.getBoundingClientRect();
+      const out = document.getElementById('output').getBoundingClientRect();
+      const grid = getComputedStyle(document.querySelector('.ws-grid')).gridTemplateColumns;
+      const o = {
+        position:getComputedStyle(h).position,
+        insideRail:h.parentElement.classList.contains('ws-right'),
+        coversPlan:hr.left < out.right - 4,
+        planVisible:[...document.querySelectorAll('#induction-host .pl-sel-n')].map(e => e.textContent),
+        steps:h.querySelectorAll('.crisis-step').length,
+        doses:h.querySelectorAll('.crisis-dose').length,
+        indexStillThere:document.querySelectorAll('#ws-crisis .wsc-b').length,
+        moved:window.pageYOffset - y0,
+        domainSame:document.getElementById('output').dataset.domain === dom0,
+        gridOpen:grid,
+        full:!!h.querySelector('.cpv-full'),
+        planBefore
+      };
+      /* switching keeps the plan and shows one protocol */
+      document.querySelectorAll('#ws-crisis .wsc-b')[7].click();      /* Anaphylaxis */
+      o.switchedTitle = (h.querySelector('.crisis-emg-t')||{}).textContent || '';
+      o.copies = document.querySelectorAll('.crisis-preview').length;
+      o.planAfterSwitch = [...document.querySelectorAll('#induction-host .pl-sel-n')]
+        .map(e => e.textContent);
+      crisisPreviewClose();
+      o.gridClosed = getComputedStyle(document.querySelector('.ws-grid')).gridTemplateColumns;
+      o.planAfterClose = [...document.querySelectorAll('#induction-host .pl-sel-n')]
+        .map(e => e.textContent);
+      return o;
+    })()`);
+    t('the protocol renders inside the rail, in the layout',
+      rail.insideRail === true && rail.position === 'static', rail.position);
+    t('...without navigating or moving the page',
+      rail.moved === 0 && rail.domainSame === true, { moved:rail.moved });
+    t('...without covering the induction plan', rail.coversPlan === false);
+    t('...and the plan is still on screen beside it',
+      rail.planVisible.join() === rail.planBefore.join() && rail.planVisible.length === 2,
+      rail.planVisible);
+    t('...carrying its steps and its weight-aware doses',
+      rail.steps > 0 && rail.doses > 0, { steps:rail.steps, doses:rail.doses });
+    t('...with the index still reachable', rail.indexStillThere === 8);
+    /* The column widens to read a protocol and returns to a list width. */
+    t('the rail widens for a protocol and narrows again',
+      /380px$/.test(rail.gridOpen) && /280px$/.test(rail.gridClosed),
+      { open:rail.gridOpen, closed:rail.gridClosed });
+    t('switching protocols replaces the one shown, one at a time',
+      /Anaphylaxis/.test(rail.switchedTitle) && rail.copies === 1, rail.switchedTitle);
+    t('...and never touches the plan',
+      rail.planAfterSwitch.join() === rail.planBefore.join() &&
+      rail.planAfterClose.join() === rail.planBefore.join(),
+      { afterSwitch:rail.planAfterSwitch, afterClose:rail.planAfterClose });
+    t('"View full protocol" is still the one control that leaves',
+      rail.full === true);
+
     /* ── 4. SEARCH IS THE EXISTING SEARCH ───────────────────────────── */
     console.log('\n4. SEARCH');
     t('the header control calls the existing ClinicalSearch',
@@ -321,6 +394,65 @@ const fill = (pg, o) => pg.evaluate(o => {
       if (w <= 900) t(P + 'shell controls are at least 40px tall', r.small.length === 0, r.small);
       t(P + 'exactly one emergency control is on screen', r.sos === 1, r.sos);
       t(P + 'no runtime errors', v.errs.length === 0, v.errs.slice(0,2));
+      await v.ctx.close();
+    }
+
+    /* ── 5b. THE PHONE'S EMERGENCY SHEET ───────────────────────────────
+       A permanent rail is impossible at 390px. The emergency control is
+       docked in the sticky domain strip — it was a floating action button,
+       which sat over whatever clinical control happened to scroll under it —
+       and it opens a sheet that closes back to the exact workstation state. */
+    console.log('\nCRISIS — PHONE');
+    {
+      const v = await open(b, 390, 844);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(600);
+      const m = await v.pg.evaluate(`(() => {
+        const pick = (role, id) => {
+          document.querySelector('#induction-host .pl-role[data-role="'+role+'"] .pl-rb').click();
+          document.querySelector('#induction-host .pl-role[data-role="'+role+'"] [data-alt="'+id+'"]').click();
+        };
+        pick('induction','drug.propofol');
+        const plan = () => [...document.querySelectorAll('#induction-host .pl-sel-n')]
+          .map(e => e.textContent);
+        const planBefore = plan();
+        window.scrollTo(0, 1400);
+        const sos = document.getElementById('ws-sos');
+        const sr = sos.getBoundingClientRect();
+        const onScreen = sr.top >= 0 && sr.bottom <= window.innerHeight;
+        /* it must not be sitting on top of a clinical control */
+        const covered = [...document.querySelectorAll('#induction-host button')]
+          .filter(e => { const r = e.getBoundingClientRect();
+            return r.right > sr.left && r.left < sr.right &&
+                   r.bottom > sr.top && r.top < sr.bottom; }).length;
+        const y0 = window.pageYOffset;
+        sos.click();
+        const h = document.getElementById('crisis-preview');
+        const o = { onScreen, covered, height:Math.round(sr.height),
+                    opened:!h.hidden, position:getComputedStyle(h).position,
+                    picks:h.querySelectorAll('.cpv-p').length,
+                    moved:window.pageYOffset - y0,
+                    domain:document.getElementById('output').dataset.domain };
+        h.querySelector('.cpv-p').click();               /* choose a protocol */
+        o.steps = h.querySelectorAll('.crisis-step').length;
+        o.closeSize = Math.round(h.querySelector('.cpv-x').getBoundingClientRect().height);
+        h.querySelector('.cpv-x').click();               /* and close it */
+        o.closed = h.hidden;
+        o.scrollKept = window.pageYOffset === y0;
+        o.planKept = plan().join() === planBefore.join();
+        return o;
+      })()`);
+      t('390: the emergency control is on screen after a long scroll',
+        m.onScreen === true, m);
+      t('390: ...and sits on top of no clinical control', m.covered === 0, m.covered);
+      t('390: ...at a comfortable touch size', m.height >= 40, m.height);
+      t('390: it opens a sheet, not a page', m.opened && m.position === 'fixed' &&
+        m.domain === 'induction' && m.moved === 0, m);
+      t('390: ...offering the eight protocols', m.picks === 8, m.picks);
+      t('390: ...which open with their steps', m.steps > 0, m.steps);
+      t('390: ...and close back to the same workstation state',
+        m.closed && m.scrollKept && m.planKept, m);
+      t('390: the sheet close control is a real target', m.closeSize >= 32, m.closeSize);
+      t('390: no runtime errors', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }
 

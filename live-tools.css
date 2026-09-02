@@ -285,6 +285,24 @@
 .wsc-b.on{background:rgba(255,90,72,.20);}
 .wsc-b.on .wsc-n{background:#ff5a48; color:#160b0a;}
 
+/* ══ DESKTOP: THE PROTOCOL EXPANDS INSIDE THE RAIL ════════════════════════
+   It was fixed over the rail column — correct in that it never covered the
+   central plan, wrong in that it floated over its own index and read as a
+   window rather than as part of the workstation. On a desktop it is a flow
+   member of the rail now: the index above it, the protocol below it, the
+   induction plan beside it, one protocol at a time. The column widens while
+   a protocol is open, because a protocol is read and 280px is a list width.
+   The rail's index keeps its own scroll so both fit. */
+@media(min-width:1180px){
+  .crisis-preview{position:static; left:auto; width:auto; bottom:auto;
+    max-height:none; z-index:auto;}
+  .ws-grid:has(.crisis-preview:not([hidden])){grid-template-columns:190px minmax(0,1fr) 380px;}
+  .ws-right:has(.crisis-preview:not([hidden])) .wsc-list{max-height:184px; overflow-y:auto;}
+  .ws-right:has(.crisis-preview:not([hidden])) .wsc-note{display:none;}
+  .ws-right:has(.crisis-preview:not([hidden])) .wsc-go{margin-bottom:12px;}
+  .crisis-preview .cpv-body{max-height:none;}
+}
+
 /* Below the rail's breakpoint the column is gone, so the preview stops being
    a panel in a column and becomes a sheet over the case. The case stays
    visible above it — this is still not navigation. */
@@ -339,26 +357,33 @@
    scrolls away with the page — which left a phone with no fixed route to a
    protocol at all. This is that route: the one fixed control on the page,
    under the thumb, above the tab bar, and out of the way until it is not. */
+/* DOCKED, NOT FLOATING. As a fixed circle it sat over whatever clinical
+   control happened to scroll under it — on a phone that was the route
+   selector. The domain strip is genuinely sticky now, so the emergency
+   control lives in it: always on screen, never over anything. */
 .ws-sos{display:none;}
 @media(max-width:1179px){
-  .ws-sos{
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    position:fixed; right:16px; bottom:calc(18px + env(safe-area-inset-bottom));
-    z-index:110; width:60px; height:60px; border-radius:50%;
+  /* NO position:relative HERE. The strip is position:sticky, which is a
+     positioned value and already establishes the containing block this
+     button needs — declaring relative overrode sticky and silently unstuck
+     the whole strip, taking the emergency control off screen with it. */
+  #cmd-strip .cmd-in{padding-right:78px;}
+  .ws-sos{display:inline-flex; align-items:center; gap:6px;
+    position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:2;
+    min-height:38px; padding:0 13px; border-radius:var(--radius-sm,8px);
     background:#C0392B; border:1px solid #E05A48; color:#fff;
-    font-family:inherit; font-size:10.5px; font-weight:800; letter-spacing:.10em;
-    line-height:1.1; gap:1px; cursor:pointer;
-    box-shadow:0 8px 26px rgba(0,0,0,.52), 0 0 0 4px rgba(192,57,43,.16);}
-  .ws-sos span{font-size:15px; line-height:1;}
+    font-family:inherit; font-size:12px; font-weight:800; letter-spacing:.06em;
+    cursor:pointer; box-shadow:-14px 0 18px 10px rgba(10,12,12,.92);}
+  .ws-sos span{font-size:13px; line-height:1;}
   .ws-sos:active{background:#a72f23;}
+  .ws-sos:focus-visible{outline:2px solid #fff; outline-offset:2px;}
 }
-/* Clear of navbar.js's tab bar, by that bar's own height. */
-@media(max-width:740px){
-  html.nb-has-tabs .ws-sos{bottom:calc(57px + 14px + env(safe-area-inset-bottom));}
+@media(max-width:620px){
+  #cmd-strip .cmd-in{padding-right:74px;}
+  .ws-sos{min-height:44px; padding:0 12px;}
+  /* the strip's own fade would sit under the button; it is not needed there */
+  .cmd::after{right:74px;}
 }
-/* The sheet covers it while open, and the sheet has its own close control. */
-.crisis-preview:not([hidden]) ~ .ws-sos,
-body:has(.crisis-preview:not([hidden])) .ws-sos{opacity:.0; pointer-events:none;}
 
 /* ── THE CHOOSER ─────────────────────────────────────────────────────────
    Eight protocols as full-width targets, because the alternative on a phone
@@ -858,4 +883,167 @@ nav#cmd-strip{margin:0 0 9px;}
   .eng-wrap .cw-derived{flex-wrap:wrap;}
   .eng-wrap .cw-derived .cw-d{flex:1 1 30%; min-width:0;}
   .eng-wrap .cw-derived .cw-d-val{font-size:17px;}
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   PHASE 2B · THE INDUCTION PLAN IS THE PAGE
+   Route, technique and one row per clinical role — all editable where they
+   stand. Nothing here computes; every number is the canonical one.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── route + technique: compact, and obviously not a dose control ──────── */
+.pl-ctl{display:flex; flex-wrap:wrap; gap:10px 26px; align-items:center;
+  padding:11px 14px; border-radius:var(--radius-md,10px);
+  background:rgba(255,255,255,.026); border:1px solid var(--hair,rgba(255,255,255,.07));}
+.pl-seg{display:flex; align-items:center; gap:10px; min-width:0;}
+.pl-seg-l{font-size:9.5px; font-weight:800; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--ink-3,#7d8b95); white-space:nowrap;}
+.pl-seg-r{display:flex; gap:0; border:1px solid var(--line,rgba(255,255,255,.11));
+  border-radius:var(--radius-sm,8px); overflow:hidden;}
+.pl-sg{min-height:34px; padding:0 13px; background:transparent; border:0;
+  border-right:1px solid var(--line,rgba(255,255,255,.09));
+  color:var(--ink-2,#c8d4da); font-family:inherit; font-size:12.5px; font-weight:700;
+  cursor:pointer; white-space:nowrap;}
+.pl-sg:last-child{border-right:0;}
+.pl-sg:hover{background:rgba(255,255,255,.06); color:#fff;}
+.pl-sg.on{background:var(--brand-tint-2,rgba(47,168,140,.18)); color:#fff;
+  box-shadow:inset 0 -2px 0 0 var(--accent,#7ECFC0);}
+.pl-sg:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:-2px;}
+/* ONE LINE, NOT A PARAGRAPH. The safety point is unchanged; it stopped being
+   three sentences in the middle of the scanning path. */
+.pl-hint{margin:8px 0 15px; font-size:11.5px; color:var(--ink-3,#7d8b95);}
+
+/* ── the roles ────────────────────────────────────────────────────────── */
+.pl-roles{display:flex; flex-direction:column; gap:10px;}
+.pl-role{border:1px solid var(--hair,rgba(255,255,255,.07));
+  border-radius:var(--radius-md,10px); background:rgba(255,255,255,.018); overflow:hidden;}
+.pl-role.has{background:rgba(255,255,255,.03);}
+.pl-rh{display:flex; align-items:center; gap:12px; padding:9px 13px; min-height:46px;}
+.pl-role.has .pl-rh{border-bottom:1px solid var(--hair,rgba(255,255,255,.06));}
+.pl-role.open .pl-rh{border-bottom:1px solid var(--hair,rgba(255,255,255,.06));}
+.pl-rl{flex:0 0 auto; min-width:0; font-size:10px; font-weight:800; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3,#7d8b95);}
+.pl-rs{flex:1 1 auto; min-width:0; font-size:12.5px; color:var(--hint,#66757f);}
+.pl-role.has .pl-rl{flex:1 1 auto;}
+.pl-rb{flex:0 0 auto; min-height:32px; padding:0 13px; background:rgba(255,255,255,.05);
+  border:1px solid var(--line,rgba(255,255,255,.12)); border-radius:var(--radius-sm,8px);
+  color:var(--ink-2,#c8d4da); font-family:inherit; font-size:11.5px; font-weight:700;
+  cursor:pointer; white-space:nowrap;}
+.pl-rb:hover{background:rgba(255,255,255,.09); color:#fff;}
+.pl-rb.on{background:var(--brand-tint-2,rgba(47,168,140,.18));
+  border-color:var(--accent,#2FA88C); color:#fff;}
+.pl-rb:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+
+/* THE CHOSEN AGENT, AND THE NUMBER THAT GETS DRAWN UP. */
+.pl-sel{padding:11px 13px 12px; border-left:3px solid var(--pc,transparent);}
+.pl-sel-top{display:flex; align-items:center; gap:9px; margin-bottom:7px;}
+.pl-sel-use{flex:1 1 auto; min-width:0; font-size:9.5px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--ink-3,#7d8b95);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.pl-x{flex:0 0 auto; width:30px; height:30px; display:flex; align-items:center;
+  justify-content:center; background:transparent; border:1px solid var(--line,rgba(255,255,255,.11));
+  border-radius:var(--radius-sm,8px); color:var(--ink-3,#7d8b95);
+  font-family:inherit; font-size:16px; line-height:1; cursor:pointer;}
+.pl-x:hover{color:#F0A882; border-color:rgba(232,150,110,.5);}
+.pl-x:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+.pl-sel-main{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;}
+.pl-sel-n{font-size:20px; font-weight:800; letter-spacing:-.015em; color:#fff;}
+.pl-sel-d{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+.pl-rule{font-size:12.5px; font-weight:600; color:var(--ink-2,#c8d4da);}
+.pl-amt{font-size:23px; font-weight:800; letter-spacing:-.02em;
+  color:var(--accent,#8FE8D6); font-variant-numeric:tabular-nums;}
+.pl-prep{margin-top:7px; font-size:11.5px; color:var(--ink-2,#c8d4da);}
+.pl-sel .idc-warn{padding:0; margin-top:8px;}
+.pl-none{padding:13px; font-size:12px; color:var(--ink-3,#7d8b95);}
+
+/* ── the alternatives, under the role they belong to ──────────────────── */
+.pl-alts{display:grid; grid-template-columns:repeat(auto-fill,minmax(184px,1fr)); gap:8px;
+  padding:11px 13px 13px; border-top:1px solid var(--hair,rgba(255,255,255,.06));
+  background:rgba(0,0,0,.20);}
+.pl-alt{display:flex; flex-direction:column; gap:4px; align-items:flex-start;
+  padding:10px 11px; text-align:left; cursor:pointer; font-family:inherit;
+  background:rgba(255,255,255,.03); border:1px solid var(--line,rgba(255,255,255,.10));
+  border-radius:var(--radius-sm,8px);}
+.pl-alt:hover{background:rgba(255,255,255,.07); border-color:var(--line-2,rgba(255,255,255,.2));}
+.pl-alt.on{border-color:var(--accent,#2FA88C); background:var(--brand-tint-2,rgba(47,168,140,.14));}
+.pl-alt:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+.pl-alt-top{display:flex; align-items:center; gap:7px; width:100%; min-width:0;}
+.pl-alt-use{font-size:8.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3,#7d8b95); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.pl-alt-n{font-size:14.5px; font-weight:800; color:#fff; line-height:1.2;}
+.pl-alt-d{font-size:11px; color:var(--ink-3,#7d8b95);}
+.pl-alt-d b{margin-left:7px; font-size:13px; color:var(--accent,#7ECFC0);
+  font-variant-numeric:tabular-nums;}
+
+/* ── the notice: kept, and no longer the first thing on the page ──────── */
+.eng-wrap .eng-notice{display:flex; align-items:baseline; gap:8px;
+  padding:6px 11px; font-size:11px; line-height:1.45;}
+.eng-notice b{flex:0 0 auto;}
+.eng-notice .eng-notice-x{min-width:0; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap;}
+.eng-notice.open .eng-notice-x{white-space:normal; overflow:visible;}
+/* Only where the sentence is actually clamped. Above 620px it fits on one
+   line and a control that reveals nothing is just another thing to read. */
+@media(min-width:621px){ .eng-notice-t{display:none;} }
+.eng-notice-t{flex:0 0 auto; margin-left:auto; min-height:26px; padding:0 8px;
+  background:transparent; border:1px solid rgba(232,168,56,.28); border-radius:6px;
+  color:#d9a94e; font-family:inherit; font-size:10px; font-weight:800;
+  letter-spacing:.08em; text-transform:uppercase; cursor:pointer;}
+.eng-notice-t:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+
+@media(max-width:620px){
+  .pl-ctl{gap:10px 14px; padding:10px 11px;}
+  .pl-seg{flex:1 1 100%; justify-content:space-between;}
+  .pl-sg{min-height:44px; flex:1 1 0; padding:0 8px; font-size:12px;}
+  .pl-seg-r{flex:1 1 auto;}
+  .pl-sel-n{font-size:18px;}
+  .pl-amt{font-size:21px;}
+  .pl-rb{min-height:40px; padding:0 15px;}
+  .pl-alts{grid-template-columns:1fr 1fr; padding:10px;}
+  .pl-x{width:36px; height:36px;}
+}
+
+/* ── PHONE: THE CLINICAL TASK COMES FIRST ────────────────────────────────
+   A 390px screen was showing header, domains, a five-line notice, a case
+   card, an eight-cell calculation grid and a timer card before the first
+   clinical control — the utility pushed the task two screens down.
+
+   Nothing is deleted. The notice clamps to one line with an explicit More.
+   The calculations collapse behind a summary that still names the two
+   numbers every dose is scaled by. The timers were already a folded strip. */
+@media(max-width:620px){
+  .eng-notice{align-items:center;}
+  .eng-notice-t{display:inline-flex; align-items:center;}
+  /* CALCULATIONS, ON DEMAND — and the weight is never behind the fold,
+     because it is what every dose on the page is multiplied by. */
+  #app.case-live:not(.pt-open) .eng-wrap #acc-derived .cw-acc-body{display:none;}
+  #app.case-live:not(.pt-open).calc-open .eng-wrap #acc-derived .cw-acc-body{display:block;}
+  .calc-t{display:flex; align-items:center; gap:10px; width:100%; min-height:44px;
+    padding:0 13px; background:transparent; border:0; cursor:pointer;
+    font-family:inherit; color:var(--ink-3,#7d8b95);}
+  .calc-t-l{font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;}
+  .calc-t-v{margin-left:auto; font-size:12.5px; font-weight:700; color:var(--ink-2,#c8d4da);
+    font-variant-numeric:tabular-nums;}
+  .calc-t-c{font-size:11px; color:var(--accent,#7ECFC0); font-weight:800;}
+  .calc-t:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:-2px;}
+}
+@media(min-width:621px){ .calc-t{display:none;} }
+
+/* ── PHONE: THE LEAD IS ALREADY IN THE TAB STRIP ─────────────────────────
+   "PHASE 1 / Induction / Plan, airway and backup for this patient" cost
+   ~200px directly under a tab strip whose selected tab says Induction. On a
+   desktop it orients; on a phone it repeats. One line there, and the
+   description withdraws — the workspace's own first section names itself. */
+@media(max-width:620px){
+  .wf-lead{flex-direction:row; align-items:baseline; gap:9px; flex-wrap:wrap;
+    margin:0 0 12px; padding-bottom:10px;}
+  .wfl-n{order:0;}
+  .wfl-tx{order:1; flex-direction:row; align-items:baseline; gap:9px;}
+  .wfl-t{font-size:15px; letter-spacing:.02em;}
+  .wfl-s{display:none;}
+  /* the blocks above the workstation stop being cards with card spacing */
+  .eng-wrap .case-bar{margin-bottom:0;}
+  .eng-wrap #acc-derived{margin-bottom:10px;}
+  .ws-rail{margin-bottom:12px;}
+  #output[data-domain="induction"] .wf-host{margin-bottom:16px;}
 }

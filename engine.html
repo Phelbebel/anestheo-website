@@ -22,7 +22,14 @@
 <link rel="stylesheet" href="/live-tools.css?v=2026.08.21-03">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
-html,body{max-width:100%;overflow-x:hidden;}
+/* clip, NOT hidden. overflow-x:hidden computes overflow-y to auto, which makes
+   html and body scroll containers and silently kills position:sticky for every
+   descendant — the command strip has declared itself sticky since it was
+   written and has never once stuck (measured: top -1085px after a 1200px
+   scroll). overflow-x:clip stops horizontal scrolling without creating a
+   scrollport, so sticky works. `hidden` stays first as the fallback for a
+   browser that does not know `clip`. */
+html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
 #app,.eng-wrap,.panels,.panel,.input-bar{max-width:100%;}
 /* ══ WORKSTATION SURFACE ═══════════════════════════════════════════════
    Live Tools leaves the site's green page ground behind. Measured on the
@@ -433,7 +440,13 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
    body to repair it would relayout every page on the site, so the declaration
    goes instead of the claim. What actually needed to stay on screen is the
    protocol preview, and that is positioned against the viewport directly. */
-.ws-right{display:flex;flex-direction:column;gap:12px;}
+/* PERSISTENT, AND NOW ACTUALLY SO. This column carried position:sticky for
+   as long as it existed and never stuck, because overflow-x:hidden on html
+   and body had made them scroll containers. That is fixed at the top of this
+   file, so the declaration finally does what it always claimed: the Crisis
+   rail stays beside the workstation instead of scrolling away from it. */
+.ws-right{position:sticky;top:60px;align-self:start;max-height:calc(100vh - 74px);
+  display:flex;flex-direction:column;gap:12px;overflow:hidden;}
 .ws-crisis{border-radius:var(--radius-lg);overflow:hidden;
   background:linear-gradient(180deg,rgba(78,26,22,.34),rgba(30,17,17,.30)),var(--pane);
   border:1px solid rgba(255,110,90,.34);
@@ -1953,6 +1966,14 @@ body .nb-search-wrap{display:none !important;}
         <a class="cmd-b cmd-fold" href="#/emergency" data-jump="crisis-center"
            data-domain="emergency">Crisis Center</a>
       </div>
+      <!-- SOS. Below 1180px the Crisis rail withdraws, so this is the route to
+           a protocol at those widths. It was a floating action button, which
+           put a permanent red circle over whatever clinical control happened
+           to be under it. It is docked in the strip instead — the strip is
+           genuinely sticky now, so this is on screen at every scroll position
+           without ever covering anything. -->
+      <button type="button" class="ws-sos" id="ws-sos" onclick="crisisSOS()"
+              aria-label="Open Crisis Center"><span aria-hidden="true">&#9888;</span>SOS</button>
     </nav>
 
     <!-- WHO THIS IS FOR, SAID BEFORE ANYTHING IS CALCULATED.
@@ -1961,10 +1982,20 @@ body .nb-search-wrap{display:none !important;}
          sits above the first input rather than in a footer: a notice under
          the doses is a notice nobody reads before using them. Anestheo
          computes; it does not prescribe, and it does not decide. -->
-    <p class="eng-notice" role="note">
-      <b>For healthcare professionals.</b> Reference and education only — Anestheo does not
+    <!-- THE NOTICE IS KEPT WHOLE AND STOPS BEING THE FIRST SCREEN. Every word
+         is still here and still in the document for a screen reader and for
+         search; on a narrow screen the sentence truncates to one line with an
+         explicit control that opens it. A notice that costs a fifth of a
+         phone viewport is a notice that gets scrolled past, which is the
+         opposite of what it is for. -->
+    <p class="eng-notice" id="eng-notice" role="note">
+      <b>For healthcare professionals.</b>
+      <span class="eng-notice-x">Reference and education only — Anestheo does not
       prescribe and does not make clinical decisions. Always verify doses and clinical
-      decisions against current local protocols and the patient&rsquo;s context.
+      decisions against current local protocols and the patient&rsquo;s context.</span>
+      <button type="button" class="eng-notice-t" id="eng-notice-t"
+              aria-expanded="false" aria-controls="eng-notice"
+              onclick="noticeToggle(this)">More</button>
     </p>
 
     <!-- Patient Identity — collapsible, collapsed by default (does not affect any calculation) -->
@@ -2070,6 +2101,15 @@ body .nb-search-wrap{display:none !important;}
     <section class="cw-acc" id="acc-derived">
       <div class="cw-acc-head"><span class="cw-acc-t">Derived Values</span>
         <span class="cw-acc-sub" id="acc-derived-tag"></span></div>
+      <!-- Phone only: the calculations collapse behind this, and it still
+           carries the weight and BMI, because the weight is what every dose
+           on the page is multiplied by and must never be behind a fold. -->
+      <button type="button" class="calc-t" id="calc-t" aria-expanded="false"
+              aria-controls="cw-derived" onclick="calcToggle(this)">
+        <span class="calc-t-l">Patient calculations</span>
+        <span class="calc-t-v" id="calc-t-v"></span>
+        <span class="calc-t-c" id="calc-t-c">Show</span>
+      </button>
       <div class="cw-acc-body"><div class="cw-derived" id="cw-derived"></div></div>
     </section>
 
@@ -2138,12 +2178,6 @@ body .nb-search-wrap{display:none !important;}
       <!-- The rail column holds the index AND the protocol preview beneath
            it. Opening a protocol must not navigate: the preview appears here,
            in place, with the case still on screen behind it. -->
-      <!-- SOS. Below 1180px the Crisis rail withdraws and the command strip
-           scrolls away with the page, so a phone had no fixed route to a
-           protocol. This is that route, and it is the only fixed control on
-           the page. -->
-      <button type="button" class="ws-sos" id="ws-sos" onclick="crisisSOS()"
-              aria-label="Open Crisis Center"><span aria-hidden="true">&#9888;</span>SOS</button>
       <aside class="ws-right">
         <div class="ws-crisis" id="ws-crisis" aria-label="Crisis Center"></div>
         <div class="crisis-preview" id="crisis-preview" role="dialog"
@@ -3258,7 +3292,7 @@ function panelKey(title){ return (title||'').replace(/<[^>]+>/g,'').replace(/&[^
    These lines describe WHAT IS ON THE TAB. None of them is clinical advice,
    none names a drug, and none states a dose. */
 var DOMAIN_LEAD = {
-  induction:   [1, 'Induction', 'Strategy, drug plan, RSI choices, airway plan and backup for this patient.'],
+  induction:   [1, 'Induction', 'Plan, airway and backup for this patient.'],
   maintenance: [2, 'Maintenance', 'Ventilation, monitoring and vascular access, and antibiotic prophylaxis.'],
   tiva:        [3, 'TIVA / TCI &amp; sedation', 'Target-controlled infusion models and sedation references.'],
   analgesia:   [4, 'Analgesia', 'Opioids and analgesic adjuncts, scaled to this patient\'s weight.'],
@@ -3511,6 +3545,14 @@ var _crisisPrev = null;
    sheet, so there is nothing to borrow and nothing to set. */
 function cpvAnchor(){
   var host = ge('crisis-preview'); if(!host || host.hidden) return;
+  /* On a desktop the preview is a flow member of the rail and needs no
+     anchoring at all — it IS in the column. Only the narrow-screen sheet is
+     positioned against the viewport. */
+  if(getComputedStyle(host).position !== 'fixed'){
+    host.style.removeProperty('--cpv-left');
+    host.style.removeProperty('--cpv-w');
+    return;
+  }
   var col = ge('ws-crisis');
   if(col && col.offsetParent !== null){
     var r = col.getBoundingClientRect();
@@ -4487,6 +4529,45 @@ window.renderPedsEstimate = renderPedsEstimate;
    which above 900px is always visible and where the class is inert. This is
    the behaviour the restored cockpit needs — Phase 1's hide-until-Edit form is
    gone, so there is nothing on desktop left to toggle. */
+/* Opens the full professional notice. It is never hidden from the accessible
+   tree — the text is in the document at every width — this only releases the
+   one-line clamp the narrow layout applies. */
+/* The phone's calculations disclosure. Presentation only: the strip is
+   rendered identically at every width by renderContextStrip(), which remains
+   its one owner. */
+function calcToggle(btn){
+  var app = document.getElementById('app'); if(!app) return;
+  var open = app.classList.toggle('calc-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  var c = ge('calc-t-c'); if(c) c.textContent = open ? 'Hide' : 'Show';
+}
+window.calcToggle = calcToggle;
+
+/* The summary line on that control. Reads the two values straight out of the
+   strip that renderContextStrip() just built — it does not recompute them. */
+function calcSummary(){
+  var v = ge('calc-t-v'); if(!v) return;
+  var host = ge('cw-derived'); if(!host){ v.textContent = ''; return; }
+  var out = [];
+  [].forEach.call(host.querySelectorAll('.cw-d'), function(d){
+    var l = (d.querySelector('.cw-d-l')||{}).textContent || '';
+    var x = (d.querySelector('.cw-d-val')||{}).textContent || '';
+    l = l.trim();
+    if((l === 'TBW' || l === 'BMI') && x.trim() && x.trim() !== '\u2014')
+      out.push(l + ' ' + x.trim() + (l === 'TBW' ? ' kg' : ''));
+  });
+  v.textContent = out.join('  ·  ');
+}
+window.calcSummary = calcSummary;
+
+function noticeToggle(btn){
+  var n = ge('eng-notice'); if(!n) return;
+  var open = n.classList.toggle('open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  btn.textContent = open ? 'Less' : 'More';
+}
+window.noticeToggle = noticeToggle;
+
 function ptToggle(){
   var w = document.getElementById('app'); if(!w) return;
   var open = w.classList.toggle('pt-open');
@@ -4622,6 +4703,7 @@ function renderContextStrip(){
   if(sec) sec.classList.toggle('has-tag', !!ctx.context.pediatric);
   host.className = 'cw-derived' + (ctx.context.pediatric ? ' peds' : '');
   host.innerHTML = cells;
+  if(window.calcSummary) calcSummary();
 }
 window.renderContextStrip = renderContextStrip;
 
