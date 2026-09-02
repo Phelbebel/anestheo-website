@@ -413,8 +413,13 @@ const fill = (pg, o) => pg.evaluate(o => {
       dens.emptyCells === 0, dens.emptyCells);
     t('three agents fit one row at 1440', dens.cards === 3 &&
       dens.perRow.length === 1 && dens.perRow[0] === 3, dens.perRow);
-    t('...and a lone card is not stretched to a sibling\'s height',
-      dens.stretched === false, dens.cardWidths);
+    /* WAS: "a lone card is not stretched to a sibling's height". Cards in a
+       row are now deliberately bottom-aligned — a three-line warning on one
+       agent should not leave the row staggered — so equal HEIGHTS are the
+       intent. What must never be stretched is WIDTH, and that is asserted by
+       the packing geometry below. */
+    t('...and every card is its own width, not the column\'s',
+      dens.cardWidths.every(w => w <= 160), dens.cardWidths);
     t('no container is more than 26px taller than its contents',
       dens.slack.length === 0, dens.slack);
     /* 30–60px anonymous gaps were the complaint; the brief's band is 10–16px
@@ -426,6 +431,130 @@ const fill = (pg, o) => pg.evaluate(o => {
     /* THE POINT OF THE WHOLE PASS. */
     t('the quick reference and several of its entries are above the fold',
       dens.refCardsAboveFold >= 4, dens.refCardsAboveFold);
+
+    /* ── 3d. THE AGENT ROW IS PACKED FROM THE LEFT ──────────────────────
+       "Three agents are on one row" was not enough, and the density check
+       that only counted empty cells could not see this: the cards WERE in one
+       row with 8px between the boxes, but flex-grow inflated each one from
+       its 150px basis to 157.5px so it filled the column. Measured, the
+       widest ink inside them was 77, 104 and 87px against a 133.5px content
+       box — 29 to 57px of dead width per card — so the names and doses ended
+       well short of each card's right edge and the row read as three islands.
+
+       This asserts the geometry directly: adjacency, order, the exact gaps,
+       and that the leftover width is AFTER the last card rather than
+       distributed between them. */
+    console.log('\nAGENT ROW PACKING');
+    const pack = await s.pg.evaluate(`(() => {
+      const add = id => {
+        if (!document.querySelector('#induction-host .pl-chooser'))
+          document.querySelector('#induction-host .pl-add').click();
+        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
+      };
+      const close = () => { if (document.querySelector('#induction-host .pl-chooser'))
+        document.querySelector('#induction-host .pl-add').click(); };
+      const IDS = ['drug.propofol','drug.fentanyl','drug.rocuronium',
+                   'drug.ketamine','drug.midazolam'];
+      const out = {};
+      [1,2,3,4,5].forEach(n => {
+        if (window.Induction) window.Induction.clearPlan();
+        IDS.slice(0, n).forEach(add);
+        close();
+        const box = document.querySelector('#induction-host .pl-grid');
+        const bb = box.getBoundingClientRect();
+        const cards = [...box.querySelectorAll('.pl-sel')].map(c => {
+          const r = c.getBoundingClientRect();
+          return { name:(c.querySelector('.pl-sel-n')||{}).textContent,
+                   l:+r.left.toFixed(1), r:+r.right.toFixed(1), t:+r.top.toFixed(1),
+                   w:+r.width.toFixed(1), h:+r.height.toFixed(1) };
+        });
+        const rows = {};
+        cards.forEach(c => { rows[Math.round(c.t)] = (rows[Math.round(c.t)] || 0) + 1; });
+        const rowTops = Object.keys(rows).map(Number).sort((a,b) => a-b);
+        /* gaps only between cards that share a row */
+        const gaps = [];
+        for (let i = 1; i < cards.length; i++)
+          if (Math.round(cards[i].t) === Math.round(cards[i-1].t))
+            gaps.push(+(cards[i].l - cards[i-1].r).toFixed(1));
+        const firstRow = cards.filter(c => Math.round(c.t) === rowTops[0]);
+        out[n] = { cards, gaps,
+          perRow: rowTops.map(t => rows[t]),
+          rowTops,
+          leading:+(cards[0].l - bb.left).toFixed(1),
+          trailing:+(bb.right - firstRow[firstRow.length-1].r).toFixed(1),
+          containerW:+bb.width.toFixed(1),
+          rowGap: rowTops.length > 1
+            ? +(rowTops[1] - Math.max(...firstRow.map(c => c.t + c.h))).toFixed(1) : null,
+          bottomsAligned: firstRow.every(c =>
+            Math.abs((c.t + c.h) - (firstRow[0].t + firstRow[0].h)) < 1.5) };
+      });
+      if (window.Induction) window.Induction.clearPlan();
+      return out;
+    })()`);
+
+    const P3 = pack[3];
+    t('3 agents: all three share one row', P3.perRow.length === 1 && P3.perRow[0] === 3,
+      P3.perRow);
+    t('3 agents: in the order they were added, left to right',
+      P3.cards.map(c => c.name).join(' ') === 'Propofol Fentanyl Rocuronium' &&
+      P3.cards[0].r <= P3.cards[1].l && P3.cards[1].r <= P3.cards[2].l,
+      P3.cards.map(c => c.name + '@' + c.l));
+    /* THE ASSERTION THAT WAS MISSING. */
+    t('3 agents: card-to-card gaps are 4-10px, not distributed whitespace',
+      P3.gaps.length === 2 && P3.gaps.every(g => g >= 4 && g <= 10), P3.gaps);
+    t('3 agents: nothing overlaps', P3.gaps.every(g => g > 0), P3.gaps);
+    t('3 agents: packed hard against the left edge', P3.leading === 0, P3.leading);
+    /* The leftover belongs after the last card. With three 150px cards and
+       two 8px gaps in a 488px column that is 22px — it must not have been
+       shared out between them. */
+    t('3 agents: the leftover width sits AFTER the last card',
+      P3.trailing > 0 &&
+      Math.abs(P3.containerW - (P3.cards.reduce((a,c) => a + c.w, 0) + 16 + P3.trailing)) < 1.5,
+      { trailing:P3.trailing, container:P3.containerW, cards:P3.cards.map(c => c.w) });
+    t('3 agents: no card is narrower than the readable minimum',
+      P3.cards.every(c => c.w >= 140), P3.cards.map(c => c.w));
+    t('3 agents: bottoms align across the row', P3.bottomsAligned === true,
+      P3.cards.map(c => +(c.t + c.h).toFixed(1)));
+
+    t('1 agent: one normal-width card at the left, not stretched across',
+      pack[1].cards.length === 1 && pack[1].leading === 0 &&
+      pack[1].cards[0].w <= 160 && pack[1].trailing > 200,
+      { w:pack[1].cards[0].w, trailing:pack[1].trailing });
+    t('2 agents: adjacent, 4-10px apart, leftover after the second',
+      pack[2].perRow.join() === '2' && pack[2].gaps.length === 1 &&
+      pack[2].gaps[0] >= 4 && pack[2].gaps[0] <= 10 && pack[2].trailing > 100,
+      { gaps:pack[2].gaps, trailing:pack[2].trailing });
+    /* 4 and 5 wrap, and the next row starts directly underneath. */
+    t('4 agents: wrap to a second row with no reserved holes',
+      pack[4].perRow.join() === '3,1' && pack[4].gaps.every(g => g >= 4 && g <= 10),
+      { perRow:pack[4].perRow, gaps:pack[4].gaps });
+    t('5 agents: three then two, still packed left',
+      pack[5].perRow.join() === '3,2' && pack[5].leading === 0 &&
+      pack[5].gaps.every(g => g >= 4 && g <= 10),
+      { perRow:pack[5].perRow, gaps:pack[5].gaps });
+    t('...and the wrapped row sits about 8px below the first',
+      pack[5].rowGap !== null && pack[5].rowGap >= 4 && pack[5].rowGap <= 10,
+      pack[5].rowGap);
+    /* NO MECHANISM THAT DISTRIBUTES FREE SPACE MAY COME BACK. The grid only
+       exists once something is in the plan, so this puts an agent there
+       first rather than reading a container that is not rendered. */
+    const mech = await s.pg.evaluate(`(() => {
+      const c = document.querySelector('#induction-host .pl-add');
+      if (!document.querySelector('#induction-host .pl-chooser')) c.click();
+      document.querySelector('#induction-host [data-alt="drug.propofol"]').click();
+      c.click();
+      const box = getComputedStyle(document.querySelector('#induction-host .pl-grid'));
+      const card = getComputedStyle(document.querySelector('#induction-host .pl-sel'));
+      const out = { justify:box.justifyContent, grow:card.flexGrow,
+                    ml:card.marginLeft, mr:card.marginRight };
+      if (window.Induction) window.Induction.clearPlan();
+      return out;
+    })()`);
+    t('the container never distributes free space between cards',
+      ['space-between','space-around','space-evenly'].indexOf(mech.justify) < 0, mech.justify);
+    t('...no card may grow past its own width', mech.grow === '0', mech.grow);
+    t('...and no auto margin pushes cards apart',
+      mech.ml !== 'auto' && mech.mr !== 'auto', { ml:mech.ml, mr:mech.mr });
 
     /* An empty plan must be dense too — not three empty role containers. */
     const emptyPlan = await s.pg.evaluate(`(() => {

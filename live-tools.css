@@ -1308,9 +1308,21 @@ html.lt-immersive body{padding-top:0 !important;}
    across at 1440, wrap to the next row at four or more, and a single agent
    that is a card rather than a banner. `align-items:flex-start` is what stops
    a short card being stretched to the height of a taller sibling. */
-.pl-grid{display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px;}
-.pl-sel{flex:1 1 150px; max-width:230px; min-width:0;
-  padding:8px 10px 9px; border-radius:var(--radius-sm,8px); height:auto; align-self:flex-start;
+/* align-items:stretch so the cards in a row share a bottom edge — a
+   three-line warning on one agent should not leave the row staggered. The
+   stretch is VERTICAL only; nothing grows horizontally past its own width. */
+.pl-grid{display:flex; flex-wrap:wrap; justify-content:flex-start;
+  align-items:stretch; align-content:flex-start; column-gap:8px; row-gap:8px;}
+/* flex-grow:0 — THE WHOLE FIX. With grow:1 each card was inflated from its
+   150px basis to 157.5px so the three exactly filled the 488px column,
+   regardless of content: measured, the widest ink inside them was 77, 104 and
+   87px against a 133.5px content box, leaving 29-57px of dead width in every
+   card. The boxes were packed at 8px all along; the names and doses simply
+   ended well short of each card's right edge, which reads as three islands.
+   Cards are their basis now. They pack from the left, the gaps stay 8px, and
+   what is left over sits after the last card where it belongs. */
+.pl-sel{flex:0 0 150px; max-width:230px; min-width:0;
+  padding:8px 10px 9px; border-radius:var(--radius-sm,8px); height:auto;
   background:rgba(255,255,255,.035); border:1px solid var(--line,rgba(255,255,255,.09));
   border-left:3px solid var(--pc,transparent);}
 .pl-empty{padding:11px 12px; border-radius:var(--radius-sm,8px);
