@@ -627,3 +627,81 @@ body:has(.crisis-preview:not([hidden])) .ws-sos{opacity:.0; pointer-events:none;
   /* the floating SOS must not sit on top of the last line of a section */
   #output .wf-sec:last-child{padding-bottom:64px;}
 }
+
+/* ══ SELECTING A DRUG ═════════════════════════════════════════════════════
+   THE PLAN IS WHAT WAS CHOSEN. A card is a control now: pressing it puts the
+   drug in the plan or takes it out. Nothing selects a drug on the
+   clinician's behalf, so an unselected card must look genuinely unselected
+   — dimming a card that a strategy merely "covers" was how five hypnotics
+   came to look like a plan. */
+button.idc{display:block; width:100%; text-align:left; font-family:inherit;
+  color:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+button.idc:hover{opacity:1; border-color:color-mix(in srgb,var(--pc) 30%,transparent);}
+button.idc:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+/* A strategy emphasises a class. It is a lift in legibility, deliberately
+   NOT the selected treatment — that difference is the point. */
+.idc.emph{opacity:.94;}
+.idc.on{opacity:1;}
+/* the tick is the state, in the corner where the eye already is */
+.idc-tick{margin-left:auto; flex:0 0 auto; width:20px; height:20px;
+  display:flex; align-items:center; justify-content:center; border-radius:6px;
+  font-size:12px; font-weight:800; line-height:1;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+  color:var(--ink-3,#7d8b95);}
+.idc.on .idc-tick,.rsi.on .idc-tick{background:var(--pc); border-color:var(--pc); color:#0B1620;}
+.idc-route{margin-left:auto;}
+.idc-top:has(.idc-tick) .idc-route{margin-left:auto; margin-right:9px;}
+/* a selected card is unmistakable across the room */
+.idc.on{box-shadow:0 0 0 2px color-mix(in srgb,var(--pc) 55%,transparent),
+        0 8px 24px rgba(0,0,0,.34);}
+/* the reference lists; it does not build a plan */
+.idc-ref{opacity:1;}
+
+.pln-empty{padding:22px 18px; border-radius:var(--radius-md,10px);
+  background:rgba(255,255,255,.022); border:1px dashed var(--line,rgba(255,255,255,.14));
+  color:var(--ink-3,#7d8b95); font-size:13.5px; line-height:1.55;}
+.pln-clear{margin-top:13px; min-height:36px; padding:0 15px;
+  background:transparent; border:1px solid var(--line,rgba(255,255,255,.14));
+  border-radius:var(--radius-sm,8px); color:var(--ink-3,#7d8b95);
+  font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;}
+.pln-clear:hover{color:#F0A882; border-color:rgba(232,150,110,.5);}
+
+/* ── RSI TECHNIQUE ───────────────────────────────────────────────────────
+   Three techniques, not three drugs. Deliberately styled as a plain segmented
+   control with no class colour anywhere near it, because class colour on this
+   page means "what kind of drug is this" and a technique is not a drug. */
+.tec-row{display:flex; flex-wrap:wrap; gap:9px;}
+.tec{flex:1 1 190px; min-height:46px; padding:0 16px;
+  background:rgba(255,255,255,.03); border:1px solid var(--line,rgba(255,255,255,.10));
+  border-radius:var(--radius-md,10px); color:var(--ink-2,#c8d4da);
+  font-family:inherit; font-size:14px; font-weight:700; cursor:pointer;}
+.tec:hover{border-color:var(--line-2,rgba(255,255,255,.20)); color:#fff;}
+.tec.on{background:var(--brand-tint-2,rgba(47,168,140,.16));
+  border-color:var(--accent,#2FA88C); color:#fff;}
+.tec:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+
+/* the blocker cards are selectable in the same way the drug cards are */
+button.rsi{display:block; width:100%; text-align:left; font-family:inherit;
+  color:inherit; cursor:pointer;}
+button.rsi:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+.rsi.on{box-shadow:0 0 0 2px color-mix(in srgb,var(--pc) 55%,transparent),
+        0 8px 24px rgba(0,0,0,.34);}
+/* THE TWO CARDS BAND AT THE SAME HEIGHT. The band carries the badge, the
+   indication and the tick — all short — so it is one line on both cards. The
+   record's own class wording moved under the name, where a 50-character
+   sentence can wrap without dragging the tick down with it. */
+.rsi-h{display:flex; align-items:center; gap:9px; min-height:0;}
+.rsi-h .rsi-ind{flex:1 1 auto; min-width:0; margin:0; padding:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:9.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3,#7d8b95);}
+.rsi-h .idc-tick{flex:0 0 auto; margin-left:auto;}
+/* the class, in the record's own words, under the name */
+.rsi-k{padding:2px 15px 0; font-size:11px; font-weight:500; line-height:1.4;
+  color:var(--hint,#66757f); text-transform:none; letter-spacing:0;}
+
+/* A long route must ellipsise rather than wrap the card's header onto a
+   second line — "IV · PERI-INDUCTION ANALGESIA" made the fentanyl card 20px
+   taller than every card beside it. */
+.idc-top{flex-wrap:nowrap;}
+.idc-route{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}

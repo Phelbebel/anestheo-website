@@ -814,6 +814,13 @@ function visibleDrugsInGroup(groupId, wt){
         ruleUnit += (ruleUnit ? ' · ' : '') + 'max ' + dose.max;
       }
       return { id:d.id, name:d.name, val:r.val, unit:r.unit,
+               /* The pharmacological class in the record's own words.
+                  Additive: `pclass` is the colour system's coarse bucket and
+                  says "neuromuscular blocker"; `klass` is what the entry
+                  actually says, and depolarising versus non-depolarising is a
+                  distinction a blocker card has to be able to make. No value
+                  is computed and every existing consumer is unaffected. */
+               klass:d.klass || '',
                ind:supportLine(d, dose, wt), prep:d.prep,
                use:[dose.route, dose.label].filter(Boolean).join(' · '),
                /* Passed through if a dose ever carries one. No record does

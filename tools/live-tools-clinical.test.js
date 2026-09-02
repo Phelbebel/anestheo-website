@@ -555,35 +555,35 @@ async function openEngine(b, viewport) {
       /m\.short/.test(code(IDX)));
 
     /* ── THE INDUCTION WORKSTATION ──────────────────────────────────────
-       induction.js composes; it must never decide. Three properties keep it
+       induction.js composes; it must never decide. Four properties keep it
        honest, and each one is a rule the brief set explicitly:
 
-         a strategy changes emphasis and order, never a dose or a drug
+         a plan contains ONLY what the clinician selected
+         a strategy changes emphasis and order, never a dose and never a
+           selection
+         a technique is not a blocker, and neither one changes a dose
          an adult renders no paediatric section at all, not a hidden one
-         every number traces to clinical-index.js or to compute()
 
-       The first two are asserted against the live DOM, because a promise in
-       a comment is not a guarantee. The third is asserted against the source,
-       because the way this screen would go wrong is by growing a dose table
-       of its own — and that is visible in the file long before it is visible
-       on screen. */
+       All four are asserted against the live DOM, because a promise in a
+       comment is not a guarantee. A fifth is asserted against the source —
+       that no dose is declared here — because the way this screen would go
+       wrong is by growing a dose table of its own, and that is visible in the
+       file long before it is visible on screen. */
     console.log('\nINDUCTION WORKSTATION');
 
     const ind = sel => `[...document.querySelectorAll('#induction-host ${sel}')]`;
     const planSnapshot = `(() => {
       const m = {};
-      ${ind('.idc')}.forEach(c => {
-        const n = (c.querySelector('.idc-name') || {}).textContent;
-        /* \\s, not \s — template literal. This one still CAUGHT drift, because
-           before and after went through the same broken normalisation, but it
-           printed dose text with every letter s missing when it reported. */
-        const d = (c.querySelector('.idc-dose') || {}).textContent.replace(/\\s+/g, ' ').trim();
+      ${ind('.idc, .rsi')}.forEach(c => {
+        const n = (c.querySelector('.idc-name, .rsi-name') || {}).textContent;
+        const d = (c.querySelector('.idc-dose, .rsi-dose') || {}).textContent
+          .replace(/\\s+/g, ' ').trim();
         m[n + '@' + ((c.closest('.wf-sec').querySelector('.wf-n')) || {}).textContent] = d;
       });
       return m;
     })()`;
 
-    /* An adult. Section 6 is paediatric and must not exist in any form. */
+    /* An adult. Section 8 is paediatric and must not exist in any form. */
     const adult = await s.pg.evaluate(`(() => {
       newCase();
       const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
@@ -592,63 +592,191 @@ async function openEngine(b, viewport) {
       compute();
       const host = document.getElementById('induction-host');
       return { nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent),
+               titles: ${ind('.wf-sec .wf-t')}.map(n => n.textContent),
                pedsNodes: ${ind('.pdx, .pdx-grid')}.length,
                pedsWords: /EBV|Maintenance|Paediatric context/.test(host.textContent),
                plan: ${planSnapshot},
                refScrolls: (() => { const r = host.querySelector('.idref');
                  return !!r && getComputedStyle(r).overflowY === 'auto'; })(),
-               emphasised: ${ind('.idc.on')}.length };
+               selected: ${ind('.idc.on, .rsi.on')}.length,
+               emphasised: ${ind('.idc.emph')}.length };
     })()`);
     t('adult: the workstation renders its sections in case order',
-      adult.nums.join(',') === '1,2,3,4,5,7', adult.nums);
+      adult.nums.join(',') === '1,2,3,4,5,6,7,9', adult.nums);
+    t('...and a plan, its alternatives, the technique and the blocker are four of them',
+      adult.titles.join(' / ') ===
+      'Induction strategy / Selected drug plan / Available agents / RSI technique / ' +
+      'Neuromuscular blocker choice / Airway plan / Backup difficult airway plan / ' +
+      'Induction drug reference', adult.titles);
     t('adult: the paediatric section does not exist — not hidden, absent',
       adult.pedsNodes === 0 && adult.pedsWords === false,
       { nodes:adult.pedsNodes, words:adult.pedsWords });
-    t('adult: nothing is emphasised before a strategy is chosen',
-      adult.emphasised === 0, adult.emphasised);
+    t('adult: nothing is selected until a clinician selects it',
+      adult.selected === 0 && adult.emphasised === 0, adult);
     t('adult: the induction reference scrolls in its own box',
       adult.refScrolls === true);
 
-    /* Choosing a strategy. Emphasis and order may move; a dose may not. */
+    /* ── THE PLAN IS WHAT WAS CHOSEN ────────────────────────────────────
+       This screen used to emphasise every drug in a strategy's groups and
+       call the result a "Selected drug plan" — five hypnotics, three opioids
+       and two blockers under a heading that reads as a list of things to
+       give, none of which anyone had selected. */
+    const empty = await s.pg.evaluate(`(() => {
+      const sec = ${ind('.wf-sec')};
+      const byNum = n => sec.find(x => (x.querySelector('.wf-n')||{}).textContent === String(n));
+      const plan = byNum(2), avail = byNum(3);
+      return { planCards:plan.querySelectorAll('.idc').length,
+               planEmpty:!!plan.querySelector('.pln-empty'),
+               emptyText:(plan.querySelector('.pln-empty')||{}).textContent || '',
+               availCards:avail.querySelectorAll('.idc').length };
+    })()`);
+    t('an empty plan holds no drugs at all', empty.planCards === 0, empty.planCards);
+    t('...and says so in the words the brief asked for',
+      /No drugs selected yet\. Select agents below to build this induction plan\./
+        .test(empty.emptyText.replace(/\s+/g,' ')), empty.emptyText);
+    t('...while every agent stays available to choose from',
+      empty.availCards > 0, empty.availCards);
+
+    const chose = await s.pg.evaluate(`(() => {
+      const pick = id => { const e = document.querySelector('#induction-host [data-drug="'+id+'"]');
+        if (e) e.click(); };
+      pick('drug.propofol'); pick('drug.fentanyl'); pick('drug.rocuronium');
+      const sec = ${ind('.wf-sec')};
+      const byNum = n => sec.find(x => (x.querySelector('.wf-n')||{}).textContent === String(n));
+      const plan = byNum(2), avail = byNum(3);
+      return { planNames:[...plan.querySelectorAll('.idc-name')].map(e => e.textContent),
+               planAllOn:[...plan.querySelectorAll('.idc')].every(c => c.classList.contains('on')),
+               availNames:[...avail.querySelectorAll('.idc-name')].map(e => e.textContent),
+               availAnyOn:[...avail.querySelectorAll('.idc')].some(c => c.classList.contains('on')),
+               pressed:[...plan.querySelectorAll('.idc')]
+                 .every(c => c.getAttribute('aria-pressed') === 'true'),
+               blockerOn:!!document.querySelector('#induction-host .rsi[data-drug="drug.rocuronium"]')
+                 .classList.contains('on') };
+    })()`);
+    t('a selected drug enters the plan, and only a selected drug',
+      chose.planNames.length === 3 && chose.planNames.indexOf('Propofol') >= 0 &&
+      chose.planNames.indexOf('Fentanyl') >= 0 && chose.planNames.indexOf('Rocuronium') >= 0,
+      chose.planNames);
+    t('...and leaves the alternatives', chose.availNames.indexOf('Ketamine') >= 0 &&
+      chose.availNames.indexOf('Propofol') < 0, chose.availNames);
+    t('...marked selected in the plan and nowhere else',
+      chose.planAllOn && !chose.availAnyOn && chose.pressed, chose);
+    t('...and a blocker is selected the same way', chose.blockerOn === true);
+
+    /* A STRATEGY EMPHASISES. IT DOES NOT SELECT, AND IT DOES NOT DOSE. */
+    const before = await s.pg.evaluate(planSnapshot);
     const after = await s.pg.evaluate(`(() => {
-      const b = ${ind('.ist')}.find(x => /Classic RSI/.test(x.textContent));
-      b.click();
+      ${ind('.ist')}.find(x => /IV hypnotic/.test(x.textContent)).click();
+      const sec = ${ind('.wf-sec')};
+      const byNum = n => sec.find(x => (x.querySelector('.wf-n')||{}).textContent === String(n));
       return { plan: ${planSnapshot},
-               emphasised: ${ind('.idc.on')}.length,
+               planNames:[...byNum(2).querySelectorAll('.idc-name')].map(e => e.textContent),
+               emphasised: ${ind('.idc.emph')}.length,
+               selectedInAvailable:byNum(3).querySelectorAll('.idc.on').length,
                pressed: ${ind('.ist')}.map(x => x.getAttribute('aria-pressed')),
-               /* Scoped to the CONTROLS AND CARDS, not the prose. The
-                  strategy note contains the word "recommending" precisely
-                  because it says the application does not do it, and a test
-                  that fails on a disclaimer would push us to delete the
-                  disclaimer. What must not exist is a pathway or a drug
-                  wearing the label. */
                labelled: [...${ind('.ist')}, ...${ind('.idc-top')},
                           ...${ind('.wf-t')}, ...${ind('.rsi-h')}]
                  .some(e => /recommend|preferred|suggested|first.line|drug of choice/i
                    .test(e.textContent)) };
     })()`);
-    const drifted = Object.keys(adult.plan)
-      .filter(k => !(k in after.plan) || after.plan[k] !== adult.plan[k]);
-    const gone  = Object.keys(adult.plan).filter(k => !(k in after.plan));
-    const extra = Object.keys(after.plan).filter(k => !(k in adult.plan));
+    const drifted = Object.keys(before)
+      .filter(k => !(k in after.plan) || after.plan[k] !== before[k]);
     t('strategy: not one dose changes', drifted.length === 0, drifted);
-    t('strategy: no drug is removed and none is added',
-      gone.length === 0 && extra.length === 0, { gone, extra });
+    t('strategy: it selects nothing', after.selectedInAvailable === 0 &&
+      after.planNames.length === 3, after);
     t('strategy: it does change emphasis, or it would do nothing',
       after.emphasised > 0 && after.pressed.filter(p => p === 'true').length === 1,
-      { on:after.emphasised, pressed:after.pressed });
+      { emph:after.emphasised, pressed:after.pressed });
     t('strategy: no pathway or drug is labelled recommended or preferred',
       after.labelled === false);
 
-    const back = await s.pg.evaluate(`(() => {
-      ${ind('.ist')}.find(x => x.getAttribute('aria-pressed') === 'true').click();
-      return { plan: ${planSnapshot}, emphasised: ${ind('.idc.on')}.length };
+    /* ── A TECHNIQUE IS NOT A BLOCKER ───────────────────────────────────
+       Classic RSI was bound to suxamethonium and Modified RSI to rocuronium,
+       as though the technique and the drug were one choice. They are not:
+       either technique can be performed with either blocker, and this
+       application holds no technique-specific dose to assert otherwise. */
+    const tech = await s.pg.evaluate(`(() => {
+      const sec = ${ind('.wf-sec')};
+      const byNum = n => sec.find(x => (x.querySelector('.wf-n')||{}).textContent === String(n));
+      const before = ${planSnapshot};
+      const opts = [...byNum(4).querySelectorAll('.tec')].map(o => o.textContent.trim());
+      [...byNum(4).querySelectorAll('.tec')]
+        .find(o => /Classic RSI/.test(o.textContent)).click();
+      /* RE-QUERY AFTER THE PRESS. render() replaces the host's markup, so
+         every node captured before the click is detached — the first version
+         of this test read aria-pressed off elements that were no longer in
+         the document and reported the control as doing nothing. */
+      const sec2 = ${ind('.wf-sec')};
+      const by2 = n => sec2.find(x => (x.querySelector('.wf-n')||{}).textContent === String(n));
+      const t5 = by2(5);
+      return { options:opts,
+               pressedAfter:[...by2(4).querySelectorAll('.tec')]
+                 .filter(o => o.getAttribute('aria-pressed') === 'true')
+                 .map(o => o.textContent.trim()),
+               before, after: ${planSnapshot},
+               planNames:[...by2(2).querySelectorAll('.idc-name')].map(e => e.textContent),
+               blockerNames:[...t5.querySelectorAll('.rsi-name')].map(e => e.textContent.trim()),
+               blockerClasses:[...t5.querySelectorAll('.rsi-k')].map(e => e.textContent.trim()),
+               blockerIndications:[...t5.querySelectorAll('.rsi-ind')].map(e => e.textContent.trim()),
+               blockerSection:(t5.querySelector('.wf-t')||{}).textContent };
     })()`);
-    t('strategy: pressing the chosen one clears it, restoring every dose',
-      back.emphasised === 0 &&
-      JSON.stringify(back.plan) === JSON.stringify(adult.plan));
+    t('the technique is its own question, with its own three answers',
+      tech.options.join(' | ') ===
+      'Standard induction / intubation | Classic RSI | Modified RSI', tech.options);
+    t('...and choosing one records it', tech.pressedAfter.join() === 'Classic RSI',
+      tech.pressedAfter);
+    /* THE POINT. */
+    t('...without changing a single dose',
+      JSON.stringify(tech.before) === JSON.stringify(tech.after),
+      Object.keys(tech.before).filter(k => tech.before[k] !== tech.after[k]));
+    t('...or the plan', tech.planNames.length === 3, tech.planNames);
+    t('no blocker is labelled Classic or Modified',
+      !/classic|modified/i.test(tech.blockerNames.join(' ') + tech.blockerClasses.join(' ')),
+      { names:tech.blockerNames, classes:tech.blockerClasses });
+    /* Each blocker under the indication ITS OWN record names — suxamethonium
+       for rapid sequence, rocuronium for intubation. Neither is relabelled to
+       fit a technique, and no RSI figure is invented for rocuronium: its
+       rapid-sequence context stays in its preparation note, in the data's own
+       words. */
+    t('each blocker keeps the indication its own record names',
+      tech.blockerIndications.some(x => /Intubation/i.test(x)) &&
+      tech.blockerIndications.some(x => /RSI/i.test(x)), tech.blockerIndications);
+    t('...and the section is named for the drug, not the technique',
+      /Neuromuscular blocker/i.test(tech.blockerSection), tech.blockerSection);
+    t('no RSI dose is invented for rocuronium',
+      !/rsi[^<]{0,40}\d+(\.\d+)?\s*(–|-)?\s*\d*\s*mg\/kg/i.test(INDC) &&
+      /1\.2 mg\/kg for RSI/.test(IDX), 'the RSI context stays in the prep note');
 
-    /* A child. Section 6 appears, and its values are the ones compute()
+    const cleared = await s.pg.evaluate(`(() => {
+      document.querySelector('#induction-host .pln-clear').click();
+      /* Re-queried after every press, for the same reason as above. */
+      const plan2 = () => {
+        const sec = ${ind('.wf-sec')};
+        const s2 = sec.find(x => (x.querySelector('.wf-n')||{}).textContent === '2');
+        return s2 ? s2.querySelectorAll('.idc').length : -1;
+      };
+      const out = { afterClear:plan2() };
+      /* and a plan belongs to the case, so New Case ends it */
+      document.querySelector('#induction-host [data-drug="drug.propofol"]').click();
+      const held = plan2();
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','30'); set('i-sex','F'); set('i-height','165'); set('i-weight','60');
+      compute();
+      const sec2 = ${ind('.wf-sec')};
+      const p2 = sec2.find(x => (x.querySelector('.wf-n')||{}).textContent === '2');
+      out.heldOne = held;
+      out.afterNewCase = p2 ? p2.querySelectorAll('.idc').length : -1;
+      out.strategyCleared = ${ind('.ist.on')}.length;
+      out.techniqueCleared = ${ind('.tec.on')}.length;
+      return out;
+    })()`);
+    t('Clear plan empties it', cleared.afterClear === 0, cleared.afterClear);
+    t('New Case ends the plan with the case it belonged to',
+      cleared.heldOne === 1 && cleared.afterNewCase === 0 &&
+      cleared.strategyCleared === 0 && cleared.techniqueCleared === 0, cleared);
+
+    /* A child. Section 8 appears, and its values are the ones compute()
        published — the same ones the derived strip is showing. */
     const child = await s.pg.evaluate(`(() => {
       newCase();
@@ -665,8 +793,8 @@ async function openEngine(b, viewport) {
                ctxLma:P.lma, ctxIgel:P.igel,
                airway: window.airwayPlan };
     })()`);
-    t('child: the paediatric section appears, in position 6',
-      child.nums.join(',') === '1,2,3,4,5,6,7', child.nums);
+    t('child: the paediatric section appears, in position 8',
+      child.nums.join(',') === '1,2,3,4,5,6,7,8,9', child.nums);
     /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
        recomputed instead of reading compute(), this is where it would show. */
     t('child: paediatric LMA and i-gel match patientContext at 22 kg',
@@ -690,10 +818,14 @@ async function openEngine(b, viewport) {
     t('...and every airway value through window.airwayPlan',
       /root\.airwayPlan/.test(INDC) &&
       !/lmaForWeight|igelForWeight|neoETT/.test(INDC));
-    t('...and no strategy is chosen by default',
-      /var chosen = null/.test(INDC));
+    t('...and nothing is chosen by default — not a strategy, not a technique, ' +
+      'not a drug',
+      /var chosen = null/.test(INDC) && /var technique = null/.test(INDC) &&
+      /var picked = \{\}/.test(INDC));
     t('engine.html fills the workstation after it builds the host',
       ENGC.indexOf('id="induction-host"') < ENGC.indexOf('window.Induction.render()'));
+    t('...and New Case ends the plan before it recomputes',
+      ENGC.indexOf('window.Induction.clear()') < ENGC.indexOf('window.compute()'));
 
     /* ── THE CASE HEADER AND THE READING ORDER ──────────────────────────
        Six inputs, two accordions and a seven-cell derived band stood between

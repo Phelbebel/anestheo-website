@@ -34,20 +34,52 @@
 (function (root) {
   'use strict';
 
+  /* ROUTE OF INDUCTION. Not technique — that is a separate question with its
+     own section, because Classic and Modified RSI describe how the airway is
+     secured and say nothing about which hypnotic is used. Merging the two
+     was the original mistake here. */
   var STRATEGIES = [
-    { id:'inhalational', label:'Inhalational',  sub:'Volatile induction',
-      groups:['volatile','induction'] },
-    { id:'iv',           label:'IV hypnotic',   sub:'Intravenous induction',
-      groups:['induction','analgesia','nmb'] },
-    { id:'classic-rsi',  label:'Classic RSI',   sub:'Rapid sequence',
-      groups:['induction','nmb','analgesia'], rsi:'classic' },
-    { id:'modified-rsi', label:'Modified RSI',  sub:'Rapid sequence',
-      groups:['induction','nmb','analgesia'], rsi:'modified' }
+    { id:'inhalational', label:'Inhalational', sub:'Volatile induction',
+      groups:['volatile','induction','analgesia','nmb'] },
+    { id:'iv',           label:'IV hypnotic',  sub:'Intravenous induction',
+      groups:['induction','analgesia','nmb','volatile'] }
+  ];
+
+  /* RSI TECHNIQUE IS NOT A DRUG. This application holds no technique-specific
+     dose, no preoxygenation time, no cricoid-pressure guidance and no
+     apnoeic-oxygenation protocol, so this records what the clinician is doing
+     and asserts nothing about it. It must never be wired to a blocker: a
+     blocker's dose is defined once, by the drug, for the indication the drug
+     data names — and "Classic RSI" is not the name of a drug. */
+  var TECHNIQUES = [
+    { id:'standard', label:'Standard induction / intubation' },
+    { id:'classic',  label:'Classic RSI' },
+    { id:'modified', label:'Modified RSI' }
   ];
 
   /* null until the clinician picks one. Not a default, and not persisted as
      one: an unchosen strategy is a real state and it shows every pathway. */
   var chosen = null;
+  var technique = null;
+
+  /* THE PLAN IS WHAT WAS CHOSEN, AND NOTHING ELSE.
+     Emphasising every drug in a strategy's groups and calling the result a
+     "Selected drug plan" was the same error in a different place: it put five
+     hypnotics, three opioids and two blockers under one heading that reads as
+     a list of things to give. A plan has exactly the drugs a clinician put in
+     it. Everything else is an alternative and is labelled as one.
+
+     Keyed by the drug's own id, so the plan survives a weight change (the
+     doses re-render, the choices do not) and is cleared by New Case. */
+  var picked = {};
+  function isPicked(id){ return picked[id] === true; }
+  function pickedList(){
+    var out = [];
+    ['induction','volatile','analgesia','nmb','reversal','local'].forEach(function (g){
+      drugs(g).forEach(function (d){ if (isPicked(d.id)) out.push(d); });
+    });
+    return out;
+  }
 
   function $(id){ return document.getElementById(id); }
   function esc(s){
@@ -72,9 +104,15 @@
 
   /* ── A DRUG CARD ─────────────────────────────────────────────────────────
      Name, class, route/use, the weight-based rule, the amount for THIS
-     patient, and the context line. `emphasis` only changes weight on screen. */
+     patient, and the context line.
+
+     The whole card is the control. `emphasis` no longer means "this strategy
+     covers this class" — it means THIS DRUG IS IN THE PLAN, because the
+     clinician put it there. A card that looks chosen without having been
+     chosen is the defect this replaces. */
   function card(d, emphasis){
     var col = classColour(d.pclass);
+    var on = isPicked(d.id);
     var amount = (d.val != null && d.val !== '')
       ? d.val + (d.unit ? '<span class="idc-u">' + d.unit + '</span>' : '') : '';
     var rule = d.doseNum
@@ -84,10 +122,15 @@
        a number of millilitres, so the rule stands alone rather than being
        repeated as if it had been converted. */
     var same = amount && d.doseRule && d.doseRule.indexOf(String(d.val)) === 0;
-    return '<div class="idc' + (emphasis ? ' on' : '') + '" style="--pc:' + col + '">' +
+    return '<button type="button" class="idc' + (on ? ' on' : '') +
+        (emphasis ? ' emph' : '') + '" style="--pc:' + col + '" ' +
+        'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+        'data-drug="' + esc(d.id) + '" ' +
+        'onclick="Induction.pick(\'' + esc(d.id) + '\')">' +
       '<div class="idc-top">' +
         (d.badge || '') +
         (d.use ? '<span class="idc-route">' + esc(d.use) + '</span>' : '') +
+        '<span class="idc-tick" aria-hidden="true">' + (on ? '&#10003;' : '+') + '</span>' +
       '</div>' +
       '<div class="idc-name">' + esc(d.name) + '</div>' +
       (d.aliasLine ? '<div class="idc-alias">' + esc(d.aliasLine) + '</div>' : '') +
@@ -103,6 +146,32 @@
       /* `warn` is authored with HTML entities and the row builder renders it
          raw; escaping it here would print &gt; instead of >. Name, aliases,
          route and label carry no markup, so those stay escaped. */
+      (d.warn ? '<div class="idc-warn' + (d.severity === 'critical' ? ' crit' : '') + '">' +
+                '<span aria-hidden="true">&#9888;</span> ' + d.warn + '</div>' : '') +
+    '</button>';
+  }
+
+  /* The reference section is a reference: it lists, it does not build a plan.
+     Rendering the same interactive card there would offer two places to
+     select the same drug and no reason to prefer either. */
+  function refCard(d){
+    var col = classColour(d.pclass);
+    var amount = (d.val != null && d.val !== '')
+      ? d.val + (d.unit ? '<span class="idc-u">' + d.unit + '</span>' : '') : '';
+    var rule = d.doseNum
+      ? d.doseNum + (d.doseUnit ? ' <span class="idc-u">' + d.doseUnit + '</span>' : '')
+      : (d.doseRule || '');
+    var same = amount && d.doseRule && d.doseRule.indexOf(String(d.val)) === 0;
+    return '<div class="idc idc-ref" style="--pc:' + col + '">' +
+      '<div class="idc-top">' + (d.badge || '') +
+        (d.use ? '<span class="idc-route">' + esc(d.use) + '</span>' : '') + '</div>' +
+      '<div class="idc-name">' + esc(d.name) + '</div>' +
+      (d.aliasLine ? '<div class="idc-alias">' + esc(d.aliasLine) + '</div>' : '') +
+      '<div class="idc-dose">' +
+        (rule ? '<div class="idc-rule">' + rule + '</div>' : '') +
+        ((amount && !same) ? '<div class="idc-amt">' + amount + '</div>' : '') +
+      '</div>' +
+      (d.prepMain ? '<div class="idc-prep">' + d.prepMain + '</div>' : '') +
       (d.warn ? '<div class="idc-warn' + (d.severity === 'critical' ? ' crit' : '') + '">' +
                 '<span aria-hidden="true">&#9888;</span> ' + d.warn + '</div>' : '') +
     '</div>';
@@ -134,80 +203,150 @@
       'another for a given patient.</p>');
   }
 
-  /* ── 2 · SELECTED DRUG PLAN ──────────────────────────────────────────── */
+  /* ── 2 · SELECTED DRUG PLAN ──────────────────────────────────────────
+     ONLY WHAT WAS CHOSEN. Not "every drug in the classes this strategy
+     touches" — that put five hypnotics, three opioids and two blockers under
+     a heading reading "Selected drug plan", which is a list of things to give
+     that nobody selected. An empty plan is a real and correct state and says
+     so in words. */
   function planSection(){
+    var list = pickedList();
+    if (!list.length){
+      return section(2, 'Selected drug plan', 'Nothing selected',
+        '<div class="pln-empty">No drugs selected yet. Select agents below to build ' +
+        'this induction plan.</div>');
+    }
+    return section(2, 'Selected drug plan',
+      list.length + (list.length === 1 ? ' agent' : ' agents') + ' selected',
+      '<div class="idc-grid">' + list.map(function (d){ return card(d, false); }).join('') +
+      '</div>' +
+      '<button type="button" class="pln-clear" onclick="Induction.clearPlan()">' +
+      'Clear plan</button>' +
+      '<p class="wf-note">Every dose here is the same value the drug reference shows for ' +
+      'this patient\'s weight. Selecting a drug records a choice; it changes no dose.</p>');
+  }
+
+  /* ── 3 · AVAILABLE AGENTS ────────────────────────────────────────────
+     The menu. A strategy re-orders and emphasises this list and selects
+     nothing from it, which is the whole difference between the two sections.*/
+  function availableSection(){
     var st = chosen ? STRATEGIES.filter(function (x){ return x.id === chosen; })[0] : null;
     var order = st ? st.groups : ['induction','volatile','analgesia','nmb'];
     var seen = {}, html = '';
+    /* The emphasised classes come first, unselected. Everything else follows,
+       still present and still legible: a drug you cannot read is a drug you
+       cannot rule out. */
     order.forEach(function (g){
       drugs(g).forEach(function (d){
-        if (seen[d.id]) return; seen[d.id] = 1;
-        html += card(d, !!st);
+        if (seen[d.id] || isPicked(d.id)) return; seen[d.id] = 1;
+        html += card(d, !!st && order.indexOf(g) === 0);
       });
     });
-    /* Everything the chosen pathway did not emphasise, still present. */
     var rest = '';
     ['induction','volatile','analgesia','nmb'].forEach(function (g){
       if (order.indexOf(g) >= 0) return;
-      drugs(g).forEach(function (d){ if (!seen[d.id]) { seen[d.id] = 1; rest += card(d, false); } });
+      drugs(g).forEach(function (d){
+        if (seen[d.id] || isPicked(d.id)) return; seen[d.id] = 1;
+        rest += card(d, false);
+      });
     });
     /* A pathway whose leading group holds nothing publishable must say so.
        Otherwise choosing "Inhalational" would show the intravenous list and
-       read as though those were the inhalational plan. */
+       read as though those were the inhalational agents. */
     var empty = st ? st.groups.filter(function (g){ return drugs(g).length === 0; }) : [];
     var gap = empty.length
       ? '<p class="wf-note wf-warn">This pathway\'s ' + esc(empty.join(' and ')) + ' agents ' +
         'are not published in Anestheo yet — those entries carry no reviewed dose, so none ' +
         'appear below. What is shown is the rest of the pathway, not a substitute for them.</p>'
       : '';
-    return section(2, 'Selected drug plan',
-      st ? st.label : 'All induction and intubation agents',
+    if (!html && !rest){
+      return section(3, 'Available agents', 'Everything else is in the plan',
+        gap + '<div class="pln-empty">Every published induction agent is already in the ' +
+        'plan above.</div>');
+    }
+    return section(3, 'Available agents',
+      st ? ('Ordered for ' + st.label) : 'Alternatives — select to add to the plan',
       '<p class="wf-note wf-warn">These are the agents available for this patient at this ' +
-      'weight, not a list of drugs to give together. Choose what the case needs.</p>' + gap +
+      'weight. This is a menu, not a sequence: nothing here is selected, recommended or ' +
+      'intended to be given together.</p>' + gap +
       '<div class="idc-grid">' + html + rest + '</div>');
   }
 
-  /* ── 3 · RSI CHOICES ─────────────────────────────────────────────────── */
-  function rsiSection(){
-    var nmb = drugs('nmb');
-    var sux = nmb.filter(function (d){ return /suxamethonium|succinyl/i.test(d.name); })[0];
-    var roc = nmb.filter(function (d){ return /rocuronium/i.test(d.name); })[0];
-    if (!sux && !roc) return '';
+  /* ── 4 · RSI TECHNIQUE ───────────────────────────────────────────────
+     A TECHNIQUE IS NOT A DRUG. The previous version of this screen bound
+     Classic RSI to suxamethonium and Modified RSI to rocuronium, as though
+     the technique and the blocker were the same choice. They are not: Classic
+     and Modified RSI describe how the airway is secured — preoxygenation,
+     cricoid pressure, whether the patient is ventilated before intubation —
+     and either can be performed with either blocker.
 
-    /* THE CONTEXTS ARE NOT COLLAPSED. Suxamethonium's dose is defined for RSI;
-       rocuronium's is defined for intubation, and its RSI context lives in its
-       own preparation note. Both are shown in the data's own words rather than
-       merged into one generic blocker card, and no RSI figure is invented. */
-    function choice(kind, title, sub, d){
-      if (!d) return '';
+     Anestheo holds no technique data at all: no preoxygenation time, no
+     cricoid guidance, no apnoeic-oxygenation protocol, and no
+     technique-specific dose. So this records the choice and asserts nothing
+     about it, and it does not touch a single dose below. */
+  function techniqueSection(){
+    var opts = TECHNIQUES.map(function (tq){
+      return '<button type="button" class="tec' + (technique === tq.id ? ' on' : '') + '" ' +
+        'aria-pressed="' + (technique === tq.id ? 'true' : 'false') + '" ' +
+        'onclick="Induction.setTechnique(\'' + tq.id + '\')">' + tq.label + '</button>';
+    }).join('');
+    return section(4, 'RSI technique', 'How the airway is secured',
+      '<div class="tec-row">' + opts + '</div>' +
+      '<p class="wf-note">The technique and the neuromuscular blocker are separate choices: ' +
+      'either blocker below can be used with any of these. Anestheo carries no ' +
+      'technique-specific dose, timing or manoeuvre, so this records what you are doing and ' +
+      'changes nothing on this screen. Follow your local rapid-sequence protocol.</p>');
+  }
+
+  /* ── 5 · NEUROMUSCULAR BLOCKER CHOICE ────────────────────────────────
+     Every blocker this application publishes, each with the dose its own
+     record defines, under the indication its own record names. Suxamethonium
+     carries an RSI dose; rocuronium carries an intubation dose and an RSI
+     context in its preparation note. Neither is relabelled, and where no
+     separate RSI figure exists none is invented. */
+  function blockerSection(){
+    var nmb = drugs('nmb');
+    if (!nmb.length) return '';
+    var cards = nmb.map(function (d){
       var col = classColour(d.pclass);
-      return '<div class="rsi' + (chosen === kind ? ' on' : '') + '" style="--pc:' + col + '">' +
-        '<div class="rsi-h"><span class="rsi-k">' + title + '</span>' +
-        '<span class="rsi-s">' + sub + '</span></div>' +
-        '<div class="rsi-name">' + (d.badge || '') + ' ' + esc(d.name) + '</div>' +
+      var on = isPicked(d.id);
+      /* SAME SHAPE AS A DRUG CARD, because it is one. The indication leads
+         the band — it is short, it differs between the two blockers, and it
+         is the thing that must not be relabelled to fit a technique. The
+         record's own class wording goes under the name, where the drug cards
+         put their aliases: "Aminosteroid non-depolarising neuromuscular
+         blocker" is not a header, it is a sentence, and putting it in the
+         band made one card's header two lines taller than the other's. */
+      return '<button type="button" class="rsi' + (on ? ' on' : '') + '" ' +
+        'style="--pc:' + col + '" aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+        'data-drug="' + esc(d.id) + '" onclick="Induction.pick(\'' + esc(d.id) + '\')">' +
+        '<div class="rsi-h">' + (d.badge || '') +
+          (d.use ? '<span class="rsi-ind">' + esc(d.use) + '</span>' : '') +
+          '<span class="idc-tick" aria-hidden="true">' + (on ? '&#10003;' : '+') +
+          '</span></div>' +
+        '<div class="rsi-name">' + esc(d.name) + '</div>' +
+        (d.klass ? '<div class="rsi-k">' + esc(d.klass) + '</div>' : '') +
         '<div class="rsi-dose">' +
-          (d.doseNum ? '<b>' + d.doseNum + '</b> <span class="idc-u">' + (d.doseUnit || '') + '</span>' : '') +
+          (d.doseNum ? '<b>' + d.doseNum + '</b> <span class="idc-u">' +
+            (d.doseUnit || '') + '</span>' : '') +
           ((d.val != null && d.val !== '') ? '<span class="rsi-amt">' + d.val +
             (d.unit ? '<span class="idc-u">' + d.unit + '</span>' : '') + '</span>' : '') +
         '</div>' +
-        (d.use ? '<div class="rsi-ind">' + esc(d.use) + '</div>' : '') +
         (d.prepNote ? '<div class="rsi-note">' + d.prepNote + '</div>' : '') +
         (d.warn ? '<div class="idc-warn' + (d.severity === 'critical' ? ' crit' : '') + '">' +
                   '<span aria-hidden="true">&#9888;</span> ' + d.warn + '</div>' : '') +
-      '</div>';
-    }
-    return section(3, 'RSI choices', 'Doses as defined in the drug data',
-      '<div class="rsi-row">' +
-        choice('classic-rsi',  'Classic RSI',  'Depolarising blocker', sux) +
-        choice('modified-rsi', 'Modified RSI', 'Non-depolarising, RSI context', roc) +
-        choice('standard',     'Standard intubation', 'Non-depolarising', roc) +
-      '</div>' +
-      '<p class="wf-note">Rocuronium appears twice because its dose is defined once and used ' +
-      'in two contexts; the preparation note carries the RSI context in the data\'s own ' +
-      'words. No separate RSI figure is asserted here.</p>');
+      '</button>';
+    }).join('');
+    return section(5, 'Neuromuscular blocker choice', 'Doses as the drug data defines them',
+      '<div class="rsi-row">' + cards + '</div>' +
+      '<p class="wf-note">Each blocker is shown under the indication its own record names — ' +
+      'suxamethonium\'s dose is defined for rapid sequence, rocuronium\'s for intubation with ' +
+      'its rapid-sequence context in the preparation note. No blocker is labelled Classic or ' +
+      'Modified, and where the data holds no separate rapid-sequence figure, none is ' +
+      'asserted here.</p>');
   }
 
-  /* ── 4 · AIRWAY PLAN ─────────────────────────────────────────────────
+  /* ── 6 · AIRWAY PLAN ─────────────────────────────────────────────────
      DEVICE ICONS, DRAWN. These were emoji: a surgical mask for the face
      mask, a microscope for the laryngoscope, a spool of thread for the ETT,
      a droplet for the LMA. They rendered differently on every platform and
@@ -270,7 +409,7 @@
         (unit ? '<span class="awp-u">' + unit + '</span>' : '') +
         '</div></div></div>';
     }
-    return section(4, 'Airway plan', 'Primary plan with equipment',
+    return section(6, 'Airway plan', 'Primary plan with equipment',
       '<div class="awp-grid">' +
         item(SVG.mask,    'Face mask',      A.mask) +
         item(SVG.blade,   'Laryngoscope',   A.blade) +
@@ -285,14 +424,14 @@
       '</div>');
   }
 
-  /* ── 5 · BACKUP DIFFICULT AIRWAY PLAN ────────────────────────────────── */
+  /* ── 7 · BACKUP DIFFICULT AIRWAY PLAN ────────────────────────────────── */
   function backupSection(){
     /* NO PATIENT-SPECIFIC PREDICTION. This application records no airway
        assessment — no Mallampati, no mouth opening, no neck movement, no
        history of difficult intubation — so it cannot say this patient will be
        difficult, and it does not pretend to. What it can do is put the
        equipment and the protocol one press away before they are needed. */
-    return section(5, 'Backup difficult airway plan', 'Reference, not a prediction',
+    return section(7, 'Backup difficult airway plan', 'Reference, not a prediction',
       '<div class="bkp">' +
         '<div class="bkp-row">' +
           '<span class="bkp-i" aria-hidden="true">&#128680;</span>' +
@@ -313,7 +452,7 @@
       '</div>');
   }
 
-  /* ── 6 · PAEDIATRIC CONTEXT — GATED ──────────────────────────────────── */
+  /* ── 8 · PAEDIATRIC CONTEXT — GATED ──────────────────────────────────── */
   function pedsSection(){
     var c = ctx();
     /* THE WHOLE SECTION, OR NOTHING. Not a hidden heading with values leaking
@@ -327,7 +466,7 @@
         '<div class="pdx-v">' + val + (unit ? '<span class="pdx-u">' + unit + '</span>' : '') +
         '</div></div>';
     }
-    return section(6, 'Paediatric context', 'Shown for a paediatric patient only',
+    return section(8, 'Paediatric context', 'Shown for a paediatric patient only',
       '<div class="pdx-grid">' +
         v('BSA', S.bsa, 'm&sup2;') +
         v('EBV', P.ebv, 'mL') +
@@ -341,19 +480,19 @@
       'different scales and are shown separately.</p>');
   }
 
-  /* ── 7 · RELEVANT DRUG REFERENCE ─────────────────────────────────────── */
+  /* ── 9 · RELEVANT DRUG REFERENCE ─────────────────────────────────────── */
   function referenceSection(){
     var seen = {}, rows = '';
     ['induction','volatile','analgesia','nmb','reversal'].forEach(function (g){
       drugs(g).forEach(function (d){
         if (seen[d.id]) return; seen[d.id] = 1;
-        rows += card(d, false);
+        rows += refCard(d);
       });
     });
     if (!rows) return '';
     /* Its own scroll, so the page does not grow without limit as the drug set
        does. The complete reference stays reachable from the navigation. */
-    return section(7, 'Induction drug reference', 'Scrolls independently',
+    return section(9, 'Induction drug reference', 'Scrolls independently',
       '<div class="idref"><div class="idc-grid">' + rows + '</div></div>' +
       '<p class="wf-note">These are the agents relevant to induction and intubation. The ' +
       'complete drug reference is a tab of its own.</p>');
@@ -370,7 +509,8 @@
       return;
     }
     host.innerHTML =
-      strategySection() + planSection() + rsiSection() +
+      strategySection() + planSection() + availableSection() +
+      techniqueSection() + blockerSection() +
       airwaySection() + backupSection() + pedsSection() + referenceSection();
   }
 
@@ -378,6 +518,31 @@
     chosen = (chosen === id) ? null : id;   /* pressing the chosen one clears it */
     render();
   }
+
+  /* Records the technique. Deliberately touches nothing else: no dose, no
+     drug, no selection. Pressing the chosen one clears it. */
+  function setTechnique(id){
+    technique = (technique === id) ? null : id;
+    render();
+  }
+
+  /* THE ONE PLACE A DRUG ENTERS OR LEAVES THE PLAN. Selecting records a
+     choice; it does not alter a dose, and no drug is ever selected by this
+     application on the clinician's behalf. */
+  function pick(id){
+    if (picked[id]) delete picked[id]; else picked[id] = true;
+    render();
+    /* Keep the pressed card under the thumb: the plan grows above the
+       available list, so selecting from the bottom of a long list would
+       otherwise walk the page away from where the press happened. */
+    var el = document.querySelector('#induction-host [data-drug="' + id + '"]');
+    if (el) el.focus({ preventScroll:true });
+  }
+
+  function clearPlan(){ picked = {}; render(); }
+
+  /* New Case ends a case, and a plan belongs to the case that was ended. */
+  function clear(){ picked = {}; chosen = null; technique = null; render(); }
 
   /* Opens the crisis protocol IN PLACE — the induction plan stays on screen
      behind it. The keys are the protocol's own keys in CRISIS, so this names
@@ -387,5 +552,9 @@
   }
 
   root.Induction = { render:render, choose:choose, protocol:protocol,
-                     get strategy(){ return chosen; } };
+                     pick:pick, clearPlan:clearPlan, clear:clear,
+                     setTechnique:setTechnique,
+                     get strategy(){ return chosen; },
+                     get technique(){ return technique; },
+                     get plan(){ return pickedList().map(function (d){ return d.id; }); } };
 })(typeof window !== 'undefined' ? window : this);

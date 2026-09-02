@@ -3733,7 +3733,11 @@ function newCase(){
   PT_OB_CONFIRM = false; _obConfirmFor = null;
   PT_EST.weight = false; PT_EST.height = false;
   /* 4. recompute, so no figure derived from the previous patient survives
-        on screen. compute() re-renders every module from empty inputs. */
+        on screen. compute() re-renders every module from empty inputs.
+        The induction plan is part of the CASE, not part of the user: a drug
+        selected for the last patient must not still be selected for the
+        next one. */
+  if(window.Induction && window.Induction.clear) window.Induction.clear();
   if(window.compute) window.compute();
   if(window.ptSummary) window.ptSummary();
   /* 5. leave the workspace open on the patient controls */
