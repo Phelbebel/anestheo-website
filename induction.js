@@ -14,9 +14,16 @@
    every agent, then a technique, then a blocker — five numbered sections in
    the implementation's order rather than the case's. The question this screen
    exists to answer is "what am I actually giving", and it is answered in one
-   block: a compact technique control, then one row per clinical role, each
-   holding the agents the clinician put in it with their doses for this
-   patient, each editable where it stands.
+   block: a compact technique strip, one Add agent control, and a single dense
+   grid of exactly the agents the clinician chose, each with its dose for this
+   patient and each removable where it stands.
+
+   THE DISPLAY IS FLAT; THE STATE IS GROUPED. Agents are stored per canonical
+   role, which is what the chooser groups by and what removal is keyed on —
+   but three role containers each reserving an empty cell for an agent nobody
+   selected is three headings and three blank rectangles of monitor for no
+   information at all. The card's own badge and indication say which role it
+   belongs to.
 
    A ROLE MAY HOLD MORE THAN ONE AGENT. Midazolam and propofol, or fentanyl
    and remifentanil, are an ordinary plan; a workstation that forbids them is
@@ -215,13 +222,12 @@
       }).join('') + '</div></div>';
   }
 
-  /* ── one role row ──────────────────────────────────────────────────
-     A DENSE GRID OF SELECTED AGENTS, not a stack of full-width rows. Three
-     agents in a plan filled three screens' worth of vertical space and pushed
-     the airway plan off the page; they sit side by side now, each card
-     carrying only what is scanned: what it is, the rule it comes from, the
-     amount for this patient, how it is presented, and what will hurt. */
-  function agentCard(r, d){
+  /* ── ONE SELECTED AGENT ──────────────────────────────────────────────
+     A compact card. Its badge and its indication already say which role it
+     belongs to, so it needs no enclosing section repeating that in a heading
+     — three role wrappers around three cards was three headings, three
+     borders and three reserved empty cells for no information at all. */
+  function agentCard(roleKey, d){
     var col = classColour(d.pclass);
     var amount = (d.val != null && d.val !== '')
       ? d.val + (d.unit ? '<span class="idc-u">' + d.unit + '</span>' : '') : '';
@@ -229,15 +235,18 @@
       ? d.doseNum + (d.doseUnit ? ' <span class="idc-u">' + d.doseUnit + '</span>' : '')
       : (d.doseRule || '');
     var same = amount && d.doseRule && d.doseRule.indexOf(String(d.val)) === 0;
-    return '<div class="pl-sel" style="--pc:' + col + '" data-role="' + r.key + '" ' +
+    return '<div class="pl-sel" style="--pc:' + col + '" data-role="' + roleKey + '" ' +
         'data-drug="' + esc(d.id) + '">' +
+      /* THE ROUTE GETS ITS OWN LINE. Beside the badge in a 157px card it
+         ellipsised to "IV · INT…", which is not an indication, it is a
+         rumour of one. Under the name it has the full card width. */
       '<div class="pl-sel-top">' + (d.badge || '') +
-        (d.use ? '<span class="pl-sel-use">' + esc(d.use) + '</span>' : '') +
         '<button type="button" class="pl-x" aria-label="Remove ' + esc(d.name) +
-        ' from the plan" onclick="Induction.remove(\'' + r.key + '\',\'' + esc(d.id) + '\')">' +
+        ' from the plan" onclick="Induction.remove(\'' + roleKey + '\',\'' + esc(d.id) + '\')">' +
         '&times;</button>' +
       '</div>' +
       '<div class="pl-sel-n">' + esc(d.name) + '</div>' +
+      (d.use ? '<div class="pl-sel-use">' + esc(d.use) + '</div>' : '') +
       '<div class="pl-sel-d">' +
         (rule ? '<span class="pl-rule">' + rule + '</span>' : '') +
         ((amount && !same) ? '<span class="pl-amt">' + amount + '</span>' : '') +
@@ -248,41 +257,23 @@
     '</div>';
   }
 
-  function roleRow(r){
-    var sel = roleDrugs(r);
-    var open = openRole === r.key;
-    var list = drugs(r.group);
-
-    var head =
-      '<div class="pl-rh">' +
-        '<span class="pl-rl">' + esc(r.label) + '</span>' +
-        (sel.length ? '<span class="pl-rn">' + sel.length + '</span>'
-                    : (list.length ? '<span class="pl-rs">None selected</span>' : '')) +
-        (list.length
-          ? '<button type="button" class="pl-rb' + (open ? ' on' : '') + '" ' +
-            'aria-expanded="' + (open ? 'true' : 'false') + '" ' +
-            'onclick="Induction.openRole(\'' + r.key + '\')">' +
-            (open ? 'Close' : '+ Add agent') + '</button>'
-          : '') +
-      '</div>';
-
-    var body = sel.length
-      ? '<div class="pl-cards">' + sel.map(function (d){ return agentCard(r, d); }).join('') + '</div>'
-      : (list.length ? '' : '<div class="pl-none">No agent in this group carries a ' +
-                            'reviewed dose yet.</div>');
-
-    /* THE ALTERNATIVES OPEN UNDER THE ROLE THEY BELONG TO. Adding one does
-       not remove another: every agent already in the plan is marked, and
-       pressing a marked one takes it out again. */
-    var alts = '';
-    if (open && list.length){
-      alts = '<div class="pl-alts" role="group" aria-label="' + esc(r.label) + ' agents">' +
-        list.map(function (a){
+  /* ── THE CHOOSER ─────────────────────────────────────────────────────
+     Grouped by canonical role, because that grouping is real and useful when
+     you are looking FOR something. Rendered only while open, so closed it
+     costs exactly nothing — not a collapsed container, not a reserved row. */
+  function chooser(){
+    if (!openRole) return '';
+    var body = ROLES.map(function (r){
+      var list = drugs(r.group);
+      if (!list.length) return '';
+      return '<div class="ch-grp"><div class="ch-l">' + esc(r.label) + '</div>' +
+        '<div class="ch-row">' + list.map(function (a){
           var on = hasDrug(r.key, a.id);
           var av = (a.val != null && a.val !== '')
             ? a.val + (a.unit ? '<span class="idc-u">' + a.unit + '</span>' : '') : '';
           return '<button type="button" class="pl-alt' + (on ? ' on' : '') + '" ' +
             'aria-pressed="' + (on ? 'true' : 'false') + '" data-alt="' + esc(a.id) + '" ' +
+            'data-role="' + r.key + '" ' +
             'onclick="Induction.toggle(\'' + r.key + '\',\'' + esc(a.id) + '\')">' +
             '<span class="pl-alt-top">' + (a.badge || '') +
               '<span class="pl-alt-tick" aria-hidden="true">' + (on ? '&#10003;' : '+') +
@@ -291,24 +282,20 @@
             '<span class="pl-alt-d">' + (a.doseNum ? a.doseNum + ' ' + (a.doseUnit || '') : (a.doseRule || '')) +
               (av ? '<b>' + av + '</b>' : '') + '</span>' +
           '</button>';
-        }).join('') + '</div>';
-    }
-    /* PLAN FIRST, THEN THE MENU. The alternatives rendered above the chosen
-       agents, so opening the list pushed the plan down and the thing being
-       built appeared below the things not chosen. */
-    return '<div class="pl-role' + (sel.length ? ' has' : '') + (open ? ' open' : '') +
-           '" data-role="' + r.key + '">' + head + body + alts + '</div>';
+        }).join('') + '</div></div>';
+    }).join('');
+    return '<div class="pl-chooser" id="pl-chooser">' + body + '</div>';
   }
 
   /* ── THE PLAN ────────────────────────────────────────────────────────
-     NO PRIMARY ROUTE CONTROL. It duplicated what the selected agents already
-     say and became a contradiction the moment a plan held both a volatile and
-     an intravenous agent — which is an ordinary plan. Technique stays,
-     because it records something the agents cannot express, and it stays
-     small, because it changes nothing on the screen. */
+     ONE GRID OF WHAT WAS CHOSEN. Not three role containers each reserving a
+     cell for an agent nobody selected. */
   function planSection(){
-    var n = ROLES.reduce(function (a, r){ return a + roleDrugs(r).length; }, 0);
-    var tq = TECHNIQUES.filter(function (x){ return x.id === technique; })[0];
+    var cards = '', n = 0;
+    ROLES.forEach(function (r){
+      roleDrugs(r).forEach(function (d){ cards += agentCard(r.key, d); n++; });
+    });
+    var open = !!openRole;
 
     var tech = '<div class="pl-tech">' +
       '<span class="pl-tech-l">Technique</span>' +
@@ -319,12 +306,16 @@
           'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
           'onclick="Induction.setTechnique(\'' + t.id + '\')">' + t.short + '</button>';
       }).join('') + '</div>' +
-      '<span class="pl-tech-n">Records the plan &middot; changes no dose</span>' +
-      '</div>';
+      '<button type="button" class="pl-add' + (open ? ' on' : '') + '" ' +
+        'aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="pl-chooser" ' +
+        'onclick="Induction.openRole(\'all\')">' + (open ? 'Close' : '+ Add agent') +
+      '</button></div>';
 
     return section(1, 'Induction plan',
-      n ? (n + (n === 1 ? ' agent' : ' agents')) : 'Nothing selected',
-      tech + '<div class="pl-roles">' + ROLES.map(roleRow).join('') + '</div>');
+      n ? (n + (n === 1 ? ' agent' : ' agents')) : '',
+      tech + chooser() +
+      (n ? '<div class="pl-grid">' + cards + '</div>'
+         : '<div class="pl-empty">No agents selected</div>'));
   }
 
   /* ── 2 · AIRWAY PLAN ─────────────────────────────────────────────────
@@ -495,12 +486,18 @@
        are two halves of the same decision and belong beside each other. The
        reference spans beneath both, because it is consulted about either. */
     host.innerHTML =
+      /* TWO INDEPENDENT COLUMNS, not a grid with a spanning item. A grid
+         grows the tracks a spanning item crosses, so the tall airway column
+         pushed the reference 103px below the plan — a void created by the
+         layout rather than by any content. Two flows cannot do that to each
+         other: each column is exactly as tall as what is in it. */
       '<div class="wf-cols">' +
-        '<div class="wf-col-main">' + planSection() + '</div>' +
+        '<div class="wf-col-main">' + planSection() +
+          '<div class="wf-full">' + referenceSection() + '</div>' +
+        '</div>' +
         '<div class="wf-col-side">' + airwaySection() + backupSection() +
           pedsSection() + '</div>' +
-      '</div>' +
-      '<div class="wf-full">' + referenceSection() + '</div>';
+      '</div>';
   }
 
   /* Records the technique. Deliberately touches nothing else: no dose, no
@@ -510,12 +507,14 @@
     render();
   }
 
-  /* Reveal one role's alternatives, under that role. One at a time, because
-     three open lists is the catalogue this replaced. */
-  function openRoleFn(key){
-    openRole = (openRole === key) ? null : key;
+  /* Opens the chooser. It is one chooser now rather than three per-role
+     lists, and when it is closed it is not rendered at all — a collapsed
+     container still reserves a row, and reserved rows are what this pass is
+     removing. */
+  function openRoleFn(){
+    openRole = openRole ? null : 'all';
     render();
-    var el = document.querySelector('#induction-host .pl-role[data-role="' + key + '"] .pl-rb');
+    var el = document.querySelector('#induction-host .pl-add');
     if (el) el.focus({ preventScroll:true });
   }
 
@@ -533,8 +532,7 @@
     if (at >= 0) ids.splice(at, 1); else ids.push(id);
     if (ids.length) picked[key] = ids; else delete picked[key];
     render();
-    var el = document.querySelector('#induction-host .pl-role[data-role="' + key +
-                                    '"] [data-alt="' + id + '"]');
+    var el = document.querySelector('#induction-host [data-alt="' + id + '"]');
     if (el) el.focus({ preventScroll:true });
   }
 

@@ -601,7 +601,8 @@ async function openEngine(b, viewport) {
       compute();
       const host = document.getElementById('induction-host');
       return { titles: ${ind('.wf-sec .wf-t')}.map(n => n.textContent),
-               roles: ${ind('.pl-role')}.map(r => r.dataset.role),
+               roles: ${ind('.pl-sel')}.map(r => r.dataset.role),
+               addControls: ${ind('.pl-add')}.length,
                pedsNodes: ${ind('.pdx, .pdx-grid')}.length,
                pedsWords: /EBV|Paediatric context/.test(host.textContent),
                selected: ${ind('.pl-sel')}.length,
@@ -620,6 +621,14 @@ async function openEngine(b, viewport) {
                    mainX:Math.round(m.x), sideX:Math.round(sd.x),
                    mainY:Math.round(m.y), sideY:Math.round(sd.y),
                    refY:Math.round(f.y), refW:Math.round(f.width),
+                   refX:Math.round(f.x), mainW:Math.round(m.width),
+                   /* THE VOID THIS PASS EXISTS TO REMOVE: measured from the
+                      bottom of the PLAN SECTION to the top of the reference,
+                      not from the column that now contains both. */
+                   voidUnderPlan:(() => {
+                     const p = document.querySelector('.wf-col-main .wf-sec');
+                     return p ? Math.round(f.y - (p.getBoundingClientRect().y +
+                       p.getBoundingClientRect().height)) : null; })(),
                    split:Math.round(100*m.width/(m.width+sd.width)) } : null; })() };
     })()`);
     /* THE PAGE IS THE PLAN. Four sections for an adult, and the first one is
@@ -627,20 +636,36 @@ async function openEngine(b, viewport) {
     /* Derived from the geometry above rather than asserted separately. */
     adult.airwayBeside = !!adult.geo && adult.geo.sideX > adult.geo.mainX &&
                          Math.abs(adult.geo.sideY - adult.geo.mainY) < 40;
+    /* The reference fills the space beneath the plan rather than a band
+       under both columns: with a three-agent plan the plan column ran 409px
+       against the airway's 702, so a full-width band left a 443px blank
+       rectangle under the plan. It starts below the plan and beside the
+       airway, which is where the room actually is. */
     adult.refBelowBoth = !!adult.geo && adult.geo.refY > adult.geo.mainY &&
-                         adult.geo.refW > 600;
+                         adult.geo.refX === adult.geo.mainX &&
+                         adult.geo.refW >= adult.geo.mainW - 2;
     /* THE WORKSTATION GEOMETRY: the plan and the airway are two halves of one
        decision and sit side by side; the reference spans beneath both. */
-    t('adult: plan, airway with its backup, then the reference',
+    /* DOM order is now column-major: the left column carries the plan and
+       the reference beneath it, the right column the airway and its backup. */
+    t('adult: plan and reference in one column, airway and backup in the other',
       adult.titles.join(' / ') ===
-      'Induction plan / Airway plan / Backup difficult airway / Quick drug reference',
+      'Induction plan / Quick drug reference / Airway plan / Backup difficult airway',
       adult.titles);
     t('...the airway column sits BESIDE the plan, not under it',
       adult.airwayBeside === true, adult.geo);
-    t('...and the reference spans the centre beneath both',
+    t('...and the reference fills the column beneath the plan',
       adult.refBelowBoth === true, adult.geo);
-    t('...with one row per canonical clinical role',
-      adult.roles.join(',') === 'induction,analgesia,nmb', adult.roles);
+    /* NO ANONYMOUS BLANK RECTANGLE between the plan and what follows it. */
+    t('...with no reserved void between them',
+      !!adult.geo && adult.geo.voidUnderPlan <= 16, adult.geo && adult.geo.voidUnderPlan);
+    /* WAS: "one row per canonical clinical role". Three role containers each
+       reserving an empty cell for an agent nobody selected was three
+       headings and three blank rectangles of monitor for no information. The
+       display is flat now and the state is still grouped — which is what the
+       chooser groups by and what removal is keyed on, asserted below. */
+    t('...and one compact Add agent control, not three role containers',
+      adult.addControls === 1 && adult.roles.length === 0, adult.roles);
     t('adult: the paediatric section does not exist — not hidden, absent',
       adult.pedsNodes === 0 && adult.pedsWords === false,
       { nodes:adult.pedsNodes, words:adult.pedsWords });
@@ -671,17 +696,22 @@ async function openEngine(b, viewport) {
     const built = await s.pg.evaluate(`(() => {
       /* Only one role's list is open at a time, so add() opens the role it
          needs rather than assuming the previous call left it open. */
-      const sel = (role, x) =>
-        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] '+x);
-      const open = role => { if (!sel(role,'.pl-alts')) sel(role,'.pl-rb').click(); };
-      const add = (role, id) => { open(role); sel(role,'[data-alt="'+id+'"]').click(); };
-      const read = () => ${ind('.pl-role')}.map(r => ({
-        role:r.dataset.role,
-        drugs:[...r.querySelectorAll('.pl-sel-n')].map(e => e.textContent),
-        rules:[...r.querySelectorAll('.pl-rule')].map(e => e.textContent),
-        amts:[...r.querySelectorAll('.pl-amt')].map(e => e.textContent),
-        warns:r.querySelectorAll('.idc-warn').length,
-        preps:r.querySelectorAll('.pl-prep').length }));
+
+      const chooser = () => document.querySelector('#induction-host .pl-chooser');
+      const open = () => { if (!chooser()) document.querySelector('#induction-host .pl-add').click(); };
+      const add = (role, id) => { open(); document.querySelector('#induction-host [data-alt="'+id+'"]').click(); };
+      /* Grouped back into roles from the flat grid, using each card's own
+         data-role — the state is still per role even though the display is
+         one list. */
+      const read = () => ['induction','analgesia','nmb'].map(k => {
+        const cards = ${ind('.pl-sel')}.filter(c => c.dataset.role === k);
+        return { role:k,
+          drugs:cards.map(c => (c.querySelector('.pl-sel-n')||{}).textContent),
+          rules:cards.map(c => (c.querySelector('.pl-rule')||{}).textContent),
+          amts:cards.map(c => (c.querySelector('.pl-amt')||{}).textContent),
+          warns:cards.filter(c => c.querySelector('.idc-warn')).length,
+          preps:cards.filter(c => c.querySelector('.pl-prep')).length };
+      });
       add('induction','drug.propofol');
       add('analgesia','drug.fentanyl');
       add('nmb','drug.rocuronium');
@@ -690,8 +720,7 @@ async function openEngine(b, viewport) {
       add('induction','drug.midazolam');
       const two = read();
       /* removing one must not disturb the other */
-      const card = [...document.querySelectorAll('#induction-host .pl-role[data-role="induction"] .pl-sel')]
-        .find(c => /Propofol/.test(c.textContent));
+      const card = ${ind('.pl-sel')}.find(c => /Propofol/.test(c.textContent));
       card.querySelector('.pl-x').click();
       const afterRemove = read();
       /* pressing an already-selected agent in the list takes it out too */
@@ -738,34 +767,35 @@ async function openEngine(b, viewport) {
       R(built.afterToggleOff,'analgesia').drugs.length === 0,
       R(built.afterToggleOff,'analgesia').drugs);
 
-    /* ALTERNATIVES ARE STILL ALL THERE — under the role they belong to
-       rather than in a catalogue at the bottom of the page. */
+    /* THE CHOOSER: every canonical agent, grouped by role, and costing
+       nothing at all when closed. */
     const alts = await s.pg.evaluate(`(() => {
-      const btn = document.querySelector('#induction-host .pl-role[data-role="induction"] .pl-rb');
-      if (!document.querySelector('#induction-host .pl-role[data-role="induction"] .pl-alts')) btn.click();
-      const open = ${ind('.pl-alts')};
-      const names = [...open[0].querySelectorAll('.pl-alt-n')].map(e => e.textContent);
-      const doses = [...open[0].querySelectorAll('.pl-alt-d')].map(e => e.textContent.trim());
-      const CC = window.ClinicalContent;
-      const canonical = CC.visibleDrugsInGroup('induction',
-        window.patientContext.anthropometrics.weight).map(d => d.name);
-      /* the plan is listed ABOVE its own menu, not below it */
-      const role = document.querySelector('#induction-host .pl-role[data-role="induction"]');
-      const kids = [...role.children].map(e => e.className.split(' ')[0]);
-      /* one list at a time */
-      document.querySelector('#induction-host .pl-role[data-role="nmb"] .pl-rb').click();
-      const after = ${ind('.pl-alts')}.length;
-      return { names, canonical, doses, openCount:open.length, after,
-               planBeforeMenu: kids.indexOf('pl-cards') < kids.indexOf('pl-alts') };
+      const add = () => document.querySelector('#induction-host .pl-add');
+      /* start from a known state: the previous block may have left it open */
+      if (document.querySelector('#induction-host .pl-chooser')) add().click();
+      const before = ${ind('.pl-chooser')}.length;
+      add().click();
+      const box = document.querySelector('#induction-host .pl-chooser');
+      const names = [...box.querySelectorAll('.pl-alt-n')].map(e => e.textContent);
+      const groups = [...box.querySelectorAll('.ch-l')].map(e => e.textContent);
+      const doses = [...box.querySelectorAll('.pl-alt-d')].map(e => e.textContent.trim());
+      const CC = window.ClinicalContent, wt = window.patientContext.anthropometrics.weight;
+      const canonical = ['induction','analgesia','nmb']
+        .reduce((a,g) => a.concat(CC.visibleDrugsInGroup(g, wt).map(d => d.name)), []);
+      add().click();
+      const after = ${ind('.pl-chooser')}.length;
+      return { names, canonical, doses, groups, before, after };
     })()`);
-    t('every canonical agent in the role is offered',
+    t('every canonical agent is offered, from every role',
       alts.names.join() === alts.canonical.join(), { shown:alts.names, canonical:alts.canonical });
+    t('...grouped by the canonical roles, in the data\'s own words',
+      alts.groups.join(' / ') ===
+      'Induction and sedation / Opioids and analgesia / Neuromuscular blockade', alts.groups);
     t('...each carrying its own dose, from the same source',
       alts.doses.every(d => d.length > 0), alts.doses);
-    t('...one role\'s alternatives open at a time',
-      alts.openCount === 1 && alts.after === 1, alts);
-    t('...and the plan is listed above its own menu',
-      alts.planBeforeMenu === true);
+    /* CLOSED IS NOT RENDERED. A collapsed container still reserves a row. */
+    t('...and the chooser costs nothing at all when closed',
+      alts.before === 0 && alts.after === 0, alts);
 
     /* ── TECHNIQUE RECORDS; IT DOES NOT PRESCRIBE ───────────────────────
        There is no route control any more, so only technique is exercised —
@@ -806,9 +836,16 @@ async function openEngine(b, viewport) {
        suxamethonium and Modified RSI to rocuronium; neither name may appear
        on a drug again. */
     t('no agent carries a technique name', ctl.techniqueOnDrug === false);
-    t('...and the blocker role is named for the drug class, not the technique',
-      /Neuromuscular blockade/i.test(
-        (await s.pg.evaluate(`(document.querySelector('#induction-host .pl-role[data-role="nmb"] .pl-rl')||{}).textContent`)) || ''));
+    /* The role is named in the chooser now, where grouping is what you are
+       looking for; on the card the class badge carries it. Either way it is
+       named for the drug class and never for the technique. */
+    t('...and the blocker group is named for the drug class, not the technique',
+      /Neuromuscular blockade/i.test(await s.pg.evaluate(
+        `(() => { const a = document.querySelector('#induction-host .pl-add');
+                  if (!document.querySelector('#induction-host .pl-chooser')) a.click();
+                  const t = [...document.querySelectorAll('#induction-host .ch-l')]
+                    .map(e => e.textContent).join(' | ');
+                  a.click(); return t; })()`)));
     t('no RSI dose is invented for rocuronium',
       !/rsi[^<]{0,40}\d+(\.\d+)?\s*(–|-)?\s*\d*\s*mg\/kg/i.test(INDC) &&
       /1\.2 mg\/kg for RSI/.test(IDX), 'the RSI context stays in the prep note');
@@ -821,10 +858,12 @@ async function openEngine(b, viewport) {
       compute();
       return { selected: ${ind('.pl-sel')}.length,
                segOn: ${ind('.pl-sg.on')}.length,
-               roles: ${ind('.pl-role')}.length };
+               chooser: ${ind('.pl-chooser')}.length,
+               add: ${ind('.pl-add')}.length };
     })()`);
-    t('New Case ends the plan, the route and the technique with it',
-      cleared.selected === 0 && cleared.segOn === 0 && cleared.roles === 3, cleared);
+    t('New Case ends the plan and the technique with it',
+      cleared.selected === 0 && cleared.segOn === 0 && cleared.chooser === 0 &&
+      cleared.add === 1, cleared);
 
     /* A child. The paediatric section appears, and its values are the ones
        compute() published — the same ones the derived strip is showing. */
@@ -842,10 +881,10 @@ async function openEngine(b, viewport) {
       return { titles: ${ind('.wf-sec .wf-t')}.map(n => n.textContent), pdx,
                ctxLma:P.lma, ctxIgel:P.igel, airway: window.airwayPlan };
     })()`);
-    t('child: the paediatric section appears, between backup and the reference',
+    t('child: the paediatric section appears, under the airway backup',
       child.titles.join(' / ') ===
-      'Induction plan / Airway plan / Backup difficult airway / Paediatric context / ' +
-      'Quick drug reference', child.titles);
+      'Induction plan / Quick drug reference / Airway plan / Backup difficult airway / ' +
+      'Paediatric context', child.titles);
     /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
        recomputed instead of reading compute(), this is where it would show. */
     t('child: paediatric LMA and i-gel match patientContext at 22 kg',

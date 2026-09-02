@@ -271,11 +271,13 @@ const fill = (pg, o) => pg.evaluate(o => {
     console.log('\nCRISIS RAIL — DESKTOP');
     const rail = await s.pg.evaluate(`(() => {
       /* build a plan first, so "the plan stays visible" means something */
-      const pick = (role, id) => {
-        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] .pl-rb').click();
-        document.querySelector('#induction-host .pl-role[data-role="'+role+'"] [data-alt="'+id+'"]').click();
+      const add = id => {
+        if (!document.querySelector('#induction-host .pl-chooser'))
+          document.querySelector('#induction-host .pl-add').click();
+        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
       };
-      pick('induction','drug.propofol'); pick('nmb','drug.rocuronium');
+      add('drug.propofol'); add('drug.rocuronium');
+      document.querySelector('#induction-host .pl-add').click();
       const planBefore = [...document.querySelectorAll('#induction-host .pl-sel-n')]
         .map(e => e.textContent);
       const y0 = window.pageYOffset;
@@ -339,6 +341,107 @@ const fill = (pg, o) => pg.evaluate(o => {
       { afterSwitch:rail.planAfterSwitch, afterClose:rail.planAfterClose });
     t('"View full protocol" is still the one control that leaves',
       rail.full === true);
+
+    /* ── 3c. DENSITY ────────────────────────────────────────────────────
+       A workstation is judged by what it fits on one screen. These are the
+       three ways this page wasted it: reserved grid cells for agents nobody
+       selected, containers taller than their own contents, and anonymous
+       30–60px gaps between modules. All three are measured, not eyeballed. */
+    console.log('\nDENSITY');
+    const dens = await s.pg.evaluate(`(() => {
+      const add = id => {
+        if (!document.querySelector('#induction-host .pl-chooser'))
+          document.querySelector('#induction-host .pl-add').click();
+        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
+      };
+      /* Measure the RESTING state of a LIVE case. An earlier block ends with
+         newCase(), and without a live case the command bar's two rows are
+         correctly separate — they only join once there is a patient. Neither
+         that nor an open patient form is the waste this checks. */
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+      set('i-asa','II'); set('i-proc','Laparoscopic cholecystectomy');
+      compute(); if (window.ptSummary) ptSummary();
+      document.getElementById('app').classList.remove('pt-open');
+      if (window.Induction) window.Induction.clearPlan();
+      add('drug.propofol'); add('drug.fentanyl'); add('drug.rocuronium');
+      document.querySelector('#induction-host .pl-add').click();
+      const bb = e => e.getBoundingClientRect();
+
+      /* gaps between the major stacked blocks */
+      const blocks = [document.querySelector('#cmd-strip'), document.querySelector('.eng-notice'),
+        document.querySelector('.case-bar'), document.getElementById('cw-derived'),
+        document.querySelector('.wf-lead'), document.querySelector('.wf-col-main .wf-sec'),
+        document.querySelector('.wf-full')].filter(Boolean);
+      const gaps = [];
+      for (let i = 1; i < blocks.length; i++)
+        gaps.push(Math.round(bb(blocks[i]).top - bb(blocks[i-1]).bottom));
+
+      /* container height minus the height its children actually use */
+      const slack = [];
+      document.querySelectorAll('#induction-host .wf-sec, .wf-col-main, .wf-col-side, .pl-grid')
+        .forEach(e => {
+          const kids = [...e.children].filter(k => bb(k).height > 0);
+          if (!kids.length) return;
+          const top = Math.min(...kids.map(k => bb(k).top));
+          const bot = Math.max(...kids.map(k => bb(k).bottom));
+          const box = bb(e);
+          const unused = Math.round((box.bottom - bot) + (top - box.top));
+          if (unused > 26) slack.push((e.className||'').split(' ')[0] + ':' + unused);
+        });
+
+      /* a card must not be stretched to a taller sibling's height */
+      const cards = [...document.querySelectorAll('#induction-host .pl-grid .pl-sel')];
+      const rows = {};
+      cards.forEach(c => { const y = Math.round(bb(c).top); rows[y] = (rows[y]||0) + 1; });
+      const heights = cards.map(c => Math.round(bb(c).height));
+
+      return { gaps, slack,
+        emptyCells: [...document.querySelectorAll('#induction-host .pl-grid > *, ' +
+          '.wf-col-side .awp-grid > *, .wf-full .idc-grid > *')]
+          .filter(e => !e.textContent.trim()).length,
+        cards: cards.length, perRow: Object.values(rows),
+        stretched: new Set(heights).size === 1 && heights.length > 2,
+        cardWidths: cards.map(c => Math.round(bb(c).width)),
+        refTop: Math.round(bb(document.querySelector('.wf-full')).top + window.pageYOffset),
+        refCardsAboveFold: [...document.querySelectorAll('.wf-full .idc-ref')]
+          .filter(c => bb(c).top < window.innerHeight).length,
+        planBottom: Math.round(bb(document.querySelector('.wf-col-main .wf-sec')).bottom) };
+    })()`);
+    /* NO RESERVED CELLS. This is the compromise the brief refused. */
+    t('no empty grid or flex cell anywhere in the workstation',
+      dens.emptyCells === 0, dens.emptyCells);
+    t('three agents fit one row at 1440', dens.cards === 3 &&
+      dens.perRow.length === 1 && dens.perRow[0] === 3, dens.perRow);
+    t('...and a lone card is not stretched to a sibling\'s height',
+      dens.stretched === false, dens.cardWidths);
+    t('no container is more than 26px taller than its contents',
+      dens.slack.length === 0, dens.slack);
+    /* 30–60px anonymous gaps were the complaint; the brief's band is 10–16px
+       between major modules. */
+    t('no anonymous gap between major modules exceeds 16px',
+      dens.gaps.every(g => g <= 16), dens.gaps);
+    t('...and none is negative — nothing overlaps',
+      dens.gaps.every(g => g >= 0), dens.gaps);
+    /* THE POINT OF THE WHOLE PASS. */
+    t('the quick reference and several of its entries are above the fold',
+      dens.refCardsAboveFold >= 4, dens.refCardsAboveFold);
+
+    /* An empty plan must be dense too — not three empty role containers. */
+    const emptyPlan = await s.pg.evaluate(`(() => {
+      if (window.Induction) window.Induction.clearPlan();
+      const host = document.getElementById('induction-host');
+      const sec = host.querySelector('.wf-col-main .wf-sec');
+      return { h:Math.round(sec.getBoundingClientRect().height),
+               cards:host.querySelectorAll('.pl-sel').length,
+               chooser:host.querySelectorAll('.pl-chooser').length,
+               add:host.querySelectorAll('.pl-add').length,
+               says:(host.querySelector('.pl-empty')||{}).textContent || '' };
+    })()`);
+    t('an empty plan is a compact empty state, not three empty containers',
+      emptyPlan.cards === 0 && emptyPlan.chooser === 0 && emptyPlan.add === 1 &&
+      emptyPlan.h < 200, emptyPlan);
+    t('...and it says so', /No agents selected/i.test(emptyPlan.says), emptyPlan.says);
 
     /* ── 4. SEARCH IS THE EXISTING SEARCH ───────────────────────────── */
     console.log('\n4. SEARCH');
@@ -412,11 +515,13 @@ const fill = (pg, o) => pg.evaluate(o => {
       const v = await open(b, 390, 844);
       await fill(v.pg, ADULT); await v.pg.waitForTimeout(600);
       const m = await v.pg.evaluate(`(() => {
-        const pick = (role, id) => {
-          document.querySelector('#induction-host .pl-role[data-role="'+role+'"] .pl-rb').click();
-          document.querySelector('#induction-host .pl-role[data-role="'+role+'"] [data-alt="'+id+'"]').click();
+        const add = id => {
+          if (!document.querySelector('#induction-host .pl-chooser'))
+            document.querySelector('#induction-host .pl-add').click();
+          document.querySelector('#induction-host [data-alt="'+id+'"]').click();
         };
-        pick('induction','drug.propofol');
+        add('drug.propofol');
+        document.querySelector('#induction-host .pl-add').click();
         const plan = () => [...document.querySelectorAll('#induction-host .pl-sel-n')]
           .map(e => e.textContent);
         const planBefore = plan();
