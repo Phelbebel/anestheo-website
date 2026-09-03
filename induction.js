@@ -156,7 +156,28 @@
 
   /* `action` rides in the heading row. A control belonging to the section as
      a whole has no business taking a row of its own beneath it. */
+  /* ── THE ORDINAL IS DERIVED, NOT DECLARED ─────────────────────────────
+     Every section used to carry a hard-coded number: plan 1, airway 2,
+     paediatric 3, reference 4. Two of those are conditional — the paediatric
+     section does not exist for an adult and the airway section does not exist
+     before compute() has published a plan — so the numbers described a
+     workstation that is not always the one on the screen. Moving the
+     reference to the end made it visible: an adult read 1, 2, then 4, and a
+     4 with no 3 above it is a section the clinician goes looking for.
+
+     A section asks for a number by passing NUM. It is answered in the order
+     the sections are actually built, which is the order they appear, so the
+     visible run is always 1..N with nothing missing and nothing skipped. A
+     section that should not be numbered — the backup airway is part of the
+     airway plan above it, not a step of its own — passes '' and is stepped
+     over without consuming an ordinal.
+
+     THIS CHANGES NO GATING. pedsSection() still returns '' for an adult and
+     nothing renders a hidden section to keep a number company. */
+  var NUM = '#';
+  var ordinal = 0;
   function section(n, title, sub, body, extraClass, action){
+    if (n === NUM) n = ++ordinal;
     return '<section class="wf-sec ' + (extraClass || '') + '">' +
       '<div class="wf-h">' + (n === '' ? '' : '<span class="wf-n">' + n + '</span>') +
       '<span class="wf-t">' + title + '</span>' +
@@ -304,7 +325,7 @@
       '<span class="pl-add-sm" aria-hidden="true">' + (open ? 'Close' : '+ Add') + '</span>' +
       '</button>';
 
-    return section(1, 'Induction plan',
+    return section(NUM, 'Induction plan',
       n ? (n + (n === 1 ? ' agent' : ' agents')) : '',
       tech + chooser() +
       (n ? '<div class="pl-grid">' + cards + '</div>'
@@ -374,7 +395,7 @@
         (unit ? '<span class="awp-u">' + unit + '</span>' : '') +
         '</div></div></div>';
     }
-    return section(2, 'Airway plan', 'Primary plan with equipment',
+    return section(NUM, 'Airway plan', 'Primary plan with equipment',
       '<div class="awp-grid">' +
         item(SVG.mask,    'Face mask',      A.mask) +
         item(SVG.blade,   'Laryngoscope',   A.blade) +
@@ -433,7 +454,7 @@
         '<div class="pdx-v">' + val + (unit ? '<span class="pdx-u">' + unit + '</span>' : '') +
         '</div></div>';
     }
-    return section(3, 'Paediatric context', 'Paediatric patients only',
+    return section(NUM, 'Paediatric context', 'Paediatric patients only',
       '<div class="pdx-grid">' +
         v('BSA', S.bsa, 'm&sup2;') +
         v('EBV', P.ebv, 'mL') +
@@ -461,15 +482,6 @@
 
      Its own scroll, so the page does not grow without limit as the drug set
      does. The complete reference stays reachable from the navigation. */
-  /* THE ORDINAL FOLLOWS THE READING ORDER. The reference was numbered 4 while
-     it sat between the plan and the airway, with the paediatric section
-     holding 3 whether or not it existed; now that the reference reads last,
-     an adult was being shown 1, 2, then 4 with no 3 anywhere on the screen.
-     A number that skips is a section the clinician goes looking for. */
-  function refOrdinal(){
-    var c = ctx();
-    return (c && c.context && c.context.pediatric) ? 4 : 3;
-  }
   function referenceSection(){
     /* Nothing to mount if the canonical model published nothing for these
        groups — the same test the old card list applied. */
@@ -490,7 +502,7 @@
         'aria-expanded="false" aria-controls="ctools" ' +
         'aria-label="Clinical tools for this patient" ' +
         'onclick="ctoolsToggle()">Tools</button>';
-    return section(refOrdinal(), 'Drug reference', '',
+    return section(NUM, 'Drug reference', '',
       '<div class="ctl-panel" id="ctools" hidden></div>' +
       '<div class="dref-cats" id="iref-cats"></div>' +
       '<div class="idref"><div id="iref-body"></div></div>', '', action);
@@ -527,6 +539,9 @@
     /* THE WORKSTATION GEOMETRY. Not a single column: the plan and the airway
        are two halves of the same decision and belong beside each other. The
        reference spans beneath both, because it is consulted about either. */
+    /* The run restarts with the render. Sections are built in the order they
+       appear below, so the ordinals are assigned in reading order. */
+    ordinal = 0;
     host.innerHTML =
       /* TWO INDEPENDENT COLUMNS, not a grid with a spanning item. A grid
          grows the tracks a spanning item crosses, so the tall airway column

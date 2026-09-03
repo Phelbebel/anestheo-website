@@ -480,10 +480,14 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
      the 32px a mouse needs, which costs about three pixels of row. */
   .dref-cat{height:44px;padding:0 14px;}
   .dref-search{height:44px;font-size:16px;}
-  table.dtab .dtab-wi,table.dtab .dtab-plus,table.dtab .dtab-more{height:40px;}
-  table.dtab .dtab-wi,table.dtab .dtab-more{width:40px;}
-  table.dtab .dtab-w,table.dtab .dtab-go{width:48px;}
-  table.dtab .dtab-add{width:92px;}
+  /* 44, NOT 40. A tablet still gets the reduced TABLE — it has the width for
+     it — and there is no reason its row controls should be a smaller target
+     than the same controls in the phone list. It costs about four pixels of
+     row height, which the 40-64px band absorbs. */
+  table.dtab .dtab-wi,table.dtab .dtab-plus,table.dtab .dtab-more{height:44px;}
+  table.dtab .dtab-wi,table.dtab .dtab-more{width:44px;}
+  table.dtab .dtab-w,table.dtab .dtab-go{width:52px;}
+  table.dtab .dtab-add{width:96px;}
 }
 
 /* ══ THE PLAN COLUMN, THE DETAIL SURFACE AND THE TOOLS ════════════════════
@@ -602,7 +606,14 @@ table.dtab-red .dtab-dose{width:18%;}
   padding-bottom:7px;}
 #output .wf-full .wf-h .dref-ctl{display:flex; align-items:center; gap:10px;
   margin-left:auto; flex:0 1 auto; min-width:0;}
+/* THE SAME SPECIFICITY TRAP AS THE CHIPS, one control along: this rule is
+   (0,1,3) and the touch rule below is (0,0,2), so a phone was getting a 32px
+   search field — and a font-size under 16px makes iOS zoom the page on focus.
+   The touch override is written at this specificity so it actually wins. */
 #output .wf-full .dref-search{width:230px; height:32px; flex:0 1 230px; min-width:120px;}
+@media(max-width:900px){
+  #output .wf-full .dref-search{height:44px; font-size:16px;}
+}
 #output .wf-full .ctl-b{height:32px; margin-left:0;}
 #output .wf-full .dref-count{order:-1;}
 

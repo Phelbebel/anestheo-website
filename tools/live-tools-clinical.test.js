@@ -665,14 +665,26 @@ async function openEngine(b, viewport) {
        column and read between the plan and the airway; it spans the central
        workspace beneath both now, so it comes after both — which is also the
        order it is read in. */
-    /* THE ORDINALS DO NOT SKIP. The reference was numbered 4 while it sat
-       between the plan and the airway, and the paediatric section held 3
-       whether or not it existed — so once the reference moved to the end, an
-       adult read 1, 2, then 4 and went looking for a section 3 that is not
-       on the screen. The reference takes whichever number follows what is
-       actually rendered. */
-    t('adult: the section ordinals run 1, 2, 3 with nothing skipped',
-      adult.nums.join(',') === '1,2,3', adult.nums);
+    /* THE ORDINALS ARE DERIVED FROM WHAT IS ON THE SCREEN. Every section used
+       to declare its own number — plan 1, airway 2, paediatric 3, reference 4
+       — and two of those are conditional, so the numbering described a
+       workstation that is not always the one rendered. Once the reference
+       moved to the end an adult read 1, 2, then 4 and went looking for a
+       section 3 that does not exist for them.
+
+       Asserted as a PROPERTY, not as a string: whatever set of sections a
+       patient produces, the numbers on them are 1..N in order with nothing
+       missing and nothing repeated. A section that opts out of numbering —
+       the backup airway belongs to the airway plan above it — is stepped over
+       without consuming one. */
+    const contiguous = nums => {
+      const seen = nums.filter(x => /^\d+$/.test(x)).map(Number);
+      return seen.length > 0 &&
+             seen.every((v, i) => v === i + 1);
+    };
+    t('adult: the visible section ordinals run 1..N with nothing skipped',
+      contiguous(adult.nums) && adult.nums.filter(x => /^\d+$/.test(x)).length === 3,
+      adult.nums);
     t('adult: plan beside airway, and the reference beneath both',
       adult.titles.join(' / ') ===
       'Induction plan / Airway plan / Backup difficult airway / Drug reference',
@@ -912,8 +924,14 @@ async function openEngine(b, viewport) {
       child.titles.join(' / ') ===
       'Induction plan / Airway plan / Backup difficult airway / ' +
       'Paediatric context / Drug reference', child.titles);
-    t('child: ...and the ordinals run 1, 2, 3, 4',
-      child.nums.join(',') === '1,2,3,4', child.nums);
+    /* THE SAME PROPERTY WITH ONE MORE SECTION IN PLAY. This is what a
+       hard-coded number cannot satisfy for both patients at once, and it is
+       satisfied WITHOUT rendering a hidden paediatric section for the adult:
+       the assertion above counts three numbered sections, this one counts
+       four, and both are contiguous. */
+    t('child: ...and so do theirs, with the paediatric section among them',
+      contiguous(child.nums) && child.nums.filter(x => /^\d+$/.test(x)).length === 4,
+      child.nums);
     /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
        recomputed instead of reading compute(), this is where it would show. */
     t('child: paediatric LMA and i-gel match patientContext at 22 kg',
