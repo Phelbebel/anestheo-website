@@ -275,13 +275,18 @@ html,body{background:var(--ground);}
 .dref-panel > .panel-body{padding:0;}
 
 .dref-ctl{display:flex;align-items:center;gap:9px;}
+/* TARGET SIZES. Every control in the reference is at least 32px tall on a
+   pointer and 44px under a thumb — the house rule the workstation already
+   holds everywhere else. These were 26 and 32px, which was fine while the
+   reference lived in a workspace of its own and became a row of undersized
+   controls the moment it was mounted inside the induction workstation. */
 .dref-search{width:210px;background:rgba(255,255,255,.05);border:1px solid var(--line);
-  border-radius:var(--radius-sm);padding:0 11px;height:32px;color:#fff;font-family:inherit;
+  border-radius:var(--radius-sm);padding:0 11px;height:34px;color:#fff;font-family:inherit;
   font-size:12.5px;outline:none;}
 .dref-search::placeholder{color:var(--ink-3);}
 .dref-search:focus{border-color:var(--accent);}
 .dref-view{display:flex;gap:0;border:1px solid var(--line);border-radius:var(--radius-sm);
-  overflow:hidden;height:32px;}
+  overflow:hidden;height:34px;}
 .dref-view button{background:transparent;border:0;color:var(--ink-3);font-family:inherit;
   font-size:12px;font-weight:700;padding:0 13px;cursor:pointer;white-space:nowrap;}
 .dref-view button.on{background:var(--brand-tint-2);color:#fff;}
@@ -293,7 +298,7 @@ html,body{background:var(--ground);}
 .dref-cats{display:flex;flex-wrap:wrap;gap:6px;padding:11px 16px;
   border-bottom:1px solid var(--hair);}
 .dref-cat{background:transparent;border:1px solid var(--line);color:var(--ink-3);
-  border-radius:999px;padding:0 11px;height:26px;font-family:inherit;font-size:9.5px;
+  border-radius:999px;padding:0 11px;height:32px;font-family:inherit;font-size:9.5px;
   font-weight:800;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;
   display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
   transition:background .14s ease,border-color .14s ease,color .14s ease;}
@@ -339,8 +344,12 @@ table.dtab tbody tr.dtab-r:has(+ .dtab-wrow:not([hidden])) td{border-bottom:none
 .dtab-dose{width:19%;}
 .dtab-prep{width:16%;}
 .dtab-dur{width:78px;font-variant-numeric:tabular-nums;color:var(--ink-2);}
-.dtab-w{width:54px;text-align:center;}
-.dtab-go{width:52px;text-align:center;}
+/* The three action columns carry their own headings, and "Caution" set in
+   9.5px/800 with .13em tracking is 44px of word in a 34px content box — the
+   three headings were running into each other. They are sized to the widest
+   of them now. */
+.dtab-w{width:62px;text-align:center;}
+.dtab-go{width:62px;text-align:center;}
 
 .dtab-n{font-size:13.5px;font-weight:700;color:#fff;line-height:1.25;}
 .dtab-alias{font-size:10.5px;color:var(--hint);margin-top:1px;line-height:1.3;}
@@ -349,9 +358,15 @@ table.dtab tbody tr.dtab-r:has(+ .dtab-wrow:not([hidden])) td{border-bottom:none
 /* The dose column is the strongest thing in the row. The rule reads first
    because that is what the clinician recognises; the amount for THIS patient
    sits under it in the accent, because that is what gets drawn up. */
-.dtab-d1{font-size:13.5px;font-weight:700;color:#fff;line-height:1.3;}
-.dtab-d1 span{font-size:10.5px;font-weight:600;color:var(--ink-3);margin-left:3px;}
-.dtab-d2{font-size:13px;font-weight:800;color:var(--accent);margin-top:2px;
+/* THE AMOUNT IS THE LARGEST THING IN THE ROW. It was 13px under a 13.5px
+   rule and a 13.5px drug name, distinguished only by its colour — and the
+   rule this workstation has held since the first card is that the number
+   which gets drawn up outranks the number it was derived from. Colour is a
+   second cue, never the only one, for exactly the reason the class badges
+   also carry text. */
+.dtab-d1{font-size:12.5px;font-weight:700;color:#fff;line-height:1.3;}
+.dtab-d1 span{font-size:10px;font-weight:600;color:var(--ink-3);margin-left:3px;}
+.dtab-d2{font-size:14.5px;font-weight:800;color:var(--accent);margin-top:2px;
   font-variant-numeric:tabular-nums;line-height:1.25;}
 .dtab-d2 span{font-size:10.5px;font-weight:700;color:var(--accent);opacity:.75;margin-left:3px;}
 .dtab-prep{color:var(--ink-2);font-size:12px;}
@@ -377,7 +392,7 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 
 /* The caution marker, and the row it opens. Folded by default so the table
    keeps its density; one press puts the text under the row it belongs to. */
-.dtab-wi{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+.dtab-wi{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;
   border:1px solid rgba(232,168,56,.34);border-radius:var(--radius-sm);font-size:12.5px;
   color:var(--warning);cursor:pointer;background:rgba(232,168,56,.11);font-family:inherit;
   padding:0;transition:background .14s ease,border-color .14s ease;}
@@ -395,7 +410,7 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
   clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .dtab-more{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink-2);
   border-radius:var(--radius-sm);font-family:inherit;font-size:15px;line-height:1;
-  width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+  width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
   cursor:pointer;padding:0;}
 .dtab-more:hover{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);}
 .dref-empty{padding:22px 14px;color:var(--ink-3);font-size:13px;}
@@ -410,7 +425,168 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
   /* A table stops being a table at 390px. Cards below this width, always. */
   .dref-view{display:none;}
   table.dtab{display:none;}
+  /* and every remaining control is a thumb target */
+  .dref-cat{height:44px;padding:0 14px;}
+  .dref-search{height:44px;font-size:16px;}
 }
+
+/* ══ THE PLAN COLUMN, THE DETAIL SURFACE AND THE TOOLS ════════════════════
+   Everything below belongs to the reference engine, so it is authored beside
+   the rest of it rather than split across two files. These rules are parsed
+   after live-tools.css, which is what lets the induction mount restyle the
+   shared chrome for a half-width column without a second class system.
+
+   ── THE MATCH COUNT ──────────────────────────────────────────────────── */
+.dref-count{font-size:11px;font-weight:700;color:var(--ink-3);white-space:nowrap;
+  font-variant-numeric:tabular-nums;}
+
+/* ── ADD TO PLAN ──────────────────────────────────────────────────────────
+   A 26px square in a 44px-tall row, the same size as the caution marker and
+   the details chevron beside it, because they are three controls of the same
+   rank. Pressed state is the accent: the plan is where the drug now is. */
+.dtab-add{width:60px;text-align:center;}
+.dtab-plus{width:32px;height:32px;display:inline-flex;align-items:center;
+  justify-content:center;padding:0;font-family:inherit;font-size:15px;line-height:1;
+  border-radius:var(--radius-sm);cursor:pointer;
+  background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink-2);
+  transition:background .14s ease,border-color .14s ease,color .14s ease;}
+.dtab-plus:hover{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);}
+.dtab-plus.on{background:var(--brand-tint-2);border-color:var(--accent);color:var(--accent);
+  font-size:13px;}
+.dtab-plus:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+
+/* ── THE INLINE DETAIL ────────────────────────────────────────────────────
+   Under the row, inside the table, at the table's own width. It is a
+   disclosure, not a dialogue: the workstation behind it is never covered, the
+   patient bar and the plan stay on screen, and closing it puts nothing back
+   because nothing was taken away. */
+.dtab-r.open td{border-bottom:none;}
+.dtab-drow > td{padding:0 12px 12px 16px;background:rgba(255,255,255,.02);}
+.dtab-r.open td{background:rgba(126,207,192,.06)!important;}
+.ddet{border-left:2px solid var(--accent);border-radius:0 var(--radius-md) var(--radius-md) 0;
+  background:rgba(255,255,255,.025);padding:12px 14px;}
+.ddet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+  gap:9px 18px;}
+.ddet-f{min-width:0;}
+.ddet-l{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);margin-bottom:2px;}
+.ddet-v{font-size:12.5px;color:var(--ink-2);line-height:1.45;}
+.ddet-v b{color:#fff;font-weight:700;}
+.ddet-amt{font-size:15px;font-weight:800;color:var(--accent)!important;
+  font-variant-numeric:tabular-nums;}
+.ddet-amt span{font-size:10.5px;font-weight:700;margin-left:3px;opacity:.75;}
+.ddet-wt{font-weight:700;color:var(--accent);letter-spacing:0;text-transform:none;
+  margin-left:5px;}
+.ddet-prov{display:block;color:var(--ink-3);font-size:11.5px;}
+.ddet-vb{display:block;margin-top:2px;font-size:11px;color:var(--hint);
+  font-variant-numeric:tabular-nums;}
+.ddet-warn{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;
+  color:var(--warning);background:rgba(232,168,56,.09);border-radius:var(--radius-sm);
+  padding:8px 11px;margin-bottom:11px;}
+.ddet-warn.crit{color:#ffb3a3;background:rgba(255,110,90,.11);font-weight:600;}
+.ddet-foot{margin-top:10px;font-size:10.5px;color:var(--hint);}
+.dtab-more.on{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);
+  transform:rotate(90deg);}
+
+/* ── THE CARD VIEW'S TWO ACTIONS ──────────────────────────────────────────
+   A card has no columns, so the controls the table puts in them sit under the
+   row. Same functions, same state, same one renderer for the detail. */
+.dcard{border-bottom:1px solid var(--hair);}
+.dcard:last-child{border-bottom:none;}
+.dcard.open{background:rgba(126,207,192,.05);}
+.dcard-acts{display:flex;align-items:center;gap:8px;padding:0 14px 10px;}
+.dcard-more{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink-2);
+  border-radius:var(--radius-sm);font-family:inherit;font-size:11.5px;font-weight:700;
+  min-height:32px;padding:0 12px;cursor:pointer;}
+.dcard-more:hover,.dcard-more.on{color:#fff;border-color:var(--accent);
+  background:var(--brand-tint-2);}
+.dcard .ddet{margin:0 14px 12px;}
+@media(max-width:900px){
+  /* Thumb targets, not mouse targets. */
+  .dcard-acts{padding:0 14px 12px;}
+  .dcard-more,.dcard-acts .dtab-plus{min-height:44px;}
+  .dcard-acts .dtab-plus{width:44px;height:44px;font-size:18px;}
+}
+
+/* ── THE INDUCTION MOUNT ──────────────────────────────────────────────────
+   The same engine in a half-width column. The chrome loses the workspace
+   panel's 16px gutters, because inside a workstation section the section
+   already provides them, and the table loses two columns below 1280px where
+   the column is too narrow to set nine of them — the values are not dropped,
+   they are in the detail surface one press away. */
+#output .wf-sec .iref-head{display:flex;align-items:center;gap:9px;
+  margin:0 0 9px;flex-wrap:wrap;}
+#output .wf-sec .iref-head .dref-ctl{flex:1 1 auto;min-width:0;}
+#output .wf-sec .dref-search{flex:1 1 150px;width:auto;min-width:0;}
+#output .wf-sec .dref-cats{padding:0 0 9px;border-bottom:1px solid var(--hair);
+  margin-bottom:9px;}
+/* THE ABBREVIATION IS A COLUMN-WIDTH DECISION, NOT A VIEWPORT ONE. Spelled
+   out, the five chips wrapped onto a second row in a 488px column and cost
+   38px above a 232px list. "NMB" is the same abbreviation the row badge uses,
+   so nothing has to be learned twice. */
+#output .wf-sec .dref-cat .lg{display:none;}
+#output .wf-sec .dref-cat .sm{display:inline;}
+#output .wf-sec .idref{padding:0;border:0;}
+#output .wf-sec table.dtab th{padding:8px 8px;}
+#output .wf-sec table.dtab td{padding:6px 8px;}
+/* SIX COLUMNS IN 488px, AND THE ARITHMETIC HAS TO CLOSE. table-layout:fixed
+   hands every declared width out first and gives the auto column what is
+   left, so a 39% dose column beside three 50-odd-pixel action columns left
+   the drug name 64px and "Dexmedetomidine" ran straight through the dose
+   next to it. The three action columns are 26px controls and are sized as
+   such; name and dose then get about 156px each. */
+table.dtab-cmp{table-layout:fixed;}
+table.dtab-cmp .dtab-cls{width:80px;}
+table.dtab-cmp .dtab-name{width:auto;}
+table.dtab-cmp .dtab-dose{width:32%;}
+table.dtab-cmp .dtab-w,
+table.dtab-cmp .dtab-add,
+table.dtab-cmp .dtab-go{width:38px;padding-left:2px;padding-right:2px;}
+table.dtab-cmp th{padding:6px 4px;}
+table.dtab-cmp td{padding:6px 4px;}
+table.dtab-cmp td.dtab-cls{padding-left:12px;}
+/* A long generic name breaks rather than overhanging its column. */
+table.dtab-cmp .dtab-n,table.dtab-cmp .dtab-alias,
+table.dtab-cmp .dtab-d1{overflow-wrap:anywhere;}
+table.dtab-cmp .dtab-n{font-size:13px;}
+#output .dtab-cmp .pc{font-size:8px;padding:3px 5px;letter-spacing:.04em;}
+.dtab-useline{font-size:10.5px;color:var(--ink-3);margin-top:2px;line-height:1.35;}
+.dtab-prepline{margin-top:3px;}
+.dtab-prepline .dtab-p1{font-size:11px;font-weight:600;color:var(--ink-2);}
+.dtab-prepline .dtab-p2{font-size:10px;}
+
+/* ── CLINICAL TOOLS ───────────────────────────────────────────────────────
+   A disclosure in the reference heading. Closed it is one control; open it is
+   a grid of this case's own scalars and a short list of the workspaces that
+   own the rest. It is never a dialogue, for the same reason the drug detail
+   is not one. */
+.ctl-b{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink-2);
+  border-radius:var(--radius-sm);font-family:inherit;font-size:11.5px;font-weight:700;
+  height:34px;padding:0 12px;cursor:pointer;margin-left:auto;flex:0 0 auto;
+  white-space:nowrap;transition:background .14s ease,border-color .14s ease,color .14s ease;}
+.ctl-b:hover,.ctl-b.on{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);}
+.ctl-b:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.ctl-panel{border:1px solid var(--line);border-radius:var(--radius-md);
+  background:rgba(255,255,255,.022);padding:12px 13px;margin:0 0 10px;}
+.ctl-panel[hidden]{display:none!important;}
+.ctl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));
+  gap:9px 14px;}
+.ctl-l{font-size:9px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);}
+.ctl-v{font-size:16px;font-weight:800;color:#fff;margin-top:2px;
+  font-variant-numeric:tabular-nums;line-height:1.15;}
+.ctl-v span{font-size:10px;font-weight:600;color:var(--ink-3);margin-left:3px;}
+.ctl-jumps{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:7px;margin-top:12px;padding-top:11px;border-top:1px solid var(--hair);}
+.ctl-j{text-align:left;background:rgba(255,255,255,.03);border:1px solid var(--line);
+  border-radius:var(--radius-sm);padding:8px 11px;cursor:pointer;font-family:inherit;
+  min-height:44px;display:flex;flex-direction:column;justify-content:center;gap:1px;}
+.ctl-j:hover{border-color:var(--accent);background:var(--brand-tint-2);}
+.ctl-j:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.ctl-jl{font-size:12px;font-weight:700;color:#fff;}
+.ctl-js{font-size:10.5px;color:var(--ink-3);}
+.ctl-note{margin:11px 0 0;font-size:10.5px;color:var(--hint);line-height:1.5;}
+@media(max-width:900px){ .ctl-b{min-height:44px;} }
 
 /* ══ WORKSTATION GRID ═════════════════════════════════════════════════════
    Reference on the left, Crisis Center on the right, and the rail is sticky
@@ -945,7 +1121,11 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 #output .rw-more[open]{display:block;margin-left:0;margin-top:2px;}
 #output .rw-more .rw-txt{
   display:block;color:var(--ink-3);opacity:.86;font-size:13px;
-  line-height:1.45;padding-top:3px;}
+  line-height:1.45;padding-top:3px;
+  /* The disclosure is an inline-block, so its shrink-to-fit width could end
+     up a few pixels under the text inside it and the last word overhung the
+     box. Breaking is always available now. */
+  overflow-wrap:anywhere;}
 #output .rw-c{color:var(--ink-3);opacity:.82;}
 
 /* ══ NEUTRALISING THE REMAINING GREEN ═══════════════════════════════════
@@ -2998,7 +3178,28 @@ function m2(label,sub,value,unit){
    not become a number of millilitres. So the cell shows the amount to draw up
    large, and the rule it came from beneath it. The clinician does not
    multiply; they can still see what was multiplied. */
-var DREF = { cat:'all', view:'table', q:'' };
+/* ── TWO MOUNTS, ONE ENGINE ───────────────────────────────────────────────
+   The reference is rendered in two places: the Drug reference workspace, over
+   every published drug, and the lower half of the Induction workstation, over
+   the agents that case reaches for. They are the SAME renderer with the same
+   normalized rows out of ClinicalContent — a second builder for the second
+   mount is how one of them ends up drawing a dose the other does not.
+
+   Each mount owns only its own view state. `groups` is the scope: null means
+   every canonical group, a list means those groups. Nothing else differs. */
+var DREF_I = {
+  dref: { id:'dref', cat:'all', view:'table', q:'', open:null, groups:null },
+  /* The induction mount's scope is the canonical groups an induction reaches
+     for, which is the same list the section used before it became a table.
+     Reversal is there because sugammadex is drawn up before rocuronium is
+     given, not after. */
+  iref: { id:'iref', cat:'all', view:'table', q:'', open:null, compact:true,
+          groups:['induction','volatile','analgesia','nmb','reversal'] }
+};
+function drefI(id){ return DREF_I[id] || DREF_I.dref; }
+/* Kept as a live handle on the workspace mount: several call sites and the
+   suites read DREF.cat / DREF.q, and they mean that one. */
+var DREF = DREF_I.dref;
 
 /* Filters are built from the classes that are actually present in the
    publishable drug set, not from a wish list, so no category can render
@@ -3032,39 +3233,68 @@ var DREF_LABEL = {
 var DREF_MERGE = { benzo:'induction' };
 function drefCat(d){ var c = d.pclass || 'other'; return DREF_MERGE[c] || c; }
 
-function drefDrugs(){
-  var CC = window.ClinicalContent; if(!CC) return [];
+function drefWeight(){
   var pc = window.patientContext;
-  var wt = (pc && pc.anthropometrics && pc.anthropometrics.weight) || null;
-  var seen = {}, out = [];
-  CC.GROUPS.forEach(function(g){
-    CC.visibleDrugsInGroup(g.id, wt).forEach(function(d){
+  return (pc && pc.anthropometrics && pc.anthropometrics.weight) || null;
+}
+function drefDrugs(inst){
+  var CC = window.ClinicalContent; if(!CC) return [];
+  var wt = drefWeight(), seen = {}, out = [];
+  var ids = (inst && inst.groups) ? inst.groups
+                                  : CC.GROUPS.map(function(g){ return g.id; });
+  ids.forEach(function(gid){
+    CC.visibleDrugsInGroup(gid, wt).forEach(function(d){
       if(seen[d.id]) return; seen[d.id] = 1; out.push(d);
     });
   });
   return out;
 }
 
-function drefMatch(d, q){
-  if(!q) return true;
-  q = q.toLowerCase();
-  if((d.name||'').toLowerCase().indexOf(q) >= 0) return true;
-  var src = window.ClinicalContent.byId ? window.ClinicalContent.byId(d.id) : null;
-  var al = (src && src.aliases) || [];
-  for(var i=0;i<al.length;i++) if(String(al[i]).toLowerCase().indexOf(q) >= 0) return true;
-  return false;
-}
+/* ── SEARCH IS THE CANONICAL SEARCH ───────────────────────────────────────
+   This used to be drefMatch(): a private case-folded indexOf over the name
+   and the aliases, and nothing else. It was a SECOND search engine sitting
+   beside the one in clinical-index.js, and it behaved differently — "opioid"
+   found nothing, "intubation" found nothing, a transposed letter found
+   nothing, and results came back in group order rather than by how well they
+   matched. Two engines over one dataset is one engine too many.
 
-function drefRows(){
-  var all = drefDrugs();
-  return all.filter(function(d){
-    if(DREF.cat !== 'all' && drefCat(d) !== DREF.cat) return false;
-    return drefMatch(d, DREF.q);
+   ClinicalContent.search() is the index the command palette uses: exact name,
+   exact alias, name prefix, alias prefix, word boundary, class and indication,
+   summary, then a restricted fuzzy pass over names and aliases only. It also
+   refuses to return unpublished content, which this filter never checked for
+   itself. Nothing is indexed here and no field is added to it.
+
+   It declines a query shorter than two characters — an index cannot rank one
+   letter usefully — so one character does not filter rather than filtering
+   wrongly. */
+function drefQueryRank(q){
+  var CC = window.ClinicalContent;
+  if(!CC || !CC.search) return null;
+  if(!q || CC.norm(q).length < 2) return null;
+  var rank = {};
+  CC.search(q, { limit:200 }).forEach(function(h){
+    if(h.item.kind === 'drug') rank[h.item.id] = h.score;
   });
+  return rank;
 }
 
-function drefCats(){
-  var counts = {}, all = drefDrugs();
+function drefRows(inst){
+  var all = drefDrugs(inst);
+  var rank = drefQueryRank(inst.q);
+  var rows = all.filter(function(d){
+    if(inst.cat !== 'all' && drefCat(d) !== inst.cat) return false;
+    return rank ? Object.prototype.hasOwnProperty.call(rank, d.id) : true;
+  });
+  /* With a query the order is the index's ranking, so the best match is the
+     first row. Without one the canonical group order stands. */
+  if(rank) rows = rows.slice().sort(function(a,b){
+    return (rank[b.id] - rank[a.id]) || a.name.localeCompare(b.name);
+  });
+  return rows;
+}
+
+function drefCats(inst){
+  var counts = {}, all = drefDrugs(inst);
   all.forEach(function(d){ var c = drefCat(d); counts[c] = (counts[c]||0)+1; });
   var order = ['induction','inhalational','opioid','nmb','vasopressor','anticholinergic',
                'reversal','local','betablocker','uterotonic','antiemetic','haemostatic',
@@ -3118,6 +3348,66 @@ function drefHasDuration(rows){
   return false;
 }
 
+/* ── ADD TO PLAN ──────────────────────────────────────────────────────────
+   The reference can put a drug into the induction plan, and it does it
+   through Induction.toggle — the plan's own API, the one the chooser uses.
+   There is no second plan state here and this holds no list of its own.
+
+   It is offered ONLY for the canonical groups the plan actually models, which
+   are the groups ROLES is built from. A vasopressor has no induction role in
+   this application's model, so it gets no button rather than a button that
+   would have to invent one. Nothing is ever preselected, nothing is removed
+   on the clinician's behalf, and a second agent in a group joins the first. */
+var DREF_ROLE_GROUP = { induction:'induction', analgesia:'analgesia', nmb:'nmb' };
+function drefRoleOf(id){
+  var CC = window.ClinicalContent, src = CC && CC.byId ? CC.byId(id) : null;
+  return (src && DREF_ROLE_GROUP[src.group]) || null;
+}
+function drefInPlan(id){
+  var I = window.Induction;
+  return !!(I && I.plan && I.plan.indexOf(id) >= 0);
+}
+function drefPlanCell(d){
+  var role = drefRoleOf(d.id);
+  if(!role) return '<td class="dtab-add"></td>';
+  var on = drefInPlan(d.id);
+  return '<td class="dtab-add">'+drefPlanBtn(d, role, on)+'</td>';
+}
+function drefPlanBtn(d, role, on){
+  return '<button type="button" class="dtab-plus'+(on?' on':'')+'" '+
+    'data-plan-for="'+esc_(d.id)+'" aria-pressed="'+(on?'true':'false')+'" '+
+    'onclick="drefAddToPlan(\''+role+'\',\''+esc_(d.id)+'\')" '+
+    'aria-label="'+(on ? ('Remove '+esc_(d.name)+' from the induction plan')
+                       : ('Add '+esc_(d.name)+' to the induction plan'))+'" '+
+    'title="'+(on?'In the plan':'Add to plan')+'">'+(on?'&#10003;':'+')+'</button>';
+}
+function drefAddToPlan(role, id){
+  var I = window.Induction;
+  if(!I || !I.toggle) return;
+  I.toggle(role, id);          /* the plan's own API; it re-renders itself */
+  drefSyncPlan();              /* only the buttons' pressed state changes here */
+}
+window.drefAddToPlan = drefAddToPlan;
+/* The plan changed, so the buttons that mirror it are repainted — and only
+   they. Repainting the whole table would throw away the clinician's search,
+   their open detail and their scroll position for a state change that is two
+   attributes wide. */
+function drefSyncPlan(){
+  [].forEach.call(document.querySelectorAll('[data-plan-for]'), function(b){
+    var id = b.getAttribute('data-plan-for'), on = drefInPlan(id);
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.setAttribute('title', on ? 'In the plan' : 'Add to plan');
+    b.innerHTML = on ? '&#10003;' : '+';
+    var lab = b.getAttribute('aria-label') || '';
+    b.setAttribute('aria-label', lab.replace(/^(Add|Remove) /, on ? 'Remove ' : 'Add ')
+                                    .replace(/ (to|from) the induction plan$/,
+                                             on ? ' from the induction plan'
+                                                : ' to the induction plan'));
+  });
+}
+window.drefSyncPlan = drefSyncPlan;
+
 /* THE CAUTION COLUMN. The row spec is a compact one — class, drug, use,
    dose, preparation, caution, details — with the caution as a marker rather
    than a paragraph. Carrying the full warning inline made rows 71 to 105px
@@ -3130,16 +3420,22 @@ function drefHasDuration(rows){
    actually use, which is the failure this avoids. Critical severity keeps the
    red treatment so the contraindications can be picked out of twenty-five
    rows without opening anything. */
-function drefWarnCell(d, i){
+function drefWarnCell(inst, d, i){
   if(!d.warn) return '<td class="dtab-w"></td>';
   var crit = d.severity === 'critical';
+  var rid = 'dw-'+inst.id+'-'+i;
   return '<td class="dtab-w"><button type="button" class="dtab-wi'+(crit?' crit':'')+'" '+
-         'aria-expanded="false" aria-controls="dw-'+i+'" onclick="drefWarnToggle(this,'+i+')" '+
+         'aria-expanded="false" aria-controls="'+rid+'" '+
+         'onclick="drefWarnToggle(this,\''+rid+'\')" '+
          'title="'+esc_(d.warn)+'" aria-label="'+(crit?'Contraindication':'Caution')+
          ' for '+esc_(d.name)+'">&#9888;</button></td>';
 }
-function drefWarnToggle(btn, i){
-  var row = document.getElementById('dw-'+i); if(!row) return;
+function drefWarnToggle(btn, rid){
+  /* Called with (btn, index) by nothing any more, and with (btn, rowId) by
+     the table. The number form is kept working because a stale handler in a
+     cached page is not a reason to throw. */
+  var row = document.getElementById(typeof rid === 'number' ? ('dw-dref-'+rid) : rid);
+  if(!row) return;
   var opening = row.hasAttribute('hidden');
   if(opening) row.removeAttribute('hidden'); else row.setAttribute('hidden','');
   btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
@@ -3147,94 +3443,353 @@ function drefWarnToggle(btn, i){
 }
 window.drefWarnToggle = drefWarnToggle;
 
-function drefTable(rows){
+/* ── THE DETAIL SURFACE ───────────────────────────────────────────────────
+   INLINE, UNDER THE ROW IT BELONGS TO. This used to hand the drug id to the
+   command palette, which opened a full-screen modal over the whole
+   workstation — the patient, the plan, the airway and the timers all replaced
+   by a search box, in order to read one drug's preparation.
+
+   EVERY FIELD BELOW IS READ FROM THE RECORD. aliases, klass, indications,
+   the dose's route / label / range / unit / weight basis, prep, warn,
+   severity and provenance are what a DRUGS entry carries; there is no
+   duration, onset, offset or contraindication list anywhere in the dataset,
+   so this shows none. A field with nothing behind it is not rendered rather
+   than rendered empty. */
+function drefDetail(inst, id){
+  var CC = window.ClinicalContent, src = CC && CC.byId ? CC.byId(id) : null;
+  if(!src) return '';
+  var wt = drefWeight();
+  var dose = (src.doses && src.doses[0]) || null;
+  var r = dose ? CC.renderDose(dose, wt) : null;
+  var bits = [];
+  function f(label, val){
+    if(val == null || val === '') return;
+    bits.push('<div class="ddet-f"><div class="ddet-l">'+label+'</div>'+
+              '<div class="ddet-v">'+val+'</div></div>');
+  }
+  f('Class', src.klass);
+  f('Also known as', (src.aliases||[]).slice(1).join(', '));
+  f('Indications', (src.indications||[]).join(' &middot; '));
+  if(dose){
+    f('Route', dose.route);
+    f(dose.label || 'Dose',
+      (dose.low != null ? (dose.low+'&ndash;'+dose.high) : String(dose.value)) +
+      ' ' + dose.unit + (dose.basis ? (' <b>'+dose.basis+'</b>') : ''));
+    if(dose.max) f('Maximum', dose.max);
+    /* The amount for THIS patient, from the same renderDose the row and the
+       induction plan use. Absent when there is no weight, and absent for a
+       rate, because renderDose does not convert one. */
+    if(r && wt && dose.basisWeight)
+      f('For this patient <span class="ddet-wt">'+Math.round(wt)+' kg</span>',
+        '<b class="ddet-amt">'+r.val+(r.unit ? ('<span>'+r.unit+'</span>') : '')+'</b>');
+  }
+  f('Preparation', src.prep);
+  /* Provenance is real metadata on every record and it is the reason a dose
+     is allowed on screen at all, so the reference says which it is. */
+  if(src.provenance && src.provenance.state)
+    f('Provenance', '<span class="ddet-prov">'+
+      (src.provenance.state === 'existing-unchanged'
+        ? 'Migrated unchanged from the shipped reference'
+        : 'Reviewed and published') + '</span>' +
+      (src.provenance.verbatim ? ('<span class="ddet-vb">'+src.provenance.verbatim+'</span>') : ''));
+  var warn = src.warn
+    ? '<div class="ddet-warn'+(src.severity==='critical'?' crit':'')+'">'+
+      '<span aria-hidden="true">&#9888;</span><span>'+src.warn+'</span></div>'
+    : '';
+  return '<div class="ddet">'+warn+'<div class="ddet-grid">'+bits.join('')+'</div>'+
+    '<div class="ddet-foot">Reference only &middot; verify against your local formulary '+
+    'and the product label.</div></div>';
+}
+/* One open detail per mount. Pressing the open row's chevron closes it, which
+   is what a disclosure control does. */
+function drefDetails(instId, id){
+  var inst = drefI(instId);
+  inst.open = (inst.open === id) ? null : id;
+  drefPaint(instId, { keepScroll:true });
+}
+window.drefDetails = drefDetails;
+
+/* ── ONE TABLE, TWO COLUMN COUNTS ─────────────────────────────────────────
+   The workspace mount has the whole clinical column — 1100px at 1440 — and
+   sets nine columns. The induction mount has the plan column beside the
+   airway, which is 488px at the same width, and nine columns there is not a
+   dense table, it is a squeezed one.
+
+   So the compact form MOVES two columns rather than dropping them: the
+   indication goes under the drug name, the preparation under the dose. Same
+   rows, same cells, same functions — one builder with one flag, because two
+   builders is how the two mounts start disagreeing about a dose. Nothing is
+   hidden: every value the wide table shows, the compact table shows. */
+function drefTable(inst, rows){
   if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
   var CC = window.ClinicalContent;
   var dur = drefHasDuration(rows);
-  var span = 7 + (dur ? 1 : 0);
+  var cmp = !!inst.compact;
+  var span = (cmp ? 6 : 8) + (dur && !cmp ? 1 : 0);
   var body = rows.map(function(d, i){
     var meta = CC.classMeta(d.pclass);
     var col  = meta ? meta.color : 'transparent';
+    var open = inst.open === d.id;
+    var use  = d.use || d.ind || '';
+    var prep = d.prepMain ? ('<div class="dtab-p1">'+d.prepMain+'</div>'+
+                 (d.prepNote ? '<div class="dtab-p2">'+d.prepNote+'</div>' : '')) : '';
     /* Striping by row index, not :nth-child: a caution row sits between two
        drugs when it is open and would otherwise invert the pattern. */
-    var row = '<tr class="dtab-r'+(i % 2 ? ' alt' : '')+'">'+
+    var row = '<tr class="dtab-r'+(i % 2 ? ' alt' : '')+(open ? ' open' : '')+'" '+
+        'data-drug="'+esc_(d.id)+'">'+
       '<td class="dtab-cls" style="--pc:'+col+'">'+(CC.classBadge(d.pclass)||'')+'</td>'+
       '<td class="dtab-name"><div class="dtab-n">'+d.name+'</div>'+
-        (d.aliasLine ? '<div class="dtab-alias">'+d.aliasLine+'</div>' : '')+'</td>'+
-      '<td class="dtab-use">'+(d.use || d.ind || '&mdash;')+'</td>'+
-      '<td class="dtab-dose">'+drefDoseCell(d)+'</td>'+
-      '<td class="dtab-prep">'+(d.prepMain ? ('<div class="dtab-p1">'+d.prepMain+'</div>'+
-        (d.prepNote ? '<div class="dtab-p2">'+d.prepNote+'</div>' : '')) : '&mdash;')+'</td>'+
-      (dur ? '<td class="dtab-dur">'+(d.duration || '&mdash;')+'</td>' : '')+
-      drefWarnCell(d, i)+
-      '<td class="dtab-go"><button type="button" class="dtab-more" '+
-        'onclick="drefDetails(\''+d.id+'\')" aria-label="Open the full reference for '+
+        (d.aliasLine ? '<div class="dtab-alias">'+d.aliasLine+'</div>' : '')+
+        (cmp && use ? '<div class="dtab-useline">'+use+'</div>' : '')+'</td>'+
+      (cmp ? '' : '<td class="dtab-use">'+(use || '&mdash;')+'</td>')+
+      '<td class="dtab-dose">'+drefDoseCell(d)+
+        (cmp && prep ? '<div class="dtab-prepline">'+prep+'</div>' : '')+'</td>'+
+      (cmp ? '' : '<td class="dtab-prep">'+(prep || '&mdash;')+'</td>')+
+      (dur && !cmp ? '<td class="dtab-dur">'+(d.duration || '&mdash;')+'</td>' : '')+
+      drefWarnCell(inst, d, i)+
+      drefPlanCell(d)+
+      '<td class="dtab-go"><button type="button" class="dtab-more'+(open?' on':'')+'" '+
+        'onclick="drefDetails(\''+inst.id+'\',\''+esc_(d.id)+'\')" '+
+        'aria-expanded="'+(open?'true':'false')+'" '+
+        'aria-label="'+(open?'Close':'Open')+' the full reference for '+
         esc_(d.name)+'" title="Full reference">&#8250;</button></td>'+
     '</tr>';
     if(d.warn){
-      row += '<tr class="dtab-wrow" id="dw-'+i+'" hidden><td colspan="'+span+'">'+
+      row += '<tr class="dtab-wrow" id="dw-'+inst.id+'-'+i+'" hidden><td colspan="'+span+'">'+
              '<div class="dtab-warn'+(d.severity==='critical'?' crit':'')+'">'+
              '<span aria-hidden="true">&#9888;</span><span>'+d.warn+'</span></div></td></tr>';
     }
+    if(open){
+      row += '<tr class="dtab-drow"><td colspan="'+span+'">'+drefDetail(inst, d.id)+'</td></tr>';
+    }
     return row;
   }).join('');
-  return '<table class="dtab"><thead><tr>'+
-    '<th class="dtab-cls">Class</th><th class="dtab-name">Drug</th><th class="dtab-use">Use</th>'+
-    '<th class="dtab-dose">Patient dose</th><th class="dtab-prep">Preparation</th>'+
-    (dur ? '<th class="dtab-dur">Dur.</th>' : '')+
-    '<th class="dtab-w">Caution</th><th class="dtab-go">Details</th>'+
+  return '<table class="dtab'+(cmp?' dtab-cmp':'')+'"><thead><tr>'+
+    '<th class="dtab-cls">Class</th>'+
+    '<th class="dtab-name">'+(cmp ? 'Drug &amp; use' : 'Drug')+'</th>'+
+    (cmp ? '' : '<th class="dtab-use">Use</th>')+
+    '<th class="dtab-dose">'+(cmp ? 'Dose &amp; preparation' : 'Patient dose')+'</th>'+
+    (cmp ? '' : '<th class="dtab-prep">Preparation</th>')+
+    (dur && !cmp ? '<th class="dtab-dur">Dur.</th>' : '')+
+    /* THREE 26px BUTTONS DO NOT NEED THREE WORDS ABOVE THEM. In the compact
+       column the headings would take more width than the controls; they are
+       kept for a screen reader and taken out of the layout. */
+    (cmp
+      ? '<th class="dtab-w"><span class="sr-only">Caution</span></th>'+
+        '<th class="dtab-add"><span class="sr-only">Add to plan</span></th>'+
+        '<th class="dtab-go"><span class="sr-only">Details</span></th>'
+      : '<th class="dtab-w">Caution</th><th class="dtab-add">Plan</th>'+
+        '<th class="dtab-go">Details</th>')+
     '</tr></thead><tbody>'+body+'</tbody></table>';
 }
 
 /* Cards reuse rx(), the row renderer the rest of the page already uses, so
-   the card presentation cannot drift from every other module on the page. */
-function drefCards(rows){
+   the card presentation cannot drift from every other module on the page.
+   The two actions the table offers ride beneath each row rather than in a
+   column, because a card has no columns — same functions, same state. */
+function drefCards(inst, rows){
   if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
-  return rows.map(function(d){ return rx(d); }).join('');
+  return rows.map(function(d){
+    var role = drefRoleOf(d.id), open = inst.open === d.id;
+    return '<div class="dcard'+(open?' open':'')+'" data-drug="'+esc_(d.id)+'">'+ rx(d) +
+      '<div class="dcard-acts">'+
+        (role ? drefPlanBtn(d, role, drefInPlan(d.id)) : '')+
+        '<button type="button" class="dcard-more'+(open?' on':'')+'" '+
+          'onclick="drefDetails(\''+inst.id+'\',\''+esc_(d.id)+'\')" '+
+          'aria-expanded="'+(open?'true':'false')+'">'+
+          (open?'Hide details':'Details')+'</button>'+
+      '</div>'+
+      (open ? drefDetail(inst, d.id) : '')+
+    '</div>';
+  }).join('');
 }
 
-function drefSet(k, v){
-  DREF[k] = v;
-  if(k === 'q'){ drefPaint(); } else { drefRender(); }
+function drefSet(instId, k, v){
+  var inst = drefI(instId);
+  inst[k] = v;
+  /* A new query or category can no longer be showing the open row, so the
+     disclosure closes with them rather than reopening somewhere unexpected. */
+  if(k === 'q' || k === 'cat') inst.open = null;
+  if(k === 'q'){ drefPaint(instId); } else { drefRender(instId); }
 }
 window.drefSet = drefSet;
-function drefDetails(id){
-  if(window.ClinicalSearch && window.ClinicalSearch.open){ window.ClinicalSearch.open(id); return; }
-  var el = document.getElementById('ev-'+id); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
-}
-window.drefDetails = drefDetails;
 
-function drefPaint(){
-  var host = ge('dref-body'); if(!host) return;
-  var rows = drefRows();
-  var phone = window.matchMedia && window.matchMedia('(max-width:900px)').matches;
-  host.innerHTML = (DREF.view === 'cards' || phone) ? drefCards(rows) : drefTable(rows);
+/* ── A TABLE NEEDS THE WIDTH FOR ITS COLUMNS ──────────────────────────────
+   The workspace mount has the whole clinical column, so a viewport rule is
+   the right one for it: below 900px it is cards, above it a table.
+
+   The induction mount has the PLAN column, and how wide that is depends on
+   the viewport in a way no single breakpoint captures — 488px at 1440, but
+   356px at 1180 because the crisis rail is beside it, then 461px again at
+   1024 once the rail folds away. A viewport breakpoint got 1024 wrong in both
+   directions. So this measures the container the table would actually be set
+   in. Below about 440px of column the drug name is squeezed under 100px and
+   "Dexmedetomidine" runs through the dose next to it; above it, the five
+   compact columns fit.
+
+   The measurement is 0 while the workspace is off-screen, and a width of zero
+   is not an answer, so it falls back to the viewport there. */
+function drefNarrow(inst, host){
+  var phone = !!(window.matchMedia && window.matchMedia('(max-width:900px)').matches);
+  if(!inst.compact || phone) return phone;
+  var w = host.getBoundingClientRect().width;
+  return w ? (w < 440) : (window.innerWidth < 1280);
 }
-function drefRender(){
-  var ctl = ge('dref-ctl'), cats = ge('dref-cats');
+
+function drefPaint(instId, opts){
+  var inst = drefI(instId);
+  var host = ge(inst.id+'-body'); if(!host) return;
+  var keep = (opts && opts.keepScroll) ? drefScroller(host) : null;
+  var top = keep ? keep.scrollTop : 0;
+  var rows = drefRows(inst);
+  host.innerHTML = (inst.view === 'cards' || drefNarrow(inst, host))
+    ? drefCards(inst, rows) : drefTable(inst, rows);
+  var cnt = ge(inst.id+'-count');
+  if(cnt) cnt.textContent = rows.length + (rows.length === 1 ? ' drug' : ' drugs');
+  if(keep){ var again = drefScroller(host); if(again) again.scrollTop = top; }
+}
+/* The nearest thing that actually scrolls: the induction mount scrolls in
+   .idref, the workspace mount scrolls the page. */
+function drefScroller(host){
+  var el = host;
+  while(el && el !== document.body){
+    if(el.scrollHeight > el.clientHeight + 2){
+      var oy = getComputedStyle(el).overflowY;
+      if(oy === 'auto' || oy === 'scroll') return el;
+    }
+    el = el.parentNode;
+  }
+  return null;
+}
+
+function drefRender(instId){
+  /* No argument means every mount that is on the page — compute() rebuilds
+     #output wholesale and calls this once. */
+  if(instId == null){
+    Object.keys(DREF_I).forEach(function(k){ drefRender(k); });
+    return;
+  }
+  var inst = drefI(instId);
+  var ctl = ge(inst.id+'-ctl'), cats = ge(inst.id+'-cats');
   if(!ctl || !cats) return;
   ctl.innerHTML =
-    '<input class="dref-search" id="dref-q" type="search" placeholder="Search drugs&hellip;" '+
-      'value="'+String(DREF.q).replace(/"/g,'&quot;')+'" oninput="drefSet(\'q\', this.value)">'+
+    '<input class="dref-search" id="'+inst.id+'-q" type="search" '+
+      'placeholder="Search name, class or use&hellip;" '+
+      'aria-label="Search the drug reference" '+
+      'value="'+String(inst.q).replace(/"/g,'&quot;')+'" '+
+      'oninput="drefSet(\''+inst.id+'\',\'q\', this.value)">'+
+    '<span class="dref-count" id="'+inst.id+'-count"></span>'+
     '<div class="dref-view" role="group" aria-label="Presentation">'+
-      '<button type="button" class="'+(DREF.view==='table'?'on':'')+'" '+
-        'onclick="drefSet(\'view\',\'table\')">&#9636; Table</button>'+
-      '<button type="button" class="'+(DREF.view==='cards'?'on':'')+'" '+
-        'onclick="drefSet(\'view\',\'cards\')">&#9635; Cards</button>'+
+      '<button type="button" class="'+(inst.view==='table'?'on':'')+'" '+
+        'onclick="drefSet(\''+inst.id+'\',\'view\',\'table\')">&#9636; Table</button>'+
+      '<button type="button" class="'+(inst.view==='cards'?'on':'')+'" '+
+        'onclick="drefSet(\''+inst.id+'\',\'view\',\'cards\')">&#9635; Cards</button>'+
     '</div>';
   /* Each chip wears its own class colour, the same one the row badge and the
      row's left rule use, so the filter and the thing it filters are visibly
      the same object. The colours come from PCLASS; none is chosen here. */
-  cats.innerHTML = drefCats().map(function(c){
+  cats.innerHTML = drefCats(inst).map(function(c){
     var style = c.color ? ' style="--cc:'+c.color+'"' : '';
     return '<button type="button" class="dref-cat'+(c.color?' tinted':'')+
-           (DREF.cat===c.id?' on':'')+'"'+style+
-           ' onclick="drefSet(\'cat\',\''+c.id+'\')">'+c.label+
+           (inst.cat===c.id?' on':'')+'"'+style+
+           ' aria-pressed="'+(inst.cat===c.id?'true':'false')+'"'+
+           ' onclick="drefSet(\''+inst.id+'\',\'cat\',\''+c.id+'\')">'+c.label+
            '<span class="n">'+c.n+'</span></button>';
   }).join('');
-  drefPaint();
+  drefPaint(instId);
 }
 window.drefRender = drefRender;
+
+/* Rotating a tablet changes which side of that 440px the plan column is on,
+   and the choice is made at paint time. Repaint on resize — the state is
+   module-level, so nothing the clinician typed or opened is lost. */
+(function(){
+  var t = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(t);
+    t = setTimeout(function(){
+      Object.keys(DREF_I).forEach(function(k){
+        if(ge(k+'-body')) drefPaint(k, { keepScroll:true });
+      });
+    }, 180);
+  });
+})();
+
+/* ── CLINICAL TOOLS ───────────────────────────────────────────────────────
+   NOTHING HERE IS CALCULATED. Every value below was computed by compute() for
+   this patient and is already on the page somewhere else; this puts them in
+   one place next to the reference, which is where they get asked for. If a
+   scalar is undefined for this patient it is not shown — an em dash under a
+   heading is a value that failed, and this application has no such reading.
+
+   The tools that live in another workspace — maximum allowable blood loss,
+   predicted body weight and tidal volume, the local anaesthetic ceiling — are
+   NOT recomputed here. They are links to the panel that already owns them, so
+   there is one implementation of each and one place it can be wrong. */
+var CTOOLS_JUMP = [
+  { dom:'fluids',      label:'Blood volume &amp; MABL',    sub:'EBV, maximum allowable blood loss' },
+  { dom:'maintenance', label:'PBW &amp; tidal volume',     sub:'Lung-protective ventilation' },
+  { dom:'local',       label:'Local anaesthetic maximum',  sub:'Ceiling dose and volume at it' },
+  { dom:'tiva',        label:'TIVA / TCI targets',         sub:'Propofol and remifentanil models' }
+];
+function ctoolsHtml(){
+  var pc = window.patientContext;
+  if(!pc || !pc.complete) return '';
+  var S = pc.dosingScalars || {}, D = pc.derived || {}, P = pc.pediatric || {};
+  var peds = !!(pc.context && pc.context.pediatric);
+  var cells = [];
+  function c(label, val, unit){
+    if(val == null || val === '') return;
+    cells.push('<div class="ctl-c"><div class="ctl-l">'+label+'</div>'+
+      '<div class="ctl-v">'+val+(unit?('<span>'+unit+'</span>'):'')+'</div></div>');
+  }
+  c('TBW', S.tbw, 'kg');
+  c('BMI', D.bmi, 'kg/m&sup2;');
+  c('BSA', S.bsa, 'm&sup2;');
+  /* IBW, LBW and adjusted body weight are Devine-family adult formulas. They
+     are defined in dosingScalars at any age because a rule written against
+     one still needs it, but presenting them as ordinary paediatric readings
+     is what renderContextStrip() already refuses to do, and this refuses it
+     for the same reason. */
+  if(!peds){ c('IBW', S.ibw, 'kg'); c('LBW', S.lbw, 'kg'); c('ABW', S.abw, 'kg'); }
+  c('EBV', D.ebv, 'mL');
+  c('Maintenance', D.maint, 'mL/h');
+  c('MAC age factor', D.mac, '');
+  if(peds){ c('ETT', P.ett, 'mm ID'); c('ETT depth', P.ettDepth, 'cm');
+            c('LMA', P.lma, ''); c('i-gel', P.igel, ''); }
+  var jumps = CTOOLS_JUMP.map(function(j){
+    return '<button type="button" class="ctl-j" onclick="ctoolsGo(\''+j.dom+'\')">'+
+      '<span class="ctl-jl">'+j.label+'</span>'+
+      '<span class="ctl-js">'+j.sub+'</span></button>';
+  }).join('');
+  return '<div class="ctl-grid">'+cells.join('')+'</div>'+
+    '<div class="ctl-jumps">'+jumps+'</div>'+
+    '<p class="ctl-note">These are this case\'s values as the workstation already '+
+    'computed them. The tools above open the workspace that owns them; nothing is '+
+    'calculated twice.</p>';
+}
+/* Opening a tool is a domain change and nothing else: it does not touch the
+   patient, the plan, the technique, the airway, the timers or the crisis
+   state, and it never reloads. */
+function ctoolsGo(dom){
+  ctoolsClose();
+  if(window.setDomain) window.setDomain(dom);
+}
+window.ctoolsGo = ctoolsGo;
+function ctoolsToggle(){
+  var p = ge('ctools'); if(!p) return;
+  var opening = p.hasAttribute('hidden');
+  if(opening){ p.innerHTML = ctoolsHtml(); p.removeAttribute('hidden'); }
+  else p.setAttribute('hidden','');
+  var b = ge('ctools-b');
+  if(b){ b.setAttribute('aria-expanded', opening ? 'true' : 'false');
+         b.classList.toggle('on', opening); }
+}
+window.ctoolsToggle = ctoolsToggle;
+function ctoolsClose(){
+  var p = ge('ctools'); if(p && !p.hasAttribute('hidden')) ctoolsToggle();
+}
+window.ctoolsClose = ctoolsClose;
 
 function grp(head,body,note){
   return '<div class="grp"><div class="grp-h">'+head+(note?'<em>'+note+'</em>':'')+'</div>'+body+'</div>';

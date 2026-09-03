@@ -398,14 +398,16 @@ const fill = (pg, o) => pg.evaluate(o => {
 
       return { gaps, slack,
         emptyCells: [...document.querySelectorAll('#induction-host .pl-grid > *, ' +
-          '.wf-col-side .awp-grid > *, .wf-full .idc-grid > *')]
+          '.wf-col-side .awp-grid > *, .wf-full #iref-body tr.dtab-r')]
           .filter(e => !e.textContent.trim()).length,
         cards: cards.length, perRow: Object.values(rows),
         stretched: new Set(heights).size === 1 && heights.length > 2,
         cardWidths: cards.map(c => Math.round(bb(c).width)),
         refTop: Math.round(bb(document.querySelector('.wf-full')).top + window.pageYOffset),
-        refCardsAboveFold: [...document.querySelectorAll('.wf-full .idc-ref')]
-          .filter(c => bb(c).top < window.innerHeight).length,
+        /* The reference is a table now. The property is the same one: several
+           of its entries must be readable without scrolling the page. */
+        refCardsAboveFold: [...document.querySelectorAll('.wf-full #iref-body tr.dtab-r')]
+          .filter(c => bb(c).top < window.innerHeight && bb(c).bottom > 0).length,
         planBottom: Math.round(bb(document.querySelector('.wf-col-main .wf-sec')).bottom) };
     })()`);
     /* NO RESERVED CELLS. This is the compromise the brief refused. */
@@ -429,7 +431,7 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('...and none is negative — nothing overlaps',
       dens.gaps.every(g => g >= 0), dens.gaps);
     /* THE POINT OF THE WHOLE PASS. */
-    t('the quick reference and several of its entries are above the fold',
+    t('the drug reference and several of its entries are above the fold',
       dens.refCardsAboveFold >= 4, dens.refCardsAboveFold);
 
     /* ── 3d. THE AGENT ROW IS PACKED FROM THE LEFT ──────────────────────
@@ -608,14 +610,37 @@ const fill = (pg, o) => pg.evaluate(o => {
         ref: { box:R(ref), idrefH:R(idref).h, sideBottom:R(side).b,
                imbalance: R(side).b - R(ref).b,
                hidden: idref.scrollHeight - idref.clientHeight,
-               /* the used cap must track the viewport: measured at two
-                  heights rather than trusting the declaration */
+               scrolls: getComputedStyle(idref).overflowY === 'auto',
+               /* Phase 3 replaced the viewport-proportional cap with the
+                  space itself: the scrollport is a flex child with no cap,
+                  so it takes exactly what the column beside it leaves. */
                cap: getComputedStyle(idref).maxHeight,
-               capIsResponsive: (() => {
-                 const a = parseFloat(getComputedStyle(idref).maxHeight);
-                 return a > 0 && Math.abs(a - 0.30 * window.innerHeight) < 2;
-               })() }
+               grows: getComputedStyle(idref).flexGrow === '1' }
       };
+    })()`);
+
+    /* THE AVAILABLE-HEIGHT MODEL, PROVED BY CHANGING WHAT IS AVAILABLE.
+       A constant cannot pass this: the side column gains a whole section when
+       the patient is a child, and the reference beside it must gain the same
+       height rather than staying where a number put it. */
+    const avail = await s.pg.evaluate(`(() => {
+      const H = () => {
+        const i = document.querySelector('.wf-full .idref');
+        const s = document.querySelector('.wf-col-side');
+        const f = document.querySelector('.wf-full');
+        return { idref:Math.round(i.getBoundingClientRect().height),
+                 side:Math.round(s.getBoundingClientRect().height),
+                 imbalance:Math.round(s.getBoundingClientRect().bottom -
+                                      f.getBoundingClientRect().bottom) };
+      };
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      const adult = H();
+      set('i-age','4'); set('i-age-unit','y'); set('i-height','103'); set('i-weight','16');
+      compute();
+      const child = H();
+      set('i-age','42'); set('i-age-unit','y'); set('i-height','175'); set('i-weight','75');
+      compute();
+      return { adult:adult, child:child };
     })()`);
 
     /* A — CONTENT-SIZED, NOT STRETCHED. The rail must end shortly after its
@@ -641,13 +666,22 @@ const fill = (pg, o) => pg.evaluate(o => {
 
     /* C — the reference must fill the height beside it rather than being a
        short window with the airway column running on below. */
-    t('the quick reference ends near the airway column, not far above it',
+    t('the drug reference ends near the airway column, not far above it',
       Math.abs(empt.ref.imbalance) <= 80, empt.ref.imbalance);
-    /* Read from the CASCADE, not from the first matching rule in the file —
-       the first version of this grepped the stylesheet text and matched a
-       superseded declaration three rules above the one that actually wins. */
-    t('...using a height proportional to the viewport, not a flat cap',
-      empt.ref.capIsResponsive === true, empt.ref.cap);
+    t('...and still scrolls inside itself rather than growing the page',
+      empt.ref.scrolls === true && empt.ref.grows === true,
+      { overflowY:empt.ref.scrolls, flexGrow:empt.ref.grows });
+    /* THE RELATIONSHIP, NOT A NUMBER. A flat cap and a viewport-proportional
+       cap both fail this: the side column is 200-odd pixels taller for a
+       child, and the reference must be taller by the same amount because it
+       is measured against that column and nothing else. */
+    t('...sized by the space beside it — a taller side column makes it taller',
+      avail.child.side > avail.adult.side + 40 &&
+      avail.child.idref > avail.adult.idref + 40,
+      { adult:avail.adult, child:avail.child });
+    t('...and it stays level with that column at both',
+      Math.abs(avail.adult.imbalance) <= 80 && Math.abs(avail.child.imbalance) <= 80,
+      { adult:avail.adult.imbalance, child:avail.child.imbalance });
 
     /* An empty plan must be dense too — not three empty role containers. */
     const emptyPlan = await s.pg.evaluate(`(() => {
@@ -829,6 +863,341 @@ const fill = (pg, o) => pg.evaluate(o => {
       t(k + ': New Patient is present but not granted by the shell',
         r.newPatientPresent === true && r.newPatientVisible === false,
         { present:r.newPatientPresent, visible:r.newPatientVisible });
+      await v.ctx.close();
+    }
+
+    /* ══ 7. THE DRUG REFERENCE WORKSTATION ══════════════════════════════
+       PHASE 3. The reference is one engine mounted twice — the workspace tab
+       over every published drug, the induction column over the groups an
+       induction reaches for. Everything below holds one of three lines:
+
+         ONE SEARCH. The private substring matcher that used to filter this
+         table is gone; the canonical index answers, so class and indication
+         are searchable and unpublished content cannot be returned.
+
+         ONE PLAN. "Add to plan" calls Induction's own API. It holds no list,
+         it preselects nothing, and it removes nothing on its own.
+
+         NOTHING IS COVERED. The detail surface and the tools are disclosures
+         inside the page. Opening either leaves the case, the plan, the
+         technique, the airway, the timers and the crisis state exactly as
+         they were.                                                        */
+    console.log('\n7. DRUG REFERENCE — SEARCH, FILTERS, PLAN, DETAIL, TOOLS');
+
+    t('no second matcher survives in the reference',
+      !/function\s+drefMatch\s*\(/.test(ENGC));
+    t('...the reference asks ClinicalContent.search for its results',
+      /function\s+drefQueryRank[\s\S]{0,400}CC\.search\(/.test(ENGC));
+    t('...and one engine serves both mounts',
+      (ENGC.match(/function\s+drefTable\s*\(/g) || []).length === 1 &&
+      (ENGC.match(/function\s+drefCards\s*\(/g) || []).length === 1 &&
+      /DREF_I\s*=\s*\{[\s\S]{0,400}iref\s*:/.test(ENGC));
+
+    const r3 = await open(b, 1440, 1250);
+    await fill(r3.pg, ADULT); await r3.pg.waitForTimeout(700);
+
+    /* ── the two mounts and their shapes ── */
+    const mounts = await r3.pg.evaluate(`(() => {
+      const rows = s => [...document.querySelectorAll(s + ' tr.dtab-r')]
+        .map(r => (r.querySelector('.dtab-n')||{}).textContent);
+      setDomain('drugs');
+      const wide = rows('#dref-body');
+      setDomain('induction');
+      return { iref:rows('#iref-body'), dref:wide,
+               irefChips:[...document.querySelectorAll('#iref-cats .dref-cat')].length,
+               drefChips:[...document.querySelectorAll('#dref-cats .dref-cat')].length,
+               irefTable:!!document.querySelector('#iref-body table.dtab'),
+               compact:!!document.querySelector('#iref-body table.dtab-cmp') };
+    })()`);
+    t('the induction column mounts the reference as a table',
+      mounts.irefTable === true && mounts.iref.length > 6, mounts.iref.length);
+    t('...in its compact column form', mounts.compact === true);
+    t('...scoped to the induction groups, while the workspace holds them all',
+      mounts.iref.length < mounts.dref.length && mounts.dref.length >= 20,
+      { induction:mounts.iref.length, workspace:mounts.dref.length });
+    t('...and both build their filters from classes that are actually present',
+      mounts.irefChips >= 3 && mounts.drefChips > mounts.irefChips,
+      { induction:mounts.irefChips, workspace:mounts.drefChips });
+    /* PROVENANCE IS THE SAFETY GATE, AND SEARCH IS NOT A WAY ROUND IT. Five
+       records in DRUGS are proposed-unverified and must never reach a
+       clinician — not in the table, not through a filter, and not by being
+       searched for by name. */
+    const unpub = await r3.pg.evaluate(`(() => {
+      const CC = window.ClinicalContent;
+      const hidden = CC.DRUGS.filter(d => !CC.isPublishable(d));
+      const shown = [], found = [];
+      hidden.forEach(d => {
+        if (mountHas(d.id)) shown.push(d.id);
+        drefSet('dref','q', d.name);
+        if (mountHas(d.id)) found.push(d.id);
+      });
+      drefSet('dref','q','');
+      function mountHas(id){
+        return !!document.querySelector('#dref-body [data-drug="'+id+'"]');
+      }
+      return { count:hidden.length, shown, found,
+               ids:hidden.map(d => d.id) };
+    })()`);
+    t('unpublished records are in the dataset and on no screen',
+      unpub.count > 0 && unpub.shown.length === 0,
+      { unpublished:unpub.count, rendered:unpub.shown });
+    t('...and searching for one by name does not surface it',
+      unpub.found.length === 0, unpub.found);
+
+    /* ── SEARCH ── */
+    const srch = await r3.pg.evaluate(`(() => {
+      const names = () => [...document.querySelectorAll('#iref-body .dtab-n')]
+        .map(n => n.textContent);
+      const doses = () => [...document.querySelectorAll('#iref-body tr.dtab-r')]
+        .map(r => (r.querySelector('.dtab-n')||{}).textContent + '=' +
+                  (r.querySelector('.dtab-dose')||{}).textContent.replace(/\\s+/g,' ').trim());
+      const before = doses();
+      const go = q => { drefSet('iref','q',q); return names(); };
+      const generic = go('rocuronium');
+      const alias   = go('esmeron');
+      const trade   = go('diprivan');
+      const klass   = go('opioid');
+      const indic   = go('rapid sequence');
+      const fuzzy   = go('propofl');
+      const none    = go('zzzznotadrug');
+      go('');
+      const after = doses();
+      return { generic, alias, trade, klass, indic, fuzzy, none,
+               unchanged: JSON.stringify(before) === JSON.stringify(after),
+               beforeCount: before.length, afterCount: after.length };
+    })()`);
+    /* The canonical index also returns sugammadex here, because its recorded
+       indication is "reversal of rocuronium" — a class/indication hit, one
+       tier below the exact name. That is the ranking working, so what is
+       asserted is that the exact name LEADS, not that it is alone. */
+    t('search finds a generic name, and the exact name leads',
+      srch.generic[0] === 'Rocuronium', srch.generic);
+    t('search finds an alias the name does not contain',
+      srch.alias.join() === 'Rocuronium', srch.alias);
+    t('...and a trade name', srch.trade.join() === 'Propofol', srch.trade);
+    t('search finds drugs by class', srch.klass.length === 3 &&
+      srch.klass.indexOf('Fentanyl') >= 0 && srch.klass.indexOf('Remifentanil') >= 0,
+      srch.klass);
+    t('search finds drugs by indication',
+      srch.indic.length > 0 && srch.indic.indexOf('Suxamethonium') >= 0, srch.indic);
+    t('...and tolerates a typo, as the canonical index does',
+      srch.fuzzy.join() === 'Propofol', srch.fuzzy);
+    t('a query that matches nothing returns nothing, not everything',
+      srch.none.length === 0, srch.none);
+    /* THE POINT. Filtering is a view; it may never touch a value. */
+    t('searching changes no clinical value anywhere in the reference',
+      srch.unchanged === true && srch.beforeCount === srch.afterCount,
+      { before:srch.beforeCount, after:srch.afterCount });
+
+    /* ── FILTERS ── */
+    const filt = await r3.pg.evaluate(`(() => {
+      const read = () => [...document.querySelectorAll('#iref-body tr.dtab-r')]
+        .map(r => (r.querySelector('.dtab-n')||{}).textContent + '=' +
+                  (r.querySelector('.dtab-dose')||{}).textContent.replace(/\\s+/g,' ').trim());
+      const all = read();
+      drefSet('iref','cat','opioid');
+      const opi = read();
+      drefSet('iref','cat','nmb');
+      const nmb = read();
+      drefSet('iref','cat','all');
+      const back = read();
+      const chips = [...document.querySelectorAll('#iref-cats .dref-cat')]
+        .map(c => c.innerText.replace(/\\s+/g,' ').trim());
+      return { all, opi, nmb, back, chips,
+               opiSubset: opi.every(x => all.indexOf(x) >= 0),
+               nmbSubset: nmb.every(x => all.indexOf(x) >= 0),
+               restored: JSON.stringify(all) === JSON.stringify(back) };
+    })()`);
+    t('a category filter narrows the list', filt.opi.length > 0 &&
+      filt.opi.length < filt.all.length && filt.nmb.length < filt.all.length,
+      { all:filt.all.length, opioids:filt.opi.length, nmb:filt.nmb.length });
+    t('...to a strict subset of the same rows, values included',
+      filt.opiSubset === true && filt.nmbSubset === true);
+    t('...and clearing it restores exactly what was there',
+      filt.restored === true);
+    t('...no filter offers a category with nothing in it',
+      filt.chips.every(c => !/\b0$/.test(c)), filt.chips);
+
+    /* ── ADD TO PLAN ── */
+    const plan = await r3.pg.evaluate(`(() => {
+      Induction.clearPlan();
+      const btn = id => document.querySelector('#iref-body [data-plan-for="'+id+'"]');
+      const offered = [...document.querySelectorAll('#iref-body tr.dtab-r')]
+        .map(r => ({ id:r.dataset.drug, has:!!r.querySelector('[data-plan-for]') }));
+      const empty = Induction.plan.slice();
+      btn('drug.propofol').click();
+      const one = Induction.plan.slice();
+      btn('drug.fentanyl').click();
+      const two = Induction.plan.slice();
+      /* a SECOND agent in a role that is already filled */
+      btn('drug.midazolam').click();
+      const three = Induction.plan.slice();
+      const pressed = !!btn('drug.propofol') &&
+        btn('drug.propofol').getAttribute('aria-pressed') === 'true';
+      /* pressing it again is a removal, and only of that one */
+      btn('drug.midazolam').click();
+      const afterRemove = Induction.plan.slice();
+      return { offered, empty, one, two, three, pressed, afterRemove,
+               planCards: document.querySelectorAll('#induction-host .pl-sel').length };
+    })()`);
+    t('nothing is in the plan until it is put there', plan.empty.length === 0);
+    t('Add to plan adds exactly the drug pressed',
+      plan.one.join() === 'drug.propofol', plan.one);
+    t('...a second drug joins it rather than replacing it',
+      plan.two.length === 2 && plan.two.indexOf('drug.propofol') >= 0 &&
+      plan.two.indexOf('drug.fentanyl') >= 0, plan.two);
+    t('...and a second agent in the SAME role joins the first',
+      plan.three.length === 3 && plan.three.indexOf('drug.midazolam') >= 0, plan.three);
+    t('...the button then reads as pressed', plan.pressed === true);
+    t('...and pressing it again removes only that one',
+      plan.afterRemove.length === 2 && plan.afterRemove.indexOf('drug.midazolam') < 0 &&
+      plan.afterRemove.indexOf('drug.propofol') >= 0, plan.afterRemove);
+    /* THE MODEL DECIDES WHAT MAY BE PLANNED, NOT THE TABLE. */
+    t('...and only canonical induction-compatible groups are offered it',
+      plan.offered.every(o => o.has === /^drug\.(propofol|ketamine|midazolam|dexmedetomidine|fentanyl|morphine|remifentanil|rocuronium|suxamethonium)$/.test(o.id)),
+      plan.offered.filter(o => o.has).map(o => o.id));
+
+    /* ── DETAIL, TOOLS, AND WHAT MUST SURVIVE THEM ── */
+    const keep = await r3.pg.evaluate(`(() => {
+      Induction.clearPlan();
+      Induction.setTechnique('classic');
+      document.querySelector('#iref-body [data-plan-for="drug.propofol"]').click();
+      const snap = () => ({
+        plan: Induction.plan.slice().join(),
+        technique: Induction.technique,
+        weight: document.getElementById('i-weight').value,
+        airway: (document.querySelector('#induction-host .awp-grid')||{}).textContent || '',
+        timers: (document.querySelector('#live-timers')||{}).textContent || '',
+        crisisOpen: !document.querySelector('.crisis-preview[hidden]') ,
+        url: location.pathname + location.hash,
+        domain: document.getElementById('output').getAttribute('data-domain')
+      });
+      const before = snap();
+      /* SEARCH */
+      drefSet('iref','q','fentanyl');
+      const afterSearch = snap();
+      drefSet('iref','q','');
+      /* DETAIL — open, read, close */
+      drefDetails('iref','drug.propofol');
+      const det = document.querySelector('#iref-body .ddet');
+      const detOpen = snap();
+      const detText = det ? det.innerText : '';
+      const modal = !!document.querySelector('.cp-bg');
+      const planStillVisible = !!document.querySelector('#induction-host .pl-sel');
+      drefDetails('iref','drug.propofol');
+      const detClosed = snap();
+      const stillThere = !!document.querySelector('#iref-body .ddet');
+      /* TOOLS */
+      ctoolsToggle();
+      const toolsPanel = document.getElementById('ctools');
+      const toolsOpen = snap();
+      const toolsText = toolsPanel ? toolsPanel.innerText : '';
+      const toolsCells = toolsPanel ? toolsPanel.querySelectorAll('.ctl-c').length : 0;
+      const toolsJumps = toolsPanel ? toolsPanel.querySelectorAll('.ctl-j').length : 0;
+      ctoolsToggle();
+      const toolsClosed = snap();
+      return { before, afterSearch, detOpen, detClosed, toolsOpen, toolsClosed,
+               detText, modal, planStillVisible, stillThere,
+               toolsText, toolsCells, toolsJumps,
+               toolsHidden: toolsPanel ? toolsPanel.hasAttribute('hidden') : null };
+    })()`);
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    t('searching preserves the case, the plan, the technique and the timers',
+      same(keep.before, keep.afterSearch), { before:keep.before, after:keep.afterSearch });
+    t('opening a drug detail preserves all of it',
+      same(keep.before, keep.detOpen), keep.detOpen);
+    t('...closing it preserves all of it and puts nothing back',
+      same(keep.before, keep.detClosed) && keep.stillThere === false, keep.detClosed);
+    t('...and the detail is inline — the workstation is never covered',
+      keep.modal === false && keep.planStillVisible === true,
+      { modal:keep.modal, planVisible:keep.planStillVisible });
+    t('opening and closing the clinical tools preserves all of it',
+      same(keep.before, keep.toolsOpen) && same(keep.before, keep.toolsClosed),
+      { open:keep.toolsOpen, closed:keep.toolsClosed });
+    t('...and the tools close again', keep.toolsHidden === true);
+
+    /* THE DETAIL SHOWS ONLY WHAT THE RECORD CARRIES. No record in DRUGS has a
+       duration, an onset, an offset or a contraindication list, so none of
+       those words may appear as a heading. */
+    t('the detail names only canonical fields',
+      /CLASS/i.test(keep.detText) && /ALSO KNOWN AS/i.test(keep.detText) &&
+      /INDICATIONS/i.test(keep.detText) && /PREPARATION/i.test(keep.detText) &&
+      /PROVENANCE/i.test(keep.detText), keep.detText.slice(0,120));
+    t('...and invents no onset, duration or contraindication',
+      !/\b(onset|duration|offset|half.life|contraindications)\b/i.test(keep.detText),
+      keep.detText.slice(0,160));
+    t('...including the amount for THIS patient, from the same renderer',
+      /113.188\s*mg/.test(keep.detText.replace(/\s+/g,' ')), keep.detText.slice(0,200));
+
+    /* THE TOOLS EXPOSE; THEY DO NOT CALCULATE. */
+    t("the clinical tools show this case's own scalars",
+      keep.toolsCells >= 6 && /TBW|BSA|EBV/.test(keep.toolsText), keep.toolsCells);
+    t('...and route the rest to the workspace that owns them',
+      keep.toolsJumps >= 3, keep.toolsJumps);
+    t('...and no new formula was written for them',
+      !/Math\.(pow|sqrt)|\*\s*0\.\d|\/\s*3600/.test(
+        (/function ctoolsHtml\(\)[\s\S]*?\n\}/.exec(ENGC) || [''])[0]),
+      'ctoolsHtml computes something');
+
+    t('no runtime errors through any of it', r3.errs.length === 0, r3.errs.slice(0,2));
+    await r3.ctx.close();
+
+    /* ── RESPONSIVE: A TABLE STOPS BEING A TABLE ── */
+    for (const [w, h] of [[1440,1250],[1180,900],[768,1024],[390,844]]) {
+      const v = await open(b, w, h);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(650);
+      const rr = await v.pg.evaluate(`(() => {
+        const body = document.getElementById('iref-body');
+        return { table:!!body.querySelector('table.dtab'),
+                 tableShown:!!body.querySelector('table.dtab') &&
+                   getComputedStyle(body.querySelector('table.dtab')).display !== 'none',
+                 cards:body.querySelectorAll('.dcard').length,
+                 rows:body.querySelectorAll('tr.dtab-r').length,
+                 overflowX:document.documentElement.scrollWidth -
+                           document.documentElement.clientWidth,
+                 tiny:[...body.querySelectorAll('button')]
+                   .filter(b => b.offsetParent &&
+                     b.getBoundingClientRect().height < (window.innerWidth <= 900 ? 40 : 24))
+                   .map(b => b.className + ':' + Math.round(b.getBoundingClientRect().height)) };
+      })()`);
+      /* The induction mount is a table only where its column can set one:
+         488px at 1440. At 1180 the column is 356px and the same rows render
+         as cards — the renderer the phone uses, over the same data. */
+      const cardsHere = w < 1280;
+      t(w + ': the reference renders ' + (cardsHere ? 'cards' : 'a table'),
+        cardsHere ? rr.cards > 6 : (rr.tableShown === true && rr.rows > 6), rr);
+      t(w + ': ...and never scrolls the page sideways', rr.overflowX === 0, rr.overflowX);
+      t(w + ': ...with no control below its target size', rr.tiny.length === 0, rr.tiny);
+      t(w + ': ...and no runtime errors', v.errs.length === 0, v.errs.slice(0,2));
+      await v.ctx.close();
+    }
+
+    /* ── THE ACCESS MODEL IS UNCHANGED BY ANY OF IT ── */
+    const IDS3 = {
+      anonymous:{ role:'anon', profile:null },
+      patient:{ role:'session', profile:{ role:'patient',
+        verification_status:'not_required', full_name:'Pat' } }
+    };
+    for (const k of Object.keys(IDS3)) {
+      const v = await open(b, 1440, 1150, IDS3[k]);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(650);
+      const a = await v.pg.evaluate(`(() => {
+        const body = document.getElementById('iref-body');
+        return { url:location.pathname,
+                 rows:body ? body.querySelectorAll('tr.dtab-r').length : 0,
+                 search:!!document.getElementById('iref-q'),
+                 tools:!!document.getElementById('ctools-b'),
+                 addable:body ? body.querySelectorAll('[data-plan-for]').length : 0,
+                 newPatientVisible:(() => { const n = document.querySelector('.case-np');
+                   return !!(n && n.offsetParent); })() };
+      })()`);
+      t(k + ': the reference is fully usable without logging in',
+        a.rows > 6 && a.search === true && a.tools === true, a);
+      t(k + ': ...Add to plan is offered — it is clinical, not patient data',
+        a.addable > 0, a.addable);
+      t(k + ': ...no redirect', a.url === '/engine.html', a.url);
+      t(k + ': ...and no doctor-only action is granted by the reference',
+        a.newPatientVisible === false, a.newPatientVisible);
       await v.ctx.close();
     }
   } finally {

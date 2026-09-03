@@ -329,6 +329,70 @@ const readBar = pg => pg.evaluate(() => {
     await ctx.close();
   }
 
+  /* ── the drug reference on a phone ──────────────────────────────────────
+     A TABLE STOPS BEING A TABLE AT 390px. The reference is the same engine
+     and the same rows either way; on a phone it renders the card list the
+     rest of the page already uses, and its two actions — add to plan, open
+     the detail — become thumb-sized instead of moving into a menu. */
+  console.log('\n── drug reference @390 ──');
+  {
+    const { ctx, pg, errs } = await open(b, 390, 844, null, '/engine.html');
+    await pg.evaluate(() => {
+      if (window.newCase) newCase();
+      const s = (i,v) => { const e = document.getElementById(i);
+        if (e) { e.value = v; e.dispatchEvent(new Event('change',{bubbles:true})); } };
+      s('i-age','42'); s('i-sex','M'); s('i-height','175'); s('i-weight','75');
+      s('i-asa','II'); s('i-proc','Laparoscopic cholecystectomy');
+      compute();
+    });
+    await pg.waitForTimeout(800);
+    const r = await pg.evaluate(() => {
+      const body = document.getElementById('iref-body');
+      const tbl = body && body.querySelector('table.dtab');
+      const acts = body ? [...body.querySelectorAll('.dcard-acts button')] : [];
+      return {
+        cards: body ? body.querySelectorAll('.dcard').length : 0,
+        tableRendered: !!tbl,
+        tableShown: !!tbl && getComputedStyle(tbl).display !== 'none',
+        addable: body ? body.querySelectorAll('[data-plan-for]').length : 0,
+        smallest: acts.length ? Math.min(...acts.map(b =>
+          Math.round(b.getBoundingClientRect().height))) : null,
+        search: !!document.getElementById('iref-q'),
+        tools: !!document.getElementById('ctools-b'),
+        toolsH: (() => { const b2 = document.getElementById('ctools-b');
+          return b2 ? Math.round(b2.getBoundingClientRect().height) : null; })(),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    t('the reference renders as cards, never a squeezed table',
+      r.cards > 6 && r.tableShown === false, r);
+    t('...its search and its tools are both reachable',
+      r.search === true && r.tools === true, r);
+    t('...every card action is a thumb target',
+      r.smallest !== null && r.smallest >= 44, r.smallest);
+    t('...so is the tools control', r.toolsH >= 44, r.toolsH);
+    t('...Add to plan is offered on the drugs the plan models', r.addable > 0, r.addable);
+    /* open a detail and a plan entry, then check nothing tore sideways */
+    const after = await pg.evaluate(() => {
+      const b1 = document.querySelector('#iref-body [data-plan-for="drug.propofol"]');
+      if (b1) b1.click();
+      drefDetails('iref','drug.propofol');
+      return { plan: window.Induction.plan.slice(),
+               detail: !!document.querySelector('#iref-body .ddet'),
+               modal: !!document.querySelector('.cp-bg'),
+               overflow: document.documentElement.scrollWidth -
+                         document.documentElement.clientWidth };
+    });
+    t('...adding from the card puts exactly that drug in the plan',
+      after.plan.join() === 'drug.propofol', after.plan);
+    t('...the detail opens inside the card, not over the page',
+      after.detail === true && after.modal === false, after);
+    t('...and nothing overflows sideways at any point',
+      r.overflow === 0 && after.overflow === 0, [r.overflow, after.overflow]);
+    t('...with no runtime errors', errs.length === 0, errs.slice(0,2));
+    await ctx.close();
+  }
+
   await b.close();
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);

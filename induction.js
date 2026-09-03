@@ -146,32 +146,13 @@
      builds its role rows and the reference builds its rows, and neither is a
      variant of the other. Two card builders where one is unreachable is how a
      dose ends up rendered by the wrong one.
-     ------------------------------------------------------------------- */
-  /* The reference section is a reference: it lists, it does not build a plan.
-     Rendering the same interactive card there would offer two places to
-     select the same drug and no reason to prefer either. */
-  function refCard(d){
-    var col = classColour(d.pclass);
-    var amount = (d.val != null && d.val !== '')
-      ? d.val + (d.unit ? '<span class="idc-u">' + d.unit + '</span>' : '') : '';
-    var rule = d.doseNum
-      ? d.doseNum + (d.doseUnit ? ' <span class="idc-u">' + d.doseUnit + '</span>' : '')
-      : (d.doseRule || '');
-    var same = amount && d.doseRule && d.doseRule.indexOf(String(d.val)) === 0;
-    return '<div class="idc idc-ref" style="--pc:' + col + '">' +
-      '<div class="idc-top">' + (d.badge || '') +
-        (d.use ? '<span class="idc-route">' + esc(d.use) + '</span>' : '') + '</div>' +
-      '<div class="idc-name">' + esc(d.name) + '</div>' +
-      (d.aliasLine ? '<div class="idc-alias">' + esc(d.aliasLine) + '</div>' : '') +
-      '<div class="idc-dose">' +
-        (rule ? '<div class="idc-rule">' + rule + '</div>' : '') +
-        ((amount && !same) ? '<div class="idc-amt">' + amount + '</div>' : '') +
-      '</div>' +
-      (d.prepMain ? '<div class="idc-prep">' + d.prepMain + '</div>' : '') +
-      (d.warn ? '<div class="idc-warn' + (d.severity === 'critical' ? ' crit' : '') + '">' +
-                '<span aria-hidden="true">&#9888;</span> ' + d.warn + '</div>' : '') +
-    '</div>';
-  }
+     -------------------------------------------------------------------
+     THE REFERENCE NO LONGER HAS A CARD BUILDER HERE AT ALL. refCard() was a
+     third renderer of the same canonical rows — the Drug reference workspace
+     already had a table and a card view over exactly this data — so the two
+     could disagree about how a dose reads while agreeing about what it is.
+     This section now mounts that one renderer, scoped to the induction
+     groups. See referenceSection(). */
 
   /* `action` rides in the heading row. A control belonging to the section as
      a whole has no business taking a row of its own beneath it. */
@@ -466,28 +447,64 @@
       'different scales and are shown separately.</p>');
   }
 
-  /* ── 5 · RELEVANT DRUG REFERENCE ─────────────────────────────────────── */
+  /* ── 4 · DRUG REFERENCE ──────────────────────────────────────────────────
+     THE MOUNT, NOT A SECOND REFERENCE. Everything below the heading is built
+     by the engine in engine.html — the same search, the same class filters,
+     the same table and cards, the same inline detail and the same normalized
+     rows out of ClinicalContent.visibleDrugsInGroup(). This function supplies
+     three empty containers and a heading; it renders no drug, no dose and no
+     warning of its own, which is why the reference here and the reference in
+     the Drug reference workspace cannot disagree.
+
+     The instance is 'iref' and its scope is the induction groups. The user
+     can widen it with the search box, which searches the canonical index.
+
+     Its own scroll, so the page does not grow without limit as the drug set
+     does. The complete reference stays reachable from the navigation. */
   function referenceSection(){
-    var seen = {}, rows = '';
+    /* Nothing to mount if the canonical model published nothing for these
+       groups — the same test the old card list applied. */
+    var any = false;
     ['induction','volatile','analgesia','nmb','reversal'].forEach(function (g){
-      drugs(g).forEach(function (d){
-        if (seen[d.id]) return; seen[d.id] = 1;
-        rows += refCard(d);
-      });
+      if (drugs(g).length) any = true;
     });
-    if (!rows) return '';
-    /* Its own scroll, so the page does not grow without limit as the drug set
-       does. The complete reference stays reachable from the navigation. */
-    return section(4, 'Quick drug reference', 'Agents relevant to induction',
-      '<div class="idref"><div class="idc-grid">' + rows + '</div></div>' +
-      '<p class="wf-note">These are the agents relevant to induction and intubation. The ' +
-      'complete drug reference is a tab of its own.</p>');
+    if (!any) return '';
+    var action = '<button type="button" class="ctl-b" id="ctools-b" ' +
+      'aria-expanded="false" aria-controls="ctools" ' +
+      'aria-label="Clinical tools for this patient" ' +
+      'onclick="ctoolsToggle()">Clinical tools</button>';
+    return section(4, 'Drug reference', 'Scaled to this patient',
+      '<div class="iref-head"><span class="dref-ctl" id="iref-ctl"></span></div>' +
+      '<div class="ctl-panel" id="ctools" hidden></div>' +
+      '<div class="dref-cats" id="iref-cats"></div>' +
+      '<div class="idref"><div id="iref-body"></div></div>' +
+      '<p class="wf-note">Doses are this patient\'s, from the same clinical record the ' +
+      'plan above uses. Search covers name, class and indication across every published ' +
+      'drug; the complete reference is a tab of its own.</p>', '', action);
   }
 
   /* ── PUBLIC ──────────────────────────────────────────────────────────── */
+  /* THE REFERENCE'S OWN STATE SURVIVES A PLAN EDIT. Adding an agent rebuilds
+     this host, and the mount is repainted from the engine's module state — so
+     the query, the class filter, the view and the open detail come back by
+     themselves. Scroll position does not: it belongs to a DOM node that no
+     longer exists, so it is carried across by hand. Without this, pressing
+     "+" on the eleventh row of the reference threw the clinician back to the
+     first. */
+  function refScroll(){
+    var el = document.querySelector('#induction-host .idref');
+    return el ? el.scrollTop : null;
+  }
+  function restoreRef(top){
+    if (top == null) return;
+    var el = document.querySelector('#induction-host .idref');
+    if (el) el.scrollTop = top;
+  }
+
   function render(){
     var host = $('induction-host');
     if (!host) return;
+    var keepTop = refScroll();
     var c = ctx();
     if (!c || !c.complete){
       host.innerHTML = '<div class="wf-empty">Enter age, sex, height and weight and the ' +
@@ -510,6 +527,12 @@
         '<div class="wf-col-side">' + airwaySection() + backupSection() +
           pedsSection() + '</div>' +
       '</div>';
+    /* The containers exist now, so the engine can fill them. It is the same
+       call the Drug reference workspace makes, with this mount's id. */
+    if (root.drefRender && document.getElementById('iref-body')) {
+      try { root.drefRender('iref'); } catch(e){ console.warn('[induction] reference', e); }
+    }
+    restoreRef(keepTop);
   }
 
   /* Records the technique. Deliberately touches nothing else: no dose, no

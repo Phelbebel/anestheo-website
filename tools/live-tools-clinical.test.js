@@ -586,9 +586,12 @@ async function openEngine(b, viewport) {
           ((r.querySelector('.pl-rule')||{}).textContent||'') + '|' +
           ((r.querySelector('.pl-amt')||{}).textContent||'');
       });
-      ${ind('.idc-ref')}.forEach(c => {
-        m['ref:' + (c.querySelector('.idc-name')||{}).textContent] =
-          (c.querySelector('.idc-dose')||{}).textContent.replace(/\\s+/g,' ').trim();
+      /* The reference is the shared table now, not a card list of its own.
+         Same drugs, same canonical rows — read from the row the clinician
+         actually sees, which is the point of comparing them at all. */
+      ${ind('#iref-body tr.dtab-r')}.forEach(c => {
+        m['ref:' + (c.querySelector('.dtab-n')||{}).textContent] =
+          (c.querySelector('.dtab-dose')||{}).textContent.replace(/\\s+/g,' ').trim();
       });
       return m;
     })()`;
@@ -650,7 +653,7 @@ async function openEngine(b, viewport) {
        the reference beneath it, the right column the airway and its backup. */
     t('adult: plan and reference in one column, airway and backup in the other',
       adult.titles.join(' / ') ===
-      'Induction plan / Quick drug reference / Airway plan / Backup difficult airway',
+      'Induction plan / Drug reference / Airway plan / Backup difficult airway',
       adult.titles);
     t('...the airway column sits BESIDE the plan, not under it',
       adult.airwayBeside === true, adult.geo);
@@ -883,7 +886,7 @@ async function openEngine(b, viewport) {
     })()`);
     t('child: the paediatric section appears, under the airway backup',
       child.titles.join(' / ') ===
-      'Induction plan / Quick drug reference / Airway plan / Backup difficult airway / ' +
+      'Induction plan / Drug reference / Airway plan / Backup difficult airway / ' +
       'Paediatric context', child.titles);
     /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
        recomputed instead of reading compute(), this is where it would show. */
@@ -959,7 +962,10 @@ async function openEngine(b, viewport) {
       /* a value edited through the reopened form still drives everything */
       document.getElementById('case-state').click();
       const w = document.getElementById('i-weight'); w.value = '40'; compute(); ptSummary();
-      out.reweighed = (document.querySelector('#induction-host .idc-amt')||{}).textContent||'';
+      /* The reference's first row is propofol, and its second dose line is the
+         amount for THIS patient. Reading it here proves the edit reached the
+         canonical renderer, not just the header. */
+      out.reweighed = (document.querySelector('#induction-host #iref-body .dtab-d2')||{}).textContent||'';
       out.headerFollowed = /40 kg/.test(document.querySelector('.case-v').textContent);
       document.getElementById('case-state').click();
       return out;
@@ -994,9 +1000,13 @@ async function openEngine(b, viewport) {
     const rank = await s.pg.evaluate(`(() => {
       const px = (sel, prop) => { const e = document.querySelector(sel);
         return e ? parseFloat(getComputedStyle(e)[prop || 'fontSize']) : null; };
+      /* The reference's card list became the shared table, so the same four
+         ranks are read from the row: the drug name, the amount for this
+         patient, the per-kg rule it came from, and the indication label
+         under the name. The RELATIONSHIP asserted below is unchanged. */
       return { lead:px('.wfl-t'), heading:px('#output .wf-t'),
-               drug:px('.idc-name'), amount:px('.idc-amt'),
-               rule:px('.idc-rule'), label:px('.idc-route'),
+               drug:px('#iref-body .dtab-n'), amount:px('#iref-body .dtab-d2'),
+               rule:px('#iref-body .dtab-d1'), label:px('#iref-body .dtab-useline'),
                airwayValue:px('.awp-v'), airwayLabel:px('.awp-l'),
                timer:px('.ws-rail .lt-time'), timerLabel:px('.ws-rail .lt-head') };
     })()`);
@@ -1024,27 +1034,35 @@ async function openEngine(b, viewport) {
        by it, because a workstation where everything is coloured says
        nothing. */
     console.log('\nSEMANTIC COLOUR');
+    /* THE CARD LIST IS A TABLE NOW, and the class column carries what the
+       card's header band carried: the colour as a rule down the row's leading
+       edge, the badge filled in the same hue, the class named in text. The
+       three properties asserted are the same three; only where they are read
+       from has moved. */
     const col = await s.pg.evaluate(`(() => {
-      const cards = [...document.querySelectorAll('#induction-host .idc')];
+      const rows = [...document.querySelectorAll('#induction-host #iref-body tr.dtab-r')];
+      const cells = rows.map(r => r.querySelector('.dtab-cls')).filter(Boolean);
       const seen = {};
-      cards.forEach(c => { seen[getComputedStyle(c).getPropertyValue('--pc').trim()] = 1; });
-      const first = cards[0];
-      return { cards:cards.length, distinctColours:Object.keys(seen).filter(Boolean).length,
-               bandTinted:getComputedStyle(first.querySelector('.idc-top')).backgroundColor,
+      cells.forEach(c => { seen[getComputedStyle(c).getPropertyValue('--pc').trim()] = 1; });
+      const first = cells[0];
+      const rule = first ? getComputedStyle(first, '::before') : null;
+      return { cards:rows.length, distinctColours:Object.keys(seen).filter(Boolean).length,
+               bandTinted:rule ? rule.backgroundColor : '',
+               ruleWidth:rule ? parseFloat(rule.width) : 0,
                badgeFilled:getComputedStyle(first.querySelector('.pc')).backgroundColor,
-               everyCardNamesItsClass:cards.every(c => {
+               everyCardNamesItsClass:cells.every(c => {
                  const b = c.querySelector('.pc');
-                 return !!b && b.textContent.trim().length > 0; }),
-               dimmed:getComputedStyle(cards[0]).opacity };
+                 return !!b && b.textContent.trim().length > 0; }) };
     })()`);
-    t('drug cards carry several distinct class colours',
+    t('drug rows carry several distinct class colours',
       col.distinctColours >= 4, col.distinctColours);
-    t('...the class band is tinted with the card colour, not a hairline',
-      !/rgba\(0, 0, 0, 0\)/.test(col.bandTinted), col.bandTinted);
+    t('...the class rule is painted in the row colour, not left transparent',
+      !/rgba\(0, 0, 0, 0\)/.test(col.bandTinted) && col.ruleWidth >= 2,
+      { colour:col.bandTinted, width:col.ruleWidth });
     t('...the badge is filled with it', !/rgba\(0, 0, 0, 0\)/.test(col.badgeFilled),
       col.badgeFilled);
     /* COLOUR IS NEVER THE ONLY CUE — the same rule clinical-index.js states. */
-    t('...and every card still names its class in text',
+    t('...and every row still names its class in text',
       col.everyCardNamesItsClass === true);
 
     /* ── THE AIRWAY PLAN IS READ BY SHAPE ───────────────────────────────
@@ -1415,6 +1433,112 @@ async function openEngine(b, viewport) {
       t(w + ': ...and no development vocabulary reaches the product',
         !/phase\s*\d/i.test(m.phaseText), m.phaseText);
       t(w + ': nothing overflows sideways', m.overflow <= 0, m.overflow);
+      await v.ctx.close();
+    }
+
+    /* ══ ONE DOSE, WHEREVER IT IS SHOWN ═════════════════════════════════
+       PHASE 3 put the reference in two places: the Drug reference workspace
+       over every published drug, and the induction column over the groups an
+       induction reaches for. They are the same engine over the same rows, and
+       this is the assertion that keeps them so.
+
+       A dose that reads 1.5–2.5 mg/kg TBW in one and 113–188 mg in the other
+       is not a presentation difference, it is two answers to one question. So
+       every drug that appears in BOTH is compared cell for cell — the per-kg
+       rule, the weight basis, the amount for this patient and the preparation
+       — at an adult weight and again at a paediatric one, because a scaling
+       bug hides at exactly one weight.                                     */
+    console.log('\nONE DOSE, TWO MOUNTS');
+    {
+      const v = await openEngine(b, { width:1440, height:1250 });
+      const cmp = await v.pg.evaluate(`(() => {
+        const set = (i,val) => { const e = document.getElementById(i);
+          if (e) { e.value = val; e.dispatchEvent(new Event('change',{bubbles:true})); } };
+        const readMount = id => {
+          const out = {};
+          [...document.querySelectorAll('#'+id+'-body tr.dtab-r')].forEach(r => {
+            out[r.dataset.drug] = {
+              rule:(r.querySelector('.dtab-d1')||{}).textContent || '',
+              amount:(r.querySelector('.dtab-d2')||{}).textContent || '',
+              prep:(r.querySelector('.dtab-p1')||{}).textContent || ''
+            };
+          });
+          return out;
+        };
+        const both = () => {
+          setDomain('drugs'); const wide = readMount('dref');
+          setDomain('induction'); const narrow = readMount('iref');
+          /* and what the PLAN itself prints for the same drug */
+          Induction.clearPlan();
+          ['drug.propofol','drug.fentanyl','drug.rocuronium'].forEach(id => {
+            const b = document.querySelector('#iref-body [data-plan-for="'+id+'"]');
+            if (b) b.click();
+          });
+          const plan = {};
+          [...document.querySelectorAll('#induction-host .pl-sel')].forEach(c => {
+            plan[c.dataset.drug] = {
+              rule:(c.querySelector('.pl-rule')||{}).textContent || '',
+              amount:(c.querySelector('.pl-amt')||{}).textContent || '',
+              prep:(c.querySelector('.pl-prep')||{}).textContent || '' };
+          });
+          return { wide, narrow, plan };
+        };
+        newCase();
+        set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+        set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+        compute();
+        const adult = both();
+        set('i-age','4'); set('i-sex','F'); set('i-height','103'); set('i-weight','16');
+        compute();
+        const child = both();
+        return { adult, child };
+      })()`);
+
+      /* WHITESPACE IS NOT A CLINICAL DIFFERENCE. The plan card puts a space
+         between the figure and its unit and the table lets CSS do it, so the
+         strings differ by one character while the values are the same. Every
+         digit, unit and weight basis still has to match exactly — that is
+         what this compares. */
+      const flat = s => s.replace(/\s+/g, '');
+      const agree = (o, label) => {
+        const shared = Object.keys(o.narrow).filter(k => o.wide[k]);
+        const bad = shared.filter(k =>
+          flat(o.wide[k].rule)   !== flat(o.narrow[k].rule) ||
+          flat(o.wide[k].amount) !== flat(o.narrow[k].amount) ||
+          flat(o.wide[k].prep)   !== flat(o.narrow[k].prep));
+        t(label + ': the two reference mounts print the identical dose',
+          shared.length >= 10 && bad.length === 0,
+          { compared:shared.length, disagreed:bad.map(k =>
+            k + ' | ' + flat(o.wide[k].amount) + ' vs ' + flat(o.narrow[k].amount)) });
+        const planned = Object.keys(o.plan);
+        const badPlan = planned.filter(k => !o.narrow[k] ||
+          flat(o.plan[k].rule)   !== flat(o.narrow[k].rule) ||
+          flat(o.plan[k].amount) !== flat(o.narrow[k].amount) ||
+          flat(o.plan[k].prep)   !== flat(o.narrow[k].prep));
+        t(label + ': ...and the induction plan prints the identical dose too',
+          planned.length === 3 && badPlan.length === 0,
+          { planned:planned.length, disagreed:badPlan.map(k =>
+            k + ' | plan ' + flat((o.plan[k]||{}).amount) +
+            ' vs reference ' + flat((o.narrow[k]||{}).amount)) });
+      };
+      agree(cmp.adult, 'adult 75 kg');
+      agree(cmp.child, 'child 16 kg');
+      /* And the scaling is real — the same drug reads differently at the two
+         weights, so "identical" above is agreement and not two frozen
+         strings. */
+      t('a weight-based dose actually rescales between the two patients',
+        cmp.adult.narrow['drug.propofol'].amount !==
+        cmp.child.narrow['drug.propofol'].amount,
+        { adult:cmp.adult.narrow['drug.propofol'].amount,
+          child:cmp.child.narrow['drug.propofol'].amount });
+      /* A RATE IS NOT AN AMOUNT. renderDose refuses to convert mcg/kg/min,
+         and the table must not print a number of milligrams beside one. */
+      t('...and a rate is never converted into an amount in either mount',
+        (cmp.adult.narrow['drug.remifentanil'] || {}).amount === '' &&
+        (cmp.adult.wide['drug.remifentanil'] || {}).amount === '',
+        { narrow:(cmp.adult.narrow['drug.remifentanil']||{}).amount,
+          wide:(cmp.adult.wide['drug.remifentanil']||{}).amount });
+      t('no runtime errors while comparing', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }
   } finally {
