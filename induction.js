@@ -461,6 +461,15 @@
 
      Its own scroll, so the page does not grow without limit as the drug set
      does. The complete reference stays reachable from the navigation. */
+  /* THE ORDINAL FOLLOWS THE READING ORDER. The reference was numbered 4 while
+     it sat between the plan and the airway, with the paediatric section
+     holding 3 whether or not it existed; now that the reference reads last,
+     an adult was being shown 1, 2, then 4 with no 3 anywhere on the screen.
+     A number that skips is a section the clinician goes looking for. */
+  function refOrdinal(){
+    var c = ctx();
+    return (c && c.context && c.context.pediatric) ? 4 : 3;
+  }
   function referenceSection(){
     /* Nothing to mount if the canonical model published nothing for these
        groups — the same test the old card list applied. */
@@ -481,7 +490,7 @@
         'aria-expanded="false" aria-controls="ctools" ' +
         'aria-label="Clinical tools for this patient" ' +
         'onclick="ctoolsToggle()">Tools</button>';
-    return section(4, 'Drug reference', '',
+    return section(refOrdinal(), 'Drug reference', '',
       '<div class="ctl-panel" id="ctools" hidden></div>' +
       '<div class="dref-cats" id="iref-cats"></div>' +
       '<div class="idref"><div id="iref-body"></div></div>', '', action);

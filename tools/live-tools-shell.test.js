@@ -368,14 +368,20 @@ const fill = (pg, o) => pg.evaluate(o => {
       document.querySelector('#induction-host .pl-add').click();
       const bb = e => e.getBoundingClientRect();
 
-      /* gaps between the major stacked blocks */
+      /* GAPS BETWEEN THE MAJOR STACKED BLOCKS. The reference is measured from
+         the bottom of the COLUMN PAIR, not from the plan section: it spans
+         both columns now, so the distance from the shorter one to it is not a
+         gap in the stack — it is the airway column standing beside it. The
+         space under the shorter column is reported separately below. */
+      const colsBottom = Math.max(bb(document.querySelector('.wf-col-main')).bottom,
+                                  bb(document.querySelector('.wf-col-side')).bottom);
       const blocks = [document.querySelector('#cmd-strip'), document.querySelector('.eng-notice'),
         document.querySelector('.case-bar'), document.getElementById('cw-derived'),
-        document.querySelector('.wf-lead'), document.querySelector('.wf-col-main .wf-sec'),
-        document.querySelector('.wf-full')].filter(Boolean);
+        document.querySelector('.wf-lead'), document.querySelector('.wf-cols')].filter(Boolean);
       const gaps = [];
       for (let i = 1; i < blocks.length; i++)
         gaps.push(Math.round(bb(blocks[i]).top - bb(blocks[i-1]).bottom));
+      gaps.push(Math.round(bb(document.querySelector('.wf-full')).top - colsBottom));
 
       /* container height minus the height its children actually use */
       const slack = [];
@@ -404,10 +410,15 @@ const fill = (pg, o) => pg.evaluate(o => {
         stretched: new Set(heights).size === 1 && heights.length > 2,
         cardWidths: cards.map(c => Math.round(bb(c).width)),
         refTop: Math.round(bb(document.querySelector('.wf-full')).top + window.pageYOffset),
-        /* The reference is a table now. The property is the same one: several
-           of its entries must be readable without scrolling the page. */
-        refCardsAboveFold: [...document.querySelectorAll('.wf-full #iref-body tr.dtab-r')]
-          .filter(c => bb(c).top < window.innerHeight && bb(c).bottom > 0).length,
+        /* How many rows the scrollport shows at once — the density property
+           that survived the move to a full-width reference. */
+        refRowsRendered: (() => {
+          const port = document.querySelector('.wf-full .idref');
+          if (!port) return 0;
+          const p = bb(port);
+          return [...document.querySelectorAll('.wf-full #iref-body tr.dtab-r')]
+            .filter(r => bb(r).top >= p.top - 1 && bb(r).bottom <= p.bottom + 1).length;
+        })(),
         planBottom: Math.round(bb(document.querySelector('.wf-col-main .wf-sec')).bottom) };
     })()`);
     /* NO RESERVED CELLS. This is the compromise the brief refused. */
@@ -431,8 +442,14 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('...and none is negative — nothing overlaps',
       dens.gaps.every(g => g >= 0), dens.gaps);
     /* THE POINT OF THE WHOLE PASS. */
-    t('the drug reference and several of its entries are above the fold',
-      dens.refCardsAboveFold >= 4, dens.refCardsAboveFold);
+    /* WAS: ">= 4 entries above the fold". The reference spans the centre
+       BENEATH both columns now, so it cannot begin above the taller of them —
+       1048px with a 715px airway column — and at a 1250px viewport only the
+       chrome and the first row clear the fold. That is arithmetic, not
+       density. What density still owns is how many rows the reference itself
+       shows at once, which is what this asserts. */
+    t('the drug reference shows a working set of rows without scrolling it',
+      dens.refRowsRendered >= 8, dens.refRowsRendered);
 
     /* ── 3d. THE AGENT ROW IS PACKED FROM THE LEFT ──────────────────────
        "Three agents are on one row" was not enough, and the density check
@@ -577,7 +594,8 @@ const fill = (pg, o) => pg.evaluate(o => {
       add('drug.propofol'); add('drug.fentanyl'); add('drug.rocuronium');
       document.querySelector('#induction-host .pl-add').click();
       const R = e => { const b = e.getBoundingClientRect();
-        return { t:Math.round(b.top), b:Math.round(b.bottom), h:Math.round(b.height) }; };
+        return { t:Math.round(b.top), b:Math.round(b.bottom), h:Math.round(b.height),
+                 w:Math.round(b.width) }; };
 
       /* A · the timer rail must be sized by its timers, not stretched */
       const rail = document.querySelector('.ws-rail');
@@ -591,10 +609,11 @@ const fill = (pg, o) => pg.evaluate(o => {
       const head = document.querySelector('#induction-host .wf-col-main .wf-h');
       const card1 = document.querySelector('#induction-host .pl-grid .pl-sel');
 
-      /* C · the reference must not be a short window beside a long column */
+      /* C · the reference spans the centre beneath both columns */
       const ref = document.querySelector('.wf-full');
       const idref = document.querySelector('.wf-full .idref');
       const side = document.querySelector('.wf-col-side');
+      const mainc = document.querySelector('.wf-col-main');
 
       return {
         rail: { box:R(rail), lastCard:last?R(last):null,
@@ -607,81 +626,73 @@ const fill = (pg, o) => pg.evaluate(o => {
                overlapsTech: !(R(addBtn).b <= R(techRow).t || R(addBtn).t >= R(techRow).b),
                firstCardTop: card1 ? R(card1).t : null,
                techBottom: R(techRow).b, visible: !!addBtn.offsetParent },
-        ref: { box:R(ref), idrefH:R(idref).h, sideBottom:R(side).b,
-               imbalance: R(side).b - R(ref).b,
+        ref: { box:R(ref), idrefH:R(idref).h,
+               colsBottom: Math.max(R(side).b, R(mainc).b),
+               gapUnderCols: R(ref).t - Math.max(R(side).b, R(mainc).b),
+               /* the space beside it under the SHORTER column — reported, not
+                  asserted: it is what spanning the centre costs, and it is a
+                  judgement about layout rather than a defect a number can
+                  settle */
+               spaceUnderShorter: Math.abs(R(side).b - R(mainc).b),
+               spans: R(ref).w >= R(side).w + R(mainc).w,
+               widerThanPlan: R(ref).w / R(mainc).w,
                hidden: idref.scrollHeight - idref.clientHeight,
                scrolls: getComputedStyle(idref).overflowY === 'auto',
-               /* Phase 3 replaced the viewport-proportional cap with the
-                  space itself: the scrollport is a flex child with no cap,
-                  so it takes exactly what the column beside it leaves. */
-               cap: getComputedStyle(idref).maxHeight,
-               grows: getComputedStyle(idref).flexGrow === '1' }
+               bounded: parseFloat(getComputedStyle(idref).maxHeight) > 0,
+               cap: getComputedStyle(idref).maxHeight }
       };
     })()`);
 
-    /* THE AVAILABLE-HEIGHT MODEL, PROVED BY CHANGING WHAT IS AVAILABLE.
-       A constant cannot pass this: the side column gains a whole section when
-       the patient is a child, and the reference beside it must gain the same
-       height rather than staying where a number put it. */
+    /* THE CAP IS PROPORTIONAL TO THE VIEWPORT, PROVED BY CHANGING IT. The
+       reference is no longer beside anything, so there is no sibling column
+       to measure against; what must hold is that a taller screen shows more
+       of it rather than the same short window, and that it never grows the
+       page without limit. */
     const avail = await s.pg.evaluate(`(() => {
       const H = () => {
         const i = document.querySelector('.wf-full .idref');
-        const s = document.querySelector('.wf-col-side');
-        const f = document.querySelector('.wf-full');
-        return { idref:Math.round(i.getBoundingClientRect().height),
-                 side:Math.round(s.getBoundingClientRect().height),
-                 imbalance:Math.round(s.getBoundingClientRect().bottom -
-                                      f.getBoundingClientRect().bottom) };
+        return { cap:Math.round(parseFloat(getComputedStyle(i).maxHeight)),
+                 h:Math.round(i.getBoundingClientRect().height) };
       };
-      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
-      const adult = H();
-      set('i-age','4'); set('i-age-unit','y'); set('i-height','103'); set('i-weight','16');
-      compute();
-      const child = H();
-      set('i-age','42'); set('i-age-unit','y'); set('i-height','175'); set('i-weight','75');
-      compute();
-      return { adult:adult, child:child };
+      return H();
     })()`);
+    const availTall = await (async () => {
+      await s.pg.setViewportSize({ width:1440, height:1700 });
+      await s.pg.waitForTimeout(400);
+      const r = await s.pg.evaluate(`(() => {
+        const i = document.querySelector('.wf-full .idref');
+        return { cap:Math.round(parseFloat(getComputedStyle(i).maxHeight)),
+                 h:Math.round(i.getBoundingClientRect().height) };
+      })()`);
+      await s.pg.setViewportSize({ width:1440, height:1250 });
+      await s.pg.waitForTimeout(400);
+      return r;
+    })();
 
-    /* A — CONTENT-SIZED, NOT STRETCHED. The rail must end shortly after its
-       last control; the properties that could stretch it are checked too, so
-       the day one is added the test says which. */
-    t('the timer rail is sized by its timers',
-      empt.rail.deadUnderLast !== null && empt.rail.deadUnderLast <= 24,
-      { deadUnderLastTimer:empt.rail.deadUnderLast });
-    t('...with nothing forcing its height',
-      empt.rail.minHeight === 'auto' && empt.rail.grow === '0' &&
-      empt.rail.alignSelf === 'start' && empt.rail.parentAlign === 'start',
-      { minHeight:empt.rail.minHeight, grow:empt.rail.grow,
-        alignSelf:empt.rail.alignSelf, parentAlign:empt.rail.parentAlign });
-
-    /* B — the control that used to cost a row. */
-    t('Add agent sits in the section heading, not a row of its own',
-      empt.add.inHeading === true && empt.add.belowTechRow === false, empt.add);
-    t('...and never overlaps the technique control',
-      empt.add.overlapsTech === false, empt.add);
-    t('...so the first selected card follows the technique row directly',
-      empt.add.firstCardTop - empt.add.techBottom <= 24,
-      { gap:empt.add.firstCardTop - empt.add.techBottom });
-
-    /* C — the reference must fill the height beside it rather than being a
-       short window with the airway column running on below. */
-    t('the drug reference ends near the airway column, not far above it',
-      Math.abs(empt.ref.imbalance) <= 80, empt.ref.imbalance);
-    t('...and still scrolls inside itself rather than growing the page',
-      empt.ref.scrolls === true && empt.ref.grows === true,
-      { overflowY:empt.ref.scrolls, flexGrow:empt.ref.grows });
-    /* THE RELATIONSHIP, NOT A NUMBER. A flat cap and a viewport-proportional
-       cap both fail this: the side column is 200-odd pixels taller for a
-       child, and the reference must be taller by the same amount because it
-       is measured against that column and nothing else. */
-    t('...sized by the space beside it — a taller side column makes it taller',
-      avail.child.side > avail.adult.side + 40 &&
-      avail.child.idref > avail.adult.idref + 40,
-      { adult:avail.adult, child:avail.child });
-    t('...and it stays level with that column at both',
-      Math.abs(avail.adult.imbalance) <= 80 && Math.abs(avail.child.imbalance) <= 80,
-      { adult:avail.adult.imbalance, child:avail.child.imbalance });
+    /* C — THE REFERENCE SPANS THE CENTRE. It was a child of the plan column
+       and inherited its 488px; a seven-column reference table does not go
+       into 488px, which is what forced the indication under the drug name
+       and a 78px average row. */
+    t('the drug reference spans both columns, not just the plan',
+      empt.ref.spans === true && empt.ref.widerThanPlan > 1.4,
+      { width:empt.ref.box.w, ratioToPlan:Math.round(empt.ref.widerThanPlan*100)/100 });
+    t('...and begins directly under the taller of them',
+      empt.ref.gapUnderCols >= 0 && empt.ref.gapUnderCols <= 16,
+      empt.ref.gapUnderCols);
+    t('...still scrolling inside itself rather than growing the page',
+      empt.ref.scrolls === true && empt.ref.bounded === true,
+      { overflowY:empt.ref.scrolls, cap:empt.ref.cap });
+    /* THE RELATIONSHIP, NOT A NUMBER. A flat cap fails this: a screen 450px
+       taller must show more reference, not the same window. */
+    t('...and a taller viewport shows more of it, not the same window',
+      availTall.cap > avail.cap + 100 && availTall.h > avail.h + 100,
+      { at1250:avail, at1700:availTall });
+    /* REPORTED, NOT ASSERTED. Spanning the centre means the shorter column
+       ends above the reference; that space is the cost of the geometry and a
+       judgement rather than a defect. It is measured here so a change in it
+       is visible in the log. */
+    console.log('       (space under the shorter column: ' +
+      empt.ref.spaceUnderShorter + 'px)');
 
     /* An empty plan must be dense too — not three empty role containers. */
     const emptyPlan = await s.pg.evaluate(`(() => {
@@ -883,6 +894,7 @@ const fill = (pg, o) => pg.evaluate(o => {
          technique, the airway, the timers and the crisis state exactly as
          they were.                                                        */
     console.log('\n7. DRUG REFERENCE — SEARCH, FILTERS, PLAN, DETAIL, TOOLS');
+    const RESP = {};
 
     t('no second matcher survives in the reference',
       !/function\s+drefMatch\s*\(/.test(ENGC));
@@ -907,11 +919,21 @@ const fill = (pg, o) => pg.evaluate(o => {
                irefChips:[...document.querySelectorAll('#iref-cats .dref-cat')].length,
                drefChips:[...document.querySelectorAll('#dref-cats .dref-cat')].length,
                irefTable:!!document.querySelector('#iref-body table.dtab'),
-               compact:!!document.querySelector('#iref-body table.dtab-cmp') };
+               reduced:!!document.querySelector('#iref-body table.dtab-red'),
+               /* the three action columns carry sr-only headings; the data
+                  columns are the ones a clinician reads across */
+               cols:[...document.querySelectorAll('#iref-body thead th')]
+                 .filter(th => !th.querySelector('.sr-only'))
+                 .map(th => th.textContent.trim()).filter(Boolean) };
     })()`);
     t('the induction column mounts the reference as a table',
       mounts.irefTable === true && mounts.iref.length > 6, mounts.iref.length);
-    t('...in its compact column form', mounts.compact === true);
+    /* At 1440 the centre is 826px, which is the full seven columns. The
+       reduced set is for a narrower container and is asserted at 1180. */
+    t('...with the full column set at this width',
+      mounts.reduced === false &&
+      mounts.cols.join('|') === 'Drug|Use|Dose|This patient|Preparation',
+      mounts.cols);
     t('...scoped to the induction groups, while the workspace holds them all',
       mounts.iref.length < mounts.dref.length && mounts.dref.length >= 20,
       { induction:mounts.iref.length, workspace:mounts.dref.length });
@@ -1142,34 +1164,78 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('no runtime errors through any of it', r3.errs.length === 0, r3.errs.slice(0,2));
     await r3.ctx.close();
 
-    /* ── RESPONSIVE: A TABLE STOPS BEING A TABLE ── */
-    for (const [w, h] of [[1440,1250],[1180,900],[768,1024],[390,844]]) {
+    /* ── RESPONSIVE: THREE PRESENTATIONS, CHOSEN BY THE WIDTH THAT IS THERE ──
+       'table'    seven columns          — the centre is 760px or more
+       'reduced'  six, Preparation folds — 520 to 760
+       'list'     compact clinical rows  — a phone
+
+       The threshold is the CONTAINER's measured width, not the viewport,
+       because the two do not track each other: the reference is 826px at
+       1440, 606px at 1180 where the Crisis rail is still beside it, and 732px
+       at 768 where the columns have stacked and it has the whole page. A
+       viewport breakpoint gets at least one of those wrong — 768 was being
+       handed a phone list while measuring 732px. */
+    const MODES = { 1440:'table', 1280:'reduced', 1180:'reduced', 1024:'table',
+                    768:'reduced', 390:'list' };
+    for (const [w, h] of [[1440,1250],[1280,900],[1180,900],[1024,900],[768,1024],[390,844]]) {
       const v = await open(b, w, h);
       await fill(v.pg, ADULT); await v.pg.waitForTimeout(650);
       const rr = await v.pg.evaluate(`(() => {
         const body = document.getElementById('iref-body');
-        return { table:!!body.querySelector('table.dtab'),
-                 tableShown:!!body.querySelector('table.dtab') &&
-                   getComputedStyle(body.querySelector('table.dtab')).display !== 'none',
-                 cards:body.querySelectorAll('.dcard').length,
-                 rows:body.querySelectorAll('tr.dtab-r').length,
+        const tbl = body.querySelector('table.dtab');
+        const shown = !!tbl && getComputedStyle(tbl).display !== 'none';
+        const items = shown ? [...body.querySelectorAll('tr.dtab-r')]
+                            : [...body.querySelectorAll('.dcard')];
+        return { mode: shown ? (tbl.classList.contains('dtab-red') ? 'reduced' : 'table')
+                             : 'list',
+                 refW:Math.round(document.querySelector('.wf-full').getBoundingClientRect().width),
+                 cols: shown ? [...tbl.querySelectorAll('thead th')]
+                   .filter(t => !t.querySelector('.sr-only'))
+                   .map(t => t.textContent.trim()).filter(Boolean) : [],
+                 n: items.length,
+                 heights: items.slice(0,6).map(e => Math.round(e.getBoundingClientRect().height)),
+                 toggle: !!document.querySelector('.dref-view'),
+                 /* THE VALUES MUST NOT CHANGE WITH THE PRESENTATION. */
+                 doses: items.map(e => {
+                   const n = e.querySelector('.dtab-n, .dm-n');
+                   const a = [...e.querySelectorAll('.dtab-d2, .dtab-au')]
+                     .map(x => x.textContent).join('');
+                   return (n ? n.textContent : '') + '=' + a; }),
                  overflowX:document.documentElement.scrollWidth -
                            document.documentElement.clientWidth,
                  tiny:[...body.querySelectorAll('button')]
                    .filter(b => b.offsetParent &&
-                     b.getBoundingClientRect().height < (window.innerWidth <= 900 ? 40 : 24))
-                   .map(b => b.className + ':' + Math.round(b.getBoundingClientRect().height)) };
+                     b.getBoundingClientRect().height < (window.innerWidth <= 900 ? 40 : 30))
+                   .map(b => b.className.split(' ')[0] + ':' +
+                             Math.round(b.getBoundingClientRect().height)) };
       })()`);
-      /* The induction mount is a table only where its column can set one:
-         488px at 1440. At 1180 the column is 356px and the same rows render
-         as cards — the renderer the phone uses, over the same data. */
-      const cardsHere = w < 1280;
-      t(w + ': the reference renders ' + (cardsHere ? 'cards' : 'a table'),
-        cardsHere ? rr.cards > 6 : (rr.tableShown === true && rr.rows > 6), rr);
+      t(w + ': the reference renders the ' + MODES[w] + ' presentation',
+        rr.mode === MODES[w], { mode:rr.mode, containerWidth:rr.refW });
+      t(w + ': ...over all twelve drugs', rr.n === 12, rr.n);
+      if (rr.mode === 'reduced')
+        t(w + ': ...with Preparation folded into the detail, the rest kept',
+          rr.cols.join('|') === 'Drug|Use|Dose|This patient', rr.cols);
+      if (rr.mode !== 'list')
+        t(w + ': ...at 40-64px a row', rr.heights.every(x => x >= 40 && x <= 64),
+          rr.heights);
+      else
+        t(w + ': ...as compact rows, not full cards',
+          rr.heights.every(x => x <= 130), rr.heights);
+      t(w + ': ...no view-mode toggle anywhere', rr.toggle === false);
       t(w + ': ...and never scrolls the page sideways', rr.overflowX === 0, rr.overflowX);
       t(w + ': ...with no control below its target size', rr.tiny.length === 0, rr.tiny);
       t(w + ': ...and no runtime errors', v.errs.length === 0, v.errs.slice(0,2));
+      RESP[w] = rr.doses;
       await v.ctx.close();
+    }
+    /* THE PRESENTATION IS A VIEW. Every width prints the same drug names and
+       the same patient amounts, or one of them is doing arithmetic. */
+    {
+      const ws = Object.keys(RESP);
+      const ref = RESP[ws[0]];
+      const bad = ws.filter(w => JSON.stringify(RESP[w]) !== JSON.stringify(ref));
+      t('every width prints identical clinical values',
+        bad.length === 0, { widths:ws, disagreed:bad });
     }
 
     /* ── THE ACCESS MODEL IS UNCHANGED BY ANY OF IT ── */

@@ -1455,9 +1455,15 @@ html.lt-immersive body{padding-top:0 !important;}
   nav#cmd-strip{margin:0 0 7px;}
 }
 
-/* the reference heading spans the centre again, under both columns */
-#output .wf-full .wf-t{font-size:18px;}
-#output .wf-full .wf-n{width:24px; height:24px; font-size:11.5px;}
+/* ── THE REFERENCE IS THE LOWER WORKSPACE, NOT A THIRD WORKFLOW STAGE ─────
+   Induction Plan and Airway Plan are what the clinician is doing; the drug
+   reference is what they consult while doing it. At 18px against the plan's
+   19px it read as a peer. It stays large enough to find without hunting —
+   this is a heading, not a caption — but it is deliberately a step down in
+   weight, size and colour from the two above it. */
+#output .wf-full .wf-t{font-size:15.5px; font-weight:700; color:var(--ink-2,#c3d2cd);
+  letter-spacing:.01em;}
+#output .wf-full .wf-n{width:21px; height:21px; font-size:10.5px; opacity:.75;}
 #output .wf-full .wf-h{margin-bottom:8px; padding-bottom:7px;}
 #output .wf-full .wf-sub{font-size:10.5px;}
 /* the route reads on its own line, at full card width */
@@ -1513,3 +1519,5 @@ html.lt-immersive body{padding-top:0 !important;}
 @media(max-width:899px){
   .wf-full .idref{max-height:none;}
 }
+
+

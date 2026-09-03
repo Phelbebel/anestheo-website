@@ -467,15 +467,21 @@ async function openEngine(b, viewport) {
       const c = document.getElementById('dref-ctl');
       const r = { folded:p.classList.contains('head-folded'),
                   headShown:getComputedStyle(h).display !== 'none',
-                  control:!!c && !!c.offsetParent && c.textContent.trim().length > 0,
+                  control:!!c && !!c.offsetParent,
+                  search:!!(c && c.querySelector('input[type=search]')),
                   buttons:c ? c.querySelectorAll('button').length : 0 };
       setDomain('induction');
       return r;
     })()`);
     t('the drug reference head is never folded away',
       dref.folded === false && dref.headShown === true, dref);
-    t('...so its Table / Cards control is still on the page',
-      dref.control === true && dref.buttons > 0, dref);
+    /* WAS: "...so its Table / Cards control is still on the page". Phase 3
+       removed that control on purpose: the table is what a desktop wants, a
+       phone cannot set one, and the presentation is decided by the width
+       available rather than by a preference. What must still be there is the
+       SEARCH, which is the control that slot exists for. */
+    t('...so its search control is still on the page',
+      dref.control === true && dref.search === true && dref.buttons === 0, dref);
 
     /* ── DRUG CLASS COLOURS ─────────────────────────────────────────────
        Three drugs carried no class at all, so they rendered a blank badge
@@ -604,6 +610,7 @@ async function openEngine(b, viewport) {
       compute();
       const host = document.getElementById('induction-host');
       return { titles: ${ind('.wf-sec .wf-t')}.map(n => n.textContent),
+               nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent),
                roles: ${ind('.pl-sel')}.map(r => r.dataset.role),
                addControls: ${ind('.pl-add')}.length,
                pedsNodes: ${ind('.pdx, .pdx-grid')}.length,
@@ -625,13 +632,13 @@ async function openEngine(b, viewport) {
                    mainY:Math.round(m.y), sideY:Math.round(sd.y),
                    refY:Math.round(f.y), refW:Math.round(f.width),
                    refX:Math.round(f.x), mainW:Math.round(m.width),
-                   /* THE VOID THIS PASS EXISTS TO REMOVE: measured from the
-                      bottom of the PLAN SECTION to the top of the reference,
-                      not from the column that now contains both. */
-                   voidUnderPlan:(() => {
-                     const p = document.querySelector('.wf-col-main .wf-sec');
-                     return p ? Math.round(f.y - (p.getBoundingClientRect().y +
-                       p.getBoundingClientRect().height)) : null; })(),
+                   /* THE REFERENCE SPANS THE PAIR. What matters now is that
+                      it starts below the TALLER of the two columns and is as
+                      wide as both together, not that it hugs the plan. */
+                   colsBottom:Math.round(Math.max(m.y + m.height, sd.y + sd.height)),
+                   gapUnderCols:(() => Math.round(f.y -
+                     Math.max(m.y + m.height, sd.y + sd.height)))(),
+                   centreW:Math.round(m.width + sd.width + 12),
                    split:Math.round(100*m.width/(m.width+sd.width)) } : null; })() };
     })()`);
     /* THE PAGE IS THE PLAN. Four sections for an adult, and the first one is
@@ -639,29 +646,45 @@ async function openEngine(b, viewport) {
     /* Derived from the geometry above rather than asserted separately. */
     adult.airwayBeside = !!adult.geo && adult.geo.sideX > adult.geo.mainX &&
                          Math.abs(adult.geo.sideY - adult.geo.mainY) < 40;
-    /* The reference fills the space beneath the plan rather than a band
-       under both columns: with a three-agent plan the plan column ran 409px
-       against the airway's 702, so a full-width band left a 443px blank
-       rectangle under the plan. It starts below the plan and beside the
-       airway, which is where the room actually is. */
-    adult.refBelowBoth = !!adult.geo && adult.geo.refY > adult.geo.mainY &&
+    /* THE REFERENCE SPANS THE CENTRAL WORKSPACE, UNDER BOTH COLUMNS. It was a
+       child of .wf-col-main and inherited the plan column's 488px, which is
+       what forced the indication under the drug name, the preparation under
+       the dose, and a 78px average row. It is a sibling of the pair now:
+       same left edge as the plan, the full width of plan + airway, and
+       starting below whichever column is taller. */
+    adult.refSpansCentre = !!adult.geo &&
                          adult.geo.refX === adult.geo.mainX &&
-                         adult.geo.refW >= adult.geo.mainW - 2;
+                         adult.geo.refW >= adult.geo.centreW - 4 &&
+                         adult.geo.refW > adult.geo.mainW * 1.4 &&
+                         adult.geo.refY >= adult.geo.colsBottom;
     /* THE WORKSTATION GEOMETRY: the plan and the airway are two halves of one
        decision and sit side by side; the reference spans beneath both. */
     /* DOM order is now column-major: the left column carries the plan and
        the reference beneath it, the right column the airway and its backup. */
-    t('adult: plan and reference in one column, airway and backup in the other',
+    /* DOM ORDER FOLLOWS THE GEOMETRY. The reference was a child of the plan
+       column and read between the plan and the airway; it spans the central
+       workspace beneath both now, so it comes after both — which is also the
+       order it is read in. */
+    /* THE ORDINALS DO NOT SKIP. The reference was numbered 4 while it sat
+       between the plan and the airway, and the paediatric section held 3
+       whether or not it existed — so once the reference moved to the end, an
+       adult read 1, 2, then 4 and went looking for a section 3 that is not
+       on the screen. The reference takes whichever number follows what is
+       actually rendered. */
+    t('adult: the section ordinals run 1, 2, 3 with nothing skipped',
+      adult.nums.join(',') === '1,2,3', adult.nums);
+    t('adult: plan beside airway, and the reference beneath both',
       adult.titles.join(' / ') ===
-      'Induction plan / Drug reference / Airway plan / Backup difficult airway',
+      'Induction plan / Airway plan / Backup difficult airway / Drug reference',
       adult.titles);
     t('...the airway column sits BESIDE the plan, not under it',
       adult.airwayBeside === true, adult.geo);
-    t('...and the reference fills the column beneath the plan',
-      adult.refBelowBoth === true, adult.geo);
-    /* NO ANONYMOUS BLANK RECTANGLE between the plan and what follows it. */
-    t('...with no reserved void between them',
-      !!adult.geo && adult.geo.voidUnderPlan <= 16, adult.geo && adult.geo.voidUnderPlan);
+    t('...and the reference spans the whole centre beneath both of them',
+      adult.refSpansCentre === true, adult.geo);
+    /* NO ANONYMOUS BAND between the columns and the reference under them. */
+    t('...with no reserved gap between the columns and the reference',
+      !!adult.geo && adult.geo.gapUnderCols <= 16,
+      adult.geo && adult.geo.gapUnderCols);
     /* WAS: "one row per canonical clinical role". Three role containers each
        reserving an empty cell for an agent nobody selected was three
        headings and three blank rectangles of monitor for no information. The
@@ -882,12 +905,15 @@ async function openEngine(b, viewport) {
         pdx[d.querySelector('.pdx-l').textContent.trim()] =
           d.querySelector('.pdx-v').firstChild.textContent.trim(); });
       return { titles: ${ind('.wf-sec .wf-t')}.map(n => n.textContent), pdx,
+               nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent),
                ctxLma:P.lma, ctxIgel:P.igel, airway: window.airwayPlan };
     })()`);
     t('child: the paediatric section appears, under the airway backup',
       child.titles.join(' / ') ===
-      'Induction plan / Drug reference / Airway plan / Backup difficult airway / ' +
-      'Paediatric context', child.titles);
+      'Induction plan / Airway plan / Backup difficult airway / ' +
+      'Paediatric context / Drug reference', child.titles);
+    t('child: ...and the ordinals run 1, 2, 3, 4',
+      child.nums.join(',') === '1,2,3,4', child.nums);
     /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
        recomputed instead of reading compute(), this is where it would show. */
     t('child: paediatric LMA and i-gel match patientContext at 22 kg',
@@ -1006,7 +1032,7 @@ async function openEngine(b, viewport) {
          under the name. The RELATIONSHIP asserted below is unchanged. */
       return { lead:px('.wfl-t'), heading:px('#output .wf-t'),
                drug:px('#iref-body .dtab-n'), amount:px('#iref-body .dtab-d2'),
-               rule:px('#iref-body .dtab-d1'), label:px('#iref-body .dtab-useline'),
+               rule:px('#iref-body .dtab-d1'), label:px('#iref-body .dtab-use'),
                airwayValue:px('.awp-v'), airwayLabel:px('.awp-l'),
                timer:px('.ws-rail .lt-time'), timerLabel:px('.ws-rail .lt-head') };
     })()`);
@@ -1039,19 +1065,23 @@ async function openEngine(b, viewport) {
        edge, the badge filled in the same hue, the class named in text. The
        three properties asserted are the same three; only where they are read
        from has moved. */
+    /* PHASE 3 MOVED THE CLASS OUT OF ITS OWN COLUMN. The colour is the rule
+       down the row's leading edge and the badge sits beside the drug name;
+       the three properties asserted are the same three, read from where they
+       now live. */
     const col = await s.pg.evaluate(`(() => {
       const rows = [...document.querySelectorAll('#induction-host #iref-body tr.dtab-r')];
-      const cells = rows.map(r => r.querySelector('.dtab-cls')).filter(Boolean);
       const seen = {};
-      cells.forEach(c => { seen[getComputedStyle(c).getPropertyValue('--pc').trim()] = 1; });
-      const first = cells[0];
-      const rule = first ? getComputedStyle(first, '::before') : null;
+      rows.forEach(r => { seen[getComputedStyle(r).getPropertyValue('--pc').trim()] = 1; });
+      const first = rows[0];
+      const firstCell = first ? first.querySelector('td') : null;
+      const rule = firstCell ? getComputedStyle(firstCell, '::before') : null;
       return { cards:rows.length, distinctColours:Object.keys(seen).filter(Boolean).length,
                bandTinted:rule ? rule.backgroundColor : '',
                ruleWidth:rule ? parseFloat(rule.width) : 0,
-               badgeFilled:getComputedStyle(first.querySelector('.pc')).backgroundColor,
-               everyCardNamesItsClass:cells.every(c => {
-                 const b = c.querySelector('.pc');
+               badgeFilled:getComputedStyle(first.querySelector('.dtab-name .pc')).backgroundColor,
+               everyCardNamesItsClass:rows.every(r => {
+                 const b = r.querySelector('.dtab-name .pc');
                  return !!b && b.textContent.trim().length > 0; }) };
     })()`);
     t('drug rows carry several distinct class colours',
@@ -1454,13 +1484,19 @@ async function openEngine(b, viewport) {
       const cmp = await v.pg.evaluate(`(() => {
         const set = (i,val) => { const e = document.getElementById(i);
           if (e) { e.value = val; e.dispatchEvent(new Event('change',{bubbles:true})); } };
+        /* THE FIGURE AND ITS UNIT ARE SEPARATE ELEMENTS in the table — the
+           unit sits back visually — so both halves are read, or the
+           comparison would pass while one mount printed mg and the other
+           printed nothing at all. */
+        const txt = (r, sel) => [...r.querySelectorAll(sel)]
+          .map(e => e.textContent).join(' ');
         const readMount = id => {
           const out = {};
           [...document.querySelectorAll('#'+id+'-body tr.dtab-r')].forEach(r => {
             out[r.dataset.drug] = {
-              rule:(r.querySelector('.dtab-d1')||{}).textContent || '',
-              amount:(r.querySelector('.dtab-d2')||{}).textContent || '',
-              prep:(r.querySelector('.dtab-p1')||{}).textContent || ''
+              rule:txt(r, '.dtab-d1, .dtab-du'),
+              amount:txt(r, '.dtab-d2, .dtab-au'),
+              prep:txt(r, '.dtab-p1')
             };
           });
           return out;
@@ -1538,6 +1574,37 @@ async function openEngine(b, viewport) {
         (cmp.adult.wide['drug.remifentanil'] || {}).amount === '',
         { narrow:(cmp.adult.narrow['drug.remifentanil']||{}).amount,
           wide:(cmp.adult.wide['drug.remifentanil']||{}).amount });
+      /* AND IT IS NOT SILENTLY ABSENT EITHER. An earlier revision put the
+         rate in the patient column in the accent reserved for the computed
+         dose, which reads as "give 0.2-0.7 of something". The rate belongs
+         where the rule goes, and the patient column has to say why there is
+         no number in it rather than printing an em dash that looks like
+         missing data. */
+      const rate = await v.pg.evaluate(`(() => {
+        const pick = id => {
+          const r = document.querySelector('#iref-body tr[data-drug="'+id+'"]');
+          if (!r) return null;
+          return { dose:(r.querySelector('.dtab-rule')||{}).textContent.replace(/\\s+/g,' ').trim(),
+                   patient:(r.querySelector('.dtab-dose')||{}).textContent.trim(),
+                   accent:!!r.querySelector('.dtab-dose .dtab-d2') };
+        };
+        setDomain('induction');
+        return { remi:pick('drug.remifentanil'), dex:pick('drug.dexmedetomidine'),
+                 prop:pick('drug.propofol') };
+      })()`);
+      t('a rate is printed in the Dose column, with its per-kg unit intact',
+        /0\.05.0\.2\s*mcg\/kg\/min/.test(rate.remi.dose) &&
+        /0\.2.0\.7\s*mcg\/kg\/h/.test(rate.dex.dose),
+        { remifentanil:rate.remi.dose, dexmedetomidine:rate.dex.dose });
+      t('...and the patient column says infusion, not a bolus and not a dash',
+        rate.remi.patient === 'infusion' && rate.dex.patient === 'infusion' &&
+        rate.remi.accent === false && rate.dex.accent === false, rate);
+      /* The patient here is whichever one the block left set — the point is
+         that a weight-based drug HAS a computed amount in the accent, not
+         which weight it was computed for; the two-mount comparison above
+         already pins the values at both weights. */
+      t('...while a weight-based drug still carries its computed amount there',
+        rate.prop.accent === true && /\d/.test(rate.prop.patient), rate.prop);
       t('no runtime errors while comparing', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }

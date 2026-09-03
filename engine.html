@@ -387,8 +387,11 @@ table.dtab tbody tr.dtab-r:has(+ .dtab-wrow:not([hidden])) td{border-bottom:none
    every row that carried one. The unit may wrap after it. */
 .dtab-d1{font-size:12.5px;font-weight:700;color:#fff;line-height:1.3;
   font-variant-numeric:tabular-nums;white-space:nowrap;}
+/* The FIGURE never breaks; its unit may. "0.04-0.05 mg/kg TBW · max 5 mg" is
+   a unit with a ceiling appended to it, and held on one line it ran straight
+   through the patient column beside it. */
 .dtab-du{font-size:10px;font-weight:600;color:var(--ink-3);margin-left:4px;
-  white-space:nowrap;}
+  white-space:normal;}
 .dtab-d2{font-size:14.5px;font-weight:800;color:var(--accent);line-height:1.25;
   font-variant-numeric:tabular-nums;white-space:nowrap;}
 .dtab-au{font-size:10.5px;font-weight:700;color:var(--accent);opacity:.75;margin-left:3px;}
@@ -416,15 +419,34 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 
 /* The caution marker, and the row it opens. Folded by default so the table
    keeps its density; one press puts the text under the row it belongs to. */
+/* THE CAUTION MARKER IS A MARK, NOT A BUTTON-SHAPED OBJECT. An outlined,
+   filled 30x32 box repeated down every row was the heaviest thing in the
+   table and it was repeating a fact that varies only in severity. The glyph
+   keeps the warning colour, the full 30x32 hit area, its accessible label and
+   the same disclosure; what it loses is the border and the fill, which were
+   drawing attention to the control rather than to the drug. It gains them
+   back on hover and while open, so it still reads as pressable. */
 .dtab-wi{display:inline-flex;align-items:center;justify-content:center;width:30px;height:32px;
-  border:1px solid rgba(232,168,56,.34);border-radius:var(--radius-sm);font-size:12.5px;
-  color:var(--warning);cursor:pointer;background:rgba(232,168,56,.11);font-family:inherit;
-  padding:0;transition:background .14s ease,border-color .14s ease;}
-.dtab-wi:hover,.dtab-wi.open{background:rgba(232,168,56,.22);border-color:rgba(232,168,56,.6);}
-.dtab-wi.crit{color:#ff8a72;background:rgba(255,110,90,.13);border-color:rgba(255,138,114,.4);}
-.dtab-wi.crit:hover,.dtab-wi.crit.open{background:rgba(255,110,90,.24);border-color:rgba(255,138,114,.7);}
-.dtab-wi:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  border:1px solid transparent;border-radius:var(--radius-sm);font-size:14px;
+  color:var(--warning);opacity:.72;cursor:pointer;background:none;font-family:inherit;
+  padding:0;transition:background .14s ease,border-color .14s ease,opacity .14s ease;}
+.dtab-wi:hover,.dtab-wi.open{background:rgba(232,168,56,.16);
+  border-color:rgba(232,168,56,.45);opacity:1;}
+/* A CONTRAINDICATION IS NOT A CAUTION. It keeps full strength — the quieting
+   above is for the 17 rows that carry an ordinary caution, not the 6 that
+   carry something that can kill the patient. */
+.dtab-wi.crit{color:#ff8a72;opacity:1;background:rgba(255,110,90,.13);
+  border-color:rgba(255,138,114,.38);}
+.dtab-wi.crit:hover,.dtab-wi.crit.open{background:rgba(255,110,90,.24);
+  border-color:rgba(255,138,114,.7);}
+.dtab-wi:focus-visible{outline:2px solid var(--accent);outline-offset:1px;opacity:1;}
 .dtab-wrow > td{padding:0 10px 9px 16px;border-bottom:1px solid var(--hair);}
+/* [hidden] IS A UA display:none AND ANY AUTHOR display BEATS IT. In the table
+   this block sits inside a <tr hidden>, which is why it behaved; in the phone
+   row it is the element itself, so every collapsed row was rendering its full
+   warning sentence — 59px of it — which is exactly what the closed state is
+   not supposed to carry. */
+.dtab-warn[hidden]{display:none!important;}
 .dtab-warn{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.5;
   color:var(--warning);background:rgba(232,168,56,.07);border-left:2px solid rgba(232,168,56,.5);
   padding:7px 11px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
@@ -445,13 +467,23 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
    here at higher specificity, so the first set never applied. One source now;
    see the .dtab-* widths above. */
 
-@media(max-width:900px){
-  /* A table stops being a table at 390px. Cards below this width, always. */
-  .dref-view{display:none;}
+@media(max-width:700px){
+  /* A table stops being a table on a phone. The compact clinical row is the
+     answer below this width, always — and 700 rather than 900 because a 768
+     tablet has the width for the reduced table and was being handed a phone
+     list by a breakpoint instead of by a measurement. */
   table.dtab{display:none;}
-  /* and every remaining control is a thumb target */
+}
+@media(max-width:900px){
+  /* Thumb targets on anything that is touched. A tablet still gets the
+     reduced TABLE — it has the width for it — but its row controls grow from
+     the 32px a mouse needs, which costs about three pixels of row. */
   .dref-cat{height:44px;padding:0 14px;}
   .dref-search{height:44px;font-size:16px;}
+  table.dtab .dtab-wi,table.dtab .dtab-plus,table.dtab .dtab-more{height:40px;}
+  table.dtab .dtab-wi,table.dtab .dtab-more{width:40px;}
+  table.dtab .dtab-w,table.dtab .dtab-go{width:48px;}
+  table.dtab .dtab-add{width:92px;}
 }
 
 /* ══ THE PLAN COLUMN, THE DETAIL SURFACE AND THE TOOLS ════════════════════
@@ -511,24 +543,50 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
 .dtab-more.on{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);
   transform:rotate(90deg);}
 
-/* ── THE CARD VIEW'S TWO ACTIONS ──────────────────────────────────────────
-   A card has no columns, so the controls the table puts in them sit under the
-   row. Same functions, same state, same one renderer for the detail. */
-.dcard{border-bottom:1px solid var(--hair);}
+/* ── THE REDUCED TABLE ────────────────────────────────────────────────────
+   Six columns instead of seven. The four that carry the answer keep their
+   share of the width rather than all five being squeezed by 90px each. */
+table.dtab-red .dtab-name{width:26%;}
+table.dtab-red .dtab-use{width:20%;}
+table.dtab-red .dtab-rule{width:21%;}
+table.dtab-red .dtab-dose{width:18%;}
+
+/* ══ THE PHONE'S ROW ══════════════════════════════════════════════════════
+   Three lines and an action strip. The name and the amount for this patient
+   share the first line, because those are the two things being looked for;
+   the indication and the rule share the second; the concentration and the
+   three controls share the third. Everything else is behind Details. */
+.dcard{border-bottom:1px solid var(--hair);padding:9px 12px 9px 13px;position:relative;}
+.dcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--pc,transparent);}
 .dcard:last-child{border-bottom:none;}
 .dcard.open{background:rgba(126,207,192,.05);}
-.dcard-acts{display:flex;align-items:center;gap:8px;padding:0 14px 10px;}
-.dcard-more{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink-2);
-  border-radius:var(--radius-sm);font-family:inherit;font-size:11.5px;font-weight:700;
-  min-height:32px;padding:0 12px;cursor:pointer;}
+.dm-top{display:flex;align-items:baseline;gap:7px;}
+.dm-n{font-size:15px;font-weight:700;color:#fff;line-height:1.2;min-width:0;}
+#output .dcard .pc{font-size:8px;padding:3px 5px;letter-spacing:.05em;flex:0 0 auto;
+  border-left:0;margin:0;background:var(--pc);color:#0B1620;opacity:1;
+  display:inline-block;border-radius:3px;font-weight:800;}
+.dm-amt{margin-left:auto;flex:0 0 auto;white-space:nowrap;}
+.dm-amt .dtab-d2{font-size:16px;}
+.dm-sub{font-size:11.5px;color:var(--ink-3);line-height:1.4;margin-top:3px;}
+.dm-foot{display:flex;align-items:center;gap:8px;margin-top:7px;}
+.dm-prep{font-size:11.5px;font-weight:600;color:var(--ink-2);min-width:0;flex:1 1 auto;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dcard-acts{display:flex;align-items:center;gap:6px;flex:0 0 auto;}
+.dcard-more{background:none;border:1px solid var(--line);color:var(--ink-3);
+  border-radius:var(--radius-sm);font-family:inherit;font-size:11px;font-weight:700;
+  min-height:32px;padding:0 11px;cursor:pointer;white-space:nowrap;}
 .dcard-more:hover,.dcard-more.on{color:#fff;border-color:var(--accent);
   background:var(--brand-tint-2);}
-.dcard .ddet{margin:0 14px 12px;}
+.dcard .ddet{margin:10px 0 2px;}
+.dcard .dtab-warn{margin-top:9px;}
 @media(max-width:900px){
   /* Thumb targets, not mouse targets. */
-  .dcard-acts{padding:0 14px 12px;}
-  .dcard-more,.dcard-acts .dtab-plus{min-height:44px;}
-  .dcard-acts .dtab-plus{width:44px;height:44px;font-size:18px;}
+  .dcard{padding:11px 12px 11px 14px;}
+  .dcard-more,.dcard-acts .dtab-plus,.dcard-acts .dtab-wi{min-height:44px;height:44px;}
+  .dcard-acts .dtab-wi{width:44px;font-size:16px;}
+  .dcard-acts .dtab-plus{padding:0 13px;}
+  .dm-n{font-size:15.5px;}
 }
 
 /* ── THE INDUCTION MOUNT ──────────────────────────────────────────────────
@@ -555,21 +613,53 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
   border-bottom:1px solid var(--hair);
   flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;}
 #output .wf-full .dref-cats::-webkit-scrollbar{display:none;}
-#output .wf-full .dref-cat{height:26px; flex:0 0 auto; font-size:9px; padding:0 10px;}
+/* ONE COMPACT LINE, AND STILL A REAL TARGET. What made the strip read as a
+   row of marketing pills was WRAPPING onto a second row, not the chip height:
+   two rows of chips cost 80px above the data. One scrolling line at the size
+   a pointer can actually hit is compact and hittable; 26px was neither
+   noticeably tighter nor a target this workstation offers anywhere else. */
+#output .wf-full .dref-cat{height:32px; flex:0 0 auto; font-size:9px; padding:0 11px;}
+@media(max-width:900px){
+  #output .wf-full .dref-cat{height:44px; padding:0 14px;}
+}
 #output .wf-full .dref-cat .lg{display:none;}
 #output .wf-full .dref-cat .sm{display:inline;}
 #output .wf-full .idref{padding:0; border:0;}
+
+/* ── THE HEADING ON A PHONE ───────────────────────────────────────────────
+   Title, count, search and Tools do not fit one 366px line: the title broke
+   across two lines and the search field was clipped to "Search drug". The
+   title keeps the first line with Tools at its end; the search takes the full
+   width of the second, which is where a phone wants it anyway.
+
+   AUTHORED HERE, NOT IN live-tools.css. This stylesheet is parsed after that
+   one, so the flex-wrap:nowrap three rules above would beat an identical
+   selector there — which is exactly what happened to the first attempt. */
+@media(max-width:700px){
+  #output .wf-full .wf-h{flex-wrap:wrap; row-gap:8px;}
+  #output .wf-full .wf-h .wf-t{flex:0 1 auto; white-space:nowrap;}
+  #output .wf-full .ctl-b{order:2; margin-left:auto;}
+  #output .wf-full .wf-h .dref-ctl{order:3; width:100%; margin-left:0;
+    flex-wrap:nowrap; gap:9px;}
+  #output .wf-full .dref-search{flex:1 1 auto; width:auto; min-width:0;}
+  #output .wf-full .dref-count{order:2; flex:0 0 auto;}
+}
 
 /* ── CLINICAL TOOLS ───────────────────────────────────────────────────────
    A disclosure in the reference heading. Closed it is one control; open it is
    a grid of this case's own scalars and a short list of the workspaces that
    own the rest. It is never a dialogue, for the same reason the drug detail
    is not one. */
-.ctl-b{background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--ink-2);
-  border-radius:var(--radius-sm);font-family:inherit;font-size:11.5px;font-weight:700;
-  height:34px;padding:0 12px;cursor:pointer;margin-left:auto;flex:0 0 auto;
+/* SECONDARY TO THE SEARCH BESIDE IT. Bordered and filled, it read as the
+   equal of the search field and of the section title; it is an entry point to
+   values that live in other workspaces, so it is a quiet text control that
+   states itself on hover. Same target, same label, same disclosure. */
+.ctl-b{background:none;border:1px solid transparent;color:var(--ink-3);
+  border-radius:var(--radius-sm);font-family:inherit;font-size:11.5px;font-weight:600;
+  height:34px;padding:0 9px;cursor:pointer;margin-left:auto;flex:0 0 auto;
   white-space:nowrap;transition:background .14s ease,border-color .14s ease,color .14s ease;}
-.ctl-b:hover,.ctl-b.on{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);}
+.ctl-b:hover{color:#fff;border-color:var(--line);background:rgba(255,255,255,.04);}
+.ctl-b.on{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);}
 .ctl-b:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
 .ctl-panel{border:1px solid var(--line);border-radius:var(--radius-md);
   background:rgba(255,255,255,.022);padding:12px 13px;margin:0 0 10px;}
@@ -3428,15 +3518,22 @@ window.drefSyncPlan = drefSyncPlan;
    actually use, which is the failure this avoids. Critical severity keeps the
    red treatment so the contraindications can be picked out of twenty-five
    rows without opening anything. */
-function drefWarnCell(inst, d, i){
-  if(!d.warn) return '<td class="dtab-w"></td>';
+/* ONE WARNING CONTROL, TWO PLACES. The table puts it in a cell and the phone
+   row puts it beside the other two actions; it is the same button, the same
+   disclosure and the same target either way. */
+function drefWarnBtn(inst, d, i){
+  if(!d.warn) return '';
   var crit = d.severity === 'critical';
   var rid = 'dw-'+inst.id+'-'+i;
-  return '<td class="dtab-w"><button type="button" class="dtab-wi'+(crit?' crit':'')+'" '+
+  return '<button type="button" class="dtab-wi'+(crit?' crit':'')+'" '+
          'aria-expanded="false" aria-controls="'+rid+'" '+
          'onclick="drefWarnToggle(this,\''+rid+'\')" '+
          'title="'+esc_(d.warn)+'" aria-label="'+(crit?'Contraindication':'Caution')+
-         ' for '+esc_(d.name)+'">&#9888;</button></td>';
+         ' for '+esc_(d.name)+'">&#9888;</button>';
+}
+function drefWarnCell(inst, d, i){
+  if(!d.warn) return '<td class="dtab-w"></td>';
+  return '<td class="dtab-w">'+drefWarnBtn(inst, d, i)+'</td>';
 }
 function drefWarnToggle(btn, rid){
   /* Called with (btn, index) by nothing any more, and with (btn, rowId) by
@@ -3532,11 +3629,16 @@ window.drefDetails = drefDetails;
    ROWS ARE SIZED BY THEIR CONTENT, NOT PADDED TO A GRID. A drug whose
    preparation is one line is a ~44px row; one whose preparation carries a
    note wraps to ~56px. Nothing is stretched to match its neighbour. */
-function drefTable(inst, rows){
+function drefTable(inst, rows, reduced){
   if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
   var CC = window.ClinicalContent;
   var dur = drefHasDuration(rows);
-  var span = 7 + (dur ? 1 : 0);
+  /* REDUCED DROPS ONE COLUMN, AND IT IS PREPARATION. Drug, use, dose and the
+     amount for this patient are what a narrow tablet has to keep; a
+     concentration is what you read once while drawing up, and it is in the
+     detail one press away rather than squeezed to 90px. */
+  var prepCol = !reduced;
+  var span = (prepCol ? 7 : 6) + (dur ? 1 : 0);
   var body = rows.map(function(d, i){
     var meta = CC.classMeta(d.pclass);
     var col  = meta ? meta.color : 'transparent';
@@ -3551,10 +3653,10 @@ function drefTable(inst, rows){
       '<td class="dtab-use">'+(use || '&mdash;')+'</td>'+
       '<td class="dtab-rule">'+drefRuleCell(d)+'</td>'+
       '<td class="dtab-dose">'+drefAmountCell(d)+'</td>'+
-      '<td class="dtab-prep">'+(d.prepMain
+      (prepCol ? '<td class="dtab-prep">'+(d.prepMain
         ? ('<span class="dtab-p1">'+d.prepMain+'</span>'+
            (d.prepNote ? '<span class="dtab-p2">'+d.prepNote+'</span>' : ''))
-        : '&mdash;')+'</td>'+
+        : '&mdash;')+'</td>' : '')+
       (dur ? '<td class="dtab-dur">'+(d.duration || '&mdash;')+'</td>' : '')+
       drefWarnCell(inst, d, i)+
       drefPlanCell(d)+
@@ -3574,12 +3676,12 @@ function drefTable(inst, rows){
     }
     return row;
   }).join('');
-  return '<table class="dtab"><thead><tr>'+
+  return '<table class="dtab'+(reduced?' dtab-red':'')+'"><thead><tr>'+
     '<th class="dtab-name">Drug</th>'+
     '<th class="dtab-use">Use</th>'+
     '<th class="dtab-rule">Dose</th>'+
     '<th class="dtab-dose">This patient</th>'+
-    '<th class="dtab-prep">Preparation</th>'+
+    (prepCol ? '<th class="dtab-prep">Preparation</th>' : '')+
     (dur ? '<th class="dtab-dur">Dur.</th>' : '')+
     '<th class="dtab-w"><span class="sr-only">Caution</span></th>'+
     '<th class="dtab-add"><span class="sr-only">Add to plan</span></th>'+
@@ -3622,22 +3724,54 @@ function drefAmountCell(d){
          (d.unit ? '<span class="dtab-au">'+d.unit+'</span>' : '');
 }
 
-/* Cards reuse rx(), the row renderer the rest of the page already uses, so
-   the card presentation cannot drift from every other module on the page.
-   The two actions the table offers ride beneath each row rather than in a
-   column, because a card has no columns — same functions, same state. */
+/* ── THE PHONE'S ROW ──────────────────────────────────────────────────────
+   A COMPACT CLINICAL ROW, NOT A CARD. This used to hand each drug to rx() —
+   the general row renderer the rest of the page uses — which prints the whole
+   supporting line, the preparation note and the caution disclosure for every
+   drug. Twelve of those is 1,800px of reference before the airway plan, and
+   nothing in it is scannable.
+
+   THE CLOSED STATE IS THREE LINES and holds only what a phone needs to
+   recognise the drug and read the number: the name with its class, the amount
+   for this patient, the indication and the rule it came from, and the
+   concentration. The aliases, the preparation note, the provenance and the
+   full warning text are behind the same detail surface the table uses — one
+   renderer, so the phone and the desktop cannot say different things.
+
+   Same values, same functions, same state as the table: drefRuleCell and
+   drefAmountCell decide what a rate prints here too. */
 function drefCards(inst, rows){
   if(!rows.length) return '<div class="dref-empty">No drug matches that filter.</div>';
-  return rows.map(function(d){
+  var CC = window.ClinicalContent;
+  return rows.map(function(d, i){
     var role = drefRoleOf(d.id), open = inst.open === d.id;
-    return '<div class="dcard'+(open?' open':'')+'" data-drug="'+esc_(d.id)+'">'+ rx(d) +
-      '<div class="dcard-acts">'+
-        (role ? drefPlanBtn(d, role, drefInPlan(d.id)) : '')+
-        '<button type="button" class="dcard-more'+(open?' on':'')+'" '+
-          'onclick="drefDetails(\''+inst.id+'\',\''+esc_(d.id)+'\')" '+
-          'aria-expanded="'+(open?'true':'false')+'">'+
-          (open?'Hide details':'Details')+'</button>'+
+    var meta = CC.classMeta(d.pclass);
+    var col  = meta ? meta.color : 'transparent';
+    var rule = drefIsRate(d) ? '' : (d.doseNum
+      ? (d.doseNum + ' ' + (d.doseUnit || '')) : (d.doseRule || ''));
+    var line2 = [d.use || d.ind || '', rule].filter(Boolean).join(' &middot; ');
+    return '<div class="dcard'+(open?' open':'')+'" data-drug="'+esc_(d.id)+'" '+
+        'style="--pc:'+col+'">'+
+      '<div class="dm-top">'+
+        '<span class="dm-n">'+d.name+'</span>'+(CC.classBadge(d.pclass)||'')+
+        '<span class="dm-amt">'+drefAmountCell(d)+'</span>'+
       '</div>'+
+      (line2 ? '<div class="dm-sub">'+line2+'</div>' : '')+
+      '<div class="dm-foot">'+
+        '<span class="dm-prep">'+(d.prepMain || '')+'</span>'+
+        '<span class="dcard-acts">'+
+          drefWarnBtn(inst, d, i)+
+          (role ? drefPlanBtn(d, role, drefInPlan(d.id)) : '')+
+          '<button type="button" class="dcard-more'+(open?' on':'')+'" '+
+            'onclick="drefDetails(\''+inst.id+'\',\''+esc_(d.id)+'\')" '+
+            'aria-expanded="'+(open?'true':'false')+'" '+
+            'aria-label="'+(open?'Hide':'Show')+' the full reference for '+
+            esc_(d.name)+'">'+(open?'Less':'Details')+'</button>'+
+        '</span>'+
+      '</div>'+
+      (d.warn ? '<div class="dtab-warn'+(d.severity==='critical'?' crit':'')+'" '+
+                'id="dw-'+inst.id+'-'+i+'" hidden>'+
+                '<span aria-hidden="true">&#9888;</span><span>'+d.warn+'</span></div>' : '')+
       (open ? drefDetail(inst, d.id) : '')+
     '</div>';
   }).join('');
@@ -3653,26 +3787,34 @@ function drefSet(instId, k, v){
 }
 window.drefSet = drefSet;
 
-/* ── A TABLE NEEDS THE WIDTH FOR ITS COLUMNS ──────────────────────────────
-   The workspace mount has the whole clinical column, so a viewport rule is
-   the right one for it: below 900px it is cards, above it a table.
+/* ── THREE PRESENTATIONS, DECIDED BY THE WIDTH THAT IS ACTUALLY THERE ─────
+   'table'    the full seven columns
+   'reduced'  the same table without the Preparation column, which moves into
+              the detail — drug, use, dose, this patient, actions, which is
+              the scan order that survives a narrow tablet
+   'list'     compact clinical rows for a phone
 
-   The induction mount has the PLAN column, and how wide that is depends on
-   the viewport in a way no single breakpoint captures — 488px at 1440, but
-   356px at 1180 because the crisis rail is beside it, then 461px again at
-   1024 once the rail folds away. A viewport breakpoint got 1024 wrong in both
-   directions. So this measures the container the table would actually be set
-   in. Below about 440px of column the drug name is squeezed under 100px and
-   "Dexmedetomidine" runs through the dose next to it; above it, the five
-   compact columns fit.
+   The threshold is the CONTAINER's measured width, not the viewport, because
+   the two do not track each other: the reference is 826px at 1440, 594px at
+   1180 where the Crisis rail is still beside it, and 732px at 768 where the
+   columns have stacked and it has the whole page. A viewport breakpoint gets
+   at least one of those wrong.
 
+   A phone is a phone regardless of what it measures: below 900px the table is
+   display:none in CSS as well, so the list is the only honest answer there.
    The measurement is 0 while the workspace is off-screen, and a width of zero
-   is not an answer, so it falls back to the viewport there. */
-function drefNarrow(inst, host){
-  var phone = !!(window.matchMedia && window.matchMedia('(max-width:900px)').matches);
-  if(!inst.compact || phone) return phone;
+   is not an answer, so it falls back to the viewport. */
+function drefMode(inst, host){
+  if(inst.view === 'cards') return 'list';
+  /* A PHONE IS A PHONE. Above that, the container decides: a 768 tablet has
+     the whole page width once the columns stack, which is more than enough
+     for the reduced table, and throwing it away for a phone list there was
+     losing four columns to a breakpoint rather than to a measurement. */
+  if(window.matchMedia && window.matchMedia('(max-width:700px)').matches) return 'list';
   var w = host.getBoundingClientRect().width;
-  return w ? (w < 440) : (window.innerWidth < 1280);
+  if(!w) w = window.innerWidth - (window.innerWidth >= 1180 ? 560 : 60);
+  if(w < 520) return 'list';
+  return w < 760 ? 'reduced' : 'table';
 }
 
 function drefPaint(instId, opts){
@@ -3681,8 +3823,9 @@ function drefPaint(instId, opts){
   var keep = (opts && opts.keepScroll) ? drefScroller(host) : null;
   var top = keep ? keep.scrollTop : 0;
   var rows = drefRows(inst);
-  host.innerHTML = (inst.view === 'cards' || drefNarrow(inst, host))
-    ? drefCards(inst, rows) : drefTable(inst, rows);
+  var mode = drefMode(inst, host);
+  host.innerHTML = (mode === 'list') ? drefCards(inst, rows)
+                                     : drefTable(inst, rows, mode === 'reduced');
   var cnt = ge(inst.id+'-count');
   if(cnt) cnt.textContent = rows.length + (rows.length === 1 ? ' drug' : ' drugs');
   if(keep){ var again = drefScroller(host); if(again) again.scrollTop = top; }
@@ -3711,26 +3854,21 @@ function drefRender(instId){
   var inst = drefI(instId);
   var ctl = ge(inst.id+'-ctl'), cats = ge(inst.id+'-cats');
   if(!ctl || !cats) return;
-  /* THE COUNT IS SECONDARY TEXT, NOT A BAND OF ITS OWN, and the presentation
-     switch is gone from the induction mount: the table is the desktop answer
-     and the card list is what a phone gets automatically, so a permanent
-     control offering a choice nobody needs to make was costing prime space
-     next to the search box. `view` still exists in the state and the card
-     renderer is unchanged — only the toggle went. */
+  /* THE COUNT IS SECONDARY TEXT, NOT A BAND OF ITS OWN, AND THERE IS NO VIEW
+     SWITCH. A permanent "Table | Cards" control sat next to the search box
+     asking a question with one right answer: the table is what a desktop
+     wants and a phone cannot set one, so the presentation is decided by the
+     width available rather than by a preference nobody has. The state field
+     and the card renderer are both still here — drefMode() honours
+     inst.view === 'cards' — because that is what the phone renders. Only the
+     control went. */
   ctl.innerHTML =
     '<span class="dref-count" id="'+inst.id+'-count"></span>'+
     '<input class="dref-search" id="'+inst.id+'-q" type="search" '+
       'placeholder="Search drugs&hellip;" '+
       'aria-label="Search the drug reference by name, class or indication" '+
       'value="'+String(inst.q).replace(/"/g,'&quot;')+'" '+
-      'oninput="drefSet(\''+inst.id+'\',\'q\', this.value)">'+
-    (inst.compact ? '' :
-      '<div class="dref-view" role="group" aria-label="Presentation">'+
-        '<button type="button" class="'+(inst.view==='table'?'on':'')+'" '+
-          'onclick="drefSet(\''+inst.id+'\',\'view\',\'table\')">&#9636; Table</button>'+
-        '<button type="button" class="'+(inst.view==='cards'?'on':'')+'" '+
-          'onclick="drefSet(\''+inst.id+'\',\'view\',\'cards\')">&#9635; Cards</button>'+
-      '</div>');
+      'oninput="drefSet(\''+inst.id+'\',\'q\', this.value)">';
   /* Each chip wears its own class colour, the same one the row badge and the
      row's left rule use, so the filter and the thing it filters are visibly
      the same object. The colours come from PCLASS; none is chosen here. */
