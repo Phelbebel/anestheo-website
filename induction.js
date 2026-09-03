@@ -469,18 +469,22 @@
       if (drugs(g).length) any = true;
     });
     if (!any) return '';
-    var action = '<button type="button" class="ctl-b" id="ctools-b" ' +
-      'aria-expanded="false" aria-controls="ctools" ' +
-      'aria-label="Clinical tools for this patient" ' +
-      'onclick="ctoolsToggle()">Clinical tools</button>';
-    return section(4, 'Drug reference', 'Scaled to this patient',
-      '<div class="iref-head"><span class="dref-ctl" id="iref-ctl"></span></div>' +
+    /* ONE BAND OF CHROME, NOT THREE. The title, the match count, the search
+       box and the tools entry were a heading, then a search row, then a
+       filter strip — 144px before the first drug. The count and the search
+       ride in the heading; the filters are the only other band; the table
+       header comes next. Clinical tools is a quiet control at the end of the
+       heading rather than a second toolbar. */
+    var action =
+      '<span class="dref-ctl" id="iref-ctl"></span>' +
+      '<button type="button" class="ctl-b" id="ctools-b" ' +
+        'aria-expanded="false" aria-controls="ctools" ' +
+        'aria-label="Clinical tools for this patient" ' +
+        'onclick="ctoolsToggle()">Tools</button>';
+    return section(4, 'Drug reference', '',
       '<div class="ctl-panel" id="ctools" hidden></div>' +
       '<div class="dref-cats" id="iref-cats"></div>' +
-      '<div class="idref"><div id="iref-body"></div></div>' +
-      '<p class="wf-note">Doses are this patient\'s, from the same clinical record the ' +
-      'plan above uses. Search covers name, class and indication across every published ' +
-      'drug; the complete reference is a tab of its own.</p>', '', action);
+      '<div class="idref"><div id="iref-body"></div></div>', '', action);
   }
 
   /* ── PUBLIC ──────────────────────────────────────────────────────────── */
@@ -519,14 +523,22 @@
          grows the tracks a spanning item crosses, so the tall airway column
          pushed the reference 103px below the plan — a void created by the
          layout rather than by any content. Two flows cannot do that to each
-         other: each column is exactly as tall as what is in it. */
+         other: each column is exactly as tall as what is in it.
+
+         THE REFERENCE IS A SIBLING OF THE PAIR, NOT A CHILD OF THE LEFT ONE.
+         Inside .wf-col-main it inherited the plan column's 488px, and seven
+         conceptual columns do not go into 488px — that is what forced the
+         indication under the drug name, the preparation under the dose, and
+         a 78px average row where a reference table wants 40-52. It spans the
+         whole central workspace now, beneath both, which is where something
+         consulted about either belongs. The timers stay left of this host and
+         the Crisis rail stays right of it; neither is touched. */
       '<div class="wf-cols">' +
-        '<div class="wf-col-main">' + planSection() +
-          '<div class="wf-full">' + referenceSection() + '</div>' +
-        '</div>' +
+        '<div class="wf-col-main">' + planSection() + '</div>' +
         '<div class="wf-col-side">' + airwaySection() + backupSection() +
           pedsSection() + '</div>' +
-      '</div>';
+      '</div>' +
+      '<div class="wf-full">' + referenceSection() + '</div>';
     /* The containers exist now, so the engine can fill them. It is the same
        call the Drug reference workspace makes, with this mount's id. */
     if (root.drefRender && document.getElementById('iref-body')) {

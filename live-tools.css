@@ -1116,30 +1116,27 @@ html.lt-immersive body{padding-top:0 !important;}
    reference 103px below the plan — a reserved void created by the spanning
    item rather than by any content. Rows sized to their own content leave the
    surplus where it belongs: at the bottom of the taller column. */
-/* ── THE REFERENCE IS SIZED BY THE SPACE, NOT BY A NUMBER ─────────────────
-   Phase 2E capped the reference at clamp(300px, 30vh, 520px) — responsive,
-   but still a guess at how much room there was, and Phase 3's table is a
-   different height from the four cards it replaced, so the guess went wrong
-   in the other direction: the reference ended 127px ABOVE the airway column
-   and the void it was meant to fill came back.
+/* ── THE REFERENCE SPANS THE CENTRE, UNDER BOTH COLUMNS ───────────────────
+   It was a child of .wf-col-main, so it inherited the plan column's 488px and
+   a seven-column reference table does not go into 488px — that width is what
+   forced the indication under the drug name, the preparation under the dose,
+   and a 78px average row.
 
-   THE DEFECT IS THE CONSTANT ITSELF. So the columns stretch to the taller of
-   the two and the reference takes whatever the plan above it did not: it ends
-   level with the airway column because it is measured against it, at any
-   viewport, with any number of drugs and any number of agents in the plan.
-   `align-items:stretch` is what makes both columns the same height; the
-   min-height floor is what stops a very short side column from crushing the
-   scroller to nothing.
+   It is a sibling of the pair now: the plan and the airway keep their 60/40
+   split exactly as approved, and the reference runs the full central width
+   beneath them. The timer rail is outside this host on the left and the
+   Crisis rail outside it on the right; neither is touched, and neither gives
+   up a pixel.
 
-   Only for the side-by-side layout. Below 1180px the columns stack and there
-   is no sibling to measure against — the reference is one section in a
-   stream, and it keeps a viewport-proportional cap there. */
-.wf-cols{display:flex; align-items:stretch; gap:12px;}
+   The columns are back to sizing themselves. They no longer stretch to match:
+   there is nothing below the shorter one to fill any more, because what used
+   to fill it now spans both. */
+.wf-cols{display:flex; align-items:flex-start; gap:12px;}
 .wf-col-main{flex:1 1 60%;}
 .wf-col-side{flex:1 1 40%;}
-.wf-full{margin-top:0; min-width:0; flex:1 1 auto; display:flex; flex-direction:column;}
-.wf-full > .wf-sec{flex:1 1 auto; min-height:0; display:flex; flex-direction:column;}
-.wf-col-main,.wf-col-side{min-width:0; display:flex; flex-direction:column; gap:10px;}
+.wf-full{margin-top:12px; min-width:0; width:100%;}
+.wf-col-main,.wf-col-side{min-width:0; display:flex; flex-direction:column; gap:10px;
+  align-self:flex-start;}
 #output .wf-cols .wf-sec,#output .wf-full .wf-sec{margin-bottom:0;}
 /* The side column is denser: it is equipment, read at a glance. ID
    specificity, because #output .wf-t sets 23px and a 23px uppercase heading
@@ -1458,7 +1455,7 @@ html.lt-immersive body{padding-top:0 !important;}
   nav#cmd-strip{margin:0 0 7px;}
 }
 
-/* the reference heading lives in a 488px column now, not the full centre */
+/* the reference heading spans the centre again, under both columns */
 #output .wf-full .wf-t{font-size:18px;}
 #output .wf-full .wf-n{width:24px; height:24px; font-size:11.5px;}
 #output .wf-full .wf-h{margin-bottom:8px; padding-bottom:7px;}
@@ -1501,35 +1498,18 @@ html.lt-immersive body{padding-top:0 !important;}
 
 /* ═════════════════════════════════════════════════════════════════════════
    PHASE 3 · THE REFERENCE MOUNT
-   ═════════════════════════════════════════════════════════════════════════
+   ═════════════════════════════════════════════════════════════════════════ */
+/* ── HOW TALL THE REFERENCE IS ────────────────────────────────────────────
+   It is no longer beside anything, so there is no sibling column to measure
+   against and no reason for the scrollport to be a flex child. It is bounded
+   in proportion to the viewport instead: enough for eight or nine rows on a
+   1250px screen, more on a taller one, and it scrolls inside itself rather
+   than pushing the panels below it down the page.
 
-   The section's body is a search row, a filter strip, a scrollport and a
-   note. Only the scrollport may grow, so it is the flex child that does and
-   everything else keeps its own height. Without min-height:0 a flex child
-   with overflow refuses to shrink below its content and the section simply
-   grows past the column instead of scrolling inside it. */
-/* 900px, NOT 1181px. The columns stop being columns at 899px — that is the
-   breakpoint this file already declares — and the first version of this block
-   used 1181px, so between 900 and 1180 the reference was in a column with no
-   rule governing it and rendered its whole 1800px inside a 356px lane. The
-   media query has to be the mirror of the one that stacks them. */
-@media(min-width:900px){
-  /* BASIS 0, NOT auto. With flex-basis:auto the scrollport's base size is its
-     CONTENT height, so the column's intrinsic height became "the whole drug
-     table" — 1274px at 1440 — and the reference stopped scrolling, the page
-     grew a thousand pixels and the void moved to the bottom of the airway
-     column. Basis 0 makes the floor below the only intrinsic contribution, so
-     the column is as tall as the airway column beside it and the scrollport
-     takes exactly what is left. */
-  .wf-full > .wf-sec > .idref{flex:1 1 0; min-height:230px; max-height:none;}
-  /* The heading, the search row, the filter strip and the note are fixed
-     furniture — the list is what the space is for. */
-  .wf-full > .wf-sec > .wf-h,
-  .wf-full > .wf-sec > .iref-head,
-  .wf-full > .wf-sec > .dref-cats,
-  .wf-full > .wf-sec > .ctl-panel,
-  .wf-full > .wf-sec > .wf-note{flex:0 0 auto;}
+   Below 900px the columns stack and the workstation is a vertical stream, in
+   which every other module renders at full height — the cap is lifted there
+   rather than putting a second scrollport inside a scrolling page. */
+.wf-full .idref{max-height:clamp(300px, 40vh, 640px);}
+@media(max-width:899px){
+  .wf-full .idref{max-height:none;}
 }
-/* Stacked (<=899px) there is no sibling column to measure against, so the
-   rule above does not apply and the reference is as long as its content —
-   one module in a vertical stream, like every other module there. */
