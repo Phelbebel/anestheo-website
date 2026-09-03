@@ -173,11 +173,14 @@
     '</div>';
   }
 
-  function section(n, title, sub, body, extraClass){
+  /* `action` rides in the heading row. A control belonging to the section as
+     a whole has no business taking a row of its own beneath it. */
+  function section(n, title, sub, body, extraClass, action){
     return '<section class="wf-sec ' + (extraClass || '') + '">' +
       '<div class="wf-h">' + (n === '' ? '' : '<span class="wf-n">' + n + '</span>') +
       '<span class="wf-t">' + title + '</span>' +
-      (sub ? '<span class="wf-sub">' + sub + '</span>' : '') + '</div>' +
+      (sub ? '<span class="wf-sub">' + sub + '</span>' : '') +
+      (action || '') + '</div>' +
       body + '</section>';
   }
 
@@ -305,17 +308,26 @@
         return '<button type="button" class="pl-sg' + (on ? ' on' : '') + '" ' +
           'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
           'onclick="Induction.setTechnique(\'' + t.id + '\')">' + t.short + '</button>';
-      }).join('') + '</div>' +
-      '<button type="button" class="pl-add' + (open ? ' on' : '') + '" ' +
-        'aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="pl-chooser" ' +
-        'onclick="Induction.openRole(\'all\')">' + (open ? 'Close' : '+ Add agent') +
-      '</button></div>';
+      }).join('') + '</div></div>';
+
+    /* IN THE HEADING, NOT UNDER IT. Sharing the technique row meant that the
+       moment the column narrowed — 1180 and every phone — this wrapped onto a
+       full-width row of its own and cost ~50px before the first selected
+       drug. The heading row has space at every width. The label shortens on a
+       phone; the accessible name does not. */
+    var action = '<button type="button" class="pl-add' + (open ? ' on' : '') + '" ' +
+      'aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="pl-chooser" ' +
+      'aria-label="' + (open ? 'Close the agent chooser' : 'Add agent') + '" ' +
+      'onclick="Induction.openRole(\'all\')">' +
+      '<span class="pl-add-lg">' + (open ? 'Close' : '+ Add agent') + '</span>' +
+      '<span class="pl-add-sm" aria-hidden="true">' + (open ? 'Close' : '+ Add') + '</span>' +
+      '</button>';
 
     return section(1, 'Induction plan',
       n ? (n + (n === 1 ? ' agent' : ' agents')) : '',
       tech + chooser() +
       (n ? '<div class="pl-grid">' + cards + '</div>'
-         : '<div class="pl-empty">No agents selected</div>'));
+         : '<div class="pl-empty">No agents selected</div>'), '', action);
   }
 
   /* ── 2 · AIRWAY PLAN ─────────────────────────────────────────────────

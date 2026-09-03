@@ -1196,7 +1196,6 @@ html.lt-immersive body{padding-top:0 !important;}
 .pl-alt.on .pl-alt-tick{background:var(--accent,#2FA88C); color:#0B1620;}
 
 /* ── the quick reference across the bottom ────────────────────────────── */
-.wf-full .idref{max-height:250px;}
 .wf-full .idc-grid{grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:9px;}
 .wf-full .idc-ref{opacity:1;}
 .wf-full .idc-name{font-size:15px; padding:9px 11px 0;}
@@ -1378,7 +1377,14 @@ html.lt-immersive body{padding-top:0 !important;}
 /* IT STILL SCROLLS ON ITS OWN. Removing the cap let the reference render
    every agent and made the page grow without limit — the opposite of a
    workstation. It keeps its own scrollport; only the chrome around it went. */
-.wf-full .idref{max-height:340px; padding:10px; border:0; background:transparent;}
+/* ONE RULE. Three stacked .wf-full .idref declarations had accumulated —
+   250px, then 340px, then the clamp — and only the last did anything. The
+   height is proportional to the viewport within bounds, so a taller screen
+   shows more reference instead of the same short window; a flat cap was
+   hiding 976px of it behind its own scrollbar while the airway column beside
+   it ran on. */
+.wf-full .idref{max-height:clamp(300px, 30vh, 520px);
+  padding:10px; border:0; background:transparent;}
 .wf-full .idc-grid{grid-template-columns:repeat(auto-fill,minmax(178px,1fr)); gap:8px;
   grid-auto-rows:max-content;}
 .wf-full .wf-note{display:none;}
@@ -1426,3 +1432,32 @@ html.lt-immersive body{padding-top:0 !important;}
   letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3,#7d8b95);
   white-space:normal; overflow:visible; line-height:1.35;}
 .pl-sel-d{margin-top:6px;}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   PHASE 2E · THREE DENSITY CORRECTIONS
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── ADD AGENT LIVES IN THE HEADING ROW ──────────────────────────────────
+   It shared the technique strip, so the moment the column narrowed — 1180
+   and every phone — it wrapped onto a full-width row of its own and cost
+   about 50px before the first selected drug. The heading row has space at
+   every width, and the section's own title and count sit beside it. */
+#output .wf-h .pl-add{margin-left:auto; flex:0 0 auto;}
+#output .wf-h .wf-sub{margin-left:0;}
+#output .wf-col-main .wf-h{gap:10px; flex-wrap:nowrap;}
+.pl-add-sm{display:none;}
+/* the technique strip is now the only thing in its row and does not wrap */
+.pl-tech{margin:0 0 9px;}
+
+@media(max-width:620px){
+  /* A phone shortens the LABEL, never the target: 44px stays, and the
+     accessible name is still "Add agent". */
+  .pl-add-lg{display:none;}
+  .pl-add-sm{display:inline;}
+  #output .wf-h .pl-add{min-height:44px; padding:0 14px; font-size:12.5px;}
+  #output .wf-col-main .wf-h{flex-wrap:wrap; row-gap:6px;}
+  #output .wf-col-main .wf-h .wf-sub{order:3; flex:1 1 auto;}
+  #output .wf-col-main .wf-h .pl-add{order:2;}
+  .pl-tech-r{flex:1 1 100%;}
+}
+

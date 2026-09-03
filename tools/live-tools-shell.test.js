@@ -556,6 +556,99 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('...and no auto margin pushes cards apart',
       mech.ml !== 'auto' && mech.mr !== 'auto', { ml:mech.ml, mr:mech.mr });
 
+    /* ── 3e. NO LARGE ANONYMOUS EMPTY REGIONS ───────────────────────────
+       Three specific ones, each asserted as a RELATIONSHIP so a content
+       change cannot make the test lie. */
+    console.log('\nSTRUCTURAL EMPTINESS');
+    const empt = await s.pg.evaluate(`(() => {
+      const add = id => {
+        if (!document.querySelector('#induction-host .pl-chooser'))
+          document.querySelector('#induction-host .pl-add').click();
+        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
+      };
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+      set('i-asa','II'); set('i-proc','Laparoscopic cholecystectomy');
+      compute(); if (window.ptSummary) ptSummary();
+      document.getElementById('app').classList.remove('pt-open');
+      if (window.Induction) window.Induction.clearPlan();
+      add('drug.propofol'); add('drug.fentanyl'); add('drug.rocuronium');
+      document.querySelector('#induction-host .pl-add').click();
+      const R = e => { const b = e.getBoundingClientRect();
+        return { t:Math.round(b.top), b:Math.round(b.bottom), h:Math.round(b.height) }; };
+
+      /* A · the timer rail must be sized by its timers, not stretched */
+      const rail = document.querySelector('.ws-rail');
+      const cards = [...rail.querySelectorAll('.lt-card')];
+      const last = cards.length ? cards[cards.length-1] : null;
+      const rs = getComputedStyle(rail);
+
+      /* B · Add agent must never take a row of its own */
+      const addBtn = document.querySelector('#induction-host .pl-add');
+      const techRow = document.querySelector('#induction-host .pl-tech');
+      const head = document.querySelector('#induction-host .wf-col-main .wf-h');
+      const card1 = document.querySelector('#induction-host .pl-grid .pl-sel');
+
+      /* C · the reference must not be a short window beside a long column */
+      const ref = document.querySelector('.wf-full');
+      const idref = document.querySelector('.wf-full .idref');
+      const side = document.querySelector('.wf-col-side');
+
+      return {
+        rail: { box:R(rail), lastCard:last?R(last):null,
+                deadUnderLast: last ? R(rail).b - R(last).b : null,
+                declaredHeight: rail.style.height || '(none)',
+                minHeight: rs.minHeight, alignSelf: rs.alignSelf, grow: rs.flexGrow,
+                parentAlign: getComputedStyle(document.querySelector('.ws-grid')).alignItems },
+        add: { box:R(addBtn), inHeading: head.contains(addBtn),
+               belowTechRow: R(addBtn).t >= R(techRow).b - 2,
+               overlapsTech: !(R(addBtn).b <= R(techRow).t || R(addBtn).t >= R(techRow).b),
+               firstCardTop: card1 ? R(card1).t : null,
+               techBottom: R(techRow).b, visible: !!addBtn.offsetParent },
+        ref: { box:R(ref), idrefH:R(idref).h, sideBottom:R(side).b,
+               imbalance: R(side).b - R(ref).b,
+               hidden: idref.scrollHeight - idref.clientHeight,
+               /* the used cap must track the viewport: measured at two
+                  heights rather than trusting the declaration */
+               cap: getComputedStyle(idref).maxHeight,
+               capIsResponsive: (() => {
+                 const a = parseFloat(getComputedStyle(idref).maxHeight);
+                 return a > 0 && Math.abs(a - 0.30 * window.innerHeight) < 2;
+               })() }
+      };
+    })()`);
+
+    /* A — CONTENT-SIZED, NOT STRETCHED. The rail must end shortly after its
+       last control; the properties that could stretch it are checked too, so
+       the day one is added the test says which. */
+    t('the timer rail is sized by its timers',
+      empt.rail.deadUnderLast !== null && empt.rail.deadUnderLast <= 24,
+      { deadUnderLastTimer:empt.rail.deadUnderLast });
+    t('...with nothing forcing its height',
+      empt.rail.minHeight === 'auto' && empt.rail.grow === '0' &&
+      empt.rail.alignSelf === 'start' && empt.rail.parentAlign === 'start',
+      { minHeight:empt.rail.minHeight, grow:empt.rail.grow,
+        alignSelf:empt.rail.alignSelf, parentAlign:empt.rail.parentAlign });
+
+    /* B — the control that used to cost a row. */
+    t('Add agent sits in the section heading, not a row of its own',
+      empt.add.inHeading === true && empt.add.belowTechRow === false, empt.add);
+    t('...and never overlaps the technique control',
+      empt.add.overlapsTech === false, empt.add);
+    t('...so the first selected card follows the technique row directly',
+      empt.add.firstCardTop - empt.add.techBottom <= 24,
+      { gap:empt.add.firstCardTop - empt.add.techBottom });
+
+    /* C — the reference must fill the height beside it rather than being a
+       short window with the airway column running on below. */
+    t('the quick reference ends near the airway column, not far above it',
+      Math.abs(empt.ref.imbalance) <= 80, empt.ref.imbalance);
+    /* Read from the CASCADE, not from the first matching rule in the file —
+       the first version of this grepped the stylesheet text and matched a
+       superseded declaration three rules above the one that actually wins. */
+    t('...using a height proportional to the viewport, not a flat cap',
+      empt.ref.capIsResponsive === true, empt.ref.cap);
+
     /* An empty plan must be dense too — not three empty role containers. */
     const emptyPlan = await s.pg.evaluate(`(() => {
       if (window.Induction) window.Induction.clearPlan();
