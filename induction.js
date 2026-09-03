@@ -559,9 +559,20 @@
          the Crisis rail stays right of it; neither is touched. */
       '<div class="wf-cols">' +
         '<div class="wf-col-main">' + planSection() + '</div>' +
-        '<div class="wf-col-side">' + airwaySection() + backupSection() +
-          pedsSection() + '</div>' +
+        '<div class="wf-col-side">' + airwaySection() + pedsSection() + '</div>' +
       '</div>' +
+      /* THE BACKUP IS A STRIP, NOT THE BOTTOM OF THE AIRWAY COLUMN.
+         Inside .wf-col-side it made that column 715px against the plan's 291,
+         and the 424px of ground beside the plan was the difference. It is not
+         a column's worth of content: it is one line of equipment and two
+         protocol buttons, which composes horizontally across the centre in
+         about a fifth of the height it took stacked.
+
+         It still reads immediately after the airway plan it falls back from,
+         and immediately before the reference — the same position in the
+         reading order it already had. Nothing about what it says or what its
+         buttons do has changed. */
+      '<div class="wf-bkp">' + backupSection() + '</div>' +
       '<div class="wf-full">' + referenceSection() + '</div>';
     /* The containers exist now, so the engine can fill them. It is the same
        call the Drug reference workspace makes, with this mount's id. */

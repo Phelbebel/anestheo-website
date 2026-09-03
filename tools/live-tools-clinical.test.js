@@ -636,8 +636,18 @@ async function openEngine(b, viewport) {
                       it starts below the TALLER of the two columns and is as
                       wide as both together, not that it hugs the plan. */
                    colsBottom:Math.round(Math.max(m.y + m.height, sd.y + sd.height)),
-                   gapUnderCols:(() => Math.round(f.y -
-                     Math.max(m.y + m.height, sd.y + sd.height)))(),
+                   /* The backup airway strip spans the centre between the
+                      column pair and the reference, so each block is measured
+                      against the one directly above it. */
+                   gapUnderCols:(() => {
+                     const s2 = document.querySelector('.wf-bkp');
+                     const top = s2 ? s2.getBoundingClientRect().y : f.y;
+                     return Math.round(top -
+                       Math.max(m.y + m.height, sd.y + sd.height)); })(),
+                   gapUnderStrip:(() => {
+                     const s2 = document.querySelector('.wf-bkp');
+                     return s2 ? Math.round(f.y - (s2.getBoundingClientRect().y +
+                       s2.getBoundingClientRect().height)) : 0; })(),
                    centreW:Math.round(m.width + sd.width + 12),
                    split:Math.round(100*m.width/(m.width+sd.width)) } : null; })() };
     })()`);
@@ -693,10 +703,12 @@ async function openEngine(b, viewport) {
       adult.airwayBeside === true, adult.geo);
     t('...and the reference spans the whole centre beneath both of them',
       adult.refSpansCentre === true, adult.geo);
-    /* NO ANONYMOUS BAND between the columns and the reference under them. */
-    t('...with no reserved gap between the columns and the reference',
-      !!adult.geo && adult.geo.gapUnderCols <= 16,
-      adult.geo && adult.geo.gapUnderCols);
+    /* NO ANONYMOUS BAND anywhere down the centre: columns, then the backup
+       airway strip, then the reference, each directly under the last. */
+    t('...with no reserved gap anywhere down the centre stack',
+      !!adult.geo && adult.geo.gapUnderCols <= 16 && adult.geo.gapUnderStrip <= 16,
+      adult.geo && { underColumns:adult.geo.gapUnderCols,
+                     underStrip:adult.geo.gapUnderStrip });
     /* WAS: "one row per canonical clinical role". Three role containers each
        reserving an empty cell for an agent nobody selected was three
        headings and three blank rectangles of monitor for no information. The
@@ -920,10 +932,15 @@ async function openEngine(b, viewport) {
                nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent),
                ctxLma:P.lma, ctxIgel:P.igel, airway: window.airwayPlan };
     })()`);
-    t('child: the paediatric section appears, under the airway backup',
+    /* READING ORDER FOLLOWS THE GEOMETRY. The backup airway left the side
+       column to become a strip across the centre, so it now reads after the
+       whole column pair rather than in the middle of it — which for a child
+       puts the paediatric context, still beside the plan in that column,
+       ahead of it. Both remain between the airway plan and the reference. */
+    t('child: the paediatric section appears in the airway column, above the strip',
       child.titles.join(' / ') ===
-      'Induction plan / Airway plan / Backup difficult airway / ' +
-      'Paediatric context / Drug reference', child.titles);
+      'Induction plan / Airway plan / Paediatric context / ' +
+      'Backup difficult airway / Drug reference', child.titles);
     /* THE SAME PROPERTY WITH ONE MORE SECTION IN PLAY. This is what a
        hard-coded number cannot satisfy for both patients at once, and it is
        satisfied WITHOUT rendering a hidden paediatric section for the adult:

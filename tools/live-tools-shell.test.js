@@ -368,11 +368,13 @@ const fill = (pg, o) => pg.evaluate(o => {
       document.querySelector('#induction-host .pl-add').click();
       const bb = e => e.getBoundingClientRect();
 
-      /* GAPS BETWEEN THE MAJOR STACKED BLOCKS. The reference is measured from
-         the bottom of the COLUMN PAIR, not from the plan section: it spans
-         both columns now, so the distance from the shorter one to it is not a
-         gap in the stack — it is the airway column standing beside it. The
-         space under the shorter column is reported separately below. */
+      /* GAPS BETWEEN THE MAJOR STACKED BLOCKS. Below the column pair the
+         centre is a stack of full-width blocks — the backup airway strip,
+         then the reference — so each is measured against the one before it.
+         The column pair is measured by its TALLER column, because the
+         distance from the shorter one is not a gap in the stack: it is the
+         airway column standing beside it. That space is reported separately
+         below. */
       const colsBottom = Math.max(bb(document.querySelector('.wf-col-main')).bottom,
                                   bb(document.querySelector('.wf-col-side')).bottom);
       const blocks = [document.querySelector('#cmd-strip'), document.querySelector('.eng-notice'),
@@ -381,7 +383,11 @@ const fill = (pg, o) => pg.evaluate(o => {
       const gaps = [];
       for (let i = 1; i < blocks.length; i++)
         gaps.push(Math.round(bb(blocks[i]).top - bb(blocks[i-1]).bottom));
-      gaps.push(Math.round(bb(document.querySelector('.wf-full')).top - colsBottom));
+      const centre = [document.querySelector('.wf-bkp'),
+                      document.querySelector('.wf-full')].filter(Boolean);
+      let prevBottom = colsBottom;
+      centre.forEach(el => { gaps.push(Math.round(bb(el).top - prevBottom));
+                             prevBottom = bb(el).bottom; });
 
       /* container height minus the height its children actually use */
       const slack = [];
@@ -614,6 +620,7 @@ const fill = (pg, o) => pg.evaluate(o => {
       const idref = document.querySelector('.wf-full .idref');
       const side = document.querySelector('.wf-col-side');
       const mainc = document.querySelector('.wf-col-main');
+      const strip = document.querySelector('.wf-bkp');
 
       return {
         rail: { box:R(rail), lastCard:last?R(last):null,
@@ -628,7 +635,15 @@ const fill = (pg, o) => pg.evaluate(o => {
                techBottom: R(techRow).b, visible: !!addBtn.offsetParent },
         ref: { box:R(ref), idrefH:R(idref).h,
                colsBottom: Math.max(R(side).b, R(mainc).b),
-               gapUnderCols: R(ref).t - Math.max(R(side).b, R(mainc).b),
+               /* THE BACKUP STRIP SITS BETWEEN THEM NOW. It left the airway
+                  column, where it was making that column 715px against the
+                  plan's 291, and runs the centre width in about a fifth of
+                  the height. Each block is measured against the one directly
+                  above it. */
+               strip: R(strip),
+               gapUnderCols: R(strip).t - Math.max(R(side).b, R(mainc).b),
+               gapUnderStrip: R(ref).t - R(strip).b,
+               stripSpans: R(strip).w >= R(side).w + R(mainc).w,
                /* the space beside it under the SHORTER column — reported, not
                   asserted: it is what spanning the centre costs, and it is a
                   judgement about layout rather than a defect a number can
@@ -676,9 +691,17 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('the drug reference spans both columns, not just the plan',
       empt.ref.spans === true && empt.ref.widerThanPlan > 1.4,
       { width:empt.ref.box.w, ratioToPlan:Math.round(empt.ref.widerThanPlan*100)/100 });
-    t('...and begins directly under the taller of them',
+    /* THE BACKUP AIRWAY IS A STRIP ACROSS THE CENTRE, not the bottom of the
+       airway column. Inside that column it made it 715px against the plan's
+       291 and the 424px of ground beside the plan was the difference. */
+    t('...with the backup airway a full-width strip directly under the columns',
+      empt.ref.stripSpans === true &&
       empt.ref.gapUnderCols >= 0 && empt.ref.gapUnderCols <= 16,
-      empt.ref.gapUnderCols);
+      { spans:empt.ref.stripSpans, gap:empt.ref.gapUnderCols,
+        stripHeight:empt.ref.strip.h });
+    t('...and the reference begins directly under that strip',
+      empt.ref.gapUnderStrip >= 0 && empt.ref.gapUnderStrip <= 16,
+      empt.ref.gapUnderStrip);
     t('...still scrolling inside itself rather than growing the page',
       empt.ref.scrolls === true && empt.ref.bounded === true,
       { overflowY:empt.ref.scrolls, cap:empt.ref.cap });

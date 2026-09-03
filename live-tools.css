@@ -1521,3 +1521,76 @@ html.lt-immersive body{padding-top:0 !important;}
 }
 
 
+
+/* ═════════════════════════════════════════════════════════════════════════
+   THE BACKUP AIRWAY STRIP
+   ═════════════════════════════════════════════════════════════════════════
+   It used to be the bottom of the airway column, which made that column
+   715px tall against the plan's 291 and left 424px of ground beside the plan
+   — the largest anonymous void left in the workstation.
+
+   It is not a column's worth of content. It is one line of equipment and two
+   protocol buttons, and across the centre it composes horizontally in about a
+   fifth of the height it took stacked. Nothing it says has changed and both
+   buttons are the same buttons; only the axis it is laid out on.
+
+   It keeps its place in the reading order: after the airway plan it falls
+   back from, before the reference. */
+.wf-bkp{margin-top:12px; min-width:0; width:100%;}
+.wf-bkp:empty{display:none; margin:0;}
+
+/* The heading loses its own line and rides at the head of the strip. */
+#output .wf-bkp .wf-sec{margin-bottom:0;}
+#output .wf-bkp .wf-h{margin-bottom:7px; padding-bottom:6px;}
+#output .wf-bkp .wf-t{font-size:14px; font-weight:700; letter-spacing:.01em;
+  color:var(--warning,#e8a838);}
+#output .wf-bkp .wf-sub{font-size:10.5px;}
+
+@media(min-width:900px){
+  /* ONE ROW: the equipment reads across, the two protocols sit at the end of
+     the same line. Both wrap onto a second line rather than overflowing when
+     the centre is narrow. */
+  #output .wf-bkp .bkp{display:flex; align-items:center; flex-wrap:wrap;
+    gap:10px 16px; padding:10px 14px;}
+  #output .wf-bkp .bkp-row{flex:1 1 420px; min-width:0; align-items:center;
+    gap:11px; padding:0;}
+  #output .wf-bkp .bkp-i{width:26px; height:26px; font-size:14px;
+    display:flex; align-items:center; justify-content:center;}
+  #output .wf-bkp .bkp-row b{font-size:12.5px; white-space:nowrap;}
+  /* the equipment list continues the sentence its label starts */
+  #output .wf-bkp .bkp-row > div{display:flex; align-items:baseline;
+    flex-wrap:wrap; gap:4px 9px; min-width:0;}
+  #output .wf-bkp .bkp-list{margin:0; font-size:11.5px; line-height:1.45;}
+  #output .wf-bkp .bkp-acts{margin:0; padding:0; flex:0 0 auto; gap:9px;}
+  #output .wf-bkp .bkp-b{min-height:34px; font-size:12px; padding:0 13px;}
+  /* Unchanged from the side column, where it was already suppressed: the
+     heading states "Reference, not a prediction" and the strip is the
+     compact form. The paragraph stays in the DOM for the stacked layout. */
+  #output .wf-bkp .wf-note{display:none;}
+}
+@media(max-width:899px){
+  /* Stacked, it is a block in the stream again — the presentation it already
+     had on a tablet, at the same place in the reading order. */
+  #output .wf-bkp .bkp{padding:0;}
+  #output .wf-bkp .bkp-row{padding:13px 15px;}
+  #output .wf-bkp .bkp-acts{padding:0 15px 13px; margin:0;}
+  #output .wf-bkp .wf-note{padding:0 15px 13px; margin:0;}
+}
+/* THE NOTE'S VISIBILITY IS UNCHANGED FROM THE PREVIOUS BUILD. It was
+   suppressed in the side column above 1180 and again below 620, and shown in
+   between; moving the section must not quietly add 166px to a phone. The
+   heading still says "Reference, not a prediction", which is the same claim
+   the paragraph makes. */
+@media(max-width:620px){
+  /* THE PHONE SCALE FOLLOWS THE SECTION. These sizes were scoped to
+     .wf-col-side, so moving the section out of that column silently took
+     them away and the block grew from 246 to 342px on a phone. Same values,
+     re-scoped to where the section now lives — a strip, not an essay. */
+  #output .wf-bkp .bkp-row{padding:9px 11px; gap:9px;}
+  #output .wf-bkp .bkp-i{width:24px; height:24px; font-size:13px;}
+  #output .wf-bkp .bkp-row b{font-size:12.5px;}
+  #output .wf-bkp .bkp-list{font-size:11px; margin-top:4px; line-height:1.5;}
+  #output .wf-bkp .bkp-acts{padding:0 11px 10px; gap:7px;}
+  #output .wf-bkp .bkp-b{min-height:34px; font-size:11.5px; padding:0 10px;}
+  #output .wf-bkp .wf-note{display:none;}
+}
