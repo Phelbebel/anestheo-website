@@ -312,9 +312,13 @@ t('...and declares no network or credential constant',
    NUMBER. Not a scaled one, not a caveated one, not the nearest band.      */
 console.log('\n11. POPULATION ELIGIBILITY');
 
-const ADULT = { pediatric:false, adult:true,  ageDays:365*40 };
-const CHILD = { pediatric:true,  adult:false, ageDays:365*4  };
-const BABY  = { pediatric:true,  adult:false, ageDays:60     };
+const yrs = v => ({ value:v, unit:'years' });
+const mos = v => ({ value:v, unit:'months' });
+const dys = v => ({ value:v, unit:'days' });
+const P   = (peds, age, asa) => ({ pediatric:peds, adult:!peds, age:age, asa:asa||null });
+const ADULT = P(false, yrs(40));
+const CHILD = P(true,  yrs(4));
+const BABY  = P(true,  mos(3));
 const NOAGE = null;
 const el = (dose, pop) => CC.doseEligibility(dose, pop).eligible;
 const why = (dose, pop) => CC.doseEligibility(dose, pop).reason;
@@ -333,26 +337,7 @@ const dB = { populationClass:'B' };
 t('B: paediatric eligible',       el(dB, CHILD));
 t('B: adult WITHHELD',           !el(dB, ADULT) && why(dB, ADULT) === CC.WITHHELD.ADULT);
 
-/* C — age-banded, both bounds inclusive */
-const dC = { populationClass:'C', ageBand:{ minDays:1095, maxDays:5844 } };
-t('C: inside the band eligible',  el(dC, { pediatric:true, adult:false, ageDays:2000 }));
-t('C: exactly minDays is INSIDE', el(dC, { pediatric:true, adult:false, ageDays:1095 }));
-t('C: exactly maxDays is INSIDE', el(dC, { pediatric:true, adult:false, ageDays:5844 }));
-t('C: one day below is OUTSIDE', !el(dC, { pediatric:true, adult:false, ageDays:1094 }));
-t('C: one day above is OUTSIDE', !el(dC, { pediatric:true, adult:false, ageDays:5845 }));
-t('C: outside the band reports the age reason',
-  why(dC, { pediatric:true, adult:false, ageDays:400 }) === CC.WITHHELD.AGE);
-t('C: NO NEAREST-BAND FALLBACK — a younger child gets nothing',
-  !el(dC, BABY));
-t('C: adult WITHHELD',           !el(dC, ADULT) && why(dC, ADULT) === CC.WITHHELD.ADULT);
-t('C: unknown age is not inside any band',
-  !el(dC, { pediatric:true, adult:false, ageDays:null }));
-t('C: an open lower bound still excludes above',
-  CC.inAgeBand({ minDays:null, maxDays:100 }, 50) && !CC.inAgeBand({ minDays:null, maxDays:100 }, 101));
-t('C: an open upper bound still excludes below',
-  CC.inAgeBand({ minDays:100, maxDays:null }, 5000) && !CC.inAgeBand({ minDays:100, maxDays:null }, 99));
-
-/* D — one rule, both populations, ONE record */
+/* D — one reviewed rule, both populations, ONE record */
 const dD = { populationClass:'D' };
 t('D: adult eligible',            el(dD, ADULT));
 t('D: paediatric eligible',       el(dD, CHILD));
@@ -364,22 +349,111 @@ t('E: never eligible for anyone', !el(dE, ADULT) && !el(dE, CHILD) && !el(dE, NO
 t('E: never publishable either',
   CC.isDosePublishable(CC.byId('drug.propofol'), { populationClass:'E' }) === false);
 
-/* An unknown class is withheld, not admitted — the default is silence. */
 t('an unrecognised class is WITHHELD, not admitted',
-  !el({ populationClass:'Z' }, ADULT) && !el({ populationClass:'Z' }, CHILD));
-
-/* No patient = no gate. A reference with no patient loaded is still a reference. */
+  !el({ populationClass:'Z' }, ADULT) && !el({ populationClass:'Z' }, CHILD) &&
+  !el({ populationClass:'Z' }, NOAGE));
 t('with no patient known, classed doses still render',
-  el(dA, NOAGE) && el(dB, NOAGE) && el(dC, NOAGE));
+  el(dA, NOAGE) && el(dB, NOAGE));
 
-/* ── patientPopulation reads patientContext and holds no threshold ────── */
-t('patientPopulation returns null when no context',   CC.patientPopulation(null) === null);
-t('...and null when the age is unknown',
-  CC.patientPopulation({ context:{ pediatric:false, adult:false }, age:{ days:null } }) === null);
-t('...and carries age in days for a child',
-  CC.patientPopulation({ context:{ pediatric:true, adult:false }, age:{ days:1460 } }).ageDays === 1460);
-t('...and no age threshold is written in clinical-index.js',
-  !/\b(?:age|y|years)\s*[<>]=?\s*(?:16|18|12|3)\b/.test(IDXC), 'threshold stays in patientContext');
+/* ── THE STRUCTURED AGE BAND ────────────────────────────────────────────
+   The band says what the label said. No conversion constant decides an edge. */
+console.log('\n11b. AGE BOUNDARY SEMANTICS');
+
+t('no approximate age constant is written into the model',
+  !/365\.25|30\.4375|\*\s*365\b/.test(IDXC), 'no x365.25 anywhere in clinical-index.js');
+
+/* "3 through 16 years" — both bounds inclusive */
+const band3to16 = { populationClass:'C',
+  ageBand:{ min:{ value:3, unit:'years', inclusive:true },
+            max:{ value:16, unit:'years', inclusive:true } } };
+t('3 through 16: on the 3rd birthday ELIGIBLE',   el(band3to16, P(true, yrs(3))));
+t('3 through 16: the year before WITHHELD',      !el(band3to16, P(true, yrs(2))));
+t('3 through 16: 35 months WITHHELD (one month short)',
+  !el(band3to16, P(true, mos(35))));
+t('3 through 16: 36 months ELIGIBLE (exactly 3 years)',
+  el(band3to16, P(true, mos(36))));
+t('3 through 16: 16 years ELIGIBLE (inclusive upper)', el(band3to16, P(true, yrs(16))));
+t('3 through 16: the day before the 17th birthday ELIGIBLE',
+  el(band3to16, P(true, mos(16*12+11))));
+t('3 through 16: 17 years WITHHELD',             !el(band3to16, P(true, yrs(17))));
+t('3 through 16: reports the age reason, not a population reason',
+  why(band3to16, P(true, yrs(2))) === CC.WITHHELD.AGE);
+t('3 through 16: NO NEAREST-BAND FALLBACK for an infant', !el(band3to16, P(true, mos(3))));
+t('3 through 16: an adult is WITHHELD as adult, not as age',
+  !el(band3to16, ADULT) && why(band3to16, ADULT) === CC.WITHHELD.ADULT);
+
+/* "1 month to <2 years" — inclusive lower, EXCLUSIVE upper */
+const band1mTo2y = { populationClass:'C',
+  ageBand:{ min:{ value:1, unit:'months', inclusive:true },
+            max:{ value:2, unit:'years',  inclusive:false } } };
+t('<2y: 1 month exactly ELIGIBLE (inclusive lower)', el(band1mTo2y, P(true, mos(1))));
+t('<2y: 23 months ELIGIBLE (the month before the 2nd birthday)',
+  el(band1mTo2y, P(true, mos(23))));
+t('<2y: 24 months WITHHELD (ON the 2nd birthday, exclusive)',
+  !el(band1mTo2y, P(true, mos(24))));
+t('<2y: 2 years WITHHELD',                       !el(band1mTo2y, P(true, yrs(2))));
+t('<2y: a 10-day-old WITHHELD (below 1 month, decided across families)',
+  !el(band1mTo2y, P(true, dys(10))));
+t('<2y: a 60-day-old ELIGIBLE (unambiguously past 1 month)',
+  el(band1mTo2y, P(true, dys(60))));
+t('<2y: a 30-day-old is UNDECIDABLE and therefore WITHHELD',
+  !el(band1mTo2y, P(true, dys(30))), 'a month is 28-31 days; we do not guess');
+
+/* "2 years to <18 years" — exclusive upper */
+const band2To18 = { populationClass:'C',
+  ageBand:{ min:{ value:2, unit:'years', inclusive:true },
+            max:{ value:18, unit:'years', inclusive:false } } };
+t('<18y: 2 years ELIGIBLE',                       el(band2To18, P(true, yrs(2))));
+t('<18y: 17 years ELIGIBLE',                      el(band2To18, P(true, yrs(17))));
+t('<18y: the month before the 18th birthday ELIGIBLE',
+  el(band2To18, P(true, mos(17*12+11))));
+t('<18y: 18 years WITHHELD (ON the birthday, exclusive)',
+  !el(band2To18, P(true, yrs(18))));
+
+/* open bounds, and the raw comparator */
+t('an open lower bound still excludes above',
+  CC.inAgeBand({ max:{ value:100, unit:'days', inclusive:true } }, dys(50)) &&
+  !CC.inAgeBand({ max:{ value:100, unit:'days', inclusive:true } }, dys(101)));
+t('an open upper bound still excludes below',
+  CC.inAgeBand({ min:{ value:100, unit:'days', inclusive:true } }, dys(5000)) &&
+  !CC.inAgeBand({ min:{ value:100, unit:'days', inclusive:true } }, dys(99)));
+t('years and months compare exactly',   CC.compareAge(yrs(2), mos(24)) === 0);
+t('weeks and days compare exactly',     CC.compareAge({value:2,unit:'weeks'}, dys(14)) === 0);
+t('an overlapping cross-family comparison is undecidable, not guessed',
+  CC.compareAge(dys(30), mos(1)) === null);
+t('unknown age is inside no band',
+  !CC.inAgeBand(band3to16.ageBand, null) &&
+  !CC.inAgeBand(band3to16.ageBand, { value:null, unit:'years' }));
+
+/* ── APPLICABILITY ─────────────────────────────────────────────────────*/
+console.log('\n11c. APPLICABILITY');
+
+const asaOnly = { populationClass:'A', applicability:{ asa:['I','II'] } };
+t('ASA I admitted',      el(asaOnly, P(false, yrs(40), 'I')));
+t('ASA II admitted',     el(asaOnly, P(false, yrs(40), 'II')));
+t('ASA III WITHHELD',   !el(asaOnly, P(false, yrs(40), 'III')));
+t('ASA IV WITHHELD',    !el(asaOnly, P(false, yrs(40), 'IV')));
+t('...and reports the profile reason',
+  why(asaOnly, P(false, yrs(40), 'III')) === CC.WITHHELD.PROFILE);
+t('AN UNEVALUATABLE CRITERION IS NOT SATISFIED — no ASA entered WITHHOLDS',
+  !el(asaOnly, P(false, yrs(40), null)), 'unknown is not admitted');
+
+const under65 = { populationClass:'A',
+  applicability:{ ageBand:{ max:{ value:65, unit:'years', inclusive:false } },
+                  asa:['I','II'] } };
+t('under 65 + ASA II admitted',       el(under65, P(false, yrs(64), 'II')));
+t('ON the 65th birthday WITHHELD',   !el(under65, P(false, yrs(65), 'II')));
+t('over 65 WITHHELD even at ASA I',  !el(under65, P(false, yrs(80), 'I')));
+t('under 65 but ASA IV WITHHELD',    !el(under65, P(false, yrs(40), 'IV')));
+t('applicability is generic, not drug-specific',
+  !/propofol|ketamine|rocuronium/i.test(
+    /function meetsApplicability\(([\s\S]*?)\n}/.exec(IDX)[1]));
+t('...and carries no comorbidity or recommendation logic',
+  !/renal|hepatic|h[ae]modynamic|recommend/i.test(
+    /function meetsApplicability\(([\s\S]*?)\n}/.exec(IDX)[1]));
+t('population is evaluated before applicability',
+  why({ populationClass:'A', applicability:{ asa:['I'] } }, CHILD) === CC.WITHHELD.PAEDIATRIC,
+  'a child fails on population, never reaching ASA');
 
 /* ── DOSE-LEVEL PUBLISHABILITY ──────────────────────────────────────────*/
 console.log('\n12. DOSE-LEVEL PUBLISHABILITY');
@@ -439,6 +513,110 @@ t('NO COVERAGE STATE MAKES A CLINICAL CLAIM',
   Object.values(CC.COVERAGE).every(s =>
     !/contraindicat|not recommended|unavailable|unsafe|do not (use|give)/i.test(s)),
   Object.values(CC.COVERAGE));
+
+/* ── THE WITHHELD ROW, EXERCISED END TO END ─────────────────────────────
+   No shipped record is classified yet, so this drives visibleDosesInGroup()
+   over a synthetic dataset with the real functions. It is the only way to see
+   the state the clinical migration will produce before it produces it.      */
+console.log('\n13b. DRUG VISIBLE, DOSE WITHHELD');
+
+const synth = (doses) => ({
+  id:'drug.synthetic', name:'Synthetic', group:'induction', pclass:'induction',
+  klass:'Test hypnotic', aliases:['synthetic','tradename','second'],
+  indications:['induction'], doses:doses,
+  prep:'<b>10 mg/mL</b> · 1.2 mg/kg for RSI', warn:'A drug-level caution.',
+  severity:'caution', provenance:{ state:'existing-unchanged' }
+});
+const ADULT_ONLY = { label:'Induction', route:'IV', phase:'induction', low:2, high:2.5,
+  unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range', populationClass:'A' };
+const PAED_ONLY  = { label:'Induction', route:'IV', phase:'induction', low:2.5, high:3.5,
+  unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range', populationClass:'B' };
+
+/* Splice the synthetic drug in, run the real selector, take it out again. */
+function withSynth(doses, fn){
+  const d = synth(doses);
+  CC.DRUGS.push(d);
+  try { return fn(d); } finally { CC.DRUGS.splice(CC.DRUGS.indexOf(d), 1); }
+}
+
+/* A — adult-only record, paediatric patient */
+withSynth([ADULT_ONLY], () => {
+  const rows = CC.visibleDosesInGroup('induction', 16, CHILD).filter(r => r.id === 'drug.synthetic');
+  t('A: the drug is still in the group for a child', rows.length === 1);
+  t('A: ...the tile keeps its name, class colour and badge',
+    rows[0] && rows[0].name === 'Synthetic' && rows[0].pclass === 'induction' && !!rows[0].badge);
+  t('A: ...and its aliases and vial concentration',
+    rows[0] && rows[0].aliasLine === 'tradename, second' && rows[0].prepMain === '10 mg/mL');
+  t('A: ...the row is marked withheld with the paediatric wording',
+    rows[0] && rows[0].withheld === true && rows[0].coverage === 'Pediatric dose not reviewed');
+  /* K — NOTHING NUMERIC SURVIVES */
+  t('K: no low, high, value or computed amount anywhere on the row',
+    rows[0] && ['val','unit','doseRule','doseNum','doseUnit','ind','use','duration']
+      .every(f => rows[0][f] === '') &&
+    rows[0].low === undefined && rows[0].high === undefined && rows[0].value === undefined,
+    Object.keys(rows[0]).filter(k => /^(low|high|value)$/.test(k)));
+  t('K: ...and no scaled adult number appears in any field',
+    rows[0] && !JSON.stringify(rows[0]).match(/\b(32|40|2\.5|2-2\.5)\b/),
+    '2-2.5 mg/kg x 16 kg = 32-40 mg must not exist');
+  t('K: ...and the prose half of prep, which hides a dose, is dropped',
+    rows[0] && rows[0].prepNote === '' && !/1\.2 mg\/kg/.test(JSON.stringify(rows[0])));
+  /* An adult still gets the number. */
+  const ad = CC.visibleDosesInGroup('induction', 75, ADULT).filter(r => r.id === 'drug.synthetic');
+  t('A: the same record renders normally for an adult',
+    ad[0] && !ad[0].withheld && ad[0].val === '150–188', ad[0] && ad[0].val);
+});
+
+/* B — paediatric-only record, adult patient */
+withSynth([PAED_ONLY], () => {
+  const rows = CC.visibleDosesInGroup('induction', 75, ADULT).filter(r => r.id === 'drug.synthetic');
+  t('B: the drug is still visible for an adult', rows.length === 1 && rows[0].withheld === true);
+  t('B: ...with the adult wording', rows[0].coverage === 'Adult dose not reviewed');
+  t('B: ...and a child still gets the number',
+    CC.visibleDosesInGroup('induction', 16, CHILD)
+      .filter(r => r.id === 'drug.synthetic')[0].val === '40–56');
+});
+
+/* L — every dose withheld, drug still present exactly once */
+withSynth([ADULT_ONLY, { ...ADULT_ONLY, label:'Second adult record', route:'IM' }], () => {
+  const rows = CC.visibleDosesInGroup('induction', 16, CHILD).filter(r => r.id === 'drug.synthetic');
+  t('L: two withheld doses collapse to ONE tile, not two, and not zero',
+    rows.length === 1 && rows[0].withheld === true);
+});
+
+/* N — multiple routes enumerate independently when both are eligible */
+withSynth([ADULT_ONLY, { ...ADULT_ONLY, label:'Induction', route:'IM', low:6.5, high:13 }], () => {
+  const rows = CC.visibleDosesInGroup('induction', 75, ADULT).filter(r => r.id === 'drug.synthetic');
+  t('N: two routes on one drug produce TWO rows', rows.length === 2, rows.map(r => r.use));
+  t('N: ...each carrying its own route and its own dose',
+    rows[0].use === 'IV · Induction' && rows[1].use === 'IM · Induction' &&
+    rows[0].val !== rows[1].val, rows.map(r => r.use + ' = ' + r.val));
+});
+
+/* One eligible and one withheld: the eligible row wins, no coverage line. */
+withSynth([ADULT_ONLY, PAED_ONLY], () => {
+  const kid = CC.visibleDosesInGroup('induction', 16, CHILD).filter(r => r.id === 'drug.synthetic');
+  t('a drug with both records shows the eligible one and no coverage line',
+    kid.length === 1 && !kid[0].withheld && kid[0].val === '40–56', kid[0] && kid[0].val);
+  t('...and the adult-only record is not rendered alongside it',
+    kid.every(r => r.val !== '32–40'),
+    'the transition hazard: reviewed paediatric + legacy adult must not co-render');
+});
+
+/* M — no phase fallback, through the enumerating selector */
+withSynth([{ ...ADULT_ONLY, phase:'intubation' }], () => {
+  t('M: asking for RSI on a drug with only an intubating dose returns NOTHING',
+    CC.visibleDosesInGroup('nmb', 75, ADULT, 'rsi').length === 0 &&
+    CC.visibleDosesInGroup('induction', 75, ADULT, 'rsi')
+      .filter(r => r.id === 'drug.synthetic').length === 0);
+  t('M: ...while the intubation phase still finds it',
+    CC.visibleDosesInGroup('induction', 75, ADULT, 'intubation')
+      .filter(r => r.id === 'drug.synthetic').length === 1);
+  t('M: ...and no withheld row is invented for a phase the drug has no dose in',
+    CC.visibleDosesInGroup('induction', 75, ADULT, 'rsi').every(r => !r.withheld));
+});
+
+t('the synthetic drug left no trace in the dataset',
+  CC.DRUGS.length === 30 && !CC.byId('drug.synthetic'));
 
 /* ── THE RENDERERS CANNOT PRODUCE A NUMBER FOR A WITHHELD DOSE ──────────*/
 console.log('\n14. NO NUMBER SURVIVES A WITHHELD DOSE');

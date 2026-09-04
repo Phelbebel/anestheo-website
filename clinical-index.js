@@ -968,20 +968,124 @@ function phaseCoverage(phase){
 var POPCLASS = { ADULT:'A', PAEDIATRIC:'B', AGE_BANDED:'C', BOTH:'D', UNSPECIFIED:'E' };
 
 /* ── AGE BANDS ────────────────────────────────────────────────────────────
-   BOTH BOUNDS INCLUSIVE. minDays null = open below, maxDays null = open
-   above. A patient at exactly minDays is inside the band; a patient at
-   exactly maxDays is inside the band.
+   THE BAND SAYS WHAT THE LABEL SAID. A boundary is a value, a unit and
+   whether it is inclusive — nothing is converted at data-entry time, so
+   "3 through 16 years" and "1 month to <2 years" survive into the record as
+   themselves rather than as day counts someone computed:
 
-   Days, not years, because patientContext already carries age.days and a
-   neonatal boundary measured in years is not a boundary. A band is never
-   inferred from prose: a label that says "small pediatric patients" without
-   defining the boundary produces no band, and a dose with no band cannot be
-   class C.                                                                  */
-function inAgeBand(band, ageDays){
+     ageBand:{ min:{ value:3, unit:'years',  inclusive:true  },
+               max:{ value:16, unit:'years', inclusive:true  } }
+     ageBand:{ min:{ value:1, unit:'months', inclusive:true  },
+               max:{ value:2, unit:'years',  inclusive:false } }
+
+   An absent min or max is an open bound. Units are days, weeks, months and
+   years. A band is never inferred from prose: a label that says "small
+   pediatric patients" without defining the boundary produces no band, and a
+   dose with no band cannot be class C.
+
+   ── WHY THERE IS NO 365.25 IN HERE ───────────────────────────────────────
+   The application takes age as a value and a unit, and ageCanon() in
+   engine.html turns that into days with x365.25 and x30.4375. Those constants
+   are fine for a fluid rate and are not fine for a boundary: at 16 years they
+   move the edge by four days, so whether a patient is inside a band would
+   depend on an approximation nobody reviewed.
+
+   So the comparison is done in the units actually given, and only where the
+   conversion is EXACT:
+
+     CALENDAR units - years and months - convert to each other exactly (x12).
+     ELAPSED  units - weeks and days   - convert to each other exactly (x7).
+
+   Within one family the comparison is arithmetic and the birthday semantics
+   are the label's own: a patient entered as "2 years" is below a 3-year
+   boundary and a patient entered as "3 years" is on it.
+
+   ACROSS the two families there is no exact conversion, because a month is
+   28-31 days and a year is 365-366. Rather than pick one, each side becomes
+   the INTERVAL of days it could possibly be, and the answer is given only
+   when the intervals do not overlap. A 60-day-old is unambiguously past a
+   1-month boundary; a 30-day-old is not decidable and is therefore WITHHELD.
+   Undecidable resolves to withheld everywhere, because the one direction that
+   is always safe is showing no number.                                      */
+var AGE_FAMILY = { years:'cal', months:'cal', weeks:'ela', days:'ela' };
+var AGE_IN_FAMILY = { years:12, months:1, weeks:7, days:1 };   /* to months | to days */
+/* The days a quantity could possibly span. Deliberately conservative. */
+var AGE_SPAN = { days:[1,1], weeks:[7,7], months:[28,31], years:[365,366] };
+
+function ageSpanDays(q){
+  var s = AGE_SPAN[q.unit];
+  return s ? [q.value * s[0], q.value * s[1]] : null;
+}
+/* -1 | 0 | 1 | null(undecidable), comparing patient age against a boundary. */
+function compareAge(patient, bound){
+  if (!patient || !bound) return null;
+  if (patient.value == null || bound.value == null) return null;
+  var pf = AGE_FAMILY[patient.unit], bf = AGE_FAMILY[bound.unit];
+  if (!pf || !bf) return null;
+  if (pf === bf){
+    /* AN AGE IS COMPLETED UNITS, AND THE BOUND SETS THE GRANULARITY. "16
+       years" names a year of life, not an instant: someone of 16 years and
+       11 months IS sixteen, and "through 16 years" has to admit them or the
+       band ends on the 16th birthday instead of the 17th. So the patient is
+       expressed in the bound's own unit and floored to completed units —
+       203 months against a bound in years is 16, not 16.9. Comparing raw
+       months against 192 would have withheld every 16-year-old but one. */
+    var p = Math.floor((patient.value * AGE_IN_FAMILY[patient.unit]) /
+                       AGE_IN_FAMILY[bound.unit]);
+    var b = bound.value;
+    return p < b ? -1 : (p > b ? 1 : 0);
+  }
+  var ps = ageSpanDays(patient), bs = ageSpanDays(bound);
+  if (!ps || !bs) return null;
+  if (ps[1] < bs[0]) return -1;                    /* certainly below */
+  if (ps[0] > bs[1]) return 1;                     /* certainly above */
+  return null;                                     /* overlapping: not decidable */
+}
+/* age = { value, unit } as the clinician entered it. */
+function inAgeBand(band, age){
   if (!band) return false;
-  if (ageDays == null) return false;              /* unknown age is not inside anything */
-  if (band.minDays != null && ageDays < band.minDays) return false;
-  if (band.maxDays != null && ageDays > band.maxDays) return false;
+  if (!age || age.value == null || !AGE_FAMILY[age.unit]) return false;
+  if (band.min){
+    var lo = compareAge(age, band.min);
+    if (lo === null) return false;                 /* undecidable → withheld */
+    if (lo < 0) return false;
+    if (lo === 0 && band.min.inclusive === false) return false;
+  }
+  if (band.max){
+    var hi = compareAge(age, band.max);
+    if (hi === null) return false;
+    if (hi > 0) return false;
+    if (hi === 0 && band.max.inclusive === false) return false;
+  }
+  return true;
+}
+
+/* ── APPLICABILITY — THE CRITERIA A POPULATION CANNOT CARRY ───────────────
+   "Adult" does not mean "healthy adult under 65 of ASA I-II", and a reviewed
+   range qualified that way must not render for everybody just because the
+   patient is an adult. Putting the qualification in the label would be
+   display text: readable, and no kind of gate.
+
+   GENERIC BY CONSTRUCTION. The selector evaluates whatever criteria a record
+   declares and knows nothing about which drug it belongs to. Two are
+   supported and that is deliberately all: an age bound (same structured
+   shape as ageBand above) and a list of admissible ASA classes. No renal,
+   hepatic or haemodynamic logic, and nothing that recommends.
+
+     applicability:{ ageBand:{ max:{ value:65, unit:'years', inclusive:false } },
+                     asa:['I','II'] }
+
+   A CRITERION THAT CANNOT BE EVALUATED IS NOT SATISFIED. If a record requires
+   an ASA class and none has been entered, the dose is withheld — the reviewed
+   evidence covers a patient profile we cannot confirm this patient has.      */
+function meetsApplicability(app, pop){
+  if (!app) return true;
+  if (!pop) return true;                           /* no patient — see patientPopulation */
+  if (app.ageBand && !inAgeBand(app.ageBand, pop.age)) return false;
+  if (app.asa && app.asa.length){
+    if (!pop.asa) return false;                    /* unknown is not admitted */
+    if (app.asa.indexOf(pop.asa) < 0) return false;
+  }
   return true;
 }
 
@@ -996,9 +1100,18 @@ function patientPopulation(pc){
   if (!pc || !pc.context) return null;
   var peds = pc.context.pediatric === true, adult = pc.context.adult === true;
   if (!peds && !adult) return null;               /* age unknown */
+  /* AS ENTERED, NOT AS CONVERTED. age.days exists and is derived with
+     x365.25; it is not what decides a boundary. value and unit are what the
+     clinician actually stated, and compareAge() works in those. */
   return { pediatric:peds, adult:adult,
-           ageDays:(pc.age && pc.age.days != null ? pc.age.days : null) };
+           age:(pc.age && pc.age.value != null
+                  ? { value:pc.age.value, unit:AGE_UNIT_NAME[pc.age.unit] || pc.age.unit }
+                  : null),
+           asa:pc.asa || null };
 }
+/* engine.html stores the unit as the <select> value; the model speaks in
+   whole words so a record reads as the label reads. */
+var AGE_UNIT_NAME = { y:'years', mo:'months', w:'weeks', d:'days' };
 
 /* ── THE COVERAGE STATES ──────────────────────────────────────────────────
    A WITHHELD DOSE IS A STATEMENT ABOUT OUR DATA, NEVER ABOUT THE DRUG. The
@@ -1008,11 +1121,13 @@ function patientPopulation(pc){
    patient, and a coverage message that implies otherwise is a clinical claim
    we have no evidence for.                                                  */
 var WITHHELD = { PAEDIATRIC:'paediatric-not-reviewed', ADULT:'adult-not-reviewed',
-                 AGE:'age-not-reviewed', UNPUBLISHED:'not-publishable' };
+                 AGE:'age-not-reviewed', PROFILE:'profile-not-reviewed',
+                 UNPUBLISHED:'not-publishable' };
 var COVERAGE = {};
 COVERAGE[WITHHELD.PAEDIATRIC] = 'Pediatric dose not reviewed';
 COVERAGE[WITHHELD.ADULT]      = 'Adult dose not reviewed';
 COVERAGE[WITHHELD.AGE]        = 'No reviewed dose for this age';
+COVERAGE[WITHHELD.PROFILE]    = 'Reviewed dose not available for this patient profile';
 COVERAGE[WITHHELD.UNPUBLISHED]= 'Dose not reviewed';
 
 /* THE ONE LEVER, AND WHY IT IS WHERE IT IS.
@@ -1031,25 +1146,44 @@ COVERAGE[WITHHELD.UNPUBLISHED]= 'Dose not reviewed';
 var UNCLASSIFIED_ELIGIBLE = true;
 
 /* ── IS THIS DOSE ELIGIBLE FOR THIS PATIENT ───────────────────────────────
-   Returns { eligible:true } or { eligible:false, reason:<WITHHELD.*> }.
-   Never returns a dose, a number, or a substitute.                          */
+   THE ORDER IS FIXED AND EACH STAGE CAN ONLY WITHHOLD:
+
+     1  publishable          (isDosePublishable, run by the caller)
+     2  population           A/B/C/D/E against adult or paediatric
+     3  age band             class C only, the label's own boundary
+     4  applicability        any further reviewed criteria the record carries
+
+   A later stage never rescues an earlier one and no stage substitutes
+   anything. Returns { eligible:true } or { eligible:false, reason }, and
+   never a dose, a number or an alternative.                                 */
 function doseEligibility(dose, pop){
   var k = dose && dose.populationClass;
   if (!k) return UNCLASSIFIED_ELIGIBLE ? { eligible:true }
                                        : { eligible:false, reason:WITHHELD.UNPUBLISHED };
   if (k === POPCLASS.UNSPECIFIED) return { eligible:false, reason:WITHHELD.UNPUBLISHED };
-  if (k === POPCLASS.BOTH) return { eligible:true };
-  if (!pop) return { eligible:true };             /* no patient — see patientPopulation */
-  if (k === POPCLASS.ADULT)
-    return pop.adult ? { eligible:true } : { eligible:false, reason:WITHHELD.PAEDIATRIC };
-  if (k === POPCLASS.PAEDIATRIC)
-    return pop.pediatric ? { eligible:true } : { eligible:false, reason:WITHHELD.ADULT };
-  if (k === POPCLASS.AGE_BANDED){
-    if (!pop.pediatric) return { eligible:false, reason:WITHHELD.ADULT };
-    return inAgeBand(dose.ageBand, pop.ageDays)
-      ? { eligible:true } : { eligible:false, reason:WITHHELD.AGE };
+  /* 2 — POPULATION */
+  if (pop){
+    if (k === POPCLASS.ADULT && !pop.adult)
+      return { eligible:false, reason:WITHHELD.PAEDIATRIC };
+    if (k === POPCLASS.PAEDIATRIC && !pop.pediatric)
+      return { eligible:false, reason:WITHHELD.ADULT };
+    if (k === POPCLASS.AGE_BANDED){
+      if (!pop.pediatric) return { eligible:false, reason:WITHHELD.ADULT };
+      /* 3 — AGE BAND. Undecidable counts as outside; see compareAge(). */
+      if (!inAgeBand(dose.ageBand, pop.age))
+        return { eligible:false, reason:WITHHELD.AGE };
+    }
+    if (k !== POPCLASS.ADULT && k !== POPCLASS.PAEDIATRIC &&
+        k !== POPCLASS.AGE_BANDED && k !== POPCLASS.BOTH)
+      return { eligible:false, reason:WITHHELD.UNPUBLISHED };   /* unknown class */
+  } else if (k !== POPCLASS.ADULT && k !== POPCLASS.PAEDIATRIC &&
+             k !== POPCLASS.AGE_BANDED && k !== POPCLASS.BOTH){
+    return { eligible:false, reason:WITHHELD.UNPUBLISHED };
   }
-  return { eligible:false, reason:WITHHELD.UNPUBLISHED };   /* unknown class: withhold */
+  /* 4 — APPLICABILITY */
+  if (!meetsApplicability(dose.applicability, pop))
+    return { eligible:false, reason:WITHHELD.PROFILE };
+  return { eligible:true };
 }
 
 /* ── PUBLISHABILITY, PER DOSE ─────────────────────────────────────────────
@@ -1173,6 +1307,8 @@ global.ClinicalContent = {
      anything, which is the only order in which it can be proved inert. */
   POPCLASS:POPCLASS, WITHHELD:WITHHELD, COVERAGE:COVERAGE,
   UNCLASSIFIED_ELIGIBLE:UNCLASSIFIED_ELIGIBLE,
+  AGE_FAMILY:AGE_FAMILY, compareAge:compareAge,
+  meetsApplicability:meetsApplicability,
   inAgeBand:inAgeBand, patientPopulation:patientPopulation,
   doseEligibility:doseEligibility, isDosePublishable:isDosePublishable,
   visibleDosesInGroup:visibleDosesInGroup,
