@@ -885,9 +885,30 @@ function visibleDrugsInGroup(groupId, wt){
    These phases are the vocabulary the model will accept when reviewed records
    arrive. Declaring the vocabulary is not the same as having the data: today
    maintenanceCoverage() reports zero for every group, and the suite asserts
-   it, so the gap is measured rather than assumed.                          */
+   it, so the gap is measured rather than assumed.
+
+   ── RSI IS A SIBLING OF INTUBATION, NOT A REFINEMENT OF IT ────────────────
+   The vocabulary below is additive; the four original terms are unchanged.
+   The seven new ones are the contexts the reviewed evidence matrix speaks in.
+
+   INTUBATION and RSI are two independent terms with NO relationship between
+   them. A drug that carries a routine intubating dose and no reviewed RSI
+   dose answers dosesForPhase(d,'rsi') with [] — not with the intubating dose,
+   not with the intubating dose relabelled, not with a widened range. That is
+   not a special case in the code; it is what strict equality on a filter
+   already does, and the point of writing RSI as its own term rather than as a
+   flag on INTUBATION is that there is no expression anywhere that could let
+   one answer for the other.
+
+   A dose carries exactly ONE phase. A drug whose reviewed evidence genuinely
+   covers two contexts carries two dose records — which is why dose
+   enumeration (visibleDosesInGroup, below) had to come before this vocabulary
+   was of any use: a second record on a drug was invisible until it did.     */
 var PHASES = { INDUCTION:'induction', MAINTENANCE:'maintenance',
-               REDOSE:'redose', REVERSAL:'reversal' };
+               REDOSE:'redose', REVERSAL:'reversal',
+               INTUBATION:'intubation', RSI:'rsi',
+               PREMEDICATION:'premedication', ANALGESIA:'analgesia',
+               SEDATION:'sedation', INFUSION:'infusion', RESCUE:'rescue' };
 
 function dosesForPhase(d, phase){
   if (!d || !d.doses || !phase) return [];
@@ -917,6 +938,211 @@ function phaseCoverage(phase){
   });
   return out;
 }
+/* ── WHO A DOSE WAS REVIEWED FOR ──────────────────────────────────────────
+   MACHINERY ONLY. No record carries any field below, so every function here
+   is inert against today's dataset and the render baseline is unchanged.
+
+   THE DEFECT THIS EXISTS TO CLOSE. Every one of the 25 publishable doses is
+   population:'adult', and that field was read by nothing. renderDose()
+   branches on weight and on whether the unit is a rate — and on nothing else
+   — so a 16 kg four-year-old was shown propofol 1.5x16-2.5x16 = 24-40 mg,
+   in normal type, derived from a record reviewed for adults. The number was
+   arithmetic performed on evidence that does not cover the patient.
+
+   THE EVIDENCE CLASS IS NOT THE APPLICABILITY. `population` says who a dose
+   may be given to; `populationClass` says what the source actually
+   established. They are separate because class D — one reviewed rule for
+   adults and children — must be ONE record that serves both, and a single
+   field cannot say "applies to both, and the source says so" as distinct
+   from "we only ever wrote down the adult case".
+
+     A  adult-specific        adult eligible · paediatric withheld
+     B  paediatric-specific   paediatric eligible · adult withheld
+     C  age-banded paediatric paediatric inside the exact band · nothing else
+     D  one reviewed rule     both eligible · ONE canonical record, never two
+     E  inadequately specified never eligible, never published
+
+   There is no nearest-age fallback, no adult->child fallback and no
+   child->adult fallback. A patient the reviewed evidence does not cover gets
+   no number at all — not a scaled one, not a caveated one.                 */
+var POPCLASS = { ADULT:'A', PAEDIATRIC:'B', AGE_BANDED:'C', BOTH:'D', UNSPECIFIED:'E' };
+
+/* ── AGE BANDS ────────────────────────────────────────────────────────────
+   BOTH BOUNDS INCLUSIVE. minDays null = open below, maxDays null = open
+   above. A patient at exactly minDays is inside the band; a patient at
+   exactly maxDays is inside the band.
+
+   Days, not years, because patientContext already carries age.days and a
+   neonatal boundary measured in years is not a boundary. A band is never
+   inferred from prose: a label that says "small pediatric patients" without
+   defining the boundary produces no band, and a dose with no band cannot be
+   class C.                                                                  */
+function inAgeBand(band, ageDays){
+  if (!band) return false;
+  if (ageDays == null) return false;              /* unknown age is not inside anything */
+  if (band.minDays != null && ageDays < band.minDays) return false;
+  if (band.maxDays != null && ageDays > band.maxDays) return false;
+  return true;
+}
+
+/* ── WHAT THE PATIENT IS, REDUCED TO WHAT A DOSE RULE ASKS ────────────────
+   patientContext is the single source of truth for who the patient is; this
+   takes the two facts a population rule needs and nothing else. Returns null
+   when no patient is known or the age is not known — and null means NO GATE
+   IS APPLIED, because with no patient there is no one for a dose to be
+   ineligible for. The drug reference with no patient loaded still shows every
+   published rule, which is what a reference is.                             */
+function patientPopulation(pc){
+  if (!pc || !pc.context) return null;
+  var peds = pc.context.pediatric === true, adult = pc.context.adult === true;
+  if (!peds && !adult) return null;               /* age unknown */
+  return { pediatric:peds, adult:adult,
+           ageDays:(pc.age && pc.age.days != null ? pc.age.days : null) };
+}
+
+/* ── THE COVERAGE STATES ──────────────────────────────────────────────────
+   A WITHHELD DOSE IS A STATEMENT ABOUT OUR DATA, NEVER ABOUT THE DRUG. The
+   wording is fixed here, in one place, so no screen can invent its own. None
+   of it says contraindicated, not recommended, or unavailable: absence of a
+   reviewed Anestheo record does not mean the drug is clinically wrong for the
+   patient, and a coverage message that implies otherwise is a clinical claim
+   we have no evidence for.                                                  */
+var WITHHELD = { PAEDIATRIC:'paediatric-not-reviewed', ADULT:'adult-not-reviewed',
+                 AGE:'age-not-reviewed', UNPUBLISHED:'not-publishable' };
+var COVERAGE = {};
+COVERAGE[WITHHELD.PAEDIATRIC] = 'Pediatric dose not reviewed';
+COVERAGE[WITHHELD.ADULT]      = 'Adult dose not reviewed';
+COVERAGE[WITHHELD.AGE]        = 'No reviewed dose for this age';
+COVERAGE[WITHHELD.UNPUBLISHED]= 'Dose not reviewed';
+
+/* THE ONE LEVER, AND WHY IT IS WHERE IT IS.
+   Every record in the dataset today predates populationClass. Treating an
+   unclassified record as adult-specific would empty the paediatric toolbox
+   the instant this file loads — before a single reviewed paediatric record
+   exists to take its place. So an unclassified dose stays eligible, exactly
+   as it renders today, and the machinery above is inert.
+
+   Flipping this to false is what actually closes the defect, and it belongs
+   in the same commit that lands the reviewed records — not before, or the
+   application spends the gap showing nothing, and not after, or it spends the
+   gap showing scaled adult numbers next to reviewed paediatric ones. It is a
+   constant rather than an option because there is exactly one right value at
+   any moment and it is not the caller's to choose.                          */
+var UNCLASSIFIED_ELIGIBLE = true;
+
+/* ── IS THIS DOSE ELIGIBLE FOR THIS PATIENT ───────────────────────────────
+   Returns { eligible:true } or { eligible:false, reason:<WITHHELD.*> }.
+   Never returns a dose, a number, or a substitute.                          */
+function doseEligibility(dose, pop){
+  var k = dose && dose.populationClass;
+  if (!k) return UNCLASSIFIED_ELIGIBLE ? { eligible:true }
+                                       : { eligible:false, reason:WITHHELD.UNPUBLISHED };
+  if (k === POPCLASS.UNSPECIFIED) return { eligible:false, reason:WITHHELD.UNPUBLISHED };
+  if (k === POPCLASS.BOTH) return { eligible:true };
+  if (!pop) return { eligible:true };             /* no patient — see patientPopulation */
+  if (k === POPCLASS.ADULT)
+    return pop.adult ? { eligible:true } : { eligible:false, reason:WITHHELD.PAEDIATRIC };
+  if (k === POPCLASS.PAEDIATRIC)
+    return pop.pediatric ? { eligible:true } : { eligible:false, reason:WITHHELD.ADULT };
+  if (k === POPCLASS.AGE_BANDED){
+    if (!pop.pediatric) return { eligible:false, reason:WITHHELD.ADULT };
+    return inAgeBand(dose.ageBand, pop.ageDays)
+      ? { eligible:true } : { eligible:false, reason:WITHHELD.AGE };
+  }
+  return { eligible:false, reason:WITHHELD.UNPUBLISHED };   /* unknown class: withhold */
+}
+
+/* ── PUBLISHABILITY, PER DOSE ─────────────────────────────────────────────
+   The drug-level gate is unchanged and still runs first, so nothing that was
+   unpublishable becomes publishable here. What this adds is the ability to
+   hold ONE dose back while its drug keeps rendering the others — which is the
+   whole staged-review path: a reviewed adult record ships while its
+   paediatric counterpart is still with the reviewer.
+
+   A DOSE THAT CLAIMS TO BE REVIEWED MUST CARRY ITS CITATION. authority,
+   documentId and section are required, not decorative. A record marked
+   reviewed with an empty section is an unreviewed record with a flag set, and
+   it must not be the thing that decides what a clinician draws up.
+
+   `evidence` absent = a migrated record, gated by its drug exactly as before.
+   That is what keeps the 25 existing doses byte-identical.                  */
+function isDosePublishable(drug, dose){
+  if (!isPublishable(drug)) return false;
+  if (!dose) return false;
+  if (dose.populationClass === POPCLASS.UNSPECIFIED) return false;
+  var e = dose.evidence;
+  if (!e) return true;                            /* pre-existing record, unchanged */
+  if (e.state === 'existing-unchanged') return true;
+  if (e.state !== 'reviewed') return false;
+  return !!(e.authority && e.documentId && e.section);
+}
+
+/* ── A ROW THAT CARRIES NO NUMBER ─────────────────────────────────────────
+   THE DRUG STAYS, THE DOSE GOES. The toolbox is a formulary as well as a
+   dosing surface: propofol is a primary induction agent for a three-year-old
+   whether or not we hold a reviewed paediatric record, and a tile that
+   vanishes teaches the clinician that the drug is unavailable. So the tile
+   keeps its name, its class colour, its group placement and its aliases, and
+   the patient-specific region is replaced by the coverage line.
+
+   renderDose() IS NEVER CALLED HERE. Not called and the result discarded —
+   not called. There is no code path in this function that multiplies a dose
+   by a weight, so there is no number to leak into a row that must not have
+   one, whatever a later caller does with it.
+
+   prepNote is deliberately dropped while prepMain is kept. prepMain is the
+   vial concentration, a fact about the formulation that no patient makes
+   true or false. prepNote is the free-prose half — and prose is exactly
+   where the two dose values we already know about are hiding ("1.2 mg/kg for
+   RSI", "glycopyrrolate 0.2 mg per 1 mg"). Printing it on a row whose entire
+   purpose is to show no dose would defeat the row.                          */
+function withheldRowFor(d, reason){
+  return { id:d.id, name:d.name, klass:d.klass || '',
+           aliasLine:(d.aliases ? d.aliases.slice(1,3).join(', ') : ''),
+           prepMain:prepConc(d.prep), prepNote:'',
+           warn:d.warn, severity:d.severity, hi:d.hi,
+           pclass:classOf(d), badge:classBadge(classOf(d)),
+           /* every dose-bearing field, explicitly empty */
+           val:'', unit:'', ind:'', use:'', prep:'', duration:'',
+           doseRule:'', doseNum:'', doseUnit:'', interval:'', phase:'',
+           withheld:true, reason:reason, coverage:(COVERAGE[reason] || COVERAGE[WITHHELD.UNPUBLISHED]) };
+}
+
+/* ── ONE ROW PER DOSE, NOT ONE ROW PER DRUG ───────────────────────────────
+   visibleDrugsInGroup() maps rowFor(d, d.doses[0]) — correct while every
+   record carried exactly one dose, and silently lossy the moment one carries
+   two. A ketamine with an IV and an IM induction record would have rendered
+   the IV one and dropped the other, everywhere, with nothing to show that a
+   second existed.
+
+   This enumerates instead. Per drug:
+     - every publishable dose the patient is eligible for becomes a row;
+     - if the drug has publishable doses but the patient is eligible for none,
+       it becomes exactly ONE withheld row — the drug stays, the dose goes;
+     - a drug with no publishable dose at all is absent, unchanged from today.
+
+   `phase` narrows the set before eligibility is considered, through
+   dosesForPhase() and its strict equality — so asking for RSI on a drug whose
+   only reviewed record is a routine intubating dose yields no rows to be
+   eligible for, and the drug reports coverage rather than a substitute.     */
+function visibleDosesInGroup(groupId, wt, pop, phase){
+  var out = [];
+  DRUGS.forEach(function(d){
+    if (d.group !== groupId || !isPublishable(d) || !d.doses || !d.doses.length) return;
+    var candidates = phase ? dosesForPhase(d, phase) : d.doses;
+    var publishable = candidates.filter(function(x){ return isDosePublishable(d, x); });
+    if (!publishable.length) return;              /* nothing reviewed: not a coverage state */
+    var shown = 0, reason = null;
+    publishable.forEach(function(dose){
+      var e = doseEligibility(dose, pop);
+      if (e.eligible){ out.push(rowFor(d, dose, wt)); shown++; }
+      else if (!reason) reason = e.reason;
+    });
+    if (!shown) out.push(withheldRowFor(d, reason || WITHHELD.UNPUBLISHED));
+  });
+  return out;
+}
+
 function byId(id){
   for (var i=0;i<DRUGS.length;i++) if (DRUGS[i].id === id) return DRUGS[i];
   for (var j=0;j<ITEMS.length;j++) if (ITEMS[j].id === id) return ITEMS[j];
@@ -940,6 +1166,16 @@ global.ClinicalContent = {
      against a model that cannot fall back to the wrong dose. */
   PHASES:PHASES, dosesForPhase:dosesForPhase,
   visibleInGroupForPhase:visibleInGroupForPhase, phaseCoverage:phaseCoverage,
+  /* POPULATION ELIGIBILITY — machinery only. No record carries
+     populationClass, ageBand or evidence, so visibleDosesInGroup() returns
+     exactly what visibleDrugsInGroup() returns and withheldRowFor() is
+     never reached. The gate is built, wired and tested before it holds
+     anything, which is the only order in which it can be proved inert. */
+  POPCLASS:POPCLASS, WITHHELD:WITHHELD, COVERAGE:COVERAGE,
+  UNCLASSIFIED_ELIGIBLE:UNCLASSIFIED_ELIGIBLE,
+  inAgeBand:inAgeBand, patientPopulation:patientPopulation,
+  doseEligibility:doseEligibility, isDosePublishable:isDosePublishable,
+  visibleDosesInGroup:visibleDosesInGroup,
   stats:function(){
     var pub = DRUGS.filter(isPublishable).length;
     return { drugs:DRUGS.length, published:pub, unpublished:DRUGS.length - pub,

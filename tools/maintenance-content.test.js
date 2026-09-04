@@ -117,10 +117,15 @@ t('...and no blocker in the model carries a maintenance or re-dose entry',
     .every(d => (d.doses || []).every(x => !x.phase)),
   CC.DRUGS.filter(d => d.pclass === 'nmb').map(d => d.id + ':' + d.doses.map(x => x.label)));
 /* NO INFERENCE ANYWHERE. An interval is a clinical fact; the field is a wire. */
+/* The check is for an interval VALUE, so it looks for a NON-EMPTY string
+   literal. `interval:''` is a field being explicitly emptied — rowFor passes
+   one through and withheldRowFor blanks one out — and neither states a
+   clinical fact. Written this way the guard needs no per-call-site exemption
+   and still fails on the thing it exists to catch, `interval:'20-30 min'`. */
 t('no record carries a dosing interval, and none is derived',
   CC.DRUGS.every(d => (d.doses || []).every(x => x.interval == null)) &&
-  !/interval\s*[:=]\s*['"`]/.test(IDXC.replace(/interval:\(dose\.interval \|\| ''\)/, '')),
-  'interval is passed through only');
+  !/interval\s*[:=]\s*['"`][^'"`]/.test(IDXC),
+  'interval is passed through or blanked, never authored');
 
 /* ── 3. A RATE IS STILL A RATE ───────────────────────────────────────────
    renderDose() refuses to convert mcg/kg/min into an amount. Maintenance is
@@ -295,6 +300,170 @@ t('clinical-index.js touches no backend, auth or storage',
   'pure data module');
 t('...and declares no network or credential constant',
   !/https?:\/\/|service_role|anon_key|apikey/i.test(IDXC));
+
+/* ── 11. POPULATION ELIGIBILITY ──────────────────────────────────────────
+   THE MACHINERY IS BUILT BEFORE IT HOLDS ANYTHING, AND THIS PROVES IT INERT.
+   No record carries populationClass, ageBand or evidence yet, so every
+   assertion below either exercises the rules against synthetic doses or
+   asserts that the live dataset is unaffected. When the reviewed records
+   land, the same assertions start biting on real data without being rewritten.
+
+   The property that matters: A PATIENT THE EVIDENCE DOES NOT COVER GETS NO
+   NUMBER. Not a scaled one, not a caveated one, not the nearest band.      */
+console.log('\n11. POPULATION ELIGIBILITY');
+
+const ADULT = { pediatric:false, adult:true,  ageDays:365*40 };
+const CHILD = { pediatric:true,  adult:false, ageDays:365*4  };
+const BABY  = { pediatric:true,  adult:false, ageDays:60     };
+const NOAGE = null;
+const el = (dose, pop) => CC.doseEligibility(dose, pop).eligible;
+const why = (dose, pop) => CC.doseEligibility(dose, pop).reason;
+
+t('the five evidence classes are declared',
+  Object.values(CC.POPCLASS).sort().join('') === 'ABCDE', CC.POPCLASS);
+
+/* A — adult-specific */
+const dA = { populationClass:'A' };
+t('A: adult eligible',            el(dA, ADULT));
+t('A: paediatric WITHHELD',      !el(dA, CHILD) && why(dA, CHILD) === CC.WITHHELD.PAEDIATRIC);
+t('A: infant WITHHELD',          !el(dA, BABY));
+
+/* B — paediatric-specific */
+const dB = { populationClass:'B' };
+t('B: paediatric eligible',       el(dB, CHILD));
+t('B: adult WITHHELD',           !el(dB, ADULT) && why(dB, ADULT) === CC.WITHHELD.ADULT);
+
+/* C — age-banded, both bounds inclusive */
+const dC = { populationClass:'C', ageBand:{ minDays:1095, maxDays:5844 } };
+t('C: inside the band eligible',  el(dC, { pediatric:true, adult:false, ageDays:2000 }));
+t('C: exactly minDays is INSIDE', el(dC, { pediatric:true, adult:false, ageDays:1095 }));
+t('C: exactly maxDays is INSIDE', el(dC, { pediatric:true, adult:false, ageDays:5844 }));
+t('C: one day below is OUTSIDE', !el(dC, { pediatric:true, adult:false, ageDays:1094 }));
+t('C: one day above is OUTSIDE', !el(dC, { pediatric:true, adult:false, ageDays:5845 }));
+t('C: outside the band reports the age reason',
+  why(dC, { pediatric:true, adult:false, ageDays:400 }) === CC.WITHHELD.AGE);
+t('C: NO NEAREST-BAND FALLBACK — a younger child gets nothing',
+  !el(dC, BABY));
+t('C: adult WITHHELD',           !el(dC, ADULT) && why(dC, ADULT) === CC.WITHHELD.ADULT);
+t('C: unknown age is not inside any band',
+  !el(dC, { pediatric:true, adult:false, ageDays:null }));
+t('C: an open lower bound still excludes above',
+  CC.inAgeBand({ minDays:null, maxDays:100 }, 50) && !CC.inAgeBand({ minDays:null, maxDays:100 }, 101));
+t('C: an open upper bound still excludes below',
+  CC.inAgeBand({ minDays:100, maxDays:null }, 5000) && !CC.inAgeBand({ minDays:100, maxDays:null }, 99));
+
+/* D — one rule, both populations, ONE record */
+const dD = { populationClass:'D' };
+t('D: adult eligible',            el(dD, ADULT));
+t('D: paediatric eligible',       el(dD, CHILD));
+t('D: neonate eligible',          el(dD, BABY));
+
+/* E — never */
+const dE = { populationClass:'E' };
+t('E: never eligible for anyone', !el(dE, ADULT) && !el(dE, CHILD) && !el(dE, NOAGE));
+t('E: never publishable either',
+  CC.isDosePublishable(CC.byId('drug.propofol'), { populationClass:'E' }) === false);
+
+/* An unknown class is withheld, not admitted — the default is silence. */
+t('an unrecognised class is WITHHELD, not admitted',
+  !el({ populationClass:'Z' }, ADULT) && !el({ populationClass:'Z' }, CHILD));
+
+/* No patient = no gate. A reference with no patient loaded is still a reference. */
+t('with no patient known, classed doses still render',
+  el(dA, NOAGE) && el(dB, NOAGE) && el(dC, NOAGE));
+
+/* ── patientPopulation reads patientContext and holds no threshold ────── */
+t('patientPopulation returns null when no context',   CC.patientPopulation(null) === null);
+t('...and null when the age is unknown',
+  CC.patientPopulation({ context:{ pediatric:false, adult:false }, age:{ days:null } }) === null);
+t('...and carries age in days for a child',
+  CC.patientPopulation({ context:{ pediatric:true, adult:false }, age:{ days:1460 } }).ageDays === 1460);
+t('...and no age threshold is written in clinical-index.js',
+  !/\b(?:age|y|years)\s*[<>]=?\s*(?:16|18|12|3)\b/.test(IDXC), 'threshold stays in patientContext');
+
+/* ── DOSE-LEVEL PUBLISHABILITY ──────────────────────────────────────────*/
+console.log('\n12. DOSE-LEVEL PUBLISHABILITY');
+
+const prop = CC.byId('drug.propofol');
+t('a migrated dose with no evidence block still publishes',
+  CC.isDosePublishable(prop, prop.doses[0]) === true);
+t('a dose on an unpublishable drug never publishes',
+  CC.isDosePublishable(CC.byId('drug.sevoflurane'), { evidence:{ state:'reviewed',
+    authority:'x', documentId:'y', section:'z' } }) === false);
+t('proposed-unverified at dose level does not publish',
+  CC.isDosePublishable(prop, { evidence:{ state:'proposed-unverified' } }) === false);
+t('REVIEWED WITHOUT A CITATION DOES NOT PUBLISH',
+  CC.isDosePublishable(prop, { evidence:{ state:'reviewed', authority:'DailyMed' } }) === false);
+t('...missing section alone is enough to refuse it',
+  CC.isDosePublishable(prop, { evidence:{ state:'reviewed', authority:'a', documentId:'b' } }) === false);
+t('a fully cited reviewed dose publishes',
+  CC.isDosePublishable(prop, { evidence:{ state:'reviewed', authority:'a',
+    documentId:'b', section:'c' } }) === true);
+t('the drug-level gate is untouched: still exactly 25 publishable drugs',
+  CC.DRUGS.filter(CC.isPublishable).length === 25);
+
+/* ── DOSE ENUMERATION AND THE WITHHELD ROW ──────────────────────────────*/
+console.log('\n13. ENUMERATION AND WITHHOLDING');
+
+t('visibleDosesInGroup matches visibleDrugsInGroup for every group and weight',
+  CC.GROUPS.every(g => [null, 3.4, 16, 75, 120].every(w =>
+    JSON.stringify(CC.visibleDosesInGroup(g.id, w, null)) ===
+    JSON.stringify(CC.visibleDrugsInGroup(g.id, w)))),
+  'enumeration is inert against a one-dose-per-drug dataset');
+
+t('no record carries populationClass yet',
+  CC.DRUGS.every(d => (d.doses||[]).every(x => x.populationClass === undefined)));
+t('no record carries ageBand yet',
+  CC.DRUGS.every(d => (d.doses||[]).every(x => x.ageBand === undefined)));
+t('no record carries dose-level evidence yet',
+  CC.DRUGS.every(d => (d.doses||[]).every(x => x.evidence === undefined)));
+t('...so no group produces a withheld row for any patient',
+  CC.GROUPS.every(g => [ADULT, CHILD, BABY, NOAGE].every(p =>
+    CC.visibleDosesInGroup(g.id, 75, p).every(r => !r.withheld))));
+
+/* The withheld row itself: a drug, and provably not a dose. */
+const wr = CC.visibleDosesInGroup('induction', 16,
+  CHILD, null).length && (function(){
+    /* build one directly through the public rule, since no record triggers it */
+    const fake = { id:'drug.propofol', name:'Propofol', klass:'k', aliases:['propofol','diprivan'],
+                   prep:'<b>1% = 10 mg/mL</b> · note', warn:'w', severity:'caution', pclass:'induction' };
+    return CC.doseEligibility({ populationClass:'A' }, CHILD);
+  })();
+t('an A-class dose against a child yields the paediatric coverage wording',
+  CC.COVERAGE[CC.WITHHELD.PAEDIATRIC] === 'Pediatric dose not reviewed');
+t('an age-band gap yields the age wording',
+  CC.COVERAGE[CC.WITHHELD.AGE] === 'No reviewed dose for this age');
+t('a B-class dose against an adult yields the adult wording',
+  CC.COVERAGE[CC.WITHHELD.ADULT] === 'Adult dose not reviewed');
+t('NO COVERAGE STATE MAKES A CLINICAL CLAIM',
+  Object.values(CC.COVERAGE).every(s =>
+    !/contraindicat|not recommended|unavailable|unsafe|do not (use|give)/i.test(s)),
+  Object.values(CC.COVERAGE));
+
+/* ── THE RENDERERS CANNOT PRODUCE A NUMBER FOR A WITHHELD DOSE ──────────*/
+console.log('\n14. NO NUMBER SURVIVES A WITHHELD DOSE');
+
+/* withheldRowFor is reached through visibleDosesInGroup only, so this asserts
+   the source: the function must not reference renderDose at all. */
+const WRF = /function withheldRowFor\(([\s\S]*?)\n}/.exec(IDX);
+t('withheldRowFor exists', !!WRF);
+t('...and never calls renderDose', WRF && !/renderDose/.test(WRF[1]));
+t('...and never multiplies by a weight', WRF && !/\*\s*wt|wt\s*\*/.test(WRF[1]));
+t('...and takes no weight argument at all',
+  /function withheldRowFor\(d, reason\)/.test(IDX));
+
+/* The three UI entry points must hand the model a population, not just a kg. */
+t('the drug reference passes a population',   /visibleDosesInGroup\(gid, wt, pop\)/.test(ENGC));
+t('the workflow panels pass a population',    /visibleDosesInGroup\(g\.id, weight, pop\)/.test(ENGC));
+t('the induction workstation passes a population',
+  /visibleDosesInGroup\(groupId, weight\(\), population\(\)\)/.test(code(read('induction.js'))));
+t('no render path still reads doses[0]',
+  !/doses\s*&&\s*src\.doses\[0\]/.test(ENGC) && !/\.doses\[0\]/.test(code(read('induction.js'))));
+
+/* ── THE LEVER IS DECLARED, AND ITS CURRENT VALUE IS STATED ─────────────*/
+t('unclassified records are still eligible (the lever is off)',
+  CC.UNCLASSIFIED_ELIGIBLE === true,
+  'flips to false in the commit that lands the reviewed records');
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

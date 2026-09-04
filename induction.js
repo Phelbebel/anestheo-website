@@ -128,11 +128,20 @@
   }
   function ctx(){ return root.patientContext || null; }
   function weight(){ var c = ctx(); return c && c.anthropometrics ? c.anthropometrics.weight : null; }
+  /* WHO the patient is, not just how heavy. The workstation used to send the
+     model a weight alone, which is why a child was shown adult doses scaled
+     down. The threshold lives in patientContext and the eligibility rule
+     lives in the model; this function carries the answer between them and
+     holds neither. */
+  function population(){
+    var CC = root.ClinicalContent;
+    return (CC && CC.patientPopulation) ? CC.patientPopulation(ctx()) : null;
+  }
 
   function drugs(groupId){
     var CC = root.ClinicalContent;
-    if (!CC || !CC.visibleDrugsInGroup) return [];
-    try { return CC.visibleDrugsInGroup(groupId, weight()) || []; }
+    if (!CC || !CC.visibleDosesInGroup) return [];
+    try { return CC.visibleDosesInGroup(groupId, weight(), population()) || []; }
     catch(e){ console.warn('[induction] group ' + groupId + ' unavailable', e); return []; }
   }
   function classColour(pclass){

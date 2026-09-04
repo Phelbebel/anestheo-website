@@ -966,8 +966,12 @@ async function openEngine(b, viewport) {
     t('induction.js declares no dose of its own',
       !/\b(mg|mcg|microgram|units?)\s*\/\s*kg\b/i.test(INDC) &&
       !/\bdoses\s*:/.test(INDC), 'a dose literal appeared in induction.js');
-    t('...and reads every drug through visibleDrugsInGroup',
-      /visibleDrugsInGroup/.test(INDC));
+    /* The selector it reads through is now visibleDosesInGroup — one row per
+       reviewed dose rather than one per drug, and population-aware. The rule
+       being asserted is unchanged: the workstation reads the canonical
+       selector and holds no drug list of its own. */
+    t('...and reads every drug through the canonical group selector',
+      /visibleDosesInGroup/.test(INDC) && !/DRUGS\s*[.[]/.test(INDC));
     t('...and every airway value through window.airwayPlan',
       /root\.airwayPlan/.test(INDC) &&
       !/lmaForWeight|igelForWeight|neoETT/.test(INDC));

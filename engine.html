@@ -396,6 +396,16 @@ table.dtab tbody tr.dtab-r:has(+ .dtab-wrow:not([hidden])) td{border-bottom:none
   font-variant-numeric:tabular-nums;white-space:nowrap;}
 .dtab-au{font-size:10.5px;font-weight:700;color:var(--accent);opacity:.75;margin-left:3px;}
 .dtab-none{color:var(--ink-3);font-size:11px;font-weight:600;}
+/* A DATA-COVERAGE STATE, NOT A WARNING. It occupies the two dosing cells and
+   nothing else: same row height, same type size as the rule it replaces, no
+   accent, no icon, no rule down the side. It must not read as a caution —
+   the caution row below carries clinical warnings and this one carries a
+   statement about what we have reviewed. Italic and muted is the whole
+   treatment, which is why a withheld row is quiet in a scan rather than the
+   loudest thing in the table. */
+.dtab-cov{color:var(--ink-3);font-size:11.5px;font-style:italic;line-height:1.3;}
+.ddet-cov{color:var(--ink-3);font-style:italic;}
+.dcard.cov .dm-amt .dtab-cov{white-space:normal;text-align:right;display:inline-block;max-width:150px;}
 .dtab-prep{color:var(--ink-2);font-size:12px;}
 /* THE CLASS BADGE, IN THE TABLE ONLY. Elsewhere on the page the chip is a
    restrained marker beside a drug name; in a table it is the first column and
@@ -3343,14 +3353,32 @@ function drefWeight(){
   var pc = window.patientContext;
   return (pc && pc.anthropometrics && pc.anthropometrics.weight) || null;
 }
+/* WEIGHT WAS NEVER THE WHOLE QUESTION. This used to hand the model a number
+   and nothing else, so a dose reviewed for adults was scaled by a child's
+   weight and printed as though the evidence covered them. The population
+   travels with the weight now, and the model decides eligibility — this
+   function asks patientContext and does not itself hold a threshold. */
+function drefPop(){
+  var CC = window.ClinicalContent;
+  return (CC && CC.patientPopulation) ? CC.patientPopulation(window.patientContext) : null;
+}
+/* ONE ROW PER DOSE. The dedupe key was the drug id, which was correct while a
+   drug could only contribute one row and becomes a data-loss bug the moment
+   one carries an IV and an IM record: the second would be dropped silently.
+   The key is now the row's own identity. A drug belongs to exactly one group,
+   so this still only fires when a mount lists a group twice. */
+function drefRowKey(d){
+  return [d.id, d.phase || '', d.use || '', d.doseRule || '', d.withheld ? 'w' : ''].join(' ');
+}
 function drefDrugs(inst){
   var CC = window.ClinicalContent; if(!CC) return [];
-  var wt = drefWeight(), seen = {}, out = [];
+  var wt = drefWeight(), pop = drefPop(), seen = {}, out = [];
   var ids = (inst && inst.groups) ? inst.groups
                                   : CC.GROUPS.map(function(g){ return g.id; });
   ids.forEach(function(gid){
-    CC.visibleDrugsInGroup(gid, wt).forEach(function(d){
-      if(seen[d.id]) return; seen[d.id] = 1; out.push(d);
+    CC.visibleDosesInGroup(gid, wt, pop).forEach(function(d){
+      var k = drefRowKey(d);
+      if(seen[k]) return; seen[k] = 1; out.push(d);
     });
   });
   return out;
@@ -3574,9 +3602,7 @@ window.drefWarnToggle = drefWarnToggle;
 function drefDetail(inst, id){
   var CC = window.ClinicalContent, src = CC && CC.byId ? CC.byId(id) : null;
   if(!src) return '';
-  var wt = drefWeight();
-  var dose = (src.doses && src.doses[0]) || null;
-  var r = dose ? CC.renderDose(dose, wt) : null;
+  var wt = drefWeight(), pop = drefPop();
   var bits = [];
   function f(label, val){
     if(val == null || val === '') return;
@@ -3586,7 +3612,22 @@ function drefDetail(inst, id){
   f('Class', src.klass);
   f('Also known as', (src.aliases||[]).slice(1).join(', '));
   f('Indications', (src.indications||[]).join(' &middot; '));
-  if(dose){
+  /* EVERY REVIEWED DOSE, NOT doses[0]. The detail panel read the first dose
+     and stopped, which was indistinguishable from correct while every record
+     held one — and would have quietly hidden an IM route, an RSI record or a
+     paediatric band behind an IV adult one. It enumerates now, and each dose
+     is admitted or withheld on its own evidence, so opening a drug can show
+     an eligible record and a withheld one side by side. */
+  var doses = (src.doses || []).filter(function(x){ return CC.isDosePublishable(src, x); });
+  doses.forEach(function(dose){
+    var e = CC.doseEligibility(dose, pop);
+    if(!e.eligible){
+      /* renderDose is not called on this branch. */
+      f(dose.label || 'Dose', '<span class="ddet-cov">'+
+        esc_(CC.COVERAGE[e.reason] || CC.COVERAGE[CC.WITHHELD.UNPUBLISHED])+'</span>');
+      return;
+    }
+    var r = CC.renderDose(dose, wt);
     f('Route', dose.route);
     f(dose.label || 'Dose',
       (dose.low != null ? (dose.low+'&ndash;'+dose.high) : String(dose.value)) +
@@ -3598,7 +3639,7 @@ function drefDetail(inst, id){
     if(r && wt && dose.basisWeight)
       f('For this patient <span class="ddet-wt">'+Math.round(wt)+' kg</span>',
         '<b class="ddet-amt">'+r.val+(r.unit ? ('<span>'+r.unit+'</span>') : '')+'</b>');
-  }
+  });
   f('Preparation', src.prep);
   /* Provenance is real metadata on every record and it is the reason a dose
      is allowed on screen at all, so the reference says which it is. */
@@ -3662,15 +3703,24 @@ function drefTable(inst, rows, reduced){
       '<td class="dtab-name"><span class="dtab-n">'+d.name+'</span>'+
         (CC.classBadge(d.pclass)||'')+'</td>'+
       '<td class="dtab-use">'+(use || '&mdash;')+'</td>'+
-      '<td class="dtab-rule">'+drefRuleCell(d)+'</td>'+
-      '<td class="dtab-dose">'+drefAmountCell(d)+'</td>'+
+      /* THE ROW KEEPS ITS SHAPE. A withheld dose replaces the two dosing
+         cells with one coverage cell of the same width — the drug, its class
+         colour, its badge, its preparation and its details button all stay,
+         and the row does not change height. What disappears is the number,
+         and only the number. */
+      (d.withheld
+        ? '<td class="dtab-cov" colspan="2">'+esc_(d.coverage)+'</td>'
+        : '<td class="dtab-rule">'+drefRuleCell(d)+'</td>'+
+          '<td class="dtab-dose">'+drefAmountCell(d)+'</td>')+
       (prepCol ? '<td class="dtab-prep">'+(d.prepMain
         ? ('<span class="dtab-p1">'+d.prepMain+'</span>'+
            (d.prepNote ? '<span class="dtab-p2">'+d.prepNote+'</span>' : ''))
         : '&mdash;')+'</td>' : '')+
       (dur ? '<td class="dtab-dur">'+(d.duration || '&mdash;')+'</td>' : '')+
       drefWarnCell(inst, d, i)+
-      drefPlanCell(d)+
+      /* No dose, no "add to plan". A plan entry whose dose is not reviewed
+         for this patient is a plan entry with nothing to draw up. */
+      (d.withheld ? '<td class="dtab-add"></td>' : drefPlanCell(d))+
       '<td class="dtab-go"><button type="button" class="dtab-more'+(open?' on':'')+'" '+
         'onclick="drefDetails(\''+inst.id+'\',\''+esc_(d.id)+'\')" '+
         'aria-expanded="'+(open?'true':'false')+'" '+
@@ -3760,19 +3810,22 @@ function drefCards(inst, rows){
     var col  = meta ? meta.color : 'transparent';
     var rule = drefIsRate(d) ? '' : (d.doseNum
       ? (d.doseNum + ' ' + (d.doseUnit || '')) : (d.doseRule || ''));
-    var line2 = [d.use || d.ind || '', rule].filter(Boolean).join(' &middot; ');
-    return '<div class="dcard'+(open?' open':'')+'" data-drug="'+esc_(d.id)+'" '+
-        'style="--pc:'+col+'">'+
+    var line2 = d.withheld ? ''
+      : [d.use || d.ind || '', rule].filter(Boolean).join(' &middot; ');
+    return '<div class="dcard'+(open?' open':'')+(d.withheld?' cov':'')+'" '+
+        'data-drug="'+esc_(d.id)+'" style="--pc:'+col+'">'+
       '<div class="dm-top">'+
         '<span class="dm-n">'+d.name+'</span>'+(CC.classBadge(d.pclass)||'')+
-        '<span class="dm-amt">'+drefAmountCell(d)+'</span>'+
+        '<span class="dm-amt">'+(d.withheld
+          ? '<span class="dtab-cov">'+esc_(d.coverage)+'</span>'
+          : drefAmountCell(d))+'</span>'+
       '</div>'+
       (line2 ? '<div class="dm-sub">'+line2+'</div>' : '')+
       '<div class="dm-foot">'+
         '<span class="dm-prep">'+(d.prepMain || '')+'</span>'+
         '<span class="dcard-acts">'+
           drefWarnBtn(inst, d, i)+
-          (role ? drefPlanBtn(d, role, drefInPlan(d.id)) : '')+
+          ((role && !d.withheld) ? drefPlanBtn(d, role, drefInPlan(d.id)) : '')+
           '<button type="button" class="dcard-more'+(open?' on':'')+'" '+
             'onclick="drefDetails(\''+inst.id+'\',\''+esc_(d.id)+'\')" '+
             'aria-expanded="'+(open?'true':'false')+'" '+
@@ -3998,7 +4051,10 @@ function rx(o){
      that wrapped raggedly; giving it its own muted line keeps every drug to
      the same three-line rhythm without raising its visual weight. */
   var crit = (o.severity === 'critical');
-  var sub = [o.ind, o.prep].filter(Boolean).join(' &middot; ');
+  /* A withheld dose keeps its drug and loses its number: the coverage line
+     takes the place of the dosing line, and `val`/`unit` are already empty
+     because withheldRowFor() never computed one. */
+  var sub = o.withheld ? o.coverage : [o.ind, o.prep].filter(Boolean).join(' &middot; ');
   return row({ id:o.id, name:o.name, val:o.val, unit:o.unit, sub:sub,
                pclass:o.pclass, badge:o.badge,
                caution:(crit ? '' : o.warn),
@@ -4027,8 +4083,9 @@ function foot(t){ return '<div class="foot">'+t+'</div>'; }
 function drugGroups(groupIds, weight){
   var CC = window.ClinicalContent;
   if(!CC) return '';
+  var pop = CC.patientPopulation ? CC.patientPopulation(window.patientContext) : null;
   return groupIds.map(function(g){
-    var items = CC.visibleDrugsInGroup(g.id, weight);
+    var items = CC.visibleDosesInGroup(g.id, weight, pop);
     if(!items.length) return '';
     return grp(g.label, rxList(items.map(function(d){ return rx(d); })), g.note);
   }).join('');
