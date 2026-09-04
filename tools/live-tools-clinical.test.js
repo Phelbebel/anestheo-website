@@ -1647,6 +1647,99 @@ async function openEngine(b, viewport) {
       t('no runtime errors while comparing', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }
+
+    /* ── AN ADULT-ONLY DOSE REACHES NO PART OF A CHILD'S PAGE ────────────
+       The row-level guarantee is asserted in maintenance-content.test.js
+       against the model. This asserts the one that actually matters: that
+       nothing anywhere in the rendered document carries the number. A value
+       withheld from the visible cell and still sitting in a title attribute,
+       a data- attribute, an aria-label or a collapsed detail panel is not
+       withheld, it is hidden — and the induction plan, the search index and
+       the inline detail all read the same record.
+
+       No shipped record is classified yet, so propofol's dose is classified
+       adult-only at runtime. This is the state the clinical migration will
+       create, tested before it is created. */
+    {
+      const v = await openEngine(b, { width:1440, height:1150 });
+      const r = await v.pg.evaluate(`(() => {
+        newCase();
+        const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
+        set('i-age','3'); set('i-age-unit','y'); set('i-sex','M');
+        set('i-height','96'); set('i-weight','15'); set('i-asa','II');
+        compute();
+        const before = document.getElementById('output').innerText;
+        const d = window.ClinicalContent.byId('drug.propofol');
+        d.doses[0].populationClass = 'A';
+        drefRender('dref'); drefRender('iref');
+        if (window.Induction && Induction.render) Induction.render();
+        const out = document.getElementById('output');
+        const row = [...out.querySelectorAll('tr.dtab-r')]
+          .find(x => x.dataset.drug === 'drug.propofol');
+        return {
+          beforeHadAmount: /23.38\\s*mg/.test(before),
+          present: !!row,
+          name: row && row.querySelector('.dtab-n').textContent,
+          colour: row && getComputedStyle(row).getPropertyValue('--pc').trim(),
+          badge: !!row && !!row.querySelector('.pc'),
+          coverage: row && (row.querySelector('.dtab-cov')||{}).textContent,
+          addBtn: !!(row && row.querySelector('.dtab-add button')),
+          height: row && Math.round(row.getBoundingClientRect().height),
+          neighbours: [...out.querySelectorAll('tr.dtab-r')]
+            .filter(x => x.dataset.drug !== 'drug.propofol')
+            .slice(0,4).map(x => Math.round(x.getBoundingClientRect().height)),
+          /* EVERY string in the canonical render paths, not just the visible
+             text — a value withheld from a cell and still sitting in a title
+             attribute or a collapsed panel is hidden, not withheld.
+
+             #sed-inline-body is excluded and named rather than silently
+             skipped. It is the legacy SED[] TCI reference, which bypasses
+             ClinicalContent entirely: it hard-codes its own propofol
+             induction bolus, which is not even the canonical value, and
+             scales it by weight with no publishability or population gate.
+             The population gate cannot reach it because it was never
+             canonical. Asserted separately below. */
+          html: (() => {
+            const c = out.cloneNode(true);
+            const legacy = c.querySelector('#sed-inline-body');
+            if (legacy) legacy.remove();
+            return c.innerHTML;
+          })(),
+          legacyHtml: (out.querySelector('#sed-inline-body') || {}).innerHTML || '',
+          text: out.innerText
+        };
+      })()`);
+
+      t('paediatric: the adult-only drug keeps its tile',
+        r.present && r.name === 'Propofol', r.name);
+      t('...its class colour and its badge',    !!r.colour && r.badge, r.colour);
+      t('...and shows the coverage line instead of a dose',
+        r.coverage === 'Pediatric dose not reviewed', r.coverage);
+      t('...with no Add control implying a reviewed dose exists', r.addBtn === false);
+      t('...at a row height in line with its neighbours',
+        r.height > 0 && r.height <= Math.max(...r.neighbours) + 8,
+        { row:r.height, neighbours:r.neighbours });
+      t('the same page DID print an amount before the record was classified',
+        r.beforeHadAmount === true, 'so the assertion below is not vacuous');
+      /* The shipped canonical record is 1.5–2.5 mg/kg; x 15 kg = 23–38 mg. */
+      const NUMS = ['23–38','23-38','1.5–2.5 mg/kg','1.5-2.5 mg/kg'];
+      const inHtml = NUMS.filter(s => r.html.includes(s));
+      t('NO SCALED ADULT AMOUNT APPEARS ANYWHERE IN THE CANONICAL DOM — not in '+
+        'text, not in an attribute, not in a collapsed panel', inHtml.length === 0, inHtml);
+      /* DEFECT I, PINNED WHERE IT LIVES. The legacy TCI panel still prints a
+         propofol induction bolus for this three-year-old, from its own inline
+         value, ungated. This test does not pass because that is acceptable —
+         it exists so the leak stays confined to the one container we know
+         about and cannot quietly reappear in a canonical path. */
+      t('the remaining leak is confined to the legacy SED[] panel, and is its '+
+        'own inline value rather than the canonical one',
+        /2.2\.5 mg\/kg/.test(r.legacyHtml) && !/1\.5.2\.5/.test(r.legacyHtml),
+        'legacy TCI reference: ungated, and disagrees with the canonical record');
+      t('...and no clinical prohibition is implied by the coverage wording',
+        !/contraindicat|not recommended|unsafe|do not use/i.test(r.text));
+      t('no runtime errors while withholding', v.errs.length === 0, v.errs.slice(0,2));
+      await v.ctx.close();
+    }
   } finally {
     await b.close();
   }

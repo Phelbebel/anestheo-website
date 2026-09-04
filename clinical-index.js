@@ -1001,12 +1001,17 @@ var POPCLASS = { ADULT:'A', PAEDIATRIC:'B', AGE_BANDED:'C', BOTH:'D', UNSPECIFIE
    boundary and a patient entered as "3 years" is on it.
 
    ACROSS the two families there is no exact conversion, because a month is
-   28-31 days and a year is 365-366. Rather than pick one, each side becomes
-   the INTERVAL of days it could possibly be, and the answer is given only
-   when the intervals do not overlap. A 60-day-old is unambiguously past a
-   1-month boundary; a 30-day-old is not decidable and is therefore WITHHELD.
-   Undecidable resolves to withheld everywhere, because the one direction that
-   is always safe is showing no number.                                      */
+   28-31 days and a year is 365-366. THE APPLICATION HAS NO DATE OF BIRTH —
+   it stores a value and a unit — so the exact number of days a patient
+   entered as "3 years" has lived is not knowable here, and inventing it is
+   the whole failure being avoided. Instead each side becomes the INTERVAL of
+   days it could possibly span, and an answer is given only when the intervals
+   do not overlap. A 60-day-old is unambiguously past a 1-month boundary; a
+   30-day-old is not decidable, because a month may be 28, 29, 30 or 31 days.
+
+   WHEN PRECISION IS INSUFFICIENT, WITHHOLD. Undecidable never resolves to
+   admitted, anywhere, for any bound. Showing no number is the one direction
+   that is always safe.                                                      */
 var AGE_FAMILY = { years:'cal', months:'cal', weeks:'ela', days:'ela' };
 var AGE_IN_FAMILY = { years:12, months:1, weeks:7, days:1 };   /* to months | to days */
 /* The days a quantity could possibly span. Deliberately conservative. */
@@ -1255,15 +1260,23 @@ function withheldRowFor(d, reason){
        it becomes exactly ONE withheld row — the drug stays, the dose goes;
      - a drug with no publishable dose at all is absent, unchanged from today.
 
-   `phase` narrows the set before eligibility is considered, through
-   dosesForPhase() and its strict equality — so asking for RSI on a drug whose
-   only reviewed record is a routine intubating dose yields no rows to be
-   eligible for, and the drug reports coverage rather than a substitute.     */
-function visibleDosesInGroup(groupId, wt, pop, phase){
+   `phase` and `route` narrow the set before eligibility is considered. Phase
+   goes through dosesForPhase() and its strict equality — so asking for RSI on
+   a drug whose only reviewed record is a routine intubating dose yields no
+   rows to be eligible for, and the drug reports coverage rather than a
+   substitute. Route matches the same way, exactly, so asking for IM never
+   answers with the IV record.
+
+   NARROWING IS NOT WITHHOLDING. A drug with no dose in the requested scope
+   produces no row at all — not a coverage line. Coverage means "this patient
+   is not covered by evidence we hold"; a drug that simply has no IM record
+   has nothing to say about this patient.                                    */
+function visibleDosesInGroup(groupId, wt, pop, phase, route){
   var out = [];
   DRUGS.forEach(function(d){
     if (d.group !== groupId || !isPublishable(d) || !d.doses || !d.doses.length) return;
     var candidates = phase ? dosesForPhase(d, phase) : d.doses;
+    if (route) candidates = candidates.filter(function(x){ return x.route === route; });
     var publishable = candidates.filter(function(x){ return isDosePublishable(d, x); });
     if (!publishable.length) return;              /* nothing reviewed: not a coverage state */
     var shown = 0, reason = null;

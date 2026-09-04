@@ -425,6 +425,53 @@ t('unknown age is inside no band',
   !CC.inAgeBand(band3to16.ageBand, null) &&
   !CC.inAgeBand(band3to16.ageBand, { value:null, unit:'years' }));
 
+/* ── THE EIGHT STATED AGE-UNIT CASES, VERBATIM ──────────────────────────
+   Each is the entered age as the application would hold it — a value and a
+   unit, never a date — against a band in the unit its label used.          */
+console.log('\n11b-ii. THE STATED AGE-UNIT CASES');
+
+const THROUGH16 = { min:{ value:3, unit:'years', inclusive:true },
+                    max:{ value:16, unit:'years', inclusive:true } };
+const UNDER2    = { max:{ value:2, unit:'years', inclusive:false } };
+const MIN3Y     = { min:{ value:3, unit:'years', inclusive:true } };
+const MIN24MO   = { min:{ value:24, unit:'months', inclusive:true } };
+const MIN2Y     = { min:{ value:2, unit:'years', inclusive:true } };
+
+t('1  16.9 years vs "through 16 years"  → ELIGIBLE',
+  CC.inAgeBand(THROUGH16, yrs(16.9)) === true, 'completed years = 16');
+t('2  17 years   vs "through 16 years"  → WITHHELD',
+  CC.inAgeBand(THROUGH16, yrs(17)) === false);
+t('3  23 months  vs "<2 years"          → ELIGIBLE',
+  CC.inAgeBand(UNDER2, mos(23)) === true, 'completed years = 1');
+t('4  24 months  vs "<2 years"          → WITHHELD',
+  CC.inAgeBand(UNDER2, mos(24)) === false, 'completed years = 2, bound exclusive');
+t('5  35 months  vs ">=3 years"         → WITHHELD',
+  CC.inAgeBand(MIN3Y, mos(35)) === false, '2 years 11 months is not 3');
+t('6  36 months  vs ">=3 years"         → ELIGIBLE',
+  CC.inAgeBand(MIN3Y, mos(36)) === true);
+t('7  2 years    vs ">=24 months"       → ELIGIBLE',
+  CC.inAgeBand(MIN24MO, yrs(2)) === true, 'compared in the bound unit: 24 vs 24');
+t('8  1.9 years  vs ">=2 years"         → WITHHELD',
+  CC.inAgeBand(MIN2Y, yrs(1.9)) === false, 'completed years = 1');
+
+/* The stated worked example, both directions. */
+t('2 years 11 months entered as 35 months compares correctly against a years bound',
+  CC.compareAge(mos(35), { value:3, unit:'years' }) === -1 &&
+  CC.compareAge(mos(36), { value:3, unit:'years' }) === 0);
+t('...and 16.9 years floors to 16 against a years bound, not to 17',
+  CC.compareAge(yrs(16.9), { value:16, unit:'years' }) === 0 &&
+  CC.compareAge(yrs(17),   { value:16, unit:'years' }) === 1);
+
+/* ── ROUTE-AWARE ENUMERATION ────────────────────────────────────────────*/
+console.log('\n11b-iii. ROUTE NARROWING');
+
+t('an exact route filter is available on the selector',
+  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IV').length > 0 &&
+  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM').length === 0,
+  'no shipped induction record is IM');
+t('...and narrowing to a route a drug lacks produces NO row, not a coverage row',
+  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM').every(r => !r.withheld));
+
 /* ── APPLICABILITY ─────────────────────────────────────────────────────*/
 console.log('\n11c. APPLICABILITY');
 
