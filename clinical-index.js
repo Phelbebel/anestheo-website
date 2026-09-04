@@ -793,10 +793,19 @@ function prepNote(p){
   return rest.replace(/^[·\u00b7\s]+/, '').trim();
 }
 
-function visibleDrugsInGroup(groupId, wt){
-  return DRUGS.filter(function(d){ return d.group === groupId && isPublishable(d) && d.doses && d.doses.length; })
-    .map(function(d){
-      var dose = d.doses[0];
+/* ── ONE ROW BUILDER, EXPLICITLY GIVEN ITS DOSE ───────────────────────────
+   PHASE 4A. This body was inline inside visibleDrugsInGroup(), which always
+   read doses[0]. That was correct while every publishable record carried
+   exactly one dose, and it stops being correct the moment a drug carries both
+   an induction bolus and a maintenance infusion: whichever happened to be
+   first would silently become what every screen showed.
+
+   The dose is now a parameter. visibleDrugsInGroup() still passes doses[0] and
+   its output is unchanged, field for field, at every weight — the suite
+   compares it against a snapshot taken before this refactor. What the
+   parameter makes possible is asking for a DIFFERENT dose without guessing,
+   which is what dosesForPhase() below does.                                */
+function rowFor(d, dose, wt){
       var r = renderDose(dose, wt);
       /* ADDITIVE FIELDS for the table view. `ind` is unchanged and still
          carries the whole supporting line, so every existing consumer of this
@@ -845,8 +854,68 @@ function visibleDrugsInGroup(groupId, wt){
                   figure the weight and let the unit sit back. */
                doseNum:ruleNum, doseUnit:ruleUnit,
                warn:d.warn, severity:d.severity, hi:d.hi,
+               /* Wires, not values, exactly like `duration` above. A dosing
+                  INTERVAL is a clinical fact that only a reviewed source can
+                  supply — "re-dose every 20-30 min" is not derivable from an
+                  intubating dose, and nothing here derives one. `phase` is
+                  the dose's own declaration of which part of the anaesthetic
+                  it belongs to, carried through so a consumer can show it. */
+               interval:(dose.interval || ''),
+               phase:(dose.phase || ''),
                pclass:classOf(d), badge:classBadge(classOf(d)) };
-    });
+}
+
+function visibleDrugsInGroup(groupId, wt){
+  return DRUGS.filter(function(d){ return d.group === groupId && isPublishable(d) && d.doses && d.doses.length; })
+    .map(function(d){ return rowFor(d, d.doses[0], wt); });
+}
+
+/* ── WHICH PART OF THE ANAESTHETIC A DOSE BELONGS TO ──────────────────────
+   PHASE 4A, SCHEMA ONLY. A dose may declare `phase`. It is OPTIONAL and
+   ADDITIVE: no record carries one today, every existing consumer ignores it,
+   and nothing infers it.
+
+   THE POINT IS THE ABSENCE OF A FALLBACK. Asking for the maintenance dose of
+   a drug that has only an intubating dose returns NOTHING — not the
+   intubating dose relabelled, not a derived one, not the first dose in the
+   list. Propofol's induction bolus can therefore never be presented as a
+   maintenance infusion, and rocuronium's intubating dose can never be
+   presented as a re-dose, because there is no code path that would let them.
+
+   These phases are the vocabulary the model will accept when reviewed records
+   arrive. Declaring the vocabulary is not the same as having the data: today
+   maintenanceCoverage() reports zero for every group, and the suite asserts
+   it, so the gap is measured rather than assumed.                          */
+var PHASES = { INDUCTION:'induction', MAINTENANCE:'maintenance',
+               REDOSE:'redose', REVERSAL:'reversal' };
+
+function dosesForPhase(d, phase){
+  if (!d || !d.doses || !phase) return [];
+  return d.doses.filter(function(x){ return x.phase === phase; });
+}
+
+/* Publishable drugs in a group that carry a dose for this phase. Returns []
+   when none do — which is every group, today. */
+function visibleInGroupForPhase(groupId, wt, phase){
+  var out = [];
+  DRUGS.forEach(function(d){
+    if (d.group !== groupId || !isPublishable(d)) return;
+    dosesForPhase(d, phase).forEach(function(dose){ out.push(rowFor(d, dose, wt)); });
+  });
+  return out;
+}
+
+/* What the model actually holds for a phase, per group. This is the gap
+   report: a domain built on it renders what exists and says nothing about
+   what does not. */
+function phaseCoverage(phase){
+  var out = {};
+  GROUPS.forEach(function(g){
+    var pub = DRUGS.filter(function(d){ return d.group === g.id && isPublishable(d); });
+    out[g.id] = { publishable:pub.length,
+                  withPhase:pub.filter(function(d){ return dosesForPhase(d, phase).length; }).length };
+  });
+  return out;
 }
 function byId(id){
   for (var i=0;i<DRUGS.length;i++) if (DRUGS[i].id === id) return DRUGS[i];
@@ -865,6 +934,12 @@ global.ClinicalContent = {
   search:search, grouped:grouped, byId:byId, indexEntry:indexEntry,
   visibleDrugsInGroup:visibleDrugsInGroup, isPublishable:isPublishable,
   renderDose:renderDose, norm:norm,
+  /* PHASE 4A — schema and selectors only. No record declares a phase yet, so
+     visibleInGroupForPhase() returns [] for every group and phaseCoverage()
+     reports zero. Both are here so the Maintenance domain can be built
+     against a model that cannot fall back to the wrong dose. */
+  PHASES:PHASES, dosesForPhase:dosesForPhase,
+  visibleInGroupForPhase:visibleInGroupForPhase, phaseCoverage:phaseCoverage,
   stats:function(){
     var pub = DRUGS.filter(isPublishable).length;
     return { drugs:DRUGS.length, published:pub, unpublished:DRUGS.length - pub,
