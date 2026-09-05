@@ -734,7 +734,7 @@
    "warn": "Chest-wall rigidity with rapid large boluses.",
    "severity": "caution",
    "interval": "",
-   "phase": "induction",
+   "phase": "",
    "pclass": "opioid",
    "badge": "<span class=\"pc\" data-pc=\"opioid\" style=\"--pc:#6BB6FF\">OPIOID</span>"
   },
@@ -805,7 +805,7 @@
    "warn": "Chest-wall rigidity with rapid large boluses.",
    "severity": "caution",
    "interval": "",
-   "phase": "induction",
+   "phase": "",
    "pclass": "opioid",
    "badge": "<span class=\"pc\" data-pc=\"opioid\" style=\"--pc:#6BB6FF\">OPIOID</span>"
   },
@@ -876,7 +876,7 @@
    "warn": "Chest-wall rigidity with rapid large boluses.",
    "severity": "caution",
    "interval": "",
-   "phase": "induction",
+   "phase": "",
    "pclass": "opioid",
    "badge": "<span class=\"pc\" data-pc=\"opioid\" style=\"--pc:#6BB6FF\">OPIOID</span>"
   },
@@ -947,7 +947,7 @@
    "warn": "Chest-wall rigidity with rapid large boluses.",
    "severity": "caution",
    "interval": "",
-   "phase": "induction",
+   "phase": "",
    "pclass": "opioid",
    "badge": "<span class=\"pc\" data-pc=\"opioid\" style=\"--pc:#6BB6FF\">OPIOID</span>"
   },
@@ -1018,7 +1018,7 @@
    "warn": "Chest-wall rigidity with rapid large boluses.",
    "severity": "caution",
    "interval": "",
-   "phase": "induction",
+   "phase": "",
    "pclass": "opioid",
    "badge": "<span class=\"pc\" data-pc=\"opioid\" style=\"--pc:#6BB6FF\">OPIOID</span>"
   },

@@ -331,21 +331,21 @@ var DRUGS = [
   klass:'Synthetic opioid',
   indications:['analgesia','obtunding laryngoscopy response'],
   doses:[
-    /* CLASSIFIED, NOT CERTIFIED. This is the shipped adult record, value
-       untouched. It gains populationClass:'A' and phase, and it keeps
-       evidence.state 'existing-unchanged' — it has NOT been reviewed against
-       a primary source, because the label expresses adult anaesthesia dosing
-       as 50–100 mcg initiation and low/moderate/high total categories rather
-       than a clean per-kg induction range. Reconciling that is its own task.
-       The classification exists for one reason: without it, the record is
-       unclassified, and an unclassified record is eligible for everyone. A
-       three-year-old would have been shown this adult rule scaled down at the
-       same moment the reviewed paediatric record below appeared beside it.
-       Classification prevents the leak; it does not bless the number. */
-    { label:'Peri-induction analgesia', route:'IV', phase:'induction',
+    /* THE SHIPPED ADULT RECORD, UNTOUCHED — NOT EVEN CLASSIFIED.
+       An earlier cut gave this populationClass:'A' to keep it away from
+       children. That was the wrong instrument: 'A' means a reviewed source
+       establishes the value for adults, and no source has been read for this
+       one. The label expresses adult anaesthesia dosing as 50–100 mcg
+       initiation and low/moderate/high total categories rather than a per-kg
+       induction range, which is exactly why it is still awaiting review.
+       Writing 'A' would have made an unreviewed number report itself as
+       source-backed.
+       It carries population:'adult' and its drug is existing-unchanged, so
+       the legacy compatibility rule admits it for adults and withholds it
+       from children — eligibility without a claim. */
+    { label:'Peri-induction analgesia', route:'IV',
       low:1, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
-      population:'adult', populationClass:'A',
-      evidence:{ state:'existing-unchanged' } },
+      population:'adult' },
     /* REVIEWED 3/11 */
     { label:'Induction and maintenance', route:'IV', phase:'induction',
       low:2, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
@@ -378,18 +378,18 @@ var DRUGS = [
   klass:'Ultra-short-acting synthetic opioid',
   indications:['TIVA','infusion analgesia'],
   doses:[
-    /* THE LEGACY RECORD, VALUE AND LABEL UNTOUCHED, AND DELIBERATELY GIVEN NO
-       PHASE. Its context has never been stated: the record says "Infusion"
-       and nothing more, and the reviewed label's 0.025–0.2 figures belong to
+    /* THE LEGACY RECORD, UNTOUCHED, WITH NO PHASE AND NO CLASS.
+       Its context has never been stated: the record says "Infusion" and
+       nothing more, and the reviewed label's 0.025–0.2 figures belong to
        immediate postoperative analgesic continuation, not to induction. So it
-       must NOT answer phase:'induction' — and the way to guarantee that is to
-       leave `phase` absent, because dosesForPhase() filters on exact equality
-       and a record with no phase matches no phase at all.
-       It is classified 'A' for the same reason fentanyl's legacy record is:
-       to keep it away from children. It is not certified reviewed. */
+       must NOT answer phase:'induction' — and the guarantee is that `phase`
+       is absent, because dosesForPhase() filters on exact equality and a
+       record with no phase matches no phase at all.
+       No populationClass either, for the same reason as fentanyl above: the
+       class is an evidence claim and nothing has reviewed this. Legacy
+       compatibility admits it for adults and withholds it from children. */
     { label:'Infusion', route:'IV', low:0.05, high:0.2, unit:'mcg/kg/min',
-      type:'range', population:'adult', populationClass:'A',
-      evidence:{ state:'existing-unchanged' } },
+      type:'range', population:'adult' },
     /* REVIEWED 8/11 */
     { label:'Induction through intubation', route:'IV infusion', phase:'induction',
       low:0.5, high:1, unit:'mcg/kg/min', type:'range',
@@ -1320,39 +1320,48 @@ COVERAGE[WITHHELD.ASA]        = 'ASA required to match reviewed dose';
 COVERAGE[WITHHELD.PROFILE]    = 'Reviewed dose not available for this patient profile';
 COVERAGE[WITHHELD.UNPUBLISHED]= 'Dose not reviewed';
 
-/* THE LEVER IS THROWN. Until the reviewed records existed, an unclassified
-   dose had to stay eligible or the paediatric toolbox would have emptied with
-   nothing to replace it. The reviewed records exist now, so it flips here, in
-   the same commit — not before, or the application spends the gap showing
-   nothing, and not after, or it spends the gap showing scaled adult numbers
-   beside reviewed paediatric ones.                                          */
-var UNCLASSIFIED_ELIGIBLE = false;
+/* ── THREE SEPARATE THINGS, AND THEY MUST NOT COLLAPSE ────────────────────
+   An earlier cut of this migration read population:'adult' on a legacy record
+   and treated it as populationClass 'A'. That was wrong, and wrong in the
+   direction that matters: it made the model claim evidence it does not have.
 
-/* ── AND EVERY LEGACY RECORD IS COVERED BEFORE IT IS ────────────────────────
-   Throwing the lever without this would blank six shipped drugs for EVERY
-   patient — midazolam, morphine, dexmedetomidine, both sugammadex records and
-   neostigmine — because none of them carries populationClass and two of them
-   are held for their own reviewed migrations and must not be edited here.
-   A reversal drug that shows no dose to anyone is a worse defect than the one
-   being fixed.
+     1  population        metadata. "this record was entered as adult."
+     2  populationClass   EVIDENCE. "a reviewed source establishes this for
+                          adults" — A/B/C/D/E, and nothing else may set it.
+     3  eligibility       whether THIS patient may see THIS dose.
 
-   So an unclassified dose falls back to the population it already declares.
-   This is not a new clinical claim and nothing is inferred: `population` is an
-   existing field, present on all 32 publishable doses, written when the
-   records were migrated, and it states who the dose was recorded for. Reading
-   it is strictly safer than ignoring it — 'adult' becomes A and is withheld
-   from children, which is the direction that matters.
+   Legacy records carry 1 and not 2. They are not category A: nobody reviewed
+   them; they were typed in. Synthesising a class from metadata would mean a
+   record that never met a source reporting itself as source-backed, and every
+   later question — what is reviewed, what still needs review, what may be
+   published — would get the wrong answer from then on.
 
-   IT IS A FLOOR, NOT A CERTIFICATION. A derived class says who a dose may
-   reach; it says nothing about whether the value was reviewed, and it never
-   promotes evidence.state. A record with neither populationClass nor
-   population is withheld from everyone — today there is none.               */
-function effectiveClass(dose){
-  if (!dose) return null;
-  if (dose.populationClass) return dose.populationClass;
-  if (dose.population === 'adult') return POPCLASS.ADULT;
-  if (dose.population === 'paediatric') return POPCLASS.PAEDIATRIC;
-  return null;
+   So 1 is allowed to decide 3, and is never allowed to become 2.
+
+   ── LEGACY COMPATIBILITY: ADMISSION ONLY ──────────────────────────────────
+   A dose with no populationClass, on a drug whose provenance says
+   existing-unchanged, and declaring an explicit population, is admitted for
+   that population and withheld from the other. That is the whole rule. It
+   grants no class, promotes no state, and adds no field: nothing is written
+   back to the record, and CC.DRUGS after this call is byte-identical to
+   CC.DRUGS before it.
+
+   What it buys is the thing that actually mattered — midazolam, morphine,
+   dexmedetomidine, the two sugammadex records and neostigmine keep rendering
+   for the adults they were entered for, and disappear from a child's screen,
+   without a single held record being edited to make it happen.
+
+   A dose with no class and no usable legacy population is withheld from
+   everyone. There is no path here that admits a dose we cannot place.       */
+function legacyAdmission(drug, dose, pop){
+  var st = drug && drug.provenance && drug.provenance.state;
+  if (st !== 'existing-unchanged') return { eligible:false, reason:WITHHELD.UNPUBLISHED };
+  if (!pop) return { eligible:true };             /* no patient — see patientPopulation */
+  if (dose.population === 'adult')
+    return pop.adult ? { eligible:true } : { eligible:false, reason:WITHHELD.PAEDIATRIC };
+  if (dose.population === 'paediatric')
+    return pop.pediatric ? { eligible:true } : { eligible:false, reason:WITHHELD.ADULT };
+  return { eligible:false, reason:WITHHELD.UNPUBLISHED };
 }
 
 /* ── IS THIS DOSE ELIGIBLE FOR THIS PATIENT ───────────────────────────────
@@ -1366,10 +1375,10 @@ function effectiveClass(dose){
    A later stage never rescues an earlier one and no stage substitutes
    anything. Returns { eligible:true } or { eligible:false, reason }, and
    never a dose, a number or an alternative.                                 */
-function doseEligibility(dose, pop){
-  var k = effectiveClass(dose);
-  if (!k) return UNCLASSIFIED_ELIGIBLE ? { eligible:true }
-                                       : { eligible:false, reason:WITHHELD.UNPUBLISHED };
+function doseEligibility(dose, pop, drug){
+  var k = dose && dose.populationClass;
+  /* NO CLASS — the legacy path, which admits and never classifies. */
+  if (!k) return legacyAdmission(drug, dose || {}, pop);
   if (k === POPCLASS.UNSPECIFIED) return { eligible:false, reason:WITHHELD.UNPUBLISHED };
   /* 2 — POPULATION */
   if (pop){
@@ -1486,7 +1495,7 @@ function visibleDosesInGroup(groupId, wt, pop, phase, route){
     if (!publishable.length) return;              /* nothing reviewed: not a coverage state */
     var shown = 0, reason = null;
     publishable.forEach(function(dose){
-      var e = doseEligibility(dose, pop);
+      var e = doseEligibility(dose, pop, d);
       if (e.eligible){ out.push(rowFor(d, dose, wt)); shown++; }
       else if (!reason) reason = e.reason;
     });
@@ -1524,7 +1533,7 @@ global.ClinicalContent = {
      never reached. The gate is built, wired and tested before it holds
      anything, which is the only order in which it can be proved inert. */
   POPCLASS:POPCLASS, WITHHELD:WITHHELD, COVERAGE:COVERAGE,
-  UNCLASSIFIED_ELIGIBLE:UNCLASSIFIED_ELIGIBLE, effectiveClass:effectiveClass,
+  legacyAdmission:legacyAdmission,
   AGE_FAMILY:AGE_FAMILY, compareAge:compareAge,
   meetsApplicability:meetsApplicability, applicabilityFailure:applicabilityFailure,
   inAgeBand:inAgeBand, patientPopulation:patientPopulation,

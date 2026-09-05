@@ -3620,7 +3620,7 @@ function drefDetail(inst, id){
      an eligible record and a withheld one side by side. */
   var doses = (src.doses || []).filter(function(x){ return CC.isDosePublishable(src, x); });
   doses.forEach(function(dose){
-    var e = CC.doseEligibility(dose, pop);
+    var e = CC.doseEligibility(dose, pop, src);
     if(!e.eligible){
       /* renderDose is not called on this branch. */
       f(dose.label || 'Dose', '<span class="ddet-cov">'+

@@ -174,8 +174,14 @@ t('...at exactly 0.05-0.2 mcg/kg/min, unchanged',
   remi.doses[0].low === 0.05 && remi.doses[0].high === 0.2 &&
   remi.doses[0].unit === 'mcg/kg/min' && remi.doses[0].label === 'Infusion',
   remi.doses[0]);
-t('...still uncertified, and still declaring no phase',
-  remi.doses[0].evidence.state === 'existing-unchanged' &&
+/* NOT EVEN CLASSIFIED. An earlier cut gave this record populationClass 'A'
+   and a dose-level evidence block reading existing-unchanged. Both were
+   removed: the class is an evidence claim and nothing has reviewed this
+   value, so it carries neither, and the legacy compatibility rule keeps it
+   away from children without asserting anything about it. */
+t('...still uncertified, unclassified, and declaring no phase',
+  remi.doses[0].evidence === undefined &&
+  remi.doses[0].populationClass === undefined &&
   remi.doses[0].phase === undefined);
 t('...it is not duplicated anywhere in the dataset',
   CC.DRUGS.filter(d => /remifentanil/i.test(d.name)).length === 1);
@@ -764,21 +770,106 @@ t('no render path still reads doses[0]',
   !/doses\s*&&\s*src\.doses\[0\]/.test(ENGC) && !/\.doses\[0\]/.test(code(read('induction.js'))));
 
 /* ── THE LEVER IS DECLARED, AND ITS CURRENT VALUE IS STATED ─────────────*/
-t('THE LEVER IS THROWN', CC.UNCLASSIFIED_ELIGIBLE === false);
-t('...and every publishable dose still resolves to a class, so nothing is '+
-  'blanked for everyone',
-  CC.DRUGS.filter(CC.isPublishable).every(d =>
-    (d.doses||[]).every(x => !!CC.effectiveClass(x))));
-t('...derived from the population the record already declares',
-  CC.effectiveClass({ population:'adult' }) === 'A' &&
-  CC.effectiveClass({ population:'paediatric' }) === 'B' &&
-  CC.effectiveClass({}) === null);
-t('...and an explicit class always wins over the derivation',
-  CC.effectiveClass({ population:'adult', populationClass:'D' }) === 'D');
-t('...while derivation NEVER promotes evidence',
-  CC.isDosePublishable(CC.byId('drug.midazolam'), CC.byId('drug.midazolam').doses[0]) === true &&
-  CC.byId('drug.midazolam').doses[0].evidence === undefined,
-  'a derived class is a floor on reach, not a certification');
+/* ── LEGACY COMPATIBILITY: ADMISSION WITHOUT A CLAIM ─────────────────────
+   THREE THINGS, AND THEY MUST NOT COLLAPSE INTO ONE:
+     population       metadata — "entered as adult"
+     populationClass  EVIDENCE — "a reviewed source establishes this"
+     eligibility      whether THIS patient may see THIS dose
+
+   An earlier cut derived class A from population 'adult'. That made an
+   unreviewed record report itself as source-backed, and every later question
+   about what is reviewed would have got the wrong answer. Metadata may decide
+   eligibility; it may never become evidence. */
+console.log('\n14b. LEGACY COMPATIBILITY');
+
+const legacyAdultDrug = { provenance:{ state:'existing-unchanged' } };
+const legacyAdultDose = { population:'adult' };
+const legacyPaedDose  = { population:'paediatric' };
+const elg = (dose, pop, drug) => CC.doseEligibility(dose, pop, drug || legacyAdultDrug);
+
+t('1  legacy existing-unchanged adult record, adult patient → ELIGIBLE',
+  elg(legacyAdultDose, ADULT).eligible === true);
+t('2  ...the same record, paediatric patient → WITHHELD',
+  elg(legacyAdultDose, CHILD).eligible === false &&
+  elg(legacyAdultDose, CHILD).reason === CC.WITHHELD.PAEDIATRIC);
+t('3  legacy paediatric record, child → ELIGIBLE',
+  elg(legacyPaedDose, CHILD).eligible === true);
+t('4  ...the same record, adult → WITHHELD',
+  elg(legacyPaedDose, ADULT).eligible === false &&
+  elg(legacyPaedDose, ADULT).reason === CC.WITHHELD.ADULT);
+t('5  unclassified record with NO explicit population → WITHHELD for everyone',
+  elg({}, ADULT).eligible === false && elg({}, CHILD).eligible === false &&
+  elg({ population:'unspecified' }, ADULT).eligible === false);
+t('...and an unclassified record on a NON-legacy drug is withheld too',
+  CC.doseEligibility(legacyAdultDose, ADULT,
+    { provenance:{ state:'proposed-unverified' } }).eligible === false,
+  'compatibility is for shipped records, not a general escape hatch');
+
+/* 6–10: the reviewed classes are unaffected by any of the above. */
+t('6  reviewed class A → adult only',
+  elg({ populationClass:'A' }, ADULT).eligible && !elg({ populationClass:'A' }, CHILD).eligible);
+t('7  reviewed class B → paediatric only',
+  elg({ populationClass:'B' }, CHILD).eligible && !elg({ populationClass:'B' }, ADULT).eligible);
+t('8  reviewed class C → the exact band, and nothing outside it', (() => {
+  const d = { populationClass:'C',
+    ageBand:{ min:{ value:3, unit:'years', inclusive:true },
+              max:{ value:16, unit:'years', inclusive:true } } };
+  return elg(d, P(true, yrs(3))).eligible && elg(d, P(true, yrs(16.9))).eligible &&
+         !elg(d, P(true, yrs(2))).eligible && !elg(d, P(true, yrs(17))).eligible &&
+         !elg(d, ADULT).eligible;
+})());
+t('9  reviewed class D → both populations, one record',
+  elg({ populationClass:'D' }, ADULT).eligible && elg({ populationClass:'D' }, CHILD).eligible);
+t('10 class E → never renders, for anyone',
+  !elg({ populationClass:'E' }, ADULT).eligible &&
+  !elg({ populationClass:'E' }, CHILD).eligible &&
+  !elg({ populationClass:'E' }, null).eligible);
+
+/* 11–13: the compatibility layer writes nothing back, ever. */
+const beforeLegacy = JSON.stringify(CC.DRUGS.map(d =>
+  (d.doses||[]).map(x => [x.populationClass, x.population, x.evidence && x.evidence.state])));
+['induction','analgesia','nmb','reversal'].forEach(g =>
+  [ADULT, CHILD, BABY, NOAGE].forEach(p => CC.visibleDosesInGroup(g, 70, p)));
+t('11 legacy compatibility does NOT populate or mutate populationClass',
+  JSON.stringify(CC.DRUGS.map(d =>
+    (d.doses||[]).map(x => [x.populationClass, x.population, x.evidence && x.evidence.state])))
+    === beforeLegacy,
+  'the dataset is byte-identical after every eligibility call');
+t('...and exactly 11 doses carry a populationClass — the reviewed ones',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 11);
+t('12 legacy compatibility does NOT change provenance.state',
+  CC.DRUGS.filter(CC.isPublishable).every(d => d.provenance.state === 'existing-unchanged'));
+t('13 NO existing-unchanged record became reviewed',
+  CC.DRUGS.every(d => (d.doses||[]).every(x =>
+    !x.evidence || x.evidence.state !== 'reviewed' || !!x.populationClass)) &&
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[])
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 11);
+t('...and dose-level evidence exists ONLY on the 11 reviewed records',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 11);
+
+/* THE NAMED HELD RECORDS, EXERCISED THROUGH THE REAL SELECTOR. */
+[['drug.midazolam','induction'], ['drug.dexmedetomidine','induction'],
+ ['drug.morphine','analgesia'], ['drug.remifentanil','analgesia']].forEach(([id, g]) => {
+  const nm = CC.byId(id).name;
+  t('  ' + nm.padEnd(18) + ' adult → renders under legacy compatibility',
+    CC.visibleDosesInGroup(g, 70, ADULT).some(r => r.id === id && !r.withheld));
+  t('  ' + nm.padEnd(18) + ' child → withheld, no number',
+    CC.visibleDosesInGroup(g, 15, CHILD).filter(r => r.id === id)
+      .every(r => r.withheld && r.val === ''));
+  /* Remifentanil also holds two REVIEWED records, which carry a class
+     legitimately. What must carry none is the legacy dose — the one with no
+     evidence block behind it. */
+  t('  ' + nm.padEnd(18) + ' ...and its legacy dose carries no fabricated class',
+    (CC.byId(id).doses||[]).filter(x => !x.evidence)
+      .every(x => x.populationClass === undefined));
+});
+t('the reversal group still renders in full for an adult',
+  CC.visibleDosesInGroup('reversal', 70, ADULT).length === 3 &&
+  CC.visibleDosesInGroup('reversal', 70, ADULT).every(r => !r.withheld));
+t('...and is withheld in full from a child, with no class invented',
+  CC.visibleDosesInGroup('reversal', 15, CHILD).every(r => r.withheld) &&
+  ['drug.sugammadex','drug.sugammadex-immediate','drug.neostigmine'].every(id =>
+    (CC.byId(id).doses||[]).every(x => x.populationClass === undefined)));
 
 /* ── THE TIER 1 MIGRATION ────────────────────────────────────────────────*/
 console.log('\n15. TIER 1 REVIEWED RECORDS');
@@ -843,9 +934,17 @@ t('fentanyl: THE LEGACY ADULT 1–3 NEVER CO-RENDERS FOR A CHILD',
   !fRows(15,CHILD).some(r => r.doseNum === '1–3'));
 t('fentanyl adult: still sees the legacy adult record',
   fRows(70,ADULT).some(r => r.doseNum === '1–3'));
-t('fentanyl adult record is CLASSIFIED but NOT certified',
-  CC.byId('drug.fentanyl').doses[0].populationClass === 'A' &&
-  CC.byId('drug.fentanyl').doses[0].evidence.state === 'existing-unchanged');
+/* NEITHER CLASSIFIED NOR CERTIFIED. The legacy adult record keeps exactly
+   the shape it shipped with: a population, and nothing else. It is kept out
+   of children by the compatibility rule, not by a class it did not earn. */
+t('fentanyl adult record is neither classified nor certified',
+  CC.byId('drug.fentanyl').doses[0].populationClass === undefined &&
+  CC.byId('drug.fentanyl').doses[0].evidence === undefined &&
+  CC.byId('drug.fentanyl').doses[0].population === 'adult' &&
+  CC.byId('drug.fentanyl').doses[0].phase === undefined);
+t('...and its value is untouched',
+  CC.byId('drug.fentanyl').doses[0].low === 1 &&
+  CC.byId('drug.fentanyl').doses[0].high === 3);
 
 /* ROCURONIUM */
 const rocR = CC.byId('drug.rocuronium');
