@@ -2100,6 +2100,85 @@ body .nb-search-wrap{display:none !important;}
   background:linear-gradient(180deg,rgba(126,207,192,.055),rgba(255,255,255,.014));
   border:1px solid rgba(126,207,192,.20);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.04);}
+/* ── THE PATIENT BAR ─────────────────────────────────────────────────────
+   One row of labelled facts, the value on top and its caption under it, the
+   way a monitor labels a channel. It replaced a two-line block whose first
+   line said "CURRENT CASE" — a heading that told the reader nothing they
+   could not see, above a sentence of values divided by pipes. */
+/* ── ONE HEADER ROW ──────────────────────────────────────────────────────
+   The identity, the domains and the two global controls were three stacked
+   bands — brand row, sticky domain row, then a full-width notice — and
+   together with the case block they cost about 390px before the first
+   clinical panel. The screenshot's cockpit gives that space to the case.
+
+   The domain nav is INSIDE the header row now. It is the same nav, the same
+   links, the same handlers and the same folding behaviour; only its position
+   changed, so "where am I in the case" reads across one line with the brand
+   at one end and search and emergency at the other. */
+.eng-wrap .ws-id{position:sticky;top:0;z-index:60;}
+.eng-wrap .ws-id-in{display:flex;align-items:center;gap:14px;min-height:52px;
+  padding-top:0;padding-bottom:0;flex-wrap:nowrap;}
+.eng-wrap .ws-id .cmd{position:static;margin:0;flex:1 1 auto;min-width:0;
+  border:0;background:transparent;box-shadow:none;padding:0;}
+.eng-wrap .ws-id .cmd-in{padding:0;gap:2px;flex-wrap:nowrap;overflow:hidden;}
+.eng-wrap .ws-id .cmd-b{padding:6px 10px;font-size:12.5px;white-space:nowrap;}
+.eng-wrap .ws-id-tx{line-height:1.05;}
+.eng-wrap .ws-id-brand{font-size:15px;}
+.eng-wrap .ws-id-tool{font-size:9px;letter-spacing:.16em;}
+/* THE NOTICE MOVED TO THE FOOT OF THE DRUG REFERENCE, where the doses it
+   qualifies actually are. A disclaimer above the fold is a band a clinician
+   scrolls past once and never reads again; under the table it sits with the
+   numbers it is about. Every word of it is still in the document. */
+.eng-wrap .eng-notice{display:none;}
+/* NO LARGE OUTER GUTTERS. The wrap was capped at 1400px inside a 1536px
+   viewport and padded 24px each side, so 86px of empty ground ran down the
+   outside of a cockpit whose whole problem was empty ground. The cockpit
+   uses the width it is given. */
+.eng-wrap{max-width:none;padding-left:14px;padding-right:14px;padding-top:14px;}
+/* WIDE SCREENS ONLY. Unscoped, `.eng-wrap .ws-grid` out-specified the
+   phone's single-column rule and stacked the timers, the workspace and the
+   crisis rail into three 186/1fr/324 columns on a 390px screen. */
+@media (min-width:1181px){
+  .eng-wrap .ws-grid{grid-template-columns:186px minmax(0,1fr) 324px;gap:12px;}
+}
+/* THE FACTS WRAP RATHER THAN RUN OFF. On a phone the row becomes two or three
+   lines of labelled cells instead of one line six cells long, and the
+   dividers go with the wrap so a wrapped cell does not start with a rule. */
+@media (max-width:900px){
+  .case-state.on{flex-wrap:wrap;gap:4px 0;}
+  .case-f{padding-right:8px;margin-right:8px;}
+  .case-f b{font-size:13.5px;}
+  .case-f i{font-size:8.5px;letter-spacing:.08em;}
+  .case-ico{width:24px;height:24px;margin-right:8px;}
+  .case-ico svg{width:14px;height:14px;}
+  .case-f.wide{flex:1 1 100%;border-right:0;margin-right:0;padding-right:0;}
+  .case-f.wide b{font-size:12.5px;}
+}
+@media (max-width:430px){
+  .case-f b{font-size:12.5px;}
+  .case-f{padding-right:7px;margin-right:7px;}
+}
+/* ONLY THE BANDS THAT MOVED. An earlier line here hid every .cw-acc, which
+   took the PATIENT ENTRY FORM with it and left no way to start a case at
+   all. Two specific ones go: the identity accordion, which holds no clinical
+   value and no calculation, and the derived band, whose numbers are the
+   Paediatric context section in the centre now. #acc-patient stays. */
+.eng-wrap details.cw-acc{display:none;}
+.eng-wrap #acc-derived{display:none;}
+.case-ico{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:grid;
+  place-items:center;color:var(--accent,#7ECFC0);background:rgba(126,207,192,.10);
+  border:1px solid rgba(126,207,192,.22);}
+.case-ico svg{width:17px;height:17px;}
+.case-f{flex:0 0 auto;display:flex;flex-direction:column;gap:1px;min-width:0;
+  padding-right:14px;margin-right:14px;border-right:1px solid var(--hair,rgba(255,255,255,.07));}
+.case-f:last-of-type{border-right:0;margin-right:0;padding-right:0;}
+.case-f b{font-size:16px;font-weight:750;line-height:1.15;color:var(--ink,#e8eef1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.case-f i{font-style:normal;font-size:9.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--hint,#66757f);}
+.case-f.wide{min-width:0;flex:1 1 auto;}
+.case-f.wide b{font-size:15px;}
+.case-state.on{flex-direction:row;align-items:center;gap:0;}
 .case-state{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px;
   align-items:flex-start;text-align:left;}
 /* the label, at label size */
@@ -2221,6 +2300,49 @@ body .nb-search-wrap{display:none !important;}
             <span class="ws-id-tool">Live Tools</span>
           </span>
         </a>
+    <!-- ── CLINICAL DOMAIN NAVIGATION ───────────────────────────────────
+             The workstation's global navigation, and now ONLY that: search and
+             emergency moved up into the header, so a row that reads as "where am
+             I in the case" is not also carrying two controls that are not
+             domains. Sticky, so the domains stay reachable from anywhere in the
+             document instead of requiring a scroll back to the top.
+
+             Every entry below resolves to a workspace that actually renders
+             panels. Nothing is listed here to match a picture. -->
+        <nav class="cmd" id="cmd-strip" aria-label="Clinical domains">
+          <div class="cmd-in" role="tablist">
+            <!-- THE ORDER OF A CASE, not a list of equipment categories.
+                 Induction is first and is the default workspace. The last four
+                 are lower-frequency and fold into More when width requires it. -->
+            <a class="cmd-b" href="#/induction"   data-jump="airway-tubes"      data-domain="induction">Induction</a>
+            <a class="cmd-b" href="#/maintenance" data-jump="ventilation"       data-domain="maintenance">Maintenance</a>
+            <a class="cmd-b" href="#/tiva"        data-jump="tiva-tci-sedation" data-domain="tiva">TIVA / TCI</a>
+            <a class="cmd-b" href="#/analgesia"   data-jump="analgesia"         data-domain="analgesia">Analgesia</a>
+            <a class="cmd-b" href="#/reversal"    data-jump="reversal-end-case" data-domain="reversal">Reversal</a>
+            <a class="cmd-b" href="#/fluids"      data-jump="fluids-blood"      data-domain="fluids">Fluids</a>
+            <a class="cmd-b" href="#/vasopressors" data-jump="vasopressors"     data-domain="vasopressors">Vasopressors</a>
+            <a class="cmd-b cmd-fold" href="#/local"  data-jump="regional"      data-domain="local">Local anaesthetics</a>
+            <a class="cmd-b cmd-fold" href="#/drugs"  data-jump="drug-reference" data-domain="drugs">Drug reference</a>
+            <a class="cmd-b cmd-fold" href="#/scores" data-jump="risk-scores"   data-domain="scores">Scores</a>
+            <!-- More reveals the folded tabs rather than hiding them behind a
+                 route: every domain stays one click away at every width. -->
+            <button class="cmd-b cmd-more" type="button" onclick="cmdMore(this)"
+                    aria-expanded="false">More &#9662;</button>
+            <!-- The emergency WORKSPACE is a domain like the others and is
+                 selected like the others. The loud Emergency ACTION lives in the
+                 header, where it is reachable without scrolling this strip. -->
+            <a class="cmd-b cmd-fold" href="#/emergency" data-jump="crisis-center"
+               data-domain="emergency">Crisis Center</a>
+          </div>
+          <!-- SOS. Below 1180px the Crisis rail withdraws, so this is the route to
+               a protocol at those widths. It was a floating action button, which
+               put a permanent red circle over whatever clinical control happened
+               to be under it. It is docked in the strip instead — the strip is
+               genuinely sticky now, so this is on screen at every scroll position
+               without ever covering anything. -->
+          <button type="button" class="ws-sos" id="ws-sos" onclick="crisisSOS()"
+                  aria-label="Open Crisis Center"><span aria-hidden="true">&#9888;</span>SOS</button>
+        </nav>
         <!-- SAME HANDLERS, MOVED. Search still opens clinical-search.js and
              Emergency still calls crisisJump(); only their position changes,
              so that the strip below is domains and nothing else. -->
@@ -2238,49 +2360,6 @@ body .nb-search-wrap{display:none !important;}
       </div>
     </header>
 
-    <!-- ── CLINICAL DOMAIN NAVIGATION ───────────────────────────────────
-         The workstation's global navigation, and now ONLY that: search and
-         emergency moved up into the header, so a row that reads as "where am
-         I in the case" is not also carrying two controls that are not
-         domains. Sticky, so the domains stay reachable from anywhere in the
-         document instead of requiring a scroll back to the top.
-
-         Every entry below resolves to a workspace that actually renders
-         panels. Nothing is listed here to match a picture. -->
-    <nav class="cmd" id="cmd-strip" aria-label="Clinical domains">
-      <div class="cmd-in" role="tablist">
-        <!-- THE ORDER OF A CASE, not a list of equipment categories.
-             Induction is first and is the default workspace. The last four
-             are lower-frequency and fold into More when width requires it. -->
-        <a class="cmd-b" href="#/induction"   data-jump="airway-tubes"      data-domain="induction">Induction</a>
-        <a class="cmd-b" href="#/maintenance" data-jump="ventilation"       data-domain="maintenance">Maintenance</a>
-        <a class="cmd-b" href="#/tiva"        data-jump="tiva-tci-sedation" data-domain="tiva">TIVA / TCI</a>
-        <a class="cmd-b" href="#/analgesia"   data-jump="analgesia"         data-domain="analgesia">Analgesia</a>
-        <a class="cmd-b" href="#/reversal"    data-jump="reversal-end-case" data-domain="reversal">Reversal</a>
-        <a class="cmd-b" href="#/fluids"      data-jump="fluids-blood"      data-domain="fluids">Fluids</a>
-        <a class="cmd-b" href="#/vasopressors" data-jump="vasopressors"     data-domain="vasopressors">Vasopressors</a>
-        <a class="cmd-b cmd-fold" href="#/local"  data-jump="regional"      data-domain="local">Local anaesthetics</a>
-        <a class="cmd-b cmd-fold" href="#/drugs"  data-jump="drug-reference" data-domain="drugs">Drug reference</a>
-        <a class="cmd-b cmd-fold" href="#/scores" data-jump="risk-scores"   data-domain="scores">Scores</a>
-        <!-- More reveals the folded tabs rather than hiding them behind a
-             route: every domain stays one click away at every width. -->
-        <button class="cmd-b cmd-more" type="button" onclick="cmdMore(this)"
-                aria-expanded="false">More &#9662;</button>
-        <!-- The emergency WORKSPACE is a domain like the others and is
-             selected like the others. The loud Emergency ACTION lives in the
-             header, where it is reachable without scrolling this strip. -->
-        <a class="cmd-b cmd-fold" href="#/emergency" data-jump="crisis-center"
-           data-domain="emergency">Crisis Center</a>
-      </div>
-      <!-- SOS. Below 1180px the Crisis rail withdraws, so this is the route to
-           a protocol at those widths. It was a floating action button, which
-           put a permanent red circle over whatever clinical control happened
-           to be under it. It is docked in the strip instead — the strip is
-           genuinely sticky now, so this is on screen at every scroll position
-           without ever covering anything. -->
-      <button type="button" class="ws-sos" id="ws-sos" onclick="crisisSOS()"
-              aria-label="Open Crisis Center"><span aria-hidden="true">&#9888;</span>SOS</button>
-    </nav>
 
     <!-- WHO THIS IS FOR, SAID BEFORE ANYTHING IS CALCULATED.
          The page is now reachable without an account, so the sentence that
@@ -4685,16 +4764,38 @@ function ptSummary(){
     var o=e.options && e.options[e.selectedIndex];
     return (e.value!=='' && o) ? o.textContent.trim() : (e.value||null); }
   var age=v('i-age'), unit=ge('i-age-unit'), u=unit?unit.value:'y';
-  var bits=[];
-  if(age) bits.push(age + (u==='y'?'y':u==='mo'?'mo':u==='w'?'w':'d'));
-  var sex=txt('i-sex'); if(sex && sex!=='—') bits.push(sex);
+  var bits=[], facts=[];
+  /* EVERY FACT CARRIES ITS OWN LABEL. The bar used to read
+     "3y | Male | 15 kg | 96 cm | ASA II" — five values separated by pipes,
+     where only two of them say what they are. Age in months matters for a
+     three-year-old and the unit is not obvious from "3y"; a reader should
+     not have to know the order to know which number is the height. Each
+     fact is a labelled cell now, in the order the case is read in. */
+  if(age){
+    var yrs = (u==='y') ? +age : (u==='mo') ? +age/12 : (u==='w') ? +age*7/365 : +age/365;
+    var months = Math.round(yrs*12);
+    var aMain = (u==='y') ? (age + (+age===1 ? ' year' : ' years'))
+              : (u==='mo') ? (age + ' months') : (u==='w') ? (age + ' weeks')
+              : (age + ' days');
+    facts.push({ v:aMain, l:(u==='y' && yrs < 18) ? '('+months+' months)' : 'Age' });
+    bits.push(age + (u==='y'?'y':u==='mo'?'mo':u==='w'?'w':'d'));
+  }
+  var sex=txt('i-sex');
+  if(sex && sex!=='—'){
+    /* A three-year-old is a boy, not a male. The word follows the patient. */
+    var yv = facts.length ? parseFloat(facts[0].v) : null;
+    var child = (u==='y' && yv != null && yv < 16);
+    facts.push({ v: child ? (sex==='Male'?'Boy':sex==='Female'?'Girl':sex) : sex, l:'Sex' });
+    bits.push(sex);
+  }
   /* WEIGHT BEFORE HEIGHT. Almost every number on this page is derived from
      the weight; the height feeds the derived band and little else. It reads
      in the order it matters. */
-  var wt=v('i-weight'); if(wt) bits.push(wt+' kg');
-  var ht=v('i-height'); if(ht) bits.push(ht+' cm');
-  var asa=v('i-asa'); if(asa) bits.push('ASA '+asa);
-  var proc=txt('i-proc'); if(proc && proc!=='—') bits.push(proc);
+  var wt=v('i-weight'); if(wt){ facts.push({ v:wt+' kg', l:'Weight' }); bits.push(wt+' kg'); }
+  var ht=v('i-height'); if(ht){ facts.push({ v:ht+' cm', l:'Height' }); bits.push(ht+' cm'); }
+  var asa=v('i-asa'); if(asa){ facts.push({ v:'ASA '+asa, l:'Status' }); bits.push('ASA '+asa); }
+  var proc=txt('i-proc');
+  if(proc && proc!=='—'){ facts.push({ v:proc, l:'Procedure', wide:true }); bits.push(proc); }
   if(el) el.textContent = bits.length ? bits.join('  ·  ') : 'Enter patient details';
   var b=ge('pt-sum'); if(b) b.classList.toggle('empty', !bits.length);
   /* the case bar says whether a case is loaded, in the same words */
@@ -4715,12 +4816,20 @@ function ptSummary(){
        size. Run together at 10.5px with .12em tracking they were the same
        weight as each other and neither was legible at a glance. Same values,
        same order, same separator — only the hierarchy changes. */
-    cs.innerHTML = bits.length
-      ? '<span class="case-k">Current case</span>' +
-        '<span class="case-v">' + bits.map(function(x){
-            return '<b>' + String(x).replace(/[&<>]/g, function(c){
-              return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }) + '</b>';
-          }).join('<i>|</i>') + '</span>'
+    /* THE CASE IS A ROW OF LABELLED FACTS, not a sentence of pipes. The
+       patient icon anchors the left, then age, sex, weight, height, status
+       and procedure, each with its own caption underneath. */
+    function esc2(x){ return String(x).replace(/[&<>]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+    cs.innerHTML = facts.length
+      ? '<span class="case-ico" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+          'stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/>' +
+          '<path d="M4.8 20c.6-3.8 3.6-5.8 7.2-5.8s6.6 2 7.2 5.8"/></svg></span>' +
+        facts.map(function(f){
+          return '<span class="case-f' + (f.wide ? ' wide' : '') + '">' +
+            '<b>' + esc2(f.v) + '</b><i>' + esc2(f.l) + '</i></span>';
+        }).join('')
       : '<span class="case-k">No active patient</span>' +
         '<span class="case-v case-v-empty">Enter age, sex, height and weight</span>';
     cs.classList.toggle('on', !!bits.length);

@@ -595,7 +595,7 @@ async function openEngine(b, viewport) {
     const doseSnapshot = `(() => {
       const m = {};
       ${ind('.pl-role')}.forEach(r => {
-        const n = (r.querySelector('.tb-n') || {}).textContent;
+        const n = (r.querySelector('.tb-c-n') || {}).textContent;
         if (!n) return;
         m[r.dataset.role + ':' + n] =
           ((r.querySelector('.pl-rule')||{}).textContent||'') + '|' +
@@ -620,17 +620,23 @@ async function openEngine(b, viewport) {
       const host = document.getElementById('induction-host');
       return { titles: ${ind('.wf-sec .wf-t')}.map(n => n.textContent),
                nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent),
-               roles: ${ind('.tb-r.on')}.map(r => r.dataset.drug),
+               roles: ${ind('.tb-c.on')}.map(r => r.dataset.drug),
                addControls: ${ind('.pl-add')}.length,
                pedsNodes: ${ind('.pdx, .pdx-grid')}.length,
                pedsWords: /EBV|Paediatric context/.test(host.textContent),
-               selected: ${ind('.tb-r.on')}.length,
-               segOn: ${ind('.pl-sg.on')}.length,
+               selected: ${ind('.tb-c.on')}.length,
+               segOn: ${ind('.st-t.on')}.length,
                refScrolls: (() => { const r = host.querySelector('.idref');
                  return !!r && getComputedStyle(r).overflowY === 'auto'; })(),
                openLists: ${ind('.pl-alts')}.length,
-               noRouteControl: !${ind('.pl-sg')}
-                 .some(b => /^(IV|Inhalational)$/i.test(b.textContent.trim())),
+               /* A ROUTE CONTROL WOULD BE A SEGMENTED IV-versus-INHALATIONAL
+                  PAIR that derives a route from nothing. The strategy tiles
+                  are four APPROACHES, each captioned with what it is, and
+                  they select no drug — which is a different thing wearing
+                  similar words. What must not exist is a two-option route
+                  switch. */
+               noRouteControl: ${ind('.st-t')}.length === 4 &&
+                 !document.querySelector('#induction-host .pl-seg, #induction-host .pl-route'),
                noDevWords: !/phase\s*\d/i.test(document.querySelector('.eng-wrap').innerText),
                geo: (() => {
                  const b = s => { const e = document.querySelector(s);
@@ -701,14 +707,23 @@ async function openEngine(b, viewport) {
       return seen.length > 0 &&
              seen.every((v, i) => v === i + 1);
     };
+    /* FOUR NUMBERED SECTIONS FOR AN ADULT NOW — strategy, drugs, airway,
+       reference. The backup is part of the airway plan above it and still
+       takes no ordinal; the paediatric section still exists only for a
+       child. The property asserted is unchanged: whatever is visible is
+       numbered 1..N with nothing skipped. */
     t('adult: the visible section ordinals run 1..N with nothing skipped',
-      contiguous(adult.nums) && adult.nums.filter(x => /^\d+$/.test(x)).length === 3,
+      contiguous(adult.nums) && adult.nums.filter(x => /^\d+$/.test(x)).length === 4,
       adult.nums);
     /* The section is the induction TOOLBOX now — every eligible drug on the
        board rather than a container holding only what was selected. */
-    t('adult: drugs beside airway, and the reference beneath both',
+    /* THE APPROVED COMPOSITION. Strategy then the drug board down the left,
+       airway and the backup it falls back from down the right, reference
+       beneath both. */
+    t('adult: strategy and drugs beside airway, and the reference beneath both',
       adult.titles.join(' / ') ===
-      'Induction drugs / Airway plan / Backup difficult airway / Drug reference',
+      'Induction strategy / Induction drugs / Airway plan / ' +
+      'Backup difficult airway / Drug reference',
       adult.titles);
     t('...the airway column sits BESIDE the plan, not under it',
       adult.airwayBeside === true, adult.geo);
@@ -735,16 +750,25 @@ async function openEngine(b, viewport) {
       adult.pedsNodes === 0 && adult.pedsWords === false,
       { nodes:adult.pedsNodes, words:adult.pedsWords });
     /* THE CLAIM THAT MATTERS MOST, and it is now checkable in one number. */
-    t('adult: the centre splits about 60/40 between plan and airway',
-      !!adult.geo && adult.geo.split >= 55 && adult.geo.split <= 65,
+    /* THE APPROVED SPLIT. The board is the working surface and takes the
+       width; the airway is a fixed equipment grid at 346px. About 65/35 at
+       1536, which is the proportion of the approved cockpit. */
+    t('adult: the centre splits about 65/35 between the board and the airway',
+      !!adult.geo && adult.geo.split >= 58 && adult.geo.split <= 70,
       adult.geo && adult.geo.split);
     /* Development vocabulary must not reach a clinician. */
     t('adult: no "Phase n" anywhere in the product UI', adult.noDevWords === true);
     /* The route control duplicated what the agents already say and
        contradicted itself the moment a plan held both a volatile and an IV
        agent. It is gone, not hidden. */
+    /* WAS: no Route selector, asserted partly by the absence of the string
+       'inhalational'. Inhalational is one of the four APPROACH tiles now —
+       an approach the clinician records, which selects no drug and changes
+       no dose, and which the strategy section says so on screen. What must
+       still not exist is a control that derives a route from the selection,
+       which is what noRouteControl measures. */
     t('adult: there is no primary Route selector',
-      adult.noRouteControl === true && !/id:'inhalational'/.test(INDC));
+      adult.noRouteControl === true && !/var\s+chosen\s*=|route\s*=\s*['"]/.test(INDC));
     t('adult: nothing is selected, and no control is pre-set',
       adult.selected === 0 && adult.segOn === 0, adult);
     t('adult: no catalogue is open until one is asked for', adult.openLists === 0);
@@ -774,11 +798,11 @@ async function openEngine(b, viewport) {
         'drug.remifentanil':'analgesia',
         'drug.rocuronium':'nmb', 'drug.suxamethonium':'nmb' };
       const read = () => ['induction','analgesia','nmb'].map(k => {
-        const rows = ${ind('.tb-r.on')}.filter(c => ROLE_OF[c.dataset.drug] === k);
+        const rows = ${ind('.tb-c.on')}.filter(c => ROLE_OF[c.dataset.drug] === k);
         return { role:k,
-          drugs:rows.map(c => (c.querySelector('.tb-n')||{}).textContent),
-          rules:rows.map(c => (c.querySelector('.tb-d')||{}).textContent),
-          amts:rows.map(c => (c.querySelector('.tb-p')||{}).textContent),
+          drugs:rows.map(c => (c.querySelector('.tb-c-n')||{}).textContent),
+          rules:rows.map(c => (c.querySelector('.tb-c-r')||{}).textContent),
+          amts:rows.map(c => (c.querySelector('.tb-c-a')||{}).textContent),
           warns:rows.length, preps:rows.length };
       });
       add('induction','drug.propofol');
@@ -848,11 +872,11 @@ async function openEngine(b, viewport) {
        role, each with its own dose — and now holds without a click. */
     const alts = await s.pg.evaluate(`(() => {
       const board = document.querySelector('#induction-host .tb');
-      const names = [...board.querySelectorAll('.tb-r .tb-n')].map(e => e.textContent);
+      const names = [...board.querySelectorAll('.tb-c .tb-c-n')].map(e => e.textContent);
       const groups = [...board.querySelectorAll('.tb-g')]
-        .map(e => e.firstChild.textContent.trim());
-      const doses = [...board.querySelectorAll('.tb-r')].map(r => {
-        const d = r.querySelector('.tb-d'), c = r.querySelector('.tb-cov');
+        .map(e => (e.firstChild ? e.firstChild.textContent : e.textContent).trim());
+      const doses = [...board.querySelectorAll('.tb-c')].map(r => {
+        const d = r.querySelector('.tb-c-r'), c = r.querySelector('.tb-c-cov');
         return ((d || c || {}).textContent || '').trim(); });
       const CC = window.ClinicalContent, wt = window.patientContext.anthropometrics.weight;
       const pop = CC.patientPopulation(window.patientContext);
@@ -881,21 +905,24 @@ async function openEngine(b, viewport) {
        and what must not change is that it touches no dose. */
     const ctl = await s.pg.evaluate(`(() => {
       const before = ${doseSnapshot};
-      const plan = () => ${ind('.tb-r.on .tb-n')}.map(e => e.textContent);
+      const plan = () => ${ind('.tb-c.on .tb-c-n')}.map(e => e.textContent);
       const planBefore = plan();
-      const seg = txt => ${ind('.pl-sg')}.find(x => x.textContent.trim() === txt);
+      /* The technique control is a tile with a caption now, so match on its
+         NAME rather than the whole tile's text. */
+      const seg = txt => ${ind('.st-t')}.find(x =>
+        ((x.querySelector('.st-n')||{}).textContent||'').trim() === txt);
       seg('Modified RSI').click();
       const afterRoute = { doses: ${doseSnapshot}, plan: plan(),
-        pressed: ${ind('.pl-sg.on')}.map(x => x.textContent.trim()) };
+        pressed: ${ind('.st-t.on')}.map(x => ((x.querySelector('.st-n')||{}).textContent||'').trim()) };
       seg('Classic RSI').click();
       const afterTech = { doses: ${doseSnapshot}, plan: plan(),
-        pressed: ${ind('.pl-sg.on')}.map(x => x.textContent.trim()) };
+        pressed: ${ind('.st-t.on')}.map(x => ((x.querySelector('.st-n')||{}).textContent||'').trim()) };
       return { before, planBefore, afterRoute, afterTech,
-               labelled: [...${ind('.pl-rl')}, ...${ind('.pl-sg')}, ...${ind('.wf-t')},
-                          ...${ind('.tb-r.on .tb-n')}]
+               labelled: [...${ind('.st-t')}, ...${ind('.wf-t')},
+                          ...${ind('.tb-c.on .tb-c-n')}]
                  .some(e => /recommend|preferred|suggested|first.line|drug of choice/i
                    .test(e.textContent)),
-               techniqueOnDrug: ${ind('.tb-r')}
+               techniqueOnDrug: ${ind('.tb-c')}
                  .some(e => /classic|modified/i.test(e.textContent)) };
     })()`);
     t('technique: switching between techniques changes no dose',
@@ -945,8 +972,8 @@ async function openEngine(b, viewport) {
       const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
       set('i-age','30'); set('i-sex','F'); set('i-height','165'); set('i-weight','60');
       compute();
-      return { selected: ${ind('.tb-r.on')}.length,
-               segOn: ${ind('.pl-sg.on')}.length,
+      return { selected: ${ind('.tb-c.on')}.length,
+               segOn: ${ind('.st-t.on')}.length,
                chooser: ${ind('.pl-chooser')}.length,
                add: ${ind('.pl-add')}.length };
     })()`);
@@ -985,15 +1012,15 @@ async function openEngine(b, viewport) {
        reference, which is the reading order that was approved. */
     t('child: the paediatric section runs the centre, under the backup strip',
       child.titles.join(' / ') ===
-      'Induction drugs / Airway plan / Backup difficult airway / ' +
-      'Paediatric context / Drug reference', child.titles);
+      'Induction strategy / Induction drugs / Airway plan / ' +
+      'Backup difficult airway / Paediatric context / Drug reference', child.titles);
     /* THE SAME PROPERTY WITH ONE MORE SECTION IN PLAY. This is what a
        hard-coded number cannot satisfy for both patients at once, and it is
        satisfied WITHOUT rendering a hidden paediatric section for the adult:
-       the assertion above counts three numbered sections, this one counts
-       four, and both are contiguous. */
+       the assertion above counts four numbered sections, this one counts
+       five, and both are contiguous. */
     t('child: ...and so do theirs, with the paediatric section among them',
-      contiguous(child.nums) && child.nums.filter(x => /^\d+$/.test(x)).length === 4,
+      contiguous(child.nums) && child.nums.filter(x => /^\d+$/.test(x)).length === 5,
       child.nums);
     /* 22 kg is a divergence weight: LMA 2.5, i-gel 2. If the workstation ever
        recomputed instead of reading compute(), this is where it would show. */
@@ -1059,7 +1086,12 @@ async function openEngine(b, viewport) {
       newCase();
       const app = document.getElementById('app');
       const form = () => !!document.getElementById('acc-patient').offsetParent;
-      const derived = () => !!document.getElementById('cw-derived').offsetParent;
+      /* THE DERIVED BAND LEFT THE TOP OF THE PAGE. Its numbers are the
+         Paediatric context section in the centre now, where they belong to
+         the patient they describe rather than sitting above every case
+         including the adults it says nothing about. */
+      const derived = () => !!document.querySelector('#induction-host .wf-peds .pdx, ' +
+                                                     '#induction-host .wf-peds .cw-d');
       const out = { emptyForm:form() };
       const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
       set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
@@ -1070,7 +1102,9 @@ async function openEngine(b, viewport) {
       out.live = app.classList.contains('case-live');
       out.workstationY = Math.round(
         document.querySelector('.ws-grid').getBoundingClientRect().top + window.pageYOffset);
-      out.noticeH = Math.round(document.querySelector('.eng-notice').getBoundingClientRect().height);
+      const nEl = document.querySelector('.eng-notice');
+      out.noticeH = nEl ? Math.round(nEl.getBoundingClientRect().height) : 0;
+      out.noticeText = nEl ? nEl.textContent.trim().length : 0;
       out.caseText = document.querySelector('.case-state').textContent;
       document.getElementById('case-state').click();
       out.openedForm = form(); out.ageKept = document.getElementById('i-age').value;
@@ -1083,7 +1117,7 @@ async function openEngine(b, viewport) {
          amount for THIS patient. Reading it here proves the edit reached the
          canonical renderer, not just the header. */
       out.reweighed = (document.querySelector('#induction-host #iref-body .dtab-d2')||{}).textContent||'';
-      out.headerFollowed = /40 kg/.test(document.querySelector('.case-v').textContent);
+      out.headerFollowed = /40 kg/.test(document.querySelector('.case-state').textContent);
       document.getElementById('case-state').click();
       return out;
     })()`);
@@ -1091,11 +1125,22 @@ async function openEngine(b, viewport) {
       hdr.emptyForm === true);
     t('a live case folds it, at 1440 as well as on a phone',
       hdr.live === true && hdr.liveForm === false, hdr);
-    t('...but never the derived band', hdr.liveDerived === true);
+    /* WAS: "...but never the derived band" — a seven-cell band above every
+       case, including the adults whose paediatric numbers it could not
+       compute. It is the Paediatric context SECTION now, in the centre, for
+       the patients it applies to; an adult correctly has none. */
+    t('...and the derived band is a section for the patients it applies to',
+      hdr.liveDerived === false, 'adult case: no paediatric band');
+    /* EVERY VALUE, AND NOW EVERY VALUE'S NAME. The bar reads as labelled
+       cells rather than a sentence of pipes, so the age is "42 years" over
+       the caption AGE instead of "42y" between two dividers. */
     t('...and the header still states every value',
-      /42y/.test(hdr.caseText) && /75 kg/.test(hdr.caseText) && /175 cm/.test(hdr.caseText) &&
-      /ASA II/.test(hdr.caseText) && /Laparoscopic cholecystectomy/.test(hdr.caseText),
-      hdr.caseText);
+      /42 years/.test(hdr.caseText) && /75 kg/.test(hdr.caseText) &&
+      /175 cm/.test(hdr.caseText) && /ASA II/.test(hdr.caseText) &&
+      /Laparoscopic cholecystectomy/.test(hdr.caseText), hdr.caseText);
+    t('...each under its own caption',
+      /age/i.test(hdr.caseText) && /sex/i.test(hdr.caseText) &&
+      /weight/i.test(hdr.caseText) && /height/i.test(hdr.caseText), hdr.caseText);
     t('the header is the control: pressing it brings the form back',
       hdr.openedForm === true && hdr.ageKept === '42' && hdr.closedAgain === false, hdr);
     /* 40 kg against the reviewed adult record: 2–2.5 mg/kg = 80–100 mg.
@@ -1107,8 +1152,11 @@ async function openEngine(b, viewport) {
        pass: 560. */
     t('the workstation begins in the first screenful',
       hdr.workstationY < 400, hdr.workstationY);
-    t('the professional notice is kept but no longer dominates',
-      hdr.noticeH < 60, hdr.noticeH);
+    /* THE NOTICE IS KEPT WHOLE AND MOVED to the foot of the drug reference,
+       with the doses it qualifies. Every word is still in the document. */
+    t('the professional notice is kept whole, and no longer a band at the top',
+      hdr.noticeH === 0 && hdr.noticeText > 120,
+      { renderedHeight:hdr.noticeH, charactersKept:hdr.noticeText });
 
     /* ── THE READING ORDER WITHIN A SECTION ─────────────────────────────
        Rank is asserted as a RELATIONSHIP, not as a pixel count, so a later
@@ -1421,7 +1469,7 @@ async function openEngine(b, viewport) {
       t(w + ': the case summary is not clipped', g.caseClipped === false,
         { text:g.caseText, scroll:g.caseScroll, client:g.caseClient });
       t(w + ': ...and still names the patient and procedure',
-        /1y/.test(g.caseText) && /Inguinal hernia/i.test(g.caseText), g.caseText);
+        /1 year/.test(g.caseText) && /Inguinal hernia/i.test(g.caseText), g.caseText);
       t(w + ': Opioids, never Narcotics',
         g.chips.some(c => /OPIOIDS/i.test(c)) && !g.chips.some(c => /NARCOTIC/i.test(c)), g.chips);
       t(w + ': Neuromuscular blockers, never Relaxants',
@@ -1487,10 +1535,16 @@ async function openEngine(b, viewport) {
           timersFolded:lt ? !lt.open : null,
           timersH:rail ? Math.round(rail.getBoundingClientRect().height) : null,
           caseH:Math.round(document.querySelector('.case-bar').getBoundingClientRect().height),
-          noticeH:Math.round(document.querySelector('.eng-notice').getBoundingClientRect().height),
-          /* the two ranks the header claims to have */
-          kSize:parseFloat(getComputedStyle(document.querySelector('.case-k')).fontSize),
-          vSize:parseFloat(getComputedStyle(document.querySelector('.case-v')).fontSize),
+          noticeH:(() => { const n = document.querySelector('.eng-notice');
+            return n ? Math.round(n.getBoundingClientRect().height) : 0; })(),
+          /* THE TWO RANKS, READ OFF A LABELLED CELL. The bar was a label line
+             over a value line; it is a row of facts now, each a value over
+             its own caption, so the same two ranks are the fact and its
+             caption rather than the block heading and its contents. */
+          kSize:(() => { const e = document.querySelector('.case-f i');
+            return e ? parseFloat(getComputedStyle(e).fontSize) : null; })(),
+          vSize:(() => { const e = document.querySelector('.case-f b');
+            return e ? parseFloat(getComputedStyle(e).fontSize) : null; })(),
           formShown:!!document.getElementById('acc-patient').offsetParent,
           workstationY:y(document.querySelector('.ws-grid')),
           /* \\s, not \s. This is inside a TEMPLATE LITERAL, where \s is just
@@ -1534,7 +1588,7 @@ async function openEngine(b, viewport) {
         t('390: ...and costs less than the headline it replaced',
           m.caseH < 150, m.caseH);
         t('390: ...and still says everything, unclipped',
-          m.caseClipped === false && /42y/.test(m.caseText) &&
+          m.caseClipped === false && /42 years/.test(m.caseText) &&
           /Laparoscopic cholecystectomy/i.test(m.caseText) && /ASA II/.test(m.caseText),
           m.caseText);
       } else {
@@ -1614,10 +1668,10 @@ async function openEngine(b, viewport) {
              The board carries no preparation column, so prep is compared as
              absent on both sides rather than pretended. */
           const plan = {};
-          [...document.querySelectorAll('#induction-host .tb-r.on')].forEach(c => {
+          [...document.querySelectorAll('#induction-host .tb-c.on')].forEach(c => {
             plan[c.dataset.drug] = {
-              rule:(c.querySelector('.tb-d')||{}).textContent || '',
-              amount:(c.querySelector('.tb-p')||{}).textContent || '',
+              rule:(c.querySelector('.tb-c-r')||{}).textContent || '',
+              amount:(c.querySelector('.tb-c-a')||{}).textContent || '',
               prep:'' };
           });
           return { wide, narrow, plan };

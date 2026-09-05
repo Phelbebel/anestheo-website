@@ -280,7 +280,7 @@ const fill = (pg, o) => pg.evaluate(o => {
       add('drug.propofol'); add('drug.rocuronium');
       /* SELECTION IS IN PLACE, so "the plan" is the set of rows marked
          USING rather than a separate container of cards. */
-      const planBefore = [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
+      const planBefore = [...document.querySelectorAll('#induction-host .tb-c.on .tb-c-n')]
         .map(e => e.textContent);
       const y0 = window.pageYOffset;
       const dom0 = document.getElementById('output').dataset.domain;
@@ -293,7 +293,7 @@ const fill = (pg, o) => pg.evaluate(o => {
         position:getComputedStyle(h).position,
         insideRail:h.parentElement.classList.contains('ws-right'),
         coversPlan:hr.left < out.right - 4,
-        planVisible:[...document.querySelectorAll('#induction-host .tb-r.on .tb-n')].map(e => e.textContent),
+        planVisible:[...document.querySelectorAll('#induction-host .tb-c.on .tb-c-n')].map(e => e.textContent),
         steps:h.querySelectorAll('.crisis-step').length,
         doses:h.querySelectorAll('.crisis-dose').length,
         indexStillThere:document.querySelectorAll('#ws-crisis .wsc-b').length,
@@ -307,11 +307,11 @@ const fill = (pg, o) => pg.evaluate(o => {
       document.querySelectorAll('#ws-crisis .wsc-b')[7].click();      /* Anaphylaxis */
       o.switchedTitle = (h.querySelector('.crisis-emg-t')||{}).textContent || '';
       o.copies = document.querySelectorAll('.crisis-preview').length;
-      o.planAfterSwitch = [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
+      o.planAfterSwitch = [...document.querySelectorAll('#induction-host .tb-c.on .tb-c-n')]
         .map(e => e.textContent);
       crisisPreviewClose();
       o.gridClosed = getComputedStyle(document.querySelector('.ws-grid')).gridTemplateColumns;
-      o.planAfterClose = [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
+      o.planAfterClose = [...document.querySelectorAll('#induction-host .tb-c.on .tb-c-n')]
         .map(e => e.textContent);
       return o;
     })()`);
@@ -406,13 +406,13 @@ const fill = (pg, o) => pg.evaluate(o => {
 
       /* THE BOARD, NOT A CARD GRID. Selection lights a row in place, so the
          row count is the same before and after choosing. */
-      const cards = [...document.querySelectorAll('#induction-host .tb .tb-r')];
+      const cards = [...document.querySelectorAll('#induction-host .tb .tb-c')];
       const rows = {};
       cards.forEach(c => { const y = Math.round(bb(c).top); rows[y] = (rows[y]||0) + 1; });
       const heights = cards.map(c => Math.round(bb(c).height));
 
       return { gaps, slack,
-        usingRows: document.querySelectorAll('#induction-host .tb-r.on').length,
+        usingRows: document.querySelectorAll('#induction-host .tb-c.on').length,
         boardRows: cards.length, boardRowsBefore: cards.length,
         emptyCells: [...document.querySelectorAll('#induction-host .tb > *, ' +
           '.wf-col-side .awp-grid > *, .wf-full #iref-body tr.dtab-r')]
@@ -500,7 +500,7 @@ const fill = (pg, o) => pg.evaluate(o => {
       const read = () => {
         const box = document.querySelector('#induction-host .tb');
         const bb = box.getBoundingClientRect();
-        const rows = [...box.querySelectorAll('.tb-r')].map(r => {
+        const rows = [...box.querySelectorAll('.tb-c')].map(r => {
           const b2 = r.getBoundingClientRect();
           return { id:r.dataset.drug, on:r.classList.contains('on'),
                    l:+b2.left.toFixed(1), r:+b2.right.toFixed(1),
@@ -509,7 +509,7 @@ const fill = (pg, o) => pg.evaluate(o => {
         /* Only between rows that are DOM siblings — a group heading sits
            between two rows and its height is not a gap. */
         const gaps = [];
-        const els = [...box.querySelectorAll('.tb-r')];
+        const els = [...box.querySelectorAll('.tb-c')];
         for (let i = 1; i < els.length; i++)
           if (els[i].previousElementSibling === els[i-1]){
             const a2 = els[i-1].getBoundingClientRect(), b2 = els[i].getBoundingClientRect();
@@ -560,7 +560,7 @@ const fill = (pg, o) => pg.evaluate(o => {
     const mech = await s.pg.evaluate(`(() => {
       document.querySelector('#induction-host [data-plan-for="drug.propofol"]').click();
       const box = getComputedStyle(document.querySelector('#induction-host .tb'));
-      const card = getComputedStyle(document.querySelector('#induction-host .tb-r'));
+      const card = getComputedStyle(document.querySelector('#induction-host .tb-c'));
       const out = { justify:box.justifyContent, grow:card.flexGrow,
                     ml:card.marginLeft, mr:card.marginRight };
       if (window.Induction) window.Induction.clearPlan();
@@ -606,7 +606,7 @@ const fill = (pg, o) => pg.evaluate(o => {
       const addBtn = document.querySelector('#induction-host .pl-add');
       const techRow = document.querySelector('#induction-host .pl-tech');
       const head = document.querySelector('#induction-host .wf-col-main .wf-h');
-      const card1 = document.querySelector('#induction-host .tb .tb-r');
+      const card1 = document.querySelector('#induction-host .tb .tb-c');
 
       /* C · the reference spans the centre beneath both columns */
       const ref = document.querySelector('.wf-full');
@@ -724,8 +724,8 @@ const fill = (pg, o) => pg.evaluate(o => {
       const side = host.querySelector('.wf-col-side');
       return { h:Math.round(sec.getBoundingClientRect().height),
                sideH:Math.round(side.getBoundingClientRect().height),
-               rows:host.querySelectorAll('.tb-r').length,
-               using:host.querySelectorAll('.tb-r.on').length,
+               rows:host.querySelectorAll('.tb-c').length,
+               using:host.querySelectorAll('.tb-c.on').length,
                groups:host.querySelectorAll('.tb-g').length,
                chooser:host.querySelectorAll('.pl-chooser').length,
                add:host.querySelectorAll('.pl-add').length,
@@ -821,7 +821,7 @@ const fill = (pg, o) => pg.evaluate(o => {
         if (b) b.click();
       };
         add('drug.propofol');
-          const plan = () => [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
+          const plan = () => [...document.querySelectorAll('#induction-host .tb-c.on .tb-c-n')]
           .map(e => e.textContent);
         const planBefore = plan();
         window.scrollTo(0, 1400);
@@ -1143,8 +1143,8 @@ const fill = (pg, o) => pg.evaluate(o => {
       const modal = !!document.querySelector('.cp-bg');
       /* The board is always on screen; what must survive opening a detail is
          the SELECTION, which is a lit row rather than a card. */
-      const planStillVisible = !!document.querySelector('#induction-host .tb-r.on') ||
-                               !!document.querySelector('#induction-host .tb-r');
+      const planStillVisible = !!document.querySelector('#induction-host .tb-c.on') ||
+                               !!document.querySelector('#induction-host .tb-c');
       drefDetails('iref','drug.propofol');
       const detClosed = snap();
       const stillThere = !!document.querySelector('#iref-body .ddet');
