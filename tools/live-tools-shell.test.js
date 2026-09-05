@@ -219,7 +219,9 @@ const fill = (pg, o) => pg.evaluate(o => {
       bar.cells['EBV'] === String(D.ebv),
       { bsa:[bar.cells['BSA'],S.bsa], bmi:[bar.cells['BMI'],D.bmi], ebv:[bar.cells['EBV'],D.ebv] });
     t('the case line carries age, sex, weight, height, ASA and procedure',
-      /42y/.test(bar.caseLine) && /Male/.test(bar.caseLine) && /75 kg/.test(bar.caseLine) &&
+      /* The bar prints labelled facts now — "42 years / Age" rather than the
+         run-on "42y · Male · 75 kg" headline it replaced. Same six facts. */
+      /42 years/.test(bar.caseLine) && /Male/.test(bar.caseLine) && /75 kg/.test(bar.caseLine) &&
       /175 cm/.test(bar.caseLine) && /ASA II/.test(bar.caseLine) &&
       /Laparoscopic cholecystectomy/.test(bar.caseLine), bar.caseLine);
 
@@ -326,14 +328,15 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('...carrying its steps and its weight-aware doses',
       rail.steps > 0 && rail.doses > 0, { steps:rail.steps, doses:rail.doses });
     t('...with the index still reachable', rail.indexStillThere === 8);
-    /* The column widens to read a protocol and returns to a list width.
-       The two widths changed with the workstation geometry (330 resting, 350
-       reading); what is asserted is the RELATIONSHIP and the specified band,
-       not a pair of remembered numbers. */
+    /* WAS: "the rail widens for a protocol and narrows again". It did — from
+       324 to 380 — and those 56px came out of the centre, which re-flowed the
+       four drug rows under the reader's hand and ellipsised "2.5–3.5 mg/kg
+       TBW" at the moment an emergency was opened. A protocol grows DOWN the
+       rail, which has the whole height of the column; the plan beside it does
+       not change width because someone opened Cardiac Arrest. */
     const px = g => parseFloat((g.trim().split(/\s+/).pop() || '0'));
-    t('the rail widens for a protocol and narrows again',
-      px(rail.gridOpen) > px(rail.gridClosed) &&
-      px(rail.gridClosed) >= 320 && px(rail.gridOpen) <= 350,
+    t('opening a protocol does not take width from the induction plan',
+      px(rail.gridOpen) === px(rail.gridClosed) && px(rail.gridClosed) >= 320,
       { open:rail.gridOpen, closed:rail.gridClosed });
     t('switching protocols replaces the one shown, one at a time',
       /Anaphylaxis/.test(rail.switchedTitle) && rail.copies === 1, rail.switchedTitle);
@@ -368,6 +371,12 @@ const fill = (pg, o) => pg.evaluate(o => {
       document.getElementById('app').classList.remove('pt-open');
       if (window.Induction) window.Induction.clearPlan();
       add('drug.propofol'); add('drug.fentanyl'); add('drug.rocuronium');
+      /* MEASURE FROM THE TOP OF THE PAGE. The command strip lives inside the
+         sticky workstation header now, so on a scrolled page it reports its
+         PINNED position while the case bar below it has scrolled away — and
+         the distance between them comes out negative for a layout in which
+         nothing overlaps. */
+      window.scrollTo(0, 0);
       const bb = e => e.getBoundingClientRect();
 
       /* GAPS BETWEEN THE MAJOR STACKED BLOCKS. Below the column pair the
@@ -381,7 +390,13 @@ const fill = (pg, o) => pg.evaluate(o => {
                                   bb(document.querySelector('.wf-col-side')).bottom);
       const blocks = [document.querySelector('#cmd-strip'), document.querySelector('.eng-notice'),
         document.querySelector('.case-bar'), document.getElementById('cw-derived'),
-        document.querySelector('.wf-lead'), document.querySelector('.wf-cols')].filter(Boolean);
+        document.querySelector('.wf-lead'), document.querySelector('.wf-cols')]
+        /* A BLOCK THAT IS NOT RENDERED IS NOT A GAP. The engine notice and
+           the derived-values drawer are display:none in the workstation, and
+           a display:none element measures 0×0 at the origin, which turned the
+           distance to the block after it into a large negative number. Only
+           blocks that occupy the page take part in the spacing check. */
+        .filter(e => e && e.getBoundingClientRect().height > 0);
       const gaps = [];
       for (let i = 1; i < blocks.length; i++)
         gaps.push(Math.round(bb(blocks[i]).top - bb(blocks[i-1]).bottom));
@@ -442,16 +457,15 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('three chosen agents light three rows, and the board does not reflow',
       dens.usingRows === 3 && dens.boardRows === dens.boardRowsBefore,
       { using:dens.usingRows, rows:dens.boardRows, before:dens.boardRowsBefore });
-    /* WAS: "every card is its own width, not the column's" — cards flowed
-       across a grid and a stretched one read as an island of dead space.
-       THE BOARD INVERTS THAT DELIBERATELY. A row is a row: it spans the
-       column so the name, the rule, the amount for this patient and the
-       control line up down the list and can be scanned in one vertical
-       sweep. Widths must therefore be EQUAL and full, which is the opposite
-       assertion about the opposite structure. */
-    t('...and every row spans the column, so the columns of data line up',
-      new Set(dens.cardWidths).size === 1 && dens.cardWidths[0] > 300,
-      dens.cardWidths);
+    /* THE APPROVED COMPOSITION IS FOUR AND FOUR. It was a list of full-width
+       rows; the cockpit specifies four clinical rows of exactly four cards,
+       equal in width, with the row's fifth element a control and not a fifth
+       card. So the width assertion is no longer "full" — it is "equal, and a
+       quarter of the board", and the count is what carries the rest. */
+    t('...and every card in a row is the same width, four to the row',
+      new Set(dens.cardWidths).size === 1 && dens.cardWidths[0] > 70 &&
+      dens.perRow.length === 4 && dens.perRow.every(n => n === 4),
+      { widths:dens.cardWidths, perRow:dens.perRow });
     t('no container is more than 26px taller than its contents',
       dens.slack.length === 0, dens.slack);
     /* 30–60px anonymous gaps were the complaint; the brief's band is 10–16px
@@ -515,9 +529,24 @@ const fill = (pg, o) => pg.evaluate(o => {
             const a2 = els[i-1].getBoundingClientRect(), b2 = els[i].getBoundingClientRect();
             gaps.push(+(b2.top - a2.bottom).toFixed(1));
           }
+        /* THE FOUR CARDS TILE THEIR ROW. They no longer span the board — the
+           approved composition is four to a row — so what is measured is that
+           each row of four covers its own strip end to end with nothing but
+           the grid gap between them and no card left standing alone. */
+        const tiled = [...box.querySelectorAll('.tb-row')].every(rw => {
+          const cs = [...rw.querySelectorAll('.tb-c')].map(c => c.getBoundingClientRect());
+          if (cs.length !== 4) return false;
+          const rb = rw.getBoundingClientRect();
+          const w = cs.map(c => c.width);
+          if (Math.max(...w) - Math.min(...w) > 1) return false;
+          for (let i = 1; i < cs.length; i++)
+            if (cs[i].left - cs[i-1].right > 6) return false;
+          return Math.abs(cs[0].left - rb.left) < 2 &&
+                 Math.abs(cs[3].right - rb.right) < 2;
+        });
         return { n:rows.length, on:rows.filter(r => r.on).length,
                  boxW:+bb.width.toFixed(1), boxTop:+bb.top.toFixed(1),
-                 fullWidth: rows.every(r => Math.abs((r.r - r.l) - bb.width) < 2),
+                 tiled: tiled,
                  heights:[...new Set(rows.map(r => Math.round(r.h)))],
                  maxRowGap: gaps.length ? Math.max(...gaps) : 0,
                  order: rows.map(r => r.id) };
@@ -548,10 +577,17 @@ const fill = (pg, o) => pg.evaluate(o => {
         Math.abs(pack[n].boxW - pack.none.boxW) < 1),
       { orderStable:pack[3].order.join() === pack.none.order.join(),
         top:[pack.none.boxTop, pack[3].boxTop], w:[pack.none.boxW, pack[3].boxW] });
-    t('...and no row is a card floating in a column: each spans the board',
-      pack.none.fullWidth === true);
-    t('...rows are compact and evenly spaced',
-      pack.none.heights.every(h => h >= 24 && h <= 44) && pack.none.maxRowGap <= 12,
+    t('...and no card floats: four equal cards tile every row, end to end',
+      pack.none.tiled === true);
+    /* A card carries four lines now — name, route and context, the per-kg
+       rule and the amount for this patient — so the band is the four-line
+       card's, not the one-line row's. Nothing is stretched beyond it. */
+    /* A card is name, route and context, the per-kg rule and the amount for
+       this patient. In a narrow centre the name and the rule each take a
+       second line, which is the card printing what it has rather than
+       abbreviating it — the band is the four-to-six-line card's. */
+    t('...cards are compact and evenly spaced',
+      pack.none.heights.every(h => h >= 60 && h <= 110) && pack.none.maxRowGap <= 12,
       { heights:pack.none.heights, maxGap:pack.none.maxRowGap });
 
     /* NO MECHANISM THAT DISTRIBUTES FREE SPACE MAY COME BACK. The board is
@@ -604,7 +640,9 @@ const fill = (pg, o) => pg.evaluate(o => {
          now the section itself, so the row it must not take is a row that
          cannot exist. Asserted as absence. */
       const addBtn = document.querySelector('#induction-host .pl-add');
-      const techRow = document.querySelector('#induction-host .pl-tech');
+      /* The technique strip is the strategy tile grid now — one top-level
+         option per approach, with RSI's variants inside the RSI tile. */
+      const techRow = document.querySelector('#induction-host .st');
       const head = document.querySelector('#induction-host .wf-col-main .wf-h');
       const card1 = document.querySelector('#induction-host .tb .tb-c');
 
@@ -720,7 +758,11 @@ const fill = (pg, o) => pg.evaluate(o => {
     const emptyPlan = await s.pg.evaluate(`(() => {
       if (window.Induction) window.Induction.clearPlan();
       const host = document.getElementById('induction-host');
-      const sec = host.querySelector('.wf-col-main .wf-sec');
+      /* THE WORKING COLUMN, NOT ITS FIRST SECTION. A .wf-sec inside the main
+         column matched the strategy tiles — an 80px block — and compared to the
+         whole airway column. What has to fill the space beside the airway is
+         the column: strategy above, drug board below. */
+      const sec = host.querySelector('.wf-col-main');
       const side = host.querySelector('.wf-col-side');
       return { h:Math.round(sec.getBoundingClientRect().height),
                sideH:Math.round(side.getBoundingClientRect().height),
@@ -794,7 +836,7 @@ const fill = (pg, o) => pg.evaluate(o => {
       t(P + 'no horizontal page overflow', r.overflow <= 0, r.overflow);
       t(P + 'no clipped command-bar or header content', r.clipped.length === 0, r.clipped);
       t(P + 'the case line still says everything',
-        /42y/.test(r.caseText) && /75 kg/.test(r.caseText) &&
+        /42 years/.test(r.caseText) && /75 kg/.test(r.caseText) &&
         /Laparoscopic cholecystectomy/.test(r.caseText), r.caseText);
       t(P + 'all scalars present', r.scalars >= 7, r.scalars);
       /* 44px touch ergonomics wherever a finger is expected. */

@@ -864,15 +864,18 @@ async function openEngine(b, viewport) {
       R(built.afterToggleOff,'analgesia').drugs.length === 0,
       R(built.afterToggleOff,'analgesia').drugs);
 
-    /* WAS THE CHOOSER. Every canonical agent, grouped by role, revealed by a
-       control — and closed, it cost nothing because it was not rendered. The
-       board replaced it: every agent is grouped by role and rendered all the
-       time, which is the same guarantee without the reveal. So what is
-       asserted is unchanged in substance — every canonical agent, from every
-       role, each with its own dose — and now holds without a click. */
+    /* WAS THE CHOOSER, THEN WAS EVERY VISIBLE AGENT, THEN WAS A LIST OF DRUGS
+       IDS. The board is the approved induction composition: four rows of
+       exactly four named agents, the row's fifth element a control. WHERE
+       that composition lives is the point of this block — InductionCatalog,
+       not ClinicalContent. A board member is not required to be a clinical
+       record, which is what stopped seven zero-dose records being written
+       into the canonical dataset to fill cells. An agent that is not on the
+       board is still published in the reference below. */
     const alts = await s.pg.evaluate(`(() => {
       const board = document.querySelector('#induction-host .tb');
       const names = [...board.querySelectorAll('.tb-c .tb-c-n')].map(e => e.textContent);
+      const ids   = [...board.querySelectorAll('.tb-c')].map(e => e.dataset.drug);
       const groups = [...board.querySelectorAll('.tb-g')]
         .map(e => (e.firstChild ? e.firstChild.textContent : e.textContent).trim());
       const doses = [...board.querySelectorAll('.tb-c')].map(r => {
@@ -880,17 +883,43 @@ async function openEngine(b, viewport) {
         return ((d || c || {}).textContent || '').trim(); });
       const CC = window.ClinicalContent, wt = window.patientContext.anthropometrics.weight;
       const pop = CC.patientPopulation(window.patientContext);
+      const cat = (window.InductionCatalog || {}).rows || [];
+      const shape = [...board.querySelectorAll('.tb-grp')].map(g => ({
+        cards: g.querySelectorAll('.tb-c').length,
+        plus:  g.querySelectorAll('.tb-s').length }));
       const canonical = ['induction','analgesia','nmb']
         .reduce((a,g) => { const seen = {};
           CC.visibleDosesInGroup(g, wt, pop).forEach(d => {
-            if (!seen[d.id]) { seen[d.id] = 1; a.push(d.name); } });
+            if (!seen[d.id]) { seen[d.id] = 1; a.push(d.id); } });
           return a; }, []);
-      return { names, canonical, doses, groups,
+      const offBoard = canonical.filter(id => ids.indexOf(id) < 0);
+      /* A card is either a canonical record (data-drug) or a display member
+         (data-member). The catalog's order must be the board's order. */
+      const slots = [...board.querySelectorAll('.tb-c')]
+        .map(e => e.dataset.drug || ('catalog:' + e.dataset.member));
+      const catSlots = cat.reduce((a,r) => a.concat(r.members.map(m =>
+        m.canonicalId || ('catalog:' + m.key))), []);
+      return { names, ids, canonical, offBoard, doses, groups, shape,
+               slots, catSlots,
+               catalogInClinicalIndex: !!CC.INDUCTION_PLAN,
+               offBoardPublished: offBoard.every(id => {
+                 const d = CC.byId(id); return !!d && CC.isPublishable(d); }),
                reveal: !!document.querySelector('#induction-host .pl-add') };
     })()`);
-    t('every canonical agent is on the board, from every role',
-      alts.names.slice().sort().join() === alts.canonical.slice().sort().join(),
-      { shown:alts.names, canonical:alts.canonical });
+    t('the board is exactly the composition the display catalog declares',
+      alts.slots.join() === alts.catSlots.join(),
+      { shown:alts.slots, catalog:alts.catSlots });
+    /* THE CLINICAL MODEL HOLDS NO COMPOSITION. If it did, the pressure that
+       wrote seven fake records to satisfy a 4 x 4 layout would still exist. */
+    t('...and the clinical model carries no board composition at all',
+      alts.catalogInClinicalIndex === false);
+    /* FOUR AND FOUR, AND ONE CONTROL. Not 4/4/3, not a fifth empty card. */
+    t('...four rows of exactly four cards, one control each',
+      alts.shape.length === 4 &&
+      alts.shape.every(r => r.cards === 4 && r.plus === 1), alts.shape);
+    /* An agent the composition leaves off is not hidden — it is published. */
+    t('...and an agent it leaves off is still published in the reference',
+      alts.offBoardPublished, alts.offBoard);
     /* THE ROWS ARE THE STEPS OF AN INDUCTION, in the order it is given. */
     t('...grouped, in the clinical order the workspace reads in',
       alts.groups.join(' / ') ===
@@ -900,6 +929,81 @@ async function openEngine(b, viewport) {
       alts.doses.every(d => d.length > 0), alts.doses);
     t('...and none of it costs a click: there is no reveal control',
       alts.reveal === false);
+
+    /* ── A BOARD MEMBER WITH NO RECORD, ON THE SCREEN ───────────────────
+       Etomidate, Thiopental, Alfentanil, Atracurium, Mivacurium, Atropine and
+       Glycopyrrolate hold the composition's cells and hold nothing else. The
+       card carries a name and a class colour and says the dose has not been
+       reviewed. What must not appear is anything a clinician could act on:
+       no figure, no unit, no route, no preparation, no patient amount. */
+    const ui = await s.pg.evaluate(`(() => {
+      const NAMES = ['Etomidate','Thiopental','Alfentanil','Atracurium',
+                     'Mivacurium','Atropine','Glycopyrrolate'];
+      const board = document.querySelector('#induction-host .tb');
+      const out = {};
+      NAMES.forEach(n => {
+        const card = [...board.querySelectorAll('.tb-c')]
+          .find(c => (c.querySelector('.tb-c-n')||{}).textContent === n);
+        if (!card) { out[n] = null; return; }
+        out[n] = {
+          tag: card.tagName,
+          colour: getComputedStyle(card).getPropertyValue('--pc').trim(),
+          nameColour: getComputedStyle(card.querySelector('.tb-c-n')).color,
+          coverage: (card.querySelector('.tb-c-cov')||{textContent:''}).textContent.trim(),
+          rule:   !!card.querySelector('.tb-c-r'),
+          amount: !!card.querySelector('.tb-c-a'),
+          route:  (card.querySelector('.tb-c-u')||{textContent:''}).textContent.trim(),
+          /* Any digit anywhere inside the card is a number that came from
+             somewhere it should not have. */
+          digits: /[0-9]/.test(card.textContent),
+          canonicalRef: card.dataset.drug || null,
+          w: Math.round(card.getBoundingClientRect().width),
+          h: Math.round(card.getBoundingClientRect().height) };
+      });
+      /* And none of the seven is in the reference below, or in search. */
+      const CC = window.ClinicalContent;
+      out._ref = [...document.querySelectorAll('.wf-full #iref-body .dtab-r')]
+        .map(r => (r.querySelector('.dtab-n')||r).textContent.trim())
+        .filter(n => NAMES.some(x => n.indexOf(x) >= 0));
+      out._search = NAMES.filter(n => CC.search(n)
+        .some(r => { const it = r.item || r; return it.name === n; }));
+      out._model = NAMES.filter(n => CC.DRUGS.some(d => d.name === n));
+      /* Row by row: within a row, every card is one box — the display
+         members included. That is the geometry the visual freeze is about. */
+      out._rows = [...board.querySelectorAll('.tb-row')].map(rw =>
+        [...rw.querySelectorAll('.tb-c')].map(c => {
+          const b = c.getBoundingClientRect();
+          return Math.round(b.width) + 'x' + Math.round(b.height); }));
+      return out;
+    })()`);
+    const PC = { Etomidate:'#FFD84D', Thiopental:'#FFD84D',
+                 Alfentanil:'#6BB6FF',
+                 Atracurium:'#FF7A6B', Mivacurium:'#FF7A6B',
+                 Atropine:'#4FE39B', Glycopyrrolate:'#4FE39B' };
+    Object.keys(PC).forEach(n => {
+      const c = ui[n];
+      t('  ' + n + ': on the board, in its class colour, dose not reviewed',
+        !!c && c.colour.toUpperCase() === PC[n] && c.coverage === 'Dose not reviewed',
+        c && { colour:c.colour, coverage:c.coverage });
+      t('  ' + n + ': ...and carries no dose, no unit, no route, no amount',
+        !!c && c.rule === false && c.amount === false && c.route === '' &&
+        c.digits === false, c && { rule:c.rule, amount:c.amount, route:c.route,
+                                   digits:c.digits });
+      t('  ' + n + ': ...and is not a canonical record anywhere',
+        !!c && c.canonicalRef === null, c && c.canonicalRef);
+    });
+    t('none of the seven is in the drug reference', ui._ref.length === 0, ui._ref);
+    t('...nor in canonical search', ui._search.length === 0, ui._search);
+    t('...nor in DRUGS at all', ui._model.length === 0, ui._model);
+    /* THE CELLS ARE THE SAME CELLS. A display member's card is the same box
+       as the record-backed card beside it — this is the geometry the visual
+       freeze is about. */
+    /* Not one size across the whole board — a row is as tall as its own
+       content — but within a row, a card with no record is the same box as
+       the card beside it that has one. */
+    t('...and within every row a display card is the same box as a real one',
+      ui._rows.length === 4 &&
+      ui._rows.every(r => r.length === 4 && new Set(r).size === 1), ui._rows);
 
     /* ── TECHNIQUE RECORDS; IT DOES NOT PRESCRIBE ───────────────────────
        There is no route control any more, so only technique is exercised —

@@ -1136,6 +1136,15 @@ function phaseCoverage(phase){
    There is no nearest-age fallback, no adult->child fallback and no
    child->adult fallback. A patient the reviewed evidence does not cover gets
    no number at all — not a scaled one, not a caveated one.                 */
+/* ── THE INDUCTION BOARD'S FOUR ROWS LIVE ELSEWHERE ──────────────────────
+   They used to be here, as a list of DRUGS ids — which meant a drug had to
+   exist as a clinical record before it could appear on the board, and that
+   pressure is what produced seven zero-dose records whose only reason to
+   exist was that the composition named them. Board membership is a
+   composition decision; a canonical record is a clinical one. The catalog is
+   in induction-catalog.js and holds no medicine; this file holds no
+   composition.                                                            */
+
 var POPCLASS = { ADULT:'A', PAEDIATRIC:'B', AGE_BANDED:'C', BOTH:'D', UNSPECIFIED:'E' };
 
 /* ── AGE BANDS ────────────────────────────────────────────────────────────

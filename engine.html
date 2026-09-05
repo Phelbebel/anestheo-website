@@ -14,6 +14,7 @@
 <script src="/procedures.js?v=2026.08.21-03"></script>
 <script src="/growth-reference.js?v=2026.08.21-03"></script>
 <script src="/new-patient.js?v=2026.08.21-03"></script>
+<script src="/induction-catalog.js?v=2026.08.21-03"></script>
 <script src="/induction.js?v=2026.08.21-03"></script>
 <script src="/evidence-api.js?v=2026.08.21-03"></script>
 <script src="/evidence-drawer.js?v=2026.08.21-03"></script>
@@ -2140,23 +2141,46 @@ body .nb-search-wrap{display:none !important;}
    crisis rail into three 186/1fr/324 columns on a 390px screen. */
 @media (min-width:1181px){
   .eng-wrap .ws-grid{grid-template-columns:186px minmax(0,1fr) 324px;gap:12px;}
+  /* THE RAIL EXPANDS DOWNWARD, NOT SIDEWAYS. A shared rule widens the third
+     column from 324 to 380 while a protocol is open; in this cockpit that
+     takes 56px off the centre, re-flows the four drug rows under a reader's
+     hand and ellipsises "2.5–3.5 mg/kg TBW" the moment an emergency is
+     opened. The protocol has the whole height of the rail to grow into and
+     it takes none of the plan's width. */
+  .eng-wrap .ws-grid:has(.crisis-preview:not([hidden])){
+    grid-template-columns:186px minmax(0,1fr) 324px;}
 }
 /* THE FACTS WRAP RATHER THAN RUN OFF. On a phone the row becomes two or three
    lines of labelled cells instead of one line six cells long, and the
-   dividers go with the wrap so a wrapped cell does not start with a rule. */
+   dividers go with the wrap so a wrapped cell does not start with a rule.
+
+   EVERY SELECTOR HERE CARRIES .case-bar. Without it these rules were written
+   ABOVE the base .case-f / .case-ico declarations and lost to them at equal
+   specificity: the phone was silently rendering the 16px desktop fact and the
+   30px desktop icon, which is where six 33px rows and a 309px bar came from. */
 @media (max-width:900px){
-  .case-state.on{flex-wrap:wrap;gap:4px 0;}
-  .case-f{padding-right:8px;margin-right:8px;}
-  .case-f b{font-size:13.5px;}
-  .case-f i{font-size:8.5px;letter-spacing:.08em;}
-  .case-ico{width:24px;height:24px;margin-right:8px;}
-  .case-ico svg{width:14px;height:14px;}
-  .case-f.wide{flex:1 1 100%;border-right:0;margin-right:0;padding-right:0;}
-  .case-f.wide b{font-size:12.5px;}
+  .case-bar .case-state.on{flex-wrap:wrap;gap:4px 0;}
+  .case-bar .case-f{padding-right:8px;margin-right:8px;}
+  .case-bar .case-f b{font-size:13.5px;}
+  .case-bar .case-f i{font-size:8.5px;letter-spacing:.08em;}
+  .case-bar .case-ico{width:24px;height:24px;margin-right:8px;}
+  .case-bar .case-ico svg{width:14px;height:14px;}
+  .case-bar .case-f.wide{flex:1 1 100%;border-right:0;margin-right:0;padding-right:0;}
+  .case-bar .case-f.wide b{font-size:12.5px;}
 }
 @media (max-width:430px){
-  .case-f b{font-size:12.5px;}
-  .case-f{padding-right:7px;margin-right:7px;}
+  .case-bar .case-f b{font-size:12.5px;}
+  /* THE GUTTER DECIDES HOW MANY ROWS THIS IS. At 8px either side the five
+     facts and the icon measured wider than a 336px row and pushed one fact
+     onto a line of its own. Same facts, same order, one row fewer, and the
+     dividing rule still separates them. */
+  .case-bar .case-f{padding-right:5px;margin-right:5px;}
+  /* A LABELLED FACT IS TWO LINES OF TYPE, NOT 33px OF LEADING. */
+  .case-bar .case-f{gap:0;}
+  .case-bar .case-f b{line-height:1.1;}
+  .case-bar .case-f i{line-height:1.15;}
+  .case-bar{gap:6px 10px;padding-top:8px;padding-bottom:8px;}
+  .case-bar .case-state{gap:2px 0;}
 }
 /* ONLY THE BANDS THAT MOVED. An earlier line here hid every .cw-acc, which
    took the PATIENT ENTRY FORM with it and left no way to start a case at
@@ -2246,8 +2270,13 @@ body .nb-search-wrap{display:none !important;}
    the bar stops pretending it is one line wide. */
 @media(max-width:900px){
   .case-bar{flex-wrap:wrap;gap:8px 10px;}
+  /* display:block was written for the run-on sentence this row used to be.
+     The bar is labelled facts now, and as blocks each fact took a line of its
+     own: six lines and 309px of a 390px screen. They are a wrapping row —
+     the same six facts, none abbreviated, in about a third of the height. */
   .case-state{flex:1 1 100%;white-space:normal;overflow:visible;line-height:1.45;
-    min-height:0;display:block;padding:2px 0;}
+    min-height:0;display:flex;flex-wrap:wrap;align-items:center;
+    gap:3px 0;padding:2px 0;}
   .case-edit{order:2;}
   .case-new,.case-np{flex:1 1 0;justify-content:center;display:inline-flex;
     align-items:center;order:3;}
@@ -3613,13 +3642,17 @@ window.drefAddToPlan = drefAddToPlan;
    their open detail and their scroll position for a state change that is two
    attributes wide. */
 function drefSyncPlan(){
-  [].forEach.call(document.querySelectorAll('[data-plan-for]'), function(b){
+  /* ONLY THE BUTTONS THIS TABLE OWNS. [data-plan-for] is shared with the
+     induction board, whose card IS the control now — a whole card, with the
+     drug's name, its route, its rule and the amount for this patient inside
+     it. Repainting every element carrying the attribute replaced each of
+     those cards with the two words "✓ USING" and silently deleted three
+     printed doses from the screen. The board re-renders itself from the
+     canonical model when the plan changes; this repaints its own column. */
+  [].forEach.call(document.querySelectorAll('.dtab-plus[data-plan-for]'), function(b){
     var id = b.getAttribute('data-plan-for'), on = drefInPlan(id);
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    /* THE SAME TWO WORDS EVERYWHERE. This syncs both the reference table's
-       buttons and the induction toolbox's — they share [data-plan-for] — so
-       they must agree, and "+ Add" is gone from both. */
     b.innerHTML = on ? '&#10003; USING' : 'USE';
     var lab = b.getAttribute('aria-label') || '';
     b.setAttribute('aria-label', lab.replace(/^(Use|Stop using) /, on ? 'Stop using ' : 'Use '));

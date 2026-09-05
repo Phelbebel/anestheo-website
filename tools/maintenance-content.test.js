@@ -664,7 +664,11 @@ const ADULT_ONLY = { label:'Induction', route:'IV', phase:'induction', low:2, hi
 const PAED_ONLY  = { label:'Induction', route:'IV', phase:'induction', low:2.5, high:3.5,
   unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range', populationClass:'B' };
 
-/* Splice the synthetic drug in, run the real selector, take it out again. */
+/* Splice the synthetic drug in, run the real selector, take it out again.
+   The dataset's own size is read here rather than written down, so adding a
+   formulary member to the canonical model does not fail an assertion that is
+   about the SPLICE leaving nothing behind. */
+const DRUG_COUNT = CC.DRUGS.length;
 function withSynth(doses, fn){
   const d = synth(doses);
   CC.DRUGS.push(d);
@@ -747,7 +751,7 @@ withSynth([{ ...ADULT_ONLY, phase:'intubation' }], () => {
 });
 
 t('the synthetic drug left no trace in the dataset',
-  CC.DRUGS.length === 30 && !CC.byId('drug.synthetic'));
+  CC.DRUGS.length === DRUG_COUNT && !CC.byId('drug.synthetic'));
 
 /* ── THE RENDERERS CANNOT PRODUCE A NUMBER FOR A WITHHELD DOSE ──────────*/
 console.log('\n14. NO NUMBER SURVIVES A WITHHELD DOSE');
@@ -1108,7 +1112,13 @@ t('10 NO RSI→INTUBATION FALLBACK for any blocker, adult or child',
     [[70, ADULT_ASA], [15, CHILD]].every(([w, p]) => {
       const rsi = ctxRow(d.id, w, p, RSI_NMB);
       const rou = ctxRow(d.id, w, p, ROUTINE_NMB);
+      /* A BLOCKER WITH NO PUBLISHABLE DOSE AT ALL returns no row rather than
+         an empty one — atracurium and mivacurium are on the board carrying
+         no dose, no route and no evidence. No row is no number, which is the
+         strongest form of what this assertion is about. */
+      if (!rsi) return true;
       if (rsi.withheld) return true;                  /* withheld is always safe */
+      if (!rou) return false;                         /* a number with no routine peer */
       return CC.dosesForPhase(d, 'rsi').length > 0 && rsi.val !== rou.val;
     })),
   'an RSI row is either a real RSI record or no number at all');
@@ -1198,6 +1208,136 @@ t('a hypnotic under RSI resolves to its induction record, there being no other',
 t('...and a child gets the paediatric one, not the adult',
   ctxRow('drug.propofol', 15, P(true, yrs(3), 'II'), RSI_HYP).doseNum === '2.5–3.5' &&
   ctxRow('drug.propofol', 15, P(true, yrs(3), 'II'), RSI_HYP).val === '38–53');
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COMPOSITION IS NOT MEDICINE
+   ──────────────────────────────────────────────────────────────────────────
+   The induction board named sixteen agents and seven of them had no clinical
+   record, so seven records were written — name, colour, empty dose array,
+   proposed-unverified — purely so a 4 x 4 layout could resolve its ids. That
+   is a UI requirement creating clinical objects, and no gate downstream can
+   undo it: the objects exist, they are in DRUGS, and the next reader has to
+   work out why.
+
+   The composition lives in induction-catalog.js now and the seven records are
+   gone. What follows proves the separation holds in both directions: the
+   catalog carries nothing clinical, and the canonical dataset carries nothing
+   that exists only because the board names it.
+   ══════════════════════════════════════════════════════════════════════════ */
+console.log('\n15. COMPOSITION IS NOT MEDICINE');
+
+const UI_ONLY = ['Etomidate','Thiopental','Alfentanil','Atracurium',
+                 'Mivacurium','Atropine','Glycopyrrolate'];
+const UI_IDS  = UI_ONLY.map(n => 'drug.' + n.toLowerCase());
+
+t('the seven UI-only agents are not canonical records',
+  UI_IDS.every(id => !CC.byId(id)), UI_IDS.filter(id => !!CC.byId(id)));
+t('...and no record carries their names either',
+  CC.DRUGS.filter(d => UI_ONLY.indexOf(d.name) >= 0).length === 0,
+  CC.DRUGS.filter(d => UI_ONLY.indexOf(d.name) >= 0).map(d => d.id));
+/* The counts the dataset had before the seven were written. */
+t('the canonical counts are back where they were',
+  CC.DRUGS.length === 30 &&
+  CC.DRUGS.filter(CC.isPublishable).length === 25,
+  { drugs:CC.DRUGS.length, publishable:CC.DRUGS.filter(CC.isPublishable).length });
+t('...and the eleven reviewed dose records are untouched',
+  CC.DRUGS.reduce((n,d) => n + (d.doses||[]).filter(x => x.evidence || x.populationClass).length, 0) === 11);
+
+/* NOT REACHABLE BY ANY SELECTOR, at any weight, in any population, in any
+   group — which is stronger than "the gate refuses them", because there is
+   no longer anything for a gate to refuse. */
+{
+  const POPS = [{adult:true,pediatric:false}, {adult:false,pediatric:true}, null];
+  const leaks = [];
+  (CC.GROUPS||[]).map(g => g.id || g).forEach(g => POPS.forEach(pop => {
+    ['visibleDrugsInGroup','visibleDosesInGroup'].forEach(fn => {
+      try { (CC[fn](g, 70, pop) || []).forEach(r => {
+        if (UI_IDS.indexOf(r.id) >= 0 || UI_ONLY.indexOf(r.name) >= 0)
+          leaks.push(fn + '/' + g + ' -> ' + r.id); });
+      } catch (e) { /* a group a selector does not serve is not a leak */ }
+    });
+  }));
+  t('no group selector returns any of them, in any population', leaks.length === 0, leaks);
+}
+t('...and canonical search finds none of them',
+  UI_ONLY.every(n => CC.search(n).every(r => {
+    const it = r.item || r; return UI_ONLY.indexOf(it.name) < 0; })),
+  UI_ONLY.filter(n => CC.search(n).some(r => {
+    const it = r.item || r; return UI_ONLY.indexOf(it.name) < 0 ? false : true; })));
+t('...and doseRowForContext has nothing to return for them',
+  UI_IDS.every(id => {
+    const d = CC.byId(id);
+    return !d || ['rsi','induction','intubation', CC.LEGACY_CONTEXT]
+      .every(c => !CC.doseRowForContext(d, 70, {adult:true,pediatric:false}, [c]));
+  }));
+
+/* THE CATALOG ITSELF */
+const CAT = require(REPO + '/induction-catalog.js');
+const CATSRC = read('induction-catalog.js');
+t('the display catalog exists and declares four rows',
+  !!CAT && (CAT.rows||[]).length === 4, (CAT.rows||[]).map(r => r.key));
+t('...four members each, sixteen slots in the frozen order',
+  (CAT.rows||[]).every(r => r.members.length === 4) &&
+  CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []).join() ===
+  ['midazolam','lidocaine-iv','atropine','glycopyrrolate',
+   'fentanyl','morphine','remifentanil','alfentanil',
+   'propofol','etomidate','ketamine','thiopental',
+   'rocuronium','atracurium','mivacurium','suxamethonium'].join(),
+  CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []));
+t('...every canonicalId it names resolves to a real record',
+  CAT.rows.every(r => r.members.every(m => !m.canonicalId || !!CC.byId(m.canonicalId))),
+  CAT.rows.reduce((a,r) => a.concat(r.members.filter(m =>
+    m.canonicalId && !CC.byId(m.canonicalId)).map(m => m.canonicalId)), []));
+t('...and a member with no record carries a name and a colour, nothing more',
+  CAT.rows.every(r => r.members.every(m => m.canonicalId ||
+    (typeof m.name === 'string' && typeof m.visualClass === 'string'))) &&
+  CAT.rows.every(r => r.members.every(m =>
+    Object.keys(m).every(k =>
+      ['key','canonicalId','name','visualClass'].indexOf(k) >= 0))),
+  CAT.rows.reduce((a,r) => a.concat(r.members.map(m => Object.keys(m).join('+'))), []));
+/* The colour a display member is given must be a real class colour, so the
+   board cannot invent a hue that means nothing. */
+t('...and that colour is one ClinicalContent already defines',
+  CAT.rows.every(r => r.members.every(m => !m.visualClass || !!CC.PCLASS[m.visualClass])),
+  CAT.rows.reduce((a,r) => a.concat(r.members.filter(m =>
+    m.visualClass && !CC.PCLASS[m.visualClass]).map(m => m.visualClass)), []));
+
+/* THE FILE MAY NOT ACQUIRE MEDICINE. Comments are stripped first — this file
+   explains at length what it must not contain, and the prohibition is about
+   the data, not the prose. */
+{
+  const data = code(CATSRC);
+  const banned = ['mg/kg','mcg/kg','\\bmg\\b','\\bmcg\\b','\\bdose','\\broute',
+                  'concentration','\\bprep','warning','contraindicat','age[Bb]and',
+                  'population','\\brsi dose','recommend','\\bunit\\b','\\bmL\\b'];
+  /* IV and IM are ROUTES in capitals; "lidocaine-iv" is an identifier the
+     canonical model already uses, so the route check is case-sensitive. */
+  const hits = banned.filter(w => new RegExp(w, 'i').test(data))
+    .concat(['\\bIV\\b','\\bIM\\b','\\bPO\\b'].filter(w => new RegExp(w).test(data)));
+  t('the display catalog contains no clinical vocabulary', hits.length === 0, hits);
+  t('...and no numeric literal at all', !/[0-9]/.test(data.replace(/\s/g,'')),
+    (data.match(/[0-9][^\s]*/g) || []).slice(0,6));
+}
+
+/* THE COMPOSER READS BOTH, AND ASKS EACH ONE THE RIGHT QUESTION. */
+{
+  const IND = code(read('induction.js'));
+  t('induction.js takes its composition from the catalog',
+    /InductionCatalog/.test(IND));
+  t('...and still takes every dose from ClinicalContent',
+    !/mg\/kg|mcg\/kg/.test(IND.replace(/'[^']*'/g, "''")) === true ||
+    !/doses\s*:\s*\[/.test(IND));
+  t('...and clinical-index.js declares no board composition',
+    !/INDUCTION_PLAN/.test(code(read('clinical-index.js'))));
+}
+
+/* THE REVIEWED RECORDS ARE UNCHANGED BY ALL OF THIS. */
+t('the reviewed agents still resolve exactly as before',
+  ctxRow('drug.propofol', 70, ADULT_ASA, ROUTINE_HYP).doseNum === '2–2.5' &&
+  ctxRow('drug.rocuronium', 70, ADULT_ASA, RSI_NMB).doseNum === '0.6–1.2' &&
+  ctxRow('drug.rocuronium', 15, CHILD, ROUTINE_NMB).doseNum === '0.6' &&
+  ctxRow('drug.suxamethonium', 70, ADULT_ASA, ROUTINE_NMB).doseNum === '0.3–1.1');
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

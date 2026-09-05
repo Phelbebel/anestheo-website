@@ -354,39 +354,43 @@
     return !!(d && (d.doses || []).some(function (x){ return /^Induction/.test(x.label || ''); }));
   }
 
-  /* ── THE PLAN'S FOUR ROWS, IN THE ORDER A CASE IS GIVEN ───────────────
-     Premedication, analgesia, hypnosis, blockade. The row is the clinical
-     step; the cards in it are the canonical drugs that step can be done with.
+  /* ── THE PLAN'S FOUR ROWS ─────────────────────────────────────────────
+     TWO SOURCES, AND THEY ANSWER DIFFERENT QUESTIONS. InductionCatalog says
+     WHICH agents are on the board and in which row — composition, no
+     medicine. ClinicalContent says what any of them may print — every dose,
+     route, population rule and coverage state, unchanged.
 
-     WHICH ROW A DRUG IS IN COMES FROM ITS OWN RECORD, not from a list kept
-     here: a drug in the induction group whose dose label says Induction is a
-     hypnotic, and the rest of that group is premedication, which is what
-     Premedication and Sedation already say about midazolam and
-     dexmedetomidine. Etomidate, alfentanil, atracurium and atropine are in
-     the schema and not in the canonical model, so they are absent — a card
-     with no dose is a drug the clinician then has to look up somewhere else.
-
-     `slots` is 4, so every row is the same width and no row is a ragged 3.
-     Rows are padded with an empty slot, never with a placeholder drug. */
+     A member whose canonicalId resolves is the canonical record, exactly as
+     before. A member with no canonical record at all is a display member: a
+     name and a colour, and the card says "Dose not reviewed" where the
+     numbers would be. It cannot acquire a dose here, because there is
+     nothing here to acquire one from. */
   var PLAN_SLOTS = 4;
   function planRows(){
-    var ind = drugsOnce('induction');
-    return [
-      { key:'induction', label:'Premedication',
-        rows:ind.filter(function (d){ return !isPrimaryInduction(d.id); }) },
-      { key:'analgesia', label:'Analgesia', rows:drugsOnce('analgesia') },
-      { key:'induction', label:'Hypnosis',
-        rows:ind.filter(function (d){ return isPrimaryInduction(d.id); }) },
-      { key:'nmb',       label:'Neuromuscular blockade', rows:drugsOnce('nmb'), nmb:true }
-    ];
+    var CC = root.ClinicalContent;
+    var cat = root.InductionCatalog;
+    if (!CC || !cat) return [];
+    return (cat.rows || []).map(function (row){
+      return { key:row.role, label:row.label, nmb:!!row.nmb,
+        rows:(row.members || []).map(function (m){
+          var d = m.canonicalId ? CC.byId(m.canonicalId) : null;
+          if (d) return { id:d.id, name:d.name, pclass:d.pclass, canonical:true };
+          /* No record — the catalog's own name and colour, and nothing else.
+             A member that names a canonicalId which does not resolve and
+             carries no display name is a broken entry, not a blank card. */
+          if (!m.name) return null;
+          return { id:null, key:m.key, name:m.name, pclass:m.visualClass,
+                   canonical:false };
+        }).filter(Boolean) };
+    });
   }
   /* Kept for the suites and for any caller that wants the flat board. */
   function toolboxGroups(){ return planRows(); }
 
-  /* AN EMPTY SLOT IS A PLUS AND NOTHING ELSE. No "Add drug", no "+ Add", no
-     "Add agent" — the words were the affordance's whole problem. It opens
-     the drug reference filtered to this row's class, which is where the rest
-     of that class already lives; it adds nothing by itself. */
+  /* A COMPACT CONTROL, NOT A FIFTH CARD. It sits outside the four-card grid
+     at the width of a button, and it is a plus and nothing else. It opens
+     the drug reference filtered to the row's class, which is where every
+     other agent this application holds a dose for already is. */
   function tbSlot(roleKey){
     return '<button type="button" class="tb-s" data-slot-for="' + roleKey + '" ' +
       'aria-label="Add another agent from the drug reference" ' +
@@ -402,29 +406,49 @@
      what is missing where the numbers would be. No warning paragraph lives
      inside a card; a warning belongs to the reference row's disclosure. */
   function tbCard(roleKey, base){
-    var d = contextRow(roleKey, base.id) || base;
-    var on = hasDrug(roleKey, base.id);
+    var CC = root.ClinicalContent;
+    /* A DISPLAY MEMBER HAS NO RECORD TO ASK. It is not a withheld dose, it is
+       an agent the board names and the evidence process has not reached: no
+       selector runs for it, no context is consulted, and the card prints its
+       name, its colour and the coverage state. It is not a control either —
+       there is nothing canonical to put in a plan. */
+    var noRecord = base.canonical === false;
+    var d = noRecord ? null : contextRow(roleKey, base.id);
+    if (!d) d = { withheld:true, use:'', val:'', unit:'',
+                  coverage:(CC && CC.COVERAGE) ? CC.COVERAGE[CC.WITHHELD.UNPUBLISHED]
+                                               : 'Dose not reviewed' };
+    var on = noRecord ? false : hasDrug(roleKey, base.id);
     var rule = d.doseNum
       ? '<b>' + d.doseNum + '</b> <i>' + esc(d.doseUnit || '') + '</i>'
       : (d.val ? '<b>' + esc(d.val) + '</b> <i>' + esc(d.unit || '') + '</i>' : '');
     var amount = (d.doseNum && d.val) ? esc(d.val) + '<i>' + esc(d.unit || '') + '</i>' : '';
-    return '<div class="tb-c' + (on ? ' on' : '') + (d.withheld ? ' cov' : '') + '" ' +
-        'style="--pc:' + classColour(base.pclass) + '" data-drug="' + esc(base.id) + '">' +
-      '<div class="tb-c-n">' + esc(base.name) + '</div>' +
-      '<div class="tb-c-u">' + esc(d.use || '\u00a0') + '</div>' +
+    /* THE CARD IS THE CONTROL. A text button inside it spent a third of the
+       last line — the line the patient's amount is on — saying what the card
+       itself can say by lighting up. The card is a <button>, it carries
+       aria-pressed, and the only mark of state inside it is a check in the
+       corner. Every child is a <span>: flow content inside a button is a
+       validity error, and this file has already been bitten once by a
+       <button> that could not legally contain what was put in it. */
+    var body =
+      (on ? '<span class="tb-c-ck" aria-hidden="true">&#10003;</span>' : '') +
+      '<span class="tb-c-n">' + esc(base.name) + '</span>' +
+      '<span class="tb-c-u">' + esc(d.use || '\u00a0') + '</span>' +
       (d.withheld
-        ? '<div class="tb-c-cov">' + esc(d.coverage) + '</div>'
-        : '<div class="tb-c-r">' + rule + '</div>' +
-          '<div class="tb-c-f">' +
-            '<span class="tb-c-a">' + (amount || '') + '</span>' +
-            '<button type="button" class="tb-c-b' + (on ? ' on' : '') + '" ' +
-            'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
-            'data-plan-for="' + esc(base.id) + '" ' +
-            'aria-label="' + (on ? 'Stop using ' : 'Use ') + esc(base.name) + ' in this plan" ' +
-            'onclick="Induction.toggle(\'' + roleKey + '\',\'' + esc(base.id) + '\')">' +
-            (on ? '&#10003; USING' : 'USE') + '</button>' +
-          '</div>') +
-    '</div>';
+        ? '<span class="tb-c-cov">' + esc(d.coverage) + '</span>'
+        : '<span class="tb-c-r">' + rule + '</span>' +
+          '<span class="tb-c-a">' + (amount || '') + '</span>');
+    var colour = 'style="--pc:' + classColour(base.pclass) + '" ';
+    if (noRecord)
+      return '<div class="tb-c cov tb-c-x" ' + colour +
+        'data-member="' + esc(base.key || '') + '">' + body + '</div>';
+    return '<button type="button" class="tb-c' + (on ? ' on' : '') +
+        (d.withheld ? ' cov' : '') + '" ' + colour +
+        'data-drug="' + esc(base.id) + '" ' +
+        'data-plan-for="' + esc(base.id) + '" ' +
+        'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+        'aria-label="' + (on ? 'Stop using ' : 'Use ') + esc(base.name) + ' in this plan" ' +
+        'onclick="Induction.toggle(\'' + roleKey + '\',\'' + esc(base.id) + '\')">' +
+      body + '</button>';
   }
 
   /* ── 1 · INDUCTION STRATEGY ──────────────────────────────────────────
@@ -480,21 +504,17 @@
       g.rows.forEach(function (d){ if (hasDrug(g.key, d.id)) used++; });
     });
 
+    /* LABEL · FOUR CARDS · ONE PLUS. The four cards are a grid of four equal
+       columns; the plus is outside it, so it is a control the size of a
+       control rather than a fifth cell the size of a card. */
     var board = '<div class="tb">' + groups.map(function (g){
-      var cells = g.rows.map(function (d){ return tbCard(g.key, d); });
-      /* PAD TO THE ROW WIDTH WITH SLOTS, NEVER WITH A DRUG. A row of two
-         real agents and two pluses is honest; a row of two agents and two
-         blank cells is reserved space, and a row padded with a drug we hold
-         no dose for is worse than either. */
-      while (cells.length % PLAN_SLOTS !== 0 || cells.length === 0)
-        cells.push(tbSlot(g.key));
+      var cells = g.rows.slice(0, PLAN_SLOTS).map(function (d){ return tbCard(g.key, d); });
       return '<div class="tb-grp">' +
         '<div class="tb-g' + (g.nmb && isRSI() ? ' rsi' : '') + '">' +
-          /* NO "2 OF 4" COUNT. It wrapped the longest label onto a third
-             line and set the whole row 14px taller, to say something the row
-             says by itself: two cards and two pluses. */
           '<b>' + esc(g.label) + '</b></div>' +
-        '<div class="tb-row">' + cells.join('') + '</div></div>';
+        '<div class="tb-row">' + cells.join('') + '</div>' +
+        tbSlot(g.key) +
+      '</div>';
     }).join('') + '</div>';
 
     return section(NUM, 'Selected drug plan',
