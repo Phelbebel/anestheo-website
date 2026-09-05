@@ -953,6 +953,12 @@ nav#cmd-strip{margin:0 0 9px;}
 .pl-sel-n{font-size:20px; font-weight:800; letter-spacing:-.015em; color:#fff;}
 .pl-sel-d{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
 .pl-rule{font-size:12.5px; font-weight:600; color:var(--ink-2,#c8d4da);}
+/* A CONTEXT WITH NO REVIEWED DOSE. It takes the place of the rule and the
+   amount, at the rule's own size, so the card keeps its height and its
+   rhythm — italic and muted, never a warning: the technique is fine, we
+   simply hold no reviewed dose for it. */
+.pl-cov{font-size:11.5px; font-weight:600; font-style:italic; line-height:1.3;
+  color:var(--ink-3,#7d8b95);}
 .pl-amt{font-size:23px; font-weight:800; letter-spacing:-.02em;
   color:var(--accent,#8FE8D6); font-variant-numeric:tabular-nums;}
 .pl-prep{margin-top:7px; font-size:11.5px; color:var(--ink-2,#c8d4da);}
@@ -1197,6 +1203,7 @@ html.lt-immersive body{padding-top:0 !important;}
 .pl-sel-n{font-size:15px; font-weight:800; letter-spacing:-.01em; color:#fff; line-height:1.2;}
 .pl-sel-d{display:flex; flex-direction:column; gap:1px; margin-top:5px;}
 .pl-rule{font-size:10.5px; font-weight:600; color:var(--ink-3,#7d8b95);}
+.pl-cov{font-size:10px; font-style:italic; line-height:1.25;}
 .pl-amt{font-size:19px; font-weight:800; letter-spacing:-.02em;
   color:var(--accent,#8FE8D6); font-variant-numeric:tabular-nums; line-height:1.1;}
 .pl-prep{margin-top:5px; font-size:10.5px;}

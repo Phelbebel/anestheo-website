@@ -1036,5 +1036,159 @@ t('sevoflurane still proposed-unverified with no dose',
 t('reversal drugs still render for an adult',
   CC.visibleDosesInGroup('reversal',70,ADULT).every(r => !r.withheld));
 
+/* ── 17. THE PLAN IS PHASE-AWARE ─────────────────────────────────────────
+   The reference answers "what is reviewed for this drug" with every eligible
+   record. The plan answers "what am I giving, in the technique I am running"
+   and that has one answer or none. Before this, the plan took the first row,
+   so a clinician running Classic RSI with rocuronium selected was shown the
+   routine 0.6 mg/kg — reviewed, real, and for the wrong context. */
+console.log('\n17. TECHNIQUE CHOOSES A CONTEXT');
+
+const ROUTINE_NMB = ['intubation'], RSI_NMB = ['rsi'];
+const ROUTINE_HYP = ['induction'],  RSI_HYP = ['rsi','induction'];
+const ctxRow = (id, wt, pop, contexts) =>
+  CC.doseRowForContext(CC.byId(id), wt, pop, contexts);
+
+/* 1–3 · rocuronium follows the technique, both ways */
+t('1  adult + rocuronium + ROUTINE → 0.6 mg/kg intubation',
+  (() => { const r = ctxRow('drug.rocuronium', 70, ADULT_ASA, ROUTINE_NMB);
+    return !r.withheld && r.doseNum === '0.6' && r.use === 'IV · Intubation'; })(),
+  ctxRow('drug.rocuronium', 70, ADULT_ASA, ROUTINE_NMB).use);
+t('2  ...switch to RSI → 0.6–1.2 mg/kg, rapid sequence',
+  (() => { const r = ctxRow('drug.rocuronium', 70, ADULT_ASA, RSI_NMB);
+    return !r.withheld && r.doseNum === '0.6–1.2' &&
+           r.use === 'IV · Rapid sequence intubation'; })(),
+  ctxRow('drug.rocuronium', 70, ADULT_ASA, RSI_NMB).use);
+t('3  ...and back again → 0.6 mg/kg intubation',
+  ctxRow('drug.rocuronium', 70, ADULT_ASA, ROUTINE_NMB).doseNum === '0.6');
+t('...the two contexts never return the same row',
+  ctxRow('drug.rocuronium', 70, ADULT_ASA, ROUTINE_NMB).val !==
+  ctxRow('drug.rocuronium', 70, ADULT_ASA, RSI_NMB).val);
+
+/* 4 · the selection is untouched — the model is never asked to change it */
+t('4  a context lookup mutates nothing: same drug, same doses, same order',
+  (() => {
+    const before = JSON.stringify(CC.byId('drug.rocuronium'));
+    [ROUTINE_NMB, RSI_NMB, ROUTINE_NMB].forEach(c =>
+      ctxRow('drug.rocuronium', 70, ADULT_ASA, c));
+    return JSON.stringify(CC.byId('drug.rocuronium')) === before;
+  })());
+
+/* 5–6 · suxamethonium has no reviewed RSI record, and is not given one */
+t('5  adult + suxamethonium + ROUTINE → reviewed 0.3–1.1 renders',
+  (() => { const r = ctxRow('drug.suxamethonium', 70, ADULT_ASA, ROUTINE_NMB);
+    return !r.withheld && r.doseNum === '0.3–1.1'; })());
+t('6  adult + suxamethonium + RSI → NO number, "RSI dose not reviewed"',
+  (() => { const r = ctxRow('drug.suxamethonium', 70, ADULT_ASA, RSI_NMB);
+    return r.withheld && r.coverage === 'RSI dose not reviewed' &&
+           r.val === '' && r.doseNum === '' && r.doseRule === ''; })(),
+  ctxRow('drug.suxamethonium', 70, ADULT_ASA, RSI_NMB).coverage);
+t('...and its intubation dose appears NOWHERE on that row',
+  !/0\.3|1\.1|21|77/.test(JSON.stringify(
+    ctxRow('drug.suxamethonium', 70, ADULT_ASA, RSI_NMB))));
+
+/* 7–9 · the child */
+t('7  child + rocuronium + ROUTINE → reviewed paediatric 0.6 mg/kg',
+  (() => { const r = ctxRow('drug.rocuronium', 15, CHILD, ROUTINE_NMB);
+    return !r.withheld && r.doseNum === '0.6' && r.val === '9'; })());
+t('8  child + rocuronium + RSI → NO number, "Pediatric RSI dose not reviewed"',
+  (() => { const r = ctxRow('drug.rocuronium', 15, CHILD, RSI_NMB);
+    return r.withheld && r.coverage === 'Pediatric RSI dose not reviewed' &&
+           r.val === ''; })(),
+  ctxRow('drug.rocuronium', 15, CHILD, RSI_NMB).coverage);
+t('...and the ADULT RSI range does not appear on it',
+  !/0\.6–1\.2|1\.2/.test(JSON.stringify(ctxRow('drug.rocuronium', 15, CHILD, RSI_NMB))));
+t('9  child + suxamethonium → no number in either context',
+  ctxRow('drug.suxamethonium', 15, CHILD, ROUTINE_NMB).val === '' &&
+  ctxRow('drug.suxamethonium', 15, CHILD, RSI_NMB).val === '');
+
+/* 10 · no RSI fallback, anywhere, for any blocker */
+t('10 NO RSI→INTUBATION FALLBACK for any blocker, adult or child',
+  CC.DRUGS.filter(d => d.pclass === 'nmb').every(d =>
+    [[70, ADULT_ASA], [15, CHILD]].every(([w, p]) => {
+      const rsi = ctxRow(d.id, w, p, RSI_NMB);
+      const rou = ctxRow(d.id, w, p, ROUTINE_NMB);
+      if (rsi.withheld) return true;                  /* withheld is always safe */
+      return CC.dosesForPhase(d, 'rsi').length > 0 && rsi.val !== rou.val;
+    })),
+  'an RSI row is either a real RSI record or no number at all');
+t('...and the RSI context list has exactly one entry for a blocker',
+  /roleKey === 'nmb'\) return isRSI\(\) \? \['rsi'\] : \['intubation'\]/
+    .test(code(read('induction.js'))),
+  'one entry means there is nothing to fall back to');
+
+/* 11 · Classic and Modified RSI are the same context */
+{
+  const IND = code(read('induction.js'));
+  t('11 Classic and Modified RSI both map to phase rsi',
+    /technique === 'classic' \|\| technique === 'modified'/.test(IND));
+  t('...and neither is bound to a blocker',
+    !/classic[\s\S]{0,120}suxamethonium/i.test(IND) &&
+    !/modified[\s\S]{0,120}rocuronium/i.test(IND));
+  /* 12 · technique never touches the selection */
+  const setTech = /function setTechnique\(id\)\{([\s\S]*?)\n  \}/.exec(IND);
+  t('12 no technique handler adds, removes or swaps a drug',
+    !!setTech && !/picked|toggle|remove|drugs?\(/.test(setTech[1]),
+    setTech ? setTech[1].replace(/\s+/g,' ').trim() : 'setTechnique not found');
+  t('...and the plan holds no phase logic of its own',
+    !/dosesForPhase|\.phase ===/.test(IND),
+    'ClinicalContent remains the authority');
+}
+
+/* 13 · the reference is not technique-dependent */
+t('13 the drug reference still exposes every eligible context',
+  CC.visibleDosesInGroup('nmb', 70, ADULT_ASA)
+    .filter(r => r.id === 'drug.rocuronium').length === 2,
+  CC.visibleDosesInGroup('nmb', 70, ADULT_ASA)
+    .filter(r => r.id === 'drug.rocuronium').map(r => r.use));
+t('...and the reference selector is never given a technique',
+  !/visibleDosesInGroup\([^)]*technique/.test(code(read('engine.html'))));
+t('...so both rocuronium rows remain reachable while the plan shows one',
+  CC.visibleDosesInGroup('nmb', 70, ADULT_ASA)
+    .filter(r => r.id === 'drug.rocuronium').map(r => r.doseNum).sort().join('|') ===
+  '0.6|0.6–1.2');
+
+/* ── THE UNPHASED TIER MATCHES SILENCE, NOT ANY CONTEXT ────────────────
+   Every record predating the migration declares no phase, so a plan that
+   filtered on phase alone printed a coverage line for midazolam, morphine
+   and the legacy fentanyl row while the reference beside it printed their
+   dose. The tier that fixes it must match ONLY records that say nothing —
+   never one that declares a different context. */
+const LEG = CC.LEGACY_CONTEXT;
+t('the unphased tier returns a record that declares no phase',
+  (() => { const r = ctxRow('drug.midazolam', 70, ADULT_ASA, ['induction', LEG]);
+    return !r.withheld && r.doseNum === '0.02–0.04'; })());
+t('...and returns NOTHING for a drug whose every record declares a phase',
+  ctxRow('drug.rocuronium', 70, ADULT_ASA, [LEG]).withheld === true,
+  'rocuronium has three phased records and no unphased one');
+t('...so it can never answer an RSI question with an intubating dose',
+  ctxRow('drug.suxamethonium', 70, ADULT_ASA, ['rsi', LEG]).withheld === true,
+  'even if a blocker were wrongly given the tier, a phased record stays out of reach');
+/* The blocker's return statement itself, not the lines near it. */
+t('THE BLOCKER LIST NEVER INCLUDES THE UNPHASED TIER', (() => {
+  const m = /roleKey === 'nmb'\)\s*return ([^;]+);/.exec(code(read('induction.js')));
+  return !!m && !/legacy|LEGACY|unphased/.test(m[1]) &&
+         m[1].replace(/\s+/g,'') === "isRSI()?['rsi']:['intubation']";
+})(), (/roleKey === 'nmb'\)\s*return ([^;]+);/.exec(code(read('induction.js')))||[])[1]);
+t('...and a legacy record reached through the tier is still population-gated',
+  ctxRow('drug.midazolam', 15, CHILD, ['induction', LEG]).withheld === true &&
+  ctxRow('drug.midazolam', 15, CHILD, ['induction', LEG]).val === '');
+t('...and gains no class from being reached',
+  (CC.byId('drug.midazolam').doses||[]).every(x => x.populationClass === undefined));
+
+/* THE CONTEXT SELECTOR IS THE ONE THAT ALREADY EXISTS. */
+t('doseRowForContext runs the same gates as every other surface',
+  ctxRow('drug.propofol', 70, P(false, yrs(44), null), ROUTINE_HYP).coverage ===
+    'ASA required to match reviewed dose' &&
+  ctxRow('drug.propofol', 70, P(false, yrs(70), 'II'), ROUTINE_HYP).withheld === true);
+t('a hypnotic under RSI resolves to its induction record, there being no other',
+  (() => { const r = ctxRow('drug.propofol', 70, ADULT_ASA, RSI_HYP);
+    return !r.withheld && r.doseNum === '2–2.5'; })());
+/* CHILD carries no ASA and propofol's paediatric record requires one, so
+   this uses a fully-specified child — the ASA path is asserted separately. */
+t('...and a child gets the paediatric one, not the adult',
+  ctxRow('drug.propofol', 15, P(true, yrs(3), 'II'), RSI_HYP).doseNum === '2.5–3.5' &&
+  ctxRow('drug.propofol', 15, P(true, yrs(3), 'II'), RSI_HYP).val === '38–53');
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

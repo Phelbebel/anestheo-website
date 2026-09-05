@@ -1306,7 +1306,8 @@ var AGE_UNIT_NAME = { y:'years', mo:'months', w:'weeks', d:'days' };
    we have no evidence for.                                                  */
 var WITHHELD = { PAEDIATRIC:'paediatric-not-reviewed', ADULT:'adult-not-reviewed',
                  AGE:'age-not-reviewed', ASA:'asa-unknown',
-                 PROFILE:'profile-not-reviewed', UNPUBLISHED:'not-publishable' };
+                 PROFILE:'profile-not-reviewed', CONTEXT:'context-not-reviewed',
+                 UNPUBLISHED:'not-publishable' };
 var COVERAGE = {};
 COVERAGE[WITHHELD.PAEDIATRIC] = 'Pediatric dose not reviewed';
 COVERAGE[WITHHELD.ADULT]      = 'Adult dose not reviewed';
@@ -1318,6 +1319,7 @@ COVERAGE[WITHHELD.AGE]        = 'No reviewed dose for this age';
    between a dead end and a next step. */
 COVERAGE[WITHHELD.ASA]        = 'ASA required to match reviewed dose';
 COVERAGE[WITHHELD.PROFILE]    = 'Reviewed dose not available for this patient profile';
+COVERAGE[WITHHELD.CONTEXT]    = 'Dose not reviewed for this context';
 COVERAGE[WITHHELD.UNPUBLISHED]= 'Dose not reviewed';
 
 /* ── THREE SEPARATE THINGS, AND THEY MUST NOT COLLAPSE ────────────────────
@@ -1504,6 +1506,74 @@ function visibleDosesInGroup(groupId, wt, pop, phase, route){
   return out;
 }
 
+/* ── ONE DRUG, ONE CONTEXT, ONE ROW ───────────────────────────────────────
+   THE INDUCTION PLAN ASKS A DIFFERENT QUESTION FROM THE REFERENCE. The
+   reference asks "what has been reviewed for this drug" and answers with
+   every eligible record. The plan asks "what am I giving this patient, in
+   the technique I am running", and that has exactly one answer or none.
+
+   Once rocuronium carried a routine intubating dose and an RSI dose, the plan
+   took the first row and showed 0.6 mg/kg while the technique strip said
+   Classic RSI. The number was real, reviewed and for the wrong context — the
+   most convincing way to be wrong.
+
+   `contexts` is an ORDERED list of phases to try, and it is the caller's
+   statement of what the context means, not a fallback chain the model
+   invented. For a blocker under RSI the list has ONE entry, so there is
+   nothing to fall back to: a drug with no reviewed RSI record yields a
+   withheld row and never its intubating dose. For a hypnotic the list is
+   ['rsi','induction'] because the reviewed labels do not dose them
+   differently for a rapid sequence — if one ever does, its record will be
+   found first without this code changing.
+
+   LEGACY_CONTEXT IS A RECORD THAT DECLARES NO CONTEXT, NOT A WILDCARD. Every
+   record that predates the reviewed migration carries no `phase` — midazolam,
+   morphine, dexmedetomidine, the legacy fentanyl and remifentanil rows — so a
+   plan that filtered on phase alone would have shown a coverage line for
+   every one of them, in a workspace where the reference beside it prints
+   their dose without hesitation. This entry matches ONLY doses with no phase
+   at all. It never returns a dose that declares a different context, which is
+   the difference between reading a record that says nothing and overruling
+   one that says something.
+
+   It is offered to hypnotics and opioids and NOT to blockers. There is no
+   unphased blocker record today, and there must never be a tier that could
+   quietly answer an RSI question with one.
+
+   Returns a rendered row, or a withheld row carrying the reason. Never a
+   dose from a context that was not asked for.                              */
+var LEGACY_CONTEXT = '(unphased)';
+function doseRowForContext(drug, wt, pop, contexts){
+  if (!drug || !isPublishable(drug) || !drug.doses) return null;
+  var list = contexts && contexts.length ? contexts : [LEGACY_CONTEXT];
+  var sawInContext = false, reason = null;
+  for (var i = 0; i < list.length; i++){
+    var phase = list[i];
+    var candidates = (phase === LEGACY_CONTEXT)
+      ? drug.doses.filter(function(x){ return !x.phase; })
+      : dosesForPhase(drug, phase);
+    for (var j = 0; j < candidates.length; j++){
+      var dose = candidates[j];
+      if (!isDosePublishable(drug, dose)) continue;
+      sawInContext = true;
+      var e = doseEligibility(dose, pop, drug);
+      if (e.eligible) return rowFor(drug, dose, wt);
+      if (!reason) reason = e.reason;
+    }
+  }
+  if (!sawInContext) reason = WITHHELD.CONTEXT;    /* nothing reviewed for this context */
+  var row = withheldRowFor(drug, reason || WITHHELD.UNPUBLISHED);
+  /* THE MESSAGE NAMES THE CONTEXT WHEN THE CONTEXT IS WHY. "Pediatric dose
+     not reviewed" under a technique strip reading Classic RSI is true and
+     unhelpful; what the clinician needs to know is that it is the RSI dose
+     we do not hold. Only RSI is named, because it is the only context the
+     workspace lets you switch into. */
+  if (list.indexOf(PHASES.RSI) >= 0)
+    row.coverage = (pop && pop.pediatric ? 'Pediatric RSI' : 'RSI') + ' dose not reviewed';
+  row.context = list[0] || '';
+  return row;
+}
+
 function byId(id){
   for (var i=0;i<DRUGS.length;i++) if (DRUGS[i].id === id) return DRUGS[i];
   for (var j=0;j<ITEMS.length;j++) if (ITEMS[j].id === id) return ITEMS[j];
@@ -1533,7 +1603,8 @@ global.ClinicalContent = {
      never reached. The gate is built, wired and tested before it holds
      anything, which is the only order in which it can be proved inert. */
   POPCLASS:POPCLASS, WITHHELD:WITHHELD, COVERAGE:COVERAGE,
-  legacyAdmission:legacyAdmission,
+  legacyAdmission:legacyAdmission, doseRowForContext:doseRowForContext,
+  LEGACY_CONTEXT:LEGACY_CONTEXT,
   AGE_FAMILY:AGE_FAMILY, compareAge:compareAge,
   meetsApplicability:meetsApplicability, applicabilityFailure:applicabilityFailure,
   inAgeBand:inAgeBand, patientPopulation:patientPopulation,

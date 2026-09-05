@@ -167,6 +167,54 @@
     });
     return out;
   }
+
+  /* ── TECHNIQUE CHOOSES A CONTEXT, NOT A DRUG ───────────────────────────
+     The plan took the first eligible row per drug, so a clinician who had
+     selected rocuronium and set the technique to Classic RSI was shown
+     0.6 mg/kg — the routine intubating dose — under a strip that said RSI.
+     A real, reviewed number for the wrong context is the most convincing way
+     to be wrong, and it is worse than no number at all.
+
+     THIS CHANGES NO SELECTION. Technique switches the context the plan asks
+     about; the drug the clinician chose stays chosen, in its role, in its
+     place. Nothing is added, removed or swapped, and Classic and Modified
+     RSI are not bound to a blocker — both are simply RSI for the purposes of
+     looking up a dose, and the difference between them stays what it is,
+     technique metadata this application holds no dose for.
+
+     THE LIST IS THE CONTRACT. For a blocker under RSI it has ONE entry, so a
+     drug with no reviewed RSI record has nothing to fall back to and the card
+     says so. For a hypnotic or an opioid it is ['rsi','induction'] because
+     the reviewed labels do not dose them differently for a rapid sequence —
+     if one ever does, its record is found first and this code is unchanged.
+
+     A technique that has not been recorded is not RSI. It reads as the
+     routine context, which is what the screen showed before any of this. */
+  function isRSI(){ return technique === 'classic' || technique === 'modified'; }
+  function contextFor(roleKey){
+    var CC = root.ClinicalContent;
+    /* A BLOCKER'S LIST NEVER GROWS. Both entries are single, so an RSI
+       question has nothing to fall back to and a routine question cannot
+       reach an RSI record. There is no unphased blocker record and no tier
+       here that could answer with one if there were. */
+    if (roleKey === 'nmb') return isRSI() ? ['rsi'] : ['intubation'];
+    /* Hypnotics and opioids end with the unphased tier, which matches only
+       records that declare NO context — every record predating the reviewed
+       migration. Without it the plan would print a coverage line for
+       midazolam, morphine and the legacy fentanyl row while the reference
+       beside it printed their dose. */
+    var legacy = CC ? CC.LEGACY_CONTEXT : '(unphased)';
+    return isRSI() ? ['rsi', 'induction', legacy] : ['induction', legacy];
+  }
+  /* THE MODEL DECIDES, NOT THIS FILE. doseRowForContext() applies the same
+     publishability, population, age-band and applicability rules as every
+     other surface; this passes it a context and renders what comes back. */
+  function contextRow(roleKey, id){
+    var CC = root.ClinicalContent;
+    if (!CC || !CC.doseRowForContext) return null;
+    try { return CC.doseRowForContext(CC.byId(id), weight(), population(), contextFor(roleKey)); }
+    catch(e){ console.warn('[induction] context row for ' + id + ' unavailable', e); return null; }
+  }
   function classColour(pclass){
     var CC = root.ClinicalContent;
     var m = (CC && CC.classMeta) ? CC.classMeta(pclass) : null;
@@ -265,13 +313,20 @@
      — three role wrappers around three cards was three headings, three
      borders and three reserved empty cells for no information at all. */
   function agentCard(roleKey, d){
+    /* THE DOSE COMES FROM THE ACTIVE CONTEXT, THE CARD FROM THE SELECTION.
+       `d` is the drug the clinician chose — its identity, colour, badge,
+       preparation and warning are its own and do not move when the technique
+       does. Only the dose is re-asked, and only these four things change with
+       it: the context label, the rule, the amount, and the coverage line when
+       the reviewed evidence does not cover this context for this patient. */
+    var ctx = contextRow(roleKey, d.id) || d;
     var col = classColour(d.pclass);
-    var amount = (d.val != null && d.val !== '')
-      ? d.val + (d.unit ? '<span class="idc-u">' + d.unit + '</span>' : '') : '';
-    var rule = d.doseNum
-      ? d.doseNum + (d.doseUnit ? ' <span class="idc-u">' + d.doseUnit + '</span>' : '')
-      : (d.doseRule || '');
-    var same = amount && d.doseRule && d.doseRule.indexOf(String(d.val)) === 0;
+    var amount = (ctx.val != null && ctx.val !== '')
+      ? ctx.val + (ctx.unit ? '<span class="idc-u">' + ctx.unit + '</span>' : '') : '';
+    var rule = ctx.doseNum
+      ? ctx.doseNum + (ctx.doseUnit ? ' <span class="idc-u">' + ctx.doseUnit + '</span>' : '')
+      : (ctx.doseRule || '');
+    var same = amount && ctx.doseRule && ctx.doseRule.indexOf(String(ctx.val)) === 0;
     return '<div class="pl-sel" style="--pc:' + col + '" data-role="' + roleKey + '" ' +
         'data-drug="' + esc(d.id) + '">' +
       /* THE ROUTE GETS ITS OWN LINE. Beside the badge in a 157px card it
@@ -283,10 +338,12 @@
         '&times;</button>' +
       '</div>' +
       '<div class="pl-sel-n">' + esc(d.name) + '</div>' +
-      (d.use ? '<div class="pl-sel-use">' + esc(d.use) + '</div>' : '') +
+      (ctx.use ? '<div class="pl-sel-use">' + esc(ctx.use) + '</div>' : '') +
       '<div class="pl-sel-d">' +
-        (rule ? '<span class="pl-rule">' + rule + '</span>' : '') +
-        ((amount && !same) ? '<span class="pl-amt">' + amount + '</span>' : '') +
+        (ctx.withheld
+          ? '<span class="pl-cov">' + esc(ctx.coverage) + '</span>'
+          : (rule ? '<span class="pl-rule">' + rule + '</span>' : '') +
+            ((amount && !same) ? '<span class="pl-amt">' + amount + '</span>' : '')) +
       '</div>' +
       (d.prepMain ? '<div class="pl-prep">' + d.prepMain + '</div>' : '') +
       (d.warn ? '<div class="idc-warn' + (d.severity === 'critical' ? ' crit' : '') + '">' +
