@@ -1005,6 +1005,147 @@ async function openEngine(b, viewport) {
       ui._rows.length === 4 &&
       ui._rows.every(r => r.length === 4 && new Set(r).size === 1), ui._rows);
 
+    /* ── SELECTION IS INTENT, AND INTENT NEEDS NO EVIDENCE ──────────────
+       Clicking a drug declares that the clinician is using it. Whether the
+       model holds a reviewed dose for it is a different fact, and making the
+       first depend on the second is the same category error that put seven
+       invented records in the dataset. All sixteen cards are controls; the
+       seven without a record light exactly as their neighbours do and print
+       exactly as much medicine as before, which is none. */
+    const sel = await s.pg.evaluate(`(() => {
+      const NAMES = ['Etomidate','Thiopental','Alfentanil','Atracurium',
+                     'Mivacurium','Atropine','Glycopyrrolate'];
+      const CC = window.ClinicalContent;
+      const find = n => [...document.querySelectorAll('#induction-host .tb-c')]
+        .find(c => (c.querySelector('.tb-c-n')||{}).textContent === n);
+      const read = c => { if (!c) return null; const cs = getComputedStyle(c); return {
+        tag:c.tagName, pressed:c.getAttribute('aria-pressed'),
+        on:c.classList.contains('on'), check:!!c.querySelector('.tb-c-ck'),
+        bg:cs.backgroundColor, border:cs.borderTopColor,
+        planKey:c.dataset.planFor, drug:c.dataset.drug || null,
+        coverage:(c.querySelector('.tb-c-cov')||{textContent:''}).textContent.trim(),
+        rule:!!c.querySelector('.tb-c-r'), amount:!!c.querySelector('.tb-c-a'),
+        route:(c.querySelector('.tb-c-u')||{textContent:''}).textContent.trim(),
+        digits:/[0-9]/.test(c.textContent) }; };
+      const out = { each:{} };
+      if (window.Induction) window.Induction.clearPlan();
+      NAMES.forEach(n => {
+        const c = find(n); if (!c) { out.each[n] = null; return; }
+        const before = read(c);
+        c.click();
+        const on = read(find(n));
+        /* Nothing the selection did may have reached a clinical surface. */
+        const leak = {
+          search: CC.search(n).filter(r => ((r.item||r).name) === n).length,
+          drugs:  CC.DRUGS.filter(d => d.name === n).length,
+          ref:    [...document.querySelectorAll('#iref-body .dtab-r')]
+                    .filter(r => r.textContent.indexOf(n) >= 0).length,
+          groups: ['induction','analgesia','nmb'].reduce((a,g) => a.concat(
+                    CC.visibleDrugsInGroup(g, 15, {adult:false,pediatric:true}).map(x=>x.name),
+                    CC.visibleDosesInGroup(g, 15, {adult:false,pediatric:true}).map(x=>x.name)
+                  ), []).filter(x => x === n).length,
+          canonicalPlan: window.Induction.plan.filter(x => /^catalog:/.test(x)).length };
+        const c2 = find(n); if (c2) c2.click();
+        const off = read(find(n));
+        out.each[n] = { before, on, off, leak };
+      });
+      if (window.Induction) window.Induction.clearPlan();
+      return out;
+    })()`);
+    Object.keys(sel.each).forEach(n => {
+      const c = sel.each[n];
+      t('  ' + n + ': is an actionable control that starts unpressed',
+        !!c && c.before.tag === 'BUTTON' && c.before.pressed === 'false' &&
+        c.before.on === false && /^catalog:/.test(c.before.planKey) &&
+        c.before.drug === null,
+        c && { tag:c.before.tag, pressed:c.before.pressed, key:c.before.planKey });
+      t('  ' + n + ': ...clicking it declares intent and lights the card',
+        !!c && c.on.pressed === 'true' && c.on.on === true && c.on.check === true &&
+        c.on.bg !== c.before.bg && c.on.border !== c.before.border,
+        c && { bg:[c.before.bg, c.on.bg], check:c.on.check });
+      t('  ' + n + ': ...and selected it still holds no medicine',
+        !!c && c.on.coverage === 'Dose not reviewed' && c.on.rule === false &&
+        c.on.amount === false && c.on.route === '' && c.on.digits === false,
+        c && { coverage:c.on.coverage, rule:c.on.rule, amount:c.on.amount,
+               route:c.on.route, digits:c.on.digits });
+      t('  ' + n + ': ...selection reaches no clinical surface',
+        !!c && c.leak.search === 0 && c.leak.drugs === 0 && c.leak.ref === 0 &&
+        c.leak.groups === 0 && c.leak.canonicalPlan === 0, c && c.leak);
+      t('  ' + n + ': ...and a second click deselects it',
+        !!c && c.off.pressed === 'false' && c.off.on === false &&
+        c.off.check === false, c && c.off.pressed);
+    });
+
+    /* THE OTHER NINE, THE REFERENCE, NEW CASE AND A TECHNIQUE CHANGE. */
+    const both = await s.pg.evaluate(`(() => {
+      const find = n => [...document.querySelectorAll('#induction-host .tb-c')]
+        .find(c => (c.querySelector('.tb-c-n')||{}).textContent === n);
+      const st = n => { const c = find(n); return c && {
+        pressed:c.getAttribute('aria-pressed'),
+        rule:!!c.querySelector('.tb-c-r'), amount:!!c.querySelector('.tb-c-a'),
+        coverage:(c.querySelector('.tb-c-cov')||{textContent:''}).textContent.trim(),
+        digits:/[0-9]/.test(c.textContent) }; };
+      const I = window.Induction;
+      I.clearPlan();
+      /* newCase() is under test below and it empties the workspace, so the
+         patient on screen is recorded here and put back afterwards — the
+         probes that follow read a board that needs one. */
+      const FIELDS = ['i-age','i-age-unit','i-sex','i-height','i-weight','i-asa','i-proc'];
+      const saved = FIELDS.map(i => { const e = document.getElementById(i);
+        return e ? e.value : null; });
+      const step = [];
+      const press = n => { step.push(n); const c = find(n); if (c) c.click(); return !!c; };
+      press('Propofol');
+      const canonical = st('Propofol');
+      /* The reference's own button, and the card it must not overwrite. */
+      const refBtn = () =>
+        document.querySelector('#iref-body [data-plan-for="drug.rocuronium"]');
+      const rb = refBtn(); if (rb) rb.click();
+      /* RE-QUERY. Selecting re-renders both surfaces, so the node clicked is
+         detached by the time its state is read; the stale node still says
+         "false" while the live one says "true". */
+      const rb2 = refBtn(), rocCard = find('Rocuronium');
+      const sync = { refPressed: rb2 && rb2.getAttribute('aria-pressed'),
+                     cardPressed: rocCard && rocCard.getAttribute('aria-pressed'),
+                     cardIntact: !!(rocCard && rocCard.querySelector('.tb-c-n') &&
+                                    rocCard.querySelector('.tb-c-r') &&
+                                    rocCard.querySelector('.tb-c-a')) };
+      const found = { eto: press('Etomidate') };
+      const before = { plan:I.plan.slice(), display:I.displayPlanKeys.slice() };
+      /* A technique change must not fabricate content for a display member. */
+      I.setTechnique('rsi');
+      const underRsi = st('Atracurium');
+      found.atr = press('Atracurium');
+      const atracuriumSelectedUnderRsi = st('Atracurium');
+      I.setTechnique('rsi');            /* back off */
+      newCase();
+      const after = { plan:I.plan.slice(), display:I.displayPlanKeys.slice() };
+      FIELDS.forEach((i, k) => { const e = document.getElementById(i);
+        if (e && saved[k] != null) e.value = saved[k]; });
+      compute(); setDomain('induction');
+      return { canonical, sync, before, after, underRsi,
+               atracuriumSelectedUnderRsi, found, step,
+               restored: document.querySelectorAll('#induction-host .tb-c').length };
+    })()`);
+    t('a record-backed card still selects and still prints its dose',
+      both.canonical.pressed === 'true' && both.canonical.rule === true &&
+      both.canonical.amount === true, both.canonical);
+    /* THE REGRESSION THAT DELETED THREE DOSES FROM THE SCREEN. */
+    t('the drug reference still syncs the plan without eating the card',
+      both.sync.refPressed === 'true' && both.sync.cardPressed === 'true' &&
+      both.sync.cardIntact === true, both.sync);
+    t('New Case clears canonical selections and display ones alike',
+      both.before.plan.length > 0 && both.before.display.length > 0 &&
+      both.after.plan.length === 0 && both.after.display.length === 0, both);
+    t('a technique change creates no dose for a member with no record',
+      both.underRsi.coverage === 'Dose not reviewed' &&
+      both.underRsi.digits === false && both.underRsi.rule === false &&
+      both.atracuriumSelectedUnderRsi.pressed === 'true' &&
+      both.atracuriumSelectedUnderRsi.digits === false,
+      { underRsi:both.underRsi, selected:both.atracuriumSelectedUnderRsi });
+    t('...and the board is whole again for the probes that follow',
+      both.restored === 16, both.restored);
+
     /* ── TECHNIQUE RECORDS; IT DOES NOT PRESCRIBE ───────────────────────
        There is no route control any more, so only technique is exercised —
        and what must not change is that it touches no dose. */

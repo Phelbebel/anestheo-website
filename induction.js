@@ -136,10 +136,28 @@
   function idsFor(key){ return picked[key] || []; }
   function hasDrug(key, id){ return idsFor(key).indexOf(id) >= 0; }
 
+  /* ── A PLAN KEY IS INTENT, NOT EVIDENCE ───────────────────────────────
+     "The clinician selected Etomidate" and "we hold a reviewed etomidate
+     dose for this patient" are different facts, and requiring the second to
+     record the first is the same mistake that put seven invented records in
+     the clinical dataset. A board member is selected by a STABLE KEY: its
+     canonical id when it has one, and 'catalog:<key>' when it does not.
+
+     Nothing downstream can mistake the second form for a record. It is not a
+     drug id, byId() does not know it, and Induction.plan — which the drug
+     reference reads to light its own buttons — returns canonical ids only.
+     Selecting a display member creates no clinical claim of any kind. */
+  var CATALOG_PREFIX = 'catalog:';
+  function planKey(member){
+    return member.id || (CATALOG_PREFIX + member.key);
+  }
+  function isCatalogKey(k){ return String(k).indexOf(CATALOG_PREFIX) === 0; }
+
   function pickedList(){
     var out = [];
     ROLES.forEach(function (r){
       var ids = idsFor(r.key); if (!ids.length) return;
+      /* A catalog key names no drug, so it appears in no list of drugs. */
       drugsOnce(r.group).forEach(function (d){ if (ids.indexOf(d.id) >= 0) out.push(d); });
     });
     return out;
@@ -417,7 +435,8 @@
     if (!d) d = { withheld:true, use:'', val:'', unit:'',
                   coverage:(CC && CC.COVERAGE) ? CC.COVERAGE[CC.WITHHELD.UNPUBLISHED]
                                                : 'Dose not reviewed' };
-    var on = noRecord ? false : hasDrug(roleKey, base.id);
+    var pk = planKey(base);
+    var on = hasDrug(roleKey, pk);
     var rule = d.doseNum
       ? '<b>' + d.doseNum + '</b> <i>' + esc(d.doseUnit || '') + '</i>'
       : (d.val ? '<b>' + esc(d.val) + '</b> <i>' + esc(d.unit || '') + '</i>' : '');
@@ -437,17 +456,19 @@
         ? '<span class="tb-c-cov">' + esc(d.coverage) + '</span>'
         : '<span class="tb-c-r">' + rule + '</span>' +
           '<span class="tb-c-a">' + (amount || '') + '</span>');
-    var colour = 'style="--pc:' + classColour(base.pclass) + '" ';
-    if (noRecord)
-      return '<div class="tb-c cov tb-c-x" ' + colour +
-        'data-member="' + esc(base.key || '') + '">' + body + '</div>';
+    /* EVERY CARD IS A CONTROL. A member without a canonical record is still
+       an agent the clinician can declare they are using; what it cannot do is
+       print a dose. data-drug is present only when there IS a record behind
+       the card, so nothing can read a display member as a canonical one. */
     return '<button type="button" class="tb-c' + (on ? ' on' : '') +
-        (d.withheld ? ' cov' : '') + '" ' + colour +
-        'data-drug="' + esc(base.id) + '" ' +
-        'data-plan-for="' + esc(base.id) + '" ' +
+        (d.withheld ? ' cov' : '') + '" ' +
+        'style="--pc:' + classColour(base.pclass) + '" ' +
+        (noRecord ? 'data-member="' + esc(base.key || '') + '" '
+                  : 'data-drug="' + esc(base.id) + '" ') +
+        'data-plan-for="' + esc(pk) + '" ' +
         'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
         'aria-label="' + (on ? 'Stop using ' : 'Use ') + esc(base.name) + ' in this plan" ' +
-        'onclick="Induction.toggle(\'' + roleKey + '\',\'' + esc(base.id) + '\')">' +
+        'onclick="Induction.toggle(\'' + roleKey + '\',\'' + esc(pk) + '\')">' +
       body + '</button>';
   }
 
@@ -501,7 +522,7 @@
     var total = 0, used = 0;
     groups.forEach(function (g){
       total += g.rows.length;
-      g.rows.forEach(function (d){ if (hasDrug(g.key, d.id)) used++; });
+      g.rows.forEach(function (d){ if (hasDrug(g.key, planKey(d))) used++; });
     });
 
     /* LABEL · FOUR CARDS · ONE PLUS. The four cards are a grid of four equal
@@ -876,5 +897,17 @@
                      setTechnique:setTechnique, setRsiVariant:setRsiVariant,
                      get roles(){ return ROLES.map(function (r){ return r.key; }); },
                      get technique(){ return technique; },
-                     get plan(){ return pickedList().map(function (d){ return d.id; }); } };
+                     /* CANONICAL IDS ONLY. The drug reference reads this to
+                        light its own buttons, and a catalog key is not a drug. */
+                     get plan(){ return pickedList().map(function (d){ return d.id; }); },
+                     /* Everything the clinician has declared, both kinds. */
+                     get planKeys(){ var out = [];
+                       Object.keys(picked).forEach(function (r){
+                         idsFor(r).forEach(function (k){ out.push(r + '/' + k); }); });
+                       return out; },
+                     get displayPlanKeys(){ var out = [];
+                       Object.keys(picked).forEach(function (r){
+                         idsFor(r).forEach(function (k){
+                           if (isCatalogKey(k)) out.push(k); }); });
+                       return out; } };
 })(typeof window !== 'undefined' ? window : this);

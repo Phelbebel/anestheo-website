@@ -2495,9 +2495,16 @@ html.lt-immersive body{padding-top:0 !important;}
   -webkit-box-orient:vertical;overflow:hidden;}
 .wf-col-side .awp-v.awp-long{-webkit-line-clamp:3;}
 
-/* A BOARD MEMBER WITH NO CANONICAL RECORD IS NOT A CONTROL. Same card, same
-   box, same colour edge, same quiet coverage state — but there is nothing to
-   put in a plan, so it does not offer to. Geometry is untouched; only the
-   cursor and the hover response differ. */
-.tb-c-x{cursor:default;}
-.tb-c-x:hover{background:rgba(255,255,255,.014);}
+/* A BOARD MEMBER WITH NO CANONICAL RECORD IS STILL A CONTROL. "The clinician
+   selected Etomidate" and "we hold a reviewed etomidate dose" are separate
+   facts; the card can carry the first without the second. So a display member
+   lights exactly as its neighbours do — and prints exactly as much medicine
+   as it did before, which is none.
+
+   .tb-c.cov is declared after .tb-c.on and at the same specificity, so a
+   selected display member would otherwise take the quiet ground instead of
+   the lit one. Selection wins; the coverage line stays quiet inside it. */
+.tb-c.on.cov{background:rgba(126,207,192,.13);
+  border-color:rgba(126,207,192,.55);border-left-color:var(--pc,transparent);}
+.tb-c.on.cov:hover{background:rgba(126,207,192,.17);}
+.tb-c.on.cov .tb-c-n{opacity:1;}
