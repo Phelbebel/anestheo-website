@@ -4639,7 +4639,10 @@ function renderCrisisRail(){
       tab('protocols','Protocols')+tab('doses','Doses')+tab('algorithms','Algorithms')+
     '</div>'+
     '<ul class="wsc-list">'+items+'</ul>'+
-    '<button type="button" class="wsc-go" onclick="crisisJump()">Go to Crisis Center</button>'+
+    /* NO "GO TO CRISIS CENTER". The rail IS the Crisis Center: pressing a
+       protocol turns this same rail into that protocol and Back returns to
+       the list. A button that navigates away from the thing you are already
+       looking at is a route to nowhere, and it cost 42px of the rail. */
     '<p class="wsc-note">Emergency protocols and rescue drugs for critical situations. '+
     'Every dose is weight-aware and uses the current patient.</p>';
 

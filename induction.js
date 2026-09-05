@@ -351,13 +351,12 @@
     ];
   }
 
-  /* ONE COMPACT CARD. Not a table row: in the upper workspace a drug is a
-     card the eye lands on, with its name in its class colour, the reviewed
-     rule under it and the amount for THIS patient carrying the weight. The
-     dose shown is the one for the ACTIVE CONTEXT, so a blocker follows the
-     technique here exactly as it does anywhere else — and a drug with no
-     reviewed dose for this patient keeps its card and its colour and states
-     the coverage instead. */
+  /* ONE COMPACT CARD, ~50px. Not a table row and not a panel: three tight
+     lines — the drug in its class colour, the route and context it is being
+     shown for, then the reviewed rule, the amount for THIS patient and the
+     control on one line. A withheld dose keeps the same footprint and says
+     what is missing on the third line instead. No warning paragraph lives
+     inside a card; the warning is in the reference row's disclosure. */
   function tbCard(roleKey, base){
     var d = contextRow(roleKey, base.id) || base;
     var on = hasDrug(roleKey, base.id);
@@ -368,22 +367,19 @@
     return '<div class="tb-c' + (on ? ' on' : '') + (d.withheld ? ' cov' : '') + '" ' +
         'style="--pc:' + classColour(base.pclass) + '" data-drug="' + esc(base.id) + '">' +
       '<div class="tb-c-n">' + esc(base.name) + '</div>' +
-      (d.use ? '<div class="tb-c-u">' + esc(d.use) + '</div>' : '') +
-      (d.withheld
-        ? '<div class="tb-c-cov">' + esc(d.coverage) + '</div>'
-        : '<div class="tb-c-r">' + rule + '</div>' +
-          /* THE AMOUNT AND THE CONTROL SHARE A LINE. A full-width button under
-             the card gave every drug a row of its own for one word, and four
-             groups of that is where the board's extra height came from. */
-          '<div class="tb-c-f">' +
-            '<span class="tb-c-a">' + (amount || '&nbsp;') + '</span>' +
+      '<div class="tb-c-u">' + esc(d.use || '\u00a0') + '</div>' +
+      '<div class="tb-c-f">' +
+        (d.withheld
+          ? '<span class="tb-c-cov">' + esc(d.coverage) + '</span>'
+          : '<span class="tb-c-r">' + rule + '</span>' +
+            '<span class="tb-c-a">' + (amount || '') + '</span>' +
             '<button type="button" class="tb-c-b' + (on ? ' on' : '') + '" ' +
             'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
             'data-plan-for="' + esc(base.id) + '" ' +
             'aria-label="' + (on ? 'Stop using ' : 'Use ') + esc(base.name) + ' in this plan" ' +
             'onclick="Induction.toggle(\'' + roleKey + '\',\'' + esc(base.id) + '\')">' +
-            (on ? '&#10003;' : 'USE') + '</button>' +
-          '</div>') +
+            (on ? '&#10003;' : 'USE') + '</button>') +
+      '</div>' +
     '</div>';
   }
 
@@ -402,8 +398,8 @@
         '<span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" ' +
           'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
           'stroke-linejoin="round"><path d="' + t.icon + '"/></svg></span>' +
-        '<span class="st-n">' + esc(t.short) + '</span>' +
-        '<span class="st-s">' + esc(t.sub) + '</span>' +
+        '<span class="st-tx"><span class="st-n">' + esc(t.short) + '</span>' +
+        '<span class="st-s">' + esc(t.sub) + '</span></span>' +
         (on ? '<span class="st-ck" aria-hidden="true">&#10003;</span>' : '') +
       '</button>';
     }).join('');
@@ -424,11 +420,13 @@
       total += g.rows.length;
       g.rows.forEach(function (d){ if (hasDrug(g.key, d.id)) used++; });
     });
-    /* FOUR GROUPS IN TWO COLUMNS, not four bands running down the page.
-       Stacked, the board stood 267px taller than the airway beside it and the
-       void simply changed sides. Paired, the groups fill the width they are
-       given and the two upper columns finish within a card's height of each
-       other. */
+    /* FOUR SEQUENTIAL GROUP ROWS, EACH ONLY AS TALL AS IT NEEDS.
+       Two balanced columns left a 69px hole at the foot of the shorter one —
+       four groups do not divide into two equal halves and nothing should be
+       stretched to pretend they do. Sequential rows have no such hole: a
+       group of two cards is one card tall, a group of three is one card tall,
+       and the label sits beside its row rather than above it, which is a
+       16px band saved per group. */
     var board = '<div class="tb">' + groups.map(function (g){
       if (!g.rows.length) return '';
       return '<div class="tb-grp">' +
@@ -639,6 +637,28 @@
     if (el) el.scrollTop = top;
   }
 
+  /* NO WRAPPER WITHOUT CONTENT. Returns '' — not an empty div — when the
+     section renders nothing, so the slot consumes exactly 0px. */
+  function strip(cls, html){
+    return html ? ('<div class="' + cls + '">' + html + '</div>') : '';
+  }
+
+  /* ── ONE CONDITIONAL CASE-CONTEXT SLOT ────────────────────────────────
+     Not a permanent PAEDIATRIC CONTEXT section. The slot asks the patient
+     what context applies and renders that module; a routine adult matches
+     none and the slot disappears entirely rather than standing empty.
+
+     Only modules whose content already exists canonically may appear here.
+     Obstetric and older-adult contexts are named in the comment and NOT
+     implemented, because this application holds no reviewed content for
+     either and a heading with nothing under it is worse than no heading. */
+  function caseContextSection(){
+    var c = ctx();
+    if (c && c.context && c.context.pediatric) return pedsSection();
+    /* obstetric / older adult: no canonical content yet, so no module */
+    return '';
+  }
+
   function render(){
     var host = $('induction-host');
     if (!host) return;
@@ -672,7 +692,7 @@
          the Crisis rail stays right of it; neither is touched. */
       '<div class="wf-cols">' +
         '<div class="wf-col-main">' + strategySection() + planSection() + '</div>' +
-        '<div class="wf-col-side">' + airwaySection() + backupSection() + '</div>' +
+        '<div class="wf-col-side">' + airwaySection() + '</div>' +
       '</div>' +
       /* THE BACKUP IS A STRIP, NOT THE BOTTOM OF THE AIRWAY COLUMN.
          Inside .wf-col-side it made that column 715px against the plan's 291,
@@ -685,21 +705,14 @@
          and immediately before the reference — the same position in the
          reading order it already had. Nothing about what it says or what its
          buttons do has changed. */
-      /* THE BACKUP IS AIRWAY CONTENT AND IT IS BACK IN THE AIRWAY COLUMN.
-         Phase 3 moved it out to a full-width strip because inside that column
-         it made the airway 715px against a 291px plan — a 424px void. The
-         plan is a nine-drug board now, so that reason has expired and the
-         arithmetic has reversed: the board stands 435 and the airway alone
-         stands 299, so the void simply moved to the other side of the pair.
-         With the backup under the plan it falls back from, the two upper
-         columns finish within about 20px of each other and it reads directly
-         beneath the airway it belongs to. */
-      /* PAEDIATRIC CONTEXT SITS UNDER THE PAIR, NOT INSIDE THE AIRWAY COLUMN.
-         It belonged there while the airway column was the tall one and the
-         plan was a stub; now the toolbox fills the left column, a section
-         hanging off the bottom of the right one would put the two columns
-         out of balance again for the one patient in three who is a child. */
-      '<div class="wf-peds">' + pedsSection() + '</div>' +
+      /* FULL-WIDTH STRIPS, AND NOT ONE OF THEM RESERVES A ROW IT DOES NOT
+         NEED. Each is emitted ONLY when it has content: an adult with no
+         case context gets no wrapper, no margin and no placeholder, so the
+         drug reference moves up by exactly the height the missing section
+         would have taken. An empty div with margin-top:12px is a reserved
+         row, and this page had one. */
+      strip('wf-bkp', backupSection()) +
+      strip('wf-ctx', caseContextSection()) +
       '<div class="wf-full">' + referenceSection() + '</div>';
     /* The containers exist now, so the engine can fill them. It is the same
        call the Drug reference workspace makes, with this mount's id. */
