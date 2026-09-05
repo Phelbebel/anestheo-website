@@ -301,11 +301,31 @@ if (fs.existsSync(SNAP)) {
       Object.keys(rb).forEach(f => { if (!(f in ra)) added.add(f); });
     });
   });
-  t('every pre-existing render field is unchanged, at every weight',
-    changed.length === 0 && removed.size === 0,
-    { rowsCompared: rows, changed: changed.slice(0, 5), removed: [...removed] });
-  t('...and the only difference is the two additive wires',
-    [...added].sort().join(',') === 'interval,phase', [...added]);
+  /* RECAPTURED AFTER THE TIER 1 MIGRATION, WHICH IS THE ONLY TIME IT MOVES.
+     The old snapshot predated Phase 4A and the reviewed records, so it was
+     failing on both. Regenerating it is a deliberate act, done once, with
+     every changed row accounted for:
+
+       0 rows added, 0 rows removed  — the same 125 rows at the same weights
+       25 drugs changed interval and phase only — the two Phase 4A wires,
+          absent from the pre-4A capture and empty on every legacy record
+       4 drugs changed a dose value, and they are exactly the 4 replaced:
+          propofol       1.5–2.5 → 2–2.5      (113–188 → 150–188 at 75 kg)
+          ketamine       1–2     → 1–4.5      (75–150  → 75–338)
+          rocuronium     0.6–1.2 → 0.6        (45–90   → 45)
+          suxamethonium  1–1.5   → 0.3–1.1    (75–113  → 22.5–82.5)
+       rocuronium also changed prep and prepNote — Defect B, the RSI dose
+          leaving the preparation string
+       suxamethonium also changed use — the label was "RSI" and the reviewed
+          record states the dose for intubation
+
+     From here it is a drift guard again: anything that moves without a
+     matching reviewed record behind it fails here. */
+  t('the render baseline matches, field for field, at every weight',
+    changed.length === 0 && removed.size === 0 && added.size === 0,
+    { rowsCompared: rows, changed: changed.slice(0, 5),
+      removed: [...removed], added: [...added] });
+  t('...over the same 125 rows the model has always returned', rows === 125, rows);
 } else {
   t('render-input snapshot present for comparison', false,
     'missing ' + SNAP);
