@@ -625,7 +625,7 @@ async function openEngine(b, viewport) {
                pedsNodes: ${ind('.pdx, .pdx-grid')}.length,
                pedsWords: /EBV|Paediatric context/.test(host.textContent),
                selected: ${ind('.tb-c.on')}.length,
-               segOn: ${ind('.st-t.on')}.length,
+               segOn: ${ind('.st-cell.on')}.length,
                refScrolls: (() => { const r = host.querySelector('.idref');
                  return !!r && getComputedStyle(r).overflowY === 'auto'; })(),
                openLists: ${ind('.pl-alts')}.length,
@@ -720,9 +720,9 @@ async function openEngine(b, viewport) {
     /* THE APPROVED COMPOSITION. Strategy then the drug board down the left,
        airway and the backup it falls back from down the right, reference
        beneath both. */
-    t('adult: strategy and drugs beside airway, and the reference beneath both',
+    t('adult: strategy and the drug plan beside airway, reference beneath both',
       adult.titles.join(' / ') ===
-      'Induction strategy / Induction drugs / Airway plan / ' +
+      'Induction strategy / Selected drug plan / Airway plan / ' +
       'Backup difficult airway / Drug reference',
       adult.titles);
     t('...the airway column sits BESIDE the plan, not under it',
@@ -891,9 +891,10 @@ async function openEngine(b, viewport) {
     t('every canonical agent is on the board, from every role',
       alts.names.slice().sort().join() === alts.canonical.slice().sort().join(),
       { shown:alts.names, canonical:alts.canonical });
+    /* THE ROWS ARE THE STEPS OF AN INDUCTION, in the order it is given. */
     t('...grouped, in the clinical order the workspace reads in',
       alts.groups.join(' / ') ===
-      'Primary induction / Opioids / Neuromuscular blockade / Adjuncts / special use',
+      'Premedication / Analgesia / Hypnosis / Neuromuscular blockade',
       alts.groups);
     t('...each carrying its own dose or its own coverage line',
       alts.doses.every(d => d.length > 0), alts.doses);
@@ -911,12 +912,15 @@ async function openEngine(b, viewport) {
          NAME rather than the whole tile's text. */
       const seg = txt => ${ind('.st-t')}.find(x =>
         ((x.querySelector('.st-n')||{}).textContent||'').trim() === txt);
-      seg('Modified RSI').click();
+      /* THE TILES ARE THE FOUR APPROACHES NOW. RSI is one of them and its
+         variants are inside it; this exercises the approaches, which is what
+         must leave every dose alone. */
+      seg('Inhalational').click();
       const afterRoute = { doses: ${doseSnapshot}, plan: plan(),
-        pressed: ${ind('.st-t.on')}.map(x => ((x.querySelector('.st-n')||{}).textContent||'').trim()) };
-      seg('Classic RSI').click();
+        pressed: ${ind('.st-cell.on')}.map(x => ((x.querySelector('.st-n')||{}).textContent||'').trim()) };
+      seg('RSI').click();
       const afterTech = { doses: ${doseSnapshot}, plan: plan(),
-        pressed: ${ind('.st-t.on')}.map(x => ((x.querySelector('.st-n')||{}).textContent||'').trim()) };
+        pressed: ${ind('.st-cell.on')}.map(x => ((x.querySelector('.st-n')||{}).textContent||'').trim()) };
       return { before, planBefore, afterRoute, afterTech,
                labelled: [...${ind('.st-t')}, ...${ind('.wf-t')},
                           ...${ind('.tb-c.on .tb-c-n')}]
@@ -936,7 +940,7 @@ async function openEngine(b, viewport) {
     t('technique: and no drug enters or leaves the plan',
       JSON.stringify(ctl.planBefore) === JSON.stringify(ctl.afterTech.plan), ctl.afterTech.plan);
     t('it records the choice it was given, and only one at a time',
-      ctl.afterTech.pressed.join() === 'Classic RSI', ctl.afterTech.pressed);
+      ctl.afterTech.pressed.join() === 'RSI', ctl.afterTech.pressed);
     t('nothing is labelled recommended or preferred', ctl.labelled === false);
     /* A TECHNIQUE IS NOT A BLOCKER. Classic RSI was once bound to
        suxamethonium and Modified RSI to rocuronium; neither name may appear
@@ -973,7 +977,7 @@ async function openEngine(b, viewport) {
       set('i-age','30'); set('i-sex','F'); set('i-height','165'); set('i-weight','60');
       compute();
       return { selected: ${ind('.tb-c.on')}.length,
-               segOn: ${ind('.st-t.on')}.length,
+               segOn: ${ind('.st-cell.on')}.length,
                chooser: ${ind('.pl-chooser')}.length,
                add: ${ind('.pl-add')}.length };
     })()`);
@@ -1012,7 +1016,7 @@ async function openEngine(b, viewport) {
        reference, which is the reading order that was approved. */
     t('child: the paediatric section runs the centre, under the backup strip',
       child.titles.join(' / ') ===
-      'Induction strategy / Induction drugs / Airway plan / ' +
+      'Induction strategy / Selected drug plan / Airway plan / ' +
       'Backup difficult airway / Paediatric context / Drug reference', child.titles);
     /* THE SAME PROPERTY WITH ONE MORE SECTION IN PLAY. This is what a
        hard-coded number cannot satisfy for both patients at once, and it is

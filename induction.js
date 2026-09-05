@@ -69,26 +69,37 @@
      and asserts nothing about it. It must never be wired to a blocker: a
      blocker's dose is defined once, by the drug, for the indication the drug
      data names — and "Classic RSI" is not the name of a drug. */
-  /* FOUR APPROACHES, AND NOT ONE OF THEM NAMES A DRUG. The approved cockpit
-     shows Classic RSI and Modified RSI captioned with a blocker; those
-     captions are deliberately NOT reproduced. A technique tile that reads
-     "Classic RSI · Suxamethonium" is a recommendation wearing a label, and
-     either blocker can be used with either technique. The captions say what
-     the approach IS.
+  /* FOUR APPROACHES, AND RSI IS ONE OF THEM — NOT TWO.
+     Classic and Modified were top-level tiles beside IV Hypnotic and
+     Inhalational, which made a rapid sequence look like two different
+     approaches rather than one approach done two ways. RSI is a single
+     option and its variants live inside it, revealed when it is chosen.
 
-     Only two things matter to the dose selector: whether the approach is a
-     rapid sequence. Inhalational and IV hypnotic both read as routine, which
-     is exactly what they were before this tile row existed. */
+     NOT ONE TILE NAMES A DRUG. The schema captions Classic and Modified with
+     a blocker; those captions are deliberately not reproduced, because
+     either blocker can be used with either variant and a tile that names one
+     is a recommendation wearing a label.
+
+     Only one thing reaches the dose selector: whether the approach is a
+     rapid sequence. Both variants answer yes and everything else answers no,
+     which is exactly what the frozen phase rule already said. */
   var TECHNIQUES = [
+    { id:'iv',           short:'IV Hypnotic',  sub:'Intravenous induction agent',
+      icon:'M14.5 3.5 20.5 9.5M17.5 6.5 8 16l-3.4.9L5.5 13.5z' },
+    { id:'rsi',          short:'RSI',          sub:'Rapid sequence induction',
+      icon:'M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z',
+      variants:[{ id:'classic',  label:'Classic' },
+                { id:'modified', label:'Modified' }] },
     { id:'inhalational', short:'Inhalational', sub:'Volatile induction',
       icon:'M4 12c2-3 5-3 7 0s5 3 7 0M4 17c2-3 5-3 7 0s5 3 7 0' },
-    { id:'standard',     short:'IV Hypnotic',  sub:'Intravenous induction agent',
-      icon:'M14.5 3.5 20.5 9.5M17.5 6.5 8 16l-3.4.9L5.5 13.5z' },
-    { id:'classic',      short:'Classic RSI',  sub:'Rapid sequence',
-      icon:'M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z' },
-    { id:'modified',     short:'Modified RSI', sub:'Rapid sequence, gentle ventilation',
-      icon:'M12 2.6 20 6v6c0 4.6-3.2 8-8 9.4C8 20 4.8 16.6 4.8 12V6z' }
+    { id:'tiva',         short:'TIVA / TCI',   sub:'Target-controlled infusion',
+      icon:'M6 3h12M8 3v5.5L4.6 19a2 2 0 0 0 1.9 2.6h11a2 2 0 0 0 1.9-2.6L16 8.5V3' }
   ];
+
+  /* WHICH RSI, recorded only once RSI itself is the approach. It is metadata:
+     no dose, no drug and no phase depends on it — both variants are a rapid
+     sequence and the selector is asked for the same context either way. */
+  var rsiVariant = null;
 
   /* null until the clinician picks one. Not a default: an unrecorded
      technique is a real state, and this application has no basis for
@@ -204,7 +215,10 @@
 
      A technique that has not been recorded is not RSI. It reads as the
      routine context, which is what the screen showed before any of this. */
-  function isRSI(){ return technique === 'classic' || technique === 'modified'; }
+  /* ONE OPTION, TWO VARIANTS, ONE ANSWER. Both variants are a rapid
+     sequence, so the context the selector is asked for is the same either
+     way — which is the frozen rule, unchanged by the tiles above it. */
+  function isRSI(){ return technique === 'rsi'; }
   function contextFor(roleKey){
     var CC = root.ClinicalContent;
     /* A BLOCKER'S LIST NEVER GROWS. Both entries are single, so an RSI
@@ -339,47 +353,77 @@
     var CC = root.ClinicalContent, d = (CC && CC.byId) ? CC.byId(id) : null;
     return !!(d && (d.doses || []).some(function (x){ return /^Induction/.test(x.label || ''); }));
   }
-  function toolboxGroups(){
+
+  /* ── THE PLAN'S FOUR ROWS, IN THE ORDER A CASE IS GIVEN ───────────────
+     Premedication, analgesia, hypnosis, blockade. The row is the clinical
+     step; the cards in it are the canonical drugs that step can be done with.
+
+     WHICH ROW A DRUG IS IN COMES FROM ITS OWN RECORD, not from a list kept
+     here: a drug in the induction group whose dose label says Induction is a
+     hypnotic, and the rest of that group is premedication, which is what
+     Premedication and Sedation already say about midazolam and
+     dexmedetomidine. Etomidate, alfentanil, atracurium and atropine are in
+     the schema and not in the canonical model, so they are absent — a card
+     with no dose is a drug the clinician then has to look up somewhere else.
+
+     `slots` is 4, so every row is the same width and no row is a ragged 3.
+     Rows are padded with an empty slot, never with a placeholder drug. */
+  var PLAN_SLOTS = 4;
+  function planRows(){
     var ind = drugsOnce('induction');
     return [
-      { key:'induction', label:'Primary induction',
+      { key:'induction', label:'Premedication',
+        rows:ind.filter(function (d){ return !isPrimaryInduction(d.id); }) },
+      { key:'analgesia', label:'Analgesia', rows:drugsOnce('analgesia') },
+      { key:'induction', label:'Hypnosis',
         rows:ind.filter(function (d){ return isPrimaryInduction(d.id); }) },
-      { key:'analgesia', label:'Opioids', rows:drugsOnce('analgesia') },
-      { key:'nmb',       label:'Neuromuscular blockade', rows:drugsOnce('nmb'), nmb:true },
-      { key:'induction', label:'Adjuncts / special use',
-        rows:ind.filter(function (d){ return !isPrimaryInduction(d.id); }) }
+      { key:'nmb',       label:'Neuromuscular blockade', rows:drugsOnce('nmb'), nmb:true }
     ];
   }
+  /* Kept for the suites and for any caller that wants the flat board. */
+  function toolboxGroups(){ return planRows(); }
 
-  /* ONE COMPACT CARD, ~50px. Not a table row and not a panel: three tight
-     lines — the drug in its class colour, the route and context it is being
-     shown for, then the reviewed rule, the amount for THIS patient and the
-     control on one line. A withheld dose keeps the same footprint and says
-     what is missing on the third line instead. No warning paragraph lives
-     inside a card; the warning is in the reference row's disclosure. */
+  /* AN EMPTY SLOT IS A PLUS AND NOTHING ELSE. No "Add drug", no "+ Add", no
+     "Add agent" — the words were the affordance's whole problem. It opens
+     the drug reference filtered to this row's class, which is where the rest
+     of that class already lives; it adds nothing by itself. */
+  function tbSlot(roleKey){
+    return '<button type="button" class="tb-s" data-slot-for="' + roleKey + '" ' +
+      'aria-label="Add another agent from the drug reference" ' +
+      'onclick="Induction.addSlot(\'' + roleKey + '\')">+</button>';
+  }
+
+  /* ONE CARD, AND THE DOSE IS THE LOUDEST THING ON IT. The clinician scans
+     for a number, so the per-kg rule is set in the card's own ink weight and
+     the amount for THIS patient is the largest type in it — not a grey line
+     under a name. The route and context sit above them in caption size.
+
+     A withheld dose keeps the card, its name and its class colour and says
+     what is missing where the numbers would be. No warning paragraph lives
+     inside a card; a warning belongs to the reference row's disclosure. */
   function tbCard(roleKey, base){
     var d = contextRow(roleKey, base.id) || base;
     var on = hasDrug(roleKey, base.id);
     var rule = d.doseNum
-      ? d.doseNum + ' <i>' + esc(d.doseUnit || '') + '</i>'
-      : (d.val ? esc(d.val) + ' <i>' + esc(d.unit || '') + '</i>' : '');
+      ? '<b>' + d.doseNum + '</b> <i>' + esc(d.doseUnit || '') + '</i>'
+      : (d.val ? '<b>' + esc(d.val) + '</b> <i>' + esc(d.unit || '') + '</i>' : '');
     var amount = (d.doseNum && d.val) ? esc(d.val) + '<i>' + esc(d.unit || '') + '</i>' : '';
     return '<div class="tb-c' + (on ? ' on' : '') + (d.withheld ? ' cov' : '') + '" ' +
         'style="--pc:' + classColour(base.pclass) + '" data-drug="' + esc(base.id) + '">' +
       '<div class="tb-c-n">' + esc(base.name) + '</div>' +
       '<div class="tb-c-u">' + esc(d.use || '\u00a0') + '</div>' +
-      '<div class="tb-c-f">' +
-        (d.withheld
-          ? '<span class="tb-c-cov">' + esc(d.coverage) + '</span>'
-          : '<span class="tb-c-r">' + rule + '</span>' +
+      (d.withheld
+        ? '<div class="tb-c-cov">' + esc(d.coverage) + '</div>'
+        : '<div class="tb-c-r">' + rule + '</div>' +
+          '<div class="tb-c-f">' +
             '<span class="tb-c-a">' + (amount || '') + '</span>' +
             '<button type="button" class="tb-c-b' + (on ? ' on' : '') + '" ' +
             'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
             'data-plan-for="' + esc(base.id) + '" ' +
             'aria-label="' + (on ? 'Stop using ' : 'Use ') + esc(base.name) + ' in this plan" ' +
             'onclick="Induction.toggle(\'' + roleKey + '\',\'' + esc(base.id) + '\')">' +
-            (on ? '&#10003;' : 'USE') + '</button>') +
-      '</div>' +
+            (on ? '&#10003; USING' : 'USE') + '</button>' +
+          '</div>') +
     '</div>';
   }
 
@@ -392,52 +436,68 @@
   function strategySection(){
     var tiles = TECHNIQUES.map(function (t){
       var on = technique === t.id;
-      return '<button type="button" class="st-t' + (on ? ' on' : '') + '" ' +
-        'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
-        'onclick="Induction.setTechnique(\'' + t.id + '\')">' +
-        '<span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" ' +
-          'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
-          'stroke-linejoin="round"><path d="' + t.icon + '"/></svg></span>' +
-        '<span class="st-tx"><span class="st-n">' + esc(t.short) + '</span>' +
-        '<span class="st-s">' + esc(t.sub) + '</span></span>' +
-        (on ? '<span class="st-ck" aria-hidden="true">&#10003;</span>' : '') +
-      '</button>';
+      /* THE VARIANTS LIVE INSIDE THE TILE THEY BELONG TO, and only once it
+         is chosen. Closed, they cost nothing; there is no second RSI section
+         anywhere on this page. */
+      var vars = (on && t.variants) ? ('<span class="st-v">' + t.variants.map(function (v){
+        return '<button type="button" class="st-vb' + (rsiVariant === v.id ? ' on' : '') + '" ' +
+          'aria-pressed="' + (rsiVariant === v.id ? 'true' : 'false') + '" ' +
+          'onclick="event.stopPropagation();Induction.setRsiVariant(\'' + v.id + '\')">' +
+          esc(v.label) + '</button>';
+      }).join('') + '</span>') : '';
+      /* A BUTTON MAY NOT CONTAIN A BUTTON. Nesting the two variant controls
+         inside the tile's own <button> is invalid HTML: the parser closes the
+         outer button before the inner one and the browser ejects Classic and
+         Modified into the grid beside the tiles, which is exactly where they
+         appeared. The cell is the bordered box; the tile is the control
+         inside it, and the variants are its siblings within the same cell. */
+      return '<div class="st-cell' + (on ? ' on' : '') + '">' +
+        '<button type="button" class="st-t" ' +
+          'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+          'onclick="Induction.setTechnique(\'' + t.id + '\')">' +
+          '<span class="st-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" ' +
+            'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
+            'stroke-linejoin="round"><path d="' + t.icon + '"/></svg></span>' +
+          '<span class="st-tx"><span class="st-n">' + esc(t.short) + '</span>' +
+          '<span class="st-s">' + esc(t.sub) + '</span></span>' +
+          (on ? '<span class="st-ck" aria-hidden="true">&#10003;</span>' : '') +
+        '</button>' + vars +
+      '</div>';
     }).join('');
     return section(NUM, 'Induction strategy', 'Records the approach — selects no drug',
       '<div class="st">' + tiles + '</div>');
   }
 
-  /* ── 2 · THE DRUG BOARD ──────────────────────────────────────────────
-     Every eligible induction-relevant drug, grouped, the moment the patient
-     loads. Nothing is selected for the clinician; selecting one moves
-     nothing and hides nothing. There is no chooser, no empty plan container
-     and no "+ Add" — USE and ✓ USING happen in the card the drug already
-     occupies. */
+  /* ── 2 · SELECTED DRUG PLAN ──────────────────────────────────────────
+     Four rows, four slots each, dense and aligned. Nothing is selected for
+     the clinician; USE lights the card where it stands and USING turns it
+     off again. There is no chooser, no empty-plan container and no "+ Add". */
   function planSection(){
-    var groups = toolboxGroups();
+    var groups = planRows();
     var total = 0, used = 0;
     groups.forEach(function (g){
       total += g.rows.length;
       g.rows.forEach(function (d){ if (hasDrug(g.key, d.id)) used++; });
     });
-    /* FOUR SEQUENTIAL GROUP ROWS, EACH ONLY AS TALL AS IT NEEDS.
-       Two balanced columns left a 69px hole at the foot of the shorter one —
-       four groups do not divide into two equal halves and nothing should be
-       stretched to pretend they do. Sequential rows have no such hole: a
-       group of two cards is one card tall, a group of three is one card tall,
-       and the label sits beside its row rather than above it, which is a
-       16px band saved per group. */
+
     var board = '<div class="tb">' + groups.map(function (g){
-      if (!g.rows.length) return '';
+      var cells = g.rows.map(function (d){ return tbCard(g.key, d); });
+      /* PAD TO THE ROW WIDTH WITH SLOTS, NEVER WITH A DRUG. A row of two
+         real agents and two pluses is honest; a row of two agents and two
+         blank cells is reserved space, and a row padded with a drug we hold
+         no dose for is worse than either. */
+      while (cells.length % PLAN_SLOTS !== 0 || cells.length === 0)
+        cells.push(tbSlot(g.key));
       return '<div class="tb-grp">' +
         '<div class="tb-g' + (g.nmb && isRSI() ? ' rsi' : '') + '">' +
-          esc(g.label) + ' <em>' + g.rows.length + '</em></div>' +
-        '<div class="tb-row">' +
-          g.rows.map(function (d){ return tbCard(g.key, d); }).join('') +
-        '</div></div>';
+          /* NO "2 OF 4" COUNT. It wrapped the longest label onto a third
+             line and set the whole row 14px taller, to say something the row
+             says by itself: two cards and two pluses. */
+          '<b>' + esc(g.label) + '</b></div>' +
+        '<div class="tb-row">' + cells.join('') + '</div></div>';
     }).join('') + '</div>';
 
-    return section(NUM, 'Induction drugs',
+    return section(NUM, 'Selected drug plan',
       total + ' available · doses for ' + (weight() ? weight() + ' kg' : 'this patient') +
         ' · ' + (used ? used + ' in use' : 'none selected'),
       board);
@@ -726,6 +786,15 @@
      drug, no selection. Pressing the chosen one clears it. */
   function setTechnique(id){
     technique = (technique === id) ? null : id;
+    /* Leaving RSI leaves its variant behind with it; nothing else is
+       touched, and no drug is added, removed or swapped. */
+    if (technique !== 'rsi') rsiVariant = null;
+    render();
+  }
+  /* Records which rapid sequence. No dose, drug or phase reads this. */
+  function setRsiVariant(id){
+    if (technique !== 'rsi') return;
+    rsiVariant = (rsiVariant === id) ? null : id;
     render();
   }
 
@@ -734,6 +803,18 @@
      page cached from before this change still calls it, and a stale handler
      is not a reason to throw. */
   function openRoleFn(){ /* no chooser to open */ }
+
+  /* THE PLUS SENDS YOU TO THE REFERENCE, filtered to the row's own class.
+     It adds no drug by itself — every agent this application holds a dose
+     for is already in the reference below, and this is the route to it. */
+  function addSlot(roleKey){
+    var CLASS = { induction:'induction', analgesia:'opioid', nmb:'nmb' };
+    try {
+      if (root.drefSet) root.drefSet('iref', 'cat', CLASS[roleKey] || 'all');
+      var host = document.querySelector('#induction-host .idref');
+      if (host && host.scrollIntoView) host.scrollIntoView({ block:'nearest' });
+    } catch(e){ console.warn('[induction] reference filter unavailable', e); }
+  }
 
   /* SELECTION IS A TOGGLE, IN PLACE. Adding is adding and removing is
      removing; a role may hold more than one agent. Focus returns to the row's
@@ -770,8 +851,9 @@
 
   root.Induction = { render:render, protocol:protocol,
                      toggle:toggle, remove:remove, openRole:openRoleFn,
+                     addSlot:addSlot,
                      clearPlan:clearPlan, clear:clear,
-                     setTechnique:setTechnique,
+                     setTechnique:setTechnique, setRsiVariant:setRsiVariant,
                      get roles(){ return ROLES.map(function (r){ return r.key; }); },
                      get technique(){ return technique; },
                      get plan(){ return pickedList().map(function (d){ return d.id; }); } };

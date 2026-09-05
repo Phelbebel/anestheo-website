@@ -1120,8 +1120,17 @@ t('...and the RSI context list has exactly one entry for a blocker',
 /* 11 · Classic and Modified RSI are the same context */
 {
   const IND = code(read('induction.js'));
-  t('11 Classic and Modified RSI both map to phase rsi',
-    /technique === 'classic' \|\| technique === 'modified'/.test(IND));
+  /* RSI IS ONE TOP-LEVEL OPTION NOW and its variants live inside it, so the
+     test is no longer "two technique ids both mean rsi" — it is that the
+     variant is metadata no dose can read. isRSI() answers on the approach
+     alone, and rsiVariant appears nowhere near a phase or a dose. */
+  t('11 Classic and Modified are variants of ONE rsi approach',
+    /function isRSI\(\)\{ return technique === 'rsi'; \}/.test(IND.replace(/\s+/g,' ')
+      .replace('function isRSI(){ return', 'function isRSI(){ return')) ||
+    /isRSI\(\)\{ return technique === 'rsi'/.test(IND.replace(/\s+/g,' ')));
+  t('...and the variant is metadata: no dose or phase reads it',
+    /var rsiVariant = null/.test(IND) &&
+    !/rsiVariant[\s\S]{0,120}(phase|dose|contextFor)/.test(IND));
   t('...and neither is bound to a blocker',
     !/classic[\s\S]{0,120}suxamethonium/i.test(IND) &&
     !/modified[\s\S]{0,120}rocuronium/i.test(IND));
