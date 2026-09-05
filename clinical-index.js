@@ -161,7 +161,39 @@ var DRUGS = [
   aliases:['propofol','diprivan','propofol lipuro','profol'],
   klass:'Alkylphenol intravenous anaesthetic',
   indications:['induction','sedation','TIVA maintenance'],
-  doses:[{ label:'Induction', route:'IV', low:1.5, high:2.5, unit:'mg/kg', basis:'TBW', basisWeight:true, population:'adult', type:'range' }],
+  doses:[
+    /* REVIEWED 1/11 — replaces the shipped 1.5–2.5 mg/kg. The reviewed label
+       gives 2–2.5 for most adults of ASA I–II under 65, which is narrower
+       than "adult" in both directions: the applicability block carries the
+       part `population` cannot, and an ASA III patient or a 70-year-old gets
+       no number from this record rather than a number reviewed for someone
+       else. The warn line below said as much already, and a warning is not
+       a gate. */
+    { label:'Induction', route:'IV', phase:'induction',
+      low:2, high:2.5, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      population:'adult', populationClass:'A',
+      applicability:{ ageBand:{ max:{ value:65, unit:'years', inclusive:false } },
+                      asa:['I','II'] },
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Propofol Injectable Emulsion',
+                 documentId:'9ba70032-40c2-41c5-9f99-d1f94032d3dc',
+                 section:'2.2 Induction of General Anesthesia for Patients Greater than or Equal to 3 Years of Age — Adult Patients' } },
+    /* REVIEWED 2/11 — the first paediatric dose record this application has
+       ever held. Until now a child was shown the adult rule multiplied by
+       their weight; now a two-year-old falls outside the band and is told so,
+       and a sixteen-year-old is inside it because an age is completed years.
+       A different setid from the adult record: two documents, which is
+       exactly why evidence is per dose. */
+    { label:'Induction', route:'IV', phase:'induction',
+      low:2.5, high:3.5, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      population:'paediatric', populationClass:'C',
+      ageBand:{ min:{ value:3,  unit:'years', inclusive:true },
+                max:{ value:16, unit:'years', inclusive:true } },
+      applicability:{ asa:['I','II'] },
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Propofol Injectable Emulsion',
+                 documentId:'800646b8-83a8-01d9-3dc8-bb2ddcb8570c',
+                 section:'Pediatric Patients / Summary of Dosage Guidelines / induction' } }],
   prep:'<b>1% = 10 mg/mL</b>',
   warn:'Reduce 30–50% in the elderly, hypovolaemia and ASA III–IV.',
   severity:'caution',
@@ -172,7 +204,33 @@ var DRUGS = [
   aliases:['ketamine','ketalar','esketamine','special k'],
   klass:'NMDA antagonist',
   indications:['induction','haemodynamic instability','analgesia'],
-  doses:[{ label:'Induction', route:'IV', low:1, high:2, unit:'mg/kg', basis:'TBW', basisWeight:true, population:'adult', type:'range' }],
+  doses:[
+    /* REVIEWED 10/11 — replaces the shipped 1–2 mg/kg. The reviewed range is
+       1–4.5 with an average of 2, so the old record was the middle of the
+       label read as the whole of it.
+       CLASS A, NOT D, AND THE DISTINCTION MATTERS HERE. Section 8.4 states
+       that safety and effectiveness in patients below 16 have not been
+       established, so this is evidence about adults that happens to carry no
+       paediatric counterpart — not one rule covering both. A child therefore
+       gets no number from it. */
+    { label:'Induction', route:'IV', phase:'induction',
+      low:1, high:4.5, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Average 2 mg/kg, administered slowly over approximately 60 seconds.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Ketamine Hydrochloride Injection',
+                 documentId:'902c3785-a3cb-472b-ac15-394ac646271d',
+                 section:'2.2 Recommended Dosage and Administration — Induction of Anesthesia — Intravenous Route' } },
+    /* REVIEWED 11/11 — the intramuscular route, which the model could not
+       express at all until doses enumerated: a second dose on a drug was
+       invisible everywhere. It is a separate record, not a widened range. */
+    { label:'Induction', route:'IM', phase:'induction',
+      low:6.5, high:13, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Ketamine Hydrochloride Injection',
+                 documentId:'902c3785-a3cb-472b-ac15-394ac646271d',
+                 section:'2.2 Recommended Dosage and Administration — Induction of Anesthesia — Intramuscular Route' } }],
   prep:'<b>10 / 50 mg/mL</b> · haemodynamically stable choice',
   warn:'Emergence phenomena; avoid in uncontrolled hypertension and raised ICP.',
   severity:'caution',
@@ -194,8 +252,45 @@ var DRUGS = [
   aliases:['rocuronium','rocuronium bromide','roc','esmeron','zemuron'],
   klass:'Aminosteroid non-depolarising neuromuscular blocker',
   indications:['intubation','rapid sequence induction','muscle relaxation'],
-  doses:[{ label:'Intubation', route:'IV', low:0.6, high:1.2, unit:'mg/kg', basis:'TBW', basisWeight:true, population:'adult', type:'range' }],
-  prep:'<b>10 mg/mL</b> · 1.2 mg/kg for RSI',
+  doses:[
+    /* REVIEWED 4/11 — the shipped record was 0.6–1.2 labelled "Intubation",
+       which was the RSI range wearing the routine label. Routine intubation
+       is 0.6, and RSI is its own record below. */
+    { label:'Intubation', route:'IV', phase:'intubation',
+      value:0.6, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Rocuronium Bromide Injection',
+                 documentId:'04c9812d-5aa3-4949-ad02-c618028f1bb0',
+                 section:'2.2 Dosage for Tracheal Intubation' } },
+    /* REVIEWED 5/11 — B, not D, and the number being identical is the reason
+       to say so out loud. D means the source established ONE rule covering
+       both populations; this is two findings that agree, from two sections,
+       and if either is ever revised the other must not move with it. */
+    { label:'Intubation', route:'IV', phase:'intubation',
+      value:0.6, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'0.45 mg/kg may be used depending on age and anesthetic technique.',
+      population:'paediatric', populationClass:'B',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Rocuronium Bromide Injection',
+                 documentId:'04c9812d-5aa3-4949-ad02-c618028f1bb0',
+                 section:'2.6 Dosage in Specific Populations — Pediatric Patients' } },
+    /* REVIEWED 6/11 — DEFECT B CLOSED. This value spent its life inside the
+       prep string as "· 1.2 mg/kg for RSI": display prose, invisible to
+       renderDose(), to the weight scaler and to the provenance gate. It is a
+       real dose record now, and the prose is gone from prep below.
+       phase:'rsi' is a SIBLING of 'intubation'. Asking for RSI on a drug with
+       only a routine record returns nothing — never the routine dose. */
+    { label:'Rapid sequence intubation', route:'IV', phase:'rsi',
+      low:0.6, high:1.2, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Rocuronium Bromide Injection',
+                 documentId:'04c9812d-5aa3-4949-ad02-c618028f1bb0',
+                 section:'2.3 Rapid Sequence Intubation' } }],
+  /* The RSI dose left this string for a dose record. A preparation says what
+     is in the vial; it does not carry a dose the model cannot see. */
+  prep:'<b>10 mg/mL</b>',
   warn:'Only after confirming you can ventilate — unless sugammadex is drawn up.',
   severity:'critical',
   provenance:{ state:'existing-unchanged', verbatim:'Intubation · 0.6–1.2 mg/kg TBW' } },
@@ -205,7 +300,26 @@ var DRUGS = [
   aliases:['suxamethonium','succinylcholine','sux','scoline','anectine','celocurine','suxamethonium chloride'],
   klass:'Depolarising neuromuscular blocker',
   indications:['rapid sequence induction','laryngospasm'],
-  doses:[{ label:'RSI', route:'IV', low:1, high:1.5, unit:'mg/kg', basis:'TBW', basisWeight:true, population:'adult', type:'range' }],
+  doses:[
+    /* REVIEWED 7/11 — replaces the shipped 1–1.5 labelled RSI. The reviewed
+       adult range is 0.3–1.1 with an average of 0.6, and the label states it
+       for intubation rather than for RSI specifically.
+       NO PAEDIATRIC RECORD, DELIBERATELY. The label distinguishes "infants
+       and other small pediatric patients" from "older pediatric patients and
+       adolescents" and gives no boundary between them. A band cannot be
+       inferred from prose, so a child gets "Pediatric dose not reviewed"
+       rather than one of the two figures chosen by us. That gap is the
+       honest state of the evidence, and it is waiting on a secondary source.
+       IM is not added either: the route exists in the label, the route UX
+       does not exist yet, and half a route is worse than none. */
+    { label:'Intubation', route:'IV', phase:'intubation',
+      low:0.3, high:1.1, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      decimals:1, note:'Average dose 0.6 mg/kg.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Succinylcholine Chloride Injection',
+                 documentId:'1e5891e2-e1e4-4587-b32c-b2e8082df9b6',
+                 section:'2.2 Dosage Recommendations for Intravenous Use in Adults' } }],
   prep:'<b>50 mg/mL</b>',
   warn:'Contraindicated in hyperkalaemia, burns &gt;24 h, denervation, MH susceptibility.',
   severity:'critical', hi:true,
@@ -216,7 +330,32 @@ var DRUGS = [
   aliases:['fentanyl','fentanil','sublimaze'],
   klass:'Synthetic opioid',
   indications:['analgesia','obtunding laryngoscopy response'],
-  doses:[{ label:'Peri-induction analgesia', route:'IV', low:1, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, population:'adult', type:'range' }],
+  doses:[
+    /* CLASSIFIED, NOT CERTIFIED. This is the shipped adult record, value
+       untouched. It gains populationClass:'A' and phase, and it keeps
+       evidence.state 'existing-unchanged' — it has NOT been reviewed against
+       a primary source, because the label expresses adult anaesthesia dosing
+       as 50–100 mcg initiation and low/moderate/high total categories rather
+       than a clean per-kg induction range. Reconciling that is its own task.
+       The classification exists for one reason: without it, the record is
+       unclassified, and an unclassified record is eligible for everyone. A
+       three-year-old would have been shown this adult rule scaled down at the
+       same moment the reviewed paediatric record below appeared beside it.
+       Classification prevents the leak; it does not bless the number. */
+    { label:'Peri-induction analgesia', route:'IV', phase:'induction',
+      low:1, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'existing-unchanged' } },
+    /* REVIEWED 3/11 */
+    { label:'Induction and maintenance', route:'IV', phase:'induction',
+      low:2, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
+      population:'paediatric', populationClass:'C',
+      ageBand:{ min:{ value:2,  unit:'years', inclusive:true },
+                max:{ value:12, unit:'years', inclusive:true } },
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Fentanyl Citrate Injection',
+                 documentId:'58dcd3f7-e3d8-4929-a186-8f680a51ff11',
+                 section:'2.2 Dosage — For Induction and Maintenance in Children 2 to 12 Years of Age' } }],
   prep:'<b>50 mcg/mL</b>',
   warn:'Chest-wall rigidity with rapid large boluses.',
   severity:'caution',
@@ -238,7 +377,39 @@ var DRUGS = [
   aliases:['remifentanil','remi','ultiva'],
   klass:'Ultra-short-acting synthetic opioid',
   indications:['TIVA','infusion analgesia'],
-  doses:[{ label:'Infusion', route:'IV', low:0.05, high:0.2, unit:'mcg/kg/min', population:'adult', type:'range' }],
+  doses:[
+    /* THE LEGACY RECORD, VALUE AND LABEL UNTOUCHED, AND DELIBERATELY GIVEN NO
+       PHASE. Its context has never been stated: the record says "Infusion"
+       and nothing more, and the reviewed label's 0.025–0.2 figures belong to
+       immediate postoperative analgesic continuation, not to induction. So it
+       must NOT answer phase:'induction' — and the way to guarantee that is to
+       leave `phase` absent, because dosesForPhase() filters on exact equality
+       and a record with no phase matches no phase at all.
+       It is classified 'A' for the same reason fentanyl's legacy record is:
+       to keep it away from children. It is not certified reviewed. */
+    { label:'Infusion', route:'IV', low:0.05, high:0.2, unit:'mcg/kg/min',
+      type:'range', population:'adult', populationClass:'A',
+      evidence:{ state:'existing-unchanged' } },
+    /* REVIEWED 8/11 */
+    { label:'Induction through intubation', route:'IV infusion', phase:'induction',
+      low:0.5, high:1, unit:'mcg/kg/min', type:'range',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Remifentanil Hydrochloride for Injection',
+                 documentId:'d2374b84-81c9-44f9-a4a9-1071281b2531',
+                 section:'Table 1 — Dosing Guidelines in Adults: Induction of Anesthesia (through intubation)' } },
+    /* REVIEWED 9/11 — a bolus is not an infusion and the two are not folded.
+       One is set on a pump in mcg/kg/min and the other is drawn up in mcg;
+       renderDose() treats them differently, and a single record could only
+       have been one of them. */
+    { label:'Initial bolus', route:'IV', phase:'induction',
+      value:1, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'May be administered over 30–60 seconds.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Remifentanil Hydrochloride for Injection',
+                 documentId:'d2374b84-81c9-44f9-a4a9-1071281b2531',
+                 section:'Table 1 — Dosing Guidelines in Adults: Induction of Anesthesia (through intubation)' } }],
   prep:'<b>50 mcg/mL</b> (2 mg / 40 mL)',
   warn:'No residual analgesia — establish multimodal cover before stopping.',
   severity:'caution',
@@ -1149,20 +1320,40 @@ COVERAGE[WITHHELD.ASA]        = 'ASA required to match reviewed dose';
 COVERAGE[WITHHELD.PROFILE]    = 'Reviewed dose not available for this patient profile';
 COVERAGE[WITHHELD.UNPUBLISHED]= 'Dose not reviewed';
 
-/* THE ONE LEVER, AND WHY IT IS WHERE IT IS.
-   Every record in the dataset today predates populationClass. Treating an
-   unclassified record as adult-specific would empty the paediatric toolbox
-   the instant this file loads — before a single reviewed paediatric record
-   exists to take its place. So an unclassified dose stays eligible, exactly
-   as it renders today, and the machinery above is inert.
+/* THE LEVER IS THROWN. Until the reviewed records existed, an unclassified
+   dose had to stay eligible or the paediatric toolbox would have emptied with
+   nothing to replace it. The reviewed records exist now, so it flips here, in
+   the same commit — not before, or the application spends the gap showing
+   nothing, and not after, or it spends the gap showing scaled adult numbers
+   beside reviewed paediatric ones.                                          */
+var UNCLASSIFIED_ELIGIBLE = false;
 
-   Flipping this to false is what actually closes the defect, and it belongs
-   in the same commit that lands the reviewed records — not before, or the
-   application spends the gap showing nothing, and not after, or it spends the
-   gap showing scaled adult numbers next to reviewed paediatric ones. It is a
-   constant rather than an option because there is exactly one right value at
-   any moment and it is not the caller's to choose.                          */
-var UNCLASSIFIED_ELIGIBLE = true;
+/* ── AND EVERY LEGACY RECORD IS COVERED BEFORE IT IS ────────────────────────
+   Throwing the lever without this would blank six shipped drugs for EVERY
+   patient — midazolam, morphine, dexmedetomidine, both sugammadex records and
+   neostigmine — because none of them carries populationClass and two of them
+   are held for their own reviewed migrations and must not be edited here.
+   A reversal drug that shows no dose to anyone is a worse defect than the one
+   being fixed.
+
+   So an unclassified dose falls back to the population it already declares.
+   This is not a new clinical claim and nothing is inferred: `population` is an
+   existing field, present on all 32 publishable doses, written when the
+   records were migrated, and it states who the dose was recorded for. Reading
+   it is strictly safer than ignoring it — 'adult' becomes A and is withheld
+   from children, which is the direction that matters.
+
+   IT IS A FLOOR, NOT A CERTIFICATION. A derived class says who a dose may
+   reach; it says nothing about whether the value was reviewed, and it never
+   promotes evidence.state. A record with neither populationClass nor
+   population is withheld from everyone — today there is none.               */
+function effectiveClass(dose){
+  if (!dose) return null;
+  if (dose.populationClass) return dose.populationClass;
+  if (dose.population === 'adult') return POPCLASS.ADULT;
+  if (dose.population === 'paediatric') return POPCLASS.PAEDIATRIC;
+  return null;
+}
 
 /* ── IS THIS DOSE ELIGIBLE FOR THIS PATIENT ───────────────────────────────
    THE ORDER IS FIXED AND EACH STAGE CAN ONLY WITHHOLD:
@@ -1176,7 +1367,7 @@ var UNCLASSIFIED_ELIGIBLE = true;
    anything. Returns { eligible:true } or { eligible:false, reason }, and
    never a dose, a number or an alternative.                                 */
 function doseEligibility(dose, pop){
-  var k = dose && dose.populationClass;
+  var k = effectiveClass(dose);
   if (!k) return UNCLASSIFIED_ELIGIBLE ? { eligible:true }
                                        : { eligible:false, reason:WITHHELD.UNPUBLISHED };
   if (k === POPCLASS.UNSPECIFIED) return { eligible:false, reason:WITHHELD.UNPUBLISHED };
@@ -1333,7 +1524,7 @@ global.ClinicalContent = {
      never reached. The gate is built, wired and tested before it holds
      anything, which is the only order in which it can be proved inert. */
   POPCLASS:POPCLASS, WITHHELD:WITHHELD, COVERAGE:COVERAGE,
-  UNCLASSIFIED_ELIGIBLE:UNCLASSIFIED_ELIGIBLE,
+  UNCLASSIFIED_ELIGIBLE:UNCLASSIFIED_ELIGIBLE, effectiveClass:effectiveClass,
   AGE_FAMILY:AGE_FAMILY, compareAge:compareAge,
   meetsApplicability:meetsApplicability, applicabilityFailure:applicabilityFailure,
   inAgeBand:inAgeBand, patientPopulation:patientPopulation,

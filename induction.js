@@ -115,7 +115,7 @@
     var out = [];
     ROLES.forEach(function (r){
       var ids = idsFor(r.key); if (!ids.length) return;
-      drugs(r.group).forEach(function (d){ if (ids.indexOf(d.id) >= 0) out.push(d); });
+      drugsOnce(r.group).forEach(function (d){ if (ids.indexOf(d.id) >= 0) out.push(d); });
     });
     return out;
   }
@@ -143,6 +143,29 @@
     if (!CC || !CC.visibleDosesInGroup) return [];
     try { return CC.visibleDosesInGroup(groupId, weight(), population()) || []; }
     catch(e){ console.warn('[induction] group ' + groupId + ' unavailable', e); return []; }
+  }
+  /* ── THE PLAN IS A LIST OF DRUGS, THE REFERENCE IS A LIST OF DOSES ──────
+     The selector enumerates one row per reviewed dose, which is right for a
+     reference table and wrong for everything here: the plan stores its
+     selection by DRUG id, so once rocuronium carried a routine intubating
+     dose and an RSI dose, "rocuronium" matched twice and the plan drew the
+     same agent twice in the same role. The chooser had the same problem —
+     three remifentanil buttons that all toggled the same thing.
+
+     So the plan and the chooser take the first eligible row per drug. That is
+     a presentation decision, not a clinical one: no dose is discarded, and
+     every reviewed record stays visible and complete in the drug reference
+     below, which is the surface built to show them.
+
+     A withheld row is still a row here. A drug whose dose is not reviewed for
+     this patient stays offerable and stays in the plan carrying its coverage
+     line — losing the tile is exactly what we spent the machinery avoiding. */
+  function drugsOnce(groupId){
+    var seen = {}, out = [];
+    drugs(groupId).forEach(function (d){
+      if (seen[d.id]) return; seen[d.id] = 1; out.push(d);
+    });
+    return out;
   }
   function classColour(pclass){
     var CC = root.ClinicalContent;
@@ -221,7 +244,7 @@
   function roleDrugs(r){
     var ids = idsFor(r.key);
     if (!ids.length) return [];
-    return drugs(r.group).filter(function (d){ return ids.indexOf(d.id) >= 0; });
+    return drugsOnce(r.group).filter(function (d){ return ids.indexOf(d.id) >= 0; });
   }
 
   /* ── the compact plan controls ─────────────────────────────────────── */
@@ -278,7 +301,7 @@
   function chooser(){
     if (!openRole) return '';
     var body = ROLES.map(function (r){
-      var list = drugs(r.group);
+      var list = drugsOnce(r.group);
       if (!list.length) return '';
       return '<div class="ch-grp"><div class="ch-l">' + esc(r.label) + '</div>' +
         '<div class="ch-row">' + list.map(function (a){

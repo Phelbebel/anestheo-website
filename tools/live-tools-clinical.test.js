@@ -794,10 +794,15 @@ async function openEngine(b, viewport) {
       R(built.three,'analgesia').drugs.join() === 'Fentanyl' &&
       R(built.three,'nmb').drugs.join() === 'Rocuronium',
       built.three.map(x => x.drugs));
-    /* CANONICAL DOSE, VISIBLE IMMEDIATELY. 75 kg: 1.5–2.5 mg/kg = 113–188. */
+    /* CANONICAL DOSE, VISIBLE IMMEDIATELY. 75 kg: 2–2.5 mg/kg = 150–188.
+       The reviewed adult record replaced the shipped 1.5–2.5 in the Tier 1
+       migration, so the figure this asserts changed with it. It is still the
+       canonical number and still arrives without a click — that is what the
+       assertion is for, and it is deliberately written as the value rather
+       than as "whatever the model says", so a silent drift fails here. */
     t('...showing the per-kg rule and the amount for this patient',
-      /1\.5–2\.5\s*mg\/kg TBW/.test(R(built.three,'induction').rules[0]) &&
-      /113–188/.test(R(built.three,'induction').amts[0]),
+      /2–2\.5\s*mg\/kg TBW/.test(R(built.three,'induction').rules[0]) &&
+      /150–188/.test(R(built.three,'induction').amts[0]),
       R(built.three,'induction'));
     t('...with its preparation and its warning',
       R(built.three,'induction').preps === 1 && R(built.three,'induction').warns === 1 &&
@@ -1055,8 +1060,10 @@ async function openEngine(b, viewport) {
       hdr.caseText);
     t('the header is the control: pressing it brings the form back',
       hdr.openedForm === true && hdr.ageKept === '42' && hdr.closedAgain === false, hdr);
+    /* 40 kg against the reviewed adult record: 2–2.5 mg/kg = 80–100 mg.
+       Was 60–100 under the shipped 1.5–2.5. */
     t('...and a value edited there still drives every dose',
-      /60/.test(hdr.reweighed) && hdr.headerFollowed === true,
+      /80/.test(hdr.reweighed) && hdr.headerFollowed === true,
       { propofolAt40kg:hdr.reweighed, header:hdr.headerFollowed });
     /* The whole point of the exercise. Measured at 1440x1250 before this
        pass: 560. */
@@ -1538,14 +1545,20 @@ async function openEngine(b, viewport) {
            printed nothing at all. */
         const txt = (r, sel) => [...r.querySelectorAll(sel)]
           .map(e => e.textContent).join(' ');
+        /* ONE DRUG CAN NOW BE SEVERAL ROWS. This used to key by drug id,
+           which silently kept the LAST row — so once rocuronium carried an
+           intubating dose and an RSI dose, the map held the RSI one and the
+           plan, which shows the first, looked like it disagreed. It collects
+           every row per drug now, and the comparisons below match row for
+           row instead of assuming there is only one. */
         const readMount = id => {
           const out = {};
           [...document.querySelectorAll('#'+id+'-body tr.dtab-r')].forEach(r => {
-            out[r.dataset.drug] = {
+            (out[r.dataset.drug] = out[r.dataset.drug] || []).push({
               rule:txt(r, '.dtab-d1, .dtab-du'),
               amount:txt(r, '.dtab-d2, .dtab-au'),
               prep:txt(r, '.dtab-p1')
-            };
+            });
           });
           return out;
         };
@@ -1584,44 +1597,64 @@ async function openEngine(b, viewport) {
          digit, unit and weight basis still has to match exactly — that is
          what this compares. */
       const flat = s => s.replace(/\s+/g, '');
+      const sig = r => flat(r.rule) + '|' + flat(r.amount) + '|' + flat(r.prep);
       const agree = (o, label) => {
         const shared = Object.keys(o.narrow).filter(k => o.wide[k]);
+        /* Row for row, in order: the two mounts run the same selector, so a
+           drug with three reviewed doses must produce the same three rows in
+           the same order in both. */
         const bad = shared.filter(k =>
-          flat(o.wide[k].rule)   !== flat(o.narrow[k].rule) ||
-          flat(o.wide[k].amount) !== flat(o.narrow[k].amount) ||
-          flat(o.wide[k].prep)   !== flat(o.narrow[k].prep));
+          o.wide[k].length !== o.narrow[k].length ||
+          o.wide[k].some((r, i) => sig(r) !== sig(o.narrow[k][i])));
         t(label + ': the two reference mounts print the identical dose',
           shared.length >= 10 && bad.length === 0,
           { compared:shared.length, disagreed:bad.map(k =>
-            k + ' | ' + flat(o.wide[k].amount) + ' vs ' + flat(o.narrow[k].amount)) });
+            k + ' | ' + o.wide[k].map(sig).join(' ; ') +
+            ' vs ' + o.narrow[k].map(sig).join(' ; ')) });
+        /* THE PLAN SHOWS ONE DOSE PER DRUG, AND IT MUST BE ONE THE REFERENCE
+           ACTUALLY PRINTS. Not "the same as the only row" — the same as one
+           of the rows, which is the guarantee that survives enumeration. */
         const planned = Object.keys(o.plan);
         const badPlan = planned.filter(k => !o.narrow[k] ||
-          flat(o.plan[k].rule)   !== flat(o.narrow[k].rule) ||
-          flat(o.plan[k].amount) !== flat(o.narrow[k].amount) ||
-          flat(o.plan[k].prep)   !== flat(o.narrow[k].prep));
+          !o.narrow[k].some(r => sig(r) === sig(o.plan[k])));
         t(label + ': ...and the induction plan prints the identical dose too',
           planned.length === 3 && badPlan.length === 0,
           { planned:planned.length, disagreed:badPlan.map(k =>
-            k + ' | plan ' + flat((o.plan[k]||{}).amount) +
-            ' vs reference ' + flat((o.narrow[k]||{}).amount)) });
+            k + ' | plan ' + sig(o.plan[k]) + ' not among ' +
+            ((o.narrow[k]||[]).map(sig).join(' ; '))) });
       };
       agree(cmp.adult, 'adult 75 kg');
       agree(cmp.child, 'child 16 kg');
       /* And the scaling is real — the same drug reads differently at the two
          weights, so "identical" above is agreement and not two frozen
          strings. */
+      /* The adult and the child now see DIFFERENT propofol records — 2–2.5
+         for the adult, 2.5–3.5 for the four-year-old — so this compares the
+         amounts of whichever record each of them is eligible for, which is
+         the thing that must not be identical. */
       t('a weight-based dose actually rescales between the two patients',
-        cmp.adult.narrow['drug.propofol'].amount !==
-        cmp.child.narrow['drug.propofol'].amount,
-        { adult:cmp.adult.narrow['drug.propofol'].amount,
-          child:cmp.child.narrow['drug.propofol'].amount });
+        cmp.adult.narrow['drug.propofol'][0].amount !==
+        cmp.child.narrow['drug.propofol'][0].amount,
+        { adult:cmp.adult.narrow['drug.propofol'][0].amount,
+          child:cmp.child.narrow['drug.propofol'][0].amount });
       /* A RATE IS NOT AN AMOUNT. renderDose refuses to convert mcg/kg/min,
-         and the table must not print a number of milligrams beside one. */
+         and the table must not print a number of milligrams beside one.
+         Remifentanil now carries three records — two rates and a bolus in
+         mcg/kg — so this asserts the property over every rate row rather
+         than over "the" remifentanil row, and checks the bolus DOES compute,
+         which is what makes the rate rule meaningful rather than blanket. */
+      const rateRows = m => Object.keys(m).flatMap(k => m[k])
+        .filter(r => /\/(min|h|hr)\b/.test(r.rule));
       t('...and a rate is never converted into an amount in either mount',
-        (cmp.adult.narrow['drug.remifentanil'] || {}).amount === '' &&
-        (cmp.adult.wide['drug.remifentanil'] || {}).amount === '',
-        { narrow:(cmp.adult.narrow['drug.remifentanil']||{}).amount,
-          wide:(cmp.adult.wide['drug.remifentanil']||{}).amount });
+        rateRows(cmp.adult.narrow).length >= 3 &&
+        rateRows(cmp.adult.narrow).every(r => r.amount === '') &&
+        rateRows(cmp.adult.wide).every(r => r.amount === ''),
+        { rates:rateRows(cmp.adult.narrow).length,
+          leaked:rateRows(cmp.adult.narrow).filter(r => r.amount !== '') });
+      t('...while the remifentanil bolus, which is mcg/kg, DOES compute',
+        cmp.adult.narrow['drug.remifentanil'].some(r => /mcg\/kg\b/.test(r.rule) &&
+          !/\/min/.test(r.rule) && r.amount !== ''),
+        cmp.adult.narrow['drug.remifentanil'].map(r => r.rule + ' -> ' + r.amount));
       /* AND IT IS NOT SILENTLY ABSENT EITHER. An earlier revision put the
          rate in the patient column in the accent reserved for the computed
          dose, which reads as "give 0.2-0.7 of something". The rate belongs
@@ -1629,11 +1662,24 @@ async function openEngine(b, viewport) {
          no number in it rather than printing an em dash that looks like
          missing data. */
       const rate = await v.pg.evaluate(`(() => {
+        /* AN ADULT, EXPLICITLY. The block above finishes on a four-year-old,
+           and dexmedetomidine is withheld for a child now — the row has a
+           coverage cell where its dose cells were, so picking .dtab-rule
+           returned nothing and this threw. Rates are an adult question here;
+           the paediatric withholding is asserted in its own block. */
+        newCase();
+        const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
+        set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+        set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+        compute();
+        const txt1 = (r, sel) => { const e = r.querySelector(sel);
+          return e ? e.textContent.replace(/\\s+/g,' ').trim() : ''; };
         const pick = id => {
           const r = document.querySelector('#iref-body tr[data-drug="'+id+'"]');
           if (!r) return null;
-          return { dose:(r.querySelector('.dtab-rule')||{}).textContent.replace(/\\s+/g,' ').trim(),
-                   patient:(r.querySelector('.dtab-dose')||{}).textContent.trim(),
+          return { dose:txt1(r, '.dtab-rule'),
+                   patient:txt1(r, '.dtab-dose'),
+                   coverage:txt1(r, '.dtab-cov'),
                    accent:!!r.querySelector('.dtab-dose .dtab-d2') };
         };
         setDomain('induction');
@@ -1658,17 +1704,16 @@ async function openEngine(b, viewport) {
     }
 
     /* ── AN ADULT-ONLY DOSE REACHES NO PART OF A CHILD'S PAGE ────────────
-       The row-level guarantee is asserted in maintenance-content.test.js
-       against the model. This asserts the one that actually matters: that
-       nothing anywhere in the rendered document carries the number. A value
-       withheld from the visible cell and still sitting in a title attribute,
-       a data- attribute, an aria-label or a collapsed detail panel is not
-       withheld, it is hidden — and the induction plan, the search index and
-       the inline detail all read the same record.
+       Against the real migrated records now, with nothing injected at
+       runtime. A three-year-old is eligible for propofol's reviewed
+       paediatric record and for nothing else in this group: ketamine is
+       class A because the label states safety below 16 is not established,
+       and suxamethonium has no paediatric record because its label draws no
+       boundary we could encode. Both keep their tile and lose their number.
 
-       No shipped record is classified yet, so propofol's dose is classified
-       adult-only at runtime. This is the state the clinical migration will
-       create, tested before it is created. */
+       The sweep is over the WHOLE document, attributes and collapsed panels
+       included, nothing excluded — a value withheld from a cell and still
+       sitting in a title attribute is hidden, not withheld. */
     {
       const v = await openEngine(b, { width:1440, height:1150 });
       const r = await v.pg.evaluate(`(() => {
@@ -1677,181 +1722,148 @@ async function openEngine(b, viewport) {
         set('i-age','3'); set('i-age-unit','y'); set('i-sex','M');
         set('i-height','96'); set('i-weight','15'); set('i-asa','II');
         compute();
-        const before = document.getElementById('output').innerText;
-        const d = window.ClinicalContent.byId('drug.propofol');
-        d.doses[0].populationClass = 'A';
-        drefRender('dref'); drefRender('iref');
-        if (window.Induction && Induction.render) Induction.render();
         const out = document.getElementById('output');
-        const row = [...out.querySelectorAll('tr.dtab-r')]
-          .find(x => x.dataset.drug === 'drug.propofol');
-        return {
-          beforeHadAmount: /23.38\\s*mg/.test(before),
-          present: !!row,
-          name: row && row.querySelector('.dtab-n').textContent,
-          colour: row && getComputedStyle(row).getPropertyValue('--pc').trim(),
-          badge: !!row && !!row.querySelector('.pc'),
-          coverage: row && (row.querySelector('.dtab-cov')||{}).textContent,
-          addBtn: !!(row && row.querySelector('.dtab-add button')),
-          height: row && Math.round(row.getBoundingClientRect().height),
-          neighbours: [...out.querySelectorAll('tr.dtab-r')]
-            .filter(x => x.dataset.drug !== 'drug.propofol')
-            .slice(0,4).map(x => Math.round(x.getBoundingClientRect().height)),
-          /* EVERY string in the WHOLE document, not just the visible text and
-             with nothing excluded — a value withheld from a cell and still
-             sitting in a title attribute or a collapsed panel is hidden, not
-             withheld. #sed-inline-body used to be exempted from this sweep
-             because the legacy TCI panel printed its own ungated propofol
-             induction bolus. That value is gone, so the exemption is gone. */
-          html: out.innerHTML,
-          legacyHtml: (out.querySelector('#sed-inline-body') || {}).innerHTML || '',
-          legacyText: (out.querySelector('#sed-inline-body') || {}).innerText || '',
-          text: out.innerText
+        const txt1 = (r, sel) => { const e = r.querySelector(sel);
+          return e ? e.textContent.replace(/\\s+/g,' ').trim() : ''; };
+        const row = id => {
+          const x = [...out.querySelectorAll('tr.dtab-r')].find(e => e.dataset.drug === id);
+          if (!x) return null;
+          return { name:txt1(x,'.dtab-n'), rule:txt1(x,'.dtab-rule'),
+                   amount:txt1(x,'.dtab-dose'), coverage:txt1(x,'.dtab-cov'),
+                   colour:getComputedStyle(x).getPropertyValue('--pc').trim(),
+                   badge:!!x.querySelector('.pc'),
+                   add:!!x.querySelector('.dtab-add button'),
+                   h:Math.round(x.getBoundingClientRect().height) };
         };
+        /* Only rows that are actually rendered. #output holds both reference
+           mounts and the inactive one is display:none, so its rows measure 0
+           and would make any spread assertion meaningless. */
+        const heights = [...out.querySelectorAll('tr.dtab-r')]
+          .map(x => Math.round(x.getBoundingClientRect().height))
+          .filter(h => h > 0);
+        const legacy = out.querySelector('#sed-inline-body');
+        return { prop:row('drug.propofol'), ket:row('drug.ketamine'),
+                 sux:row('drug.suxamethonium'), remi:row('drug.remifentanil'),
+                 heights:heights, html:out.innerHTML, text:out.innerText,
+                 legacyText:(legacy ? legacy.innerText : ''),
+                 legacyHtml:(legacy ? legacy.innerHTML : '') };
       })()`);
 
-      t('paediatric: the adult-only drug keeps its tile',
-        r.present && r.name === 'Propofol', r.name);
-      t('...its class colour and its badge',    !!r.colour && r.badge, r.colour);
-      t('...and shows the coverage line instead of a dose',
-        r.coverage === 'Pediatric dose not reviewed', r.coverage);
-      t('...with no Add control implying a reviewed dose exists', r.addBtn === false);
-      t('...at a row height in line with its neighbours',
-        r.height > 0 && r.height <= Math.max(...r.neighbours) + 8,
-        { row:r.height, neighbours:r.neighbours });
-      t('the same page DID print an amount before the record was classified',
-        r.beforeHadAmount === true, 'so the assertion below is not vacuous');
-      /* The shipped canonical record is 1.5–2.5 mg/kg; x 15 kg = 23–38 mg.
-         The removed legacy row was 2–2.5 mg/kg; x 15 kg = 30–37.5 mg. */
-      const NUMS = ['23–38','23-38','1.5–2.5 mg/kg','1.5-2.5 mg/kg',
-                    '30–37','30-37','2–2.5 mg/kg','2-2.5 mg/kg'];
-      const inHtml = NUMS.filter(s => r.html.includes(s));
-      t('NO ADULT PROPOFOL INDUCTION VALUE APPEARS ANYWHERE IN THE DOM — whole '+
-        'document, attributes and collapsed panels included, nothing excluded',
-        inHtml.length === 0, inHtml);
+      t('paediatric: propofol shows its REVIEWED PAEDIATRIC record',
+        r.prop && !r.prop.coverage && /2\.5–3\.5\s*mg\/kg TBW/.test(r.prop.rule) &&
+        /38–53/.test(r.prop.amount), r.prop);
+      t('paediatric: ketamine keeps its tile and loses its number',
+        r.ket && r.ket.name === 'Ketamine' && r.ket.coverage === 'Pediatric dose not reviewed' &&
+        r.ket.amount === '' && r.ket.add === false, r.ket);
+      t('...with its class colour and badge intact', !!r.ket.colour && r.ket.badge, r.ket.colour);
+      t('paediatric: suxamethonium likewise — no boundary in the label, so no number',
+        r.sux && r.sux.coverage === 'Pediatric dose not reviewed' && r.sux.add === false);
+      t('paediatric: remifentanil likewise', r.remi && !!r.remi.coverage);
+      t('...and no withheld row collapses or stretches the table',
+        Math.min(...r.heights) >= 30 && Math.max(...r.heights) <= 90,
+        { min:Math.min(...r.heights), max:Math.max(...r.heights) });
 
-      /* ── DEFECT I, CLOSED ─────────────────────────────────────────────*/
+      /* Every adult-only figure in this group, and its 15 kg scaling. */
+      const NUMS = ['2–2.5 mg/kg','30–38',        /* propofol adult   */
+                    '1–4.5 mg/kg','15–68',        /* ketamine IV      */
+                    '6.5–13 mg/kg','98–195',      /* ketamine IM      */
+                    '0.3–1.1 mg/kg','4.5–16.5',   /* suxamethonium    */
+                    '0.5–1 mcg/kg/min',           /* remifentanil     */
+                    '1.5–2.5 mg/kg','23–38'];     /* the retired value */
+      const leaked = NUMS.filter(x => r.html.includes(x));
+      t('NO ADULT-ONLY VALUE APPEARS ANYWHERE IN A CHILD DOM — whole document, '+
+        'attributes and collapsed panels included', leaked.length === 0, leaked);
+      t('...and no coverage state implies a clinical prohibition',
+        !/contraindicat|not recommended|unsafe|do not use/i.test(r.text));
+
+      /* ── DEFECTS I AND I-b, STILL CLOSED ──────────────────────────────*/
       t('DEFECT I: the legacy non-TCI induction bolus row is gone from the DOM',
-        !/Induction bolus/i.test(r.legacyText), r.legacyText.slice(0,0));
-      t('...and from the SED[] source itself',
-        !/Induction bolus \(non-TCI\)/.test(ENG));
-      t('...with no hard-coded propofol induction mg/kg left in that renderer',
-        !/'2.2\.5 mg\/kg'\s*\+\s*\(w\?/.test(ENG) &&
-        !/dz\(2,'mg'\).*dz\(2\.5,'mg'\)/.test(ENG));
+        !/Induction bolus/i.test(r.legacyText));
+      t('...and from the SED[] source itself', !/Induction bolus \(non-TCI\)/.test(ENG));
       t('...and it was NOT replaced by the canonical number',
-        !/1\.5.2\.5 mg\/kg/.test(r.legacyHtml),
+        !/2–2\.5 mg\/kg/.test(r.legacyHtml),
         'SED[] must not become a second canonical renderer');
+      t('DEFECT I-b: no weight-scaled propofol induction row in the paediatric '+
+        'sedation panel', !/'2\.5.3\.5 mg\/kg'\s*\+\s*\(w\?/.test(ENG));
+      t('...and no weight-scaled ketamine dose row either',
+        !/'0\.5.1 mg\/kg'\s*\+\s*\(w\?/.test(ENG));
+      t('...neither replaced by a different hard-coded number',
+        !/\{h:'Ketamine adjunct'/.test(ENG) && !/\['Induction','[\d.]/.test(SEDSRC));
+      t('SED[] performs NO weight-scaled dose arithmetic at all',
+        (SEDSRC.match(/dz\(/g) || []).length === 0,
+        (SEDSRC.match(/dz\(/g) || []).length + ' dz() call(s) left in SED[]');
+      t('...including the dexmedetomidine loading dose',
+        !/Loading \(optional\)/.test(SEDSRC));
+      t('...while dz() still serves the crisis protocols, a different domain',
+        (ENG.match(/dz\(/g) || []).length > 0 && /Dantrolene initial/.test(ENG));
 
-      /* ── AND THE TIVA/TCI DOMAIN IS INTACT ────────────────────────────
-         One duplicated dose was removed, not a screen. */
+      /* ── AND THE TIVA/TCI DOMAIN IS INTACT ────────────────────────────*/
       t('the TIVA/TCI panel still renders', r.legacyText.length > 100,
         r.legacyText.length + ' chars');
       t('...its TCI models are unchanged',
         /Schnider/.test(r.legacyText) && /Marsh/.test(r.legacyText) &&
         /Paedfusor/.test(r.legacyText));
       t('...the target ranges either side of the removed row are unchanged',
-        /0\.5.1\.5 mcg\/mL/.test(r.legacyText) &&      /* Sedation (Schnider Ce) */
-        /2\.5.4 mcg\/mL/.test(r.legacyText) &&         /* Loss of consciousness  */
-        /3.6 mcg\/mL/.test(r.legacyText) &&            /* General anaesthesia    */
-        /4.6 mcg\/mL/.test(r.legacyText));             /* Marsh induction        */
-      t('...and its cautions and paediatric adjustment survive',
+        /0\.5.1\.5 mcg\/mL/.test(r.legacyText) && /2\.5.4 mcg\/mL/.test(r.legacyText) &&
+        /3.6 mcg\/mL/.test(r.legacyText) && /4.6 mcg\/mL/.test(r.legacyText));
+      t('...its cautions and paediatric adjustment survive',
         /infusion syndrome/i.test(r.legacyText) && /PRIS/.test(r.legacyText));
-
-      /* ── DEFECT I-b, CLOSED ───────────────────────────────────────────
-         The Pediatric sedation SED[] panel carried the same pattern one tab
-         over: a weight-scaled propofol induction range and a weight-scaled
-         ketamine dose, both outside ClinicalContent. Asserted at the source,
-         because the panel only renders when its tab is selected and a DOM
-         sweep of the default view would pass without ever looking at it. */
-      t('DEFECT I-b: no weight-scaled propofol induction row in the paediatric '+
-        'sedation panel', !/'2\.5.3\.5 mg\/kg'\s*\+\s*\(w\?/.test(ENG));
-      t('...and no weight-scaled ketamine dose row either',
-        !/'0\.5.1 mg\/kg'\s*\+\s*\(w\?/.test(ENG));
-      /* Match the block declaration, not the word — the removal comment above
-         it in engine.html mentions the heading by name. */
-      t('...neither replaced by a different hard-coded number',
-        !/\{h:'Ketamine adjunct'/.test(ENG) &&
-        !/\['Induction','[\d.]/.test(SEDSRC));
-      /* THE WHOLE CLASS, NOT THE THREE INSTANCES. dz() multiplies a per-kg
-         figure by the patient's weight; every use of it inside SED[] was a
-         dose computed for a patient outside ClinicalContent. Counting the
-         call sites is what stops a fourth being added. */
-      t('SED[] performs NO weight-scaled dose arithmetic at all',
-        (SEDSRC.match(/dz\(/g) || []).length === 0,
-        (SEDSRC.match(/dz\(/g) || []).length + ' dz() call(s) left in SED[]');
-      t('...including the dexmedetomidine loading dose',
-        !/Loading \(optional\)/.test(SEDSRC));
-      t('...while dz() itself still serves the crisis protocols, which are a '+
-        'different domain and untouched',
-        (ENG.match(/dz\(/g) || []).length > 0 && /Dantrolene initial/.test(ENG) &&
-        /Lipid 20% bolus/.test(ENG));
-      /* The panel keeps everything that is not a duplicated dose. */
-      t('...the paediatric sedation panel keeps its non-dose content',
-        /Spontaneous-ventilation techniques/.test(SEDSRC) &&
-        /MRI \/ imaging/.test(SEDSRC) &&
-        /100.300 mcg\/kg\/min/.test(SEDSRC) &&
-        /Airway \/ ventilation warnings/.test(SEDSRC) &&
-        /capnography mandatory/.test(SEDSRC));
       t('...and every SED[] panel still exists',
         (SEDSRC.match(/function\(w\)\{ return \{ blocks:/g) || []).length === SEDCOUNT,
         SEDCOUNT + ' panels');
-      t('...and no clinical prohibition is implied by the coverage wording',
-        !/contraindicat|not recommended|unsafe|do not use/i.test(r.text));
       t('no runtime errors while withholding', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }
 
     /* ── ASA UNKNOWN: ASKABLE, AND SAID SO ───────────────────────────────
-       An adult, no ASA entered, against a record reviewed for ASA I-II. The
-       dose is withheld because a criterion we cannot evaluate is not
-       satisfied — but the clinician is told which field would answer it,
-       rather than being handed a dead end. */
+       Propofol's reviewed adult record is qualified for ASA I–II under 65.
+       An adult with no ASA entered cannot satisfy that, so the dose is
+       withheld — but the clinician is told which field would answer it
+       rather than handed a dead end. Real record, nothing injected. */
     {
       const v = await openEngine(b, { width:1440, height:1150 });
       const r = await v.pg.evaluate(`(() => {
         newCase();
         const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
+        const read = () => {
+          const out = document.getElementById('output');
+          const x = [...out.querySelectorAll('tr.dtab-r')]
+            .find(e => e.dataset.drug === 'drug.propofol');
+          const g = (sel) => { const e = x && x.querySelector(sel);
+            return e ? e.textContent.replace(/\\s+/g,' ').trim() : ''; };
+          return { present:!!x, name:g('.dtab-n'), coverage:g('.dtab-cov'),
+                   amount:g('.dtab-dose'),
+                   add:!!(x && x.querySelector('.dtab-add button')),
+                   html:out.innerHTML };
+        };
         set('i-age','44'); set('i-age-unit','y'); set('i-sex','F');
         set('i-height','168'); set('i-weight','70'); set('i-asa','');
         compute();
-        const d = window.ClinicalContent.byId('drug.propofol');
-        d.doses[0].populationClass = 'A';
-        d.doses[0].applicability = { asa:['I','II'] };
-        drefRender('dref'); drefRender('iref');
-        const out = document.getElementById('output');
-        const row = [...out.querySelectorAll('tr.dtab-r')]
-          .find(x => x.dataset.drug === 'drug.propofol');
-        /* Snapshot the withheld DOM BEFORE entering ASA — the block below
-           re-renders the page, and reading innerHTML afterwards would sweep
-           the restored state and pass for the wrong reason. */
-        const htmlWhileWithheld = out.innerHTML;
-        const withAsa = (() => {
-          set('i-asa','II'); compute();
-          drefRender('dref'); drefRender('iref');
-          const rr = [...document.getElementById('output').querySelectorAll('tr.dtab-r')]
-            .find(x => x.dataset.drug === 'drug.propofol');
-          return rr ? rr.innerText.replace(/\\s+/g,' ').trim() : null;
-        })();
-        return {
-          present: !!row,
-          name: row && row.querySelector('.dtab-n').textContent,
-          coverage: row && (row.querySelector('.dtab-cov')||{}).textContent,
-          addBtn: !!(row && row.querySelector('.dtab-add button')),
-          html: htmlWhileWithheld,
-          withAsa: withAsa
-        };
+        const noAsa = read();
+        set('i-asa','II'); compute();
+        const withAsa = read();
+        set('i-asa','III'); compute();
+        const asa3 = read();
+        set('i-asa','II'); set('i-age','70'); compute();
+        const old = read();
+        return { noAsa, withAsa, asa3, old };
       })()`);
 
-      t('ASA unknown: the drug remains visible', r.present && r.name === 'Propofol');
-      t('...the qualified dose is withheld', !!r.coverage);
-      t('...and the coverage line names the missing field',
-        r.coverage === 'ASA required to match reviewed dose', r.coverage);
-      t('...with no Add control', r.addBtn === false);
+      t('ASA unknown: the drug remains visible',
+        r.noAsa.present && r.noAsa.name === 'Propofol');
+      t('...the qualified dose is withheld, and the line names the missing field',
+        r.noAsa.coverage === 'ASA required to match reviewed dose', r.noAsa.coverage);
+      t('...with no Add control', r.noAsa.add === false);
       t('...and no numerical dose leaks anywhere in the DOM',
-        !/1\.5–2\.5 mg\/kg/.test(r.html) && !/105–175/.test(r.html),
-        '1.5–2.5 x 70 kg = 105–175 mg');
-      t('...and entering ASA II admits the dose again',
-        /105–175\s*mg/.test(r.withAsa || ''), r.withAsa);
+        !/2–2\.5 mg\/kg/.test(r.noAsa.html) && !/140–175/.test(r.noAsa.html));
+      t('...while entering ASA II admits the reviewed dose',
+        /140–175/.test(r.withAsa.amount), r.withAsa.amount);
+      t('ASA III: withheld, with the generic profile wording',
+        r.asa3.coverage === 'Reviewed dose not available for this patient profile',
+        r.asa3.coverage);
+      t('age 70 with ASA II: withheld — the record is qualified under 65',
+        r.old.coverage === 'Reviewed dose not available for this patient profile' &&
+        !/140–175/.test(r.old.html), r.old.coverage);
       t('no runtime errors on the ASA path', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }

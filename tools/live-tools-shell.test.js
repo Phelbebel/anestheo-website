@@ -1017,10 +1017,14 @@ const fill = (pg, o) => pg.evaluate(o => {
        asserted is that the exact name LEADS, not that it is alone. */
     t('search finds a generic name, and the exact name leads',
       srch.generic[0] === 'Rocuronium', srch.generic);
+    /* SEARCH RETURNS ROWS, AND A DRUG CAN BE SEVERAL. Rocuronium carries a
+       routine intubating record and an RSI record, so the alias query
+       returns two rows of the same drug. What is asserted is the set of
+       drugs matched, not the number of rows. */
     t('search finds an alias the name does not contain',
-      srch.alias.join() === 'Rocuronium', srch.alias);
+      [...new Set(srch.alias)].join() === 'Rocuronium', srch.alias);
     t('...and a trade name', srch.trade.join() === 'Propofol', srch.trade);
-    t('search finds drugs by class', srch.klass.length === 3 &&
+    t('search finds drugs by class', [...new Set(srch.klass)].length === 3 &&
       srch.klass.indexOf('Fentanyl') >= 0 && srch.klass.indexOf('Remifentanil') >= 0,
       srch.klass);
     t('search finds drugs by indication',
@@ -1171,8 +1175,10 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('...and invents no onset, duration or contraindication',
       !/\b(onset|duration|offset|half.life|contraindications)\b/i.test(keep.detText),
       keep.detText.slice(0,160));
+    /* 75 kg against the reviewed adult record: 2–2.5 mg/kg = 150–188 mg.
+       Was 113–188 under the shipped 1.5–2.5. */
     t('...including the amount for THIS patient, from the same renderer',
-      /113.188\s*mg/.test(keep.detText.replace(/\s+/g,' ')), keep.detText.slice(0,200));
+      /150.188\s*mg/.test(keep.detText.replace(/\s+/g,' ')), keep.detText.slice(0,200));
 
     /* THE TOOLS EXPOSE; THEY DO NOT CALCULATE. */
     t("the clinical tools show this case's own scalars",
@@ -1216,6 +1222,12 @@ const fill = (pg, o) => pg.evaluate(o => {
                    .filter(t => !t.querySelector('.sr-only'))
                    .map(t => t.textContent.trim()).filter(Boolean) : [],
                  n: items.length,
+                 /* Rows and drugs are no longer the same number: a drug with
+                    an IV and an IM reviewed record is two rows. Both are
+                    reported so an assertion can say which it means. */
+                 nDrugs: new Set(items.map(e => {
+                   const n = e.querySelector('.dtab-n, .dm-n');
+                   return n ? n.textContent : ''; })).size,
                  heights: items.slice(0,6).map(e => Math.round(e.getBoundingClientRect().height)),
                  toggle: !!document.querySelector('.dref-view'),
                  /* THE VALUES MUST NOT CHANGE WITH THE PRESENTATION. */
@@ -1234,7 +1246,14 @@ const fill = (pg, o) => pg.evaluate(o => {
       })()`);
       t(w + ': the reference renders the ' + MODES[w] + ' presentation',
         rr.mode === MODES[w], { mode:rr.mode, containerWidth:rr.refW });
-      t(w + ': ...over all twelve drugs', rr.n === 12, rr.n);
+      /* TWELVE DRUGS, SIXTEEN ROWS. The induction scope holds twelve
+         publishable drugs and, since the Tier 1 migration, sixteen reviewed
+         dose records among them — ketamine IV and IM, rocuronium routine and
+         RSI, remifentanil infusion, induction infusion and bolus. The count
+         that must not drift is the DRUG count; the row count is asserted
+         beside it so an accidental duplicate still fails. */
+      t(w + ': ...over all twelve drugs', rr.nDrugs === 12, rr.nDrugs);
+      t(w + ': ...as sixteen reviewed rows', rr.n === 16, rr.n);
       if (rr.mode === 'reduced')
         t(w + ': ...with Preparation folded into the detail, the rest kept',
           rr.cols.join('|') === 'Drug|Use|Dose|This patient', rr.cols);

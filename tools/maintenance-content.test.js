@@ -85,9 +85,19 @@ t('...and a selector that reads it',
 /* NOTHING declares a phase today. That is the honest state, and it is
    asserted rather than assumed — the moment a reviewed record arrives this
    number changes and the assertion below says so. */
+/* TIER 1 CHANGED THIS. Eleven reviewed records declare a phase now, so the
+   assertion is no longer "none does" — it is that every phase declared comes
+   from the vocabulary, and that MAINTENANCE and REDOSE are still empty,
+   which is the guarantee Phase 4A actually exists to hold. */
 const phased = CC.DRUGS.filter(d => (d.doses || []).some(x => x.phase));
-t('no record declares a phase yet — Phase 4A published no clinical value',
-  phased.length === 0, phased.map(d => d.id));
+const PHASE_VALUES = Object.values(CC.PHASES);
+t('every declared phase comes from the vocabulary, none invented',
+  CC.DRUGS.every(d => (d.doses||[]).every(x => !x.phase || PHASE_VALUES.indexOf(x.phase) >= 0)),
+  phased.map(d => d.id));
+t('...and induction-scope phases are all this migration declared',
+  [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort()
+    .join(',') === 'induction,intubation,rsi',
+  [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort());
 t('...so every group returns nothing for maintenance',
   CC.GROUPS.every(g => CC.visibleInGroupForPhase(g.id, 75, CC.PHASES.MAINTENANCE).length === 0));
 t('...and the coverage report says zero everywhere, not "unknown"',
@@ -96,26 +106,28 @@ t('...and the coverage report says zero everywhere, not "unknown"',
 
 /* THE TWO SPECIFIC HAZARDS THE BRIEF NAMES. */
 const propofol = CC.byId('drug.propofol');
-t('propofol carries an induction bolus and nothing else',
-  propofol.doses.length === 1 && propofol.doses[0].label === 'Induction' &&
-  propofol.doses[0].unit === 'mg/kg',
-  propofol.doses.map(d => d.label + ' ' + d.unit));
+t('propofol carries induction records and NOTHING for maintenance',
+  propofol.doses.length === 2 &&
+  propofol.doses.every(d => d.phase === 'induction' && d.unit === 'mg/kg'),
+  propofol.doses.map(d => d.phase + ' ' + d.unit));
 t('...so asking for its maintenance dose returns NOTHING, not the bolus',
   CC.dosesForPhase(propofol, CC.PHASES.MAINTENANCE).length === 0);
 t('...and no group render can present that bolus as an infusion',
   CC.visibleInGroupForPhase('induction', 75, CC.PHASES.MAINTENANCE).length === 0);
 
 const roc = CC.byId('drug.rocuronium');
-t('rocuronium carries an intubating dose and nothing else',
-  roc.doses.length === 1 && roc.doses[0].label === 'Intubation',
-  roc.doses.map(d => d.label));
+t('rocuronium carries intubation and RSI records, and nothing beyond them',
+  roc.doses.length === 3 &&
+  roc.doses.every(d => d.phase === 'intubation' || d.phase === 'rsi'),
+  roc.doses.map(d => d.phase));
 t('...so asking for a re-dose returns NOTHING',
   CC.dosesForPhase(roc, CC.PHASES.REDOSE).length === 0 &&
   CC.dosesForPhase(roc, CC.PHASES.MAINTENANCE).length === 0);
 t('...and no blocker in the model carries a maintenance or re-dose entry',
   CC.DRUGS.filter(d => d.pclass === 'nmb')
-    .every(d => (d.doses || []).every(x => !x.phase)),
-  CC.DRUGS.filter(d => d.pclass === 'nmb').map(d => d.id + ':' + d.doses.map(x => x.label)));
+    .every(d => (d.doses || []).every(x =>
+      x.phase !== CC.PHASES.MAINTENANCE && x.phase !== CC.PHASES.REDOSE)),
+  CC.DRUGS.filter(d => d.pclass === 'nmb').map(d => d.id + ':' + d.doses.map(x => x.phase)));
 /* NO INFERENCE ANYWHERE. An interval is a clinical fact; the field is a wire. */
 /* The check is for an interval VALUE, so it looks for a NON-EMPTY string
    literal. `interval:''` is a field being explicitly emptied — rowFor passes
@@ -154,13 +166,20 @@ console.log('\n4. THE ONE RECORD THAT ALREADY QUALIFIES');
 
 const remi = CC.byId('drug.remifentanil');
 t('remifentanil is a publishable infusion', CC.isPublishable(remi));
+/* TIER 1 ADDED TWO RECORDS BESIDE IT AND CHANGED NOT ONE FIGURE OF IT. The
+   legacy infusion keeps its value, its unit and its label; it gained a
+   populationClass, to keep it away from children, and an evidence block that
+   says existing-unchanged, which is the opposite of certifying it. */
 t('...at exactly 0.05-0.2 mcg/kg/min, unchanged',
-  remi.doses.length === 1 && remi.doses[0].low === 0.05 && remi.doses[0].high === 0.2 &&
+  remi.doses[0].low === 0.05 && remi.doses[0].high === 0.2 &&
   remi.doses[0].unit === 'mcg/kg/min' && remi.doses[0].label === 'Infusion',
   remi.doses[0]);
+t('...still uncertified, and still declaring no phase',
+  remi.doses[0].evidence.state === 'existing-unchanged' &&
+  remi.doses[0].phase === undefined);
 t('...it is not duplicated anywhere in the dataset',
   CC.DRUGS.filter(d => /remifentanil/i.test(d.name)).length === 1);
-t('...and it renders identically to before Phase 4A',
+t('...and it still renders as the same rate it always did',
   JSON.stringify(CC.visibleDrugsInGroup('analgesia', 75).find(r => r.id === 'drug.remifentanil'))
     .indexOf('"val":"0.05–0.2","unit":"mcg/kg/min"') > 0);
 
@@ -467,10 +486,12 @@ console.log('\n11b-iii. ROUTE NARROWING');
 
 t('an exact route filter is available on the selector',
   CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IV').length > 0 &&
-  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM').length === 0,
-  'no shipped induction record is IM');
-t('...and narrowing to a route a drug lacks produces NO row, not a coverage row',
-  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM').every(r => !r.withheld));
+  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM').length === 1,
+  'ketamine IM is the one induction record on a non-IV route');
+t('...and it returns the IM record, not the IV one',
+  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM')[0].doseNum === '6.5–13');
+t('...while narrowing to a route no drug has produces NO row, not a coverage row',
+  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'PO').length === 0);
 
 /* ── APPLICABILITY ─────────────────────────────────────────────────────*/
 console.log('\n11c. APPLICABILITY');
@@ -544,21 +565,41 @@ t('the drug-level gate is untouched: still exactly 25 publishable drugs',
 /* ── DOSE ENUMERATION AND THE WITHHELD ROW ──────────────────────────────*/
 console.log('\n13. ENUMERATION AND WITHHOLDING');
 
-t('visibleDosesInGroup matches visibleDrugsInGroup for every group and weight',
-  CC.GROUPS.every(g => [null, 3.4, 16, 75, 120].every(w =>
-    JSON.stringify(CC.visibleDosesInGroup(g.id, w, null)) ===
-    JSON.stringify(CC.visibleDrugsInGroup(g.id, w)))),
-  'enumeration is inert against a one-dose-per-drug dataset');
-
-t('no record carries populationClass yet',
-  CC.DRUGS.every(d => (d.doses||[]).every(x => x.populationClass === undefined)));
-t('no record carries ageBand yet',
-  CC.DRUGS.every(d => (d.doses||[]).every(x => x.ageBand === undefined)));
-t('no record carries dose-level evidence yet',
-  CC.DRUGS.every(d => (d.doses||[]).every(x => x.evidence === undefined)));
-t('...so no group produces a withheld row for any patient',
-  CC.GROUPS.every(g => [ADULT, CHILD, BABY, NOAGE].every(p =>
-    CC.visibleDosesInGroup(g.id, 75, p).every(r => !r.withheld))));
+/* ENUMERATION IS NO LONGER INERT, WHICH IS THE POINT. Three drugs now carry
+   more than one dose, so the old parity with visibleDrugsInGroup is gone by
+   design — and the difference is exactly the extra records, never a lost one. */
+t('every drug visibleDrugsInGroup returns still appears in visibleDosesInGroup',
+  CC.GROUPS.every(g => [null, 3.4, 16, 75, 120].every(w => {
+    const enumerated = CC.visibleDosesInGroup(g.id, w, null).map(r => r.id);
+    return CC.visibleDrugsInGroup(g.id, w).every(r => enumerated.indexOf(r.id) >= 0);
+  })), 'enumeration adds rows, it never drops a drug');
+t('...and the drugs carrying more than one are exactly the migrated ones',
+  CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id).sort().join(',') ===
+  'drug.fentanyl,drug.ketamine,drug.propofol,drug.remifentanil,drug.rocuronium',
+  CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id));
+t('the classified records are exactly the ones this migration touched',
+  CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort().join(',') ===
+  'drug.fentanyl,drug.ketamine,drug.propofol,drug.remifentanil,drug.rocuronium,drug.suxamethonium');
+t('ageBand appears only on class-C records',
+  CC.DRUGS.every(d => (d.doses||[]).every(x => !x.ageBand || x.populationClass === 'C')));
+t('dose-level evidence appears only where a record was classified',
+  CC.DRUGS.every(d => (d.doses||[]).every(x => !x.evidence || !!x.populationClass)));
+/* The shared ADULT fixture carries no ASA, and propofol's reviewed adult
+   record requires one — so it is withheld for that fixture, correctly and by
+   design. The assertion uses an adult with an ASA, and the no-ASA case is
+   asserted separately as the ASA coverage state rather than folded in here. */
+const ADULT_ASA = P(false, yrs(44), 'II');
+t('withheld rows now appear for a child, and never for a fully-specified adult',
+  ['induction','analgesia','nmb'].some(g =>
+    CC.visibleDosesInGroup(g, 15, CHILD).some(r => r.withheld)) &&
+  ['induction','analgesia','nmb','reversal'].every(g =>
+    CC.visibleDosesInGroup(g, 70, ADULT_ASA).every(r => !r.withheld)),
+  ['induction','analgesia','nmb','reversal'].flatMap(g =>
+    CC.visibleDosesInGroup(g, 70, ADULT_ASA).filter(r => r.withheld).map(r => g+':'+r.name)));
+t('...and an adult with no ASA is told which field would answer it',
+  CC.visibleDosesInGroup('induction', 70, ADULT)
+    .filter(r => r.id === 'drug.propofol')
+    .every(r => r.withheld && r.coverage === 'ASA required to match reviewed dose'));
 
 /* The withheld row itself: a drug, and provably not a dose. */
 const wr = CC.visibleDosesInGroup('induction', 16,
@@ -670,7 +711,6 @@ withSynth([ADULT_ONLY, PAED_ONLY], () => {
 /* M — no phase fallback, through the enumerating selector */
 withSynth([{ ...ADULT_ONLY, phase:'intubation' }], () => {
   t('M: asking for RSI on a drug with only an intubating dose returns NOTHING',
-    CC.visibleDosesInGroup('nmb', 75, ADULT, 'rsi').length === 0 &&
     CC.visibleDosesInGroup('induction', 75, ADULT, 'rsi')
       .filter(r => r.id === 'drug.synthetic').length === 0);
   t('M: ...while the intubation phase still finds it',
@@ -704,9 +744,178 @@ t('no render path still reads doses[0]',
   !/doses\s*&&\s*src\.doses\[0\]/.test(ENGC) && !/\.doses\[0\]/.test(code(read('induction.js'))));
 
 /* ── THE LEVER IS DECLARED, AND ITS CURRENT VALUE IS STATED ─────────────*/
-t('unclassified records are still eligible (the lever is off)',
-  CC.UNCLASSIFIED_ELIGIBLE === true,
-  'flips to false in the commit that lands the reviewed records');
+t('THE LEVER IS THROWN', CC.UNCLASSIFIED_ELIGIBLE === false);
+t('...and every publishable dose still resolves to a class, so nothing is '+
+  'blanked for everyone',
+  CC.DRUGS.filter(CC.isPublishable).every(d =>
+    (d.doses||[]).every(x => !!CC.effectiveClass(x))));
+t('...derived from the population the record already declares',
+  CC.effectiveClass({ population:'adult' }) === 'A' &&
+  CC.effectiveClass({ population:'paediatric' }) === 'B' &&
+  CC.effectiveClass({}) === null);
+t('...and an explicit class always wins over the derivation',
+  CC.effectiveClass({ population:'adult', populationClass:'D' }) === 'D');
+t('...while derivation NEVER promotes evidence',
+  CC.isDosePublishable(CC.byId('drug.midazolam'), CC.byId('drug.midazolam').doses[0]) === true &&
+  CC.byId('drug.midazolam').doses[0].evidence === undefined,
+  'a derived class is a floor on reach, not a certification');
+
+/* ── THE TIER 1 MIGRATION ────────────────────────────────────────────────*/
+console.log('\n15. TIER 1 REVIEWED RECORDS');
+
+const reviewed = [];
+CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
+  if (x.evidence && x.evidence.state === 'reviewed') reviewed.push({ id:d.id, dose:x });
+}));
+t('EXACTLY 11 REVIEWED DOSE RECORDS', reviewed.length === 11, reviewed.length);
+t('...every one carries a full citation',
+  reviewed.every(r => r.dose.evidence.authority && r.dose.evidence.title &&
+                      r.dose.evidence.documentId && r.dose.evidence.section));
+t('...every one declares a population and a class',
+  reviewed.every(r => r.dose.population && r.dose.populationClass));
+t('...every one declares a phase and a route',
+  reviewed.every(r => r.dose.phase && r.dose.route));
+t('...and every class-C record carries a band, every non-C none',
+  reviewed.every(r => (r.dose.populationClass === 'C') === !!r.dose.ageBand));
+
+const dose = (id, pred) => (CC.byId(id).doses||[]).filter(pred)[0];
+const byLabel = (id, label, route) => (CC.byId(id).doses||[])
+  .filter(x => x.label === label && (!route || x.route === route))[0];
+
+/* PROPOFOL */
+const pA = byLabel('drug.propofol','Induction','IV');
+t('propofol adult: 2–2.5 mg/kg, class A', pA.low === 2 && pA.high === 2.5 && pA.populationClass === 'A');
+t('propofol adult: qualified <65 and ASA I–II',
+  pA.applicability.ageBand.max.value === 65 &&
+  pA.applicability.ageBand.max.inclusive === false &&
+  pA.applicability.asa.join('') === 'III');
+t('propofol adult: the shipped 1.5–2.5 is gone, not kept alongside',
+  !(CC.byId('drug.propofol').doses||[]).some(x => x.low === 1.5));
+const pP = (CC.byId('drug.propofol').doses||[])[1];
+t('propofol paediatric: 2.5–3.5 mg/kg, class C, 3 through 16 years',
+  pP.low === 2.5 && pP.high === 3.5 && pP.populationClass === 'C' &&
+  pP.ageBand.min.value === 3 && pP.ageBand.min.inclusive === true &&
+  pP.ageBand.max.value === 16 && pP.ageBand.max.inclusive === true);
+t('propofol: adult and paediatric cite DIFFERENT documents',
+  pA.evidence.documentId !== pP.evidence.documentId,
+  [pA.evidence.documentId, pP.evidence.documentId]);
+
+const elig = (id, i, pop) => CC.doseEligibility(CC.byId(id).doses[i], pop);
+t('propofol adult 44y ASA II  → eligible',   elig('drug.propofol',0,P(false,yrs(44),'II')).eligible);
+t('propofol adult 70y ASA II  → WITHHELD',  !elig('drug.propofol',0,P(false,yrs(70),'II')).eligible);
+t('propofol adult ASA III     → WITHHELD',  !elig('drug.propofol',0,P(false,yrs(44),'III')).eligible);
+t('propofol adult ASA unknown → WITHHELD, and says which field',
+  elig('drug.propofol',0,P(false,yrs(44),null)).reason === CC.WITHHELD.ASA);
+t('propofol child 2y  → WITHHELD (outside the band)',
+  !elig('drug.propofol',1,P(true,yrs(2),'II')).eligible &&
+  elig('drug.propofol',1,P(true,yrs(2),'II')).reason === CC.WITHHELD.AGE);
+t('propofol child 3y     → eligible',    elig('drug.propofol',1,P(true,yrs(3),'II')).eligible);
+t('propofol child 16.9y  → eligible',    elig('drug.propofol',1,P(true,yrs(16.9),'II')).eligible);
+t('propofol child 17y    → WITHHELD',   !elig('drug.propofol',1,P(true,yrs(17),'II')).eligible);
+t('propofol child ASA III → WITHHELD',  !elig('drug.propofol',1,P(true,yrs(5),'III')).eligible);
+
+/* FENTANYL */
+const fRows = (w,pop) => CC.visibleDosesInGroup('analgesia', w, pop).filter(r => r.id === 'drug.fentanyl');
+t('fentanyl child 3y: exactly one row, the reviewed 2–3 mcg/kg',
+  fRows(15,CHILD).length === 1 && fRows(15,CHILD)[0].doseNum === '2–3',
+  fRows(15,CHILD).map(r => r.doseNum));
+t('fentanyl: THE LEGACY ADULT 1–3 NEVER CO-RENDERS FOR A CHILD',
+  !fRows(15,CHILD).some(r => r.doseNum === '1–3'));
+t('fentanyl adult: still sees the legacy adult record',
+  fRows(70,ADULT).some(r => r.doseNum === '1–3'));
+t('fentanyl adult record is CLASSIFIED but NOT certified',
+  CC.byId('drug.fentanyl').doses[0].populationClass === 'A' &&
+  CC.byId('drug.fentanyl').doses[0].evidence.state === 'existing-unchanged');
+
+/* ROCURONIUM */
+const rocR = CC.byId('drug.rocuronium');
+t('rocuronium: three records — adult intubation, paed intubation, adult RSI',
+  rocR.doses.length === 3 &&
+  rocR.doses[0].phase === 'intubation' && rocR.doses[0].populationClass === 'A' &&
+  rocR.doses[1].phase === 'intubation' && rocR.doses[1].populationClass === 'B' &&
+  rocR.doses[2].phase === 'rsi'        && rocR.doses[2].populationClass === 'A');
+t('rocuronium adult intubation is 0.6, not the old 0.6–1.2',
+  rocR.doses[0].value === 0.6 && rocR.doses[0].low === undefined);
+t('rocuronium RSI is 0.6–1.2', rocR.doses[2].low === 0.6 && rocR.doses[2].high === 1.2);
+t('rocuronium adult, phase intubation → only the 0.6 record',
+  CC.visibleDosesInGroup('nmb',70,ADULT,'intubation')
+    .filter(r => r.id === 'drug.rocuronium').map(r => r.doseNum).join('|') === '0.6');
+t('rocuronium adult, phase rsi → only the 0.6–1.2 record',
+  CC.visibleDosesInGroup('nmb',70,ADULT,'rsi')
+    .filter(r => r.id === 'drug.rocuronium').map(r => r.doseNum).join('|') === '0.6–1.2');
+t('rocuronium child, phase intubation → only the paediatric record',
+  CC.visibleDosesInGroup('nmb',15,CHILD,'intubation')
+    .filter(r => r.id === 'drug.rocuronium' && !r.withheld).length === 1);
+t('rocuronium child, phase rsi → NO number, no adult substitute',
+  CC.visibleDosesInGroup('nmb',15,CHILD,'rsi')
+    .filter(r => r.id === 'drug.rocuronium' && !r.withheld).length === 0);
+t('DEFECT B CLOSED: prep carries no dose',
+  rocR.prep === '<b>10 mg/mL</b>' && !/mg\/kg/.test(rocR.prep), rocR.prep);
+
+/* SUXAMETHONIUM */
+const sux = CC.byId('drug.suxamethonium');
+t('suxamethonium adult: reviewed 0.3–1.1, one record only',
+  sux.doses.length === 1 && sux.doses[0].low === 0.3 && sux.doses[0].high === 1.1);
+t('...the shipped 1–1.5 "RSI" is gone',
+  !sux.doses.some(x => x.low === 1 && x.high === 1.5) &&
+  !sux.doses.some(x => x.label === 'RSI'));
+t('...no paediatric record was invented',
+  !sux.doses.some(x => x.population === 'paediatric'));
+t('...and no IM route was added', !sux.doses.some(x => x.route === 'IM'));
+t('suxamethonium child → withheld, no number',
+  CC.visibleDosesInGroup('nmb',15,CHILD).filter(r => r.id === 'drug.suxamethonium')
+    .every(r => r.withheld && r.val === ''));
+
+/* REMIFENTANIL */
+const remiR = CC.byId('drug.remifentanil');
+t('remifentanil: legacy + infusion + bolus = three records', remiR.doses.length === 3);
+t('remifentanil adult induction infusion is 0.5–1 mcg/kg/min',
+  remiR.doses[1].low === 0.5 && remiR.doses[1].high === 1 && remiR.doses[1].unit === 'mcg/kg/min');
+t('...and the bolus is a SEPARATE record, in mcg/kg not a rate',
+  remiR.doses[2].value === 1 && remiR.doses[2].unit === 'mcg/kg' && remiR.doses[2].basisWeight === true);
+t('THE LEGACY 0.05–0.2 DOES NOT ANSWER phase:induction',
+  CC.dosesForPhase(remiR,'induction').every(x => !(x.low === 0.05 && x.high === 0.2)) &&
+  CC.dosesForPhase(remiR,'induction').length === 2);
+t('...because it declares no phase at all', remiR.doses[0].phase === undefined);
+t('remifentanil child → withheld, no adult induction value',
+  CC.visibleDosesInGroup('analgesia',15,CHILD).filter(r => r.id === 'drug.remifentanil')
+    .every(r => r.withheld));
+
+/* KETAMINE */
+const ket = CC.byId('drug.ketamine');
+t('ketamine: IV and IM enumerate as two records', ket.doses.length === 2 &&
+  ket.doses[0].route === 'IV' && ket.doses[1].route === 'IM');
+t('ketamine IV is 1–4.5', ket.doses[0].low === 1 && ket.doses[0].high === 4.5);
+t('ketamine IM is 6.5–13', ket.doses[1].low === 6.5 && ket.doses[1].high === 13);
+t('...the shipped 1–2 is gone', !ket.doses.some(x => x.low === 1 && x.high === 2));
+t('ketamine adult: two separate rows, two different amounts',
+  (() => { const r = CC.visibleDosesInGroup('induction',70,ADULT).filter(x => x.id === 'drug.ketamine');
+           return r.length === 2 && r[0].val !== r[1].val; })());
+t('ketamine child → withheld, no number (8.4: not established below 16)',
+  CC.visibleDosesInGroup('induction',15,CHILD).filter(r => r.id === 'drug.ketamine')
+    .every(r => r.withheld && r.val === ''));
+
+/* HELD DRUGS UNTOUCHED */
+console.log('\n16. HELD DRUGS UNTOUCHED');
+const midazH = CC.byId('drug.midazolam'), dexH = CC.byId('drug.dexmedetomidine');
+t('midazolam: one dose, unchanged, no class, no phase, no evidence block',
+  midazH.doses.length === 1 && midazH.doses[0].low === 0.02 && midazH.doses[0].high === 0.04 &&
+  midazH.doses[0].populationClass === undefined && midazH.doses[0].phase === undefined &&
+  midazH.doses[0].evidence === undefined);
+t('...and it is still withheld from a child by the derived class',
+  CC.visibleDosesInGroup('induction',15,CHILD).filter(r => r.id === 'drug.midazolam')
+    .every(r => r.withheld));
+t('...while an adult still sees it',
+  CC.visibleDosesInGroup('induction',70,ADULT).filter(r => r.id === 'drug.midazolam')
+    .every(r => !r.withheld));
+t('dexmedetomidine: dose, pclass and provenance all unchanged',
+  dexH.doses.length === 1 && dexH.doses[0].low === 0.2 && dexH.doses[0].high === 0.7 &&
+  dexH.pclass === 'induction' && dexH.doses[0].populationClass === undefined);
+t('sevoflurane still proposed-unverified with no dose',
+  CC.byId('drug.sevoflurane').doses.length === 0 &&
+  CC.byId('drug.sevoflurane').provenance.state === 'proposed-unverified');
+t('reversal drugs still render for an adult',
+  CC.visibleDosesInGroup('reversal',70,ADULT).every(r => !r.withheld));
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
