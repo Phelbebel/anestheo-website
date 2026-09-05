@@ -5692,8 +5692,29 @@ var SED = [
       ['Sedation (Schnider Ce)','0.5–1.5 mcg/mL'],
       ['Loss of consciousness','~2.5–4 mcg/mL (typical)'],
       ['General anaesthesia (Ce)','3–6 mcg/mL'],
-      ['Marsh induction (plasma)','4–6 mcg/mL'],
-      ['Induction bolus (non-TCI)','2–2.5 mg/kg'+(w?' ('+dz(2,'mg')+'–'+dz(2.5,'mg')+')':'')]]},
+      ['Marsh induction (plasma)','4–6 mcg/mL']]},
+    /* DEFECT I — THE NON-TCI INDUCTION BOLUS IS GONE FROM HERE.
+       This row printed "2–2.5 mg/kg" and scaled it by the patient's weight,
+       and it did so outside ClinicalContent: no publishability gate, no
+       population gate, no per-dose evidence. For a three-year-old it produced
+       "30 mg–37.5 mg" from an adult value, which is the exact defect the
+       population machinery exists to prevent — and it could not be reached by
+       that machinery, because it was never canonical.
+
+       It also disagreed with the canonical record, which says 1.5–2.5, so one
+       page could show two different propofol induction doses for one patient.
+
+       It is REMOVED rather than corrected. Replacing it with the reviewed
+       number would make this a second canonical renderer and recreate the
+       same divergence the next time either side is revised. The induction
+       dose has one source, and this is not it.
+
+       NOTHING ELSE HERE CHANGES. The TCI models, the target ranges either
+       side of this row, the use cases, the cautions and the elderly and
+       paediatric adjustments are all TIVA/TCI content, they are the point of
+       this panel, and they stay exactly as they were. The domain gets its own
+       canonical migration later; this removes one duplicated induction dose,
+       not a screen. */
     {h:'Use case', list:['TIVA maintenance (often with remifentanil)','Procedural / conscious sedation at low Ce','Induction and general anaesthesia']},
     {h:'Key cautions', list:['Dose-dependent hypotension and apnoea','Pain on injection','Propofol infusion syndrome (PRIS) — avoid prolonged high-dose, especially children / ICU','Context-sensitive half-time rises with long infusions','No analgesia — pair with an analgesic']},
     {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce targets ~20–40%, titrate slowly (↑ sensitivity, ↓ clearance)','Children need higher mg/kg and infusion rates','Schnider / Marsh not validated <16 y — use Paedfusor / Kataria','Avoid prolonged high-dose infusions in children (PRIS risk)']}

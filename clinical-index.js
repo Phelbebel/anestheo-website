@@ -1082,17 +1082,25 @@ function inAgeBand(band, age){
 
    A CRITERION THAT CANNOT BE EVALUATED IS NOT SATISFIED. If a record requires
    an ASA class and none has been entered, the dose is withheld — the reviewed
-   evidence covers a patient profile we cannot confirm this patient has.      */
-function meetsApplicability(app, pop){
-  if (!app) return true;
-  if (!pop) return true;                           /* no patient — see patientPopulation */
-  if (app.ageBand && !inAgeBand(app.ageBand, pop.age)) return false;
+   evidence covers a patient profile we cannot confirm this patient has.
+
+   APPLICABILITY IS THE DOSE'S BUSINESS, NOT THE PATIENT FORM'S. ASA is not
+   made mandatory for every case to satisfy this: most reviewed records will
+   not mention it, and a workstation that refuses to open until an unrelated
+   field is filled has moved one record's requirement onto every patient. Only
+   the record that asks for ASA is withheld without it.
+
+   Returns null when the dose applies, otherwise the WITHHELD reason.        */
+function applicabilityFailure(app, pop){
+  if (!app || !pop) return null;                   /* no patient — see patientPopulation */
+  if (app.ageBand && !inAgeBand(app.ageBand, pop.age)) return WITHHELD.PROFILE;
   if (app.asa && app.asa.length){
-    if (!pop.asa) return false;                    /* unknown is not admitted */
-    if (app.asa.indexOf(pop.asa) < 0) return false;
+    if (!pop.asa) return WITHHELD.ASA;             /* askable, and worth saying so */
+    if (app.asa.indexOf(pop.asa) < 0) return WITHHELD.PROFILE;
   }
-  return true;
+  return null;
 }
+function meetsApplicability(app, pop){ return applicabilityFailure(app, pop) === null; }
 
 /* ── WHAT THE PATIENT IS, REDUCED TO WHAT A DOSE RULE ASKS ────────────────
    patientContext is the single source of truth for who the patient is; this
@@ -1126,12 +1134,18 @@ var AGE_UNIT_NAME = { y:'years', mo:'months', w:'weeks', d:'days' };
    patient, and a coverage message that implies otherwise is a clinical claim
    we have no evidence for.                                                  */
 var WITHHELD = { PAEDIATRIC:'paediatric-not-reviewed', ADULT:'adult-not-reviewed',
-                 AGE:'age-not-reviewed', PROFILE:'profile-not-reviewed',
-                 UNPUBLISHED:'not-publishable' };
+                 AGE:'age-not-reviewed', ASA:'asa-unknown',
+                 PROFILE:'profile-not-reviewed', UNPUBLISHED:'not-publishable' };
 var COVERAGE = {};
 COVERAGE[WITHHELD.PAEDIATRIC] = 'Pediatric dose not reviewed';
 COVERAGE[WITHHELD.ADULT]      = 'Adult dose not reviewed';
 COVERAGE[WITHHELD.AGE]        = 'No reviewed dose for this age';
+/* MISSING IS NOT MISMATCHED. A record reviewed for ASA I-II withheld from an
+   ASA III patient is a coverage gap and nothing can change it; the same
+   record withheld because no ASA was entered is a gap the clinician can close
+   in one keystroke. Saying which it is costs nothing and is the difference
+   between a dead end and a next step. */
+COVERAGE[WITHHELD.ASA]        = 'ASA required to match reviewed dose';
 COVERAGE[WITHHELD.PROFILE]    = 'Reviewed dose not available for this patient profile';
 COVERAGE[WITHHELD.UNPUBLISHED]= 'Dose not reviewed';
 
@@ -1186,8 +1200,8 @@ function doseEligibility(dose, pop){
     return { eligible:false, reason:WITHHELD.UNPUBLISHED };
   }
   /* 4 — APPLICABILITY */
-  if (!meetsApplicability(dose.applicability, pop))
-    return { eligible:false, reason:WITHHELD.PROFILE };
+  var fail = applicabilityFailure(dose.applicability, pop);
+  if (fail) return { eligible:false, reason:fail };
   return { eligible:true };
 }
 
@@ -1321,7 +1335,7 @@ global.ClinicalContent = {
   POPCLASS:POPCLASS, WITHHELD:WITHHELD, COVERAGE:COVERAGE,
   UNCLASSIFIED_ELIGIBLE:UNCLASSIFIED_ELIGIBLE,
   AGE_FAMILY:AGE_FAMILY, compareAge:compareAge,
-  meetsApplicability:meetsApplicability,
+  meetsApplicability:meetsApplicability, applicabilityFailure:applicabilityFailure,
   inAgeBand:inAgeBand, patientPopulation:patientPopulation,
   doseEligibility:doseEligibility, isDosePublishable:isDosePublishable,
   visibleDosesInGroup:visibleDosesInGroup,

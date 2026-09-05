@@ -484,6 +484,24 @@ t('...and reports the profile reason',
   why(asaOnly, P(false, yrs(40), 'III')) === CC.WITHHELD.PROFILE);
 t('AN UNEVALUATABLE CRITERION IS NOT SATISFIED — no ASA entered WITHHOLDS',
   !el(asaOnly, P(false, yrs(40), null)), 'unknown is not admitted');
+/* MISSING IS NOT MISMATCHED, and the clinician can act on the difference. */
+t('...and says so specifically: missing ASA gets its own reason',
+  why(asaOnly, P(false, yrs(40), null)) === CC.WITHHELD.ASA);
+t('...with wording that names the missing field',
+  CC.COVERAGE[CC.WITHHELD.ASA] === 'ASA required to match reviewed dose');
+t('...while an ASA that is present but not admitted stays generic',
+  why(asaOnly, P(false, yrs(40), 'III')) === CC.WITHHELD.PROFILE);
+t('...and no coverage state anywhere implies a clinical prohibition',
+  Object.values(CC.COVERAGE).every(s =>
+    !/contraindicat|not recommended|unavailable|unsafe|do not (use|give)/i.test(s)),
+  Object.values(CC.COVERAGE));
+/* ASA IS NOT MADE MANDATORY FOR EVERY CASE TO SATISFY ONE RECORD. */
+t('a record that does not mention ASA is unaffected by ASA being unknown',
+  el({ populationClass:'A' }, P(false, yrs(40), null)));
+t('...and the patient form is not made to require ASA for this feature',
+  /complete:\s*\(y != null && !!o\.sex && o\.height != null && o\.weight != null\)/
+    .test(read('engine.html')),
+  'complete() unchanged — applicability belongs to the dose selector');
 
 const under65 = { populationClass:'A',
   applicability:{ ageBand:{ max:{ value:65, unit:'years', inclusive:false } },

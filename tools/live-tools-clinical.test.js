@@ -1688,24 +1688,15 @@ async function openEngine(b, viewport) {
           neighbours: [...out.querySelectorAll('tr.dtab-r')]
             .filter(x => x.dataset.drug !== 'drug.propofol')
             .slice(0,4).map(x => Math.round(x.getBoundingClientRect().height)),
-          /* EVERY string in the canonical render paths, not just the visible
-             text — a value withheld from a cell and still sitting in a title
-             attribute or a collapsed panel is hidden, not withheld.
-
-             #sed-inline-body is excluded and named rather than silently
-             skipped. It is the legacy SED[] TCI reference, which bypasses
-             ClinicalContent entirely: it hard-codes its own propofol
-             induction bolus, which is not even the canonical value, and
-             scales it by weight with no publishability or population gate.
-             The population gate cannot reach it because it was never
-             canonical. Asserted separately below. */
-          html: (() => {
-            const c = out.cloneNode(true);
-            const legacy = c.querySelector('#sed-inline-body');
-            if (legacy) legacy.remove();
-            return c.innerHTML;
-          })(),
+          /* EVERY string in the WHOLE document, not just the visible text and
+             with nothing excluded — a value withheld from a cell and still
+             sitting in a title attribute or a collapsed panel is hidden, not
+             withheld. #sed-inline-body used to be exempted from this sweep
+             because the legacy TCI panel printed its own ungated propofol
+             induction bolus. That value is gone, so the exemption is gone. */
+          html: out.innerHTML,
           legacyHtml: (out.querySelector('#sed-inline-body') || {}).innerHTML || '',
+          legacyText: (out.querySelector('#sed-inline-body') || {}).innerText || '',
           text: out.innerText
         };
       })()`);
@@ -1721,23 +1712,99 @@ async function openEngine(b, viewport) {
         { row:r.height, neighbours:r.neighbours });
       t('the same page DID print an amount before the record was classified',
         r.beforeHadAmount === true, 'so the assertion below is not vacuous');
-      /* The shipped canonical record is 1.5–2.5 mg/kg; x 15 kg = 23–38 mg. */
-      const NUMS = ['23–38','23-38','1.5–2.5 mg/kg','1.5-2.5 mg/kg'];
+      /* The shipped canonical record is 1.5–2.5 mg/kg; x 15 kg = 23–38 mg.
+         The removed legacy row was 2–2.5 mg/kg; x 15 kg = 30–37.5 mg. */
+      const NUMS = ['23–38','23-38','1.5–2.5 mg/kg','1.5-2.5 mg/kg',
+                    '30–37','30-37','2–2.5 mg/kg','2-2.5 mg/kg'];
       const inHtml = NUMS.filter(s => r.html.includes(s));
-      t('NO SCALED ADULT AMOUNT APPEARS ANYWHERE IN THE CANONICAL DOM — not in '+
-        'text, not in an attribute, not in a collapsed panel', inHtml.length === 0, inHtml);
-      /* DEFECT I, PINNED WHERE IT LIVES. The legacy TCI panel still prints a
-         propofol induction bolus for this three-year-old, from its own inline
-         value, ungated. This test does not pass because that is acceptable —
-         it exists so the leak stays confined to the one container we know
-         about and cannot quietly reappear in a canonical path. */
-      t('the remaining leak is confined to the legacy SED[] panel, and is its '+
-        'own inline value rather than the canonical one',
-        /2.2\.5 mg\/kg/.test(r.legacyHtml) && !/1\.5.2\.5/.test(r.legacyHtml),
-        'legacy TCI reference: ungated, and disagrees with the canonical record');
+      t('NO ADULT PROPOFOL INDUCTION VALUE APPEARS ANYWHERE IN THE DOM — whole '+
+        'document, attributes and collapsed panels included, nothing excluded',
+        inHtml.length === 0, inHtml);
+
+      /* ── DEFECT I, CLOSED ─────────────────────────────────────────────*/
+      t('DEFECT I: the legacy non-TCI induction bolus row is gone from the DOM',
+        !/Induction bolus/i.test(r.legacyText), r.legacyText.slice(0,0));
+      t('...and from the SED[] source itself',
+        !/Induction bolus \(non-TCI\)/.test(ENG));
+      t('...with no hard-coded propofol induction mg/kg left in that renderer',
+        !/'2.2\.5 mg\/kg'\s*\+\s*\(w\?/.test(ENG) &&
+        !/dz\(2,'mg'\).*dz\(2\.5,'mg'\)/.test(ENG));
+      t('...and it was NOT replaced by the canonical number',
+        !/1\.5.2\.5 mg\/kg/.test(r.legacyHtml),
+        'SED[] must not become a second canonical renderer');
+
+      /* ── AND THE TIVA/TCI DOMAIN IS INTACT ────────────────────────────
+         One duplicated dose was removed, not a screen. */
+      t('the TIVA/TCI panel still renders', r.legacyText.length > 100,
+        r.legacyText.length + ' chars');
+      t('...its TCI models are unchanged',
+        /Schnider/.test(r.legacyText) && /Marsh/.test(r.legacyText) &&
+        /Paedfusor/.test(r.legacyText));
+      t('...the target ranges either side of the removed row are unchanged',
+        /0\.5.1\.5 mcg\/mL/.test(r.legacyText) &&      /* Sedation (Schnider Ce) */
+        /2\.5.4 mcg\/mL/.test(r.legacyText) &&         /* Loss of consciousness  */
+        /3.6 mcg\/mL/.test(r.legacyText) &&            /* General anaesthesia    */
+        /4.6 mcg\/mL/.test(r.legacyText));             /* Marsh induction        */
+      t('...and its cautions and paediatric adjustment survive',
+        /infusion syndrome/i.test(r.legacyText) && /PRIS/.test(r.legacyText));
       t('...and no clinical prohibition is implied by the coverage wording',
         !/contraindicat|not recommended|unsafe|do not use/i.test(r.text));
       t('no runtime errors while withholding', v.errs.length === 0, v.errs.slice(0,2));
+      await v.ctx.close();
+    }
+
+    /* ── ASA UNKNOWN: ASKABLE, AND SAID SO ───────────────────────────────
+       An adult, no ASA entered, against a record reviewed for ASA I-II. The
+       dose is withheld because a criterion we cannot evaluate is not
+       satisfied — but the clinician is told which field would answer it,
+       rather than being handed a dead end. */
+    {
+      const v = await openEngine(b, { width:1440, height:1150 });
+      const r = await v.pg.evaluate(`(() => {
+        newCase();
+        const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
+        set('i-age','44'); set('i-age-unit','y'); set('i-sex','F');
+        set('i-height','168'); set('i-weight','70'); set('i-asa','');
+        compute();
+        const d = window.ClinicalContent.byId('drug.propofol');
+        d.doses[0].populationClass = 'A';
+        d.doses[0].applicability = { asa:['I','II'] };
+        drefRender('dref'); drefRender('iref');
+        const out = document.getElementById('output');
+        const row = [...out.querySelectorAll('tr.dtab-r')]
+          .find(x => x.dataset.drug === 'drug.propofol');
+        /* Snapshot the withheld DOM BEFORE entering ASA — the block below
+           re-renders the page, and reading innerHTML afterwards would sweep
+           the restored state and pass for the wrong reason. */
+        const htmlWhileWithheld = out.innerHTML;
+        const withAsa = (() => {
+          set('i-asa','II'); compute();
+          drefRender('dref'); drefRender('iref');
+          const rr = [...document.getElementById('output').querySelectorAll('tr.dtab-r')]
+            .find(x => x.dataset.drug === 'drug.propofol');
+          return rr ? rr.innerText.replace(/\\s+/g,' ').trim() : null;
+        })();
+        return {
+          present: !!row,
+          name: row && row.querySelector('.dtab-n').textContent,
+          coverage: row && (row.querySelector('.dtab-cov')||{}).textContent,
+          addBtn: !!(row && row.querySelector('.dtab-add button')),
+          html: htmlWhileWithheld,
+          withAsa: withAsa
+        };
+      })()`);
+
+      t('ASA unknown: the drug remains visible', r.present && r.name === 'Propofol');
+      t('...the qualified dose is withheld', !!r.coverage);
+      t('...and the coverage line names the missing field',
+        r.coverage === 'ASA required to match reviewed dose', r.coverage);
+      t('...with no Add control', r.addBtn === false);
+      t('...and no numerical dose leaks anywhere in the DOM',
+        !/1\.5–2\.5 mg\/kg/.test(r.html) && !/105–175/.test(r.html),
+        '1.5–2.5 x 70 kg = 105–175 mg');
+      t('...and entering ASA II admits the dose again',
+        /105–175\s*mg/.test(r.withAsa || ''), r.withAsa);
+      t('no runtime errors on the ASA path', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }
   } finally {
