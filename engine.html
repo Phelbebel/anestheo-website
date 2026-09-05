@@ -5749,11 +5749,23 @@ var SED = [
     {h:'MRI / imaging', rows:[
       ['Dexmedetomidine','1–2 mcg/kg load + 1–2 mcg/kg/hr'],
       ['± Propofol','low infusion to supplement']]},
+    /* DEFECT I-b — THE WEIGHT-SCALED INDUCTION AND KETAMINE ROWS ARE GONE.
+       Same structural defect as Defect I, one panel over. Both rows printed a
+       per-kg range and multiplied it by the patient's weight outside
+       ClinicalContent: no publishability gate, no population gate, no
+       per-dose provenance, no phase. A propofol induction dose reachable from
+       two renderers is a propofol induction dose that will one day disagree
+       with itself, and this one already carried a different number from the
+       canonical record.
+
+       Removed, not renumbered. Copying the reviewed values here would make
+       SED[] a second canonical renderer, and making SED[] population-aware
+       would build a second dosing engine beside the one that exists.
+
+       The Ketamine adjunct block went with its only row rather than being
+       left as a heading over nothing — compacted, not filled. */
     {h:'Propofol guidance', rows:[
-      ['Induction','2.5–3.5 mg/kg'+(w?' ('+dz(2.5,'mg')+'–'+dz(3.5,'mg')+')':'')],
       ['Infusion','100–300 mcg/kg/min, titrate to effect']]},
-    {h:'Ketamine adjunct', rows:[
-      ['IV','0.5–1 mg/kg'+(w?' ('+dz(0.5,'mg')+'–'+dz(1,'mg')+')':'')]]},
     {h:'Airway / ventilation warnings', list:['Maintain spontaneous ventilation; capnography mandatory','Airway rescue, suction and oxygen ready; pre-oxygenate','Children desaturate fast (low FRC) — small reserve','Strict fasting; weight-based dosing throughout','Neonates / infants are higher risk — involve senior / PICU early']}
   ]};}],
 

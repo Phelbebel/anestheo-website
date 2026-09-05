@@ -62,6 +62,15 @@ const IDX   = read('clinical-index.js');
 const IND   = read('induction.js');
 const INDC  = code(IND);
 
+/* The SED[] literal on its own — the legacy TIVA/TCI/sedation reference.
+   Several assertions below are made against the source rather than the DOM
+   because only the selected tab renders, so a sweep of the default view
+   would never reach the other panels. SEDCOUNT pins the panel count so
+   removing a duplicated dose row cannot quietly remove a whole screen. */
+const SEDSRC = (/var SED = \[[\s\S]*?\n\];/.exec(ENG) || [''])[0];
+const SEDCOUNT = (SEDSRC.match(/function\(w\)\{ return \{ blocks:/g) || []).length;
+
+
 /* Drive one case and report everything that matters about it. */
 const CASE = c => `(() => {
   newCase();
@@ -1747,6 +1756,37 @@ async function openEngine(b, viewport) {
         /4.6 mcg\/mL/.test(r.legacyText));             /* Marsh induction        */
       t('...and its cautions and paediatric adjustment survive',
         /infusion syndrome/i.test(r.legacyText) && /PRIS/.test(r.legacyText));
+
+      /* ── DEFECT I-b, CLOSED ───────────────────────────────────────────
+         The Pediatric sedation SED[] panel carried the same pattern one tab
+         over: a weight-scaled propofol induction range and a weight-scaled
+         ketamine dose, both outside ClinicalContent. Asserted at the source,
+         because the panel only renders when its tab is selected and a DOM
+         sweep of the default view would pass without ever looking at it. */
+      t('DEFECT I-b: no weight-scaled propofol induction row in the paediatric '+
+        'sedation panel', !/'2\.5.3\.5 mg\/kg'\s*\+\s*\(w\?/.test(ENG));
+      t('...and no weight-scaled ketamine dose row either',
+        !/'0\.5.1 mg\/kg'\s*\+\s*\(w\?/.test(ENG));
+      /* Match the block declaration, not the word — the removal comment above
+         it in engine.html mentions the heading by name. */
+      t('...neither replaced by a different hard-coded number',
+        !/\{h:'Ketamine adjunct'/.test(ENG) &&
+        !/\['Induction','[\d.]/.test(SEDSRC));
+      t('...and the only weight-scaled dose left in SED[] is dexmedetomidine, '+
+        'which is held for its own migration',
+        (SEDSRC.match(/dz\(/g) || []).length === 1 &&
+        /Loading \(optional\)/.test(SEDSRC),
+        (SEDSRC.match(/dz\(/g) || []).length + ' dz() call(s) left in SED[]');
+      /* The panel keeps everything that is not a duplicated dose. */
+      t('...the paediatric sedation panel keeps its non-dose content',
+        /Spontaneous-ventilation techniques/.test(SEDSRC) &&
+        /MRI \/ imaging/.test(SEDSRC) &&
+        /100.300 mcg\/kg\/min/.test(SEDSRC) &&
+        /Airway \/ ventilation warnings/.test(SEDSRC) &&
+        /capnography mandatory/.test(SEDSRC));
+      t('...and every SED[] panel still exists',
+        (SEDSRC.match(/function\(w\)\{ return \{ blocks:/g) || []).length === SEDCOUNT,
+        SEDCOUNT + ' panels');
       t('...and no clinical prohibition is implied by the coverage wording',
         !/contraindicat|not recommended|unsafe|do not use/i.test(r.text));
       t('no runtime errors while withholding', v.errs.length === 0, v.errs.slice(0,2));
