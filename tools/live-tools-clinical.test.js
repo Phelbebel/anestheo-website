@@ -595,7 +595,7 @@ async function openEngine(b, viewport) {
     const doseSnapshot = `(() => {
       const m = {};
       ${ind('.pl-role')}.forEach(r => {
-        const n = (r.querySelector('.pl-sel-n') || {}).textContent;
+        const n = (r.querySelector('.tb-n') || {}).textContent;
         if (!n) return;
         m[r.dataset.role + ':' + n] =
           ((r.querySelector('.pl-rule')||{}).textContent||'') + '|' +
@@ -620,11 +620,11 @@ async function openEngine(b, viewport) {
       const host = document.getElementById('induction-host');
       return { titles: ${ind('.wf-sec .wf-t')}.map(n => n.textContent),
                nums: ${ind('.wf-sec .wf-n')}.map(n => n.textContent),
-               roles: ${ind('.pl-sel')}.map(r => r.dataset.role),
+               roles: ${ind('.tb-r.on')}.map(r => r.dataset.drug),
                addControls: ${ind('.pl-add')}.length,
                pedsNodes: ${ind('.pdx, .pdx-grid')}.length,
                pedsWords: /EBV|Paediatric context/.test(host.textContent),
-               selected: ${ind('.pl-sel')}.length,
+               selected: ${ind('.tb-r.on')}.length,
                segOn: ${ind('.pl-sg.on')}.length,
                refScrolls: (() => { const r = host.querySelector('.idref');
                  return !!r && getComputedStyle(r).overflowY === 'auto'; })(),
@@ -704,9 +704,11 @@ async function openEngine(b, viewport) {
     t('adult: the visible section ordinals run 1..N with nothing skipped',
       contiguous(adult.nums) && adult.nums.filter(x => /^\d+$/.test(x)).length === 3,
       adult.nums);
-    t('adult: plan beside airway, and the reference beneath both',
+    /* The section is the induction TOOLBOX now — every eligible drug on the
+       board rather than a container holding only what was selected. */
+    t('adult: drugs beside airway, and the reference beneath both',
       adult.titles.join(' / ') ===
-      'Induction plan / Airway plan / Backup difficult airway / Drug reference',
+      'Induction drugs / Airway plan / Backup difficult airway / Drug reference',
       adult.titles);
     t('...the airway column sits BESIDE the plan, not under it',
       adult.airwayBeside === true, adult.geo);
@@ -723,8 +725,12 @@ async function openEngine(b, viewport) {
        headings and three blank rectangles of monitor for no information. The
        display is flat now and the state is still grouped — which is what the
        chooser groups by and what removal is keyed on, asserted below. */
-    t('...and one compact Add agent control, not three role containers',
-      adult.addControls === 1 && adult.roles.length === 0, adult.roles);
+    /* THERE IS NO ADD CONTROL LEFT TO COUNT. The chooser it opened existed
+       because the board was hidden; the board is the section now, so the
+       control, the chooser and the empty-plan container are all gone and
+       selection happens in the row the drug already occupies. */
+    t('...and NO add control, no chooser, no empty-plan container',
+      adult.addControls === 0 && adult.roles.length === 0, adult.roles);
     t('adult: the paediatric section does not exist — not hidden, absent',
       adult.pedsNodes === 0 && adult.pedsWords === false,
       { nodes:adult.pedsNodes, words:adult.pedsWords });
@@ -753,23 +759,27 @@ async function openEngine(b, viewport) {
        ordinary. These assert that adding adds, and that removal takes exactly
        one agent out. */
     const built = await s.pg.evaluate(`(() => {
-      /* Only one role's list is open at a time, so add() opens the role it
-         needs rather than assuming the previous call left it open. */
-
-      const chooser = () => document.querySelector('#induction-host .pl-chooser');
-      const open = () => { if (!chooser()) document.querySelector('#induction-host .pl-add').click(); };
-      const add = (role, id) => { open(); document.querySelector('#induction-host [data-alt="'+id+'"]').click(); };
-      /* Grouped back into roles from the flat grid, using each card's own
-         data-role — the state is still per role even though the display is
-         one list. */
+      /* NOTHING OPENS ANY MORE. Every drug is on the board, so add() presses
+         USE on the drug's own row. The role argument is kept because the
+         STATE is still per role and that is what these assertions check. */
+      const add = (role, id) => {
+        const b = document.querySelector('#induction-host [data-plan-for="'+id+'"]');
+        if (b) b.click();
+      };
+      /* Read the lit rows back, grouped by the canonical role each drug
+         belongs to — the display is one board, the state is still per role. */
+      const ROLE_OF = { 'drug.propofol':'induction', 'drug.ketamine':'induction',
+        'drug.midazolam':'induction', 'drug.dexmedetomidine':'induction',
+        'drug.fentanyl':'analgesia', 'drug.morphine':'analgesia',
+        'drug.remifentanil':'analgesia',
+        'drug.rocuronium':'nmb', 'drug.suxamethonium':'nmb' };
       const read = () => ['induction','analgesia','nmb'].map(k => {
-        const cards = ${ind('.pl-sel')}.filter(c => c.dataset.role === k);
+        const rows = ${ind('.tb-r.on')}.filter(c => ROLE_OF[c.dataset.drug] === k);
         return { role:k,
-          drugs:cards.map(c => (c.querySelector('.pl-sel-n')||{}).textContent),
-          rules:cards.map(c => (c.querySelector('.pl-rule')||{}).textContent),
-          amts:cards.map(c => (c.querySelector('.pl-amt')||{}).textContent),
-          warns:cards.filter(c => c.querySelector('.idc-warn')).length,
-          preps:cards.filter(c => c.querySelector('.pl-prep')).length };
+          drugs:rows.map(c => (c.querySelector('.tb-n')||{}).textContent),
+          rules:rows.map(c => (c.querySelector('.tb-d')||{}).textContent),
+          amts:rows.map(c => (c.querySelector('.tb-p')||{}).textContent),
+          warns:rows.length, preps:rows.length };
       });
       add('induction','drug.propofol');
       add('analgesia','drug.fentanyl');
@@ -778,9 +788,8 @@ async function openEngine(b, viewport) {
       /* a SECOND agent in a role the clinician has already filled */
       add('induction','drug.midazolam');
       const two = read();
-      /* removing one must not disturb the other */
-      const card = ${ind('.pl-sel')}.find(c => /Propofol/.test(c.textContent));
-      card.querySelector('.pl-x').click();
+      /* removing one must not disturb the other — pressing ✓ USING again */
+      add('induction','drug.propofol');
       const afterRemove = read();
       /* pressing an already-selected agent in the list takes it out too */
       add('analgesia','drug.fentanyl');       /* pressing it again removes it */
@@ -831,42 +840,48 @@ async function openEngine(b, viewport) {
       R(built.afterToggleOff,'analgesia').drugs.length === 0,
       R(built.afterToggleOff,'analgesia').drugs);
 
-    /* THE CHOOSER: every canonical agent, grouped by role, and costing
-       nothing at all when closed. */
+    /* WAS THE CHOOSER. Every canonical agent, grouped by role, revealed by a
+       control — and closed, it cost nothing because it was not rendered. The
+       board replaced it: every agent is grouped by role and rendered all the
+       time, which is the same guarantee without the reveal. So what is
+       asserted is unchanged in substance — every canonical agent, from every
+       role, each with its own dose — and now holds without a click. */
     const alts = await s.pg.evaluate(`(() => {
-      const add = () => document.querySelector('#induction-host .pl-add');
-      /* start from a known state: the previous block may have left it open */
-      if (document.querySelector('#induction-host .pl-chooser')) add().click();
-      const before = ${ind('.pl-chooser')}.length;
-      add().click();
-      const box = document.querySelector('#induction-host .pl-chooser');
-      const names = [...box.querySelectorAll('.pl-alt-n')].map(e => e.textContent);
-      const groups = [...box.querySelectorAll('.ch-l')].map(e => e.textContent);
-      const doses = [...box.querySelectorAll('.pl-alt-d')].map(e => e.textContent.trim());
+      const board = document.querySelector('#induction-host .tb');
+      const names = [...board.querySelectorAll('.tb-r .tb-n')].map(e => e.textContent);
+      const groups = [...board.querySelectorAll('.tb-g')]
+        .map(e => e.firstChild.textContent.trim());
+      const doses = [...board.querySelectorAll('.tb-r')].map(r => {
+        const d = r.querySelector('.tb-d'), c = r.querySelector('.tb-cov');
+        return ((d || c || {}).textContent || '').trim(); });
       const CC = window.ClinicalContent, wt = window.patientContext.anthropometrics.weight;
+      const pop = CC.patientPopulation(window.patientContext);
       const canonical = ['induction','analgesia','nmb']
-        .reduce((a,g) => a.concat(CC.visibleDrugsInGroup(g, wt).map(d => d.name)), []);
-      add().click();
-      const after = ${ind('.pl-chooser')}.length;
-      return { names, canonical, doses, groups, before, after };
+        .reduce((a,g) => { const seen = {};
+          CC.visibleDosesInGroup(g, wt, pop).forEach(d => {
+            if (!seen[d.id]) { seen[d.id] = 1; a.push(d.name); } });
+          return a; }, []);
+      return { names, canonical, doses, groups,
+               reveal: !!document.querySelector('#induction-host .pl-add') };
     })()`);
-    t('every canonical agent is offered, from every role',
-      alts.names.join() === alts.canonical.join(), { shown:alts.names, canonical:alts.canonical });
-    t('...grouped by the canonical roles, in the data\'s own words',
+    t('every canonical agent is on the board, from every role',
+      alts.names.slice().sort().join() === alts.canonical.slice().sort().join(),
+      { shown:alts.names, canonical:alts.canonical });
+    t('...grouped, in the clinical order the workspace reads in',
       alts.groups.join(' / ') ===
-      'Induction and sedation / Opioids and analgesia / Neuromuscular blockade', alts.groups);
-    t('...each carrying its own dose, from the same source',
+      'Primary induction / Opioids / Neuromuscular blockade / Adjuncts / special use',
+      alts.groups);
+    t('...each carrying its own dose or its own coverage line',
       alts.doses.every(d => d.length > 0), alts.doses);
-    /* CLOSED IS NOT RENDERED. A collapsed container still reserves a row. */
-    t('...and the chooser costs nothing at all when closed',
-      alts.before === 0 && alts.after === 0, alts);
+    t('...and none of it costs a click: there is no reveal control',
+      alts.reveal === false);
 
     /* ── TECHNIQUE RECORDS; IT DOES NOT PRESCRIBE ───────────────────────
        There is no route control any more, so only technique is exercised —
        and what must not change is that it touches no dose. */
     const ctl = await s.pg.evaluate(`(() => {
       const before = ${doseSnapshot};
-      const plan = () => ${ind('.pl-sel-n')}.map(e => e.textContent);
+      const plan = () => ${ind('.tb-r.on .tb-n')}.map(e => e.textContent);
       const planBefore = plan();
       const seg = txt => ${ind('.pl-sg')}.find(x => x.textContent.trim() === txt);
       seg('Modified RSI').click();
@@ -877,10 +892,10 @@ async function openEngine(b, viewport) {
         pressed: ${ind('.pl-sg.on')}.map(x => x.textContent.trim()) };
       return { before, planBefore, afterRoute, afterTech,
                labelled: [...${ind('.pl-rl')}, ...${ind('.pl-sg')}, ...${ind('.wf-t')},
-                          ...${ind('.pl-sel-n')}]
+                          ...${ind('.tb-r.on .tb-n')}]
                  .some(e => /recommend|preferred|suggested|first.line|drug of choice/i
                    .test(e.textContent)),
-               techniqueOnDrug: ${ind('.pl-sel, .pl-alt')}
+               techniqueOnDrug: ${ind('.tb-r')}
                  .some(e => /classic|modified/i.test(e.textContent)) };
     })()`);
     t('technique: switching between techniques changes no dose',
@@ -900,19 +915,29 @@ async function openEngine(b, viewport) {
        suxamethonium and Modified RSI to rocuronium; neither name may appear
        on a drug again. */
     t('no agent carries a technique name', ctl.techniqueOnDrug === false);
-    /* The role is named in the chooser now, where grouping is what you are
-       looking for; on the card the class badge carries it. Either way it is
-       named for the drug class and never for the technique. */
+    /* The group heading on the board carries the role, and it is named for
+       the drug class — never for the technique. */
     t('...and the blocker group is named for the drug class, not the technique',
       /Neuromuscular blockade/i.test(await s.pg.evaluate(
-        `(() => { const a = document.querySelector('#induction-host .pl-add');
-                  if (!document.querySelector('#induction-host .pl-chooser')) a.click();
-                  const t = [...document.querySelectorAll('#induction-host .ch-l')]
-                    .map(e => e.textContent).join(' | ');
-                  a.click(); return t; })()`)));
-    t('no RSI dose is invented for rocuronium',
-      !/rsi[^<]{0,40}\d+(\.\d+)?\s*(–|-)?\s*\d*\s*mg\/kg/i.test(INDC) &&
-      /1\.2 mg\/kg for RSI/.test(IDX), 'the RSI context stays in the prep note');
+        `(() => {
+           /* The preceding block may have left the page without a patient,
+              and the board only renders for one — so establish a case first
+              rather than reading an empty host. */
+           newCase();
+           const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+           set('i-age','42'); set('i-sex','M'); set('i-height','175');
+           set('i-weight','75'); set('i-asa','II'); compute();
+           return [...document.querySelectorAll('#induction-host .tb-g')]
+                    .map(e => e.textContent.trim()).join(' | ');
+         })()`)));
+    /* WAS: "no RSI dose is invented for rocuronium — the RSI context stays in
+       the prep note". The Tier 1 migration turned that prep note into a real
+       reviewed record, which is the opposite failure being guarded against:
+       what must not happen is induction.js holding a dose of its own. */
+    t('induction.js still invents no dose, RSI or otherwise',
+      !/\d+(\.\d+)?\s*(–|-)\s*\d+(\.\d+)?\s*(mg|mcg)\/kg/.test(INDC) &&
+      !/1\.2 mg\/kg for RSI/.test(code(IDX)),
+      'the RSI dose is a canonical record now, and the prep note is gone');
 
     /* New Case ends the plan with the case it belonged to. */
     const cleared = await s.pg.evaluate(`(() => {
@@ -920,14 +945,14 @@ async function openEngine(b, viewport) {
       const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
       set('i-age','30'); set('i-sex','F'); set('i-height','165'); set('i-weight','60');
       compute();
-      return { selected: ${ind('.pl-sel')}.length,
+      return { selected: ${ind('.tb-r.on')}.length,
                segOn: ${ind('.pl-sg.on')}.length,
                chooser: ${ind('.pl-chooser')}.length,
                add: ${ind('.pl-add')}.length };
     })()`);
     t('New Case ends the plan and the technique with it',
       cleared.selected === 0 && cleared.segOn === 0 && cleared.chooser === 0 &&
-      cleared.add === 1, cleared);
+      cleared.add === 0, cleared);
 
     /* A child. The paediatric section appears, and its values are the ones
        compute() published — the same ones the derived strip is showing. */
@@ -951,10 +976,17 @@ async function openEngine(b, viewport) {
        whole column pair rather than in the middle of it — which for a child
        puts the paediatric context, still beside the plan in that column,
        ahead of it. Both remain between the airway plan and the reference. */
-    t('child: the paediatric section appears in the airway column, above the strip',
+    /* PAEDIATRIC CONTEXT MOVED OUT OF THE AIRWAY COLUMN. It sat there while
+       the airway was the tall column and the induction side was a stub; with
+       the board filling the left column, hanging it off the right one would
+       unbalance the pair again for exactly the patients who need the left
+       one most. It runs the centre width now, under the backup strip and
+       above the reference — still between the airway plan and the
+       reference, which is the reading order that was approved. */
+    t('child: the paediatric section runs the centre, under the backup strip',
       child.titles.join(' / ') ===
-      'Induction plan / Airway plan / Paediatric context / ' +
-      'Backup difficult airway / Drug reference', child.titles);
+      'Induction drugs / Airway plan / Backup difficult airway / ' +
+      'Paediatric context / Drug reference', child.titles);
     /* THE SAME PROPERTY WITH ONE MORE SECTION IN PLAY. This is what a
        hard-coded number cannot satisfy for both patients at once, and it is
        satisfied WITHOUT rendering a hidden paediatric section for the adult:
@@ -989,9 +1021,15 @@ async function openEngine(b, viewport) {
     t('...and every airway value through window.airwayPlan',
       /root\.airwayPlan/.test(INDC) &&
       !/lmaForWeight|igelForWeight|neoETT/.test(INDC));
+    /* The board names an "Adjuncts / special use" GROUP, which is a heading
+       over drugs the canonical records already call Premedication and
+       Sedation — not a fourth role and not a fourth canonical group. The
+       state is still keyed on the three canonical groups, which is what this
+       asserts: the roles, not the headings. */
     t('...and its roles are the canonical groups, with no invented one',
       /group:'induction'/.test(INDC) && /group:'analgesia'/.test(INDC) &&
-      /group:'nmb'/.test(INDC) && !/adjunct/i.test(INDC));
+      /group:'nmb'/.test(INDC) &&
+      !/group:'adjunct/i.test(INDC) && !/key:'adjunct/i.test(INDC));
     /* WAS: also asserted `var chosen = null` for the route. The route control
        is gone, and its state went with it rather than being left dangling —
        so the assertion is that no route state EXISTS, which is stronger than
@@ -1571,12 +1609,16 @@ async function openEngine(b, viewport) {
             const b = document.querySelector('#iref-body [data-plan-for="'+id+'"]');
             if (b) b.click();
           });
+          /* THE PLAN IS THE LIT ROWS. Selection is in place now, so what the
+             plan "prints" is what the board prints on the rows marked USING.
+             The board carries no preparation column, so prep is compared as
+             absent on both sides rather than pretended. */
           const plan = {};
-          [...document.querySelectorAll('#induction-host .pl-sel')].forEach(c => {
+          [...document.querySelectorAll('#induction-host .tb-r.on')].forEach(c => {
             plan[c.dataset.drug] = {
-              rule:(c.querySelector('.pl-rule')||{}).textContent || '',
-              amount:(c.querySelector('.pl-amt')||{}).textContent || '',
-              prep:(c.querySelector('.pl-prep')||{}).textContent || '' };
+              rule:(c.querySelector('.tb-d')||{}).textContent || '',
+              amount:(c.querySelector('.tb-p')||{}).textContent || '',
+              prep:'' };
           });
           return { wide, narrow, plan };
         };
@@ -1614,14 +1656,17 @@ async function openEngine(b, viewport) {
         /* THE PLAN SHOWS ONE DOSE PER DRUG, AND IT MUST BE ONE THE REFERENCE
            ACTUALLY PRINTS. Not "the same as the only row" — the same as one
            of the rows, which is the guarantee that survives enumeration. */
+        /* The board prints no preparation, so compare rule and amount and
+           say so rather than comparing a column that is not there. */
+        const sig2 = r => flat(r.rule) + '|' + flat(r.amount);
         const planned = Object.keys(o.plan);
         const badPlan = planned.filter(k => !o.narrow[k] ||
-          !o.narrow[k].some(r => sig(r) === sig(o.plan[k])));
+          !o.narrow[k].some(r => sig2(r) === sig2(o.plan[k])));
         t(label + ': ...and the induction plan prints the identical dose too',
           planned.length === 3 && badPlan.length === 0,
           { planned:planned.length, disagreed:badPlan.map(k =>
-            k + ' | plan ' + sig(o.plan[k]) + ' not among ' +
-            ((o.narrow[k]||[]).map(sig).join(' ; '))) });
+            k + ' | plan ' + sig2(o.plan[k]) + ' not among ' +
+            ((o.narrow[k]||[]).map(sig2).join(' ; '))) });
       };
       agree(cmp.adult, 'adult 75 kg');
       agree(cmp.child, 'child 16 kg');

@@ -106,7 +106,6 @@
      that forbids it is wrong about anaesthesia rather than opinionated about
      UI. Adding is adding; removal is always explicit and per agent. */
   var picked = {};        /* role -> [drug id, ...] */
-  var openRole = null;    /* which role's alternatives are revealed */
 
   function idsFor(key){ return picked[key] || []; }
   function hasDrug(key, id){ return idsFor(key).indexOf(id) >= 0; }
@@ -288,13 +287,6 @@
      about it: no volatile agent in this application carries a reviewed dose. */
   var VOLATILE = { key:'volatile', group:'volatile', label:'Volatile agent' };
 
-  /* Every agent the clinician put in this role, in the group's own order. */
-  function roleDrugs(r){
-    var ids = idsFor(r.key);
-    if (!ids.length) return [];
-    return drugsOnce(r.group).filter(function (d){ return ids.indexOf(d.id) >= 0; });
-  }
-
   /* ── the compact plan controls ─────────────────────────────────────── */
   function seg(name, opts, current, fn){
     return '<div class="pl-seg"><span class="pl-seg-l">' + name + '</span>' +
@@ -307,89 +299,85 @@
       }).join('') + '</div></div>';
   }
 
-  /* ── ONE SELECTED AGENT ──────────────────────────────────────────────
-     A compact card. Its badge and its indication already say which role it
-     belongs to, so it needs no enclosing section repeating that in a heading
-     — three role wrappers around three cards was three headings, three
-     borders and three reserved empty cells for no information at all. */
-  function agentCard(roleKey, d){
-    /* THE DOSE COMES FROM THE ACTIVE CONTEXT, THE CARD FROM THE SELECTION.
-       `d` is the drug the clinician chose — its identity, colour, badge,
-       preparation and warning are its own and do not move when the technique
-       does. Only the dose is re-asked, and only these four things change with
-       it: the context label, the rule, the amount, and the coverage line when
-       the reviewed evidence does not cover this context for this patient. */
-    var ctx = contextRow(roleKey, d.id) || d;
-    var col = classColour(d.pclass);
-    var amount = (ctx.val != null && ctx.val !== '')
-      ? ctx.val + (ctx.unit ? '<span class="idc-u">' + ctx.unit + '</span>' : '') : '';
-    var rule = ctx.doseNum
-      ? ctx.doseNum + (ctx.doseUnit ? ' <span class="idc-u">' + ctx.doseUnit + '</span>' : '')
-      : (ctx.doseRule || '');
-    var same = amount && ctx.doseRule && ctx.doseRule.indexOf(String(ctx.val)) === 0;
-    return '<div class="pl-sel" style="--pc:' + col + '" data-role="' + roleKey + '" ' +
-        'data-drug="' + esc(d.id) + '">' +
-      /* THE ROUTE GETS ITS OWN LINE. Beside the badge in a 157px card it
-         ellipsised to "IV · INT…", which is not an indication, it is a
-         rumour of one. Under the name it has the full card width. */
-      '<div class="pl-sel-top">' + (d.badge || '') +
-        '<button type="button" class="pl-x" aria-label="Remove ' + esc(d.name) +
-        ' from the plan" onclick="Induction.remove(\'' + roleKey + '\',\'' + esc(d.id) + '\')">' +
-        '&times;</button>' +
-      '</div>' +
-      '<div class="pl-sel-n">' + esc(d.name) + '</div>' +
-      (ctx.use ? '<div class="pl-sel-use">' + esc(ctx.use) + '</div>' : '') +
-      '<div class="pl-sel-d">' +
-        (ctx.withheld
-          ? '<span class="pl-cov">' + esc(ctx.coverage) + '</span>'
-          : (rule ? '<span class="pl-rule">' + rule + '</span>' : '') +
-            ((amount && !same) ? '<span class="pl-amt">' + amount + '</span>' : '')) +
-      '</div>' +
-      (d.prepMain ? '<div class="pl-prep">' + d.prepMain + '</div>' : '') +
-      (d.warn ? '<div class="idc-warn' + (d.severity === 'critical' ? ' crit' : '') + '">' +
-                '<span aria-hidden="true">&#9888;</span> ' + d.warn + '</div>' : '') +
+  /* ── THE INDUCTION TOOLBOX IS THE COLUMN ──────────────────────────────
+     This section used to render only what had been selected, behind an
+     "+ Add agent" control. With nothing selected it was 131px of heading
+     beside a 448px airway plan — a 317px rectangle of empty ground in the
+     middle of the workspace, and the drugs themselves one click out of
+     sight. The board is the answer to "what am I giving", so the board is
+     what the column shows.
+
+     Every eligible induction-relevant drug is present the moment the patient
+     loads. Nothing is selected for the clinician; selecting one moves
+     nothing and hides nothing. There is no chooser, no empty plan container
+     and no "+ Add" anywhere in this workflow — USE and ✓ USING happen in the
+     row the drug already occupies.
+
+     THE GROUPS COME FROM THE RECORDS, NOT A CURATED LIST. A drug is a
+     primary induction agent when its own canonical dose label says
+     Induction; the rest of that group is an adjunct, which is exactly what
+     Premedication and Sedation already say about midazolam and
+     dexmedetomidine. Etomidate and thiopental are not in the canonical model
+     and so are absent — a row with no dose is a drug the clinician has to
+     look up somewhere else. */
+  function isPrimaryInduction(id){
+    var CC = root.ClinicalContent, d = (CC && CC.byId) ? CC.byId(id) : null;
+    return !!(d && (d.doses || []).some(function (x){ return /^Induction/.test(x.label || ''); }));
+  }
+  function toolboxGroups(){
+    var ind = drugsOnce('induction');
+    return [
+      { key:'induction', label:'Primary induction',
+        rows:ind.filter(function (d){ return isPrimaryInduction(d.id); }) },
+      { key:'analgesia', label:'Opioids', rows:drugsOnce('analgesia') },
+      { key:'nmb',       label:'Neuromuscular blockade', rows:drugsOnce('nmb'), nmb:true },
+      { key:'induction', label:'Adjuncts / special use',
+        rows:ind.filter(function (d){ return !isPrimaryInduction(d.id); }) }
+    ];
+  }
+
+  /* ONE COMPACT ROW. The dose shown is the one for the ACTIVE CONTEXT, so a
+     blocker follows the technique here exactly as it does in a selected
+     card — and a drug with no reviewed dose for this patient or this context
+     keeps its row and its colour and states the coverage instead. */
+  function tbRow(roleKey, base){
+    var d = contextRow(roleKey, base.id) || base;
+    var on = hasDrug(roleKey, base.id);
+    /* THE WEIGHT BASIS IS PRINTED, NEVER IMPLIED. An earlier draft of this
+       row dropped " TBW" to save width; a per-kg rule whose basis is missing
+       is a rule the reader has to assume, and this application does not make
+       the reader assume. */
+    var rule = d.doseNum
+      ? d.doseNum + ' <i>' + esc(d.doseUnit || '') + '</i>'
+      : (d.val ? esc(d.val) + ' <i>' + esc(d.unit || '') + '</i>' : '');
+    var amount = (d.doseNum && d.val) ? esc(d.val) + '<i>' + esc(d.unit || '') + '</i>' : '';
+    return '<div class="tb-r' + (on ? ' on' : '') + (d.withheld ? ' cov' : '') + '" ' +
+        'style="--pc:' + classColour(base.pclass) + '" data-drug="' + esc(base.id) + '">' +
+      '<span class="tb-n">' + esc(base.name) + '</span>' +
+      (d.withheld
+        ? '<span class="tb-cov" colspan="2">' + esc(d.coverage) + '</span>'
+        : '<span class="tb-d">' + rule + '</span><span class="tb-p">' + amount + '</span>') +
+      /* NO CONTROL ON A WITHHELD ROW, the same rule the reference table
+         follows: marking a drug USING when we cannot show a dose for it is
+         an intent with nothing behind it. The row, the name and the class
+         colour stay — only the affordance goes. */
+      (d.withheld ? '' :
+        '<button type="button" class="tb-b' + (on ? ' on' : '') + '" ' +
+        'aria-pressed="' + (on ? 'true' : 'false') + '" ' +
+        'data-plan-for="' + esc(base.id) + '" ' +
+        'aria-label="' + (on ? 'Stop using ' : 'Use ') + esc(base.name) + ' in this plan" ' +
+        'onclick="Induction.toggle(\'' + roleKey + '\',\'' + esc(base.id) + '\')">' +
+        (on ? '&#10003; USING' : 'USE') + '</button>') +
     '</div>';
   }
 
-  /* ── THE CHOOSER ─────────────────────────────────────────────────────
-     Grouped by canonical role, because that grouping is real and useful when
-     you are looking FOR something. Rendered only while open, so closed it
-     costs exactly nothing — not a collapsed container, not a reserved row. */
-  function chooser(){
-    if (!openRole) return '';
-    var body = ROLES.map(function (r){
-      var list = drugsOnce(r.group);
-      if (!list.length) return '';
-      return '<div class="ch-grp"><div class="ch-l">' + esc(r.label) + '</div>' +
-        '<div class="ch-row">' + list.map(function (a){
-          var on = hasDrug(r.key, a.id);
-          var av = (a.val != null && a.val !== '')
-            ? a.val + (a.unit ? '<span class="idc-u">' + a.unit + '</span>' : '') : '';
-          return '<button type="button" class="pl-alt' + (on ? ' on' : '') + '" ' +
-            'aria-pressed="' + (on ? 'true' : 'false') + '" data-alt="' + esc(a.id) + '" ' +
-            'data-role="' + r.key + '" ' +
-            'onclick="Induction.toggle(\'' + r.key + '\',\'' + esc(a.id) + '\')">' +
-            '<span class="pl-alt-top">' + (a.badge || '') +
-              '<span class="pl-alt-tick" aria-hidden="true">' + (on ? '&#10003;' : '+') +
-              '</span></span>' +
-            '<span class="pl-alt-n">' + esc(a.name) + '</span>' +
-            '<span class="pl-alt-d">' + (a.doseNum ? a.doseNum + ' ' + (a.doseUnit || '') : (a.doseRule || '')) +
-              (av ? '<b>' + av + '</b>' : '') + '</span>' +
-          '</button>';
-        }).join('') + '</div></div>';
-    }).join('');
-    return '<div class="pl-chooser" id="pl-chooser">' + body + '</div>';
-  }
-
-  /* ── THE PLAN ────────────────────────────────────────────────────────
-     ONE GRID OF WHAT WAS CHOSEN. Not three role containers each reserving a
-     cell for an agent nobody selected. */
   function planSection(){
-    var cards = '', n = 0;
-    ROLES.forEach(function (r){
-      roleDrugs(r).forEach(function (d){ cards += agentCard(r.key, d); n++; });
+    var groups = toolboxGroups();
+    var total = 0, used = 0;
+    groups.forEach(function (g){
+      total += g.rows.length;
+      g.rows.forEach(function (d){ if (hasDrug(g.key, d.id)) used++; });
     });
-    var open = !!openRole;
 
     var tech = '<div class="pl-tech">' +
       '<span class="pl-tech-l">Technique</span>' +
@@ -401,24 +389,22 @@
           'onclick="Induction.setTechnique(\'' + t.id + '\')">' + t.short + '</button>';
       }).join('') + '</div></div>';
 
-    /* IN THE HEADING, NOT UNDER IT. Sharing the technique row meant that the
-       moment the column narrowed — 1180 and every phone — this wrapped onto a
-       full-width row of its own and cost ~50px before the first selected
-       drug. The heading row has space at every width. The label shortens on a
-       phone; the accessible name does not. */
-    var action = '<button type="button" class="pl-add' + (open ? ' on' : '') + '" ' +
-      'aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="pl-chooser" ' +
-      'aria-label="' + (open ? 'Close the agent chooser' : 'Add agent') + '" ' +
-      'onclick="Induction.openRole(\'all\')">' +
-      '<span class="pl-add-lg">' + (open ? 'Close' : '+ Add agent') + '</span>' +
-      '<span class="pl-add-sm" aria-hidden="true">' + (open ? 'Close' : '+ Add') + '</span>' +
-      '</button>';
+    /* ONE COLUMN, FOUR GROUPS, EVERY ROW FULL WIDTH. Two sub-columns halved
+       the board's height and left 164px of ground beside the airway plan —
+       the same void, smaller. One column of the nine drugs that actually
+       exist fills the column because there are nine of them, not because
+       anything was padded: add a tenth to the canonical model and this grows
+       by one row; remove one and it shrinks by one. */
+    var board = '<div class="tb">' + groups.map(function (g){
+      if (!g.rows.length) return '';
+      return '<div class="tb-g' + (g.nmb && isRSI() ? ' rsi' : '') + '">' +
+        esc(g.label) + ' <em>' + g.rows.length + '</em></div>' +
+        g.rows.map(function (d){ return tbRow(g.key, d); }).join('');
+    }).join('') + '</div>';
 
-    return section(NUM, 'Induction plan',
-      n ? (n + (n === 1 ? ' agent' : ' agents')) : '',
-      tech + chooser() +
-      (n ? '<div class="pl-grid">' + cards + '</div>'
-         : '<div class="pl-empty">No agents selected</div>'), '', action);
+    return section(NUM, 'Induction drugs',
+      total + ' available · ' + (used ? used + ' in use' : 'none selected'),
+      tech + board);
   }
 
   /* ── 2 · AIRWAY PLAN ─────────────────────────────────────────────────
@@ -648,7 +634,7 @@
          the Crisis rail stays right of it; neither is touched. */
       '<div class="wf-cols">' +
         '<div class="wf-col-main">' + planSection() + '</div>' +
-        '<div class="wf-col-side">' + airwaySection() + pedsSection() + '</div>' +
+        '<div class="wf-col-side">' + airwaySection() + '</div>' +
       '</div>' +
       /* THE BACKUP IS A STRIP, NOT THE BOTTOM OF THE AIRWAY COLUMN.
          Inside .wf-col-side it made that column 715px against the plan's 291,
@@ -662,6 +648,12 @@
          reading order it already had. Nothing about what it says or what its
          buttons do has changed. */
       '<div class="wf-bkp">' + backupSection() + '</div>' +
+      /* PAEDIATRIC CONTEXT SITS UNDER THE PAIR, NOT INSIDE THE AIRWAY COLUMN.
+         It belonged there while the airway column was the tall one and the
+         plan was a stub; now the toolbox fills the left column, a section
+         hanging off the bottom of the right one would put the two columns
+         out of balance again for the one patient in three who is a child. */
+      '<div class="wf-peds">' + pedsSection() + '</div>' +
       '<div class="wf-full">' + referenceSection() + '</div>';
     /* The containers exist now, so the engine can fill them. It is the same
        call the Drug reference workspace makes, with this mount's id. */
@@ -678,32 +670,23 @@
     render();
   }
 
-  /* Opens the chooser. It is one chooser now rather than three per-role
-     lists, and when it is closed it is not rendered at all — a collapsed
-     container still reserves a row, and reserved rows are what this pass is
-     removing. */
-  function openRoleFn(){
-    openRole = openRole ? null : 'all';
-    render();
-    var el = document.querySelector('#induction-host .pl-add');
-    if (el) el.focus({ preventScroll:true });
-  }
+  /* THE CHOOSER IS GONE WITH THE EMPTY PLAN IT SERVED. Every drug is on the
+     board, so there is nothing to open. The name is kept as a no-op because a
+     page cached from before this change still calls it, and a stale handler
+     is not a reason to throw. */
+  function openRoleFn(){ /* no chooser to open */ }
 
-  /* THE ONE PLACE A DRUG ENTERS OR LEAVES THE PLAN. Selecting records a
-     choice; it does not alter a dose, and no drug is ever selected by this
-     application on the clinician's behalf.
-
-     ADDING IS ADDING. A second agent in the same role joins the first rather
-     than replacing it — a plan carrying midazolam and propofol, or fentanyl
-     and remifentanil, is an ordinary plan. The list stays open so a second or
-     third can be added without reopening it. */
+  /* SELECTION IS A TOGGLE, IN PLACE. Adding is adding and removing is
+     removing; a role may hold more than one agent. Focus returns to the row's
+     own button after the re-render, so pressing USE on the eleventh drug does
+     not throw the keyboard back to the first. */
   function toggle(key, id){
     var ids = idsFor(key).slice();
     var at = ids.indexOf(id);
     if (at >= 0) ids.splice(at, 1); else ids.push(id);
     if (ids.length) picked[key] = ids; else delete picked[key];
     render();
-    var el = document.querySelector('#induction-host [data-alt="' + id + '"]');
+    var el = document.querySelector('#induction-host [data-plan-for="' + id + '"]');
     if (el) el.focus({ preventScroll:true });
   }
 
@@ -714,10 +697,10 @@
     render();
   }
 
-  function clearPlan(){ picked = {}; openRole = null; render(); }
+  function clearPlan(){ picked = {}; render(); }
 
   /* New Case ends a case, and a plan belongs to the case that was ended. */
-  function clear(){ picked = {}; openRole = null; technique = null; render(); }
+  function clear(){ picked = {}; technique = null; render(); }
 
   /* Opens the crisis protocol IN PLACE — the induction plan stays on screen
      behind it. The keys are the protocol's own keys in CRISIS, so this names

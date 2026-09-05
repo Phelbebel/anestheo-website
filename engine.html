@@ -3515,9 +3515,12 @@ function drefPlanBtn(d, role, on){
   return '<button type="button" class="dtab-plus'+(on?' on':'')+'" '+
     'data-plan-for="'+esc_(d.id)+'" aria-pressed="'+(on?'true':'false')+'" '+
     'onclick="drefAddToPlan(\''+role+'\',\''+esc_(d.id)+'\')" '+
-    'aria-label="'+(on ? ('Remove '+esc_(d.name)+' from the induction plan')
-                       : ('Add '+esc_(d.name)+' to the induction plan'))+'">'+
-    (on?'&#10003; Selected':'+ Add')+'</button>';
+    'aria-label="'+(on ? ('Stop using '+esc_(d.name)+' in the induction plan')
+                       : ('Use '+esc_(d.name)+' in the induction plan'))+'">'+
+    /* USE / USING, THE SAME WORDS THE TOOLBOX USES. "+ Add" described a
+       flow that no longer exists — there is nowhere to add a drug TO, because
+       every drug is already on the board and selection happens in place. */
+    (on?'&#10003; USING':'USE')+'</button>';
 }
 function drefAddToPlan(role, id){
   var I = window.Induction;
@@ -3535,12 +3538,12 @@ function drefSyncPlan(){
     var id = b.getAttribute('data-plan-for'), on = drefInPlan(id);
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    b.innerHTML = on ? '&#10003; Selected' : '+ Add';
+    /* THE SAME TWO WORDS EVERYWHERE. This syncs both the reference table's
+       buttons and the induction toolbox's — they share [data-plan-for] — so
+       they must agree, and "+ Add" is gone from both. */
+    b.innerHTML = on ? '&#10003; USING' : 'USE';
     var lab = b.getAttribute('aria-label') || '';
-    b.setAttribute('aria-label', lab.replace(/^(Add|Remove) /, on ? 'Remove ' : 'Add ')
-                                    .replace(/ (to|from) the induction plan$/,
-                                             on ? ' from the induction plan'
-                                                : ' to the induction plan'));
+    b.setAttribute('aria-label', lab.replace(/^(Use|Stop using) /, on ? 'Stop using ' : 'Use '));
   });
 }
 window.drefSyncPlan = drefSyncPlan;

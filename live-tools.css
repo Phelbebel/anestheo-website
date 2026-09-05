@@ -1544,6 +1544,48 @@ html.lt-immersive body{padding-top:0 !important;}
    It keeps its place in the reading order: after the airway plan it falls
    back from, before the reference. */
 .wf-bkp{margin-top:12px; min-width:0; width:100%;}
+.wf-peds{margin-top:12px; min-width:0; width:100%;}
+
+/* ── THE INDUCTION TOOLBOX ────────────────────────────────────────────────
+   Compact enough that four groups of real drugs fill the left column beside
+   the airway plan. Nothing here is stretched: the height comes from the rows
+   there actually are, and if the canonical model gains a drug the column
+   grows by one row rather than by a reserved cell. */
+.tb{min-width:0;}
+.tb-g{font-size:9.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--hint,#6d7d87); margin:8px 0 3px; display:flex; gap:5px; align-items:baseline;}
+.tb > .tb-g:first-child{margin-top:0;}
+.tb-g em{font-style:normal; font-weight:700; color:var(--ink-3,#7d8b95); opacity:.75;}
+.tb-r{display:grid; grid-template-columns:1fr auto auto; gap:2px 6px; align-items:center;
+  padding:4px 6px 4px 8px; border-radius:5px; min-height:26px;
+  border:1px solid transparent; border-left:2px solid var(--pc,transparent);
+  background:rgba(255,255,255,.022);}
+.tb-r + .tb-r{margin-top:3px;}
+.tb-r:hover{background:rgba(255,255,255,.045);}
+/* SELECTION IS AN IN-PLACE STATE. The row does not move, does not duplicate
+   and does not spawn a second container; it lights up where it stands. */
+.tb-r.on{background:rgba(126,207,192,.09); border-color:rgba(126,207,192,.28);}
+.tb-n{font-size:11.5px; font-weight:700; color:var(--ink,#e8eef1); min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.tb-d{font-size:10.5px; font-weight:700; color:var(--ink-2,#c8d4da); white-space:nowrap;
+  font-variant-numeric:tabular-nums;}
+.tb-d i{font-style:normal; font-weight:600; color:var(--hint,#6d7d87); margin-left:2px;}
+.tb-p{font-size:11px; font-weight:800; color:var(--accent,#7ecfc0); white-space:nowrap;
+  font-variant-numeric:tabular-nums; min-width:0;}
+.tb-p i{font-style:normal; font-weight:700; opacity:.75; margin-left:1px; font-size:9.5px;}
+/* A DATA-COVERAGE STATE, NOT A WARNING — same treatment as the table's. */
+.tb-cov{grid-column:2 / 5; font-size:10px; font-style:italic; line-height:1.25;
+  color:var(--ink-3,#7d8b95); text-align:right;}
+.tb-b{grid-column:4; justify-self:end; font:inherit; font-size:9.5px; font-weight:800;
+  letter-spacing:.05em; padding:3px 6px; min-height:20px; border-radius:4px; cursor:pointer;
+  white-space:nowrap; color:var(--ink-3,#7d8b95); background:transparent;
+  border:1px solid rgba(255,255,255,.14);}
+.tb-b:hover{color:var(--ink,#e8eef1); border-color:rgba(255,255,255,.3);}
+.tb-b.on{color:#06251f; background:var(--accent,#7ecfc0); border-color:var(--accent,#7ecfc0);}
+.tb-r{grid-template-columns:1fr auto auto auto;}
+.tb-g.rsi::after{content:'RSI'; font-size:8.5px; font-weight:800; letter-spacing:.08em;
+  padding:1px 4px; border-radius:3px; color:#06251f; background:var(--accent,#7ecfc0);}
+
 .wf-bkp:empty{display:none; margin:0;}
 
 /* The heading loses its own line and rides at the head of the strip. */

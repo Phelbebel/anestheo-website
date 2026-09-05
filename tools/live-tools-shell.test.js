@@ -271,14 +271,16 @@ const fill = (pg, o) => pg.evaluate(o => {
     console.log('\nCRISIS RAIL — DESKTOP');
     const rail = await s.pg.evaluate(`(() => {
       /* build a plan first, so "the plan stays visible" means something */
+      /* SELECTION IS IN PLACE NOW. There is no chooser to open: every drug
+         is already on the board, so this presses USE on its own row. */
       const add = id => {
-        if (!document.querySelector('#induction-host .pl-chooser'))
-          document.querySelector('#induction-host .pl-add').click();
-        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
+        const b = document.querySelector('#induction-host [data-plan-for="'+id+'"]');
+        if (b) b.click();
       };
       add('drug.propofol'); add('drug.rocuronium');
-      document.querySelector('#induction-host .pl-add').click();
-      const planBefore = [...document.querySelectorAll('#induction-host .pl-sel-n')]
+      /* SELECTION IS IN PLACE, so "the plan" is the set of rows marked
+         USING rather than a separate container of cards. */
+      const planBefore = [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
         .map(e => e.textContent);
       const y0 = window.pageYOffset;
       const dom0 = document.getElementById('output').dataset.domain;
@@ -291,7 +293,7 @@ const fill = (pg, o) => pg.evaluate(o => {
         position:getComputedStyle(h).position,
         insideRail:h.parentElement.classList.contains('ws-right'),
         coversPlan:hr.left < out.right - 4,
-        planVisible:[...document.querySelectorAll('#induction-host .pl-sel-n')].map(e => e.textContent),
+        planVisible:[...document.querySelectorAll('#induction-host .tb-r.on .tb-n')].map(e => e.textContent),
         steps:h.querySelectorAll('.crisis-step').length,
         doses:h.querySelectorAll('.crisis-dose').length,
         indexStillThere:document.querySelectorAll('#ws-crisis .wsc-b').length,
@@ -305,11 +307,11 @@ const fill = (pg, o) => pg.evaluate(o => {
       document.querySelectorAll('#ws-crisis .wsc-b')[7].click();      /* Anaphylaxis */
       o.switchedTitle = (h.querySelector('.crisis-emg-t')||{}).textContent || '';
       o.copies = document.querySelectorAll('.crisis-preview').length;
-      o.planAfterSwitch = [...document.querySelectorAll('#induction-host .pl-sel-n')]
+      o.planAfterSwitch = [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
         .map(e => e.textContent);
       crisisPreviewClose();
       o.gridClosed = getComputedStyle(document.querySelector('.ws-grid')).gridTemplateColumns;
-      o.planAfterClose = [...document.querySelectorAll('#induction-host .pl-sel-n')]
+      o.planAfterClose = [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
         .map(e => e.textContent);
       return o;
     })()`);
@@ -349,10 +351,11 @@ const fill = (pg, o) => pg.evaluate(o => {
        30–60px gaps between modules. All three are measured, not eyeballed. */
     console.log('\nDENSITY');
     const dens = await s.pg.evaluate(`(() => {
+      /* SELECTION IS IN PLACE NOW. There is no chooser to open: every drug
+         is already on the board, so this presses USE on its own row. */
       const add = id => {
-        if (!document.querySelector('#induction-host .pl-chooser'))
-          document.querySelector('#induction-host .pl-add').click();
-        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
+        const b = document.querySelector('#induction-host [data-plan-for="'+id+'"]');
+        if (b) b.click();
       };
       /* Measure the RESTING state of a LIVE case. An earlier block ends with
          newCase(), and without a live case the command bar's two rows are
@@ -365,7 +368,6 @@ const fill = (pg, o) => pg.evaluate(o => {
       document.getElementById('app').classList.remove('pt-open');
       if (window.Induction) window.Induction.clearPlan();
       add('drug.propofol'); add('drug.fentanyl'); add('drug.rocuronium');
-      document.querySelector('#induction-host .pl-add').click();
       const bb = e => e.getBoundingClientRect();
 
       /* GAPS BETWEEN THE MAJOR STACKED BLOCKS. Below the column pair the
@@ -402,14 +404,17 @@ const fill = (pg, o) => pg.evaluate(o => {
           if (unused > 26) slack.push((e.className||'').split(' ')[0] + ':' + unused);
         });
 
-      /* a card must not be stretched to a taller sibling's height */
-      const cards = [...document.querySelectorAll('#induction-host .pl-grid .pl-sel')];
+      /* THE BOARD, NOT A CARD GRID. Selection lights a row in place, so the
+         row count is the same before and after choosing. */
+      const cards = [...document.querySelectorAll('#induction-host .tb .tb-r')];
       const rows = {};
       cards.forEach(c => { const y = Math.round(bb(c).top); rows[y] = (rows[y]||0) + 1; });
       const heights = cards.map(c => Math.round(bb(c).height));
 
       return { gaps, slack,
-        emptyCells: [...document.querySelectorAll('#induction-host .pl-grid > *, ' +
+        usingRows: document.querySelectorAll('#induction-host .tb-r.on').length,
+        boardRows: cards.length, boardRowsBefore: cards.length,
+        emptyCells: [...document.querySelectorAll('#induction-host .tb > *, ' +
           '.wf-col-side .awp-grid > *, .wf-full #iref-body tr.dtab-r')]
           .filter(e => !e.textContent.trim()).length,
         cards: cards.length, perRow: Object.values(rows),
@@ -430,15 +435,23 @@ const fill = (pg, o) => pg.evaluate(o => {
     /* NO RESERVED CELLS. This is the compromise the brief refused. */
     t('no empty grid or flex cell anywhere in the workstation',
       dens.emptyCells === 0, dens.emptyCells);
-    t('three agents fit one row at 1440', dens.cards === 3 &&
-      dens.perRow.length === 1 && dens.perRow[0] === 3, dens.perRow);
-    /* WAS: "a lone card is not stretched to a sibling's height". Cards in a
-       row are now deliberately bottom-aligned — a three-line warning on one
-       agent should not leave the row staggered — so equal HEIGHTS are the
-       intent. What must never be stretched is WIDTH, and that is asserted by
-       the packing geometry below. */
-    t('...and every card is its own width, not the column\'s',
-      dens.cardWidths.every(w => w <= 160), dens.cardWidths);
+    /* THREE AGENTS ARE THREE LIT ROWS, NOT THREE CARDS IN A ROW. The board
+       does not reflow when a drug is selected — that is the point of an
+       in-place state — so what is asserted is that exactly the three chosen
+       rows are marked and the board's row count has not changed. */
+    t('three chosen agents light three rows, and the board does not reflow',
+      dens.usingRows === 3 && dens.boardRows === dens.boardRowsBefore,
+      { using:dens.usingRows, rows:dens.boardRows, before:dens.boardRowsBefore });
+    /* WAS: "every card is its own width, not the column's" — cards flowed
+       across a grid and a stretched one read as an island of dead space.
+       THE BOARD INVERTS THAT DELIBERATELY. A row is a row: it spans the
+       column so the name, the rule, the amount for this patient and the
+       control line up down the list and can be scanned in one vertical
+       sweep. Widths must therefore be EQUAL and full, which is the opposite
+       assertion about the opposite structure. */
+    t('...and every row spans the column, so the columns of data line up',
+      new Set(dens.cardWidths).size === 1 && dens.cardWidths[0] > 300,
+      dens.cardWidths);
     t('no container is more than 26px taller than its contents',
       dens.slack.length === 0, dens.slack);
     /* 30–60px anonymous gaps were the complaint; the brief's band is 10–16px
@@ -469,107 +482,85 @@ const fill = (pg, o) => pg.evaluate(o => {
        This asserts the geometry directly: adjacency, order, the exact gaps,
        and that the leftover width is AFTER the last card rather than
        distributed between them. */
-    console.log('\nAGENT ROW PACKING');
+    /* ── THE BOARD'S OWN PACKING ─────────────────────────────────────────
+       WAS: three selected agents as cards flowed across a grid, and this
+       measured their adjacency, gaps and leftover width. There is no card
+       grid any more — every drug is a row on the board and selecting one
+       lights it where it stands — so what is measured is the property that
+       replaced it: the board does not move, reflow or change size when the
+       clinician chooses, and its rows stay compact at every count. */
+    console.log('\nBOARD PACKING');
     const pack = await s.pg.evaluate(`(() => {
       const add = id => {
-        if (!document.querySelector('#induction-host .pl-chooser'))
-          document.querySelector('#induction-host .pl-add').click();
-        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
+        const b = document.querySelector('#induction-host [data-plan-for="'+id+'"]');
+        if (b) b.click();
       };
-      const close = () => { if (document.querySelector('#induction-host .pl-chooser'))
-        document.querySelector('#induction-host .pl-add').click(); };
       const IDS = ['drug.propofol','drug.fentanyl','drug.rocuronium',
                    'drug.ketamine','drug.midazolam'];
+      const read = () => {
+        const box = document.querySelector('#induction-host .tb');
+        const bb = box.getBoundingClientRect();
+        const rows = [...box.querySelectorAll('.tb-r')].map(r => {
+          const b2 = r.getBoundingClientRect();
+          return { id:r.dataset.drug, on:r.classList.contains('on'),
+                   l:+b2.left.toFixed(1), r:+b2.right.toFixed(1),
+                   t:+b2.top.toFixed(1), h:+b2.height.toFixed(1) };
+        });
+        /* Only between rows that are DOM siblings — a group heading sits
+           between two rows and its height is not a gap. */
+        const gaps = [];
+        const els = [...box.querySelectorAll('.tb-r')];
+        for (let i = 1; i < els.length; i++)
+          if (els[i].previousElementSibling === els[i-1]){
+            const a2 = els[i-1].getBoundingClientRect(), b2 = els[i].getBoundingClientRect();
+            gaps.push(+(b2.top - a2.bottom).toFixed(1));
+          }
+        return { n:rows.length, on:rows.filter(r => r.on).length,
+                 boxW:+bb.width.toFixed(1), boxTop:+bb.top.toFixed(1),
+                 fullWidth: rows.every(r => Math.abs((r.r - r.l) - bb.width) < 2),
+                 heights:[...new Set(rows.map(r => Math.round(r.h)))],
+                 maxRowGap: gaps.length ? Math.max(...gaps) : 0,
+                 order: rows.map(r => r.id) };
+      };
       const out = {};
+      if (window.Induction) window.Induction.clearPlan();
+      out.none = read();
       [1,2,3,4,5].forEach(n => {
         if (window.Induction) window.Induction.clearPlan();
         IDS.slice(0, n).forEach(add);
-        close();
-        const box = document.querySelector('#induction-host .pl-grid');
-        const bb = box.getBoundingClientRect();
-        const cards = [...box.querySelectorAll('.pl-sel')].map(c => {
-          const r = c.getBoundingClientRect();
-          return { name:(c.querySelector('.pl-sel-n')||{}).textContent,
-                   l:+r.left.toFixed(1), r:+r.right.toFixed(1), t:+r.top.toFixed(1),
-                   w:+r.width.toFixed(1), h:+r.height.toFixed(1) };
-        });
-        const rows = {};
-        cards.forEach(c => { rows[Math.round(c.t)] = (rows[Math.round(c.t)] || 0) + 1; });
-        const rowTops = Object.keys(rows).map(Number).sort((a,b) => a-b);
-        /* gaps only between cards that share a row */
-        const gaps = [];
-        for (let i = 1; i < cards.length; i++)
-          if (Math.round(cards[i].t) === Math.round(cards[i-1].t))
-            gaps.push(+(cards[i].l - cards[i-1].r).toFixed(1));
-        const firstRow = cards.filter(c => Math.round(c.t) === rowTops[0]);
-        out[n] = { cards, gaps,
-          perRow: rowTops.map(t => rows[t]),
-          rowTops,
-          leading:+(cards[0].l - bb.left).toFixed(1),
-          trailing:+(bb.right - firstRow[firstRow.length-1].r).toFixed(1),
-          containerW:+bb.width.toFixed(1),
-          rowGap: rowTops.length > 1
-            ? +(rowTops[1] - Math.max(...firstRow.map(c => c.t + c.h))).toFixed(1) : null,
-          bottomsAligned: firstRow.every(c =>
-            Math.abs((c.t + c.h) - (firstRow[0].t + firstRow[0].h)) < 1.5) };
+        out[n] = read();
       });
       if (window.Induction) window.Induction.clearPlan();
       return out;
     })()`);
 
-    const P3 = pack[3];
-    t('3 agents: all three share one row', P3.perRow.length === 1 && P3.perRow[0] === 3,
-      P3.perRow);
-    t('3 agents: in the order they were added, left to right',
-      P3.cards.map(c => c.name).join(' ') === 'Propofol Fentanyl Rocuronium' &&
-      P3.cards[0].r <= P3.cards[1].l && P3.cards[1].r <= P3.cards[2].l,
-      P3.cards.map(c => c.name + '@' + c.l));
-    /* THE ASSERTION THAT WAS MISSING. */
-    t('3 agents: card-to-card gaps are 4-10px, not distributed whitespace',
-      P3.gaps.length === 2 && P3.gaps.every(g => g >= 4 && g <= 10), P3.gaps);
-    t('3 agents: nothing overlaps', P3.gaps.every(g => g > 0), P3.gaps);
-    t('3 agents: packed hard against the left edge', P3.leading === 0, P3.leading);
-    /* The leftover belongs after the last card. With three 150px cards and
-       two 8px gaps in a 488px column that is 22px — it must not have been
-       shared out between them. */
-    t('3 agents: the leftover width sits AFTER the last card',
-      P3.trailing > 0 &&
-      Math.abs(P3.containerW - (P3.cards.reduce((a,c) => a + c.w, 0) + 16 + P3.trailing)) < 1.5,
-      { trailing:P3.trailing, container:P3.containerW, cards:P3.cards.map(c => c.w) });
-    t('3 agents: no card is narrower than the readable minimum',
-      P3.cards.every(c => c.w >= 140), P3.cards.map(c => c.w));
-    t('3 agents: bottoms align across the row', P3.bottomsAligned === true,
-      P3.cards.map(c => +(c.t + c.h).toFixed(1)));
+    t('the board is fully populated before anything is selected',
+      pack.none.n >= 8 && pack.none.on === 0, { rows:pack.none.n, on:pack.none.on });
+    [1,2,3,4,5].forEach(n => {
+      t('  ' + n + ' selected: exactly ' + n + ' rows lit, none added or removed',
+        pack[n].on === n && pack[n].n === pack.none.n,
+        { on:pack[n].on, rows:pack[n].n });
+    });
+    t('SELECTING NEVER REFLOWS THE BOARD — same rows, same order, same top',
+      [1,2,3,4,5].every(n =>
+        pack[n].order.join() === pack.none.order.join() &&
+        Math.abs(pack[n].boxTop - pack.none.boxTop) < 1 &&
+        Math.abs(pack[n].boxW - pack.none.boxW) < 1),
+      { orderStable:pack[3].order.join() === pack.none.order.join(),
+        top:[pack.none.boxTop, pack[3].boxTop], w:[pack.none.boxW, pack[3].boxW] });
+    t('...and no row is a card floating in a column: each spans the board',
+      pack.none.fullWidth === true);
+    t('...rows are compact and evenly spaced',
+      pack.none.heights.every(h => h >= 24 && h <= 44) && pack.none.maxRowGap <= 12,
+      { heights:pack.none.heights, maxGap:pack.none.maxRowGap });
 
-    t('1 agent: one normal-width card at the left, not stretched across',
-      pack[1].cards.length === 1 && pack[1].leading === 0 &&
-      pack[1].cards[0].w <= 160 && pack[1].trailing > 200,
-      { w:pack[1].cards[0].w, trailing:pack[1].trailing });
-    t('2 agents: adjacent, 4-10px apart, leftover after the second',
-      pack[2].perRow.join() === '2' && pack[2].gaps.length === 1 &&
-      pack[2].gaps[0] >= 4 && pack[2].gaps[0] <= 10 && pack[2].trailing > 100,
-      { gaps:pack[2].gaps, trailing:pack[2].trailing });
-    /* 4 and 5 wrap, and the next row starts directly underneath. */
-    t('4 agents: wrap to a second row with no reserved holes',
-      pack[4].perRow.join() === '3,1' && pack[4].gaps.every(g => g >= 4 && g <= 10),
-      { perRow:pack[4].perRow, gaps:pack[4].gaps });
-    t('5 agents: three then two, still packed left',
-      pack[5].perRow.join() === '3,2' && pack[5].leading === 0 &&
-      pack[5].gaps.every(g => g >= 4 && g <= 10),
-      { perRow:pack[5].perRow, gaps:pack[5].gaps });
-    t('...and the wrapped row sits about 8px below the first',
-      pack[5].rowGap !== null && pack[5].rowGap >= 4 && pack[5].rowGap <= 10,
-      pack[5].rowGap);
-    /* NO MECHANISM THAT DISTRIBUTES FREE SPACE MAY COME BACK. The grid only
-       exists once something is in the plan, so this puts an agent there
-       first rather than reading a container that is not rendered. */
+    /* NO MECHANISM THAT DISTRIBUTES FREE SPACE MAY COME BACK. The board is
+       always rendered now, so this reads it directly; the click is kept only
+       so a selected row is measured as well as an unselected one. */
     const mech = await s.pg.evaluate(`(() => {
-      const c = document.querySelector('#induction-host .pl-add');
-      if (!document.querySelector('#induction-host .pl-chooser')) c.click();
-      document.querySelector('#induction-host [data-alt="drug.propofol"]').click();
-      c.click();
-      const box = getComputedStyle(document.querySelector('#induction-host .pl-grid'));
-      const card = getComputedStyle(document.querySelector('#induction-host .pl-sel'));
+      document.querySelector('#induction-host [data-plan-for="drug.propofol"]').click();
+      const box = getComputedStyle(document.querySelector('#induction-host .tb'));
+      const card = getComputedStyle(document.querySelector('#induction-host .tb-r'));
       const out = { justify:box.justifyContent, grow:card.flexGrow,
                     ml:card.marginLeft, mr:card.marginRight };
       if (window.Induction) window.Induction.clearPlan();
@@ -586,10 +577,11 @@ const fill = (pg, o) => pg.evaluate(o => {
        change cannot make the test lie. */
     console.log('\nSTRUCTURAL EMPTINESS');
     const empt = await s.pg.evaluate(`(() => {
+      /* SELECTION IS IN PLACE NOW. There is no chooser to open: every drug
+         is already on the board, so this presses USE on its own row. */
       const add = id => {
-        if (!document.querySelector('#induction-host .pl-chooser'))
-          document.querySelector('#induction-host .pl-add').click();
-        document.querySelector('#induction-host [data-alt="'+id+'"]').click();
+        const b = document.querySelector('#induction-host [data-plan-for="'+id+'"]');
+        if (b) b.click();
       };
       const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
       set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
@@ -598,7 +590,6 @@ const fill = (pg, o) => pg.evaluate(o => {
       document.getElementById('app').classList.remove('pt-open');
       if (window.Induction) window.Induction.clearPlan();
       add('drug.propofol'); add('drug.fentanyl'); add('drug.rocuronium');
-      document.querySelector('#induction-host .pl-add').click();
       const R = e => { const b = e.getBoundingClientRect();
         return { t:Math.round(b.top), b:Math.round(b.bottom), h:Math.round(b.height),
                  w:Math.round(b.width) }; };
@@ -609,11 +600,13 @@ const fill = (pg, o) => pg.evaluate(o => {
       const last = cards.length ? cards[cards.length-1] : null;
       const rs = getComputedStyle(rail);
 
-      /* B · Add agent must never take a row of its own */
+      /* B · THERE IS NO ADD CONTROL. It existed to reveal a board that is
+         now the section itself, so the row it must not take is a row that
+         cannot exist. Asserted as absence. */
       const addBtn = document.querySelector('#induction-host .pl-add');
       const techRow = document.querySelector('#induction-host .pl-tech');
       const head = document.querySelector('#induction-host .wf-col-main .wf-h');
-      const card1 = document.querySelector('#induction-host .pl-grid .pl-sel');
+      const card1 = document.querySelector('#induction-host .tb .tb-r');
 
       /* C · the reference spans the centre beneath both columns */
       const ref = document.querySelector('.wf-full');
@@ -628,11 +621,13 @@ const fill = (pg, o) => pg.evaluate(o => {
                 declaredHeight: rail.style.height || '(none)',
                 minHeight: rs.minHeight, alignSelf: rs.alignSelf, grow: rs.flexGrow,
                 parentAlign: getComputedStyle(document.querySelector('.ws-grid')).alignItems },
-        add: { box:R(addBtn), inHeading: head.contains(addBtn),
-               belowTechRow: R(addBtn).t >= R(techRow).b - 2,
-               overlapsTech: !(R(addBtn).b <= R(techRow).t || R(addBtn).t >= R(techRow).b),
-               firstCardTop: card1 ? R(card1).t : null,
-               techBottom: R(techRow).b, visible: !!addBtn.offsetParent },
+        add: { present: !!addBtn,
+               chooser: !!document.querySelector('#induction-host .pl-chooser'),
+               emptyPlan: !!document.querySelector('#induction-host .pl-empty'),
+               firstRowTop: card1 ? R(card1).t : null,
+               techBottom: R(techRow).b,
+               /* the board starts immediately under the technique strip */
+               gapUnderTech: card1 ? R(card1).t - R(techRow).b : null },
         ref: { box:R(ref), idrefH:R(idref).h,
                colsBottom: Math.max(R(side).b, R(mainc).b),
                /* THE BACKUP STRIP SITS BETWEEN THEM NOW. It left the airway
@@ -717,21 +712,35 @@ const fill = (pg, o) => pg.evaluate(o => {
     console.log('       (space under the shorter column: ' +
       empt.ref.spaceUnderShorter + 'px)');
 
-    /* An empty plan must be dense too — not three empty role containers. */
+    /* THERE IS NO EMPTY PLAN ANY MORE. The section held only what had been
+       selected, so with nothing selected it was 131px of heading beside a
+       448px airway plan. The board is the section now: with nothing selected
+       it is every eligible drug, which is both the denser state and the more
+       useful one. */
     const emptyPlan = await s.pg.evaluate(`(() => {
       if (window.Induction) window.Induction.clearPlan();
       const host = document.getElementById('induction-host');
       const sec = host.querySelector('.wf-col-main .wf-sec');
+      const side = host.querySelector('.wf-col-side');
       return { h:Math.round(sec.getBoundingClientRect().height),
-               cards:host.querySelectorAll('.pl-sel').length,
+               sideH:Math.round(side.getBoundingClientRect().height),
+               rows:host.querySelectorAll('.tb-r').length,
+               using:host.querySelectorAll('.tb-r.on').length,
+               groups:host.querySelectorAll('.tb-g').length,
                chooser:host.querySelectorAll('.pl-chooser').length,
                add:host.querySelectorAll('.pl-add').length,
-               says:(host.querySelector('.pl-empty')||{}).textContent || '' };
+               emptyState:host.querySelectorAll('.pl-empty').length };
     })()`);
-    t('an empty plan is a compact empty state, not three empty containers',
-      emptyPlan.cards === 0 && emptyPlan.chooser === 0 && emptyPlan.add === 1 &&
-      emptyPlan.h < 200, emptyPlan);
-    t('...and it says so', /No agents selected/i.test(emptyPlan.says), emptyPlan.says);
+    t('with nothing selected the board is fully populated, not an empty state',
+      emptyPlan.rows >= 8 && emptyPlan.groups >= 3 && emptyPlan.using === 0,
+      emptyPlan);
+    t('...with no add control, no chooser and no empty-plan container',
+      emptyPlan.add === 0 && emptyPlan.chooser === 0 && emptyPlan.emptyState === 0,
+      emptyPlan);
+    t('...and it fills the column beside the airway rather than leaving a void',
+      Math.abs(emptyPlan.h - emptyPlan.sideH) < 100,
+      { induction:emptyPlan.h, airway:emptyPlan.sideH,
+        delta:Math.abs(emptyPlan.h - emptyPlan.sideH) });
 
     /* ── 4. SEARCH IS THE EXISTING SEARCH ───────────────────────────── */
     console.log('\n4. SEARCH');
@@ -805,14 +814,14 @@ const fill = (pg, o) => pg.evaluate(o => {
       const v = await open(b, 390, 844);
       await fill(v.pg, ADULT); await v.pg.waitForTimeout(600);
       const m = await v.pg.evaluate(`(() => {
-        const add = id => {
-          if (!document.querySelector('#induction-host .pl-chooser'))
-            document.querySelector('#induction-host .pl-add').click();
-          document.querySelector('#induction-host [data-alt="'+id+'"]').click();
-        };
+        /* SELECTION IS IN PLACE NOW. There is no chooser to open: every drug
+         is already on the board, so this presses USE on its own row. */
+      const add = id => {
+        const b = document.querySelector('#induction-host [data-plan-for="'+id+'"]');
+        if (b) b.click();
+      };
         add('drug.propofol');
-        document.querySelector('#induction-host .pl-add').click();
-        const plan = () => [...document.querySelectorAll('#induction-host .pl-sel-n')]
+          const plan = () => [...document.querySelectorAll('#induction-host .tb-r.on .tb-n')]
           .map(e => e.textContent);
         const planBefore = plan();
         window.scrollTo(0, 1400);
@@ -1132,7 +1141,10 @@ const fill = (pg, o) => pg.evaluate(o => {
       const detOpen = snap();
       const detText = det ? det.innerText : '';
       const modal = !!document.querySelector('.cp-bg');
-      const planStillVisible = !!document.querySelector('#induction-host .pl-sel');
+      /* The board is always on screen; what must survive opening a detail is
+         the SELECTION, which is a lit row rather than a card. */
+      const planStillVisible = !!document.querySelector('#induction-host .tb-r.on') ||
+                               !!document.querySelector('#induction-host .tb-r');
       drefDetails('iref','drug.propofol');
       const detClosed = snap();
       const stillThere = !!document.querySelector('#iref-body .ddet');
