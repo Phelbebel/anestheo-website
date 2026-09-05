@@ -1772,11 +1772,19 @@ async function openEngine(b, viewport) {
       t('...neither replaced by a different hard-coded number',
         !/\{h:'Ketamine adjunct'/.test(ENG) &&
         !/\['Induction','[\d.]/.test(SEDSRC));
-      t('...and the only weight-scaled dose left in SED[] is dexmedetomidine, '+
-        'which is held for its own migration',
-        (SEDSRC.match(/dz\(/g) || []).length === 1 &&
-        /Loading \(optional\)/.test(SEDSRC),
+      /* THE WHOLE CLASS, NOT THE THREE INSTANCES. dz() multiplies a per-kg
+         figure by the patient's weight; every use of it inside SED[] was a
+         dose computed for a patient outside ClinicalContent. Counting the
+         call sites is what stops a fourth being added. */
+      t('SED[] performs NO weight-scaled dose arithmetic at all',
+        (SEDSRC.match(/dz\(/g) || []).length === 0,
         (SEDSRC.match(/dz\(/g) || []).length + ' dz() call(s) left in SED[]');
+      t('...including the dexmedetomidine loading dose',
+        !/Loading \(optional\)/.test(SEDSRC));
+      t('...while dz() itself still serves the crisis protocols, which are a '+
+        'different domain and untouched',
+        (ENG.match(/dz\(/g) || []).length > 0 && /Dantrolene initial/.test(ENG) &&
+        /Lipid 20% bolus/.test(ENG));
       /* The panel keeps everything that is not a duplicated dose. */
       t('...the paediatric sedation panel keeps its non-dose content',
         /Spontaneous-ventilation techniques/.test(SEDSRC) &&

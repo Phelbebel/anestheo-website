@@ -5733,8 +5733,20 @@ var SED = [
   ]};}],
 
   ['Dexmedetomidine','Alpha-2 agonist — sedation with largely preserved respiration', function(w){ return { blocks:[
+    /* THE LAST WEIGHT-SCALED DOSE IN SED[] IS GONE. The loading row printed
+       "1 mcg/kg over 10 min" and then multiplied it by the patient's weight,
+       which is the same defect as I and I-b: a per-patient dose computed
+       outside ClinicalContent, with no gate of any kind in front of it.
+
+       SED[] now performs no per-patient dose arithmetic at all. The rows that
+       remain are reference ranges that read the same for every patient, which
+       is what a reference is; nothing here turns a range into an amount.
+
+       Dexmedetomidine is NOT migrated canonically here. This removes one
+       calculation, not the drug and not the panel — the whole drug is held
+       for its own reviewed migration, which is also when it stops borrowing
+       the induction colour. */
     {h:'Dosing', rows:[
-      ['Loading (optional)','1 mcg/kg over 10 min'+(w?' ('+dz(1,'mcg')+')':'')],
       ['Maintenance','0.2–0.7 mcg/kg/hr (up to 1.4)'],
       ['No-load option','start at infusion to reduce hypotension / bradycardia']]},
     {h:'Use cases / regimens', rows:[
