@@ -1058,17 +1058,29 @@ async function openEngine(b, viewport) {
           .filter(r => r.textContent.indexOf('Dexmedetomidine') >= 0).length,
         chips: [...document.querySelectorAll('#iref-cats .dref-cat')]
           .map(c => c.textContent.replace(/[ \\t\\n\\r]+/g,'')),
-        /* What the canonical selector says for the patient on screen. The
-           card must print that and nothing else — no fabricated amount for a
-           rate, no fallback for a patient the record does not cover. */
+        /* THE ROW ASKS FOR AN INDUCTION DOSE AND NOTHING ELSE. The unphased
+           tier — which is what a legacy sedation infusion answers through —
+           is not in the hypnosis row's list. What the selector returns for
+           THAT question is what the card must print. */
         canonical: (() => {
           const wt = window.patientContext.anthropometrics.weight;
           const pop = CC.patientPopulation(window.patientContext);
           const r = CC.doseRowForContext(CC.byId('drug.dexmedetomidine'), wt, pop,
-                     ['induction', CC.LEGACY_CONTEXT]);
+                     ['induction']);
           return r ? { withheld:!!r.withheld, coverage:r.coverage || '',
                        doseNum:r.doseNum || '', doseUnit:r.doseUnit || '',
-                       val:r.val || '', unit:r.unit || '' } : null; })() };
+                       val:r.val || '', unit:r.unit || '' } : null; })(),
+        /* And the legacy tier still answers, in its own context, so the
+           record itself is demonstrably intact rather than quietly gone. */
+        legacyStillThere: (() => {
+          const r = CC.doseRowForContext(CC.byId('drug.dexmedetomidine'), 75,
+                     { adult:true, pediatric:false }, [CC.LEGACY_CONTEXT]);
+          return r ? { withheld:!!r.withheld, use:r.use, val:r.val,
+                       unit:r.unit } : null; })(),
+        /* Nothing from the sedation record may appear in the card, at any
+           weight — not the figures, not the rate unit, not the word. */
+        forbidden: ['0.2','0.7','mcg/kg/h','Sedation','sedation']
+          .filter(w => (dex ? dex.textContent : '').indexOf(w) >= 0) };
       /* Selectable exactly like the rest. */
       if (dex) { dex.click();
         out.selected = cell(card2('Dexmedetomidine'));
@@ -1097,18 +1109,32 @@ async function openEngine(b, viewport) {
     t('...and dexmedetomidine is the canonical record, not a display member',
       hyp.dex.drug === 'drug.dexmedetomidine' && hyp.dex.member === null &&
       hyp.dex.planKey === 'drug.dexmedetomidine', hyp.dex);
-    /* WHATEVER IT PRINTS CAME OUT OF THE SELECTOR. Withheld and the card
-       carries the coverage state and no figure at all; eligible and the card
-       carries that record's rule, and an amount only where the record has
-       one — an infusion rate is not multiplied by a weight. */
-    t('...and it prints the canonical selector\'s answer, or nothing',
-      hyp.canonical && (hyp.canonical.withheld
-        ? (hyp.dex.coverage === hyp.canonical.coverage &&
-           hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false)
-        : (hyp.dex.coverage === '' &&
-           hyp.dex.rule.indexOf(hyp.canonical.doseNum || hyp.canonical.val) === 0 &&
-           hyp.dex.amount === '')),
+    /* NO PHASE FALLBACK IN THE ONE PLACE IT WOULD READ AS AN INDUCTION DOSE.
+       The card prints the answer to the induction question — which for
+       dexmedetomidine is a coverage state — and never the answer to a
+       question the row did not ask. */
+    t('...and it prints the induction question\'s answer, or nothing',
+      hyp.canonical === null
+        ? (hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false &&
+           hyp.dex.coverage.length > 0)
+        : (hyp.canonical.withheld
+            ? (hyp.dex.coverage === hyp.canonical.coverage &&
+               hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false)
+            : (hyp.dex.coverage === '' &&
+               hyp.dex.rule.indexOf(hyp.canonical.doseNum || hyp.canonical.val) === 0 &&
+               hyp.dex.amount === '')),
       { card:hyp.dex, model:hyp.canonical });
+    /* THE SEDATION INFUSION IS THE SPECIFIC THING THAT MUST NOT BE THERE. */
+    t('...carrying nothing at all from the sedation record',
+      hyp.forbidden.length === 0, hyp.forbidden);
+    /* AND IT IS NOT GONE — it answers in its own context, and it is a row of
+       the reference below. Withholding it from the board is a narrowing of
+       what the board asks, not a deletion. */
+    t('...while the sedation record itself is intact in its own context',
+      !!hyp.legacyStillThere && hyp.legacyStillThere.withheld !== true &&
+      hyp.legacyStillThere.val === '0.2–0.7' &&
+      hyp.legacyStillThere.unit === 'mcg/kg/h' &&
+      hyp.dexInRef === 1, hyp.legacyStillThere);
     t('...and it selects and deselects like every other card',
       hyp.dex.pressed === 'false' && hyp.selected.pressed === 'true' &&
       hyp.deselected.pressed === 'false',

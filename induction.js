@@ -237,28 +237,43 @@
      sequence, so the context the selector is asked for is the same either
      way — which is the frozen rule, unchanged by the tiles above it. */
   function isRSI(){ return technique === 'rsi'; }
-  function contextFor(roleKey){
+  function contextFor(roleKey, rowKey){
     var CC = root.ClinicalContent;
     /* A BLOCKER'S LIST NEVER GROWS. Both entries are single, so an RSI
        question has nothing to fall back to and a routine question cannot
        reach an RSI record. There is no unphased blocker record and no tier
        here that could answer with one if there were. */
     if (roleKey === 'nmb') return isRSI() ? ['rsi'] : ['intubation'];
-    /* Hypnotics and opioids end with the unphased tier, which matches only
-       records that declare NO context — every record predating the reviewed
-       migration. Without it the plan would print a coverage line for
-       midazolam, morphine and the legacy fentanyl row while the reference
-       beside it printed their dose. */
+    /* ── THE HYPNOSIS ROW ASKS A NARROWER QUESTION ─────────────────────
+       It has no unphased tier. That tier exists so records predating the
+       reviewed migration still render, and it matches ANY record declaring
+       no context — which for dexmedetomidine is a sedation infusion,
+       0.2-0.7 mcg/kg/h, a maintenance rate for a sedated patient. Printed in
+       the hypnosis slot of an induction board it reads as the dose that
+       induces this patient, which it is not, and no wording on the card can
+       undo where the number is standing.
+
+       So the question the row asks is the question the row means: a dose
+       reviewed for INDUCTION, or nothing. Propofol and ketamine answer it
+       from their own phased records; dexmedetomidine has no such record and
+       says so. This narrows what the board will accept — it does not change
+       what the model holds, and the sedation record is still exactly one row
+       of the drug reference below, in its own context. */
+    if (rowKey === 'hypnosis') return isRSI() ? ['rsi', 'induction'] : ['induction'];
+    /* Premedication and analgesia keep the unphased tier: without it the
+       plan would print a coverage line for midazolam, morphine and the
+       legacy fentanyl row while the reference beside it printed their dose. */
     var legacy = CC ? CC.LEGACY_CONTEXT : '(unphased)';
     return isRSI() ? ['rsi', 'induction', legacy] : ['induction', legacy];
   }
   /* THE MODEL DECIDES, NOT THIS FILE. doseRowForContext() applies the same
      publishability, population, age-band and applicability rules as every
      other surface; this passes it a context and renders what comes back. */
-  function contextRow(roleKey, id){
+  function contextRow(roleKey, id, rowKey){
     var CC = root.ClinicalContent;
     if (!CC || !CC.doseRowForContext) return null;
-    try { return CC.doseRowForContext(CC.byId(id), weight(), population(), contextFor(roleKey)); }
+    try { return CC.doseRowForContext(CC.byId(id), weight(), population(),
+                                      contextFor(roleKey, rowKey)); }
     catch(e){ console.warn('[induction] context row for ' + id + ' unavailable', e); return null; }
   }
   function classColour(pclass){
@@ -389,7 +404,10 @@
     var cat = root.InductionCatalog;
     if (!CC || !cat) return [];
     return (cat.rows || []).map(function (row){
-      return { key:row.role, label:row.label, nmb:!!row.nmb,
+      /* THE ROW'S OWN KEY TRAVELS WITH IT. `key` is the plan bucket a
+         selection lands in and two rows share it; `rowKey` is which row this
+         is, and it is what decides the dose context the row asks about. */
+      return { key:row.role, rowKey:row.key, label:row.label, nmb:!!row.nmb,
         rows:(row.members || []).map(function (m){
           var d = m.canonicalId ? CC.byId(m.canonicalId) : null;
           if (d) return { id:d.id, name:d.name, pclass:d.pclass, canonical:true };
@@ -423,7 +441,7 @@
      A withheld dose keeps the card, its name and its class colour and says
      what is missing where the numbers would be. No warning paragraph lives
      inside a card; a warning belongs to the reference row's disclosure. */
-  function tbCard(roleKey, base){
+  function tbCard(roleKey, base, rowKey){
     var CC = root.ClinicalContent;
     /* A DISPLAY MEMBER HAS NO RECORD TO ASK. It is not a withheld dose, it is
        an agent the board names and the evidence process has not reached: no
@@ -431,7 +449,7 @@
        name, its colour and the coverage state. It is not a control either —
        there is nothing canonical to put in a plan. */
     var noRecord = base.canonical === false;
-    var d = noRecord ? null : contextRow(roleKey, base.id);
+    var d = noRecord ? null : contextRow(roleKey, base.id, rowKey);
     if (!d) d = { withheld:true, use:'', val:'', unit:'',
                   coverage:(CC && CC.COVERAGE) ? CC.COVERAGE[CC.WITHHELD.UNPUBLISHED]
                                                : 'Dose not reviewed' };
@@ -529,7 +547,8 @@
        columns; the plus is outside it, so it is a control the size of a
        control rather than a fifth cell the size of a card. */
     var board = '<div class="tb">' + groups.map(function (g){
-      var cells = g.rows.slice(0, PLAN_SLOTS).map(function (d){ return tbCard(g.key, d); });
+      var cells = g.rows.slice(0, PLAN_SLOTS)
+        .map(function (d){ return tbCard(g.key, d, g.rowKey); });
       return '<div class="tb-grp">' +
         '<div class="tb-g' + (g.nmb && isRSI() ? ' rsi' : '') + '">' +
           '<b>' + esc(g.label) + '</b></div>' +

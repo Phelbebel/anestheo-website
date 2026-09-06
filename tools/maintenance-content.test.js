@@ -1362,6 +1362,56 @@ t('...and thiopental is still in no canonical surface, exactly as before',
   CC.DRUGS.every(d => d.name !== 'Thiopental') &&
   CC.search('Thiopental').every(r => ((r.item||r).name) !== 'Thiopental'));
 
+/* ── THE HYPNOSIS ROW HAS NO UNPHASED TIER ──────────────────────────────
+   The unphased tier matches any record that declares no context, and
+   dexmedetomidine's is a sedation infusion — a maintenance rate for a sedated
+   patient. In the hypnosis slot of an induction board that number reads as
+   the dose that induces this patient. The row asks for an induction dose or
+   nothing, at every weight and in both techniques. */
+t('the hypnosis row asks for an induction dose and nothing else',
+  (() => { const m = /rowKey === 'hypnosis'\)\s*return ([^;]+);/
+              .exec(code(read('induction.js')));
+    return !!m && !/legacy|LEGACY|unphased/.test(m[1]) &&
+           m[1].replace(/\s+/g,'') === "isRSI()?['rsi','induction']:['induction']"; })(),
+  (/rowKey === 'hypnosis'\)\s*return ([^;]+);/.exec(code(read('induction.js')))||[])[1]);
+t('...so an adult gets no dexmedetomidine number from it',
+  (() => { const r = ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, ['induction']);
+    return r && r.withheld === true && r.val === '' && r.doseNum === '' &&
+      !/0\.2|0\.7|mcg\/kg\/h|Sedation/i.test(JSON.stringify(r)); })(),
+  ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, ['induction']).coverage);
+t('...nor under a rapid sequence, which adds a phase but no tier',
+  (() => { const r = ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, ['rsi','induction']);
+    return r && r.withheld === true &&
+      !/0\.2|0\.7|mcg\/kg\/h/i.test(JSON.stringify(r)); })());
+t('...nor a child',
+  (() => { const r = ctxRow('drug.dexmedetomidine', 15, CHILD, ['induction']);
+    return r && r.withheld === true && r.val === '' &&
+      !/0\.2|0\.7|mcg\/kg\/h/i.test(JSON.stringify(r)); })());
+/* NOT DELETED — the record answers its own question exactly as it always did,
+   which is the difference between narrowing a board and editing a dataset. */
+t('...while the sedation record still answers in its own context',
+  (() => { const r = ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, [LEG]);
+    /* An eligible row carries no `withheld` key at all, so the test is the
+       absence of withholding rather than a false stored on the row. */
+    return r && !r.withheld && r.val === '0.2–0.7' &&
+      r.unit === 'mcg/kg/h' && /Sedation/.test(r.use); })(),
+  ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, [LEG]).use + ' = ' +
+  ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, [LEG]).val);
+/* AND THE THREE AGENTS BESIDE IT ARE UNAFFECTED: their records declare the
+   induction phase, so narrowing the question changes none of their answers. */
+t('...and propofol, ketamine and etomidate are unchanged by the narrowing',
+  ctxRow('drug.propofol', 75, ADULT_ASA, ['induction']).doseNum === '2–2.5' &&
+  ctxRow('drug.propofol', 15, P(true, yrs(3), 'II'), ['induction']).doseNum === '2.5–3.5' &&
+  ctxRow('drug.ketamine', 75, ADULT_ASA, ['induction']).doseNum === '1–4.5' &&
+  !CC.byId('drug.etomidate'));
+/* The premedication and analgesia rows keep the tier: without it midazolam,
+   morphine and the legacy fentanyl row would print a coverage line while the
+   reference beside them printed a dose. */
+t('...and the other rows keep the unphased tier they need',
+  /return isRSI\(\) \? \['rsi', 'induction', legacy\] : \['induction', legacy\];/
+    .test(code(read('induction.js'))) &&
+  !ctxRow('drug.midazolam', 75, ADULT_ASA, ['induction', LEG]).withheld);
+
 /* AN ALPHA-2 AGONIST IS NOT A CONVENTIONAL HYPNOTIC, and the colour says so
    without any dose moving. */
 t('the alpha-2 class exists and dexmedetomidine carries it',
