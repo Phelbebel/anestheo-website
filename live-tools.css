@@ -2508,3 +2508,83 @@ html.lt-immersive body{padding-top:0 !important;}
   border-color:rgba(126,207,192,.55);border-left-color:var(--pc,transparent);}
 .tb-c.on.cov:hover{background:rgba(126,207,192,.17);}
 .tb-c.on.cov .tb-c-n{opacity:1;}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   RESPONSIVE HOTFIX · THE BOARD IS NEVER NARROWER THAN THE APPROVED CARD
+   ─────────────────────────────────────────────────────────────────────────
+   MEASURED, NOT GUESSED. The centre is two columns and the airway one of
+   them is a fixed 346px that never yields, so every pixel the viewport loses
+   comes out of the drug board alone:
+
+       1536  main 616  ->  card 112   (the approved cockpit)
+       1366  main 446  ->  card  69
+       1180  main 256  ->  card  54
+
+   and .tb-row's repeat(4,minmax(0,1fr)) has no floor to stop at, so the
+   cards became 54px strips with drug names breaking letter by letter. The
+   arithmetic says where it stops working: main = viewport - 920 at the
+   three-column shell, so main >= 616 needs viewport >= 1536. The approved
+   desktop is sitting exactly on its own lower bound; one pixel below it the
+   composition is no longer viable and must reflow rather than crush.
+
+   So: at 1536 and above nothing here applies and the cockpit is untouched.
+   Below it the airway moves under the drug plan — the arrangement approved
+   for tablet — the board takes the full centre, and its cards get a floor of
+   140px, which is wider than the desktop's own 112. A card can no longer be
+   squeezed; when four of them will not fit, the row wraps to two.
+   ═════════════════════════════════════════════════════════════════════════ */
+@media (max-width:1535px){
+  /* THE CENTRE STACKS. Plan first because it is the task, airway next. */
+  .wf-cols{flex-direction:column; gap:12px;}
+  .wf-col-main,.wf-col-side{flex:1 1 auto; width:100%; max-width:none;}
+
+  /* THE FLOOR. auto-fit drops a column rather than shrinking one below
+     140px, so four cards fit while they fit and become two when they do
+     not — no width in between produces an unreadable card. */
+  .tb-row{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+
+  /* THE AIRWAY KEEPS ITS APPROVED 2 x 5. Five columns across a full-width
+     centre looked denser and clipped four values and a label at 1180 and
+     1366 — "NASOPHARYNGEAL" needs 97px and a fifth of 804 leaves 91. Ten
+     items divide evenly into two columns or five; five does not fit, and
+     four would leave two dead cells at the end of the last row. Two columns
+     of wider tiles: same arrangement as the desktop, nothing clipped, no
+     dead cell, and a comfortable touch target on a tablet. */
+  .wf-col-side .awp-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+
+  /* The backup strip and the reference already span the centre; the airway
+     joining them means the column no longer needs its side-column type
+     scale reduced. */
+  #output .wf-col-side .wf-t{font-size:19px;}
+  #output .wf-col-side .wf-n{width:28px; height:28px; font-size:13px;}
+}
+
+/* ── TABLET RAILS ────────────────────────────────────────────────────────
+   Between 1180 and 1535 all three shell columns still exist. They may be
+   narrower here than on a desktop: the centre is doing more work now that
+   the airway has joined it, and neither rail loses a word — the timers keep
+   their type and the crisis list keeps its protocol names. */
+@media (min-width:1180px) and (max-width:1535px){
+  .eng-wrap .ws-grid{grid-template-columns:156px minmax(0,1fr) 292px; gap:12px;}
+  .eng-wrap .ws-grid:has(.crisis-preview:not([hidden])){
+    grid-template-columns:156px minmax(0,1fr) 292px;}
+}
+
+/* ── WHERE THE LABEL BECOMES A HEADING, THE GROUP LOSES ITS COLUMN ──────
+   At 1180 and below the role label already spanned the whole group — and the
+   group still declared three tracks, because a later unconditioned
+   `.tb-grp{grid-template-columns:112px minmax(0,1fr) 34px}` won against the
+   media rule that meant to drop it. So the four cards were auto-placed into
+   the 112px LABEL track and shared it. That, not the viewport, is what made
+   two 54px columns on a phone and one card per row on an iPad: the board was
+   laying itself out inside a label column.
+
+   Two tracks here — the cards and the plus — and the label spans both. */
+@media (max-width:1180px){
+  .tb-grp{grid-template-columns:minmax(0,1fr) 34px; gap:5px;}
+  .tb-grp > .tb-g{grid-column:1 / -1; padding:2px 0;}
+  .tb-row{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+}
+@media (max-width:899px){
+  .wf-col-side .awp-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}

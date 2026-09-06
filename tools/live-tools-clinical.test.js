@@ -100,7 +100,13 @@ const CASE = c => `(() => {
 })()`;
 
 async function openEngine(b, viewport) {
-  const ctx = await b.newContext({ viewport: viewport || { width:1440, height:1150 } });
+  /* 1440 IS A TABLET FOR THIS APP NOW. The centre carries the drug board
+     and the airway side by side only while the board can still hold four
+     cards at the approved 112px, and the arithmetic puts that at 1536:
+     main = viewport - 920 in the three-column shell. Below it the airway
+     stacks under the plan by design, so a suite asserting the DESKTOP
+     composition has to ask at a desktop width. */
+  const ctx = await b.newContext({ viewport: viewport || { width:1536, height:1150 } });
   await ctx.route('**/*', r => {
     const u = r.request().url();
     if (/cdn\.jsdelivr|unpkg/.test(u)) return r.fulfill({status:200,contentType:'text/javascript',body:MOCK});
@@ -2024,7 +2030,7 @@ async function openEngine(b, viewport) {
        bug hides at exactly one weight.                                     */
     console.log('\nONE DOSE, TWO MOUNTS');
     {
-      const v = await openEngine(b, { width:1440, height:1250 });
+      const v = await openEngine(b, { width:1536, height:1250 });
       const cmp = await v.pg.evaluate(`(() => {
         const set = (i,val) => { const e = document.getElementById(i);
           if (e) { e.value = val; e.dispatchEvent(new Event('change',{bubbles:true})); } };
@@ -2211,7 +2217,7 @@ async function openEngine(b, viewport) {
        included, nothing excluded — a value withheld from a cell and still
        sitting in a title attribute is hidden, not withheld. */
     {
-      const v = await openEngine(b, { width:1440, height:1150 });
+      const v = await openEngine(b, { width:1536, height:1150 });
       const r = await v.pg.evaluate(`(() => {
         newCase();
         const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
@@ -2317,7 +2323,7 @@ async function openEngine(b, viewport) {
        withheld — but the clinician is told which field would answer it
        rather than handed a dead end. Real record, nothing injected. */
     {
-      const v = await openEngine(b, { width:1440, height:1150 });
+      const v = await openEngine(b, { width:1536, height:1150 });
       const r = await v.pg.evaluate(`(() => {
         newCase();
         const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };

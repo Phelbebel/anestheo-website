@@ -1488,6 +1488,24 @@ table.dtab-red .dtab-dose{width:18%;}
    dose on screen belongs to the patient in front of them. */
 #app.case-live:not(.pt-open) #acc-patient,
 #app.case-live:not(.pt-open) > .eng-wrap > details.cw-acc{display:none;}
+/* ── THE CASE AND THE EDITOR ARE TWO STATE MACHINES ──────────────────────
+   The rule above folds the patient panel away as soon as the case can be
+   calculated — and "can be calculated" becomes true the moment age and weight
+   are both non-empty, which for weight is after its FIRST digit. Typing "75"
+   removed the panel on the "7": the "5" was swallowed and the case was
+   computed for a 7 kg patient, with every weight-scaled dose on the board
+   scaled to it. ASA and procedure, in the same panel, could not be reached.
+
+   The mistake is using case state as a proxy for editor state. Whether a
+   patient exists and whether the editor is open are independent facts, and
+   only the second one belongs to the clinician. pt-open is the editor's own
+   flag and it already exists; what follows keeps it set for as long as the
+   clinician is working in the panel, so the panel closes when THEY close it.
+
+   Deliberately not focus-driven. Nothing here reads activeElement, blur order
+   or relatedTarget: dismissing the iOS keyboard moves focus to <body> without
+   the clinician having finished, and a rule that folded on that would be the
+   same bug wearing a different hat. One boolean, set by a keystroke. */
 #app.case-live.pt-open > .eng-wrap > details.cw-acc{display:inline-block;}
 /* ══ NEW PATIENT ════════════════════════════════════════════════════════
    A primary case-workflow control, so it sits beside the patient context
@@ -4626,6 +4644,21 @@ function crisisJump(){
   var el = ge('crisis-inline-body') || p;
   if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
 }
+/* ── PT_TYPED: THE CLINICIAN IS WORKING IN THE PANEL ─────────────────────
+   Set by an `input` event that originated inside the patient panel — which is
+   the one unambiguous signal that a person is entering a patient, and the one
+   that does not depend on which element WebKit decides to blur first, on when
+   the keyboard closes, or on touch versus pointer ordering.
+
+   It is cleared in exactly two places: ptToggle() when the clinician closes
+   the panel, and the strip renderer when there is no longer a live case,
+   which is what New Case produces. Nothing else may clear it. */
+var PT_TYPED = false;
+document.addEventListener('input', function (e){
+  var acc = document.getElementById('acc-patient');
+  if (acc && e.target && acc.contains(e.target)) PT_TYPED = true;
+}, true);
+
 window.crisisInline=crisisInline; window.crisisJump=crisisJump;
 /* ── CRISIS RAIL ──────────────────────────────────────────────────────────
    An index, not a second implementation. It renders from the same CRISIS
@@ -4849,7 +4882,14 @@ function ptSummary(){
   if(app){
     var live = !!(v('i-age') && v('i-weight'));
     app.classList.toggle('case-live', live);
-    if(!live) app.classList.remove('pt-open');
+    /* NO LIVE CASE, NO EDITOR STATE TO REMEMBER — this is the New Case path. */
+    if(!live){ app.classList.remove('pt-open'); PT_TYPED = false; }
+    /* A LIVE CASE NEVER CLOSES AN EDITOR SOMEONE IS TYPING IN. The panel that
+       is folded here is the one the clinician has not touched: a restored
+       case, or a case whose values arrived from somewhere other than the
+       keyboard. Once they have typed into it, it is theirs until they close
+       it — see ptToggle(). */
+    else if(PT_TYPED) app.classList.add('pt-open');
   }
   var cs=ge('case-state');
   if(cs){
@@ -5542,6 +5582,9 @@ window.noticeToggle = noticeToggle;
 function ptToggle(){
   var w = document.getElementById('app'); if(!w) return;
   var open = w.classList.toggle('pt-open');
+  /* CLOSING IS FINAL. Without this the next compute() would see PT_TYPED and
+     reopen the panel the clinician just folded. */
+  if(!open) PT_TYPED = false;
   var b = ge('pt-sum'); if(b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
   var c = ge('case-state'); if(c) c.setAttribute('aria-expanded', open ? 'true' : 'false');
   /* The form folds on a desktop now too, so opening it there should also put

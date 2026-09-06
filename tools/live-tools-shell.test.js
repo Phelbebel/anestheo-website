@@ -100,7 +100,13 @@ const fill = (pg, o) => pg.evaluate(o => {
      listed to match a picture. */
   const b = await chromium.launch({ executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   try {
-    const s = await open(b, 1440, 1250);
+    /* 1536, NOT 1440. The airway sits beside the drug board only while the
+       board can still hold four cards at the approved 112px width, which the
+       shell's own arithmetic puts at 1536 — below it the airway stacks under
+       the plan by design. A suite asserting the DESKTOP composition has to
+       ask at a desktop width; the responsive matrix further down still
+       exercises 1440 and everything under it. */
+    const s = await open(b, 1536, 1250);
     await fill(s.pg, ADULT);
     await s.pg.waitForTimeout(600);
 
@@ -705,14 +711,14 @@ const fill = (pg, o) => pg.evaluate(o => {
       return H();
     })()`);
     const availTall = await (async () => {
-      await s.pg.setViewportSize({ width:1440, height:1700 });
+      await s.pg.setViewportSize({ width:1536, height:1700 });
       await s.pg.waitForTimeout(400);
       const r = await s.pg.evaluate(`(() => {
         const i = document.querySelector('.wf-full .idref');
         return { cap:Math.round(parseFloat(getComputedStyle(i).maxHeight)),
                  h:Math.round(i.getBoundingClientRect().height) };
       })()`);
-      await s.pg.setViewportSize({ width:1440, height:1250 });
+      await s.pg.setViewportSize({ width:1536, height:1250 });
       await s.pg.waitForTimeout(400);
       return r;
     })();
