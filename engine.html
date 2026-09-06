@@ -3452,9 +3452,15 @@ var DREF_LABEL = {
      skips any class with no visible drug. */
   inhalational:'Inhalational agents', antiemetic:'Antiemetics'
 };
-/* Hypnotics is one filter over two classes; the badge on each row still says
-   which of the two it is. */
-var DREF_MERGE = { benzo:'induction' };
+/* Hypnotics is one filter over several classes; the badge on each row still
+   says which of them it is. Alpha-2 joins benzodiazepine here: the filter is
+   "the things that make a patient sleep", the badge is what the drug actually
+   is, and dexmedetomidine is looked for under Hypnotics whatever colour its
+   own class carries. Without this it would have had no chip at all — the
+   chip list is built from the classes present, and a class with no entry in
+   the order below is skipped, which would have left it reachable only
+   through All and search. */
+var DREF_MERGE = { benzo:'induction', alpha2:'induction' };
 function drefCat(d){ var c = d.pclass || 'other'; return DREF_MERGE[c] || c; }
 
 function drefWeight(){

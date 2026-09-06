@@ -325,6 +325,13 @@ if (fs.existsSync(SNAP)) {
        suxamethonium also changed use — the label was "RSI" and the reviewed
           record states the dose for intubation
 
+     Touched a second time, and only two fields on one row: dexmedetomidine's
+     `pclass` and `badge` in the five induction buckets. An alpha-2 agonist
+     had been carrying the induction gold because that is the group it is
+     filed under; the colour now says what its own klass has said all along.
+     No dose, unit, weight basis, route, population or warning moved with it —
+     the diff over all 125 rows is exactly those ten fields on that one drug.
+
      From here it is a drift guard again: anything that moves without a
      matching reviewed record behind it fails here. */
   t('the render baseline matches, field for field, at every weight',
@@ -1031,9 +1038,15 @@ t('...and it is still withheld from a child by the derived class',
 t('...while an adult still sees it',
   CC.visibleDosesInGroup('induction',70,ADULT).filter(r => r.id === 'drug.midazolam')
     .every(r => !r.withheld));
-t('dexmedetomidine: dose, pclass and provenance all unchanged',
+/* pclass moved from the induction gold to the alpha-2 lavender — display
+   metadata, which is what this block of the model is for. The dose, the
+   route, the population and the provenance are what "untouched" means here,
+   and they are asserted field by field. */
+t('dexmedetomidine: dose and provenance unchanged, colour reclassified',
   dexH.doses.length === 1 && dexH.doses[0].low === 0.2 && dexH.doses[0].high === 0.7 &&
-  dexH.pclass === 'induction' && dexH.doses[0].populationClass === undefined);
+  dexH.doses[0].unit === 'mcg/kg/h' && dexH.doses[0].population === 'adult' &&
+  dexH.provenance.state === 'existing-unchanged' &&
+  dexH.pclass === 'alpha2' && dexH.doses[0].populationClass === undefined);
 t('sevoflurane still proposed-unverified with no dose',
   CC.byId('drug.sevoflurane').doses.length === 0 &&
   CC.byId('drug.sevoflurane').provenance.state === 'proposed-unverified');
@@ -1282,7 +1295,7 @@ t('...four members each, sixteen slots in the frozen order',
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []).join() ===
   ['midazolam','lidocaine-iv','atropine','glycopyrrolate',
    'fentanyl','morphine','remifentanil','alfentanil',
-   'propofol','etomidate','ketamine','thiopental',
+   'propofol','etomidate','ketamine','dexmedetomidine',
    'rocuronium','atracurium','mivacurium','suxamethonium'].join(),
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []));
 t('...every canonicalId it names resolves to a real record',
@@ -1331,6 +1344,73 @@ t('...and that colour is one ClinicalContent already defines',
   t('...and clinical-index.js declares no board composition',
     !/INDUCTION_PLAN/.test(code(read('clinical-index.js'))));
 }
+
+/* ── THE FOURTH HYPNOSIS SLOT ────────────────────────────────────────────
+   Thiopental held it as a display member and dexmedetomidine holds it now.
+   That is a composition edit and nothing else: thiopental is not deleted from
+   anywhere it was (it was in no canonical surface to begin with), and
+   dexmedetomidine gains no dose, no evidence and no eligibility by being put
+   on a board — it arrives with exactly the record it already had. */
+t('the board names dexmedetomidine, not thiopental, in the fourth hypnosis slot',
+  (() => { const hyp = CAT.rows.find(r => r.key === 'hypnosis');
+    return hyp.members[3].key === 'dexmedetomidine' &&
+           hyp.members[3].canonicalId === 'drug.dexmedetomidine' &&
+           hyp.members.every(m => m.key !== 'thiopental'); })(),
+  CAT.rows.find(r => r.key === 'hypnosis').members.map(m => m.key));
+t('...and thiopental is still in no canonical surface, exactly as before',
+  !CC.byId('drug.thiopental') &&
+  CC.DRUGS.every(d => d.name !== 'Thiopental') &&
+  CC.search('Thiopental').every(r => ((r.item||r).name) !== 'Thiopental'));
+
+/* AN ALPHA-2 AGONIST IS NOT A CONVENTIONAL HYPNOTIC, and the colour says so
+   without any dose moving. */
+t('the alpha-2 class exists and dexmedetomidine carries it',
+  !!CC.PCLASS.alpha2 && CC.PCLASS.alpha2.color === '#B39DDB' &&
+  CC.byId('drug.dexmedetomidine').pclass === 'alpha2',
+  { pclass:CC.byId('drug.dexmedetomidine').pclass, colour:CC.PCLASS.alpha2 &&
+    CC.PCLASS.alpha2.color });
+/* Lavender, not the vasopressor violet: far enough apart in CIELAB that no
+   one has to tell them apart by memory. */
+t('...and it is separable from every colour already in the palette',
+  (() => {
+    const hex = h => h.replace('#','').match(/../g).map(v => parseInt(v,16));
+    const lin = c => { c /= 255; return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
+    const lab = h => { const [r,g,b] = hex(h).map(lin);
+      const X = (0.4124*r+0.3576*g+0.1805*b)/0.95047, Y = 0.2126*r+0.7152*g+0.0722*b,
+            Z = (0.0193*r+0.1192*g+0.9505*b)/1.08883;
+      const f = t2 => t2 > 0.008856 ? Math.cbrt(t2) : (7.787*t2 + 16/116);
+      return [116*f(Y)-16, 500*(f(X)-f(Y)), 200*(f(Y)-f(Z))]; };
+    const dE = (a,b) => { const A2 = lab(a), B2 = lab(b);
+      return Math.sqrt(A2.reduce((s2,v,i) => s2 + (v-B2[i])*(v-B2[i]), 0)); };
+    const mine = CC.PCLASS.alpha2.color;
+    const others = Object.keys(CC.PCLASS).filter(k => k !== 'alpha2')
+      .map(k => dE(mine, CC.PCLASS[k].color));
+    return Math.min.apply(null, others) > 12; })(),
+  'lavender #B39DDB against vasopressor #C79BFF');
+/* THE RECORD ITSELF IS UNTOUCHED. Colour is display metadata; this is the
+   sentence that proves the dose, the route and the population did not move
+   when the colour did. */
+t('...and its clinical record is exactly what it was',
+  (() => { const d = CC.byId('drug.dexmedetomidine');
+    return d.group === 'induction' && d.doses.length === 1 &&
+      d.doses[0].label === 'Sedation' && d.doses[0].route === 'IV' &&
+      d.doses[0].low === 0.2 && d.doses[0].high === 0.7 &&
+      d.doses[0].unit === 'mcg/kg/h' && d.doses[0].population === 'adult' &&
+      d.doses[0].phase === undefined && d.doses[0].evidence === undefined &&
+      d.doses[0].populationClass === undefined &&
+      d.provenance.state === 'existing-unchanged'; })(),
+  JSON.stringify(CC.byId('drug.dexmedetomidine').doses));
+/* AND IT IS STILL REACHABLE. A class the reference has no chip for would have
+   left it findable only through All and search. */
+t('...and the reference still files it under Hypnotics',
+  /DREF_MERGE = \{[^}]*alpha2:\s*'induction'/.test(code(read('engine.html'))),
+  'the chip is the filter; the badge is the class');
+/* A CHILD GETS NO NUMBER FOR IT, before and after the move alike. */
+t('...and a child still gets no dexmedetomidine number',
+  (() => { const r = ctxRow('drug.dexmedetomidine', 15, CHILD, ['induction', LEG]);
+    return r && r.withheld === true && r.val === '' &&
+      !/0\.2|0\.7/.test(JSON.stringify(r)); })(),
+  ctxRow('drug.dexmedetomidine', 15, CHILD, ['induction', LEG]).coverage);
 
 /* THE REVIEWED RECORDS ARE UNCHANGED BY ALL OF THIS. */
 t('the reviewed agents still resolve exactly as before',

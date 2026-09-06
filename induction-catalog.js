@@ -77,8 +77,14 @@
           { key:'etomidate',  canonicalId:null, name:'Etomidate',
             visualClass:'induction' },
           { key:'ketamine',   canonicalId:'drug.ketamine' },
-          { key:'thiopental', canonicalId:null, name:'Thiopental',
-            visualClass:'induction' }
+          /* THE FOURTH HYPNOSIS SLOT IS DEXMEDETOMIDINE. Thiopental held it
+             as a display member with no record; it is not deleted from
+             anything, it simply stops being one of the four cards the board
+             opens with, and the row's [+] is how it comes back. This member
+             has a canonical record, so its name, its colour and anything it
+             prints come from ClinicalContent — including the fact that a
+             child gets no number for it. */
+          { key:'dexmedetomidine', canonicalId:'drug.dexmedetomidine' }
         ] },
 
       { key:'nmb', label:'Neuromuscular blockade', role:'nmb', nmb:true,

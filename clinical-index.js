@@ -104,6 +104,15 @@ var PCLASS = {
      ward shorthand and reads as a sedative to anyone outside theatre. */
   nmb:          { label:'Neuromuscular blocker', color:'#FF7A6B', short:'NMB' },
   vasopressor:  { label:'Vasopressor / inotrope', color:'#C79BFF', short:'VASOPRESSOR' },
+  /* AN ALPHA-2 AGONIST IS NOT A CONVENTIONAL HYPNOTIC. Dexmedetomidine sat in
+     the induction gold because that is the group it is filed under, which put
+     a sedative that does not induce anaesthesia in the same colour as
+     propofol. Its own klass has said 'Alpha-2 agonist' all along; this is the
+     colour catching up with it. Lavender rather than the vasopressor violet:
+     dE 21.6 apart in CIELAB, against 7.9 for the palette's existing closest
+     pair, and 7.4:1 on the pane ground. No dose, unit, weight basis, warning
+     or group changes — this is the display metadata this block is for. */
+  alpha2:       { label:'Alpha-2 agonist / sedative', color:'#B39DDB', short:'ALPHA-2' },
   anticholinergic:{ label:'Anticholinergic', color:'#4FE39B', short:'ANTICHOLINERGIC' },
   local:        { label:'Local anaesthetic', color:'#C3D2CD', short:'LOCAL' },
   uterotonic:   { label:'Uterotonic',     color:'#FFFFFF', short:'UTEROTONIC' },
@@ -416,7 +425,7 @@ var DRUGS = [
   provenance:{ state:'existing-unchanged', verbatim:'Infusion · 0.05–0.2 mcg/kg/min' } },
 
 { id:'drug.dexmedetomidine', name:'Dexmedetomidine', group:'induction',
-  pclass:'induction',
+  pclass:'alpha2',
   aliases:['dexmedetomidine','dexmed','precedex','dexdor','dex'],
   klass:'Alpha-2 agonist',
   indications:['sedation','procedural sedation','awake fibreoptic'],

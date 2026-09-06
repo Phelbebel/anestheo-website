@@ -937,7 +937,7 @@ async function openEngine(b, viewport) {
        reviewed. What must not appear is anything a clinician could act on:
        no figure, no unit, no route, no preparation, no patient amount. */
     const ui = await s.pg.evaluate(`(() => {
-      const NAMES = ['Etomidate','Thiopental','Alfentanil','Atracurium',
+      const NAMES = ['Etomidate','Alfentanil','Atracurium',
                      'Mivacurium','Atropine','Glycopyrrolate'];
       const board = document.querySelector('#induction-host .tb');
       const out = {};
@@ -976,7 +976,7 @@ async function openEngine(b, viewport) {
           return Math.round(b.width) + 'x' + Math.round(b.height); }));
       return out;
     })()`);
-    const PC = { Etomidate:'#FFD84D', Thiopental:'#FFD84D',
+    const PC = { Etomidate:'#FFD84D',
                  Alfentanil:'#6BB6FF',
                  Atracurium:'#FF7A6B', Mivacurium:'#FF7A6B',
                  Atropine:'#4FE39B', Glycopyrrolate:'#4FE39B' };
@@ -992,7 +992,7 @@ async function openEngine(b, viewport) {
       t('  ' + n + ': ...and is not a canonical record anywhere',
         !!c && c.canonicalRef === null, c && c.canonicalRef);
     });
-    t('none of the seven is in the drug reference', ui._ref.length === 0, ui._ref);
+    t('none of the display members is in the drug reference', ui._ref.length === 0, ui._ref);
     t('...nor in canonical search', ui._search.length === 0, ui._search);
     t('...nor in DRUGS at all', ui._model.length === 0, ui._model);
     /* THE CELLS ARE THE SAME CELLS. A display member's card is the same box
@@ -1005,6 +1005,128 @@ async function openEngine(b, viewport) {
       ui._rows.length === 4 &&
       ui._rows.every(r => r.length === 4 && new Set(r).size === 1), ui._rows);
 
+    /* ── THE FOURTH HYPNOSIS SLOT ───────────────────────────────────────
+       Thiopental held it as a display member; dexmedetomidine holds it now.
+       That is a board-composition edit: nothing was added to or removed from
+       the clinical model, thiopental is exactly as absent from every canonical
+       surface as it was, and dexmedetomidine arrives with the record it
+       already had — including the fact that a child gets no number from it.
+
+       Its colour is the one thing that is deliberately NOT the row's: three
+       gold hypnotics and one lavender alpha-2, because an alpha-2 agonist
+       does not induce anaesthesia and the board should not imply it does. */
+    const hyp = await s.pg.evaluate(`(() => {
+      const CC = window.ClinicalContent;
+      const rows = [...document.querySelectorAll('#induction-host .tb-grp')];
+      const row = rows[2];
+      const cards = [...row.querySelectorAll('.tb-c')];
+      const card = n => cards.find(c => (c.querySelector('.tb-c-n')||{}).textContent === n);
+      const dex = card('Dexmedetomidine');
+      const cell = c => c && { colour:getComputedStyle(c).getPropertyValue('--pc').trim(),
+        drug:c.dataset.drug || null, member:c.dataset.member || null,
+        planKey:c.dataset.planFor, tag:c.tagName,
+        pressed:c.getAttribute('aria-pressed'),
+        coverage:(c.querySelector('.tb-c-cov')||{textContent:''}).textContent.trim(),
+        rule:((c.querySelector('.tb-c-r')||{textContent:''}).textContent||'')
+              .replace(/[ \\t\\n\\r]+/g,' ').trim(),
+        amount:((c.querySelector('.tb-c-a')||{textContent:''}).textContent||'')
+              .replace(/[ \\t\\n\\r]+/g,' ').trim(),
+        digits:/[0-9]/.test(c.textContent),
+        w:Math.round(c.getBoundingClientRect().width),
+        h:Math.round(c.getBoundingClientRect().height) };
+      const out = { label:row.querySelector('.tb-g b').textContent.trim(),
+        names:cards.map(c => (c.querySelector('.tb-c-n')||{}).textContent),
+        colours:cards.map(c => getComputedStyle(c).getPropertyValue('--pc').trim()),
+        sizes:cards.map(c => { const b = c.getBoundingClientRect();
+          return Math.round(b.width) + 'x' + Math.round(b.height); }),
+        plus:row.querySelectorAll('.tb-s').length,
+        dex:cell(dex),
+        /* Thiopental left the board and nothing else. */
+        onBoard: [...document.querySelectorAll('#induction-host .tb-c-n')]
+          .map(e => e.textContent).indexOf('Thiopental') >= 0,
+        thioInModel: CC.DRUGS.some(d => d.name === 'Thiopental'),
+        thioInSearch: CC.search('Thiopental')
+          .some(r => ((r.item||r).name) === 'Thiopental'),
+        thioInRef: [...document.querySelectorAll('#iref-body .dtab-r')]
+          .filter(r => r.textContent.indexOf('Thiopental') >= 0).length,
+        /* Dexmedetomidine did not become anything it was not. */
+        dexRecord: (() => { const d = CC.byId('drug.dexmedetomidine');
+          return { doses:d.doses.length, low:d.doses[0].low, high:d.doses[0].high,
+                   unit:d.doses[0].unit, pop:d.doses[0].population,
+                   pclass:d.pclass, state:d.provenance.state }; })(),
+        dexInRef: [...document.querySelectorAll('#iref-body .dtab-r')]
+          .filter(r => r.textContent.indexOf('Dexmedetomidine') >= 0).length,
+        chips: [...document.querySelectorAll('#iref-cats .dref-cat')]
+          .map(c => c.textContent.replace(/[ \\t\\n\\r]+/g,'')),
+        /* What the canonical selector says for the patient on screen. The
+           card must print that and nothing else — no fabricated amount for a
+           rate, no fallback for a patient the record does not cover. */
+        canonical: (() => {
+          const wt = window.patientContext.anthropometrics.weight;
+          const pop = CC.patientPopulation(window.patientContext);
+          const r = CC.doseRowForContext(CC.byId('drug.dexmedetomidine'), wt, pop,
+                     ['induction', CC.LEGACY_CONTEXT]);
+          return r ? { withheld:!!r.withheld, coverage:r.coverage || '',
+                       doseNum:r.doseNum || '', doseUnit:r.doseUnit || '',
+                       val:r.val || '', unit:r.unit || '' } : null; })() };
+      /* Selectable exactly like the rest. */
+      if (dex) { dex.click();
+        out.selected = cell(card2('Dexmedetomidine'));
+      }
+      function card2(n){ return [...document.querySelectorAll('#induction-host .tb-grp')][2]
+        .querySelectorAll('.tb-c').length
+        ? [...[...document.querySelectorAll('#induction-host .tb-grp')][2]
+            .querySelectorAll('.tb-c')]
+            .find(c => (c.querySelector('.tb-c-n')||{}).textContent === n) : null; }
+      const again = card2('Dexmedetomidine'); if (again) again.click();
+      out.deselected = cell(card2('Dexmedetomidine'));
+      return out;
+    })()`);
+    t('the Hypnosis row is Propofol / Etomidate / Ketamine / Dexmedetomidine',
+      hyp.label === 'Hypnosis' &&
+      hyp.names.join(' / ') === 'Propofol / Etomidate / Ketamine / Dexmedetomidine',
+      hyp.names);
+    /* One box for the four; the absolute size is the viewport's business and
+       the pixel proof's, not this assertion's. */
+    t('...four cards and one control, all one box',
+      hyp.names.length === 4 && hyp.plus === 1 &&
+      new Set(hyp.sizes).size === 1, hyp.sizes);
+    t('...three gold hypnotics and one lavender alpha-2',
+      hyp.colours.slice(0,3).every(c => c.toUpperCase() === '#FFD84D') &&
+      hyp.colours[3].toUpperCase() === '#B39DDB', hyp.colours);
+    t('...and dexmedetomidine is the canonical record, not a display member',
+      hyp.dex.drug === 'drug.dexmedetomidine' && hyp.dex.member === null &&
+      hyp.dex.planKey === 'drug.dexmedetomidine', hyp.dex);
+    /* WHATEVER IT PRINTS CAME OUT OF THE SELECTOR. Withheld and the card
+       carries the coverage state and no figure at all; eligible and the card
+       carries that record's rule, and an amount only where the record has
+       one — an infusion rate is not multiplied by a weight. */
+    t('...and it prints the canonical selector\'s answer, or nothing',
+      hyp.canonical && (hyp.canonical.withheld
+        ? (hyp.dex.coverage === hyp.canonical.coverage &&
+           hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false)
+        : (hyp.dex.coverage === '' &&
+           hyp.dex.rule.indexOf(hyp.canonical.doseNum || hyp.canonical.val) === 0 &&
+           hyp.dex.amount === '')),
+      { card:hyp.dex, model:hyp.canonical });
+    t('...and it selects and deselects like every other card',
+      hyp.dex.pressed === 'false' && hyp.selected.pressed === 'true' &&
+      hyp.deselected.pressed === 'false',
+      [hyp.dex.pressed, hyp.selected.pressed, hyp.deselected.pressed]);
+    /* THIOPENTAL LEFT THE BOARD AND NOTHING ELSE HAPPENED TO IT. */
+    t('thiopental is off the board, and was in no canonical surface before or after',
+      hyp.onBoard === false && hyp.thioInModel === false &&
+      hyp.thioInSearch === false && hyp.thioInRef === 0, hyp);
+    /* AND DEXMEDETOMIDINE GAINED NOTHING BY BEING PUT ON A BOARD. */
+    t('dexmedetomidine\'s record is untouched by the board change',
+      hyp.dexRecord.doses === 1 && hyp.dexRecord.low === 0.2 &&
+      hyp.dexRecord.high === 0.7 && hyp.dexRecord.unit === 'mcg/kg/h' &&
+      hyp.dexRecord.pop === 'adult' && hyp.dexRecord.state === 'existing-unchanged' &&
+      hyp.dexRecord.pclass === 'alpha2', hyp.dexRecord);
+    t('...and it is still one row of the drug reference, still under Hypnotics',
+      hyp.dexInRef === 1 &&
+      hyp.chips.some(c => c.indexOf('Hypnotics5') === 0), hyp.chips);
+
     /* ── SELECTION IS INTENT, AND INTENT NEEDS NO EVIDENCE ──────────────
        Clicking a drug declares that the clinician is using it. Whether the
        model holds a reviewed dose for it is a different fact, and making the
@@ -1013,7 +1135,7 @@ async function openEngine(b, viewport) {
        seven without a record light exactly as their neighbours do and print
        exactly as much medicine as before, which is none. */
     const sel = await s.pg.evaluate(`(() => {
-      const NAMES = ['Etomidate','Thiopental','Alfentanil','Atracurium',
+      const NAMES = ['Etomidate','Alfentanil','Atracurium',
                      'Mivacurium','Atropine','Glycopyrrolate'];
       const CC = window.ClinicalContent;
       const find = n => [...document.querySelectorAll('#induction-host .tb-c')]
