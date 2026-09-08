@@ -2611,8 +2611,9 @@ html.lt-immersive body{padding-top:0 !important;}
    which is why the band has a floor as well as a ceiling.
 
    FOUR COLUMNS, DECLARED. The card width is then whatever four of them make
-   of the row — 127px at the narrowest tablet, which is above the approved
-   desktop's own 112 and inside the 110-135 the composition is read at. A
+   of the row — measured at 116px on an iPad Pro 11" in landscape, the
+   narrowest tablet in the band, which is above the approved desktop's own 112
+   and inside the 110-135 the composition is read at. A
    clinical row does not wrap; if a width cannot hold four readable cards the
    phone rule below takes over and gives two.
    ═════════════════════════════════════════════════════════════════════════ */
@@ -2626,15 +2627,27 @@ html.lt-immersive body{padding-top:0 !important;}
   .tb-row{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 
-/* ── BACK IS A MOBILE AFFORDANCE ─────────────────────────────────────────
-   On a desktop the crisis rail's own index sits directly above the protocol
-   and the switcher chips name every protocol, so a Back control is a third
-   way to do what two things already do — and the desktop cockpit is frozen to
-   the pixel. Below the rail breakpoint the index is not rendered at all and
-   the protocol is a sheet: there, Back is the only way to the list, so there
-   it appears. Same markup at every width; only the reveal is conditional. */
+/* ── BACK APPEARS WHEREVER THE LIST WITHDRAWS ────────────────────────────
+   The first version of this said the desktop rail's index "sits directly
+   above the protocol", so a Back control there would be a third way to do
+   what two things already do. That was wrong, and it was wrong in the range
+   that matters most. Opening a protocol runs
+
+       .ws-right:has(.crisis-preview:not([hidden])) #ws-crisis{display:none}
+
+   which withdraws the index at EVERY width where the rail exists — including
+   1180 to 1535. So on an iPad at 1366, 1194 or 1180 the list disappeared, the
+   protocol became the only surface, and the way back was hidden because the
+   reveal stopped at 1179. That is the same navigation dead end the phone had,
+   moved onto a tablet.
+
+   The rule is not "below the sheet breakpoint" but "wherever the list is
+   taken away and the protocol is left as the active surface" — everything
+   under the frozen desktop. At 1536 and above the approved protocol header is
+   unchanged and the control stays hidden. Same markup at every width; only
+   the reveal is conditional. */
 .cpv-back{display:none;}
-@media (max-width:1179px){
+@media (max-width:1535px){
   .cpv-back{display:inline-flex; align-items:center; gap:5px; flex:0 0 auto;
     min-height:34px; padding:0 10px 0 8px; margin-right:2px;
     background:rgba(255,255,255,.06); border:1px solid rgba(255,138,114,.30);

@@ -721,6 +721,111 @@ const BOARD_PROBE = `(() => {
     t('...and no third-party CDN URL was rewritten',
       cdn.every(u => !/\?v=2026\./.test(u)), cdn.slice(0,2));
   }
+
+  /* ── 8. BACK EXISTS WHEREVER THE LIST WITHDRAWS ────────────────────────
+     The first version revealed Back only below 1179, on the reasoning that a
+     desktop rail keeps its index above the protocol. It does not: opening a
+     protocol runs
+
+         .ws-right:has(.crisis-preview:not([hidden])) #ws-crisis{display:none}
+
+     at every width where the rail exists — 1180 to 1535 included. So an iPad
+     at 1366, 1194 or 1180 lost the list, kept the protocol, and had the way
+     back hidden. The reveal follows the withdrawal, not the sheet. */
+  console.log('\n8. BACK IS THERE ON A TABLET TOO, AND FOCUS LANDS IN THE LIST');
+  for (const [name, w, h, ua] of [
+    ['iPad 1366', 1366, 1024, IPAD], ['iPad 1194', 1194, 834, IPAD],
+    ['iPad 1180', 1180, 820, IPAD],  ['iPad 1024', 1024, 768, IPAD],
+    ['desktop 1536', 1536, 900, undefined]
+  ]) {
+    const s = await open(b, w, h, ua);
+    const P = name + ': ';
+    await s.pg.evaluate(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+      set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+      compute(); setDomain('induction');
+    });
+    await s.pg.waitForTimeout(400);
+    const read = () => s.pg.evaluate(`(() => {
+      const vis = e => { if (!e) return false; const cs = getComputedStyle(e);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || e.hidden) return false;
+        const bb = e.getBoundingClientRect(); return bb.width > 1 && bb.height > 1; };
+      const host = document.getElementById('crisis-preview');
+      const a = document.activeElement;
+      return {
+        list: vis(document.getElementById('ws-crisis')), prev: vis(host),
+        back: vis(host.querySelector('.cpv-back')),
+        close: vis(host.querySelector('.cpv-x')),
+        chooser: host.querySelectorAll('.cpv-p').length,
+        protocol: (host.querySelector('.crisis-emg-t') || { textContent:'' })
+                    .textContent.replace(/[ \\t\\n]+/g,' ').trim(),
+        nodes: document.querySelectorAll('#crisis-preview').length,
+        focusTag: a ? a.tagName : null,
+        focusIsChooserItem: !!(a && a.classList && a.classList.contains('cpv-p')),
+        focusDetached: !document.contains(a),
+        focusIsClose: !!(a && a.classList && a.classList.contains('cpv-x')),
+        scrollY: Math.round(window.scrollY),
+        weight: (window.patientContext && window.patientContext.anthropometrics)
+          ? window.patientContext.anthropometrics.weight : null };
+    })()`);
+    const go = fn => s.pg.evaluate(fn).then(() => s.pg.waitForTimeout(350));
+
+    await go(() => crisisPreview(null));
+    const list = await read();
+    await go(() => crisisPreviewByKey('mh'));
+    const mh = await read();
+    const roots = x => (x.list ? 1 : 0) + (x.prev ? 1 : 0);
+
+    /* THE LIST REALLY DOES WITHDRAW HERE — which is the whole reason Back
+       has to exist at this width. */
+    t(P + 'opening a protocol takes the list away',
+      mh.list === false && mh.prev === true, { list:mh.list, prev:mh.prev });
+    t(P + '...leaving exactly one crisis surface', roots(mh) === 1, roots(mh));
+    if (w >= 1536) {
+      t(P + '...and the frozen desktop keeps its header without Back',
+        mh.back === false && mh.close === true, mh);
+    } else {
+      t(P + '...and Back IS reachable', mh.back === true && mh.close === true, mh);
+    }
+    await go(() => crisisPreviewBack());
+    const back = await read();
+    t(P + 'back returns the same surface to the list',
+      roots(back) === 1 && back.chooser === 8 && back.protocol === '' &&
+      back.nodes === 1, back);
+    /* FOCUS FOLLOWS THE EYE. crisisPreview(null) focuses its own close button
+       unless told not to, which put a keyboard user one keystroke from
+       leaving Crisis after asking to step back into it. */
+    t(P + '...and focus lands on the first protocol, not on Close',
+      back.focusIsChooserItem === true && back.focusIsClose === false &&
+      back.focusDetached === false && back.focusTag !== 'BODY',
+      { tag:back.focusTag, chooserItem:back.focusIsChooserItem,
+        close:back.focusIsClose, detached:back.focusDetached });
+    t(P + '...without moving the page behind it', back.scrollY === 0, back.scrollY);
+    await go(() => crisisPreviewByKey('arrest'));
+    const arrest = await read();
+    await go(() => crisisPreviewBack());
+    const back2 = await read();
+    t(P + 'a second protocol and a second back behave the same',
+      roots(arrest) === 1 && /Cardiac/i.test(arrest.protocol) &&
+      roots(back2) === 1 && back2.chooser === 8 &&
+      back2.focusIsChooserItem === true, { arrest:arrest.protocol, back:back2.chooser });
+    t(P + '...with no accumulation and the patient untouched',
+      [list, mh, back, arrest, back2].every(x => x.nodes === 1 && x.weight === 75),
+      [list, mh, back, arrest, back2].map(x => x.nodes).join(''));
+    await s.ctx.close();
+  }
+
+  /* The measurement in the source has to be the measurement that was taken. */
+  {
+    const css = fs.readFileSync('/home/user/anestheo-website/live-tools.css', 'utf8');
+    t('the density comment quotes the measured card width, not a predicted one',
+      /116px on an iPad Pro 11/.test(css) && !/127px at the narrowest tablet/.test(css));
+    t('...and the Back reveal is scoped to where the list withdraws',
+      /\.cpv-back\{display:none;\}\s*@media \(max-width:1535px\)/.test(
+        css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\n\s*/g, '')));
+  }
   await b.close();
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
   process.exit(fail ? 1 : 0);

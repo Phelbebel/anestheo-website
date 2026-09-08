@@ -4627,10 +4627,20 @@ function crisisPreview(i, takeFocus){
 
 /* PROTOCOL -> LIST, inside the same host. Not close, not the full library,
    not a domain change: the chooser is a state crisisPreview() already has, so
-   Back is that state and nothing more. Focus goes to the chooser so a screen
-   reader lands where the eye does. */
+   Back is that state and nothing more.
+
+   THE FOCUS IS PLACED HERE, NOT LEFT TO THE CHOOSER. crisisPreview(null)
+   focuses its own close button unless told otherwise, so pressing Back sent a
+   keyboard or screen-reader user to "Close Crisis Center" — one keystroke from
+   leaving Crisis entirely, when they had just asked to go one step back into
+   it. takeFocus:false suppresses that, and the first protocol in the returned
+   list takes the focus instead: the thing they came back to choose from.
+   preventScroll because the page behind must not move. */
 function crisisPreviewBack(){
-  crisisPreview(null);
+  crisisPreview(null, false);
+  var host = ge('crisis-preview');
+  var first = host && host.querySelector('.cpv-p');
+  if(first){ try { first.focus({ preventScroll:true }); } catch(e){ first.focus(); } }
 }
 window.crisisPreviewBack = crisisPreviewBack;
 
