@@ -47,11 +47,13 @@ const IOS  = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit
 const IPAD = 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 ' +
              '(KHTML, like Gecko) Version/17.5 Safari/604.1';
 
-/* THE FLOOR. The approved desktop card is 112px and four of them fit only at
-   1536 and above; below that the board reflows rather than shrinking, and no
-   responsive card may be narrower than the desktop's own. 140 is the declared
-   minimum and is what the CSS grid is given as its minmax floor. */
-const MIN_CARD = 140;
+/* THE FLOOR. Four cards on one line is the clinical composition and it takes
+   priority over any particular card width — a row that wraps to 3+1 has an
+   orphan drug and a role label stretched over two rows, which is a worse
+   reading than a narrower card. The approved desktop card is 112px, so 110 is
+   the floor below which the tablet is no longer showing the composition it
+   was approved at. Phones drop to two per line instead. */
+const MIN_CARD = 110;
 
 async function open(b, w, h, ua) {
   const ctx = await b.newContext({ viewport:{ width:w, height:h }, deviceScaleFactor:1,
@@ -131,6 +133,26 @@ const BOARD_PROBE = `(() => {
     maxRoleLines: Math.max.apply(null,
       [...document.querySelectorAll('#induction-host .tb-g b')].map(lines)),
     airwayTiles: document.querySelectorAll('.awp').length,
+    /* cards sharing a y are one visual line; "4" is one line of four and
+       "3+1" is a wrap */
+    perRow: [...document.querySelectorAll('#induction-host .tb-row')].map(rw => {
+      const ys = {};
+      [...rw.querySelectorAll('.tb-c')].forEach(c => {
+        const y = Math.round(c.getBoundingClientRect().y); ys[y] = (ys[y]||0) + 1; });
+      return Object.keys(ys).sort((a,b) => a - b).map(k => ys[k]).join('+'); }),
+    roleH: Math.max.apply(null,
+      [...document.querySelectorAll('#induction-host .tb-g')].map(e => Math.round(e.getBoundingClientRect().height))),
+    rowH: Math.max.apply(null,
+      [...document.querySelectorAll('#induction-host .tb-row')].map(e => Math.round(e.getBoundingClientRect().height))),
+    roleTallerThanRow: (() => {
+      const g = [...document.querySelectorAll('#induction-host .tb-grp')];
+      return g.some(x => {
+        const lab = x.querySelector('.tb-g'), row = x.querySelector('.tb-row');
+        if (!lab || !row) return false;
+        const c = row.querySelector('.tb-c'); if (!c) return false;
+        /* a label taller than one card means the row beneath it wrapped */
+        return Math.round(lab.getBoundingClientRect().height) >
+               Math.round(c.getBoundingClientRect().height) + 8; }); })(),
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     /* the airway must not be squeezed beside the board when the board needs
        the width; below the desktop it sits under it */
@@ -178,6 +200,20 @@ const BOARD_PROBE = `(() => {
       { cards:m.cards, rows:m.rows, plus:m.plus });
     t(P + '...no card below the ' + MIN_CARD + 'px floor',
       m.minWidth >= MIN_CARD, { min:m.minWidth, widths:m.widths });
+    /* NO ORPHAN DRUG. A tablet row is four cards on ONE line; a phone row is
+       two and two, which is the approved phone treatment and not a wrap. What
+       is forbidden is an uneven break — 3+1 leaves the fourth drug stranded
+       under the first three and stretches the role label over both lines,
+       which is exactly what auto-fit produced between 1181 and 1299. */
+    const EXPECT = w >= 740 ? '4' : '2+2';
+    t(P + '...every clinical row breaks evenly, with no orphan card',
+      m.perRow.every(r => r.split('+').every(n => n === r.split('+')[0])), m.perRow);
+    t(P + '...four across on a tablet, two and two on a phone',
+      m.perRow.every(r => r === EXPECT), { expect:EXPECT, got:m.perRow });
+    /* The label is one card-row high, not a rectangle spanning a wrap. */
+    t(P + '...the role label is not stretched over a wrapped row',
+      m.roleTallerThanRow === false,
+      { role:m.roleH, row:m.rowH });
     t(P + '...no drug name broken over more than two lines',
       m.maxNameLines <= 2, m.maxNameLines);
     t(P + '...no role label broken over more than two lines',
@@ -470,6 +506,220 @@ const BOARD_PROBE = `(() => {
     t('the editor flag is set by a keystroke', flag === true);
     t('...and nothing about focus decides whether the editor is open',
       focusDriven === false);
+  }
+
+  /* ── 5. ONE CRISIS SURFACE, AT EVERY WIDTH ─────────────────────────────
+     A report described a phone showing the protocol card with the original
+     Crisis Center still rendered underneath it. On this build that does not
+     happen at any width — below 1180 the list is not rendered at all, and at
+     and above it the CSS withdraws the list when a protocol opens. This pins
+     the property so it stays true, and so that if it ever DOES duplicate the
+     suite names the width. */
+  console.log('\n5. THE CRISIS CENTER IS ONE SURFACE');
+  {
+    const VIS = `(e => { if (!e) return false; const cs = getComputedStyle(e);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || e.hidden) return false;
+      const b = e.getBoundingClientRect(); return b.width > 1 && b.height > 1; })`;
+    for (const [name, w, h, ua] of [
+      ['iPhone 390', 390, 844, IOS], ['iPhone 393', 393, 852, IOS],
+      ['iPhone 430', 430, 932, IOS], ['iPad 834', 834, 1194, IPAD],
+      ['iPad 1194', 1194, 834, IPAD], ['desktop 1536', 1536, 900, undefined]
+    ]) {
+      const s = await open(b, w, h, ua);
+      const P = name + ': ';
+      await s.pg.evaluate(() => {
+        newCase();
+        const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+        set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+        set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+        compute(); setDomain('induction');
+      });
+      await s.pg.waitForTimeout(400);
+      const count = async () => s.pg.evaluate(`(() => {
+        const vis = ${VIS};
+        return { list: vis(document.getElementById('ws-crisis')),
+                 prev: vis(document.getElementById('crisis-preview')),
+                 listNodes: document.querySelectorAll('#ws-crisis').length,
+                 prevNodes: document.querySelectorAll('#crisis-preview').length,
+                 title: (document.querySelector('#crisis-preview .crisis-emg-t') ||
+                         { textContent:'' }).textContent.replace(/[ \\t\\n]+/g,' ').trim() };
+      })()`);
+      const open1 = k => s.pg.evaluate(k => {
+        if (window.crisisPreviewByKey) return crisisPreviewByKey(k);
+      }, k);
+      /* list -> MH -> back -> Cardiac Arrest -> back, twice over */
+      const seen = [];
+      for (let i = 0; i < 2; i++) {
+        await open1('mh');   await s.pg.waitForTimeout(250); seen.push(await count());
+        await s.pg.evaluate(() => crisisPreviewClose()); await s.pg.waitForTimeout(250);
+        seen.push(await count());
+        await open1('arrest'); await s.pg.waitForTimeout(250); seen.push(await count());
+        await s.pg.evaluate(() => crisisPreviewClose()); await s.pg.waitForTimeout(250);
+        seen.push(await count());
+      }
+      t(P + 'never two crisis surfaces at once, through repeated navigation',
+        seen.every(x => !(x.list && x.prev)),
+        seen.map(x => (x.list ? 'list' : '') + (x.prev ? '+protocol' : '')).join(' '));
+      t(P + '...and the DOM never accumulates a second instance',
+        seen.every(x => x.listNodes === 1 && x.prevNodes === 1),
+        seen.map(x => x.listNodes + '/' + x.prevNodes).join(' '));
+      /* opening one protocol then another replaces the content in place */
+      await open1('mh'); await s.pg.waitForTimeout(250);
+      const a = await count();
+      await open1('arrest'); await s.pg.waitForTimeout(250);
+      const c = await count();
+      t(P + '...switching protocol replaces the content in the same surface',
+        /Malignant/i.test(a.title) && /Cardiac/i.test(c.title) &&
+        c.prevNodes === 1 && !(c.list && c.prev), { from:a.title, to:c.title });
+      /* the emergency control cannot mint a second one */
+      await s.pg.evaluate(() => { const e = document.querySelector('.ws-sos, #ws-sos, #cmd-strip .cmd-b');
+        if (e) e.click(); });
+      await s.pg.waitForTimeout(300);
+      const after = await count();
+      t(P + '...and the emergency control creates no duplicate',
+        after.prevNodes === 1 && after.listNodes === 1 && !(after.list && after.prev),
+        after);
+      await s.ctx.close();
+    }
+  }
+
+
+  /* ── 6. BACK AND CLOSE ARE DIFFERENT ACTIONS ───────────────────────────
+     The protocol header carried one control — a X labelled "Close protocol"
+     that closed the whole Crisis Center. On a phone the rail index is not
+     rendered at all, so that left no way from a protocol back to the list of
+     protocols: the only exit was out of Crisis entirely. */
+  console.log('\n6. THE CRISIS SURFACE HAS A BACK AND A CLOSE');
+  for (const [name, w, h] of [['iPhone 390',390,844], ['iPhone 393',393,852],
+                              ['iPhone 430',430,932]]) {
+    const s = await open(b, w, h, IOS);
+    const P = name + ': ';
+    await s.pg.evaluate(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+      set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+      compute(); setDomain('induction');
+    });
+    await s.pg.waitForTimeout(400);
+    const read = () => s.pg.evaluate(`(() => {
+      const vis = e => { if (!e) return false; const cs = getComputedStyle(e);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || e.hidden) return false;
+        const bb = e.getBoundingClientRect(); return bb.width > 1 && bb.height > 1; };
+      const host = document.getElementById('crisis-preview');
+      const back = host.querySelector('.cpv-back'), x = host.querySelector('.cpv-x');
+      return {
+        roots: [document.getElementById('ws-crisis'), host].filter(vis).length,
+        nodes: document.querySelectorAll('#ws-crisis').length +
+               document.querySelectorAll('#crisis-preview').length,
+        header: (host.querySelector('.cpv-h') || { textContent:'' }).textContent.trim(),
+        chooser: host.querySelectorAll('.cpv-p').length,
+        protocol: (host.querySelector('.crisis-emg-t') || { textContent:'' })
+                    .textContent.replace(/[ \\t\\n]+/g,' ').trim(),
+        backVisible: vis(back),
+        backLabel: back ? back.getAttribute('aria-label') : null,
+        closeVisible: vis(x),
+        closeLabel: x ? x.getAttribute('aria-label') : null,
+        weight: (window.patientContext && window.patientContext.anthropometrics)
+          ? window.patientContext.anthropometrics.weight : null,
+        bodyScroll: Math.round(host.querySelector('.cpv-body')
+          ? host.querySelector('.cpv-body').scrollTop : -1) };
+    })()`);
+    const go = fn => s.pg.evaluate(fn).then(() => s.pg.waitForTimeout(350));
+
+    const closed = await read();
+    t(P + 'closed: no crisis surface at all', closed.roots === 0, closed.roots);
+    await go(() => crisisPreview(null));
+    const list = await read();
+    t(P + 'list: one surface, eight protocols, close only',
+      list.roots === 1 && list.chooser === 8 && list.closeVisible === true &&
+      list.backVisible === false, list);
+    await go(() => crisisPreviewByKey('mh'));
+    const mh = await read();
+    t(P + 'protocol: one surface, and it carries BOTH controls',
+      mh.roots === 1 && mh.backVisible === true && mh.closeVisible === true &&
+      /Malignant/i.test(mh.protocol), mh);
+    /* The labels have to say what the buttons do. */
+    t(P + '...back says back, close says close',
+      mh.backLabel === 'Back to Crisis Center' &&
+      mh.closeLabel === 'Close Crisis Center',
+      { back:mh.backLabel, close:mh.closeLabel });
+    t(P + '...and the protocol opens at its own top', mh.bodyScroll <= 0, mh.bodyScroll);
+    await go(() => crisisPreviewBack());
+    const back1 = await read();
+    t(P + 'back: the SAME surface returns to the list',
+      back1.roots === 1 && back1.chooser === 8 && back1.protocol === '' &&
+      back1.backVisible === false, back1);
+    t(P + '...with the patient untouched', back1.weight === 75, back1.weight);
+
+    /* list -> MH -> back -> arrest -> back -> brady -> back -> MH -> close */
+    const seen = [closed, list, mh, back1];
+    for (const k of ['arrest','brady','mh']) {
+      await go(k2 => crisisPreviewByKey(k2), k);
+      seen.push(await read());
+      if (k !== 'mh') { await go(() => crisisPreviewBack()); seen.push(await read()); }
+    }
+    await go(() => crisisPreviewClose());
+    const shut = await read();
+    seen.push(shut);
+    t(P + 'repeated navigation never shows two surfaces',
+      seen.every(x => x.roots <= 1), seen.map(x => x.roots).join(''));
+    t(P + '...and never accumulates a DOM instance',
+      seen.every(x => x.nodes === 2), seen.map(x => x.nodes).join(''));
+    t(P + '...and close ends with nothing open', shut.roots === 0, shut.roots);
+    /* The emergency control must not mint a second one either. */
+    await go(() => { const e = document.querySelector('.ws-sos, #ws-sos'); if (e) e.click(); });
+    const emg = await read();
+    t(P + '...and the emergency control opens one, not two',
+      emg.roots <= 1 && emg.nodes === 2, emg);
+    t(P + '...with no runtime error', s.errs.length === 0, s.errs.slice(0,1));
+    await s.ctx.close();
+  }
+
+  /* Back is a mobile affordance: a desktop has the rail index above the
+     protocol and the switcher beside it, and its cockpit is pixel-frozen. */
+  {
+    const s = await open(b, 1536, 900, undefined);
+    await s.pg.evaluate(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-age-unit','y'); set('i-sex','M');
+      set('i-height','175'); set('i-weight','75'); set('i-asa','II');
+      compute(); setDomain('induction'); crisisPreviewByKey('mh');
+    });
+    await s.pg.waitForTimeout(500);
+    const d = await s.pg.evaluate(() => {
+      const back = document.querySelector('#crisis-preview .cpv-back');
+      return { present: !!back,
+        shown: back ? getComputedStyle(back).display !== 'none' : null,
+        listBack: (() => { const l = document.getElementById('ws-crisis');
+          return !!l; })() }; });
+    t('desktop: the Back control is in the markup but not shown',
+      d.present === true && d.shown === false, d);
+    await s.ctx.close();
+  }
+
+  /* ── 7. ONE RELEASE TOKEN FOR EVERY LOCAL ASSET ────────────────────────
+     The URL of a changed static asset has to change with it. This token sat
+     at 2026.08.21-03 while live-tools.css changed 25 times — and current HTML
+     styled by an August stylesheet is exactly the device report. */
+  console.log('\n7. THE PAGE ASKS FOR ASSETS BY A CURRENT URL');
+  {
+    const html = fs.readFileSync('/home/user/anestheo-website/engine.html', 'utf8');
+    const local = [...html.matchAll(/(?:src|href)="(\/[A-Za-z0-9._/-]+\.(?:js|css))(\?v=([^"]+))?"/g)]
+      .map(m => ({ path:m[1], token:m[3] || null }));
+    const missing = local.filter(a => !a.token);
+    const tokens = [...new Set(local.map(a => a.token))];
+    t('every local script and stylesheet carries a version token',
+      local.length > 0 && missing.length === 0, missing.map(a => a.path));
+    t('...and they all carry the SAME one',
+      tokens.length === 1, { token:tokens[0], count:local.length, all:tokens });
+    t('...which is not the stale August one',
+      tokens[0] !== '2026.08.21-03', tokens[0]);
+    /* Third-party URLs are not ours to version. */
+    const cdn = [...html.matchAll(/(?:src|href)="(https:\/\/[^"]+)"/g)].map(m => m[1]);
+    t('...and no third-party CDN URL was rewritten',
+      cdn.every(u => !/\?v=2026\./.test(u)), cdn.slice(0,2));
   }
   await b.close();
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

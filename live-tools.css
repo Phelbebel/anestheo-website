@@ -2588,3 +2588,64 @@ html.lt-immersive body{padding-top:0 !important;}
 @media (max-width:899px){
   .wf-col-side .awp-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   DEVICE DENSITY · A CLINICAL ROW IS FOUR CARDS, ON ONE LINE
+   ─────────────────────────────────────────────────────────────────────────
+   MEASURED. repeat(auto-fit,minmax(140px,1fr)) protects a card width by
+   sacrificing the composition: it drops to three columns the moment four
+   140px cards will not fit, and the fourth drug wraps under the first three.
+   The group's implicit rows then stretch the role label across both, which is
+   where the giant PREMEDICATION / ANALGESIA / HYPNOSIS / NMB rectangles came
+   from, and the board went from 300px to 604.
+
+   Swept across every plausible iPad width, the wrap band is 1181-1299:
+
+       1300  row 580  ->  4 4 4 4      board 307
+       1280  row 560  ->  3+1 x4       board 604
+       1194  row 474  ->  3+1 x4       board 604   <- iPad Pro 11" landscape
+       1180  row 641  ->  4 4 4 4      board 436   (crisis rail withdraws)
+
+   1181-1299 is exactly where an iPad Pro 11" and an iPad Air 11" in landscape
+   live. Below 1181 the crisis rail withdraws and the centre jumps by 292px,
+   which is why the band has a floor as well as a ceiling.
+
+   FOUR COLUMNS, DECLARED. The card width is then whatever four of them make
+   of the row — 127px at the narrowest tablet, which is above the approved
+   desktop's own 112 and inside the 110-135 the composition is read at. A
+   clinical row does not wrap; if a width cannot hold four readable cards the
+   phone rule below takes over and gives two.
+   ═════════════════════════════════════════════════════════════════════════ */
+@media (min-width:740px) and (max-width:1535px){
+  .tb-row{grid-template-columns:repeat(4,minmax(0,1fr));}
+  /* The label is one row high because the row it labels is one row high. */
+  .tb-grp{align-items:start;}
+}
+/* A phone keeps the two-up board it was approved with. */
+@media (max-width:739px){
+  .tb-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+/* ── BACK IS A MOBILE AFFORDANCE ─────────────────────────────────────────
+   On a desktop the crisis rail's own index sits directly above the protocol
+   and the switcher chips name every protocol, so a Back control is a third
+   way to do what two things already do — and the desktop cockpit is frozen to
+   the pixel. Below the rail breakpoint the index is not rendered at all and
+   the protocol is a sheet: there, Back is the only way to the list, so there
+   it appears. Same markup at every width; only the reveal is conditional. */
+.cpv-back{display:none;}
+@media (max-width:1179px){
+  .cpv-back{display:inline-flex; align-items:center; gap:5px; flex:0 0 auto;
+    min-height:34px; padding:0 10px 0 8px; margin-right:2px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,138,114,.30);
+    border-radius:var(--radius-sm,8px); color:#ffb5a4;
+    font-family:inherit; font-size:12px; font-weight:700; line-height:1;
+    cursor:pointer; white-space:nowrap;}
+  .cpv-back:hover{background:rgba(255,90,72,.26); color:#fff;}
+  .cpv-back:focus-visible{outline:2px solid #fff; outline-offset:2px;}
+  /* "PROTOCOL" is a caption beside a named control now, not the only label */
+  .cpv-head .cpv-tag{display:none;}
+}
+/* On the narrowest phones the word goes and the arrow carries it; the
+   accessible name is on the button either way. */
+@media (max-width:400px){ .cpv-back-t{display:none;} .cpv-back{padding:0 9px;} }

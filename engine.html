@@ -6,21 +6,34 @@
 <title>Anesthesiology Live Tools — Anestheo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/supabase.js?v=2026.08.21-03"></script>
-<script src="/auth.js?v=2026.08.21-03"></script>
-<script src="/navbar.js?v=2026.08.21-03"></script>
-<script src="/clinical-index.js?v=2026.08.21-03"></script>
-<script src="/clinical-search.js?v=2026.08.21-03"></script>
-<script src="/procedures.js?v=2026.08.21-03"></script>
-<script src="/growth-reference.js?v=2026.08.21-03"></script>
-<script src="/new-patient.js?v=2026.08.21-03"></script>
-<script src="/induction-catalog.js?v=2026.08.21-03"></script>
-<script src="/induction.js?v=2026.08.21-03"></script>
-<script src="/evidence-api.js?v=2026.08.21-03"></script>
-<script src="/evidence-drawer.js?v=2026.08.21-03"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
-<link rel="stylesheet" href="/new-patient.css?v=2026.08.21-03">
-<link rel="stylesheet" href="/live-tools.css?v=2026.08.21-03">
+<!-- ONE RELEASE TOKEN FOR EVERY LOCAL ASSET THIS PAGE LOADS.
+     The URL of a changed static asset has to change with it. This token sat
+     at 2026.08.21-03 while live-tools.css changed 25 times, induction.js 23
+     and clinical-index.js 15 — so a browser that fetched the stylesheet in
+     August had a cache entry no deploy ever invalidated, and current HTML was
+     being styled by an August stylesheet. That combination reproduces the
+     device reports exactly: html.lt-immersive is set by this page, but the
+     rules that act on it were added to live-tools.css after the token froze,
+     so the site navbar and tools bar came back.
+
+     WHEN A DEPLOY CHANGES ANY LOCALLY CACHED LIVE TOOLS DEPENDENCY, ADVANCE
+     THIS TOKEN — one value, the same on every local asset below. Third-party
+     CDN URLs are not ours to version and are left alone. -->
+<script src="/supabase.js?v=2026.09.08-01"></script>
+<script src="/auth.js?v=2026.09.08-01"></script>
+<script src="/navbar.js?v=2026.09.08-01"></script>
+<script src="/clinical-index.js?v=2026.09.08-01"></script>
+<script src="/clinical-search.js?v=2026.09.08-01"></script>
+<script src="/procedures.js?v=2026.09.08-01"></script>
+<script src="/growth-reference.js?v=2026.09.08-01"></script>
+<script src="/new-patient.js?v=2026.09.08-01"></script>
+<script src="/induction-catalog.js?v=2026.09.08-01"></script>
+<script src="/induction.js?v=2026.09.08-01"></script>
+<script src="/evidence-api.js?v=2026.09.08-01"></script>
+<script src="/evidence-drawer.js?v=2026.09.08-01"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.09.08-01">
+<link rel="stylesheet" href="/new-patient.css?v=2026.09.08-01">
+<link rel="stylesheet" href="/live-tools.css?v=2026.09.08-01">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 /* clip, NOT hidden. overflow-x:hidden computes overflow-y to auto, which makes
@@ -4533,7 +4546,7 @@ function crisisPreview(i, takeFocus){
       '<div class="cpv-head">'+
         '<span class="cpv-tag" aria-hidden="true">&#9888;</span>'+
         '<span class="cpv-h">Crisis Center</span>'+
-        '<button type="button" class="cpv-x" aria-label="Close" '+
+        '<button type="button" class="cpv-x" aria-label="Close Crisis Center" '+
           'onclick="crisisPreviewClose()">&times;</button>'+
       '</div>'+
       '<div class="cpv-body cpv-pick">'+
@@ -4563,11 +4576,27 @@ function crisisPreview(i, takeFocus){
       'aria-pressed="'+(ci===i?'true':'false')+'" '+
       'onclick="crisisPreview('+ci+')">'+c[1]+'</button>';
   }).join('');
+  /* ── BACK AND CLOSE ARE DIFFERENT ACTIONS ──────────────────────────────
+     The header carried one control, a X labelled "Close protocol", which
+     actually closed the whole Crisis Center. On a phone that left no way back
+     to the list of protocols at all: open Malignant Hyperthermia and the only
+     exit is out of Crisis entirely.
+
+     Back returns this surface to the chooser — crisisPreview(null), a state
+     that already exists — and Close still closes Crisis. Neither invents a
+     renderer and neither touches the domain or the page.
+
+     The control is in the markup at every width and revealed only below the
+     rail breakpoint. On a desktop the rail's own index is right there and the
+     approved cockpit is pixel-frozen, so it stays hidden there. */
   host.innerHTML =
     '<div class="cpv-head">'+
+      '<button type="button" class="cpv-back" aria-label="Back to Crisis Center" '+
+        'onclick="crisisPreviewBack()"><span aria-hidden="true">&#8592;</span>'+
+        '<span class="cpv-back-t">Crisis Center</span></button>'+
       '<span class="cpv-tag" aria-hidden="true">&#9888;</span>'+
       '<span class="cpv-h">Protocol</span>'+
-      '<button type="button" class="cpv-x" aria-label="Close protocol" '+
+      '<button type="button" class="cpv-x" aria-label="Close Crisis Center" '+
         'onclick="crisisPreviewClose()">&times;</button>'+
     '</div>'+
     '<div class="cpv-sws" role="group" aria-label="Switch protocol">'+switcher+'</div>'+
@@ -4595,6 +4624,15 @@ function crisisPreview(i, takeFocus){
     b.setAttribute('aria-expanded', bi===i ? 'true' : 'false');
   });
 }
+
+/* PROTOCOL -> LIST, inside the same host. Not close, not the full library,
+   not a domain change: the chooser is a state crisisPreview() already has, so
+   Back is that state and nothing more. Focus goes to the chooser so a screen
+   reader lands where the eye does. */
+function crisisPreviewBack(){
+  crisisPreview(null);
+}
+window.crisisPreviewBack = crisisPreviewBack;
 
 function crisisPreviewClose(){
   var host = ge('crisis-preview'); if(!host) return;
