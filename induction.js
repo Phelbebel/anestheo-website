@@ -528,7 +528,57 @@
       '</div>';
     }).join('');
     return section(NUM, 'Induction strategy', 'Records the approach — selects no drug',
-      '<div class="st">' + tiles + '</div>');
+      '<div class="st">' + tiles + '</div>' + strategyContext());
+  }
+
+  /* ── THE STRATEGY HAS TO BE VISIBLE IN THE WORKSTATION ────────────────
+     Three of the four tiles changed nothing at all. Pressing Inhalational or
+     TIVA produced a board byte-identical to IV, so the only evidence the
+     press had registered was a tick on the tile itself — a control that
+     reads as decorative, in a workstation where every other control does
+     something.
+
+     This strip is what the strategy DOES say, and it is careful about the
+     difference between a context and a recommendation. It states which
+     question the board is now asking, and where this application holds no
+     reviewed answer it says that instead of implying one.
+
+     IT PRINTS NO NUMBER. Not a concentration, not a MAC, not a target, not a
+     model, not a rate. Sevoflurane is proposed-unverified with an empty dose
+     list and stays that way; a strip that filled the gap with a plausible
+     figure would be the exact failure this file exists to prevent.
+
+     NOTHING HERE SELECTS A DRUG. It is a caption on the board, not an entry
+     in the plan. */
+  var STRATEGY_CONTEXT = {
+    iv: { label:'Intravenous induction',
+          note:'The board asks for reviewed induction doses. Blockers ask for the ' +
+               'routine intubating context.' },
+    rsi:{ label:'Rapid sequence induction', cls:'stx-rsi',
+          note:'Neuromuscular blockade now asks for the rapid sequence context only, ' +
+               'with no fall back to a routine intubating dose. An agent without a ' +
+               'reviewed rapid sequence record says so rather than showing another number.' },
+    inhalational:{ label:'Inhalational induction', cls:'stx-inh',
+          note:'Volatile dosing is not reviewed in the current clinical dataset, so no ' +
+               'concentration, MAC or inspired percentage is shown. The board below ' +
+               'remains available for the intravenous agents used alongside it.' },
+    tiva:{ label:'TIVA / TCI', cls:'stx-tiva',
+          note:'No target-controlled infusion content has been reviewed in this ' +
+               'application — no target concentration, model or infusion rate. The ' +
+               'reviewed bolus and infusion records the drug reference already holds ' +
+               'are unchanged and appear below.' }
+  };
+  function strategyContext(){
+    if (!technique) return '';
+    var s = STRATEGY_CONTEXT[technique];
+    if (!s) return '';
+    var vlabel = (technique === 'rsi' && rsiVariant)
+      ? ' &middot; ' + (rsiVariant === 'classic' ? 'Classic' : 'Modified') : '';
+    return '<div class="stx ' + (s.cls || '') + '" role="status">' +
+      '<span class="stx-b">Active strategy</span>' +
+      '<span class="stx-n">' + esc(s.label) + vlabel + '</span>' +
+      '<span class="stx-t">' + s.note + '</span>' +
+    '</div>';
   }
 
   /* ── 2 · SELECTED DRUG PLAN ──────────────────────────────────────────
@@ -550,8 +600,12 @@
       var cells = g.rows.slice(0, PLAN_SLOTS)
         .map(function (d){ return tbCard(g.key, d, g.rowKey); });
       return '<div class="tb-grp">' +
+        /* The RSI row said so in a class name and nowhere a clinician could
+           read. The chip is the row stating which context its cards answered,
+           beside the cards that answered it. */
         '<div class="tb-g' + (g.nmb && isRSI() ? ' rsi' : '') + '">' +
-          '<b>' + esc(g.label) + '</b></div>' +
+          '<b>' + esc(g.label) + '</b>' +
+          (g.nmb && isRSI() ? '<span class="tb-g-x">RSI context</span>' : '') + '</div>' +
         '<div class="tb-row">' + cells.join('') + '</div>' +
         tbSlot(g.key) +
       '</div>';
@@ -784,8 +838,17 @@
     if (!host) return;
     var keepTop = refScroll();
     var c = ctx();
-    if (!c || !c.complete){
-      host.innerHTML = '<div class="wf-empty">Enter age, sex, height and weight and the ' +
+    /* ── THE WORKSTATION WAITS FOR AGE AND WEIGHT, NOT FOR FOUR FIELDS ────
+       This asked for `complete`, which means full anthropometrics, and so a
+       clinician with an age and a weight — everything a dose on this board is
+       actually a function of — got a sentence instead of a workstation.
+       Height and sex are needed by BMI, IBW, LBW, BSA and adult airway sizing,
+       and those withhold themselves; they were never needed by any dose here.
+
+       `complete` is unchanged and still means what it meant. This reads the
+       weaker state deliberately. */
+    if (!c || !c.caseReady){
+      host.innerHTML = '<div class="wf-empty">Enter age and weight and the ' +
         'induction workstation activates.</div>';
       return;
     }

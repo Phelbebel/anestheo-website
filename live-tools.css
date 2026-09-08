@@ -2662,3 +2662,124 @@ html.lt-immersive body{padding-top:0 !important;}
 /* On the narrowest phones the word goes and the arrow carries it; the
    accessible name is on the button either way. */
 @media (max-width:400px){ .cpv-back-t{display:none;} .cpv-back{padding:0 9px;} }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   MOBILE CASE FLOW — THE PHONE REACHES THE MEDICINE
+   ─────────────────────────────────────────────────────────────────────────
+   Measured on the rejected build at 390x844: header 56, case bar 102,
+   patient setup 222, and then an empty-state panel at y=506 saying for the
+   third time that no patient had been entered. The induction workstation was
+   not below that — it was not in the document, because compute() would not
+   build it without a sex and a height.
+
+   The architecture fix is in engine.html. What is here is the shell that
+   makes the result reachable with a thumb: a header that does not take a
+   sixth of the viewport, inputs at a real touch size rather than a desktop
+   card size, and Age and Weight first with Continue directly beneath them.
+
+   EVERY RULE IN THIS BLOCK IS INSIDE A PHONE MEDIA QUERY. The approved 1536
+   desktop and the 1194 iPad board are not addressed by any selector here.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── THE STRATEGY SAYS WHAT IT DID ───────────────────────────────────────
+   At every width, because a decorative tile is not a phone problem. */
+.case-new[hidden], .case-np[hidden], .pt-go[hidden]{display:none !important;}
+.stx{display:block; margin:9px 0 0; padding:9px 11px;
+  background:rgba(255,255,255,.035); border:1px solid var(--hair,rgba(255,255,255,.08));
+  border-left:3px solid var(--ink-3,#7d8b95); border-radius:var(--radius-sm,8px);}
+.stx-b{display:block; font-size:9px; font-weight:800; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--ink-3,#7d8b95); margin-bottom:2px;}
+.stx-n{display:block; font-size:13.5px; font-weight:800; letter-spacing:.02em;
+  color:var(--ink,#eaf2f0); margin-bottom:3px;}
+.stx-t{display:block; font-size:11.5px; font-weight:600; line-height:1.45;
+  color:var(--ink-2,#a9b8bf);}
+.stx-rsi{border-left-color:#FF8A72;}
+.stx-inh{border-left-color:#45D0D8;}   /* PCLASS.inhalational, the colour the class already has */
+.stx-tiva{border-left-color:#7ECFC0;}
+/* The blocker row states the context its cards answered. */
+.tb-g-x{margin-left:7px; padding:1px 6px; border-radius:999px;
+  background:rgba(255,138,114,.16); border:1px solid rgba(255,138,114,.34);
+  font-size:8.5px; font-weight:800; letter-spacing:.11em; text-transform:uppercase;
+  color:#FF8A72; white-space:nowrap;}
+
+/* ── CONTINUE ─────────────────────────────────────────────────────────────
+   A phone control. On a desktop the form and the workstation are on screen
+   together and there is nothing to continue to, so it is not rendered there
+   and the desktop field order is untouched. */
+.pt-go{display:none;}
+@media (max-width:900px){
+  .eng-wrap #acc-patient .input-bar{display:grid;}
+  /* AGE, WEIGHT, CONTINUE — then the rest. The DOM order is unchanged so the
+     desktop grid is unchanged; this is the phone's reading order only. */
+  .eng-wrap #acc-patient .inp-age{order:1;}
+  .eng-wrap #acc-patient .inp:nth-of-type(4){order:2;}   /* Weight */
+  .eng-wrap #acc-patient .pt-go{order:3;}
+  .eng-wrap #acc-patient .inp:nth-of-type(2){order:4;}   /* Sex */
+  .eng-wrap #acc-patient .inp:nth-of-type(3){order:5;}   /* Height */
+  .eng-wrap #acc-patient .inp:nth-of-type(5){order:6;}   /* ASA */
+  .eng-wrap #acc-patient .inp-proc{order:7;}
+  .pt-go{display:flex; flex-direction:column; gap:3px; grid-column:1/-1; margin:3px 0 1px;}
+  .pt-go-b{width:100%; min-height:48px; padding:0 16px;
+    background:var(--accent,#7ECFC0); border:1px solid var(--accent,#7ECFC0);
+    border-radius:var(--radius-sm,8px); color:#06231d;
+    font-family:inherit; font-size:14.5px; font-weight:800; letter-spacing:.04em;
+    text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .pt-go-b:active{filter:brightness(.92);}
+  .pt-go-b:focus-visible{outline:2px solid #fff; outline-offset:2px;}
+  .pt-go-b[disabled]{background:rgba(255,255,255,.05); border-color:var(--hair,rgba(255,255,255,.09));
+    color:var(--ink-3,#7d8b95); cursor:default;}
+  .pt-go-h{font-size:10.5px; font-weight:600; letter-spacing:.02em;
+    color:var(--ink-3,#7d8b95); text-align:center;}
+
+  /* ── DENSITY, NOT MINIATURISATION ──────────────────────────────────────
+     46px is a comfortable target and roughly half the ~90px cards the
+     rejected build was drawing. The label keeps its reading size. */
+  .eng-wrap #acc-patient .inp input,
+  .eng-wrap #acc-patient .inp select{min-height:46px; font-size:15.5px; padding:8px 10px;}
+  .eng-wrap #acc-patient .inp label{font-size:10.5px;}
+
+  /* ── ONE PATIENT-START SURFACE ─────────────────────────────────────────
+     The second and third "no patient" panels are gone from the markup; what
+     remains of the empty state is a sentence, not a full-width card with a
+     button that opens the form already open beneath it. */
+  .empty-min{padding:11px 13px; text-align:left;}
+  .empty-min .ico{display:none;}
+  .empty-min p{margin:0; font-size:12px; line-height:1.5;}
+  .empty-min p b{display:block; font-size:13px; margin-bottom:2px;}
+  .empty-more{margin-top:10px;}
+
+  /* Create patient record sits beneath the form as a subdued action. It was
+     first put in the section head, which is display:none on a phone — the
+     pt-sum line stands in for it — so an authorized clinician had a control
+     that existed and could not be seen. */
+  .pt-rec{display:flex; justify-content:flex-start; margin:8px 0 0;}
+  /* Scoped to .pt-rec so it outranks the phone rule that sized this control
+     for the case bar it no longer lives in (min-height:40px). */
+  .pt-rec .case-np{min-height:44px; flex:0 0 auto; padding:0 11px;
+    background:none; border:1px solid var(--hair,rgba(255,255,255,.10));
+    border-radius:var(--radius-sm,8px); color:var(--ink-2,#a9b8bf);
+    font-family:inherit; font-size:11.5px; font-weight:700; letter-spacing:.02em;
+    cursor:pointer; white-space:nowrap;}
+  .pt-rec .case-np:active{background:rgba(255,255,255,.06);}
+  .pt-rec .case-np:focus-visible{outline:2px solid var(--accent,#7ECFC0); outline-offset:2px;}
+  /* New case is secondary too — it is a reset, not the way in. */
+  .case-new{min-height:44px;}
+}
+
+/* ── THE PHONE HEADER ─────────────────────────────────────────────────────
+   Brand, domain, SOS and the utility control were competing for one 390px
+   row with the SOS block taking the most of it. The identity stays, the
+   domain stays readable, SOS stays one tap and above 44px — it stops being
+   the widest thing in the header. Desktop is not addressed. */
+@media (max-width:640px){
+  .ws-id-in{min-height:44px; gap:8px;}
+  .ws-id-brand{font-size:8.5px; letter-spacing:.12em;}
+  .ws-id-tool{font-size:13.5px; letter-spacing:.02em;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ws-id-tx{min-width:0; flex:1 1 auto;}      /* the title is what may shrink */
+  .ws-id-mark{width:13px; height:13px;}
+  .ws-sos{min-height:44px; padding:0 10px; flex:0 0 auto;}
+  .ws-sos span{font-size:12px;}
+  .ws-id-b{min-height:44px; padding:0 9px; flex:0 0 auto;}
+  .ws-id-find kbd{display:none;}              /* no keyboard to name on a phone */
+}

@@ -497,15 +497,37 @@ const BOARD_PROBE = `(() => {
 
   /* NOT FOCUS-DEPENDENT, PROVED FROM THE SOURCE. The visibility of the editor
      may not be decided by where focus happens to be — that ordering differs
-     between engines, and WebKit is not available here to check. */
+     between engines, and WebKit is not available here to check.
+
+     THE ASSERTION IS ABOUT CAUSE, NOT ADJACENCY. It used to fail on any
+     mention of blur or activeElement within 200 characters of pt-open, which
+     also condemns the correct implementation: ltContinue() is an explicit
+     press that dismisses the keyboard and THEN folds the editor, so a blur
+     necessarily sits beside a fold there. That is the opposite of the bug —
+     the bug was the editor folding BECAUSE focus moved, and taking the "5"
+     of "75" with it.
+
+     So what is forbidden is a focus EVENT deciding it: a focusout/blur
+     listener, an onblur attribute, or a branch on relatedTarget/activeElement
+     that reaches pt-open. An explicit press that blurs on its way is allowed,
+     and is asserted positively below. */
   {
     const src = fs.readFileSync('/home/user/anestheo-website/engine.html','utf8')
       .replace(/\/\*[\s\S]*?\*\//g,' ');
     const flag = /PT_TYPED\s*=\s*true/.test(src);
-    const focusDriven = /(focusout|blur|relatedTarget|activeElement)[\s\S]{0,200}?pt-open/.test(src);
+    const focusListener =
+      /addEventListener\(\s*['"](?:focusout|focusin|blur|focus)['"][\s\S]{0,400}?pt-open/.test(src) ||
+      /\bon(?:blur|focusout|focusin)\s*=[\s\S]{0,200}?pt-open/.test(src) ||
+      /relatedTarget[\s\S]{0,200}?pt-open/.test(src) ||
+      /if\s*\([^)]*activeElement[^)]*\)[\s\S]{0,200}?pt-open/.test(src);
     t('the editor flag is set by a keystroke', flag === true);
-    t('...and nothing about focus decides whether the editor is open',
-      focusDriven === false);
+    t('...and no focus event decides whether the editor is open',
+      focusListener === false);
+    /* The one path that folds it is a control the clinician presses. */
+    t('...the editor folds only from an explicit press',
+      /function ltContinue\(\)[\s\S]{0,900}?ptToggle\(\)/.test(src) &&
+      /onclick="ltContinue\(\)"/.test(
+        fs.readFileSync('/home/user/anestheo-website/engine.html','utf8')));
   }
 
   /* ── 5. ONE CRISIS SURFACE, AT EVERY WIDTH ─────────────────────────────

@@ -2468,14 +2468,17 @@ body .nb-search-wrap{display:none !important;}
       <button type="button" class="case-state" id="case-state" onclick="ptToggle()"
               aria-controls="acc-patient" aria-expanded="false">No active patient</button>
       <span class="case-edit" aria-hidden="true">Edit</span>
-      <button type="button" class="case-new" onclick="newCaseAsk()"
+      <!-- A RESET IS ONLY AN ACTION WHEN THERE IS SOMETHING TO RESET. With an
+           empty case this cleared an already-empty case and focused Age, so it
+           was a control whose visible effect was nothing — beside a bar that
+           said "No active patient". It is hidden until a case exists; see the
+           case-live block in renderPatientStrip(). The reset semantics behind
+           it are unchanged.
+
+           Create patient record has left this bar entirely. It creates a
+           database patient, not a case, and it now lives in Patient Setup. -->
+      <button type="button" class="case-new" onclick="newCaseAsk()" hidden
               aria-label="Start a new case — clears the current patient, calculations and timers">New case</button>
-      <!-- The SAME dialog the dashboard opens, from new-patient.js. Live Tools
-           does not have a New Patient form of its own. -->
-      <!-- Hidden until ltResolveAccess() says this session may manage
-           patients. Live Tools itself stays public; this action does not. -->
-      <button type="button" class="case-np" onclick="ltNewPatient()" hidden
-              aria-label="Create a new patient record and send the questionnaire">New patient</button>
     </div>
 
     <!-- ── MOBILE PATIENT CONTEXT ──────────────────────────────────────────
@@ -2494,7 +2497,14 @@ body .nb-search-wrap{display:none !important;}
 
     <!-- Patient Details — always expanded (drives the calculations) -->
     <section class="cw-acc" id="acc-patient">
-      <div class="cw-acc-head"><span class="cw-acc-t">Patient Details</span></div>
+      <!-- CREATE PATIENT RECORD IS NOT A CASE ACTION. It creates a persistent
+           clinic patient and sends a questionnaire; a Live Tools case is
+           transient and creates nothing. They were siblings in the case bar,
+           the same size, which said they were two ways of doing one thing.
+           This is the patient-record action, in the patient-record surface,
+           at secondary weight. Still hidden unless ltResolveAccess() says the
+           session may manage patients — the authorization rule is unchanged. -->
+      <div class="cw-acc-head"><span class="cw-acc-t">Patient Setup</span></div>
       <div class="cw-acc-body"><div class="input-bar">
         <div class="inp inp-age"><label>Age</label><div style="display:flex;gap:6px;align-items:stretch;">
           <input id="i-age" type="number" inputmode="decimal" step="any" placeholder="age" oninput="compute()" style="flex:1 1 auto;min-width:58px;">
@@ -2518,11 +2528,40 @@ body .nb-search-wrap{display:none !important;}
           <div class="proc-pop" id="proc-list" role="listbox" hidden></div>
           <div class="proc-state" id="proc-state"></div>
         </div>
+        <!-- ── CONTINUE: THE EXPLICIT END OF PATIENT ENTRY ──────────────────
+             The editor used to fold itself the moment the page could compute,
+             which is how "75" became "7". Nothing folds on input, blur, iOS
+             Done or a focus change any more — the clinician says when they
+             are finished, and this is the control that says it.
+
+             IT IS A PHONE CONTROL. On desktop the form and the workstation are
+             both on screen at once, so there is nothing to continue TO; the
+             rule below hides it above the phone breakpoint and the desktop
+             field order is untouched. On a phone `order` puts it directly
+             under Age and Weight, so it is where the thumb already is when
+             the weight is finished.
+
+             It carries no case semantics: it does not start, clear, reset or
+             save anything. See ltContinue(). -->
+        <div class="pt-go" id="pt-go">
+          <button type="button" class="pt-go-b" id="pt-go-b" onclick="ltContinue()" disabled
+                  aria-label="Continue to the induction workstation">Continue to Live Tools</button>
+          <span class="pt-go-h" id="pt-go-h">Age and weight open the workstation</span>
+        </div>
       </div>
       <!-- Paediatric estimate offer. Only appears for a paediatric age with a
            missing weight or height, and only offers a number when a growth
            reference has actually been supplied. -->
-      <div id="peds-est"></div></div>
+      <div id="peds-est"></div>
+      <!-- Beneath the form, at secondary weight, because it is a secondary
+           action: it creates a persistent clinic patient and a questionnaire,
+           which is not what a Live Tools case is. It was a same-size sibling
+           of New case in the case bar, which said the two were alternatives.
+           Still hidden unless ltResolveAccess() says this session may manage
+           patients — the authorization rule is untouched. -->
+      <div class="pt-rec"><button type="button" class="case-np" onclick="ltNewPatient()" hidden
+              aria-label="Create a new patient record and send the questionnaire"
+              >Create patient record</button></div></div>
     </section>
 
     <details class="cw-acc">
@@ -2735,15 +2774,102 @@ function compute(){
   var ageC=ageCanon();
   var age=ageC?ageC.years:null, sex=ge('i-sex').value, ht=num('i-height'), wt=num('i-weight');
   var out=ge('output');
-  if(age==null||!sex||ht==null||wt==null){
+  /* ── TWO GATES, BECAUSE THERE ARE TWO QUESTIONS ────────────────────────
+     There was one gate here — age AND sex AND height AND weight — and it
+     decided whether ANY of #output was built. #induction-host is created in
+     the second assignment below, so a clinician who had entered age and
+     weight did not have an induction workstation hidden below the fold: it
+     was not in the document at all. Meanwhile the shell had already decided
+     the case was live on age and weight alone, hid the editor on that basis,
+     and left the phone with neither a form nor a workstation.
+
+     CASE READY is age and weight. Those are the two values the medicine on
+     this page actually needs: age chooses the population and the eligibility
+     band, weight scales the dose. Everything the induction workstation
+     prints is a function of those two and of the canonical records.
+
+     FULL ANTHROPOMETRICS is age, sex, height and weight, which is what the
+     existing patientContext.complete has always meant and still means. BMI,
+     IBW, LBW, ABW, BSA, PBW and the adult airway sizes are defined against
+     height or sex, so they are what waits — not the drugs.
+
+     Nothing is defaulted, estimated or inferred to fill the gap. A missing
+     height stays missing and takes only its own derivations with it. */
+  var caseReady = (age != null && wt != null);
+  var fullAnthro = caseReady && !!sex && ht != null;
+  if(!caseReady){
     window.patientContext = buildPatientContext({
       ageYears:age, ageDays:(ageC?ageC.days:null),
       ageValue:(ageC?ageC.value:null), ageUnit:(ageC?ageC.unit:null), sex:sex,
       height:ht, weight:wt, asa:ge('i-asa').value, procedure:ge('i-proc').value,
       estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height });
     renderPatientStrip(); renderContextStrip(); renderProcNotice(); renderProcState(); renderPedsEstimate();
-    out.innerHTML='<div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>'+
-      '<button class="cw-open-pt" onclick="ptFocus()">Open Patient Details</button></div>';
+    /* ONE PATIENT-START SURFACE, NOT TWO. This panel used to restate what the
+       case bar and Patient Setup were already saying — "No active patient",
+       then a second full-width "Workstation ready · Enter age, sex, weight and
+       height", then a button that opened the form already open beneath it. The
+       phone showed the same news three times before the first dose. The form
+       is the surface; this says only what is still missing. */
+    out.innerHTML='<div class="empty-state empty-min"><p><b>Enter age and weight</b>'+
+      'Those two values open the induction workstation. Sex and height add the '+
+      'measurements that need them.</p></div>';
+    return;
+  }
+  if(!fullAnthro){
+    /* CASE READY, PARTIAL ANTHROPOMETRICS. The induction workstation is built
+       and everything it prints is weight- and age-derived. What is NOT built
+       is the block of height/sex derivations and the adult airway sizing,
+       because those are the values that genuinely need the missing fields.
+       They are withheld, not approximated: no default sex, no assumed height,
+       no fallback to total body weight standing in for IBW.
+
+       The paediatric working values ARE published, because ebv, the 4-2-1
+       maintenance rate and the paediatric tube sizes are functions of weight
+       and age alone. bsa, ibw, lbw and abw are left null and pedsSection()
+       already omits a value it is not given. */
+    var _rEBV = (age<16) ? (ageC.days<28 ? 90 : (age<1 ? 80 : 75)) : null;
+    var _rEbv = (_rEBV != null) ? wt*_rEBV : null;
+    var _r421; if(wt<=10)_r421=wt*4; else if(wt<=20)_r421=40+(wt-10)*2; else _r421=60+(wt-20)*1;
+    var _rETT=null,_rDep=null,_rLMA=null,_rIgel=null;
+    if(age<16){
+      var _rw = (age<1 || wt<5) ? neoETT(wt) : (age/4 + 4);
+      if(_rw != null){ _rETT = r1(_rw); _rDep = r1(_rw*3); }
+      _rLMA  = lmaForWeight(wt);
+      _rIgel = (igelForWeight(wt)+'').split(' ')[0];
+    }
+    window.patientContext = buildPatientContext({
+      ageYears:age, ageDays:ageC.days, ageValue:ageC.value, ageUnit:ageC.unit,
+      sex:sex, height:ht, weight:wt,
+      asa:ge('i-asa').value, procedure:ge('i-proc').value,
+      estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height,
+      derived:{ ebv:(_rEbv!=null?r0(_rEbv):null), maint:r0(_r421),
+                ett:_rETT, ettDepth:_rDep, lma:_rLMA, igel:_rIgel } });
+    /* The equipment airway plan is adult-sex-sized or paediatric-weight-sized
+       and is published by the full path only; withholding the whole section is
+       what airwaySection() already does when nothing is published. */
+    window.airwayPlan = null;
+    renderPatientStrip(); renderContextStrip(); renderProcNotice(); renderProcState(); renderPedsEstimate();
+    var _need=[]; if(!sex)_need.push('sex'); if(ht==null)_need.push('height');
+    out.innerHTML='<div id="wf-lead" class="wf-lead" hidden></div>'+
+      '<div id="induction-host" class="wf-host"></div>'+
+      '<div class="empty-state empty-min empty-more"><p><b>'+_need.join(' and ')+
+      ' not entered</b>BMI, ideal and lean body weight, body surface area and the '+
+      'airway equipment sizes are calculated from '+_need.join(' and ')+
+      ', so they are not shown. The doses above are scaled by weight and are '+
+      'unaffected.</p>'+
+      '<button class="cw-open-pt" onclick="ptFocus()">Add '+_need.join(' and ')+'</button></div>';
+    if(window.Induction) window.Induction.render();
+    /* .wf-host is revealed by #output[data-domain="induction"] and by nothing
+       else, so a workstation built without a domain is a fully rendered
+       workstation that is display:none — which is what the first build of
+       this path produced: 31,666 characters of induction workstation inside
+       an element nobody could see.
+
+       setDomain() cannot do it here. It refuses a domain it finds no
+       .panel[data-domain] for, and this view deliberately has no domain
+       panels — they are the height/sex calculations that are waiting. The
+       attribute is what reveals the host, so the attribute is set. */
+    out.setAttribute('data-domain','induction');
     return;
   }
   var isPeds=age<16;
@@ -4938,7 +5064,12 @@ function ptSummary(){
        keyboard. Once they have typed into it, it is theirs until they close
        it — see ptToggle(). */
     else if(PT_TYPED) app.classList.add('pt-open');
+    /* A RESET IS AN ACTION ONLY WHEN THERE IS A CASE TO RESET. Hidden and
+       shown on the same value the bar itself is describing, so the button and
+       the sentence beside it can never disagree. */
+    var nb = document.querySelector('.case-new'); if(nb) nb.hidden = !live;
   }
+  if(window.ltPaintContinue) ltPaintContinue();
   var cs=ge('case-state');
   if(cs){
     /* TWO LINES, NOT ONE SENTENCE. "Current case" is a label and belongs at
@@ -5048,6 +5179,18 @@ function buildPatientContext(o){
 
     /* Kept because the strip and several panels read them directly. */
     derived: d,
+    /* ── TWO STATES, DELIBERATELY NOT ONE ──────────────────────────────
+       `complete` is UNCHANGED and still means full anthropometrics: age,
+       sex, height and weight. It had exactly one consumer — induction.js
+       render() — and redefining it in place would have silently changed
+       what "complete" means for anything added later. It keeps its meaning
+       and its name.
+
+       `caseReady` is the new state and it is the weaker, more useful one:
+       age and weight, the two values every dose on this page is a function
+       of. The induction workstation reads THIS. A calculation that needs a
+       height still asks for a height. */
+    caseReady: (y != null && o.weight != null),
     complete: (y != null && !!o.sex && o.height != null && o.weight != null)
   };
 }
@@ -5187,13 +5330,29 @@ function ltPaintAccess(){
 }
 window.ltPaintAccess = ltPaintAccess;
 
+/* A VISIBLE CONTROL MAY NEVER DO NOTHING. This began `if(!window.NewPatient)
+   return;` — so if new-patient.js failed to load, an authorized clinician
+   could press a button that was fully rendered, fully enabled, and silently
+   inert. There is no state in which that is the right outcome: either the
+   dialog opens or the clinician is told it could not.
+
+   The message names no internals. The cause goes to the console for whoever
+   is debugging it, which is not the person holding the phone. */
+function ltNpFailed(why){
+  try { console.error('[livetools] patient record form unavailable:', why); } catch(e){}
+  ltNotice('Patient record form could not be opened.');
+}
 function ltNewPatient(){
-  if(!window.NewPatient) return;
+  if(!window.NewPatient || typeof window.NewPatient.open !== 'function'){
+    ltNpFailed('NewPatient component not loaded');
+    return;
+  }
   /* Belt and braces: the button is not rendered without authorization, and
      the handler refuses again if it is somehow reached anyway. The component
      itself refuses a third time when the owner is not a uuid. */
   if(!LT_ACCESS.allowed || !LT_ACCESS.uid){
     window.NewPatient.open({ host:'livetools' });   // renders the refusal
+    ltNpVerify();
     return;
   }
   window.NewPatient.open({
@@ -5202,6 +5361,22 @@ function ltNewPatient(){
     onUse: ltUsePatient,
     onOpen: function(row){ if(row) window.open('/dashboard.html#patient-'+row.id, '_blank'); }
   });
+  ltNpVerify();
+}
+/* open() returning is not proof that anything is on screen. This checks the
+   three facts that mean the clinician can actually see the dialog, on the
+   next frame rather than in the same tick, because the component builds its
+   own node. Failing any one of them is the same outcome as not loading at
+   all: say so, visibly. */
+function ltNpVerify(){
+  var check = function(){
+    var bg = document.querySelector('.np-bg');
+    var ok = !!document.getElementById('np-modal') && !!bg &&
+             bg.classList.contains('open') && bg.getClientRects().length > 0;
+    if(!ok) ltNpFailed('dialog did not become visible');
+  };
+  if(window.requestAnimationFrame) requestAnimationFrame(function(){ setTimeout(check, 60); });
+  else setTimeout(check, 80);
 }
 window.ltNewPatient = ltNewPatient;
 
@@ -5641,6 +5816,72 @@ function ptToggle(){
   if(open){ var f = ge('i-age'); if(f) setTimeout(function(){ try{ f.focus(); }catch(e){} }, 120); }
 }
 window.ptToggle = ptToggle;
+
+/* ── CONTINUE TO LIVE TOOLS ─────────────────────────────────────────────
+   The clinician saying "I have finished entering the patient". It is the
+   only thing in this file that closes the patient editor as a result of a
+   value being entered, and it closes it because it was ASKED to, on a press,
+   with a finger — never on input, blur, focusout, iOS Done or a keyboard
+   dismissal. That distinction is the 75 kg fix and it is why this control
+   exists at all.
+
+   IT CARRIES NO CASE SEMANTICS. It does not call newCase(), does not clear a
+   value, does not touch a timer, does not create a patient record and does
+   not empty the induction plan. Every field keeps what was typed into it —
+   including the ones still empty — and the case that was live before the
+   press is the same case after it.
+
+   It moves the viewport to the workstation and nowhere else. Scrolling to the
+   top of the document would answer a press meant to go FORWARD by going back
+   to what the clinician had just finished with. */
+function ltCaseReady(){
+  var a = ageCanon();
+  return !!(a && a.years != null && num('i-weight') != null);
+}
+function ltContinue(){
+  if(!ltCaseReady()) return;
+  /* The keyboard goes away because the field is finished with, not because
+     something guessed that it was. Nothing below branches on where focus is:
+     the element is read once, told to let go, and never consulted again. The
+     fold on the next line happens because this function was called by a
+     press — not because focus moved. */
+  var leaving = document.activeElement;
+  try { if(leaving && leaving.blur) leaving.blur(); } catch(e){}
+  var w = document.getElementById('app');
+  if(w && w.classList.contains('pt-open')) ptToggle();   /* the intentional fold */
+  else PT_TYPED = false;                                  /* already folded: forget the edit */
+  /* The workstation is built by compute(), which has already run on the last
+     keystroke; this only takes the clinician to it. */
+  var go = function(){
+    var host = document.getElementById('induction-host');
+    var sec  = host ? host.querySelector('.wf-sec') : null;
+    var t    = sec || host;
+    if(t && t.scrollIntoView){
+      try { t.scrollIntoView({ behavior:'smooth', block:'start' }); }
+      catch(e){ t.scrollIntoView(); }
+    }
+    if(sec){
+      var f = sec.querySelector('button');
+      if(f){ try { f.focus({ preventScroll:true }); } catch(e){ } }
+    }
+  };
+  if(window.requestAnimationFrame) requestAnimationFrame(function(){ setTimeout(go, 90); });
+  else setTimeout(go, 120);
+}
+window.ltContinue = ltContinue;
+
+/* Continue is offered exactly when it would do something: a valid age and a
+   valid weight. It is not a submit button and there is nothing to validate —
+   it is a door, and it is unlocked when there is a room behind it. */
+function ltPaintContinue(){
+  var b = ge('pt-go-b'); if(!b) return;
+  var ready = ltCaseReady();
+  b.disabled = !ready;
+  var h = ge('pt-go-h');
+  if(h) h.textContent = ready ? 'Sex and height can be added later'
+                              : 'Age and weight open the workstation';
+}
+window.ltPaintContinue = ltPaintContinue;
 
 /* The empty workstation's one button. The form is on screen already on a
    desktop, so this puts the caret in it rather than revealing anything; on a
