@@ -2746,7 +2746,15 @@ html.lt-immersive body{padding-top:0 !important;}
   .empty-min .ico{display:none;}
   .empty-min p{margin:0; font-size:12px; line-height:1.5;}
   .empty-min p b{display:block; font-size:13px; margin-bottom:2px;}
-  .empty-more{margin-top:10px;}
+  /* NOT AN EMPTY STATE. This says which measurements are still waiting; it
+     appears beneath a working workstation, not instead of one, so it is not
+     a patient-start surface and is not withdrawn with them. */
+  .ctx-more{margin-top:10px; padding:11px 13px; text-align:left;
+    background:rgba(255,255,255,.03); border:1px solid var(--hair,rgba(255,255,255,.08));
+    border-radius:var(--radius-sm,8px);}
+  .ctx-more p{margin:0; font-size:12px; line-height:1.5; color:var(--ink-2,#a9b8bf);}
+  .ctx-more p b{display:block; font-size:13px; color:var(--ink,#eaf2f0);
+    margin-bottom:2px; text-transform:capitalize;}
 
   /* Create patient record sits beneath the form as a subdued action. It was
      first put in the section head, which is display:none on a phone — the
@@ -2766,6 +2774,33 @@ html.lt-immersive body{padding-top:0 !important;}
   .case-new{min-height:44px;}
 }
 
+/* ── ONE PATIENT-START SURFACE, NOT A STACK OF THEM ──────────────────────
+   The rejected build said the same thing three times on one phone screen:
+   the case bar ("No active patient · Edit · New case"), the patient editor
+   underneath it, and an empty-output panel below that repeating what to
+   type. Deleting one of the three was not enough — the rule is about which
+   surface is ACTIVE, not about which words appear.
+
+   While the editor is showing, the editor IS the patient surface, so the
+   case bar and the empty-output prompt stand down. When the editor is folded
+   the case bar becomes the compact summary it is good at being. The two are
+   never on screen together on a phone.
+
+   The editor shows when there is no live case, and when the clinician has
+   opened it — which is exactly the pair of selectors below. Desktop is not
+   addressed: there the form and the workstation share the screen. */
+@media (max-width:900px){
+  #app:not(.case-live) .case-bar,
+  #app.pt-open .case-bar{display:none;}
+  #app:not(.case-live) .pt-row,
+  #app.pt-open .pt-row{display:none;}
+  /* The prompt in #output is a third voice saying the same thing; the
+     Continue helper line under the fields already says it, in the place the
+     clinician is typing. */
+  #app:not(.case-live) #output .empty-state,
+  #app.pt-open #output .empty-state{display:none;}
+}
+
 /* ── THE PHONE HEADER ─────────────────────────────────────────────────────
    Brand, domain, SOS and the utility control were competing for one 390px
    row with the SOS block taking the most of it. The identity stays, the
@@ -2782,4 +2817,124 @@ html.lt-immersive body{padding-top:0 !important;}
   .ws-sos span{font-size:12px;}
   .ws-id-b{min-height:44px; padding:0 9px; flex:0 0 auto;}
   .ws-id-find kbd{display:none;}              /* no keyboard to name on a phone */
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   PHONE DENSITY PASS — THE FIRST SCREEN IS THE CASE, NOT THE FURNITURE
+   ─────────────────────────────────────────────────────────────────────────
+   Measured on the rejected 390x844 screen: the SOS block painted over the
+   domain title so "Induction" read "Inductio"; the age-unit select and the
+   weight field overlapped by 1,080 square pixels of real estate, so two
+   controls occupied the same ground; Procedure took one of three columns and
+   left two empty; and PACU / Recovery scoring sat in the induction stream
+   above any induction content.
+
+   Everything here is inside a phone media query. Desktop geometry and the
+   iPad board are addressed by nothing in this block.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width:640px){
+  /* ── THE HEADER IS TWO ROWS, BECAUSE IT HAS TWO JOBS ──────────────────
+     Identity and actions on one line, the domain strip on its own. They
+     were sharing 390px, and .ws-sos is positioned ABSOLUTELY inside the
+     scrolling strip, so it was not merely crowding the domain links — it
+     was painted on top of them. The strip is 862px wide and scrolls; the
+     word under the SOS block was unreachable, not just clipped.
+
+     These selectors carry .eng-wrap .ws-id because that is the specificity
+     the desktop rules they correct are written at; a shorter selector loses
+     to them and changes nothing. */
+  .eng-wrap .ws-id .ws-id-in{flex-wrap:wrap; row-gap:0; align-items:center;
+    min-height:0; gap:8px;}
+  .eng-wrap .ws-id .ws-id-in .ws-id-home{flex:0 0 auto;}
+  /* The strip takes a row of its own and scrolls inside it, so every domain
+     is reachable instead of hidden under an overlay. */
+  /* backdrop-filter establishes a containing block for absolutely positioned
+     descendants even when position is static, which is why SOS kept anchoring
+     to the strip after it was un-positioned. The strip is a plain scrolling
+     row on a phone and does not need the blur. */
+  .eng-wrap .ws-id .ws-id-in .cmd{order:9; flex:0 0 100%; width:100%; min-width:0;
+    position:static; margin:0; padding:0;
+    backdrop-filter:none; -webkit-backdrop-filter:none;}
+  .eng-wrap .ws-id .ws-id-in .cmd-in{position:static; flex-wrap:nowrap;
+    overflow-x:auto; overflow-y:hidden;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none;}
+  .eng-wrap .ws-id .ws-id-in .cmd-in::-webkit-scrollbar{display:none;}
+  .eng-wrap .ws-id .ws-id-in .cmd-b{min-height:34px; height:34px; font-size:12px;
+    padding:0 9px;}
+  .eng-wrap .ws-id .ws-id-in .cmd-in{padding:0; gap:1px;}
+  .eng-wrap .ws-id .ws-id-in .ws-id-home{min-height:40px;}
+  .eng-wrap .ws-id .ws-id-in .cmd::after{display:none;}
+  /* SOS keeps a 44px target and stops being the widest thing in the header.
+     It anchors to the sticky header now that .cmd is no longer positioned. */
+  .eng-wrap .ws-id .ws-id-in .ws-sos{position:absolute; top:5px; right:104px; z-index:3;
+    /* the wider-tablet rule centres it with translateY(-50%) against the strip
+       it used to sit in; here it is placed in the identity row outright */
+    transform:none;
+    min-height:44px; height:44px; padding:0 9px; gap:4px;}
+  .eng-wrap .ws-id .ws-id-in .ws-sos span{font-size:11.5px; letter-spacing:.04em;}
+  .eng-wrap .ws-id .ws-id-in .ws-id-find{margin-left:auto;}
+  .eng-wrap .ws-id-brand{font-size:13px;}
+  .eng-wrap .ws-id-tool{font-size:8.5px;}
+}
+
+@media (max-width:900px){
+  /* ── AGE AND ITS UNIT NEED TWO TRACKS, NOT ONE ────────────────────────
+     The age cell holds a value input and a unit select side by side; in a
+     single 111px track they needed 144px, so the select spilled across the
+     weight field beside it. It spans two tracks and the row reads
+     [ age ][ years ]  [ weight ], each with its own ground. */
+  .eng-wrap #acc-patient .inp-age{grid-column:span 2; min-width:0;}
+  .eng-wrap #acc-patient .inp-age > div{min-width:0;}
+  .eng-wrap #acc-patient .inp-age select{flex:0 0 84px; width:84px; min-width:84px;}
+  .eng-wrap #acc-patient .inp-age input{min-width:0;}
+
+  /* Procedure is free text and takes the width it needs. It was one column
+     of three with two empty beside it — the blank row in the screenshot. */
+  .eng-wrap #acc-patient .inp-proc{grid-column:1/-1;}
+
+  /* ── PRIMARY, THEN CONTEXT ────────────────────────────────────────────
+     Age, Weight and Continue are the minimum case. Sex, Height, ASA and
+     Procedure are context that can arrive later, so they are quieter — not
+     hidden, not behind a wizard, just not shouting as loudly as the two
+     values that open the workstation. */
+  .eng-wrap #acc-patient .inp-age label,
+  .eng-wrap #acc-patient .inp:nth-of-type(4) label{color:var(--ink,#eaf2f0); font-size:11px;}
+  .eng-wrap #acc-patient .inp:nth-of-type(2) label,
+  .eng-wrap #acc-patient .inp:nth-of-type(3) label,
+  .eng-wrap #acc-patient .inp:nth-of-type(5) label,
+  .eng-wrap #acc-patient .inp-proc label{color:var(--ink-3,#7d8b95); font-size:10px;}
+  .eng-wrap #acc-patient .inp:nth-of-type(2) select,
+  .eng-wrap #acc-patient .inp:nth-of-type(3) input,
+  .eng-wrap #acc-patient .inp:nth-of-type(5) select,
+  .eng-wrap #acc-patient .inp-proc input{min-height:44px; font-size:14.5px;}
+
+  /* The Continue block is a button and one quiet line, nothing more. */
+  .pt-go{margin:1px 0 2px; gap:2px;}
+  .pt-go-b{min-height:48px; height:48px; font-size:13.5px; letter-spacing:.03em;}
+  .pt-go-h{font-size:10px; line-height:1.2;}
+
+  /* ── NO RESERVED EMPTINESS ────────────────────────────────────────────
+     The setup card ends when its controls do. An empty procedure hint or
+     paediatric offer takes no height at all rather than holding a row open. */
+  .eng-wrap #acc-patient .cw-acc-body{padding-bottom:6px;}
+  .eng-wrap #acc-patient .proc-state:empty,
+  .eng-wrap #peds-est:empty{display:none;}
+  .pt-rec:empty{display:none;}
+
+  /* ── RECOVERY SCORING IS NOT AN INDUCTION STEP ────────────────────────
+     PACU sat between the patient form and the induction workstation, so a
+     clinician entering a case met pain, nausea and sedation scoring before
+     any induction content. It is not removed and not changed — it stands
+     down while the induction domain is the active one, which includes the
+     fresh screen before any domain has been chosen. */
+  .eng-wrap:has(#output[data-domain="induction"]) .pacu-mod,
+  .eng-wrap:has(#output:not([data-domain])) .pacu-mod{display:none;}
+
+  /* The disclaimer keeps every word and stops taking a screen to say them. */
+  .eng-wrap .disclaimer{font-size:10px; line-height:1.45; padding:7px 9px;
+    margin-bottom:8px;}
+
+  /* Live timers are one compact strip on a phone, not a second dashboard. */
+  .eng-wrap .lt-strip{padding:6px 9px;}
 }

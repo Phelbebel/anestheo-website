@@ -401,8 +401,14 @@ async function openEngine(b, viewport) {
     }
     /* The defect could only exist because one value fed two names. */
     t('patientContext never assigns igel from lma', !/igel\s*:\s*d\.lma/.test(ENGC));
+    /* The two sizes must each come from their OWN helper — the defect this
+       protects against was one value published under both names. The check is
+       on the assignment, not on the variable that once held it: the paediatric
+       working values now come from a single shared helper used by both the
+       full and the case-ready paths, and the names moved with them. */
     t('...and each comes from its own helper',
-      /_pedsLMA\s*=\s*lmaForWeight/.test(ENGC) && /_pedsIgel\s*=\s*\(igelForWeight/.test(ENGC));
+      /lma\s*:\s*lmaForWeight\(/.test(ENGC) && /igel\s*:\s*\(igelForWeight\(/.test(ENGC) &&
+      !/igel\s*:\s*.{0,12}lmaForWeight/.test(ENGC));
 
     /* ── EVERY WORKSPACE NAMES ITSELF ───────────────────────────────────
        A tab that only filters is a filter. Each workspace now states what it
@@ -1851,7 +1857,14 @@ async function openEngine(b, viewport) {
                  overflow:document.documentElement.scrollWidth - document.documentElement.clientWidth };
       })()`);
       t(w + ': the workstation precedes the timers', g.grid < g.timers, [g.grid, g.timers]);
-      t(w + ': ...and precedes PACU', g.grid < g.pacu, [g.grid, g.pacu]);
+      /* RECOVERY SCORING NEVER COMES FIRST. On a phone in the induction
+         domain it is not in the stream at all — pain, nausea and sedation
+         scoring sat between the patient form and the induction workstation,
+         which is the wrong order for someone about to induce. Absent
+         satisfies this rule; present-and-after satisfies it; present-and-
+         before is the failure. */
+      t(w + ': ...and recovery scoring never precedes it',
+        g.pacu === 0 || g.grid < g.pacu, [g.grid, g.pacu]);
       /* NO SESSION IN THIS SUITE, so the correct answer here is HIDDEN. New
          Patient is patient management and it is gated on the same rule the
          dashboard uses; an anonymous visitor gets the whole workstation and

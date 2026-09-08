@@ -72,10 +72,22 @@ const snap = pg => pg.evaluate(() => {
     caseLive: app ? app.classList.contains('case-live') : null,
     goVisible: vis(go), goDisabled: go ? go.disabled : null,
     newCaseVisible: vis(document.querySelector('.case-new')),
+    /* The semantic state. On a phone the whole case bar stands down while the
+       editor is the active surface, so painted visibility answers a different
+       question from "is a reset being offered". */
+    newCaseOffered: !document.querySelector('.case-new').hidden,
     npVisible: vis(document.querySelector('.case-np')),
     npInEditor: !!document.querySelector('#acc-patient .case-np'),
-    noPatientPanels: [...document.querySelectorAll('.empty-state, .case-state')]
-      .filter(vis).filter(e => /no active patient|not entered/i.test(e.textContent)).length,
+    /* SURFACES, NOT WORDS. Counting elements that happen to contain the
+       phrase "No active patient" passed a screen showing the case bar AND
+       the editor AND an empty-output prompt, because only one of the three
+       used that wording. These are the three actual roots. */
+    surfaces: {
+      caseBar: vis(document.querySelector('.case-bar')),
+      ptSummary: vis(document.querySelector('.pt-row')),
+      editor: vis(document.getElementById('acc-patient')),
+      outputPrompt: vis(document.querySelector('#output .empty-state'))
+    },
     active: document.activeElement ?
       (document.activeElement.id || document.activeElement.tagName) : null,
     scrollY: window.pageYOffset,
@@ -135,10 +147,13 @@ async function type(pg, sel, text) {
 
       /* ── FLOW A · fresh load, then the minimum case ───────────────────── */
       const fresh = await snap(pg);
-      t(P + 'fresh: New case is not offered with no case', fresh.newCaseVisible === false);
+      t(P + 'fresh: New case is not offered with no case',
+        fresh.newCaseOffered === false && fresh.newCaseVisible === false);
       t(P + 'fresh: no induction workstation yet', fresh.hostExists === false);
-      t(P + 'fresh: one patient-start surface, not two',
-        fresh.noPatientPanels <= 1, fresh.noPatientPanels);
+      t(P + 'fresh: the editor is the ONE patient-start surface',
+        fresh.surfaces.editor === true && fresh.surfaces.caseBar === false &&
+        fresh.surfaces.ptSummary === false && fresh.surfaces.outputPrompt === false,
+        fresh.surfaces);
       t(P + 'fresh: Create patient record lives in Patient Setup', fresh.npInEditor === true);
       t(P + 'fresh: ...and is hidden for an unauthorized session', fresh.npVisible === false);
       t(P + 'fresh: Continue is present but disabled',
@@ -156,7 +171,7 @@ async function type(pg, sel, text) {
       t(P + 'A: #induction-host EXISTS on age + weight alone', min.hostExists === true);
       t(P + 'A: Induction Strategy is rendered', min.stratY !== null, min.stratY);
       t(P + 'A: Continue is enabled', min.goDisabled === false);
-      t(P + 'A: New case appears once a case exists', min.newCaseVisible === true);
+      t(P + 'A: New case is offered once a case exists', min.newCaseOffered === true);
       t(P + 'A: sex stays empty — nothing defaulted', min.sex === '', min.sex);
       t(P + 'A: height stays empty — nothing estimated', min.height === '', min.height);
       t(P + 'A: no height-derived value fabricated',
@@ -167,7 +182,57 @@ async function type(pg, sel, text) {
         min.scalars.tbw === 75 && min.scalars.ibw == null && min.scalars.lbw == null,
         min.scalars);
       t(P + 'A: the editor did NOT fold on its own', min.ptOpen === true);
+      t(P + 'A: still exactly one patient surface while typing',
+        min.surfaces.editor === true && min.surfaces.caseBar === false &&
+        min.surfaces.outputPrompt === false, min.surfaces);
       t(P + 'A: no horizontal overflow', min.overflowX <= 0, min.overflowX);
+
+      /* ── MINIMUM-CASE VALIDITY · zero, negative and empty ─────────────
+         One rule decides this now, and it looks at the values rather than at
+         whether the input strings are non-empty. A weight of 0 or -5 used to
+         satisfy every readiness check on the page and produce a case the
+         doses were scaled against. Age 0 is a real age and must survive. */
+      for (const [label, ageV, unit, wtV, want] of [
+        ['age empty + weight 75',   '',   'y', '75', false],
+        ['age 42 + weight empty',   '42', 'y', '',   false],
+        ['age 42 + weight 0',       '42', 'y', '0',  false],
+        ['age 42 + weight -5',      '42', 'y', '-5', false],
+        ['age -1 + weight 75',      '-1', 'y', '75', false],
+        ['age 0 days + weight 3.2', '0',  'd', '3.2', true],
+        ['age 42 + weight 75',      '42', 'y', '75',  true]
+      ]) {
+        await pg.evaluate(() => window.newCase && newCase());
+        await pg.waitForTimeout(250);
+        if (unit !== 'y') await pg.selectOption('#i-age-unit', unit);
+        if (ageV !== '') await type(pg, '#i-age', ageV);
+        if (wtV !== '')  await type(pg, '#i-weight', wtV);
+        await pg.waitForTimeout(250);
+        const m = await snap(pg);
+        const L = P + 'valid/' + label + ': ';
+        t(L + 'caseReady is ' + want, m.caseReady === want,
+          { caseReady:m.caseReady, age:m.age, weight:m.weight });
+        t(L + 'Continue ' + (want ? 'enabled' : 'disabled'),
+          m.goDisabled === !want, m.goDisabled);
+        t(L + 'case-live is ' + want, m.caseLive === want, m.caseLive);
+        t(L + 'workstation ' + (want ? 'present' : 'absent'),
+          m.hostExists === want, m.hostExists);
+        t(L + 'New case ' + (want ? 'offered' : 'not offered'),
+          m.newCaseOffered === want, m.newCaseOffered);
+        if (!want) {
+          /* nothing may have been scaled against a bad weight */
+          t(L + 'no dose was scaled at all', m.rocuronium === null, m.rocuronium);
+        } else {
+          t(L + 'a dose is scaled and is a positive amount',
+            !!(m.rocuronium && /[1-9]/.test(m.rocuronium.amt)) &&
+            !/-/.test(m.rocuronium.amt || ''), m.rocuronium);
+        }
+        if (unit !== 'y') await pg.selectOption('#i-age-unit', 'y');
+      }
+      await pg.evaluate(() => window.newCase && newCase());
+      await pg.waitForTimeout(250);
+      await type(pg, '#i-age', '42');
+      await type(pg, '#i-weight', '75');
+      await pg.waitForTimeout(250);
 
       /* ── FLOW B · Continue ───────────────────────────────────────────── */
       await pg.click('#pt-go-b');
@@ -184,6 +249,11 @@ async function type(pg, sel, text) {
         after.stratY !== null && after.stratY <= 650, after.stratY);
       t(P + 'B: the page did not jump to the document top', after.scrollY > 0, after.scrollY);
       t(P + 'B: no horizontal overflow', after.overflowX <= 0, after.overflowX);
+      t(P + 'B: the editor folds and the compact summary takes over',
+        after.surfaces.editor === false && after.surfaces.caseBar === true,
+        after.surfaces);
+      t(P + 'B: ...and New case is now both offered and reachable',
+        after.newCaseOffered === true && after.newCaseVisible === true);
 
       /* ── FLOW C · completing the context later ───────────────────────── */
       await pg.evaluate(() => window.ptToggle && ptToggle());
@@ -204,7 +274,7 @@ async function type(pg, sel, text) {
       t(P + 'C: Continue still works', full.goDisabled === false);
 
       /* ── FLOW D · New case ───────────────────────────────────────────── */
-      t(P + 'D: New case is visible while a case exists', full.newCaseVisible === true);
+      t(P + 'D: New case is offered while a case exists', full.newCaseOffered === true);
       await pg.evaluate(() => { if (window.newCase) newCase(); });
       await pg.waitForTimeout(700);
       const cleared = await snap(pg);
@@ -213,7 +283,8 @@ async function type(pg, sel, text) {
         [cleared.age, cleared.weight, cleared.height]);
       t(P + 'D: ...and the induction selections', cleared.planKeys === '[]', cleared.planKeys);
       t(P + 'D: ...and the case is no longer live', cleared.caseLive === false);
-      t(P + 'D: ...and New case hides itself again', cleared.newCaseVisible === false);
+      t(P + 'D: ...and New case withdraws itself again',
+        cleared.newCaseOffered === false && cleared.newCaseVisible === false);
       t(P + 'D: ...and Patient Setup is the surface again', cleared.goDisabled === true);
 
       t(P + 'no page or runtime errors in the whole flow', errs.length === 0, errs.slice(0, 3));
@@ -222,12 +293,13 @@ async function type(pg, sel, text) {
 
     /* ── THE TWO PATHS MUST AGREE ABOUT A CHILD ──────────────────────────
        The case-ready branch computes the paediatric working values itself
-       rather than sharing the full path's code, so the same child could in
-       principle be given one EBV before a height is entered and a different
-       one after. These are the age- and weight-derived values only; they do
-       not depend on sex or height and must therefore be IDENTICAL either
-       side of the anthropometric gate. This is what stands in for factoring
-       the duplication out, and it fails the moment the two copies drift. */
+       through the SAME helpers the full path uses — maint421(),
+       pedsEbvPerKg() and pedsAirwayValues() — so there is one copy of each
+       formula rather than two. This asserts the consequence: the values a
+       child is given cannot change merely because a height was entered.
+
+       It is not a substitute for the sharing; the sharing is asserted
+       directly below, from the source. */
     {
       const ctx = await phone(b, 390, 844);
       await route(ctx);
@@ -254,6 +326,198 @@ async function type(pg, sel, text) {
         await pg.selectOption('#i-age-unit', 'y');
       }
       await ctx.close();
+    }
+
+    /* ── NOTHING OVERLAPS ANYTHING, MEASURED FROM REAL RECTS ────────────
+       The rejected screen had the age-unit select and the weight field
+       sharing 1,080 square pixels of ground, and the SOS block painted over
+       the domain title so "Induction" read "Inductio". Neither is visible in
+       the CSS — .ws-sos was positioned absolutely inside the scrolling strip,
+       and the age cell simply needed more width than its track had. Only the
+       rendered boxes show it, so only the rendered boxes are asserted. */
+    for (const [w, h] of VIEWS) {
+      const ctx = await phone(b, w, h);
+      await route(ctx);
+      const pg = await ctx.newPage();
+      await pg.goto(BASE + '/engine.html', { waitUntil:'domcontentloaded' });
+      await pg.waitForTimeout(2000);
+      const g = await pg.evaluate(() => {
+        const R = sel => { const e = document.querySelector(sel);
+          if (!e || !e.getClientRects().length) return null;
+          const r = e.getBoundingClientRect();
+          return { x:r.left, y:r.top + window.pageYOffset, r:r.right,
+                   b:r.bottom + window.pageYOffset, w:r.width, h:r.height,
+                   clipped:e.scrollWidth > e.clientWidth + 1 }; };
+        const setup = document.getElementById('acc-patient');
+        let last = 0;
+        [...setup.querySelectorAll('input,select,button')].forEach(e => {
+          if (!e.getClientRects().length) return;
+          const bb = e.getBoundingClientRect().bottom + window.pageYOffset;
+          if (bb > last) last = bb; });
+        const domain = [...document.querySelectorAll('.cmd-b')]
+          .find(e => /^Induction$/.test(e.textContent.trim()));
+        return {
+          age:R('#i-age'), unit:R('#i-age-unit'), weight:R('#i-weight'),
+          sex:R('#i-sex'), height:R('#i-height'), asa:R('#i-asa'), proc:R('#i-proc'),
+          go:R('#pt-go-b'), setup:R('#acc-patient'), bar:R('#acc-patient .input-bar'),
+          sos:R('.ws-sos'), find:R('.ws-id-find'), avatar:R('.nb-avatar'),
+          brand:R('.ws-id-home'),
+          domain: domain ? (() => { const r = domain.getBoundingClientRect();
+            return { x:r.left, y:r.top + window.pageYOffset, r:r.right,
+                     b:r.bottom + window.pageYOffset, w:r.width, h:r.height,
+                     clipped:domain.scrollWidth > domain.clientWidth + 1 }; })() : null,
+          setupGap: Math.round(setup.getBoundingClientRect().bottom + window.pageYOffset - last),
+          overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          pacuVisible: !!(document.querySelector('.pacu-mod') &&
+                          document.querySelector('.pacu-mod').getClientRects().length),
+          pacuPresent: !!document.querySelector('.pacu-mod'),
+          /* Everything visibly rendered between the patient surface and the
+             workstation host. PACU and the disclaimer both used to be here. */
+          betweenSetupAndWork: (() => {
+            const wrap = document.querySelector('.eng-wrap');
+            const setup = document.getElementById('acc-patient');
+            const grid = document.querySelector('.ws-grid');
+            if (!setup || !grid) return [];
+            const sB = setup.getBoundingClientRect().bottom + window.pageYOffset;
+            const gT = grid.getBoundingClientRect().top + window.pageYOffset;
+            return [...wrap.children].filter(e => {
+              if (!e.getClientRects().length) return false;
+              const r = e.getBoundingClientRect();
+              const t2 = r.top + window.pageYOffset;
+              return r.height > 0 && t2 >= sB && t2 < gT;
+            }).map(e => e.id || (e.className || '').toString().slice(0, 20));
+          })()
+        };
+      });
+      const area = (a, b2) => { if (!a || !b2) return null;
+        return Math.max(0, Math.min(a.r, b2.r) - Math.max(a.x, b2.x)) *
+               Math.max(0, Math.min(a.b, b2.b) - Math.max(a.y, b2.y)); };
+      const Q = w + ' rects: ';
+      t(Q + 'Age and its unit do not overlap', area(g.age, g.unit) === 0, area(g.age, g.unit));
+      t(Q + 'the unit and Weight do not overlap', area(g.unit, g.weight) === 0,
+        area(g.unit, g.weight));
+      t(Q + 'Age and Weight do not overlap', area(g.age, g.weight) === 0, area(g.age, g.weight));
+      t(Q + 'Weight and Height do not overlap', area(g.weight, g.height) === 0);
+      t(Q + 'Sex, Height and ASA do not overlap',
+        area(g.sex, g.height) === 0 && area(g.height, g.asa) === 0);
+      t(Q + 'the domain title does not overlap SOS', area(g.domain, g.sos) === 0,
+        area(g.domain, g.sos));
+      t(Q + 'the domain title is not clipped', g.domain && g.domain.clipped === false);
+      t(Q + 'the brand does not overlap SOS', area(g.brand, g.sos) === 0);
+      t(Q + 'SOS does not overlap the utility control', area(g.sos, g.find) === 0);
+      t(Q + 'the utility control does not overlap the avatar', area(g.find, g.avatar) === 0);
+      t(Q + 'SOS keeps a 44px target', g.sos && g.sos.h >= 44, g.sos && g.sos.h);
+      t(Q + 'the utility control keeps a 44px target', g.find && g.find.h >= 44,
+        g.find && g.find.h);
+      t(Q + 'Procedure uses essentially the whole content width',
+        g.proc && g.bar && g.proc.w >= g.bar.w - 2, [g.proc && g.proc.w, g.bar && g.bar.w]);
+      t(Q + 'Continue is a button, not a card', g.go && g.go.h >= 44 && g.go.h <= 56, g.go && g.go.h);
+      t(Q + 'Patient Setup reserves no empty space', g.setupGap <= 20, g.setupGap);
+      t(Q + 'no horizontal document overflow', g.overflowX <= 0, g.overflowX);
+      /* THE RULE IS ABOUT THE INDUCTION STREAM, NOT ABOUT ORDER. Asserting
+         "PACU comes after the workstation" passes a screen where it sits
+         between the patient form and the medicine as long as something else
+         is below it. What must be true is that while induction is the active
+         domain on a phone, recovery scoring is not in the stream at all —
+         and that the module itself is still there, unchanged, for the
+         contexts it belongs to. */
+      t(Q + 'recovery scoring is not in the phone induction stream',
+        g.pacuVisible === false, g.pacuVisible);
+      t(Q + '...and the PACU module itself is intact, not deleted',
+        g.pacuPresent === true);
+      t(Q + '...and nothing sits between Patient Setup and the workstation',
+        g.betweenSetupAndWork.length === 0, g.betweenSetupAndWork);
+      await ctx.close();
+    }
+
+    /* ── ONE PAEDIATRIC INSERTION DEPTH, EVERYWHERE ───────────────────
+       Two depths were published for the same tube: the airway plan used
+       age/2+12 and the paediatric context used ETT x 3. They agree for
+       weight-based patients — both are ETT x 3 there — and disagreed for
+       every age-based one, by 3 cm at twelve years.
+
+       The weight-based pathway keeps the depth it had. The age-based
+       pathway is age/2+12, and that expression now exists once, in
+       pedsAirwayValues(), which every surface reads. */
+    {
+      const ctx = await phone(b, 390, 844);
+      await route(ctx);
+      const pg = await ctx.newPage();
+      await pg.goto(BASE + '/engine.html', { waitUntil:'domcontentloaded' });
+      await pg.waitForTimeout(2000);
+      const CASES = [
+        ['neonate 1w 3.0kg',  '1',  'w', '3',   10.5, true],
+        ['infant 6mo 7.0kg',  '6',  'mo','7',   12,   true],
+        ['13mo 4.8kg (wt<5)', '13', 'mo','4.8', 10.5, true],
+        ['13mo 5.2kg',        '13', 'mo','5.2', 12.5, false],
+        ['2 years 12kg',      '2',  'y', '12',  13,   false],
+        ['4 years 16kg',      '4',  'y', '16',  14,   false],
+        ['8 years 25kg',      '8',  'y', '25',  16,   false],
+        ['12 years 40kg',     '12', 'y', '40',  18,   false]
+      ];
+      for (const [label, age, unit, wt, want, weightBased] of CASES) {
+        const r = await pg.evaluate(a => {
+          const set = (id, v) => { const e = document.getElementById(id);
+            e.value = v; e.dispatchEvent(new Event('change', { bubbles:true })); };
+          if (window.newCase) newCase();
+          set('i-age-unit', a.unit); set('i-age', a.age); set('i-weight', a.wt);
+          compute();
+          const partial = (window.patientContext.pediatric || {}).ettDepth;
+          const plan = window.airwayPlan ? window.airwayPlan.depth : null;
+          set('i-sex', 'F'); set('i-height', '100'); compute();
+          return { partial, planPartial:plan,
+                   full:(window.patientContext.pediatric || {}).ettDepth,
+                   planFull: window.airwayPlan ? window.airwayPlan.depth : null };
+        }, { age, unit, wt });
+        const tag = 'depth/' + label + ': ';
+        t(tag + 'airway plan, context and case-ready all read ' + want,
+          r.partial === want && r.full === want && r.planFull === want,
+          r);
+        if (weightBased)
+          t(tag + '...and the weight-based rule is unchanged', r.full === want, r.full);
+      }
+      await ctx.close();
+    }
+
+    /* ── ONE COPY OF EACH FORMULA, PROVED FROM THE SOURCE ─────────────── */
+    {
+      const src = fs.readFileSync('/home/user/anestheo-website/engine.html', 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, ' ');
+      const count = re => (src.match(re) || []).length;
+      t('src: the 4-2-1 rule exists once', count(/40\s*\+\s*\(wt-10\)\*2/g) === 1,
+        count(/40\s*\+\s*\(wt-10\)\*2/g));
+      t('src: the paediatric EBV band exists once',
+        count(/ageDays\s*<\s*28\s*\?\s*90/g) === 1, count(/ageDays\s*<\s*28\s*\?\s*90/g));
+      t('src: the age-based ETT size exists once in the context path',
+        count(/ageYears\/4\s*\+\s*4/g) === 1, count(/ageYears\/4\s*\+\s*4/g));
+      /* ── DEPTH IS DECIDED IN ONE PLACE ──────────────────────────────
+         Not "two copies that currently agree" — one expression, read by
+         every surface. The age-based rule and the weight-based rule both
+         live in pedsAirwayValues(); nothing else computes a paediatric
+         depth, and the consumers reference the helper's result. */
+      t('src: the age-based depth rule exists once',
+        count(/ageYears\/2 \+ 12/g) === 1, count(/ageYears\/2 \+ 12/g));
+      t('src: no surface recomputes age/2+12 for itself',
+        count(/\(age\/2\)\+12/g) === 0, count(/\(age\/2\)\+12/g));
+      t('src: no surface recomputes the weight-based depth for itself',
+        count(/neoETT\(wt\)\*3/g) === 0, count(/neoETT\(wt\)\*3/g));
+      t('src: the helper result is what the surfaces read',
+        count(/_pw\.ettDepth/g) >= 5, count(/_pw\.ettDepth/g));
+      t('src: the dead depthW variable is gone', count(/depthW/g) === 0);
+      t('src: readiness is decided in one place',
+        count(/function caseReadyFrom/g) === 1 &&
+        count(/caseReadyFrom\(/g) >= 4, count(/caseReadyFrom\(/g));
+      t('src: no readiness test on input-string presence',
+        !/v\('i-age'\)\s*&&\s*v\('i-weight'\)/.test(src));
+      /* WAS: asserted the airway plan still computed (age/2)+12 for itself,
+         which recorded the unresolved conflict — two depths for one tube.
+         That conflict has now been resolved deliberately: the age-based rule
+         IS age/2+12, it lives in the shared helper, and the airway plan reads
+         it from there rather than recomputing it. The safety meaning is
+         stronger, not weaker: before, the rule merely had to exist somewhere;
+         now no surface may hold a depth rule of its own at all. */
+      t('src: the airway plan reads the shared depth rather than its own',
+        /depth:_pw\.ettDepth/.test(src) && !/\(age\/2\)\+12/.test(src));
     }
 
     /* ── CREATE PATIENT RECORD · authorized, both keyboard states ─────── */

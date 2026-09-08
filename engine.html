@@ -2656,7 +2656,7 @@ body .nb-search-wrap{display:none !important;}
       </aside>
 
       <div id="output">
-        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age, sex, weight and height and every calculation activates instantly.</p>
+        <div class="empty-state"><div class="ico">&#129658;</div><p><b>Workstation ready</b>Enter age and weight and the induction workstation activates. Sex and height add the calculations that need them.</p>
         <button class="cw-open-pt" onclick="ptFocus()">Enter patient details</button></div>
       </div>
       <!-- The rail column holds the index AND the protocol preview beneath
@@ -2768,6 +2768,87 @@ function neoETT(wt){
   if(wt<1) return 2.5; if(wt<2.5) return 3.0; if(wt<6) return 3.5; if(wt<9) return 4.0; return 4.0;
 }
 
+/* ── ONE DEFINITION OF A USABLE CASE ─────────────────────────────────────
+   There were three, and they disagreed. compute() asked whether age and
+   weight were non-null, ltCaseReady() asked the same question a different
+   way, and the case-live flag asked whether two INPUT STRINGS were non-empty.
+   None of them looked at the values: a weight of 0 or -5, or a negative age,
+   satisfied all three and produced a case the page would happily scale doses
+   against. Removing one readiness contradiction only to leave another behind
+   is not a fix.
+
+   These two predicates are the whole rule and everything else calls them.
+
+   AGE 0 IS A REAL AGE. A patient born today is a patient, so the test is
+   >= 0 rather than > 0, and there is no upper bound because this application
+   has no basis for declaring one.
+
+   WEIGHT 0 IS NOT A WEIGHT. Every dose on this page is a rate multiplied by
+   it, so zero and negative are rejected. There is no maximum, for the same
+   reason there is no maximum age. */
+function ageValueOk(y){ return y != null && isFinite(y) && y >= 0; }
+function weightValueOk(w){ return w != null && isFinite(w) && w > 0; }
+function caseReadyFrom(y, w){ return ageValueOk(y) && weightValueOk(w); }
+/* The same question asked of the live form rather than of two values. */
+function ltCaseReady(){
+  var a = ageCanon();
+  return caseReadyFrom(a ? a.years : null, num('i-weight'));
+}
+window.ltCaseReady = ltCaseReady;
+
+/* ── PAEDIATRIC WORKING VALUES, ONE COPY EACH ───────────────────────────
+   The age-and-weight paediatric values are needed by two paths now — the
+   full anthropometric build and the case-ready build that runs before a
+   height or a sex exists — and the first version of that second path wrote
+   its own copy of every formula. Two copies of clinical arithmetic drift;
+   a test proving they currently agree does not stop them drifting, it only
+   notices afterwards.
+
+   These are the single copies. Nothing here is new arithmetic: each is the
+   expression the full path already used, moved. The airway plan's own depth
+   rule is NOT here and is deliberately untouched — see the note on
+   pedsAirwayValues(). */
+function maint421(wt){
+  if(wt == null) return null;
+  if(wt <= 10) return wt*4;
+  if(wt <= 20) return 40 + (wt-10)*2;
+  return 60 + (wt-20)*1;
+}
+function pedsEbvPerKg(ageDays, ageYears){
+  return ageDays < 28 ? 90 : (ageYears < 1 ? 80 : 75);
+}
+/* WEIGHT TAKES PRECEDENCE UNDER 1 YEAR OR UNDER 5 KG, which is the rule the
+   airway section already applies: age/4+4 is not valid at neonatal sizes.
+
+   ── ONE DEPTH, DECIDED HERE ─────────────────────────────────────────────
+   This application held two different paediatric insertion depths and showed
+   both. The Airway plan used age/2+12; the paediatric context used ETT x 3.
+   They agreed for every weight-based patient — both are ETT x 3 there — and
+   disagreed for every age-based one, widening with age: 13.0 against 13.5 at
+   two years, 16 against 18 at eight, 18 against 21 at twelve. A clinician
+   reading the plan and the context side by side was given two numbers for
+   one tube.
+
+   The resolution is a product decision, taken and recorded here rather than
+   inferred: the weight-based pathway keeps the depth it already had, and the
+   age-based pathway is age/2+12. That expression exists once, in this
+   function, and every surface that shows a paediatric depth reads it from
+   here — the airway panel, the airway KPI strip, window.airwayPlan, the
+   paediatric context strip, and both the case-ready and full compute paths.
+
+   ETT SIZE IS NOT TOUCHED. neoETT(), age/4+4 uncuffed, age/4+3.5 cuffed and
+   the wt<5 precedence are exactly as they were; only the depth is unified. */
+function pedsAirwayValues(ageYears, wt){
+  if(ageYears == null || wt == null) return {};
+  var wb = (ageYears < 1 || wt < 5);
+  var e  = wb ? neoETT(wt) : (ageYears/4 + 4);
+  var depth = wb ? (e != null ? e*3 : null) : (ageYears/2 + 12);
+  return { ett:(e != null ? r1(e) : null),
+           ettDepth:(depth != null ? r1(depth) : null),
+           lma:lmaForWeight(wt),
+           igel:(igelForWeight(wt) + '').split(' ')[0] };
+}
+
 function compute(){
   saveInputs();
   obConfirmSync();          /* a confirmation is only for the procedure it named */
@@ -2795,7 +2876,7 @@ function compute(){
 
      Nothing is defaulted, estimated or inferred to fill the gap. A missing
      height stays missing and takes only its own derivations with it. */
-  var caseReady = (age != null && wt != null);
+  var caseReady = caseReadyFrom(age, wt);
   var fullAnthro = caseReady && !!sex && ht != null;
   if(!caseReady){
     window.patientContext = buildPatientContext({
@@ -2827,23 +2908,16 @@ function compute(){
        maintenance rate and the paediatric tube sizes are functions of weight
        and age alone. bsa, ibw, lbw and abw are left null and pedsSection()
        already omits a value it is not given. */
-    var _rEBV = (age<16) ? (ageC.days<28 ? 90 : (age<1 ? 80 : 75)) : null;
-    var _rEbv = (_rEBV != null) ? wt*_rEBV : null;
-    var _r421; if(wt<=10)_r421=wt*4; else if(wt<=20)_r421=40+(wt-10)*2; else _r421=60+(wt-20)*1;
-    var _rETT=null,_rDep=null,_rLMA=null,_rIgel=null;
-    if(age<16){
-      var _rw = (age<1 || wt<5) ? neoETT(wt) : (age/4 + 4);
-      if(_rw != null){ _rETT = r1(_rw); _rDep = r1(_rw*3); }
-      _rLMA  = lmaForWeight(wt);
-      _rIgel = (igelForWeight(wt)+'').split(' ')[0];
-    }
+    var _rPeds = (age < 16) ? pedsAirwayValues(age, wt) : {};
+    var _rEbv  = (age < 16) ? wt*pedsEbvPerKg(ageC.days, age) : null;
     window.patientContext = buildPatientContext({
       ageYears:age, ageDays:ageC.days, ageValue:ageC.value, ageUnit:ageC.unit,
       sex:sex, height:ht, weight:wt,
       asa:ge('i-asa').value, procedure:ge('i-proc').value,
       estimatedWeight:PT_EST.weight, estimatedHeight:PT_EST.height,
-      derived:{ ebv:(_rEbv!=null?r0(_rEbv):null), maint:r0(_r421),
-                ett:_rETT, ettDepth:_rDep, lma:_rLMA, igel:_rIgel } });
+      derived:{ ebv:(_rEbv!=null?r0(_rEbv):null), maint:r0(maint421(wt)),
+                ett:_rPeds.ett, ettDepth:_rPeds.ettDepth,
+                lma:_rPeds.lma, igel:_rPeds.igel } });
     /* The equipment airway plan is adult-sex-sized or paediatric-weight-sized
        and is published by the full path only; withholding the whole section is
        what airwaySection() already does when nothing is published. */
@@ -2852,7 +2926,7 @@ function compute(){
     var _need=[]; if(!sex)_need.push('sex'); if(ht==null)_need.push('height');
     out.innerHTML='<div id="wf-lead" class="wf-lead" hidden></div>'+
       '<div id="induction-host" class="wf-host"></div>'+
-      '<div class="empty-state empty-min empty-more"><p><b>'+_need.join(' and ')+
+      '<div class="ctx-more"><p><b>'+_need.join(' and ')+
       ' not entered</b>BMI, ideal and lean body weight, body surface area and the '+
       'airway equipment sizes are calculated from '+_need.join(' and ')+
       ', so they are not shown. The doses above are scaled by weight and are '+
@@ -2879,6 +2953,9 @@ function compute(){
   var isOb = obstetricContextFor(sex, ge('i-proc').value, age);
   var ageDays=ageC.days, isInfant=age<1, isNeo=ageDays<28;
   var wbAir=isPeds && (isInfant || wt<5);          // A1b: weight-based airway precedence
+  /* Resolved once, here, and read by every paediatric airway surface below —
+     the panel, the KPI strip, window.airwayPlan and patientContext. */
+  var _pw = isPeds ? pedsAirwayValues(age, wt) : {};
   var htM=ht/100;
   var bmi=wt/(htM*htM);
   var inchesOver5ft=(ht-152.4)/2.54;
@@ -2888,22 +2965,22 @@ function compute(){
   var bsa=Math.sqrt((ht*wt)/3600);
   var pbw=(sex==='M'?50:45.5)+0.91*(ht-152.4); if(pbw<1)pbw=wt;
   // Early weight-based references (hoisted so the neonatal package + panels share one source)
-  var ebvPerKg = isPeds ? (isNeo?90:(isInfant?80:75)) : (sex==='M'?70:65);
+  var ebvPerKg = isPeds ? pedsEbvPerKg(ageDays, age) : (sex==='M'?70:65);
   var ebv = wt*ebvPerKg;
   var mablH30 = ebv*(40-30)/40, mablH25 = ebv*(40-25)/40;
-  var h421; if(wt<=10)h421=wt*4; else if(wt<=20)h421=40+(wt-10)*2; else h421=60+(wt-20)*1;
+  var h421 = maint421(wt);
 
   // ── AIRWAY (combined recommendations) ──
   var airwayRows='', pedsNote='', emAirwayRow='';
   if(isPeds && wbAir){
     // ── A1b/A1c: NEONATAL / INFANT AIRWAY PACKAGE (weight-based; age formulas
     // are suppressed below 1 year because age/4+4 is invalid at neonatal ages) ──
-    var ettW=neoETT(wt), ettWc=(ettW!=null?ettW-0.5:null), depthW=(ettW!=null?ettW*3:null);
+    var ettW=neoETT(wt), ettWc=(ettW!=null?ettW-0.5:null);
     var bladeW = wt<3?'Miller 0':'Miller 1';
     airwayRows=
       metric('ETT uncuffed', ettW!=null?r1(ettW):'—','mm ID',true)+
       metric('ETT cuffed', ettWc!=null?r1(ettWc):'—','mm ID',true)+
-      metric('ETT depth (lips)', depthW!=null?r1(depthW):'—','cm',true)+
+      metric('ETT depth (lips)', _pw.ettDepth!=null?_pw.ettDepth:'—','cm',true)+
       metric('Blade', bladeW,'')+
       metric('LMA size', lmaForWeight(wt),'')+
       metric('i-gel size', igelForWeight(wt),'')+
@@ -2918,12 +2995,12 @@ function compute(){
       metric('Maintenance','Glucose-containing in neonates / infants','');
     emAirwayRow=metric('CICO / rescue','Small reserve — desaturates fast. Pre-oxygenate, gentle mask ventilation, uncuffed or low-pressure cuffed tube, confirm with EtCO₂. Call senior / PICU early.','');
   } else if(isPeds){
-    var ettU=(age/4)+4, ettC=(age/4)+3.5, depth=(age/2)+12;
+    var ettU=(age/4)+4, ettC=(age/4)+3.5;
     var pBlade = age<0.5?'Miller 0':(age<2?'Miller 1':(age<6?'Miller / Mac 1–2':'Mac 2'));
     airwayRows=
       metric('ETT uncuffed',r1(ettU),'mm ID',true)+
       metric('ETT cuffed',r1(ettC),'mm ID',true)+
-      metric('ETT depth (lips)',r1(depth),'cm',true)+
+      metric('ETT depth (lips)',_pw.ettDepth,'cm',true)+
       metric('LMA size',lmaForWeight(wt),'')+
       metric('i-gel size',igelForWeight(wt),'')+
       metric('Blade',pBlade,'')+
@@ -2959,13 +3036,13 @@ function compute(){
   window.airwayPlan = (isPeds && wbAir)
     ? { mask:'Appropriate size', blade:bladeW,
         ettCuffed:(ettWc!=null?r1(ettWc):null), ettUncuffed:(ettW!=null?r1(ettW):null),
-        ettUnit:'mm ID', depth:(depthW!=null?r1(depthW):null), depthUnit:'cm',
+        ettUnit:'mm ID', depth:_pw.ettDepth, depthUnit:'cm',
         lma:lmaForWeight(wt), igel:igelForWeight(wt),
         opa:opaPeds(age), npa:npaPeds(age), suction:'Yankauer' }
     : isPeds
     ? { mask:'Appropriate size', blade:pBlade,
         ettCuffed:r1(ettC), ettUncuffed:r1(ettU), ettUnit:'mm ID',
-        depth:r1(depth), depthUnit:'cm',
+        depth:_pw.ettDepth, depthUnit:'cm',
         lma:lmaForWeight(wt), igel:igelForWeight(wt),
         opa:opaPeds(age), npa:npaPeds(age), suction:'Yankauer' }
     : { mask:'Appropriate size', blade:mac,
@@ -2989,7 +3066,7 @@ function compute(){
   // ── AIRWAY (large module) — the numbers first, then the detail, then the
   //    assessment tools. Prose is compressed into one-line groups.
   var ettKey = isPeds ? (wbAir ? r1(neoETT(wt)) : r1((age/4)+3.5)) : (sex==='M'?'8.0':'7.0');
-  var depthKey = isPeds ? (wbAir ? r1(neoETT(wt)*3) : r1((age/2)+12)) : (sex==='M'?'22–24':'20–22');
+  var depthKey = isPeds ? _pw.ettDepth : (sex==='M'?'22–24':'20–22');
   var macKey = isPeds ? (wbAir ? (wt<3?'Mil 0':'Mil 1') : (age<0.5?'Mil 0':age<2?'Mil 1':age<6?'1–2':'Mac 2')) : ((ht&&ht>=175)?'Mac 4':'Mac 3');
   var airwayBody =
     kpis([ kpi('ETT', ettKey, 'mm'), kpi('Depth', depthKey, 'cm'),
@@ -3143,15 +3220,12 @@ function compute(){
      22 kg is LMA 2.5 but i-gel 2, 55 kg is LMA 4 but i-gel 3. They are read
      separately here because publishing one number under both names is how a
      clinician ends up reaching for the wrong size. */
-  var _pedsETT = null, _pedsDepth = null, _pedsLMA = null, _pedsIgel = null;
-  if(isPeds){
-    var _e = wbAir ? neoETT(wt) : (age/4 + 4);
-    if(_e != null){ _pedsETT = r1(_e); _pedsDepth = r1(_e * 3); }
-    _pedsLMA  = lmaForWeight(wt);
-    /* The airway panel already shows the full descriptor ("1.5 (infant)");
-       the strip shows the size, matching the kpi() precedent above. */
-    _pedsIgel = (igelForWeight(wt) + '').split(' ')[0];
-  }
+  /* Resolved at the top of the paediatric section and shared with the airway
+     panel, the KPI strip, window.airwayPlan and the case-ready path. The
+     airway panel shows the full LMA descriptor ("1.5 (infant)"); the strip
+     shows the size, which is what the helper returns. */
+  var _pedsETT = _pw.ett || null, _pedsDepth = _pw.ettDepth || null,
+      _pedsLMA = _pw.lma || null, _pedsIgel = _pw.igel || null;
   window.patientContext = buildPatientContext({
     ageYears:age, ageDays:ageC.days, ageValue:ageC.value, ageUnit:ageC.unit,
     sex:sex, height:ht, weight:wt,
@@ -3228,13 +3302,13 @@ function compute(){
   // Pediatric quick reference (conditional)
   var pedHtml = isPeds ?
     (kpis([ kpi('ETT', r1(wbAir?neoETT(wt):(age/4)+4), 'mm'),
-            kpi('Depth', r1(wbAir?neoETT(wt)*3:(age/2)+12), 'cm'),
+            kpi('Depth', _pw.ettDepth, 'cm'),
             kpi('LMA', lmaForWeight(wt)),
             kpi('Defib', r0(wt*4), 'J') ]) +
      grp('Airway',
       metric('ETT uncuffed',r1(wbAir?neoETT(wt):(age/4)+4),'mm ID')+
       metric('ETT cuffed',r1(wbAir?neoETT(wt)-0.5:(age/4)+3.5),'mm ID')+
-      metric('Depth at lips',r1(wbAir?neoETT(wt)*3:(age/2)+12),'cm')+
+      metric('Depth at lips',_pw.ettDepth,'cm')+
       metric('Laryngoscope',wbAir?(wt<3?'Miller 0':'Miller 1'):(age<1?'Miller 0–1':(age<4?'Mac / Miller 1':(age<8?'Mac 2':'Mac 2–3'))),'')) +
      grp('Emergency drugs',
       m2('Adrenaline','10 mcg/kg',r0(wt*10),'mcg')+
@@ -5054,7 +5128,9 @@ function ptSummary(){
      tracks the same values the header is showing. */
   var app=document.getElementById('app');
   if(app){
-    var live = !!(v('i-age') && v('i-weight'));
+    /* THE SAME RULE THE WORKSTATION USES. This asked whether two input
+       strings were non-empty, so "-5" was a live case. */
+    var live = ltCaseReady();
     app.classList.toggle('case-live', live);
     /* NO LIVE CASE, NO EDITOR STATE TO REMEMBER — this is the New Case path. */
     if(!live){ app.classList.remove('pt-open'); PT_TYPED = false; }
@@ -5092,7 +5168,7 @@ function ptSummary(){
             '<b>' + esc2(f.v) + '</b><i>' + esc2(f.l) + '</i></span>';
         }).join('')
       : '<span class="case-k">No active patient</span>' +
-        '<span class="case-v case-v-empty">Enter age, sex, height and weight</span>';
+        '<span class="case-v case-v-empty">Enter age and weight</span>';
     cs.classList.toggle('on', !!bits.length);
   }
 }
@@ -5190,7 +5266,7 @@ function buildPatientContext(o){
        age and weight, the two values every dose on this page is a function
        of. The induction workstation reads THIS. A calculation that needs a
        height still asks for a height. */
-    caseReady: (y != null && o.weight != null),
+    caseReady: caseReadyFrom(y, o.weight),
     complete: (y != null && !!o.sex && o.height != null && o.weight != null)
   };
 }
@@ -5403,7 +5479,7 @@ function ltApplyPatient(proc, name){
   if(window.NewPatient) window.NewPatient.close();
   ltNotice((name ? name + ' loaded' : 'Patient loaded') +
            (proc ? ' — procedure set to ' + proc : '') +
-           '. Enter age, sex, height and weight to activate the calculations.');
+           '. Enter age and weight to open the workstation.');
 }
 function ltUseConfirm(row, proc){
   var host = document.getElementById('lt-use-confirm');
@@ -5834,10 +5910,6 @@ window.ptToggle = ptToggle;
    It moves the viewport to the workstation and nowhere else. Scrolling to the
    top of the document would answer a press meant to go FORWARD by going back
    to what the clinician had just finished with. */
-function ltCaseReady(){
-  var a = ageCanon();
-  return !!(a && a.years != null && num('i-weight') != null);
-}
 function ltContinue(){
   if(!ltCaseReady()) return;
   /* The keyboard goes away because the field is finished with, not because
