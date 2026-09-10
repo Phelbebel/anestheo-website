@@ -30,10 +30,44 @@
    be dropped.                                                               */
 function r0(n){ return Math.round(n); }
 function r1(n){ return Math.round(n*10)/10; }
-/* `decimals` is carried per dose so migrated values print exactly as the
-   previous build printed them. Defaulting would silently change three of
-   them (midazolam, morphine, neostigmine). */
-function fmtNum(n, dec){ if (dec === 1) return r1(n); return (Math.abs(n) < 1 ? r1(n) : r0(n)); }
+/* Round to a fixed number of decimal places and return a NUMBER, so trailing
+   zeroes never reach the display: 0.040 is the number 0.04 and prints "0.04". */
+function rd(n, dec){ var m = Math.pow(10, dec); return Math.round(n * m) / m; }
+/* TWO SIGNIFICANT DIGITS, for magnitudes below 1. The number of decimal
+   places needed is derived from the magnitude rather than fixed, so 0.24
+   keeps two places, 0.012 keeps three and 0.002 keeps four. */
+function sig2(n){
+  if (n === 0) return 0;
+  return rd(n, 1 - Math.floor(Math.log10(Math.abs(n))));
+}
+function isPrecision(dec){
+  return typeof dec === 'number' && isFinite(dec) &&
+         dec >= 0 && dec === Math.floor(dec);
+}
+/* A NON-ZERO DOSE MUST NEVER PRINT AS ZERO.
+   `decimals` is carried per dose so migrated values print exactly as the
+   previous build printed them; defaulting would silently change four of them
+   (midazolam, morphine, neostigmine, and one Regional record). That guarantee
+   is the FIRST branch and is unchanged.
+
+   What changed is the default below 1. It was one decimal place, which was
+   enough only because every record that existed carried a per-kg value of at
+   least 0.02 mg/kg. Glycopyrrolate's reviewed 0.004 mg/kg is five times
+   smaller than that, and one decimal place turned a 10 kg child's 0.04 mg
+   into the printed string "0", and every paediatric weight from 15 to 30 kg
+   into the same "0.1" for a two-fold span of real doses. A dose of zero is
+   not a rounding error on a page whose output is drug doses.
+
+   The default below 1 is now adaptive — two significant digits, however many
+   places that takes — so precision follows the magnitude of the number
+   instead of a constant chosen when the smallest dose in the file was 300x
+   larger. Values of 1 and above are untouched, and exact zero stays zero. */
+function fmtNum(n, dec){
+  if (dec === 1) return r1(n);              /* explicit, and byte-identical */
+  if (isPrecision(dec)) return rd(n, dec);  /* any other explicit precision */
+  if (Math.abs(n) >= 1) return r0(n);       /* unchanged */
+  return sig2(n);
+}
 
 /* Render one structured dose for a given patient weight (kg | null). */
 function renderDose(d, wt){
@@ -1911,7 +1945,9 @@ global.ClinicalContent = {
   REGIONAL_REVIEW:REGIONAL_REVIEW, GROUP_ORDER:GROUP_ORDER,
   search:search, grouped:grouped, byId:byId, indexEntry:indexEntry,
   visibleDrugsInGroup:visibleDrugsInGroup, isPublishable:isPublishable,
-  renderDose:renderDose, norm:norm,
+  /* fmtNum is exported so the precision invariant can be unit-tested
+     directly, not only through a rendered dose. */
+  renderDose:renderDose, fmtNum:fmtNum, norm:norm,
   /* PHASE 4A — schema and selectors only. No record declares a phase yet, so
      visibleInGroupForPhase() returns [] for every group and phaseCoverage()
      reports zero. Both are here so the Maintenance domain can be built

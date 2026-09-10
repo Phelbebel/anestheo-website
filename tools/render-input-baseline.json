@@ -279,7 +279,7 @@
   {
    "id": "drug.etomidate",
    "name": "Etomidate",
-   "val": "0.7–2",
+   "val": "0.68–2",
    "unit": "mg",
    "klass": "Carboxylated imidazole induction agent",
    "ind": "<b class=\"rt\">IV</b> · Induction · 0.2–0.6 mg/kg TBW",
@@ -1088,7 +1088,7 @@
   {
    "id": "drug.mivacurium",
    "name": "Mivacurium",
-   "val": "0.5",
+   "val": "0.51",
    "unit": "mg",
    "klass": "Short-acting benzylisoquinolinium neuromuscular blocker",
    "ind": "<b class=\"rt\">IV</b> · Intubation · 0.15 mg/kg TBW",

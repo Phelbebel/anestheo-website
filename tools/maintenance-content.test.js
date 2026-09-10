@@ -344,6 +344,20 @@ if (fs.existsSync(SNAP)) {
      already printed. Had either overwritten its drug's default rendering,
      this guard would have said so here.
 
+     ── AND REGENERATED A SECOND TIME, FOR THE PRECISION FIX ─────────────
+     fmtNum() stopped clamping sub-1 amounts to one decimal place, and this
+     guard is what proved the blast radius. TWO FIELDS moved, out of 165 rows
+     across 60 buckets:
+
+       induction@3.4  drug.etomidate.val   "0.7–2"  ->  "0.68–2"
+       nmb@3.4        drug.mivacurium.val  "0.5"    ->  "0.51"
+
+     Both are records THIS branch created, both at the 3.4 kg bucket, and both
+     are the arithmetic printed exactly rather than rounded up. Not one row of
+     a pre-existing record changed by a character at any of the five weights —
+     which is the same guarantee the first regeneration recorded, now covering
+     the formatter as well as the data.
+
      From here it is a frozen guard again, and an exact one. */
   t('every baselined row still renders identically, field for field',
     changed.length === 0, changed.slice(0, 6));
@@ -1600,6 +1614,141 @@ t('the reviewed agents still resolve exactly as before',
   ctxRow('drug.rocuronium', 70, ADULT_ASA, RSI_NMB).doseNum === '0.6–1.2' &&
   ctxRow('drug.rocuronium', 15, CHILD, ROUTINE_NMB).doseNum === '0.6' &&
   ctxRow('drug.suxamethonium', 70, ADULT_ASA, ROUTINE_NMB).doseNum === '0.3–1.1');
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   16. A NON-ZERO DOSE NEVER PRINTS AS ZERO
+   ───────────────────────────────────────────────────────────────────────────
+   THE INVARIANT: if the arithmetic for this patient produces a positive
+   amount, the number on the screen is not zero.
+
+   It was not held. fmtNum() gave at most one decimal place below 1, which was
+   sufficient only because every record in the file carried a per-kg value of
+   at least 0.02 mg/kg. Glycopyrrolate's reviewed 0.004 mg/kg is five times
+   smaller, and a 10 kg child's 0.04 mg was printed as the string "0" — while
+   every paediatric weight from 15 to 30 kg printed the same "0.1" for a
+   two-fold span of real doses.
+
+   These assertions are deliberately NOT written about glycopyrrolate. They
+   sweep every publishable weight-scaled record at every weight its own
+   population and applicability rules admit, so the next record whose dose is
+   smaller than anything here today cannot reintroduce the defect quietly.
+   ═════════════════════════════════════════════════════════════════════════ */
+console.log('\n16. A POSITIVE DOSE NEVER RENDERS AS ZERO');
+
+/* Weight paired with an age a patient of that weight could actually have —
+   a dose is only judged where the model would really serve it. The lightest
+   entries are extreme-preterm: a clinical engine can be handed 500 g. */
+const PRECISION_PATIENTS = [
+  { wt:0.5, age:{value:1,unit:'days'} },   { wt:0.75, age:{value:1,unit:'days'} },
+  { wt:1,   age:{value:2,unit:'days'} },   { wt:1.5,  age:{value:1,unit:'weeks'} },
+  { wt:2,   age:{value:2,unit:'weeks'} },  { wt:3,    age:{value:1,unit:'days'} },
+  { wt:4,   age:{value:1,unit:'months'} }, { wt:5,    age:{value:4,unit:'months'} },
+  { wt:7,   age:{value:8,unit:'months'} }, { wt:10,   age:{value:1,unit:'years'} },
+  { wt:12,  age:{value:2,unit:'years'} },  { wt:15,   age:{value:3,unit:'years'} },
+  { wt:16,  age:{value:4,unit:'years'} },  { wt:20,   age:{value:6,unit:'years'} },
+  { wt:25,  age:{value:8,unit:'years'} },  { wt:30,   age:{value:10,unit:'years'} },
+  { wt:40,  age:{value:12,unit:'years'} }, { wt:50,   age:{value:14,unit:'years'} },
+  { wt:60,  age:{value:25,unit:'years'} }, { wt:70,   age:{value:40,unit:'years'} },
+  { wt:77,  age:{value:77,unit:'years'} }, { wt:90,   age:{value:55,unit:'years'} },
+  { wt:110, age:{value:45,unit:'years'} }, { wt:150,  age:{value:35,unit:'years'} }
+];
+const precisionPop = p => {
+  const yrs = p.age.unit === 'years'  ? p.age.value
+            : p.age.unit === 'months' ? p.age.value / 12
+            : p.age.unit === 'weeks'  ? p.age.value / 52
+            :                           p.age.value / 365;
+  const peds = yrs < 16;
+  return { pediatric:peds, adult:!peds, age:p.age, asa:'II' };
+};
+{
+  const zeros = [], collapsed = [];
+  let evaluated = 0;
+  CC.DRUGS.forEach(d => {
+    if (!CC.isPublishable(d)) return;
+    (d.doses||[]).forEach(x => {
+      if (!CC.isDosePublishable(d, x)) return;
+      if (!x.basisWeight) return;
+      if (/\/kg\/(min|h|hr)$/.test(x.unit || '')) return;   /* a rate is set on a pump */
+      PRECISION_PATIENTS.forEach(p => {
+        const el = CC.doseEligibility(x, precisionPop(p), d);
+        if (!el || !el.eligible) return;                    /* not served here */
+        evaluated++;
+        [x.low, x.high, x.value].forEach(v => {
+          if (v == null) return;
+          const raw = v * p.wt;
+          if (raw <= 0) return;
+          const shown = Number(CC.fmtNum(raw, x.decimals));
+          const where = d.id + ' ' + (x.label || x.phase) + ' @' + p.wt + 'kg';
+          if (shown === 0) { zeros.push(where + ' raw ' + raw); return; }
+          /* AND IT IS NOT MERELY NON-ZERO. A number kept only to the point
+             where it stops being zero would still be wrong; two significant
+             digits keeps the printed value within 5% of the arithmetic.
+
+             BELOW 1 ONLY. At and above 1 the formatter rounds to a whole
+             number, which it has always done and which this pass did not
+             change — rocuronium's 1.2 mg for a 2 kg neonate prints "1 mg" and
+             printed "1 mg" before. That is a separate question about whole-
+             number rounding at the very bottom of the weight range, and
+             asserting it here would be asserting a change nobody made. */
+          if (raw < 1 && Math.abs(shown - raw) / raw > 0.05)
+            collapsed.push(where + ' raw ' + (+raw.toFixed(5)) + ' shown ' + shown);
+        });
+      });
+    });
+  });
+  t('every publishable weight-scaled dose was judged where it is served',
+    evaluated > 200, evaluated + ' patient-applicable dose renderings');
+  t('THE INVARIANT: a positive calculated dose never renders as zero',
+    zeros.length === 0, zeros.slice(0, 6));
+  /* decimals:1 is an explicit instruction and is allowed to be coarse; the
+     default policy is not. */
+  t('...and below 1, without an explicit precision, it stays within 5%',
+    collapsed.length === 0, collapsed.slice(0, 6));
+}
+
+/* THE FORMATTER ITSELF, not only through a rendered dose. */
+{
+  const F = CC.fmtNum;
+  const eq = (n, dec, want) => String(F(n, dec)) === String(want);
+  t('fmtNum keeps two significant digits below 1',
+    eq(0.002, undefined, 0.002) && eq(0.012, undefined, 0.012) &&
+    eq(0.04, undefined, 0.04)   && eq(0.06, undefined, 0.06) &&
+    eq(0.12, undefined, 0.12)   && eq(0.24, undefined, 0.24),
+    [0.002,0.012,0.04,0.06,0.12,0.24].map(n => n + '->' + F(n)));
+  t('...down to neonatal magnitudes',
+    eq(0.003, undefined, 0.003) && eq(0.0001, undefined, 0.0001),
+    [0.003, 0.0001].map(n => n + '->' + F(n)));
+  t('...and exact zero is still zero',
+    eq(0, undefined, 0) && eq(0, 1, 0) && eq(0, 3, 0));
+  t('...while 1 and above are unchanged whole numbers',
+    eq(1.4, undefined, 1) && eq(1.5, undefined, 2) &&
+    eq(77, undefined, 77) && eq(115.5, undefined, 116),
+    [1.4,1.5,77,115.5].map(n => n + '->' + F(n)));
+  /* AN EXPLICIT PRECISION IS AN INSTRUCTION, AND IT WINS. The four records
+     carrying decimals:1 print exactly what they printed before. */
+  t('an explicit decimals is honored for any non-negative integer',
+    eq(0.1234, 0, 0) && eq(1.6, 0, 2) && eq(0.06, 2, 0.06) &&
+    eq(0.0123, 3, 0.012) && eq(2.34567, 2, 2.35));
+  t('...and decimals:1 is byte-identical to what it always was',
+    [[0.15,0.2],[0.25,0.3],[0.06,0.1],[0.12,0.1],[1.25,1.3],[7.5,7.5],[0.75,0.8]]
+      .every(p => eq(p[0], 1, p[1])));
+  t('...so no trailing zero ever reaches the string',
+    !/0$/.test(String(F(0.040))) && String(F(2, 2)) === '2',
+    [String(F(0.040)), String(F(2,2))]);
+}
+
+/* THE RECORD THAT EXPOSED IT, at the weights that were wrong. */
+{
+  const g = CC.byId('drug.glycopyrrolate');
+  const peds = g.doses.find(x => x.population === 'paediatric' && x.basisWeight);
+  const im   = g.doses.find(x => x.route === 'IM' && x.basisWeight);
+  const at = (dose, wt) => String(CC.fmtNum(dose.value * wt, dose.decimals));
+  const WANT = [[3,'0.012'], [10,'0.04'], [15,'0.06'], [30,'0.12'], [60,'0.24']];
+  t('glycopyrrolate 0.004 mg/kg prints the dose, in BOTH weight-scaled records',
+    !!peds && !!im && peds.value === 0.004 && im.value === 0.004 &&
+    WANT.every(w => at(peds, w[0]) === w[1] && at(im, w[0]) === w[1]),
+    WANT.map(w => w[0] + 'kg=' + at(peds, w[0])).join(' '));
+}
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
