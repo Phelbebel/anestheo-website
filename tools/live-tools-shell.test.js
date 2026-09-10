@@ -1059,12 +1059,20 @@ const fill = (pg, o) => pg.evaluate(o => {
       const alias   = go('esmeron');
       const trade   = go('diprivan');
       const klass   = go('opioid');
+      /* What each drug the class query returned actually IS, from its own
+         record — so an indication-tier hit can be told from a class one. */
+      const CC = window.ClinicalContent;
+      const klassWhy = [...new Set([...document.querySelectorAll('#iref-body tr.dtab-r')]
+        .map(r => r.dataset.drug))].map(id => { const d = CC.byId(id);
+          return { id, pclass:d ? d.pclass : null,
+                   viaIndication: !!(d && (d.indications||[])
+                     .some(s => /opioid/i.test(s))) }; });
       const indic   = go('rapid sequence');
       const fuzzy   = go('propofl');
       const none    = go('zzzznotadrug');
       go('');
       const after = doses();
-      return { generic, alias, trade, klass, indic, fuzzy, none,
+      return { generic, alias, trade, klass, klassWhy, indic, fuzzy, none,
                unchanged: JSON.stringify(before) === JSON.stringify(after),
                beforeCount: before.length, afterCount: after.length };
     })()`);
@@ -1081,9 +1089,26 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('search finds an alias the name does not contain',
       [...new Set(srch.alias)].join() === 'Rocuronium', srch.alias);
     t('...and a trade name', srch.trade.join() === 'Propofol', srch.trade);
-    t('search finds drugs by class', [...new Set(srch.klass)].length === 3 &&
-      srch.klass.indexOf('Fentanyl') >= 0 && srch.klass.indexOf('Remifentanil') >= 0,
-      srch.klass);
+    /* WAS: exactly three distinct names. Alfentanil is a fourth opioid record
+       now, and IV lidocaine is returned too — not as an opioid, but because
+       "opioid-sparing analgesia" is one of its recorded indications. That is
+       the same indication tier that already returns sugammadex for a
+       rocuronium query, and it is the behaviour the reference is meant to
+       have: a clinician asking about opioids should be shown the drug whose
+       stated purpose is to spare them.
+       What must NOT happen is the taxonomy bending to the query. So the class
+       is asserted separately from the match: every opioid-class record comes
+       back, and the one non-opioid that comes back is still filed as a local
+       anaesthetic and earned its place through an indication string. */
+    t('search finds drugs by class',
+      ['Fentanyl','Morphine','Remifentanil','Alfentanil']
+        .every(n => srch.klass.indexOf(n) >= 0) &&
+      [...new Set(srch.klass)].length === 5, [...new Set(srch.klass)]);
+    t('...and a drug matched on indication is not reclassified by the match',
+      srch.klassWhy.filter(d => d.pclass === 'opioid').length === 4 &&
+      srch.klassWhy.filter(d => d.pclass !== 'opioid')
+        .every(d => d.id === 'drug.lidocaine-iv' && d.pclass === 'local' &&
+                    d.viaIndication === true), srch.klassWhy);
     t('search finds drugs by indication',
       srch.indic.length > 0 && srch.indic.indexOf('Suxamethonium') >= 0, srch.indic);
     t('...and tolerates a typo, as the canonical index does',
@@ -1128,8 +1153,13 @@ const fill = (pg, o) => pg.evaluate(o => {
     const plan = await r3.pg.evaluate(`(() => {
       Induction.clearPlan();
       const btn = id => document.querySelector('#iref-body [data-plan-for="'+id+'"]');
+      /* The row's Add control, and — beside it — the drug's own group, read
+         from the canonical record rather than from a list written here. */
+      const CC = window.ClinicalContent;
       const offered = [...document.querySelectorAll('#iref-body tr.dtab-r')]
-        .map(r => ({ id:r.dataset.drug, has:!!r.querySelector('[data-plan-for]') }));
+        .map(r => { const d = CC.byId(r.dataset.drug);
+          return { id:r.dataset.drug, group:d ? d.group : null,
+                   has:!!r.querySelector('[data-plan-for]') }; });
       const empty = Induction.plan.slice();
       btn('drug.propofol').click();
       const one = Induction.plan.slice();
@@ -1158,10 +1188,30 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('...and pressing it again removes only that one',
       plan.afterRemove.length === 2 && plan.afterRemove.indexOf('drug.midazolam') < 0 &&
       plan.afterRemove.indexOf('drug.propofol') >= 0, plan.afterRemove);
-    /* THE MODEL DECIDES WHAT MAY BE PLANNED, NOT THE TABLE. */
+    /* THE MODEL DECIDES WHAT MAY BE PLANNED, NOT THE TABLE.
+       WAS: a nine-id regex — the drugs that happened to be publishable when
+       it was written. Eight more drugs became publishable in this pass and
+       the list went stale, which is the flaw in stating the rule as a roster:
+       it says WHICH drugs rather than WHY, and a correct new record reads as
+       a failure. The rule the page actually applies is DREF_ROLE_GROUP —
+       induction, analgesia and nmb get a control, everything else does not —
+       so the assertion now reads each row's group off its own canonical
+       record and requires the control to follow it exactly. A vasopressor
+       row gaining a button, or a new nmb record silently missing one, both
+       still fail; adding a correct record no longer does. */
+    const PLANNABLE = ['induction', 'analgesia', 'nmb'];
     t('...and only canonical induction-compatible groups are offered it',
-      plan.offered.every(o => o.has === /^drug\.(propofol|ketamine|midazolam|dexmedetomidine|fentanyl|morphine|remifentanil|rocuronium|suxamethonium)$/.test(o.id)),
-      plan.offered.filter(o => o.has).map(o => o.id));
+      plan.offered.length > 0 &&
+      plan.offered.every(o => o.group !== null &&
+        o.has === (PLANNABLE.indexOf(o.group) >= 0)),
+      plan.offered.filter(o => o.has !== (PLANNABLE.indexOf(o.group) >= 0))
+        .map(o => o.id + '/' + o.group + '/' + o.has));
+    /* And the groups it excludes are really present in the table, so the
+       assertion above is not passing over a set with no negative case. */
+    t('...with the reversal rows present and carrying none',
+      plan.offered.some(o => o.group === 'reversal') &&
+      plan.offered.filter(o => o.group === 'reversal').every(o => o.has === false),
+      plan.offered.filter(o => o.group === 'reversal').map(o => o.id));
 
     /* ── DETAIL, TOOLS, AND WHAT MUST SURVIVE THEM ── */
     const keep = await r3.pg.evaluate(`(() => {
@@ -1306,14 +1356,27 @@ const fill = (pg, o) => pg.evaluate(o => {
       })()`);
       t(w + ': the reference renders the ' + MODES[w] + ' presentation',
         rr.mode === MODES[w], { mode:rr.mode, containerWidth:rr.refW });
-      /* TWELVE DRUGS, SIXTEEN ROWS. The induction scope holds twelve
-         publishable drugs and, since the Tier 1 migration, sixteen reviewed
-         dose records among them — ketamine IV and IM, rocuronium routine and
-         RSI, remifentanil infusion, induction infusion and bolus. The count
-         that must not drift is the DRUG count; the row count is asserted
-         beside it so an accidental duplicate still fails. */
-      t(w + ': ...over all twelve drugs', rr.nDrugs === 12, rr.nDrugs);
-      t(w + ': ...as sixteen reviewed rows', rr.n === 16, rr.n);
+      /* WAS: TWELVE DRUGS, SIXTEEN ROWS — twelve publishable drugs in the
+         induction scope carrying nineteen reviewed records, three of which
+         (propofol, fentanyl and rocuronium paediatric) are withheld from a
+         44-year-old, leaving sixteen rendered rows.
+
+         NOW: TWENTY DRUGS, TWENTY-NINE ROWS, and the arithmetic is the same
+         arithmetic. Eight drugs were written as reviewed records in this pass
+         — etomidate, thiopental, atropine, glycopyrrolate, IV lidocaine,
+         alfentanil, atracurium, mivacurium — and one existing drug gained one
+         record, suxamethonium's RSI dose. That is 34 publishable records over
+         20 drugs. Five are outside this patient: the three paediatric rows
+         above, glycopyrrolate paediatric, and propofol's new 65-and-over
+         record, which a 44-year-old does not meet. 34 − 5 = 29.
+
+         The elderly row being absent HERE is the point of the count: the
+         reference withholds by population exactly as the board does, so a
+         number that included it would be evidence of a leak. The count that
+         must not drift is the DRUG count; the row count is asserted beside it
+         so an accidental duplicate still fails. */
+      t(w + ': ...over all twenty drugs', rr.nDrugs === 20, rr.nDrugs);
+      t(w + ': ...as twenty-nine reviewed rows', rr.n === 29, rr.n);
       if (rr.mode === 'reduced')
         t(w + ': ...with Preparation folded into the detail, the rest kept',
           rr.cols.join('|') === 'Drug|Use|Dose|This patient', rr.cols);

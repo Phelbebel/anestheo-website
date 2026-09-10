@@ -672,11 +672,26 @@ async function type(pg, sel, text) {
       t('RSI: ...and its amount changes with it',
         seen.rsi.rocuronium.amt !== seen.iv.rocuronium.amt,
         [seen.iv.rocuronium.amt, seen.rsi.rocuronium.amt]);
-      t('RSI: suxamethonium has no reviewed RSI dose and says so',
-        /not reviewed/i.test(seen.rsi.suxamethonium.cov), seen.rsi.suxamethonium);
-      t('RSI: ...and does NOT fall back to its routine intubating dose',
-        seen.rsi.suxamethonium.amt === '' && seen.rsi.suxamethonium.rule === '',
+      /* WAS: suxamethonium has no reviewed RSI dose and says so, and does not
+         fall back to its routine intubating dose — an empty rule and an empty
+         amount. One was written in this pass, so the coverage state is gone
+         and the drug answers. The claim underneath it is untouched and is
+         what these two now assert: the RSI cell must hold the RSI RECORD, not
+         the routine record wearing an RSI label. Suxamethonium's routine
+         entry is a 0.3–1.1 mg/kg range and its RSI entry is a single 1 mg/kg
+         value, so a fallback would be visible in both the rule and the
+         patient amount — and neither may match. */
+      t('RSI: suxamethonium moves to its own rapid sequence record',
+        /Rapid sequence/i.test(seen.rsi.suxamethonium.use) &&
+        seen.rsi.suxamethonium.cov === '' &&
+        seen.rsi.suxamethonium.rule !== '' && seen.rsi.suxamethonium.amt !== '',
         seen.rsi.suxamethonium);
+      t('RSI: ...and does NOT fall back to its routine intubating dose',
+        /Intubation/i.test(seen.iv.suxamethonium.use) &&
+        !/Rapid sequence/i.test(seen.iv.suxamethonium.use) &&
+        seen.rsi.suxamethonium.rule !== seen.iv.suxamethonium.rule &&
+        seen.rsi.suxamethonium.amt !== seen.iv.suxamethonium.amt,
+        [seen.iv.suxamethonium, seen.rsi.suxamethonium]);
       t('RSI: the routine context is what it was before',
         /Intubation/i.test(seen.iv.rocuronium.use), seen.iv.rocuronium.use);
 

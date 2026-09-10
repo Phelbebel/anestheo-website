@@ -935,7 +935,7 @@ async function openEngine(b, viewport) {
     /* THE ROWS ARE THE STEPS OF AN INDUCTION, in the order it is given. */
     t('...grouped, in the clinical order the workspace reads in',
       alts.groups.join(' / ') ===
-      'Premedication / Analgesia / Hypnosis / Neuromuscular blockade',
+      'Premedication / adjuncts / Analgesia / Hypnosis / Neuromuscular blockade',
       alts.groups);
     t('...each carrying its own dose or its own coverage line',
       alts.doses.every(d => d.length > 0), alts.doses);
@@ -992,21 +992,35 @@ async function openEngine(b, viewport) {
                  Alfentanil:'#6BB6FF',
                  Atracurium:'#FF7A6B', Mivacurium:'#FF7A6B',
                  Atropine:'#4FE39B', Glycopyrrolate:'#4FE39B' };
+    /* ── WAS: SIX DISPLAY MEMBERS WITH NO RECORD ────────────────────────
+       These six were board names with no canonical record: the card printed
+       "Dose not reviewed", carried no route and no number, and appeared in no
+       canonical surface. That was correct while the evidence process had not
+       reached them — a name with no dose is honest, and inventing a record to
+       fill the cell is what this suite exists to prevent.
+
+       The evidence process has now reached all six. Each has a reviewed,
+       fully cited record, so the assertions invert: the class colour is
+       unchanged, and where the card said nothing it now says a dose. What is
+       NOT allowed to change is where the colour comes from — the record's own
+       pclass — which is asserted as before. */
     Object.keys(PC).forEach(n => {
       const c = ui[n];
-      t('  ' + n + ': on the board, in its class colour, dose not reviewed',
-        !!c && c.colour.toUpperCase() === PC[n] && c.coverage === 'Dose not reviewed',
+      t('  ' + n + ': on the board, in its class colour, with a reviewed dose',
+        !!c && c.colour.toUpperCase() === PC[n] && c.coverage === '',
         c && { colour:c.colour, coverage:c.coverage });
-      t('  ' + n + ': ...and carries no dose, no unit, no route, no amount',
-        !!c && c.rule === false && c.amount === false && c.route === '' &&
-        c.digits === false, c && { rule:c.rule, amount:c.amount, route:c.route,
-                                   digits:c.digits });
-      t('  ' + n + ': ...and is not a canonical record anywhere',
-        !!c && c.canonicalRef === null, c && c.canonicalRef);
+      t('  ' + n + ': ...and now carries a dose, a unit and a route',
+        !!c && c.rule === true && c.route !== '',
+        c && { rule:c.rule, amount:c.amount, route:c.route });
+      t('  ' + n + ': ...and is a canonical record',
+        !!c && c.canonicalRef !== null, c && c.canonicalRef);
     });
-    t('none of the display members is in the drug reference', ui._ref.length === 0, ui._ref);
-    t('...nor in canonical search', ui._search.length === 0, ui._search);
-    t('...nor in DRUGS at all', ui._model.length === 0, ui._model);
+    /* the reference lists a row per DOSE, so glycopyrrolate and mivacurium
+       appear more than once — distinct names is what six means here */
+    t('every former display member is in the drug reference',
+      new Set(ui._ref).size === 6, [...new Set(ui._ref)]);
+    t('...and in canonical search', ui._search.length === 6, ui._search);
+    t('...and in DRUGS', ui._model.length === 6, ui._model);
     /* THE CELLS ARE THE SAME CELLS. A display member's card is the same box
        as the record-backed card beside it — this is the geometry the visual
        freeze is about. */
@@ -1018,22 +1032,28 @@ async function openEngine(b, viewport) {
       ui._rows.every(r => r.length === 4 && new Set(r).size === 1), ui._rows);
 
     /* ── THE FOURTH HYPNOSIS SLOT ───────────────────────────────────────
-       Thiopental held it as a display member; dexmedetomidine holds it now.
-       That is a board-composition edit: nothing was added to or removed from
-       the clinical model, thiopental is exactly as absent from every canonical
-       surface as it was, and dexmedetomidine arrives with the record it
-       already had — including the fact that a child gets no number from it.
+       WAS: thiopental held it as a display member with no record at all, and
+       then dexmedetomidine held it with a record that could only ever answer
+       a sedation-infusion question. Either way the first row a clinician
+       reads carried a permanent coverage state in its fourth cell.
 
-       Its colour is the one thing that is deliberately NOT the row's: three
-       gold hypnotics and one lavender alpha-2, because an alpha-2 agonist
-       does not induce anaesthesia and the board should not imply it does. */
+       NOW: thiopental holds it with a reviewed adult induction dose, so the
+       row asks an induction question four times and gets four answers.
+
+       Two separate facts have to hold for that to be a composition edit and
+       not a clinical one. Dexmedetomidine left the BOARD and nothing else —
+       its record, its search entry and its reference row are all still there,
+       and the sedation infusion still answers in its own context. Thiopental
+       arrived through the evidence process, not through the board: it is in
+       DRUGS, in search and in the reference, which is exactly what a display
+       member never was. */
     const hyp = await s.pg.evaluate(`(() => {
       const CC = window.ClinicalContent;
       const rows = [...document.querySelectorAll('#induction-host .tb-grp')];
       const row = rows[2];
       const cards = [...row.querySelectorAll('.tb-c')];
       const card = n => cards.find(c => (c.querySelector('.tb-c-n')||{}).textContent === n);
-      const dex = card('Dexmedetomidine');
+      const dex = card('Thiopental');
       const cell = c => c && { colour:getComputedStyle(c).getPropertyValue('--pc').trim(),
         drug:c.dataset.drug || null, member:c.dataset.member || null,
         planKey:c.dataset.planFor, tag:c.tagName,
@@ -1053,9 +1073,14 @@ async function openEngine(b, viewport) {
           return Math.round(b.width) + 'x' + Math.round(b.height); }),
         plus:row.querySelectorAll('.tb-s').length,
         dex:cell(dex),
-        /* Thiopental left the board and nothing else. */
-        onBoard: [...document.querySelectorAll('#induction-host .tb-c-n')]
-          .map(e => e.textContent).indexOf('Thiopental') >= 0,
+        /* Dexmedetomidine left the board and nothing else. */
+        dexOnBoard: [...document.querySelectorAll('#induction-host .tb-c-n')]
+          .map(e => e.textContent).indexOf('Dexmedetomidine') >= 0,
+        dexInModel: CC.DRUGS.some(d => d.name === 'Dexmedetomidine'),
+        dexInSearch: CC.search('Dexmedetomidine')
+          .some(r => ((r.item||r).name) === 'Dexmedetomidine'),
+        /* And thiopental arrived on it with a record of its own, rather than
+           being conjured into the slot as a name and a colour. */
         thioInModel: CC.DRUGS.some(d => d.name === 'Thiopental'),
         thioInSearch: CC.search('Thiopental')
           .some(r => ((r.item||r).name) === 'Thiopental'),
@@ -1070,14 +1095,14 @@ async function openEngine(b, viewport) {
           .filter(r => r.textContent.indexOf('Dexmedetomidine') >= 0).length,
         chips: [...document.querySelectorAll('#iref-cats .dref-cat')]
           .map(c => c.textContent.replace(/[ \\t\\n\\r]+/g,'')),
-        /* THE ROW ASKS FOR AN INDUCTION DOSE AND NOTHING ELSE. The unphased
-           tier — which is what a legacy sedation infusion answers through —
-           is not in the hypnosis row's list. What the selector returns for
-           THAT question is what the card must print. */
+        /* THE ROW ASKS FOR AN INDUCTION DOSE AND NOTHING ELSE, and the card
+           in the slot must print the answer to THAT question — no phase
+           fallback, no unphased tier borrowed to fill a gap. The model is
+           asked the same question the row asks and the two are compared. */
         canonical: (() => {
           const wt = window.patientContext.anthropometrics.weight;
           const pop = CC.patientPopulation(window.patientContext);
-          const r = CC.doseRowForContext(CC.byId('drug.dexmedetomidine'), wt, pop,
+          const r = CC.doseRowForContext(CC.byId('drug.thiopental'), wt, pop,
                      ['induction']);
           return r ? { withheld:!!r.withheld, coverage:r.coverage || '',
                        doseNum:r.doseNum || '', doseUnit:r.doseUnit || '',
@@ -1095,36 +1120,47 @@ async function openEngine(b, viewport) {
           .filter(w => (dex ? dex.textContent : '').indexOf(w) >= 0) };
       /* Selectable exactly like the rest. */
       if (dex) { dex.click();
-        out.selected = cell(card2('Dexmedetomidine'));
+        out.selected = cell(card2('Thiopental'));
       }
       function card2(n){ return [...document.querySelectorAll('#induction-host .tb-grp')][2]
         .querySelectorAll('.tb-c').length
         ? [...[...document.querySelectorAll('#induction-host .tb-grp')][2]
             .querySelectorAll('.tb-c')]
             .find(c => (c.querySelector('.tb-c-n')||{}).textContent === n) : null; }
-      const again = card2('Dexmedetomidine'); if (again) again.click();
-      out.deselected = cell(card2('Dexmedetomidine'));
+      const again = card2('Thiopental'); if (again) again.click();
+      out.deselected = cell(card2('Thiopental'));
       return out;
     })()`);
-    t('the Hypnosis row is Propofol / Etomidate / Ketamine / Dexmedetomidine',
+    t('the Hypnosis row is Propofol / Etomidate / Ketamine / Thiopental',
       hyp.label === 'Hypnosis' &&
-      hyp.names.join(' / ') === 'Propofol / Etomidate / Ketamine / Dexmedetomidine',
+      hyp.names.join(' / ') === 'Propofol / Etomidate / Ketamine / Thiopental',
       hyp.names);
     /* One box for the four; the absolute size is the viewport's business and
        the pixel proof's, not this assertion's. */
     t('...four cards and one control, all one box',
       hyp.names.length === 4 && hyp.plus === 1 &&
       new Set(hyp.sizes).size === 1, hyp.sizes);
-    t('...three gold hypnotics and one lavender alpha-2',
-      hyp.colours.slice(0,3).every(c => c.toUpperCase() === '#FFD84D') &&
-      hyp.colours[3].toUpperCase() === '#B39DDB', hyp.colours);
-    t('...and dexmedetomidine is the canonical record, not a display member',
-      hyp.dex.drug === 'drug.dexmedetomidine' && hyp.dex.member === null &&
-      hyp.dex.planKey === 'drug.dexmedetomidine', hyp.dex);
+    /* WAS: three gold and one lavender, because an alpha-2 agonist does not
+       induce anaesthesia and the board should not imply it does. That reason
+       is why dexmedetomidine left the row rather than why it was coloured
+       differently in it — all four cards are induction agents now, and the
+       colour still comes from each record's own pclass. */
+    t('...four gold hypnotics, each coloured by its own record',
+      hyp.colours.every(c => c.toUpperCase() === '#FFD84D'), hyp.colours);
+    t('...and the fourth card is a canonical record, not a display member',
+      hyp.dex.drug === 'drug.thiopental' && hyp.dex.member === null &&
+      hyp.dex.planKey === 'drug.thiopental', hyp.dex);
     /* NO PHASE FALLBACK IN THE ONE PLACE IT WOULD READ AS AN INDUCTION DOSE.
-       The card prints the answer to the induction question — which for
-       dexmedetomidine is a coverage state — and never the answer to a
-       question the row did not ask. */
+       The card prints the answer to the induction question and never the
+       answer to a question the row did not ask. For thiopental that answer
+       is now a reviewed dose; the assertion is written to hold either way,
+       because what is under test is the correspondence, not the number.
+
+       WAS: the answering branch also required amount === '', which was only
+       ever true because the fourth card could not answer. A card that CAN
+       prints the patient-scaled amount too, and it must be the model's own,
+       digit for digit — so the branch now pins both halves to the model
+       rather than accepting an empty one. */
     t('...and it prints the induction question\'s answer, or nothing',
       hyp.canonical === null
         ? (hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false &&
@@ -1134,7 +1170,8 @@ async function openEngine(b, viewport) {
                hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false)
             : (hyp.dex.coverage === '' &&
                hyp.dex.rule.indexOf(hyp.canonical.doseNum || hyp.canonical.val) === 0 &&
-               hyp.dex.amount === '')),
+               hyp.dex.rule === hyp.canonical.doseNum + ' ' + hyp.canonical.doseUnit &&
+               hyp.dex.amount === hyp.canonical.val + hyp.canonical.unit)),
       { card:hyp.dex, model:hyp.canonical });
     /* THE SEDATION INFUSION IS THE SPECIFIC THING THAT MUST NOT BE THERE. */
     t('...carrying nothing at all from the sedation record',
@@ -1151,19 +1188,38 @@ async function openEngine(b, viewport) {
       hyp.dex.pressed === 'false' && hyp.selected.pressed === 'true' &&
       hyp.deselected.pressed === 'false',
       [hyp.dex.pressed, hyp.selected.pressed, hyp.deselected.pressed]);
-    /* THIOPENTAL LEFT THE BOARD AND NOTHING ELSE HAPPENED TO IT. */
-    t('thiopental is off the board, and was in no canonical surface before or after',
-      hyp.onBoard === false && hyp.thioInModel === false &&
-      hyp.thioInSearch === false && hyp.thioInRef === 0, hyp);
+    /* DEXMEDETOMIDINE LEFT THE BOARD AND NOTHING ELSE HAPPENED TO IT.
+       WAS: thiopental is off the board and in no canonical surface before or
+       after — true while it was a nameless display member and false now.
+       NOW: the same shape, one slot over, and the far stronger claim, because
+       leaving the board must cost dexmedetomidine none of its three canonical
+       surfaces. Off a board is not deleted from a formulary. */
+    t('dexmedetomidine is off the board, and keeps every canonical surface',
+      hyp.dexOnBoard === false && hyp.dexInModel === true &&
+      hyp.dexInSearch === true && hyp.dexInRef === 1,
+      { onBoard:hyp.dexOnBoard, model:hyp.dexInModel,
+        search:hyp.dexInSearch, ref:hyp.dexInRef });
+    /* AND THIOPENTAL DID NOT ARRIVE THROUGH THE BOARD. A display member had
+       a name and a colour and no canonical surface at all; the agent in this
+       slot has all three, which is the difference between a record and a
+       cell that needed filling. */
+    t('...and thiopental arrived with a record, not with a slot to fill',
+      hyp.thioInModel === true && hyp.thioInSearch === true &&
+      hyp.thioInRef === 1,
+      { model:hyp.thioInModel, search:hyp.thioInSearch, ref:hyp.thioInRef });
     /* AND DEXMEDETOMIDINE GAINED NOTHING BY BEING PUT ON A BOARD. */
     t('dexmedetomidine\'s record is untouched by the board change',
       hyp.dexRecord.doses === 1 && hyp.dexRecord.low === 0.2 &&
       hyp.dexRecord.high === 0.7 && hyp.dexRecord.unit === 'mcg/kg/h' &&
       hyp.dexRecord.pop === 'adult' && hyp.dexRecord.state === 'existing-unchanged' &&
       hyp.dexRecord.pclass === 'alpha2', hyp.dexRecord);
+    /* WAS: Hypnotics5. The category is two larger because etomidate and
+       thiopental were written as reviewed records in this pass — a change to
+       what the model holds, not to where dexmedetomidine sits in it. It is
+       still one row, still filed under Hypnotics, unmoved by the board. */
     t('...and it is still one row of the drug reference, still under Hypnotics',
       hyp.dexInRef === 1 &&
-      hyp.chips.some(c => c.indexOf('Hypnotics5') === 0), hyp.chips);
+      hyp.chips.some(c => c.indexOf('Hypnotics7') === 0), hyp.chips);
 
     /* ── SELECTION IS INTENT, AND INTENT NEEDS NO EVIDENCE ──────────────
        Clicking a drug declares that the clinician is using it. Whether the
@@ -1212,25 +1268,37 @@ async function openEngine(b, viewport) {
       if (window.Induction) window.Induction.clearPlan();
       return out;
     })()`);
+    /* ── WAS: SIX DISPLAY MEMBERS, SELECTABLE BUT EVIDENCE-FREE ─────────
+       These six had no canonical record, so the point of this block was that
+       clicking one declared INTENT without creating a clinical claim: the
+       plan key was 'catalog:<key>', the card printed no dose, and nothing
+       reached search, DRUGS, the reference or the canonical plan.
+
+       All six are canonical now, so the second half inverts — selecting them
+       does reach the clinical surfaces, because they have records. What is
+       unchanged, and still the point, is the FIRST half: a card is a control
+       that starts unpressed, clicking declares intent, clicking again undoes
+       it. Selection is still the clinician's act and nothing else's. */
     Object.keys(sel.each).forEach(n => {
       const c = sel.each[n];
       t('  ' + n + ': is an actionable control that starts unpressed',
         !!c && c.before.tag === 'BUTTON' && c.before.pressed === 'false' &&
-        c.before.on === false && /^catalog:/.test(c.before.planKey) &&
-        c.before.drug === null,
+        c.before.on === false && /^drug\./.test(c.before.planKey) &&
+        c.before.drug !== null,
         c && { tag:c.before.tag, pressed:c.before.pressed, key:c.before.planKey });
       t('  ' + n + ': ...clicking it declares intent and lights the card',
         !!c && c.on.pressed === 'true' && c.on.on === true && c.on.check === true &&
         c.on.bg !== c.before.bg && c.on.border !== c.before.border,
         c && { bg:[c.before.bg, c.on.bg], check:c.on.check });
-      t('  ' + n + ': ...and selected it still holds no medicine',
-        !!c && c.on.coverage === 'Dose not reviewed' && c.on.rule === false &&
-        c.on.amount === false && c.on.route === '' && c.on.digits === false,
-        c && { coverage:c.on.coverage, rule:c.on.rule, amount:c.on.amount,
-               route:c.on.route, digits:c.on.digits });
-      t('  ' + n + ': ...selection reaches no clinical surface',
-        !!c && c.leak.search === 0 && c.leak.drugs === 0 && c.leak.ref === 0 &&
-        c.leak.groups === 0 && c.leak.canonicalPlan === 0, c && c.leak);
+      t('  ' + n + ': ...and selected it carries its reviewed medicine',
+        !!c && c.on.coverage === '' && c.on.rule === true && c.on.route !== '',
+        c && { coverage:c.on.coverage, rule:c.on.rule, route:c.on.route });
+      /* canonicalPlan counts plan entries shaped 'catalog:<key>'. It must be
+         zero: these are canonical members now, so the plan holds their drug
+         ids and nothing enters it as a display key. */
+      t('  ' + n + ': ...and it is a canonical record on every surface',
+        !!c && c.leak.search > 0 && c.leak.drugs > 0 && c.leak.ref > 0 &&
+        c.leak.canonicalPlan === 0, c && c.leak);
       t('  ' + n + ': ...and a second click deselects it',
         !!c && c.off.pressed === 'false' && c.off.on === false &&
         c.off.check === false, c && c.off.pressed);
@@ -1294,13 +1362,28 @@ async function openEngine(b, viewport) {
     t('the drug reference still syncs the plan without eating the card',
       both.sync.refPressed === 'true' && both.sync.cardPressed === 'true' &&
       both.sync.cardIntact === true, both.sync);
-    t('New Case clears canonical selections and display ones alike',
-      both.before.plan.length > 0 && both.before.display.length > 0 &&
-      both.after.plan.length === 0 && both.after.display.length === 0, both);
-    t('a technique change creates no dose for a member with no record',
-      both.underRsi.coverage === 'Dose not reviewed' &&
+    /* WAS: New Case clears canonical selections and display ones alike, with
+       before.display.length > 0 — there were display members to select. There
+       are none: every board member carries a canonicalId now, so the display
+       plan is empty at both ends, and the assertion says so explicitly rather
+       than passing on an emptiness it never checked. Both lists are read
+       either side of newCase() so a silently-dead display plan cannot be
+       mistaken for one that was cleared. */
+    t('New Case clears the plan, and the display plan is empty throughout',
+      both.before.plan.length > 0 && both.after.plan.length === 0 &&
+      both.before.display.length === 0 && both.after.display.length === 0, both);
+    /* WAS: 'a technique change creates no dose for a member with no record',
+       expecting the display member's 'Dose not reviewed'. Atracurium has a
+       reviewed record now, so the claim gets sharper rather than weaker: the
+       record it has is an INTUBATION dose, RSI is a different question, and
+       narrowing the board to RSI must yield a coverage state naming the phase
+       — not the intubation number wearing an RSI label. Selecting it under
+       RSI is still intent without evidence, and still prints no digits. */
+    t('a technique change narrows the question and fabricates no answer',
+      both.underRsi.coverage === 'RSI dose not reviewed' &&
       both.underRsi.digits === false && both.underRsi.rule === false &&
       both.atracuriumSelectedUnderRsi.pressed === 'true' &&
+      both.atracuriumSelectedUnderRsi.coverage === 'RSI dose not reviewed' &&
       both.atracuriumSelectedUnderRsi.digits === false,
       { underRsi:both.underRsi, selected:both.atracuriumSelectedUnderRsi });
     t('...and the board is whole again for the probes that follow',
@@ -2376,9 +2459,18 @@ async function openEngine(b, viewport) {
       t('ASA III: withheld, with the generic profile wording',
         r.asa3.coverage === 'Reviewed dose not available for this patient profile',
         r.asa3.coverage);
-      t('age 70 with ASA II: withheld — the record is qualified under 65',
-        r.old.coverage === 'Reviewed dose not available for this patient profile' &&
-        !/140–175/.test(r.old.html), r.old.coverage);
+      /* WAS: age 70 with ASA II is withheld, because the only adult propofol
+         record was qualified ASA I–II AND under 65, and a 70-year-old fell
+         off the end of it. A reduced-dose record for 65 and over was written
+         in this pass, so the elderly patient is now answered instead of
+         refused. What must NOT have happened is the under-65 dose stretching
+         to cover them: the reduced figures appear and 2–2.5 mg/kg does not,
+         anywhere in the DOM. That is the whole point of the second record. */
+      t('age 70 with ASA II: the 65-and-over record answers, at its own dose',
+        r.old.present && r.old.coverage === '' &&
+        /70–105/.test(r.old.amount) && r.old.add === true, r.old.amount);
+      t('...and the under-65 dose is nowhere in the document',
+        !/140–175/.test(r.old.html) && !/2–2\.5 mg\/kg/.test(r.old.html));
       t('no runtime errors on the ASA path', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }

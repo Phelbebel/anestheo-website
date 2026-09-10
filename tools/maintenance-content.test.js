@@ -94,9 +94,14 @@ const PHASE_VALUES = Object.values(CC.PHASES);
 t('every declared phase comes from the vocabulary, none invented',
   CC.DRUGS.every(d => (d.doses||[]).every(x => !x.phase || PHASE_VALUES.indexOf(x.phase) >= 0)),
   phased.map(d => d.id));
+/* WAS: induction,intubation,rsi. 'premedication' joined the vocabulary with
+   glycopyrrolate's preanesthetic record — 0.004 mg/kg IM, 30-60 minutes before
+   induction — which is deliberately NOT the intraoperative antivagal record
+   the board asks for. The phase exists precisely so the two cannot be
+   confused. */
 t('...and induction-scope phases are all this migration declared',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort()
-    .join(',') === 'induction,intubation,rsi',
+    .join(',') === 'induction,intubation,premedication,rsi',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort());
 t('...so every group returns nothing for maintenance',
   CC.GROUPS.every(g => CC.visibleInGroupForPhase(g.id, 75, CC.PHASES.MAINTENANCE).length === 0));
@@ -106,8 +111,11 @@ t('...and the coverage report says zero everywhere, not "unknown"',
 
 /* THE TWO SPECIFIC HAZARDS THE BRIEF NAMES. */
 const propofol = CC.byId('drug.propofol');
+/* WAS: exactly two. The elderly/debilitated/ASA III-IV record makes three,
+   and the assertion that matters is unchanged — every one of them is an
+   induction record in mg/kg, and none is a maintenance rate. */
 t('propofol carries induction records and NOTHING for maintenance',
-  propofol.doses.length === 2 &&
+  propofol.doses.length === 3 &&
   propofol.doses.every(d => d.phase === 'induction' && d.unit === 'mg/kg'),
   propofol.doses.map(d => d.phase + ' ' + d.unit));
 t('...so asking for its maintenance dose returns NOTHING, not the bolus',
@@ -544,8 +552,8 @@ console.log('\n11b-iii. ROUTE NARROWING');
 
 t('an exact route filter is available on the selector',
   CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IV').length > 0 &&
-  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM').length === 1,
-  'ketamine IM is the one induction record on a non-IV route');
+  CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM').length === 2,
+  'ketamine IM and glycopyrrolate IM preanesthetic are the non-IV induction-group records');
 t('...and it returns the IM record, not the IV one',
   CC.visibleDosesInGroup('induction', 75, ADULT, null, 'IM')[0].doseNum === '6.5–13');
 t('...while narrowing to a route no drug has produces NO row, not a coverage row',
@@ -617,8 +625,12 @@ t('...missing section alone is enough to refuse it',
 t('a fully cited reviewed dose publishes',
   CC.isDosePublishable(prop, { evidence:{ state:'reviewed', authority:'a',
     documentId:'b', section:'c' } }) === true);
-t('the drug-level gate is untouched: still exactly 25 publishable drugs',
-  CC.DRUGS.filter(CC.isPublishable).length === 25);
+/* WAS: 25. Seven new canonical records and lidocaine-iv leaving
+   proposed-unverified make 33. The GATE is untouched — what changed is how
+   many drugs satisfy it, and every one of the eight carries a full citation. */
+t('the drug-level gate is untouched: exactly 33 publishable drugs',
+  CC.DRUGS.filter(CC.isPublishable).length === 33,
+  CC.DRUGS.filter(CC.isPublishable).length);
 
 /* ── DOSE ENUMERATION AND THE WITHHELD ROW ──────────────────────────────*/
 console.log('\n13. ENUMERATION AND WITHHOLDING');
@@ -633,11 +645,18 @@ t('every drug visibleDrugsInGroup returns still appears in visibleDosesInGroup',
   })), 'enumeration adds rows, it never drops a drug');
 t('...and the drugs carrying more than one are exactly the migrated ones',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id).sort().join(',') ===
-  'drug.fentanyl,drug.ketamine,drug.propofol,drug.remifentanil,drug.rocuronium',
+  'drug.alfentanil,drug.fentanyl,drug.glycopyrrolate,drug.ketamine,drug.mivacurium,' +
+  'drug.propofol,drug.remifentanil,drug.rocuronium,drug.suxamethonium',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id));
-t('the classified records are exactly the ones this migration touched',
+/* WAS: the six Tier-1 drugs. The eight the completeness package added carry a
+   populationClass for the same reason — a reviewed record must say who it is
+   for — so the list grows by exactly those eight and by nothing else. */
+t('the classified records are exactly the ones the reviewed packages touched',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort().join(',') ===
-  'drug.fentanyl,drug.ketamine,drug.propofol,drug.remifentanil,drug.rocuronium,drug.suxamethonium');
+  'drug.alfentanil,drug.atracurium,drug.atropine,drug.etomidate,drug.fentanyl,' +
+  'drug.glycopyrrolate,drug.ketamine,drug.lidocaine-iv,drug.mivacurium,drug.propofol,' +
+  'drug.remifentanil,drug.rocuronium,drug.suxamethonium,drug.thiopental',
+  CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort());
 t('ageBand appears only on class-C records',
   CC.DRUGS.every(d => (d.doses||[]).every(x => !x.ageBand || x.populationClass === 'C')));
 t('dose-level evidence appears only where a record was classified',
@@ -871,17 +890,41 @@ t('11 legacy compatibility does NOT populate or mutate populationClass',
     (d.doses||[]).map(x => [x.populationClass, x.population, x.evidence && x.evidence.state])))
     === beforeLegacy,
   'the dataset is byte-identical after every eligibility call');
-t('...and exactly 11 doses carry a populationClass — the reviewed ones',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 11);
+t('...and exactly 26 doses carry a populationClass — the reviewed ones',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 26,
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0));
+/* WAS: every publishable drug is existing-unchanged. Eight now read
+   'reviewed', and the safety question is not how many but WHICH — a legacy
+   record quietly upgraded to reviewed is the thing this guards against.
+
+   None was. Seven of the eight did not exist before this branch, and the
+   eighth, lidocaine-iv, was proposed-unverified and therefore unpublishable.
+   Every one of the 25 drugs that WAS existing-unchanged still is, which is
+   asserted here directly rather than by counting. */
+var UPGRADED = ['drug.lidocaine-iv','drug.etomidate','drug.thiopental','drug.atropine',
+                'drug.glycopyrrolate','drug.alfentanil','drug.atracurium','drug.mivacurium'];
 t('12 legacy compatibility does NOT change provenance.state',
-  CC.DRUGS.filter(CC.isPublishable).every(d => d.provenance.state === 'existing-unchanged'));
+  CC.DRUGS.filter(CC.isPublishable)
+    .filter(d => UPGRADED.indexOf(d.id) < 0)
+    .every(d => d.provenance.state === 'existing-unchanged') &&
+  CC.DRUGS.filter(CC.isPublishable)
+    .filter(d => UPGRADED.indexOf(d.id) < 0).length === 25,
+  CC.DRUGS.filter(CC.isPublishable)
+    .filter(d => d.provenance.state !== 'existing-unchanged').map(d => d.id));
 t('13 NO existing-unchanged record became reviewed',
   CC.DRUGS.every(d => (d.doses||[]).every(x =>
     !x.evidence || x.evidence.state !== 'reviewed' || !!x.populationClass)) &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 11);
-t('...and dose-level evidence exists ONLY on the 11 reviewed records',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 11);
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 26 &&
+  /* the drugs whose provenance is 'reviewed' are only ever the eight, and no
+     drug that carried a legacy record is among them */
+  CC.DRUGS.filter(d => d.provenance.state === 'reviewed')
+    .every(d => UPGRADED.indexOf(d.id) >= 0),
+  CC.DRUGS.filter(d => d.provenance.state === 'reviewed').map(d => d.id));
+t('...and dose-level evidence exists ONLY on the 26 reviewed records',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 26 &&
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[])
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 26);
 
 /* THE NAMED HELD RECORDS, EXERCISED THROUGH THE REAL SELECTOR. */
 [['drug.midazolam','induction'], ['drug.dexmedetomidine','induction'],
@@ -914,7 +957,7 @@ const reviewed = [];
 CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
   if (x.evidence && x.evidence.state === 'reviewed') reviewed.push({ id:d.id, dose:x });
 }));
-t('EXACTLY 11 REVIEWED DOSE RECORDS', reviewed.length === 11, reviewed.length);
+t('EXACTLY 26 REVIEWED DOSE RECORDS', reviewed.length === 26, reviewed.length);
 t('...every one carries a full citation',
   reviewed.every(r => r.dose.evidence.authority && r.dose.evidence.title &&
                       r.dose.evidence.documentId && r.dose.evidence.section));
@@ -1009,8 +1052,19 @@ t('DEFECT B CLOSED: prep carries no dose',
 
 /* SUXAMETHONIUM */
 const sux = CC.byId('drug.suxamethonium');
-t('suxamethonium adult: reviewed 0.3–1.1, one record only',
-  sux.doses.length === 1 && sux.doses[0].low === 0.3 && sux.doses[0].high === 1.1);
+/* WAS: one record only. There are two now, and they answer different
+   questions: the routine intubating record, unchanged at 0.3-1.1 mg/kg from
+   DailyMed, and a dedicated rapid-sequence record of 1 mg/kg from ESAIC. The
+   point of the original assertion — that the routine record is what it says
+   and nothing was relabelled — is asserted more tightly by naming both. */
+t('suxamethonium adult: routine 0.3–1.1 intact, RSI is its own record',
+  sux.doses.length === 2 &&
+  sux.doses.filter(x => x.phase === 'intubation').length === 1 &&
+  sux.doses.find(x => x.phase === 'intubation').low === 0.3 &&
+  sux.doses.find(x => x.phase === 'intubation').high === 1.1 &&
+  sux.doses.filter(x => x.phase === 'rsi').length === 1 &&
+  sux.doses.find(x => x.phase === 'rsi').value === 1,
+  sux.doses.map(x => x.phase + ' ' + (x.value != null ? x.value : x.low + '-' + x.high)));
 t('...the shipped 1–1.5 "RSI" is gone',
   !sux.doses.some(x => x.low === 1 && x.high === 1.5) &&
   !sux.doses.some(x => x.label === 'RSI'));
@@ -1120,11 +1174,15 @@ t('4  a context lookup mutates nothing: same drug, same doses, same order',
 t('5  adult + suxamethonium + ROUTINE → reviewed 0.3–1.1 renders',
   (() => { const r = ctxRow('drug.suxamethonium', 70, ADULT_ASA, ROUTINE_NMB);
     return !r.withheld && r.doseNum === '0.3–1.1'; })());
-t('6  adult + suxamethonium + RSI → NO number, "RSI dose not reviewed"',
+/* WAS: withheld, because no rapid-sequence record existed and the row
+   refused to answer with a routine number. A reviewed RSI record exists now,
+   so the row answers with THAT — and the safety property is unchanged and
+   asserted below: the number it gives is the RSI record's, never the
+   intubating one's. */
+t('6  adult + suxamethonium + RSI → the reviewed RSI record, not the routine one',
   (() => { const r = ctxRow('drug.suxamethonium', 70, ADULT_ASA, RSI_NMB);
-    return r.withheld && r.coverage === 'RSI dose not reviewed' &&
-           r.val === '' && r.doseNum === '' && r.doseRule === ''; })(),
-  ctxRow('drug.suxamethonium', 70, ADULT_ASA, RSI_NMB).coverage);
+    return !r.withheld && r.doseRule.indexOf('1 mg/kg') === 0; })(),
+  ctxRow('drug.suxamethonium', 70, ADULT_ASA, RSI_NMB).doseRule);
 t('...and its intubation dose appears NOWHERE on that row',
   !/0\.3|1\.1|21|77/.test(JSON.stringify(
     ctxRow('drug.suxamethonium', 70, ADULT_ASA, RSI_NMB))));
@@ -1219,8 +1277,11 @@ t('...and returns NOTHING for a drug whose every record declares a phase',
   ctxRow('drug.rocuronium', 70, ADULT_ASA, [LEG]).withheld === true,
   'rocuronium has three phased records and no unphased one');
 t('...so it can never answer an RSI question with an intubating dose',
-  ctxRow('drug.suxamethonium', 70, ADULT_ASA, ['rsi', LEG]).withheld === true,
-  'even if a blocker were wrongly given the tier, a phased record stays out of reach');
+  (() => { const r = ctxRow('drug.suxamethonium', 70, ADULT_ASA, ['rsi', LEG]);
+    /* the routine 0.3–1.1 range must not appear on an RSI answer, whatever
+       tier the blocker is wrongly given */
+    return !/0\.3|1\.1/.test(JSON.stringify(r)); })(),
+  'the intubating range stays out of reach of an RSI question');
 /* The blocker's return statement itself, not the lines near it. */
 t('THE BLOCKER LIST NEVER INCLUDES THE UNPHASED TIER', (() => {
   const m = /roleKey === 'nmb'\)\s*return ([^;]+);/.exec(code(read('induction.js')));
@@ -1234,10 +1295,16 @@ t('...and gains no class from being reached',
   (CC.byId('drug.midazolam').doses||[]).every(x => x.populationClass === undefined));
 
 /* THE CONTEXT SELECTOR IS THE ONE THAT ALREADY EXISTS. */
+/* WAS: a 70-year-old ASA II was withheld, there being no record past 65.
+   The elderly record covers them now. The GATE is what this asserts and it is
+   unchanged — the 44-year-old with no ASA still cannot reach the healthy-adult
+   record, because that record requires one. */
 t('doseRowForContext runs the same gates as every other surface',
   ctxRow('drug.propofol', 70, P(false, yrs(44), null), ROUTINE_HYP).coverage ===
     'ASA required to match reviewed dose' &&
-  ctxRow('drug.propofol', 70, P(false, yrs(70), 'II'), ROUTINE_HYP).withheld === true);
+  (() => { const r = ctxRow('drug.propofol', 70, P(false, yrs(70), 'II'), ROUTINE_HYP);
+    return !r.withheld && r.doseRule.indexOf('1–1.5 mg/kg') === 0; })(),
+  ctxRow('drug.propofol', 70, P(false, yrs(70), 'II')).doseRule);
 t('a hypnotic under RSI resolves to its induction record, there being no other',
   (() => { const r = ctxRow('drug.propofol', 70, ADULT_ASA, RSI_HYP);
     return !r.withheld && r.doseNum === '2–2.5'; })());
@@ -1265,50 +1332,78 @@ t('...and a child gets the paediatric one, not the adult',
    ══════════════════════════════════════════════════════════════════════════ */
 console.log('\n15. COMPOSITION IS NOT MEDICINE');
 
-const UI_ONLY = ['Etomidate','Thiopental','Alfentanil','Atracurium',
-                 'Mivacurium','Atropine','Glycopyrrolate'];
-const UI_IDS  = UI_ONLY.map(n => 'drug.' + n.toLowerCase());
+/* ── THE SEVEN ARE CANONICAL NOW, AND THAT IS THE POINT ─────────────────
+   This section asserted that Etomidate, Thiopental, Alfentanil, Atracurium,
+   Mivacurium, Atropine and Glycopyrrolate existed ONLY as board names, with no
+   canonical record — because the seven records that had existed were invented
+   to satisfy a 4x4 layout and carried no dose and no evidence. Deleting them
+   was right: a UI requirement must not create clinical objects.
 
-t('the seven UI-only agents are not canonical records',
-  UI_IDS.every(id => !CC.byId(id)), UI_IDS.filter(id => !!CC.byId(id)));
-t('...and no record carries their names either',
-  CC.DRUGS.filter(d => UI_ONLY.indexOf(d.name) >= 0).length === 0,
-  CC.DRUGS.filter(d => UI_ONLY.indexOf(d.name) >= 0).map(d => d.id));
-/* The counts the dataset had before the seven were written. */
-t('the canonical counts are back where they were',
-  CC.DRUGS.length === 30 &&
-  CC.DRUGS.filter(CC.isPublishable).length === 25,
-  { drugs:CC.DRUGS.length, publishable:CC.DRUGS.filter(CC.isPublishable).length });
-t('...and the eleven reviewed dose records are untouched',
-  CC.DRUGS.reduce((n,d) => n + (d.doses||[]).filter(x => x.evidence || x.populationClass).length, 0) === 11);
+   They are canonical again, and by the opposite route. Each was created by the
+   evidence process, from a named authority, with a documentId and a section,
+   and each publishes a dose. What must still be true — and is asserted below
+   in both directions — is that the CATALOG did not create them and does not
+   describe them: composition names an id, the clinical record answers for it,
+   and neither is derived from the other.
 
-/* NOT REACHABLE BY ANY SELECTOR, at any weight, in any population, in any
-   group — which is stronger than "the gate refuses them", because there is
-   no longer anything for a gate to refuse. */
+   The direction that matters most is the second one. A record's own group does
+   NOT decide which row it appears in: lidocaine-iv is filed under `analgesia`
+   in ClinicalContent and sits in Premedication / adjuncts on the board,
+   because induction-catalog.js says so and nothing else does. */
+const PACKAGE_IDS = ['drug.etomidate','drug.thiopental','drug.alfentanil','drug.atracurium',
+                     'drug.mivacurium','drug.atropine','drug.glycopyrrolate'];
+
+t('the seven agents are canonical records now, created by the evidence process',
+  PACKAGE_IDS.every(id => !!CC.byId(id)), PACKAGE_IDS.filter(id => !CC.byId(id)));
+t('...and every one of them publishes a fully cited dose',
+  PACKAGE_IDS.every(id => {
+    const d = CC.byId(id);
+    return d && (d.doses||[]).length > 0 && (d.doses||[]).every(x =>
+      x.evidence && x.evidence.state === 'reviewed' && x.evidence.authority &&
+      x.evidence.documentId && x.evidence.section);
+  }),
+  PACKAGE_IDS.filter(id => { const d = CC.byId(id);
+    return !d || !(d.doses||[]).every(x => x.evidence && x.evidence.documentId); }));
+t('...and none of them was invented to fill a slot — each carries a real dose',
+  PACKAGE_IDS.every(id => (CC.byId(id).doses||[]).every(x =>
+    x.value != null || x.low != null)),
+  PACKAGE_IDS.filter(id => (CC.byId(id).doses||[]).some(x =>
+    x.value == null && x.low == null)));
+
+/* THE SELECTORS SERVE THEM NOW, which is what a published record means. */
 {
   const POPS = [{adult:true,pediatric:false}, {adult:false,pediatric:true}, null];
-  const leaks = [];
+  const seen = new Set();
   (CC.GROUPS||[]).map(g => g.id || g).forEach(g => POPS.forEach(pop => {
-    ['visibleDrugsInGroup','visibleDosesInGroup'].forEach(fn => {
-      try { (CC[fn](g, 70, pop) || []).forEach(r => {
-        if (UI_IDS.indexOf(r.id) >= 0 || UI_ONLY.indexOf(r.name) >= 0)
-          leaks.push(fn + '/' + g + ' -> ' + r.id); });
-      } catch (e) { /* a group a selector does not serve is not a leak */ }
-    });
+    try { (CC.visibleDrugsInGroup(g, 70, pop) || []).forEach(r => {
+      if (PACKAGE_IDS.indexOf(r.id) >= 0) seen.add(r.id); });
+    } catch (e) {}
   }));
-  t('no group selector returns any of them, in any population', leaks.length === 0, leaks);
+  t('every one of the seven is reachable through a group selector',
+    PACKAGE_IDS.every(id => seen.has(id)),
+    PACKAGE_IDS.filter(id => !seen.has(id)));
 }
-t('...and canonical search finds none of them',
-  UI_ONLY.every(n => CC.search(n).every(r => {
-    const it = r.item || r; return UI_ONLY.indexOf(it.name) < 0; })),
-  UI_ONLY.filter(n => CC.search(n).some(r => {
-    const it = r.item || r; return UI_ONLY.indexOf(it.name) < 0 ? false : true; })));
-t('...and doseRowForContext has nothing to return for them',
-  UI_IDS.every(id => {
-    const d = CC.byId(id);
-    return !d || ['rsi','induction','intubation', CC.LEGACY_CONTEXT]
-      .every(c => !CC.doseRowForContext(d, 70, {adult:true,pediatric:false}, [c]));
-  }));
+t('...and canonical search finds them',
+  PACKAGE_IDS.every(id => {
+    const name = CC.byId(id).name;
+    return CC.search(name).some(r => (r.item || r).id === id);
+  }),
+  PACKAGE_IDS.filter(id => !CC.search(CC.byId(id).name)
+    .some(r => (r.item || r).id === id)));
+
+/* ── COMPOSITION IS STILL NOT MEDICINE ──────────────────────────────────
+   The catalog names ids. It does not carry a dose, a route, a population or
+   an evidence claim, and a record's own group does not move it between rows. */
+t('board membership comes from the catalog, not from a record group',
+  (() => {
+    const CAT0 = require(REPO + '/induction-catalog.js');
+    const lido = CC.byId('drug.lidocaine-iv');
+    const row  = CAT0.rows.find(r => r.members.some(m => m.canonicalId === 'drug.lidocaine-iv'));
+    /* filed under analgesia, placed in the premedication row, and the row it
+       is placed in is the one the catalog names */
+    return lido.group === 'analgesia' && row && row.key === 'premedication';
+  })(),
+  { group: CC.byId('drug.lidocaine-iv').group });
 
 /* THE CATALOG ITSELF */
 const CAT = require(REPO + '/induction-catalog.js');
@@ -1320,7 +1415,7 @@ t('...four members each, sixteen slots in the frozen order',
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []).join() ===
   ['midazolam','lidocaine-iv','atropine','glycopyrrolate',
    'fentanyl','morphine','remifentanil','alfentanil',
-   'propofol','etomidate','ketamine','dexmedetomidine',
+   'propofol','etomidate','ketamine','thiopental',
    'rocuronium','atracurium','mivacurium','suxamethonium'].join(),
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []));
 t('...every canonicalId it names resolves to a real record',
@@ -1371,21 +1466,28 @@ t('...and that colour is one ClinicalContent already defines',
 }
 
 /* ── THE FOURTH HYPNOSIS SLOT ────────────────────────────────────────────
-   Thiopental held it as a display member and dexmedetomidine holds it now.
-   That is a composition edit and nothing else: thiopental is not deleted from
-   anywhere it was (it was in no canonical surface to begin with), and
-   dexmedetomidine gains no dose, no evidence and no eligibility by being put
-   on a board — it arrives with exactly the record it already had. */
-t('the board names dexmedetomidine, not thiopental, in the fourth hypnosis slot',
+   Dexmedetomidine held it and thiopental holds it now. Its reviewed authority
+   is a procedural and ICU sedation infusion — a maintenance rate for a sedated
+   patient — so in the hypnosis slot of an induction board that card could only
+   ever be a coverage state, in the row a clinician reads first.
+
+   This is a composition edit and nothing else. Dexmedetomidine is REMOVED FROM
+   A BOARD, not from the application: its record, its dose, its reference row
+   and its search entry are all untouched, and the row's [+] reaches it. And
+   thiopental gains nothing by being placed — it arrives with the reviewed
+   record the evidence process gave it, which is asserted separately above. */
+t('the board names thiopental, not dexmedetomidine, in the fourth hypnosis slot',
   (() => { const hyp = CAT.rows.find(r => r.key === 'hypnosis');
-    return hyp.members[3].key === 'dexmedetomidine' &&
-           hyp.members[3].canonicalId === 'drug.dexmedetomidine' &&
-           hyp.members.every(m => m.key !== 'thiopental'); })(),
+    return hyp.members[3].key === 'thiopental' &&
+           hyp.members[3].canonicalId === 'drug.thiopental' &&
+           hyp.members.every(m => m.key !== 'dexmedetomidine'); })(),
   CAT.rows.find(r => r.key === 'hypnosis').members.map(m => m.key));
-t('...and thiopental is still in no canonical surface, exactly as before',
-  !CC.byId('drug.thiopental') &&
-  CC.DRUGS.every(d => d.name !== 'Thiopental') &&
-  CC.search('Thiopental').every(r => ((r.item||r).name) !== 'Thiopental'));
+t('...and dexmedetomidine keeps everything except the board slot',
+  !!CC.byId('drug.dexmedetomidine') &&
+  (CC.byId('drug.dexmedetomidine').doses||[]).length === 1 &&
+  CC.isPublishable(CC.byId('drug.dexmedetomidine')) &&
+  CC.search('Dexmedetomidine').some(r => ((r.item||r).id) === 'drug.dexmedetomidine'),
+  { doses:(CC.byId('drug.dexmedetomidine').doses||[]).length });
 
 /* ── THE HYPNOSIS ROW HAS NO UNPHASED TIER ──────────────────────────────
    The unphased tier matches any record that declares no context, and
@@ -1424,11 +1526,16 @@ t('...while the sedation record still answers in its own context',
   ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, [LEG]).val);
 /* AND THE THREE AGENTS BESIDE IT ARE UNAFFECTED: their records declare the
    induction phase, so narrowing the question changes none of their answers. */
+/* WAS: ...and etomidate does not exist. It does now, with a reviewed
+   induction record, so the assertion says what it always meant — the three
+   hypnotics beside dexmedetomidine declare the induction phase, so narrowing
+   the question to that phase changes none of their answers. */
 t('...and propofol, ketamine and etomidate are unchanged by the narrowing',
   ctxRow('drug.propofol', 75, ADULT_ASA, ['induction']).doseNum === '2–2.5' &&
   ctxRow('drug.propofol', 15, P(true, yrs(3), 'II'), ['induction']).doseNum === '2.5–3.5' &&
   ctxRow('drug.ketamine', 75, ADULT_ASA, ['induction']).doseNum === '1–4.5' &&
-  !CC.byId('drug.etomidate'));
+  ctxRow('drug.etomidate', 75, ADULT_ASA, ['induction']).doseNum === '0.2–0.6',
+  ctxRow('drug.etomidate', 75, ADULT_ASA, ['induction']).doseNum);
 /* The premedication and analgesia rows keep the tier: without it midazolam,
    morphine and the legacy fentanyl row would print a coverage line while the
    reference beside them printed a dose. */
