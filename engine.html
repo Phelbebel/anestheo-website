@@ -2528,27 +2528,7 @@ body .nb-search-wrap{display:none !important;}
           <div class="proc-pop" id="proc-list" role="listbox" hidden></div>
           <div class="proc-state" id="proc-state"></div>
         </div>
-        <!-- ── CONTINUE: THE EXPLICIT END OF PATIENT ENTRY ──────────────────
-             The editor used to fold itself the moment the page could compute,
-             which is how "75" became "7". Nothing folds on input, blur, iOS
-             Done or a focus change any more — the clinician says when they
-             are finished, and this is the control that says it.
-
-             IT IS A PHONE CONTROL. On desktop the form and the workstation are
-             both on screen at once, so there is nothing to continue TO; the
-             rule below hides it above the phone breakpoint and the desktop
-             field order is untouched. On a phone `order` puts it directly
-             under Age and Weight, so it is where the thumb already is when
-             the weight is finished.
-
-             It carries no case semantics: it does not start, clear, reset or
-             save anything. See ltContinue(). -->
-        <div class="pt-go" id="pt-go">
-          <button type="button" class="pt-go-b" id="pt-go-b" onclick="ltContinue()" disabled
-                  aria-label="Continue to the induction workstation">Continue to Live Tools</button>
-          <span class="pt-go-h" id="pt-go-h">Age and weight open the workstation</span>
-        </div>
-      </div>
+              </div>
       <!-- Paediatric estimate offer. Only appears for a paediatric age with a
            missing weight or height, and only offers a number when a growth
            reference has actually been supplied. -->
@@ -5025,6 +5005,8 @@ function newCase(){
   /* An obstetric confirmation belongs to the case that was confirmed, and this
      is a different case. */
   PT_OB_CONFIRM = false; _obConfirmFor = null;
+  /* The automatic transition belongs to the case that ended with it. */
+  LT_AUTO_OPENED = false;
   PT_EST.weight = false; PT_EST.height = false;
   /* 4. recompute, so no figure derived from the previous patient survives
         on screen. compute() re-renders every module from empty inputs.
@@ -5145,7 +5127,6 @@ function ptSummary(){
        the sentence beside it can never disagree. */
     var nb = document.querySelector('.case-new'); if(nb) nb.hidden = !live;
   }
-  if(window.ltPaintContinue) ltPaintContinue();
   var cs=ge('case-state');
   if(cs){
     /* TWO LINES, NOT ONE SENTENCE. "Current case" is a label and belongs at
@@ -5910,13 +5891,17 @@ window.ptToggle = ptToggle;
    It moves the viewport to the workstation and nowhere else. Scrolling to the
    top of the document would answer a press meant to go FORWARD by going back
    to what the clinician had just finished with. */
-function ltContinue(){
-  if(!ltCaseReady()) return;
-  /* The keyboard goes away because the field is finished with, not because
-     something guessed that it was. Nothing below branches on where focus is:
-     the element is read once, told to let go, and never consulted again. The
-     fold on the next line happens because this function was called by a
-     press — not because focus moved. */
+/* ── ENTERING THE WORKSTATION ────────────────────────────────────────────
+   The Continue button is gone; the transition happens on its own. What has
+   NOT changed is the rule that made the button necessary: the editor may
+   never fold part-way through a number. That is what turned "75" into "7" —
+   the panel was destroyed between the two keystrokes.
+
+   The trigger is a COMMIT, never an edit. `change` fires when a field is
+   finished with — Done, Enter, or leaving it — and never once per keystroke,
+   so a half-typed value cannot reach it. No timer guesses when typing
+   stopped, and nothing in this path listens to `input`. See ltCommit(). */
+function ltEnterWorkstation(){
   var leaving = document.activeElement;
   try { if(leaving && leaving.blur) leaving.blur(); } catch(e){}
   var w = document.getElementById('app');
@@ -5940,20 +5925,41 @@ function ltContinue(){
   if(window.requestAnimationFrame) requestAnimationFrame(function(){ setTimeout(go, 90); });
   else setTimeout(go, 120);
 }
-window.ltContinue = ltContinue;
+window.ltEnterWorkstation = ltEnterWorkstation;
 
-/* Continue is offered exactly when it would do something: a valid age and a
-   valid weight. It is not a submit button and there is nothing to validate —
-   it is a door, and it is unlocked when there is a room behind it. */
-function ltPaintContinue(){
-  var b = ge('pt-go-b'); if(!b) return;
-  var ready = ltCaseReady();
-  b.disabled = !ready;
-  var h = ge('pt-go-h');
-  if(h) h.textContent = ready ? 'Sex and height can be added later'
-                              : 'Age and weight open the workstation';
+/* ONCE PER CASE. A clinician who reopens Edit to add a height has asked for
+   the form; committing that height must not slam it shut again. New Case ends
+   the case and clears this with it. */
+var LT_AUTO_OPENED = false;
+
+/* A COMMIT, NOT A KEYSTROKE. `change` on a text or number input fires when the
+   value is settled — Done, Enter, or leaving the field — so the shortest value
+   this can ever see is one the clinician finished typing. `input` fires per
+   character and is deliberately not listened to anywhere in this path.
+
+   Guard order matters: a commit on the age field while the weight is still
+   empty is not a case, so nothing happens and the clinician carries on. */
+function ltCommit(){
+  if(LT_AUTO_OPENED) return;
+  if(!ltCaseReady()) return;
+  var app = document.getElementById('app');
+  if(!app || !app.classList.contains('pt-open')) return;   /* already folded */
+  LT_AUTO_OPENED = true;
+  ltEnterWorkstation();
 }
-window.ltPaintContinue = ltPaintContinue;
+document.addEventListener('change', function(e){
+  var acc = document.getElementById('acc-patient');
+  if(acc && e.target && acc.contains(e.target)) ltCommit();
+}, true);
+/* Enter is a commit on a field that would not otherwise blur. */
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  var acc = document.getElementById('acc-patient');
+  if(acc && e.target && acc.contains(e.target)){
+    try { if(e.target.blur) e.target.blur(); } catch(err){}
+    ltCommit();
+  }
+}, true);
 
 /* The empty workstation's one button. The form is on screen already on a
    desktop, so this puts the caret in it rather than revealing anything; on a

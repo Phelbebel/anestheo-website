@@ -15,7 +15,7 @@
    WHAT THEY PROTECT
      the case-ready split          age + weight open the workstation
      the anthropometric withhold   height/sex take only their own values
-     the 75 kg fix                 nothing folds the editor except Continue
+     the 75 kg fix                 nothing folds the editor on an input event
      clinician intent              strategy never touches planKeys
      no fabricated clinical value  no volatile number, no TCI target
    ═════════════════════════════════════════════════════════════════════════ */
@@ -121,6 +121,16 @@ const snap = pg => pg.evaluate(() => {
   };
 });
 
+/* The optional context is entered through Edit once the commit has opened the
+   workstation, which is where it lives now. Anything setting sex, height or
+   ASA after a weight has been committed reopens it first, as the clinician
+   does. */
+async function reopenEditor(pg) {
+  await pg.evaluate(() => { const a = document.getElementById('app');
+    if (a && !a.classList.contains('pt-open') && window.ptToggle) ptToggle(); });
+  await pg.waitForTimeout(300);
+}
+
 /* Real keystrokes into a real field. */
 async function type(pg, sel, text) {
   await pg.click(sel);
@@ -156,8 +166,12 @@ async function type(pg, sel, text) {
         fresh.surfaces);
       t(P + 'fresh: Create patient record lives in Patient Setup', fresh.npInEditor === true);
       t(P + 'fresh: ...and is hidden for an unauthorized session', fresh.npVisible === false);
-      t(P + 'fresh: Continue is present but disabled',
-        fresh.goVisible === true && fresh.goDisabled === true);
+      /* WAS: Continue present and disabled. There is no Continue control —
+         the workstation opens on the commit of a valid age and weight — so
+         this asserts the button is gone and nothing opened without one. */
+      t(P + 'fresh: there is no Continue control',
+        fresh.goVisible === false && fresh.goDisabled === null);
+      t(P + 'fresh: ...and nothing opened on its own', fresh.hostExists === false);
       t(P + 'fresh: no horizontal overflow', fresh.overflowX <= 0, fresh.overflowX);
 
       await type(pg, '#i-age', '42');
@@ -170,7 +184,9 @@ async function type(pg, sel, text) {
         min.complete === false);
       t(P + 'A: #induction-host EXISTS on age + weight alone', min.hostExists === true);
       t(P + 'A: Induction Strategy is rendered', min.stratY !== null, min.stratY);
-      t(P + 'A: Continue is enabled', min.goDisabled === false);
+      /* WAS: Continue enabled. The equivalent guarantee is that the
+         workstation is reachable from age and weight alone, asserted above. */
+      t(P + 'A: no Continue control is waiting to be pressed', min.goVisible === false);
       t(P + 'A: New case is offered once a case exists', min.newCaseOffered === true);
       t(P + 'A: sex stays empty — nothing defaulted', min.sex === '', min.sex);
       t(P + 'A: height stays empty — nothing estimated', min.height === '', min.height);
@@ -211,8 +227,11 @@ async function type(pg, sel, text) {
         const L = P + 'valid/' + label + ': ';
         t(L + 'caseReady is ' + want, m.caseReady === want,
           { caseReady:m.caseReady, age:m.age, weight:m.weight });
-        t(L + 'Continue ' + (want ? 'enabled' : 'disabled'),
-          m.goDisabled === !want, m.goDisabled);
+        /* WAS: Continue enabled/disabled. Readiness is expressed by whether
+           committing opens a workstation, which caseReady and the workstation
+           assertion below already state. */
+        t(L + 'no Continue control exists in either state',
+          m.goVisible === false, m.goVisible);
         t(L + 'case-live is ' + want, m.caseLive === want, m.caseLive);
         t(L + 'workstation ' + (want ? 'present' : 'absent'),
           m.hostExists === want, m.hostExists);
@@ -234,14 +253,16 @@ async function type(pg, sel, text) {
       await type(pg, '#i-weight', '75');
       await pg.waitForTimeout(250);
 
-      /* ── FLOW B · Continue ───────────────────────────────────────────── */
-      await pg.click('#pt-go-b');
-      await pg.waitForTimeout(900);
+      /* ── FLOW B · THE COMMIT OPENS IT ─────────────────────────────────
+         There is no button to press. The weight was typed above and this blur
+         is the commit — what the thumb does when it leaves the field. */
+      await pg.evaluate(() => document.activeElement && document.activeElement.blur());
+      await pg.waitForTimeout(1100);
       const after = await snap(pg);
-      t(P + 'B: the editor folded — because it was asked to', after.ptOpen === false);
-      t(P + 'B: age survives Continue', after.age === '42', after.age);
-      t(P + 'B: weight survives Continue and is still 75', after.weight === '75', after.weight);
-      t(P + 'B: the case is still live — Continue is not New Case',
+      t(P + 'B: the editor folded — on the commit, not on a keystroke', after.ptOpen === false);
+      t(P + 'B: age survives the transition', after.age === '42', after.age);
+      t(P + 'B: weight survives the transition and is still 75', after.weight === '75', after.weight);
+      t(P + 'B: the case is still live — opening is not New Case',
         after.caseLive === true && after.caseReady === true);
       t(P + 'B: focus left the input', after.active !== 'i-weight', after.active);
       t(P + 'B: Induction Strategy is visible', after.stratVisible === true);
@@ -271,7 +292,10 @@ async function type(pg, sel, text) {
       t(P + 'C: the sex-derived values now exist',
         !!full.derived.ibw && !!full.derived.lbw, full.derived);
       t(P + 'C: the workstation is still there', full.hostExists === true);
-      t(P + 'C: Continue still works', full.goDisabled === false);
+      /* WAS: Continue still works. Completing the context through Edit must
+         not re-trigger the transition — auto-open fires once per case. */
+      t(P + 'C: completing the context does not re-fold the editor',
+        full.ptOpen === true, { ptOpen:full.ptOpen });
 
       /* ── FLOW D · New case ───────────────────────────────────────────── */
       t(P + 'D: New case is offered while a case exists', full.newCaseOffered === true);
@@ -285,7 +309,11 @@ async function type(pg, sel, text) {
       t(P + 'D: ...and the case is no longer live', cleared.caseLive === false);
       t(P + 'D: ...and New case withdraws itself again',
         cleared.newCaseOffered === false && cleared.newCaseVisible === false);
-      t(P + 'D: ...and Patient Setup is the surface again', cleared.goDisabled === true);
+      /* WAS: Continue disabled again. New Case clears the auto-open flag with
+         the case, so the editor is the surface and the next commit opens a
+         fresh workstation. */
+      t(P + 'D: ...and Patient Setup is the surface again',
+        cleared.surfaces.editor === true && cleared.hostExists === false, cleared.surfaces);
 
       t(P + 'no page or runtime errors in the whole flow', errs.length === 0, errs.slice(0, 3));
       await ctx.close();
@@ -318,7 +346,11 @@ async function type(pg, sel, text) {
         await type(pg, '#i-age', age);
         await type(pg, '#i-weight', wt);
         const partial = peds(await pg.evaluate(() => window.patientContext.derived));
+        await reopenEditor(pg);
         await pg.selectOption('#i-sex', 'F');
+        /* Selecting the sex is itself a commit on the weight beside it, so the
+           workstation opens here; Edit is how the height is added after. */
+        await reopenEditor(pg);
         await type(pg, '#i-height', '103');
         const full = peds(await pg.evaluate(() => window.patientContext.derived));
         t('peds/' + label + ': age+weight values identical either side of the gate',
@@ -411,7 +443,11 @@ async function type(pg, sel, text) {
         g.find && g.find.h);
       t(Q + 'Procedure uses essentially the whole content width',
         g.proc && g.bar && g.proc.w >= g.bar.w - 2, [g.proc && g.proc.w, g.bar && g.bar.w]);
-      t(Q + 'Continue is a button, not a card', g.go && g.go.h >= 44 && g.go.h <= 56, g.go && g.go.h);
+      /* WAS: Continue sized as a button rather than a card. The control is
+         gone; what its absence must not cost is the reachability it provided,
+         and the rect gates below already measure that the form ends cleanly
+         and Procedure keeps the full row. */
+      t(Q + 'no Continue control occupies the form', g.go === null, g.go);
       t(Q + 'Patient Setup reserves no empty space', g.setupGap <= 20, g.setupGap);
       t(Q + 'no horizontal document overflow', g.overflowX <= 0, g.overflowX);
       /* THE RULE IS ABOUT THE INDUCTION STREAM, NOT ABOUT ORDER. Asserting
@@ -593,7 +629,9 @@ async function type(pg, sel, text) {
       await pg.waitForTimeout(2000);
       await type(pg, '#i-age', '42');
       await type(pg, '#i-weight', '75');
+      await reopenEditor(pg);
       await pg.selectOption('#i-sex', 'M');
+      await reopenEditor(pg);
       await type(pg, '#i-height', '175');
       /* the clinician's own selection, made once, before any strategy press */
       await pg.evaluate(() => {

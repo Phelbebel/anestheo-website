@@ -2683,7 +2683,7 @@ html.lt-immersive body{padding-top:0 !important;}
 
 /* ── THE STRATEGY SAYS WHAT IT DID ───────────────────────────────────────
    At every width, because a decorative tile is not a phone problem. */
-.case-new[hidden], .case-np[hidden], .pt-go[hidden]{display:none !important;}
+.case-new[hidden], .case-np[hidden]{display:none !important;}
 .stx{display:block; margin:9px 0 0; padding:9px 11px;
   background:rgba(255,255,255,.035); border:1px solid var(--hair,rgba(255,255,255,.08));
   border-left:3px solid var(--ink-3,#7d8b95); border-radius:var(--radius-sm,8px);}
@@ -2702,34 +2702,21 @@ html.lt-immersive body{padding-top:0 !important;}
   font-size:8.5px; font-weight:800; letter-spacing:.11em; text-transform:uppercase;
   color:#FF8A72; white-space:nowrap;}
 
-/* ── CONTINUE ─────────────────────────────────────────────────────────────
-   A phone control. On a desktop the form and the workstation are on screen
-   together and there is nothing to continue to, so it is not rendered there
-   and the desktop field order is untouched. */
-.pt-go{display:none;}
+/* ── THE WORKSTATION OPENS ITSELF ────────────────────────────────────────
+   Continue is gone. It existed because the editor used to fold part-way
+   through a number, and the fix for that lives in the commit event now, not
+   in a button. What remains here is the ordering of the fields it sat
+   between. */
 @media (max-width:900px){
   .eng-wrap #acc-patient .input-bar{display:grid;}
-  /* AGE, WEIGHT, CONTINUE — then the rest. The DOM order is unchanged so the
+  /* AGE, WEIGHT — then the optional context. DOM order is unchanged so the
      desktop grid is unchanged; this is the phone's reading order only. */
   .eng-wrap #acc-patient .inp-age{order:1;}
   .eng-wrap #acc-patient .inp:nth-of-type(4){order:2;}   /* Weight */
-  .eng-wrap #acc-patient .pt-go{order:3;}
   .eng-wrap #acc-patient .inp:nth-of-type(2){order:4;}   /* Sex */
   .eng-wrap #acc-patient .inp:nth-of-type(3){order:5;}   /* Height */
   .eng-wrap #acc-patient .inp:nth-of-type(5){order:6;}   /* ASA */
   .eng-wrap #acc-patient .inp-proc{order:7;}
-  .pt-go{display:flex; flex-direction:column; gap:3px; grid-column:1/-1; margin:3px 0 1px;}
-  .pt-go-b{width:100%; min-height:48px; padding:0 16px;
-    background:var(--accent,#7ECFC0); border:1px solid var(--accent,#7ECFC0);
-    border-radius:var(--radius-sm,8px); color:#06231d;
-    font-family:inherit; font-size:14.5px; font-weight:800; letter-spacing:.04em;
-    text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent;}
-  .pt-go-b:active{filter:brightness(.92);}
-  .pt-go-b:focus-visible{outline:2px solid #fff; outline-offset:2px;}
-  .pt-go-b[disabled]{background:rgba(255,255,255,.05); border-color:var(--hair,rgba(255,255,255,.09));
-    color:var(--ink-3,#7d8b95); cursor:default;}
-  .pt-go-h{font-size:10.5px; font-weight:600; letter-spacing:.02em;
-    color:var(--ink-3,#7d8b95); text-align:center;}
 
   /* ── DENSITY, NOT MINIATURISATION ──────────────────────────────────────
      46px is a comfortable target and roughly half the ~90px cards the
@@ -2889,9 +2876,17 @@ html.lt-immersive body{padding-top:0 !important;}
   .eng-wrap #acc-patient .inp-age select{flex:0 0 84px; width:84px; min-width:84px;}
   .eng-wrap #acc-patient .inp-age input{min-width:0;}
 
-  /* Procedure is free text and takes the width it needs. It was one column
-     of three with two empty beside it — the blank row in the screenshot. */
-  .eng-wrap #acc-patient .inp-proc{grid-column:1/-1;}
+  /* Procedure is free text and takes the width it needs. It was one column of
+     three with two empty beside it — the blank row in the screenshot.
+
+     THE SELECTOR CARRIES .input-bar AND .inp FOR A REASON. A desktop rule
+     sizes the LAST field in the bar at two columns:
+     `.eng-wrap #acc-patient .inp:last-child`. Procedure was never that field —
+     the Continue block sat after it — and removing Continue made Procedure the
+     last child, so it silently inherited a two-column width and lost a third
+     of the row. :last-child counts as a class, so a shorter selector merely
+     ties and loses on document order. */
+  .eng-wrap #acc-patient .input-bar .inp.inp-proc{grid-column:1/-1;}
 
   /* ── PRIMARY, THEN CONTEXT ────────────────────────────────────────────
      Age, Weight and Continue are the minimum case. Sex, Height, ASA and
@@ -2910,9 +2905,6 @@ html.lt-immersive body{padding-top:0 !important;}
   .eng-wrap #acc-patient .inp-proc input{min-height:44px; font-size:14.5px;}
 
   /* The Continue block is a button and one quiet line, nothing more. */
-  .pt-go{margin:1px 0 2px; gap:2px;}
-  .pt-go-b{min-height:48px; height:48px; font-size:13.5px; letter-spacing:.03em;}
-  .pt-go-h{font-size:10px; line-height:1.2;}
 
   /* ── NO RESERVED EMPTINESS ────────────────────────────────────────────
      The setup card ends when its controls do. An empty procedure hint or
@@ -2937,4 +2929,45 @@ html.lt-immersive body{padding-top:0 !important;}
 
   /* Live timers are one compact strip on a phone, not a second dashboard. */
   .eng-wrap .lt-strip{padding:6px 9px;}
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   THE STICKY HEADER STOPS EATING SECTION HEADINGS
+   ─────────────────────────────────────────────────────────────────────────
+   Measured at 390x844: scrolling to any workstation section put its title
+   94-106px UNDER the header — "Selected drug plan" landed at y=2 with the
+   header occupying 0-108. Every jump target arrived hidden. scrollIntoView()
+   aligns to the element, and the element does not know the header is there;
+   scroll-margin-top is how it is told. The value is the measured header
+   height plus a small deliberate gap, not a guessed cushion. */
+@media (max-width:640px){
+  .eng-wrap #induction-host .wf-sec,
+  .eng-wrap #induction-host .tb-grp,
+  .eng-wrap .idref{scroll-margin-top:120px;}
+}
+@media (min-width:641px) and (max-width:900px){
+  .eng-wrap #induction-host .wf-sec,
+  .eng-wrap #induction-host .tb-grp,
+  .eng-wrap .idref{scroll-margin-top:70px;}
+}
+
+/* ── THE ROW'S PLUS BELONGS TO THE ROW'S HEADING ─────────────────────────
+   It sat after the card grid at a 34px target — under the 44px minimum, and
+   the first thing to be cut off when anything shifts. On a phone it moves
+   into the role heading, where there is room beside a short word, and it
+   becomes a real target. It is NOT one of the four drug slots: the four
+   named cards are unchanged and the plus is a control beside them.
+
+   THE HEADING STAYS A BLOCK. Making it a flex row changed the label's box
+   model — the <b> became a flex item three line-heights tall, which the
+   role-label wrap gate catches. It only has to keep clear of the plus. */
+@media (max-width:900px){
+  .eng-wrap #induction-host .tb-grp{position:relative;}
+  .eng-wrap #induction-host .tb-g{padding-right:48px;}
+  .eng-wrap #induction-host .tb-s{
+    position:absolute; top:0; right:0;
+    width:44px; height:44px; min-width:44px; min-height:44px;
+    display:inline-flex; align-items:center; justify-content:center;
+    margin:0; font-size:18px; line-height:1;}
 }

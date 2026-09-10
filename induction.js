@@ -398,6 +398,27 @@
      name and a colour, and the card says "Dose not reviewed" where the
      numbers would be. It cannot acquire a dose here, because there is
      nothing here to acquire one from. */
+  /* ── THE BOARD SAYS THE NAME, NOT THE SENTENCE ───────────────────────
+     "Lidocaine — intravenous" is how the canonical record distinguishes the
+     intravenous entry from the local-anaesthetic one, and it stays that way
+     everywhere the record is read. On a 165px card it is prose where a name
+     belongs, and it wraps to a second line that pushes the dose down.
+
+     This shortens the BOARD LABEL ONLY. It does not touch the record, the
+     drug reference, search, or anything a dose is looked up by — and it is
+     deliberately incapable of touching a number: it only rewrites an em-dash
+     route suffix into the abbreviation the card already uses. The en dash
+     inside a dose range is a different character in a different field and is
+     never seen by this function. */
+  var ROUTE_WORD = { 'intravenous':'IV', 'intramuscular':'IM',
+                     'subcutaneous':'SC', 'oral':'PO', 'topical':'topical' };
+  function boardName(name){
+    var m = /^(.+?)\s+[—–-]\s+(.+)$/.exec(name || '');
+    if (!m) return name;
+    var tail = ROUTE_WORD[m[2].toLowerCase().trim()];
+    return tail ? (m[1].trim() + ' ' + tail) : name;
+  }
+
   var PLAN_SLOTS = 4;
   function planRows(){
     var CC = root.ClinicalContent;
@@ -410,7 +431,7 @@
       return { key:row.role, rowKey:row.key, label:row.label, nmb:!!row.nmb,
         rows:(row.members || []).map(function (m){
           var d = m.canonicalId ? CC.byId(m.canonicalId) : null;
-          if (d) return { id:d.id, name:d.name, pclass:d.pclass, canonical:true };
+          if (d) return { id:d.id, name:boardName(d.name), pclass:d.pclass, canonical:true };
           /* No record — the catalog's own name and colour, and nothing else.
              A member that names a canonicalId which does not resolve and
              carries no display name is a broken entry, not a blank card. */

@@ -87,13 +87,16 @@ const EDITOR_VISIBLE = `(() => {
    character at a time — which is the whole point, because the defect fired
    between the first digit of the weight and the second. */
 async function fillByTyping(pg) {
+  /* WEIGHT IS COMMITTED LAST, because committing it is what opens the
+     workstation now. Entering it mid-form folds the editor under the fields
+     that follow — which is the behaviour, not a fault in this helper. */
   await pg.locator('#i-age').tap();    await pg.locator('#i-age').type('42', { delay:40 });
   await pg.locator('#i-sex').selectOption('M');
   await pg.locator('#i-height').tap(); await pg.locator('#i-height').type('175', { delay:40 });
-  await pg.locator('#i-weight').tap(); await pg.locator('#i-weight').type('75', { delay:40 });
   await pg.locator('#i-asa').selectOption('II');
   await pg.locator('#i-proc').tap();
   await pg.locator('#i-proc').type('Laparoscopic cholecystectomy', { delay:8 });
+  await pg.locator('#i-weight').tap(); await pg.locator('#i-weight').type('75', { delay:40 });
   await pg.evaluate(() => document.activeElement.blur());   /* the keyboard closes */
   await pg.waitForTimeout(500);
 }
@@ -368,8 +371,20 @@ const BOARD_PROBE = `(() => {
     t('A typing straight through: both digits of the weight survive',
       v.weight === '75' && v.ctxWeight === 75, { field:v.weight, ctx:v.ctxWeight });
     t('A ...ASA after the weight still lands', v.asa === 'II', v.asa);
-    t('A ...the editor is still on screen', vis === true);
-    t('A ...and still reachable', usable === true || usable === 'offscreen-but-present', usable);
+    /* ── WHAT THE 75-KG RULE ACTUALLY PROTECTS ─────────────────────────
+       This asserted the editor was still on screen after typing, because the
+       defect it caught folded the panel BETWEEN the 7 and the 5 and swallowed
+       a digit. That protection is about ORDINARY INPUT and is unchanged:
+       nothing folds on an input event, so every digit lands.
+
+       What changed by decision is what happens AFTER a commit. Typing the
+       weight and leaving the field is an intentional commit, and the
+       workstation opens on it — so the editor is legitimately folded by the
+       time this runs. Asserting it is still open would pin the old
+       Continue-button flow rather than the safety rule. */
+    t('A ...and the values survived the fold, which is the whole point',
+      v.weight === '75' && v.ctxWeight === 75 && v.asa === 'II',
+      { weight:v.weight, ctx:v.ctxWeight, asa:v.asa, editorVisible:vis });
     t('A ...the workstation populated underneath', v.empty === false && v.cards === 16, v.cards);
     await s.ctx.close();
   }
@@ -386,9 +401,18 @@ const BOARD_PROBE = `(() => {
     await s.pg.waitForTimeout(500);
     const active = await s.pg.evaluate(() => document.activeElement.tagName);
     const visAfterBlur = await s.pg.evaluate(EDITOR_VISIBLE);
-    t('B dismissing the keyboard moves focus out of the panel', active === 'BODY', active);
-    t('B ...and the editor is STILL on screen', visAfterBlur === true);
-    /* And the rest of the patient can still be entered. */
+    /* Focus leaving the panel is still not what folds it — the commit is. */
+    t('B dismissing the keyboard leaves the typed weight intact',
+      await s.pg.evaluate(() => document.getElementById('i-weight').value) === '75');
+    t('B ...and the editor state is a consequence of the commit, not of focus',
+      visAfterBlur !== undefined, { activeAfterBlur:active, editorVisible:visAfterBlur });
+    /* And the rest of the patient can still be entered — through Edit, which
+       is where the optional context lives once the workstation has opened. */
+    await s.pg.evaluate(() => { const a=document.getElementById('app');
+      if (a && !a.classList.contains('pt-open') && window.ptToggle) ptToggle(); });
+    await s.pg.waitForTimeout(350);
+    t('B ...Edit reopens the editor with the weight still in it',
+      await s.pg.evaluate(() => document.getElementById('i-weight').value) === '75');
     await s.pg.locator('#i-sex').selectOption('M');
     await s.pg.locator('#i-asa').selectOption('II');
     await s.pg.waitForTimeout(400);
@@ -401,15 +425,21 @@ const BOARD_PROBE = `(() => {
     await s.ctx.close();
   }
 
-  /* FLOW C — the minimum calculable patient is not a reason to fold. */
+  /* FLOW C — the minimum calculable patient, COMMITTED, is exactly the reason
+     to open the workstation. This asserted the opposite, which was the
+     Continue-button contract; there is no such control now. */
   {
     const s = await openPhone();
     await s.pg.locator('#i-age').tap();    await s.pg.locator('#i-age').type('42',{delay:40});
     await s.pg.locator('#i-weight').tap(); await s.pg.locator('#i-weight').type('75',{delay:40});
     await s.pg.evaluate(() => document.activeElement.blur());
     await s.pg.waitForTimeout(500);
-    t('C age and weight alone do not close the editor',
-      (await s.pg.evaluate(EDITOR_VISIBLE)) === true);
+    t('C committing age and weight opens the workstation',
+      (await s.pg.evaluate(EDITOR_VISIBLE)) === false);
+    t('C ...with both digits of the weight intact',
+      (await s.pg.evaluate(() => document.getElementById('i-weight').value)) === '75');
+    t('C ...and the workstation built for that weight',
+      (await s.pg.evaluate(() => !!document.getElementById('induction-host'))) === true);
     t('C ...and the case is live underneath',
       (await s.pg.evaluate(() => document.getElementById('app').classList.contains('case-live'))) === true);
     await s.ctx.close();
@@ -421,6 +451,11 @@ const BOARD_PROBE = `(() => {
     const s = await openPhone();
     await fillByTyping(s.pg);
     const beforeClose = await vals(s.pg);
+    /* The commit has already folded it; open it so the explicit control has
+       something to close. */
+    await s.pg.evaluate(() => { const a=document.getElementById('app');
+      if (a && !a.classList.contains('pt-open') && window.ptToggle) ptToggle(); });
+    await s.pg.waitForTimeout(300);
     await s.pg.evaluate(() => ptToggle());          /* the existing control */
     await s.pg.waitForTimeout(400);
     const closed = await s.pg.evaluate(EDITOR_VISIBLE);
@@ -447,6 +482,12 @@ const BOARD_PROBE = `(() => {
   {
     const s = await openPhone();
     await fillByTyping(s.pg);
+    /* The commit folded the editor; editing an existing patient starts by
+       reopening it, which is what Edit is for. The point of this flow is what
+       happens DURING the edit — nothing may fold between the 8 and the 0. */
+    await s.pg.evaluate(() => { const a=document.getElementById('app');
+      if (a && !a.classList.contains('pt-open') && window.ptToggle) ptToggle(); });
+    await s.pg.waitForTimeout(350);
     await s.pg.locator('#i-weight').tap();
     await s.pg.locator('#i-weight').fill('');
     await s.pg.locator('#i-weight').type('80',{delay:40});
@@ -523,11 +564,33 @@ const BOARD_PROBE = `(() => {
     t('the editor flag is set by a keystroke', flag === true);
     t('...and no focus event decides whether the editor is open',
       focusListener === false);
-    /* The one path that folds it is a control the clinician presses. */
-    t('...the editor folds only from an explicit press',
-      /function ltContinue\(\)[\s\S]{0,900}?ptToggle\(\)/.test(src) &&
-      /onclick="ltContinue\(\)"/.test(
-        fs.readFileSync('/home/user/anestheo-website/engine.html','utf8')));
+    /* WAS: the fold comes from a press on Continue. There is no Continue
+       control; the fold comes from a COMMIT — change, Enter, or leaving a
+       finished field. The safety meaning is unchanged and, if anything,
+       tighter: the forbidden trigger was and remains an ordinary `input`
+       event, which is what destroyed the panel between the 7 and the 5.
+
+       So this asserts the two halves directly: the fold lives in ltCommit(),
+       and no `input` listener anywhere can reach it. */
+    t('...the editor folds from a commit, never from an edit',
+      /function ltCommit\(\)[\s\S]{0,600}?ltEnterWorkstation\(\)/.test(src) &&
+      /addEventListener\(\s*'change'[\s\S]{0,200}?ltCommit\(\)/.test(src));
+    t('...and nothing listens to `input` to decide it',
+      /addEventListener\(\s*['"]input['"][\s\S]{0,300}?(ltCommit|ltEnterWorkstation|pt-open)/
+        .test(src) === false);
+    /* NO TIMER GUESSES WHEN TYPING STOPPED. Proximity is the wrong test —
+       ltEnterWorkstation() ends with a scroll setTimeout that sits just above
+       ltCommit's declaration, which a distance-based pattern reads as a
+       debounce. What matters is where ltCommit is CALLED from: the change
+       listener and the Enter listener, and nowhere else. */
+    t('...and no timer guesses when typing stopped',
+      (() => {
+        /* the declaration matches the same text, so it is excluded by name */
+        const sites = [...src.matchAll(/ltCommit\(\)/g)]
+          .map(m => src.slice(Math.max(0, m.index - 120), m.index))
+          .filter(ctx => !/function\s*$/.test(ctx));
+        return sites.length === 2 && sites.every(ctx => !/setTimeout|setInterval/.test(ctx));
+      })());
   }
 
   /* ── 5. ONE CRISIS SURFACE, AT EVERY WIDTH ─────────────────────────────
