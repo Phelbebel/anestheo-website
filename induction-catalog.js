@@ -52,14 +52,15 @@
 
   var INDUCTION_CATALOG = {
     rows: [
-      { key:'premedication', label:'Premedication', role:'induction',
+      /* The row holds a premedicant, a peri-induction adjunct and two
+         anticholinergics used either preoperatively or intraoperatively. The
+         title says so rather than forcing four agents into one indication. */
+      { key:'premedication', label:'Premedication / adjuncts', role:'induction',
         members:[
           { key:'midazolam',      canonicalId:'drug.midazolam' },
           { key:'lidocaine-iv',   canonicalId:'drug.lidocaine-iv' },
-          { key:'atropine',       canonicalId:null, name:'Atropine',
-            visualClass:'anticholinergic' },
-          { key:'glycopyrrolate', canonicalId:null, name:'Glycopyrrolate',
-            visualClass:'anticholinergic' }
+          { key:'atropine',       canonicalId:'drug.atropine' },
+          { key:'glycopyrrolate', canonicalId:'drug.glycopyrrolate' }
         ] },
 
       { key:'analgesia', label:'Analgesia', role:'analgesia',
@@ -67,33 +68,32 @@
           { key:'fentanyl',     canonicalId:'drug.fentanyl' },
           { key:'morphine',     canonicalId:'drug.morphine' },
           { key:'remifentanil', canonicalId:'drug.remifentanil' },
-          { key:'alfentanil',   canonicalId:null, name:'Alfentanil',
-            visualClass:'opioid' }
+          { key:'alfentanil',   canonicalId:'drug.alfentanil' }
         ] },
 
       { key:'hypnosis', label:'Hypnosis', role:'induction',
         members:[
           { key:'propofol',   canonicalId:'drug.propofol' },
-          { key:'etomidate',  canonicalId:null, name:'Etomidate',
-            visualClass:'induction' },
+          { key:'etomidate',  canonicalId:'drug.etomidate' },
           { key:'ketamine',   canonicalId:'drug.ketamine' },
-          /* THE FOURTH HYPNOSIS SLOT IS DEXMEDETOMIDINE. Thiopental held it
-             as a display member with no record; it is not deleted from
-             anything, it simply stops being one of the four cards the board
-             opens with, and the row's [+] is how it comes back. This member
-             has a canonical record, so its name, its colour and anything it
-             prints come from ClinicalContent — including the fact that a
-             child gets no number for it. */
-          { key:'dexmedetomidine', canonicalId:'drug.dexmedetomidine' }
+          /* THE FOURTH HYPNOSIS SLOT IS THIOPENTAL, AND DEXMEDETOMIDINE HAS
+             LEFT IT. Dexmedetomidine's reviewed authority is a procedural and
+             ICU sedation infusion — 0.2-0.7 mcg/kg/h — which is not a rapid
+             intravenous induction dose and could never be printed as one, so
+             the card was permanently a coverage state in the row a clinician
+             reads first. It is not deleted from anything: it keeps its record,
+             its reference row and its search entry, and the row's [+] is how
+             it comes back onto a board that wants it.
+
+             Thiopental takes the slot with a reviewed adult induction dose. */
+          { key:'thiopental', canonicalId:'drug.thiopental' }
         ] },
 
       { key:'nmb', label:'Neuromuscular blockade', role:'nmb', nmb:true,
         members:[
           { key:'rocuronium',    canonicalId:'drug.rocuronium' },
-          { key:'atracurium',    canonicalId:null, name:'Atracurium',
-            visualClass:'nmb' },
-          { key:'mivacurium',    canonicalId:null, name:'Mivacurium',
-            visualClass:'nmb' },
+          { key:'atracurium',    canonicalId:'drug.atracurium' },
+          { key:'mivacurium',    canonicalId:'drug.mivacurium' },
           { key:'suxamethonium', canonicalId:'drug.suxamethonium' }
         ] }
     ]

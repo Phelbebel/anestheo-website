@@ -202,7 +202,34 @@ var DRUGS = [
       evidence:{ state:'reviewed', authority:'DailyMed',
                  title:'Propofol Injectable Emulsion',
                  documentId:'800646b8-83a8-01d9-3dc8-bb2ddcb8570c',
-                 section:'Pediatric Patients / Summary of Dosage Guidelines / induction' } }],
+                 section:'Pediatric Patients / Summary of Dosage Guidelines / induction' } },
+    /* ── THE ELDERLY RECORD, ADDED AND NOT SUBSTITUTED ────────────────────
+       The healthy-adult record above stops at 65 (max, exclusive), so a
+       77-year-old matched no propofol record at all and the board printed
+       "Reviewed dose not available for this patient profile" for the most
+       used induction agent on it.
+
+       THE BOUNDARY IS NOT INVENTED. 65 is already the reviewed boundary in
+       this dataset — the exclusive maximum on the adult record — and this is
+       its exact complement, inclusive at 65. No gap, no overlap, and no new
+       age threshold enters the model by adding it.
+
+       NO ASA GATE. The label's population reads "Elderly, Debilitated, or
+       ASA-PS III or IV" — a disjunction, while applicabilityFailure()
+       conjoins its clauses. Gating this on ASA would withhold it from the
+       very patient it exists for whenever the ASA box is empty. Age alone
+       admits it; the debilitated and under-65 ASA III-IV branches are NOT
+       encoded and remain a declared coverage gap. */
+    { label:'Induction — elderly, debilitated or ASA III–IV',
+      route:'IV', phase:'induction',
+      low:1, high:1.5, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Titrate to clinical response.',
+      population:'adult', populationClass:'A',
+      applicability:{ ageBand:{ min:{ value:65, unit:'years', inclusive:true } } },
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Propofol Injectable Emulsion',
+                 documentId:'28d7ba00-f824-4e55-139a-03f509c099db',
+                 section:'2.2 Induction of General Anesthesia for Patients Greater than or Equal to 3 Years of Age — Elderly, Debilitated, or ASA-PS III or IV Patients' } }],
   prep:'<b>1% = 10 mg/mL</b>',
   warn:'Reduce 30–50% in the elderly, hypovolaemia and ASA III–IV.',
   severity:'caution',
@@ -328,7 +355,21 @@ var DRUGS = [
       evidence:{ state:'reviewed', authority:'DailyMed',
                  title:'Succinylcholine Chloride Injection',
                  documentId:'1e5891e2-e1e4-4587-b32c-b2e8082df9b6',
-                 section:'2.2 Dosage Recommendations for Intravenous Use in Adults' } }],
+                 section:'2.2 Dosage Recommendations for Intravenous Use in Adults' } },
+    /* ── RSI IS ITS OWN RECORD, NEVER A RELABELLED ONE ────────────────────
+       The routine record above is untouched. Under a rapid sequence the
+       blocker row asks for phase 'rsi' and nothing else, so until now the
+       card correctly said "RSI dose not reviewed" rather than reprinting a
+       routine number under an RSI heading. This is a separate authority
+       answering the separate question. */
+    { label:'Rapid sequence intubation', route:'IV', phase:'rsi',
+      value:1, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed',
+                 authority:'European Society of Anaesthesiology and Intensive Care',
+                 title:'ESAIC focused guideline on rapid sequence induction and intubation',
+                 documentId:'PMID 36377554',
+                 section:'Recommendation R3' } }],
   prep:'<b>50 mg/mL</b>',
   warn:'Contraindicated in hyperkalaemia, burns &gt;24 h, denervation, MH susceptibility.',
   severity:'critical', hi:true,
@@ -618,11 +659,33 @@ var DRUGS = [
   pclass:'local',
   aliases:['lidocaine iv','lignocaine iv','lidocaine infusion','iv lidocaine','lidocaine systemic'],
   klass:'Amide local anaesthetic used systemically',
-  indications:['opioid-sparing analgesia','airway reactivity','ventricular arrhythmia'],
-  doses:[], prep:'', severity:'caution',
-  provenance:{ state:'proposed-unverified', reviewer:'internal_clinical',
-               candidateSource:'National formulary + institutional IV lidocaine protocol',
-               sourceAccessed:false } },
+  indications:['pre-intubation airway-reflex attenuation','opioid-sparing analgesia',
+               'airway reactivity','ventricular arrhythmia'],
+  /* ── ONE NAMED CONTEXT, AND IT SAYS WHAT IT IS ───────────────────────────
+     "Lidocaine IV" is four different medicines depending on why it is given,
+     and the board named the drug without naming the question. This record
+     answers exactly one: attenuating airway reflexes before intubation. It is
+     OFF-LABEL and the card says so — it is not a licensed induction dose and
+     must never read as one.
+
+     It is deliberately NOT the local-anaesthetic maximum-dose calculation,
+     NOT antiarrhythmic lidocaine, NOT the perioperative analgesic infusion
+     and NOT propofol injection-pain pretreatment. Those are separate
+     questions with separate evidence and keep their own records. */
+  doses:[
+    { label:'Pre-intubation airway-reflex attenuation (off-label)',
+      route:'IV', phase:'induction',
+      value:1.5, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'Approximately 3 minutes before intubation. Off-label use.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'PubMed',
+                 title:'Prophylactic lidocaine use preintubation: a review',
+                 documentId:'PMID 7963397',
+                 section:'Abstract — Prophylactic lidocaine use preintubation: a review' } }],
+  prep:'', severity:'caution',
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
 
 { id:'drug.esmolol', name:'Esmolol', group:'cardio',
   pclass:'betablocker',
@@ -650,6 +713,246 @@ var DRUGS = [
   doses:[], prep:'', severity:'caution',
   provenance:{ state:'proposed-unverified', reviewer:'internal_clinical',
                candidateSource:'Consensus PONV guideline + SmPC', sourceAccessed:false } },
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE DEFAULT BOARD'S REMAINING AGENTS
+   ───────────────────────────────────────────────────────────────────────────
+   These seven were on the induction board as names with no record, so nine of
+   sixteen adult cards printed a coverage state instead of a dose. A board that
+   is half placeholder is not a board; the fix is the evidence, not a softer
+   gate, and isDosePublishable() is unchanged — every dose below carries
+   authority, documentId and section or it does not render.
+
+   Each record answers ONE question. Where a label describes several regimens
+   for different clinical questions they are separate records, because a merged
+   range answers none of them: alfentanil 8-20 and 20-50 mcg/kg are not "8-50",
+   and mivacurium's dose is inseparable from how fast it is given.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+{ id:'drug.etomidate', name:'Etomidate', group:'induction',
+  pclass:'induction',
+  aliases:['etomidate','amidate','hypnomidate'],
+  klass:'Carboxylated imidazole induction agent',
+  indications:['induction of general anaesthesia'],
+  /* The label's population is adults and paediatric patients over 10 years,
+     so this is one record across both with the boundary as an applicability
+     band rather than two records claiming separate reviews. A younger child
+     falls outside it and is told so. */
+  doses:[
+    { label:'Induction', route:'IV', phase:'induction',
+      low:0.2, high:0.6, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Usual induction dose 0.3 mg/kg, over 30–60 seconds.',
+      population:'adult', populationClass:'D',
+      applicability:{ ageBand:{ min:{ value:10, unit:'years', inclusive:false } } },
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Etomidate Injection',
+                 documentId:'75bf0494-7cb9-4e8a-8edd-af62f035d236',
+                 section:'DOSAGE AND ADMINISTRATION' } }],
+  prep:'<b>2 mg/mL</b>',
+  warn:'Adrenocortical suppression after a single induction dose; myoclonus is common.',
+  severity:'caution',
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.thiopental', name:'Thiopental', group:'induction',
+  pclass:'induction',
+  aliases:['thiopental','thiopentone','sodium thiopental','pentothal','trapanal'],
+  klass:'Ultra-short-acting barbiturate induction agent',
+  indications:['induction of general anaesthesia'],
+  /* THE PAEDIATRIC VALUES ARE DELIBERATELY NOT HERE. The SmPC gives newborn,
+     infant and child induction doses but does not define where those
+     categories begin and end, and this model's age bands require exact
+     boundaries. Publishing them would mean inventing the boundaries, so the
+     adult record ships and the paediatric categories stay withheld until a
+     bounded source is reviewed. That is a coverage gap, stated. */
+  doses:[
+    { label:'Induction', route:'IV', phase:'induction',
+      low:4, high:6, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Titrate to response. Reduce and titrate carefully in middle-aged, ' +
+           'elderly and poor-general-condition patients.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'electronic Medicines Compendium',
+                 title:'Thiopental Sodium — Summary of Product Characteristics',
+                 documentId:'emc product 9376',
+                 section:'4.2 Posology and method of administration — Use in anaesthesia' } }],
+  prep:'<b>2.5% = 25 mg/mL</b>',
+  warn:'Extravasation and intra-arterial injection cause tissue injury. Avoid in porphyria.',
+  severity:'caution',
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.atropine', name:'Atropine', group:'induction',
+  pclass:'anticholinergic',
+  aliases:['atropine','atropine sulfate','atropine sulphate'],
+  klass:'Antimuscarinic',
+  indications:['preanesthetic antisialagogue','antivagal'],
+  /* THE PREANESTHETIC QUESTION, NOT THE RESUSCITATION ONE. Atropine's
+     bradycardia and cardiac-arrest doses are a different indication with
+     different numbers, and printing one where the other belongs is the sort of
+     substitution this model exists to prevent. */
+  doses:[
+    { label:'Preanesthetic / antivagal', route:'IV', phase:'induction',
+      low:0.5, high:1, unit:'mg', type:'range',
+      note:'IV / IM / SC, 30–60 minutes preoperatively. Maximum total 3 mg.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Atropine Sulfate Injection',
+                 documentId:'532aa441-92ec-42d6-862a-639f8cfe9951',
+                 section:'2.2 Adult Dosage — Antisialagogue or other antivagal (preanesthesia and during surgery)' } }],
+  prep:'<b>0.6 mg/mL</b>',
+  severity:'caution',
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.glycopyrrolate', name:'Glycopyrrolate', group:'induction',
+  pclass:'anticholinergic',
+  aliases:['glycopyrrolate','glycopyrronium','robinul'],
+  klass:'Quaternary antimuscarinic',
+  indications:['perioperative antivagal','preanesthetic antisialagogue'],
+  /* TWO INDICATIONS, TWO ROUTES, TWO RECORDS. The preanesthetic dose is
+     0.004 mg/kg INTRAMUSCULARLY; the intraoperative antivagal dose is 0.1 mg
+     INTRAVENOUSLY. They are not the same medicine given two ways, and calling
+     an IM premedication "IV" because the screen is an induction board would be
+     a route error printed as fact.
+
+     The induction board asks the intraoperative question, so that record
+     carries phase 'induction'; the preanesthetic record is phase
+     'premedication' and answers in the drug reference. */
+  doses:[
+    { label:'Antivagal — intraoperative', route:'IV', phase:'induction',
+      value:0.1, unit:'mg', type:'protocol',
+      note:'Repeat every 2–3 minutes as needed.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Glycopyrrolate Injection',
+                 documentId:'83d70378-011b-4ce3-e053-2991aa0a22be',
+                 section:'2.3 Recommended Dosage as Intraoperative Medication to Counteract Drug-induced or Vagal Reflexes and Their Associated Arrhythmias' } },
+    { label:'Antivagal — intraoperative', route:'IV', phase:'induction',
+      value:0.004, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'Maximum single dose 0.1 mg; repeat every 2–3 minutes as needed.',
+      population:'paediatric', populationClass:'B',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Glycopyrrolate Injection',
+                 documentId:'83d70378-011b-4ce3-e053-2991aa0a22be',
+                 section:'2.3 Recommended Dosage as Intraoperative Medication to Counteract Drug-induced or Vagal Reflexes and Their Associated Arrhythmias' } },
+    { label:'Preanesthetic', route:'IM', phase:'premedication',
+      value:0.004, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'30–60 minutes before anticipated induction. Under 2 years may require up to 0.009 mg/kg.',
+      population:'adult', populationClass:'D',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Glycopyrrolate Injection',
+                 documentId:'83d70378-011b-4ce3-e053-2991aa0a22be',
+                 section:'2.2 Recommended Dosage of Preanesthetic Medication in Adults and Pediatric Patients' } }],
+  prep:'<b>0.2 mg/mL</b>',
+  severity:'caution',
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.alfentanil', name:'Alfentanil', group:'analgesia',
+  pclass:'opioid',
+  aliases:['alfentanil','alfenta','rapifen','alfentanil hydrochloride'],
+  klass:'Short-acting synthetic opioid',
+  indications:['induction of analgesia','attenuation of laryngoscopy response'],
+  /* NOT ONE RANGE. 8-20 mcg/kg is induction of analgesia in a patient who is
+     breathing or being assisted; 20-50 mcg/kg is given to blunt laryngoscopy
+     and intubation under assisted or controlled ventilation. Merging them into
+     "8-50" would produce a number that answers neither question and hides
+     which ventilation strategy it assumed. The board takes the restrained
+     first context; the second is available beside it. */
+  doses:[
+    { label:'Induction of analgesia', route:'IV', phase:'induction',
+      low:8, high:20, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Spontaneous or assisted ventilation. Elderly or debilitated patients may require less.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Alfentanil Hydrochloride Injection',
+                 documentId:'bb56df52-5abf-47dc-ab8d-902cfe19ccb2',
+                 section:'DOSAGE SHOULD BE INDIVIDUALIZED AND TITRATED FOR USE DURING GENERAL ANESTHESIA — SPONTANEOUSLY BREATHING / ASSISTED VENTILATION' } },
+    { label:'Attenuation of laryngoscopy and intubation', route:'IV', phase:'intubation',
+      low:20, high:50, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Assisted or controlled ventilation. Elderly or debilitated patients may require less.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Alfentanil Hydrochloride Injection',
+                 documentId:'bb56df52-5abf-47dc-ab8d-902cfe19ccb2',
+                 section:'DOSAGE SHOULD BE INDIVIDUALIZED AND TITRATED FOR USE DURING GENERAL ANESTHESIA — ASSISTED OR CONTROLLED VENTILATION — Incremental Injection (To attenuate response to laryngoscopy and intubation)' } }],
+  prep:'<b>500 mcg/mL</b>',
+  severity:'caution', hi:true,
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.atracurium', name:'Atracurium', group:'nmb',
+  pclass:'nmb',
+  aliases:['atracurium','atracurium besylate','atracurium besilate','tracrium'],
+  klass:'Benzylisoquinolinium non-depolarising neuromuscular blocker',
+  indications:['tracheal intubation','maintenance of neuromuscular block'],
+  /* ROUTINE INTUBATION, AND NOT RSI. The label describes non-emergency bolus
+     intubation; nothing in it supports a rapid-sequence claim, so there is no
+     phase 'rsi' record here and the RSI card will say so rather than reusing
+     this number. */
+  doses:[
+    { label:'Intubation', route:'IV', phase:'intubation',
+      low:0.4, high:0.5, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Most adult patients. Requirements are reduced by inhalational agents.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Atracurium Besylate Injection',
+                 documentId:'71d4bc78-57df-474b-8b19-811a959f1fce',
+                 section:'DOSAGE AND ADMINISTRATION — Bolus Doses for Intubation and Maintenance of Neuromuscular Block — Adults' } }],
+  prep:'<b>10 mg/mL</b>',
+  warn:'Histamine release with rapid injection. Requirements reduced by inhalational agents.',
+  severity:'caution',
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.mivacurium', name:'Mivacurium', group:'nmb',
+  pclass:'nmb',
+  aliases:['mivacurium','mivacurium chloride','mivacron'],
+  klass:'Short-acting benzylisoquinolinium neuromuscular blocker',
+  indications:['tracheal intubation'],
+  /* THE DOSE AND THE INJECTION TIME ARE ONE FACT. 0.15 mg/kg over 5-15 seconds
+     and 0.2 mg/kg over 30 seconds are different regimens, not points in a
+     range: flattening them to "0.15-0.25 mg/kg" would let a clinician read the
+     largest number and give it at the fastest rate, which is not what any of
+     the three regimens says. Each is its own record and each carries its
+     administration time. */
+  doses:[
+    { label:'Intubation', route:'IV', phase:'intubation',
+      value:0.15, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'Over 5–15 seconds.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'FDA Drugs@FDA',
+                 title:'Mivacurium Chloride Injection — NDA 020098 / S-019 (2018)',
+                 documentId:'NDA 020098 / S-019 / 2018 label',
+                 section:'DOSAGE AND ADMINISTRATION — Adults — Initial Doses — Table 7 Recommended Initial Dosing Regimens for Adults' } },
+    { label:'Intubation — faster onset', route:'IV', phase:'intubation',
+      value:0.2, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'Over 30 seconds.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'FDA Drugs@FDA',
+                 title:'Mivacurium Chloride Injection — NDA 020098 / S-019 (2018)',
+                 documentId:'NDA 020098 / S-019 / 2018 label',
+                 section:'DOSAGE AND ADMINISTRATION — Adults — Initial Doses — Table 7 Recommended Initial Dosing Regimens for Adults' } },
+    { label:'Intubation — divided dose', route:'IV', phase:'intubation',
+      value:0.25, unit:'mg/kg', basis:'TBW', basisWeight:true, type:'protocol',
+      note:'0.15 mg/kg, then 0.1 mg/kg 30 seconds later.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'FDA Drugs@FDA',
+                 title:'Mivacurium Chloride Injection — NDA 020098 / S-019 (2018)',
+                 documentId:'NDA 020098 / S-019 / 2018 label',
+                 section:'DOSAGE AND ADMINISTRATION — Adults — Initial Doses — Table 7 Recommended Initial Dosing Regimens for Adults' } }],
+  prep:'<b>2 mg/mL</b>',
+  warn:'Histamine release with rapid injection. Prolonged block in plasma cholinesterase deficiency.',
+  severity:'caution',
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
 
 { id:'drug.sevoflurane', name:'Sevoflurane', group:'volatile',
   pclass:'inhalational',
