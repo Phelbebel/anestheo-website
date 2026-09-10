@@ -187,7 +187,7 @@
   {
    "id": "drug.propofol",
    "name": "Propofol",
-   "val": "7–9",
+   "val": "6.8–8.5",
    "unit": "mg",
    "klass": "Alkylphenol intravenous anaesthetic",
    "ind": "<b class=\"rt\">IV</b> · Induction · 2–2.5 mg/kg TBW",
@@ -210,7 +210,7 @@
   {
    "id": "drug.ketamine",
    "name": "Ketamine",
-   "val": "3–15",
+   "val": "3.4–15",
    "unit": "mg",
    "klass": "NMDA antagonist",
    "ind": "<b class=\"rt\">IV</b> · Induction · 1–4.5 mg/kg TBW",
@@ -463,7 +463,7 @@
   {
    "id": "drug.etomidate",
    "name": "Etomidate",
-   "val": "3–10",
+   "val": "3.2–9.6",
    "unit": "mg",
    "klass": "Carboxylated imidazole induction agent",
    "ind": "<b class=\"rt\">IV</b> · Induction · 0.2–0.6 mg/kg TBW",
@@ -1065,7 +1065,7 @@
   {
    "id": "drug.atracurium",
    "name": "Atracurium",
-   "val": "1–2",
+   "val": "1.4–1.7",
    "unit": "mg",
    "klass": "Benzylisoquinolinium non-depolarising neuromuscular blocker",
    "ind": "<b class=\"rt\">IV</b> · Intubation · 0.4–0.5 mg/kg TBW",
@@ -1113,7 +1113,7 @@
   {
    "id": "drug.rocuronium",
    "name": "Rocuronium",
-   "val": "10",
+   "val": "9.6",
    "unit": "mg",
    "klass": "Aminosteroid non-depolarising neuromuscular blocker",
    "ind": "<b class=\"rt\">IV</b> · Intubation · 0.6 mg/kg TBW",
@@ -1160,7 +1160,7 @@
   {
    "id": "drug.atracurium",
    "name": "Atracurium",
-   "val": "6–8",
+   "val": "6.4–8",
    "unit": "mg",
    "klass": "Benzylisoquinolinium non-depolarising neuromuscular blocker",
    "ind": "<b class=\"rt\">IV</b> · Intubation · 0.4–0.5 mg/kg TBW",
@@ -1183,7 +1183,7 @@
   {
    "id": "drug.mivacurium",
    "name": "Mivacurium",
-   "val": "2",
+   "val": "2.4",
    "unit": "mg",
    "klass": "Short-acting benzylisoquinolinium neuromuscular blocker",
    "ind": "<b class=\"rt\">IV</b> · Intubation · 0.15 mg/kg TBW",
@@ -1514,7 +1514,7 @@
   {
    "id": "drug.fentanyl",
    "name": "Fentanyl",
-   "val": "3–10",
+   "val": "3.4–10",
    "unit": "mcg",
    "klass": "Synthetic opioid",
    "ind": "<b class=\"rt\">IV</b> · Peri-induction analgesia · 1–3 mcg/kg TBW",
@@ -1583,7 +1583,7 @@
   {
    "id": "drug.lidocaine-iv",
    "name": "Lidocaine — intravenous",
-   "val": "5",
+   "val": "5.1",
    "unit": "mg",
    "klass": "Amide local anaesthetic used systemically",
    "ind": "<b class=\"rt\">IV</b> · Pre-intubation airway-reflex attenuation (off-label) · 1.5 mg/kg TBW",
@@ -2049,7 +2049,7 @@
   {
    "id": "drug.sugammadex",
    "name": "Sugammadex",
-   "val": "7–14",
+   "val": "6.8–14",
    "unit": "mg",
    "klass": "Selective relaxant binding agent",
    "ind": "<b class=\"rt\">IV</b> · Routine reversal · 2–4 mg/kg TBW",
@@ -3373,7 +3373,7 @@
   {
    "id": "drug.bupivacaine",
    "name": "Bupivacaine",
-   "val": "7 / 10",
+   "val": "6.8 / 10",
    "unit": "mg",
    "klass": "Amide local anaesthetic",
    "ind": "<b class=\"rt\">infiltration / block</b> · Maximum single dose · 2 / 3 with adrenaline mg/kg TBW",
@@ -3397,7 +3397,7 @@
   {
    "id": "drug.levobupivacaine",
    "name": "Levobupivacaine",
-   "val": "7",
+   "val": "6.8",
    "unit": "mg",
    "klass": "Amide local anaesthetic (S-enantiomer)",
    "ind": "<b class=\"rt\">infiltration / block</b> · Maximum single dose · 2 mg/kg TBW",

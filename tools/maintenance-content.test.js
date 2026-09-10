@@ -345,18 +345,42 @@ if (fs.existsSync(SNAP)) {
      this guard would have said so here.
 
      ── AND REGENERATED A SECOND TIME, FOR THE PRECISION FIX ─────────────
-     fmtNum() stopped clamping sub-1 amounts to one decimal place, and this
-     guard is what proved the blast radius. TWO FIELDS moved, out of 165 rows
-     across 60 buckets:
+     fmtNum() stopped rounding amounts below 10 to a whole number, and this
+     guard is what mapped the blast radius. TWELVE FIELDS moved, out of 165
+     rows across 60 buckets. NO row was added and none removed; every change
+     is the same value printed more precisely, and not one canonical dose was
+     edited to produce it.
 
-       induction@3.4  drug.etomidate.val   "0.7–2"  ->  "0.68–2"
-       nmb@3.4        drug.mivacurium.val  "0.5"    ->  "0.51"
+       induction@3.4  propofol         "7–9"     -> "6.8–8.5"
+       induction@3.4  ketamine         "3–15"    -> "3.4–15"
+       induction@16   etomidate        "3–10"    -> "3.2–9.6"
+       nmb@3.4        atracurium       "1–2"     -> "1.4–1.7"
+       nmb@16         rocuronium       "10"      -> "9.6"
+       nmb@16         atracurium       "6–8"     -> "6.4–8"
+       nmb@16         mivacurium       "2"       -> "2.4"
+       analgesia@3.4  fentanyl         "3–10"    -> "3.4–10"
+       analgesia@3.4  lidocaine-iv     "5"       -> "5.1"
+       reversal@3.4   sugammadex       "7–14"    -> "6.8–14"
+       local@3.4      bupivacaine      "7 / 10"  -> "6.8 / 10"
+       local@3.4      levobupivacaine  "7"       -> "6.8"
 
-     Both are records THIS branch created, both at the 3.4 kg bucket, and both
-     are the arithmetic printed exactly rather than rounded up. Not one row of
-     a pre-existing record changed by a character at any of the five weights —
-     which is the same guarantee the first regeneration recorded, now covering
-     the formatter as well as the data.
+     ELEVEN OF THE TWELVE ARE NOT REACHABLE BY A PATIENT, and it matters that
+     the reason is structural rather than lucky. This baseline calls
+     visibleDrugsInGroup() with NO population, deliberately, because it is a
+     RENDERER-input baseline — it exercises the formatter across inputs rather
+     than asking who would be shown them. So it renders adult-only records at
+     3.4 kg and 16 kg, which the eligibility gate never does. Propofol,
+     ketamine, fentanyl, sugammadex, bupivacaine and levobupivacaine at 3.4 kg,
+     and etomidate, atracurium and mivacurium at their weights, are all adult
+     records at a child's weight: no patient is ever shown any of them.
+
+     THE TWELFTH IS REAL AND IS THE POINT. rocuronium at 16 kg is the
+     paediatric intubation record, and a three-year-old genuinely reaches it:
+     0.6 x 16 = 9.6 mg, which was printed as "10 mg". That is the same defect
+     glycopyrrolate exposed, one order of magnitude milder, in a record that
+     shipped long before this branch — and it is corrected here rather than
+     preserved, because preserving it would be preserving a rounding error
+     instead of the calculation.
 
      From here it is a frozen guard again, and an exact one. */
   t('every baselined row still renders identically, field for field',
@@ -1652,6 +1676,9 @@ const PRECISION_PATIENTS = [
   { wt:77,  age:{value:77,unit:'years'} }, { wt:90,   age:{value:55,unit:'years'} },
   { wt:110, age:{value:45,unit:'years'} }, { wt:150,  age:{value:35,unit:'years'} }
 ];
+/* the same predicate the formatter uses for "an explicit instruction" */
+const isPrecision = d => typeof d === 'number' && isFinite(d) &&
+                         d >= 0 && d === Math.floor(d);
 const precisionPop = p => {
   const yrs = p.age.unit === 'years'  ? p.age.value
             : p.age.unit === 'months' ? p.age.value / 12
@@ -1684,13 +1711,19 @@ const precisionPop = p => {
              where it stops being zero would still be wrong; two significant
              digits keeps the printed value within 5% of the arithmetic.
 
-             BELOW 1 ONLY. At and above 1 the formatter rounds to a whole
-             number, which it has always done and which this pass did not
-             change — rocuronium's 1.2 mg for a 2 kg neonate prints "1 mg" and
-             printed "1 mg" before. That is a separate question about whole-
-             number rounding at the very bottom of the weight range, and
-             asserting it here would be asserting a change nobody made. */
-          if (raw < 1 && Math.abs(shown - raw) / raw > 0.05)
+             BELOW 10. The cliff used to be at 1, which meant a 2 kg neonate's
+             1.2 mg of rocuronium printed "1 mg" — a sixth of the dose gone —
+             and 5.25 mg of mivacurium printed "5 mg". Those are ordinary
+             doses for small patients, not edge cases. At 10 and above the
+             whole-number rendering is unchanged and cannot cost more than
+             half a unit, so the band this asserts is (0, 10).
+
+             A record carrying an EXPLICIT decimals is exempt: that is a
+             reviewed instruction about how this dose should read, and
+             overruling it here would be this test rewriting clinical
+             presentation on its own authority. */
+          if (raw < 10 && !isPrecision(x.decimals) &&
+              Math.abs(shown - raw) / raw > 0.05)
             collapsed.push(where + ' raw ' + (+raw.toFixed(5)) + ' shown ' + shown);
         });
       });
@@ -1702,7 +1735,7 @@ const precisionPop = p => {
     zeros.length === 0, zeros.slice(0, 6));
   /* decimals:1 is an explicit instruction and is allowed to be coarse; the
      default policy is not. */
-  t('...and below 1, without an explicit precision, it stays within 5%',
+  t('...and below 10, without an explicit precision, it stays within 5%',
     collapsed.length === 0, collapsed.slice(0, 6));
 }
 
@@ -1715,15 +1748,31 @@ const precisionPop = p => {
     eq(0.04, undefined, 0.04)   && eq(0.06, undefined, 0.06) &&
     eq(0.12, undefined, 0.12)   && eq(0.24, undefined, 0.24),
     [0.002,0.012,0.04,0.06,0.12,0.24].map(n => n + '->' + F(n)));
+  /* THE CLIFF IS AT 10. Between 1 and 10 the amounts are ordinary doses for
+     small patients, and whole numbers cost up to a sixth of them. */
+  t('...and keeps them all the way up to 10',
+    eq(0.45, undefined, 0.45) && eq(0.95, undefined, 0.95) &&
+    eq(1.2, undefined, 1.2)   && eq(1.25, undefined, 1.3) &&
+    eq(4.8, undefined, 4.8)   && eq(9.6, undefined, 9.6),
+    [0.45,0.95,1.2,1.25,4.8,9.6].map(n => n + '->' + F(n)));
+  t('...and every one of those is within 5% of the arithmetic',
+    [0.04,0.45,0.95,1.2,1.25,4.8,9.6]
+      .every(n => Math.abs(Number(F(n)) - n) / n <= 0.05),
+    [0.04,0.45,0.95,1.2,1.25,4.8,9.6]
+      .map(n => n + ': ' + (Math.abs(Number(F(n))-n)/n*100).toFixed(1) + '%'));
+  /* AT 10 AND ABOVE, NOTHING MOVED. */
+  t('...while 10 and above keep the existing whole-number policy',
+    eq(10.4, undefined, 10) && eq(15.4, undefined, 15) &&
+    eq(30.8, undefined, 31) && eq(115.5, undefined, 116),
+    [10.4,15.4,30.8,115.5].map(n => n + '->' + F(n)));
   t('...down to neonatal magnitudes',
     eq(0.003, undefined, 0.003) && eq(0.0001, undefined, 0.0001),
     [0.003, 0.0001].map(n => n + '->' + F(n)));
   t('...and exact zero is still zero',
     eq(0, undefined, 0) && eq(0, 1, 0) && eq(0, 3, 0));
-  t('...while 1 and above are unchanged whole numbers',
-    eq(1.4, undefined, 1) && eq(1.5, undefined, 2) &&
-    eq(77, undefined, 77) && eq(115.5, undefined, 116),
-    [1.4,1.5,77,115.5].map(n => n + '->' + F(n)));
+  t('...and large amounts are unchanged whole numbers',
+    eq(77, undefined, 77) && eq(115.5, undefined, 116) &&
+    eq(338.25, undefined, 338), [77,115.5,338.25].map(n => n + '->' + F(n)));
   /* AN EXPLICIT PRECISION IS AN INSTRUCTION, AND IT WINS. The four records
      carrying decimals:1 print exactly what they printed before. */
   t('an explicit decimals is honored for any non-negative integer',

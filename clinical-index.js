@@ -33,9 +33,9 @@ function r1(n){ return Math.round(n*10)/10; }
 /* Round to a fixed number of decimal places and return a NUMBER, so trailing
    zeroes never reach the display: 0.040 is the number 0.04 and prints "0.04". */
 function rd(n, dec){ var m = Math.pow(10, dec); return Math.round(n * m) / m; }
-/* TWO SIGNIFICANT DIGITS, for magnitudes below 1. The number of decimal
-   places needed is derived from the magnitude rather than fixed, so 0.24
-   keeps two places, 0.012 keeps three and 0.002 keeps four. */
+/* TWO SIGNIFICANT DIGITS. The number of decimal places needed is derived from
+   the magnitude rather than fixed, so 4.8 keeps one place, 0.24 keeps two,
+   0.012 keeps three and 0.002 keeps four. */
 function sig2(n){
   if (n === 0) return 0;
   return rd(n, 1 - Math.floor(Math.log10(Math.abs(n))));
@@ -58,14 +58,25 @@ function isPrecision(dec){
    into the same "0.1" for a two-fold span of real doses. A dose of zero is
    not a rounding error on a page whose output is drug doses.
 
-   The default below 1 is now adaptive — two significant digits, however many
-   places that takes — so precision follows the magnitude of the number
-   instead of a constant chosen when the smallest dose in the file was 300x
-   larger. Values of 1 and above are untouched, and exact zero stays zero. */
+   The default is now adaptive — two significant digits, however many places
+   that takes — so precision follows the magnitude of the number instead of a
+   constant chosen when the smallest dose in the file was 300x larger.
+
+   AND THE CLIFF IS AT 10, NOT AT 1. Rounding to a whole number is harmless
+   at 115.5 mg and destructive at 1.2 mg: a 2 kg neonate's 1.2 mg of
+   rocuronium printed as "1 mg" is a sixth of the dose gone, and 5.25 mg of
+   mivacurium printed as "5 mg" is 5% gone. Neither is a small dose in the
+   sense that made whole numbers reasonable — they are ordinary doses for
+   small patients, and this is a workstation for anaesthetists who have small
+   patients. Below 10 the printed amount now stays within 5% of the
+   arithmetic; at 10 and above the long-standing whole-number rendering is
+   unchanged, because there it never cost more than half a unit.
+
+   Exact zero stays zero, and an explicit `decimals` always wins. */
 function fmtNum(n, dec){
   if (dec === 1) return r1(n);              /* explicit, and byte-identical */
   if (isPrecision(dec)) return rd(n, dec);  /* any other explicit precision */
-  if (Math.abs(n) >= 1) return r0(n);       /* unchanged */
+  if (Math.abs(n) >= 10) return r0(n);      /* unchanged where it costs nothing */
   return sig2(n);
 }
 
