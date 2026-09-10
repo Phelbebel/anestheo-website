@@ -287,58 +287,83 @@ console.log('\n9. THE REFACTOR IS ADDITIVE');
 const SNAP = REPO + '/tools/render-input-baseline.json';
 if (fs.existsSync(SNAP)) {
   const before = JSON.parse(fs.readFileSync(SNAP, 'utf8'));
-  let rows = 0, changed = [], removed = new Set(), added = new Set();
+  const stats = before.__stats || {};
+  let rows = 0;
+  const changed = [], missing = [], appeared = [];
   Object.keys(before).forEach(k => {
     if (k === '__stats') return;
     const [gid, wtRaw] = k.split('@');
     const wt = wtRaw === 'null' ? null : parseFloat(wtRaw);
-    const now = CC.visibleDrugsInGroup(gid, wt);
-    if (now.length !== before[k].length) { changed.push(k + ': row count'); return; }
-    before[k].forEach((ra, i) => {
+    const now = JSON.parse(JSON.stringify(CC.visibleDrugsInGroup(gid, wt)));
+    /* ── KEYED BY ID, NOT BY POSITION ──────────────────────────────────
+       This compared row[i] to row[i]. Adding one drug to a group shifts every
+       row after it, so a single addition reported the whole group as changed
+       and the guard bailed on the row count before comparing a field — 80 of
+       125 rows were being checked and nobody could see which. A drug is
+       compared to itself or to nothing. */
+    const wasById = new Map(before[k].map(r => [r.id, r]));
+    const nowById = new Map(now.map(r => [r.id, r]));
+    wasById.forEach((ra, id) => {
+      if (!nowById.has(id)) { missing.push(k + ': ' + id); return; }
       rows++;
-      /* THROUGH JSON, BOTH SIDES. Several fields are undefined on some drugs —
-         `warn`, `prep` and `hi` — and JSON drops an undefined value entirely.
-         Comparing a parsed baseline against a live object would report those
-         as newly added on every record that lacks them, which is an artifact
-         of the serialisation and not a change to anything. */
-      const rb = JSON.parse(JSON.stringify(now[i]));
-      Object.keys(ra).forEach(f => { if (!(f in rb)) removed.add(f);
-        else if (JSON.stringify(ra[f]) !== JSON.stringify(rb[f])) changed.push(k + '[' + i + '].' + f); });
-      Object.keys(rb).forEach(f => { if (!(f in ra)) added.add(f); });
+      const rb = nowById.get(id);
+      new Set([...Object.keys(ra), ...Object.keys(rb)]).forEach(f => {
+        if (JSON.stringify(ra[f]) !== JSON.stringify(rb[f]))
+          changed.push(k + ' ' + id + '.' + f);
+      });
     });
+    nowById.forEach((_, id) => { if (!wasById.has(id)) appeared.push(k + ': ' + id); });
   });
-  /* RECAPTURED AFTER THE TIER 1 MIGRATION, WHICH IS THE ONLY TIME IT MOVES.
-     The old snapshot predated Phase 4A and the reviewed records, so it was
-     failing on both. Regenerating it is a deliberate act, done once, with
-     every changed row accounted for:
+  /* ── REGENERATED ONCE, FOR THE REVIEWED COMPLETENESS PACKAGE ─────────
+     The previous capture held 125 rows across 60 group/weight buckets; it now
+     holds 165. The whole of that difference is eight drugs entering three
+     groups at five weights each — 8 x 5 = 40 — and they are exactly the eight
+     the approved evidence package created:
 
-       0 rows added, 0 rows removed  — the same 125 rows at the same weights
-       25 drugs changed interval and phase only — the two Phase 4A wires,
-          absent from the pre-4A capture and empty on every legacy record
-       4 drugs changed a dose value, and they are exactly the 4 replaced:
-          propofol       1.5–2.5 → 2–2.5      (113–188 → 150–188 at 75 kg)
-          ketamine       1–2     → 1–4.5      (75–150  → 75–338)
-          rocuronium     0.6–1.2 → 0.6        (45–90   → 45)
-          suxamethonium  1–1.5   → 0.3–1.1    (75–113  → 22.5–82.5)
-       rocuronium also changed prep and prepNote — Defect B, the RSI dose
-          leaving the preparation string
-       suxamethonium also changed use — the label was "RSI" and the reviewed
-          record states the dose for intubation
+       induction   etomidate, thiopental, atropine, glycopyrrolate
+       nmb         atracurium, mivacurium
+       analgesia   lidocaine-iv, alfentanil
 
-     Touched a second time, and only two fields on one row: dexmedetomidine's
-     `pclass` and `badge` in the five induction buckets. An alpha-2 agonist
-     had been carrying the induction gold because that is the group it is
-     filed under; the colour now says what its own klass has said all along.
-     No dose, unit, weight basis, route, population or warning moved with it —
-     the diff over all 125 rows is exactly those ten fields on that one drug.
+     NOTHING ELSE MOVED. Zero rows were removed, and all 125 that existed
+     before are byte-identical — every field of midazolam, fentanyl, morphine,
+     remifentanil, ketamine, rocuronium, propofol, suxamethonium and
+     dexmedetomidine included.
 
-     From here it is a drift guard again: anything that moves without a
-     matching reviewed record behind it fails here. */
-  t('the render baseline matches, field for field, at every weight',
-    changed.length === 0 && removed.size === 0 && added.size === 0,
-    { rowsCompared: rows, changed: changed.slice(0, 5),
-      removed: [...removed], added: [...added] });
-  t('...over the same 125 rows the model has always returned', rows === 125, rows);
+     That last point is the one worth keeping. Propofol gained an elderly
+     induction record and suxamethonium gained a rapid-sequence record, and
+     neither group row changed by a character: the new records ANSWER
+     QUESTIONS THE OLD ONES DID NOT rather than replacing what the board
+     already printed. Had either overwritten its drug's default rendering,
+     this guard would have said so here.
+
+     From here it is a frozen guard again, and an exact one. */
+  t('every baselined row still renders identically, field for field',
+    changed.length === 0, changed.slice(0, 6));
+  t('...no baselined drug has disappeared from its group', missing.length === 0,
+    missing.slice(0, 6));
+  t('...and nothing has appeared that the baseline does not know about',
+    appeared.length === 0, appeared.slice(0, 6));
+  t('...over every row the baseline holds', rows === stats.totalRows,
+    { compared: rows, baseline: stats.totalRows });
+
+  /* ── THE INVARIANTS THE ROW COUNT USED TO STAND IN FOR ───────────────
+     "125 rows" was a proxy for several separate facts. They are asserted as
+     themselves now, so a change to one names itself instead of moving a
+     number nobody can read. */
+  t('the canonical drug count is what the baseline was captured against',
+    CC.DRUGS.length === stats.drugCount, { now: CC.DRUGS.length, baseline: stats.drugCount });
+  t('...and so is the publishable count',
+    CC.DRUGS.filter(CC.isPublishable).length === stats.publishableDrugCount,
+    { now: CC.DRUGS.filter(CC.isPublishable).length, baseline: stats.publishableDrugCount });
+  const CAT = require(REPO + '/induction-catalog.js');
+  t('the default board is four rows', CAT.rows.length === stats.catalogRows);
+  t('...of four members each',
+    JSON.stringify(CAT.rows.map(r => r.members.length)) ===
+    JSON.stringify(stats.catalogMembersPerRow), CAT.rows.map(r => r.members.length));
+  t('...and every one of the sixteen resolves to a canonical record',
+    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0) === 16 &&
+    CAT.rows.every(r => r.members.every(m => m.canonicalId && CC.byId(m.canonicalId))),
+    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0));
 } else {
   t('render-input snapshot present for comparison', false,
     'missing ' + SNAP);
