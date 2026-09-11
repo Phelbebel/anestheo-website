@@ -925,10 +925,14 @@ async function openEngine(b, viewport) {
        wrote seven fake records to satisfy a 4 x 4 layout would still exist. */
     t('...and the clinical model carries no board composition at all',
       alts.catalogInClinicalIndex === false);
-    /* FOUR AND FOUR, AND ONE CONTROL. Not 4/4/3, not a fifth empty card. */
-    t('...four rows of exactly four cards, one control each',
+    /* FOUR AND FOUR, AND NOTHING ELSE. Not 4/4/3, not a fifth empty card.
+       WAS: one control each — a plus that reached the drug reference
+       filtered to the row's class. It is gone, and the assertion inverts:
+       what must be in a role is four cards and no add control of any kind,
+       so a reserved slot cannot come back as an empty one. */
+    t('...four rows of exactly four cards, and no add control',
       alts.shape.length === 4 &&
-      alts.shape.every(r => r.cards === 4 && r.plus === 1), alts.shape);
+      alts.shape.every(r => r.cards === 4 && r.plus === 0), alts.shape);
     /* An agent the composition leaves off is not hidden — it is published. */
     t('...and an agent it leaves off is still published in the reference',
       alts.offBoardPublished, alts.offBoard);
@@ -1137,8 +1141,10 @@ async function openEngine(b, viewport) {
       hyp.names);
     /* One box for the four; the absolute size is the viewport's business and
        the pixel proof's, not this assertion's. */
-    t('...four cards and one control, all one box',
-      hyp.names.length === 4 && hyp.plus === 1 &&
+    /* WAS: four cards and one control. The control is gone; the four cards
+       are still one box as each other, which is what this ever asserted. */
+    t('...four cards and no control, all one box',
+      hyp.names.length === 4 && hyp.plus === 0 &&
       new Set(hyp.sizes).size === 1, hyp.sizes);
     /* WAS: three gold and one lavender, because an alpha-2 agonist does not
        induce anaesthesia and the board should not imply it does. That reason

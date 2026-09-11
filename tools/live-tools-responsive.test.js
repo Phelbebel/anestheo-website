@@ -50,9 +50,14 @@ const IPAD = 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15
 /* THE FLOOR. Four cards on one line is the clinical composition and it takes
    priority over any particular card width — a row that wraps to 3+1 has an
    orphan drug and a role label stretched over two rows, which is a worse
-   reading than a narrower card. The approved desktop card is 112px, so 110 is
+   reading than a narrower card. The approved desktop card is 122px, so 110 is
    the floor below which the tablet is no longer showing the composition it
-   was approved at. Phones drop to two per line instead. */
+   was approved at. Phones drop to two per line instead.
+
+   WAS 112px, and the floor was set under it. Removing the row plus returned
+   its 34px track to the cards, so every card on every width is WIDER than
+   the number this floor was written against — the floor is unchanged and
+   has more clearance than before, not less. */
 const MIN_CARD = 110;
 
 async function open(b, w, h, ua) {
@@ -198,8 +203,12 @@ const BOARD_PROBE = `(() => {
     const m = await s.pg.evaluate(BOARD_PROBE);
     const clip = await s.pg.evaluate(CLIP_PROBE);
     const P = name + ': ';
-    t(P + 'the whole board renders — 16 cards, 4 rows, 4 controls',
-      m.cards === 16 && m.rows === 4 && m.plus === 4,
+    /* WAS: 16 cards, 4 rows, 4 controls. The four row pluses are gone —
+       each was a shortcut to the drug reference that cost its role a 34px
+       track — so the board is 16 cards, 4 rows and NO add control, at every
+       width this suite visits. */
+    t(P + 'the whole board renders — 16 cards, 4 rows, no add controls',
+      m.cards === 16 && m.rows === 4 && m.plus === 0,
       { cards:m.cards, rows:m.rows, plus:m.plus });
     t(P + '...no card below the ' + MIN_CARD + 'px floor',
       m.minWidth >= MIN_CARD, { min:m.minWidth, widths:m.widths });
@@ -245,9 +254,13 @@ const BOARD_PROBE = `(() => {
     await s.pg.waitForTimeout(500);
     const m = await s.pg.evaluate(BOARD_PROBE);
     t('1536: the airway sits BESIDE the board, as approved', m.sideBySide === true);
-    t('1536: ...four cards at the approved 112px',
-      m.widths.length === 1 && m.widths[0] === 112, m.widths);
-    t('1536: ...16 cards and 4 controls', m.cards === 16 && m.plus === 4);
+    /* WAS 112px. The plus's 34px track is gone and the four cards share it:
+       112 + 34/4 rounds to 122, which is the whole point of the change and
+       is asserted exactly so a future regression cannot quietly give the
+       width back to something else. */
+    t('1536: ...four cards at the approved 122px',
+      m.widths.length === 1 && m.widths[0] === 122, m.widths);
+    t('1536: ...16 cards and no add controls', m.cards === 16 && m.plus === 0);
     await s.ctx.close();
   }
 
@@ -295,7 +308,7 @@ const BOARD_PROBE = `(() => {
     t(P + '...and the fields after the weight are still reachable',
       after.asa === 'II', after.asa);
     t(P + '...the workstation populates', after.empty === false && after.cards === 16 &&
-      after.plus === 4 && after.airway === 10,
+      after.plus === 0 && after.airway === 10,
       { cards:after.cards, plus:after.plus, airway:after.airway });
     t(P + '...the case line carries what was typed',
       /42 years/.test(after.caseLine) && /75 kg/.test(after.caseLine) &&

@@ -444,16 +444,6 @@
   /* Kept for the suites and for any caller that wants the flat board. */
   function toolboxGroups(){ return planRows(); }
 
-  /* A COMPACT CONTROL, NOT A FIFTH CARD. It sits outside the four-card grid
-     at the width of a button, and it is a plus and nothing else. It opens
-     the drug reference filtered to the row's class, which is where every
-     other agent this application holds a dose for already is. */
-  function tbSlot(roleKey){
-    return '<button type="button" class="tb-s" data-slot-for="' + roleKey + '" ' +
-      'aria-label="Add another agent from the drug reference" ' +
-      'onclick="Induction.addSlot(\'' + roleKey + '\')">+</button>';
-  }
-
   /* ONE CARD, AND THE DOSE IS THE LOUDEST THING ON IT. The clinician scans
      for a number, so the per-kg rule is set in the card's own ink weight and
      the amount for THIS patient is the largest type in it — not a grey line
@@ -614,9 +604,12 @@
       g.rows.forEach(function (d){ if (hasDrug(g.key, planKey(d))) used++; });
     });
 
-    /* LABEL · FOUR CARDS · ONE PLUS. The four cards are a grid of four equal
-       columns; the plus is outside it, so it is a control the size of a
-       control rather than a fifth cell the size of a card. */
+    /* LABEL · FOUR CARDS, AND NOTHING AFTER THEM. There was a plus here,
+       outside the card grid, that filtered the drug reference to this row's
+       class. It is gone: the reference is on the same page and every row of
+       it carries its own USE control, so the plus bought a shortcut at the
+       price of a 34px track in every role. The four cards have that width
+       now. */
     var board = '<div class="tb">' + groups.map(function (g){
       var cells = g.rows.slice(0, PLAN_SLOTS)
         .map(function (d){ return tbCard(g.key, d, g.rowKey); });
@@ -628,7 +621,6 @@
           '<b>' + esc(g.label) + '</b>' +
           (g.nmb && isRSI() ? '<span class="tb-g-x">RSI context</span>' : '') + '</div>' +
         '<div class="tb-row">' + cells.join('') + '</div>' +
-        tbSlot(g.key) +
       '</div>';
     }).join('') + '</div>';
 
@@ -951,15 +943,6 @@
   /* THE PLUS SENDS YOU TO THE REFERENCE, filtered to the row's own class.
      It adds no drug by itself — every agent this application holds a dose
      for is already in the reference below, and this is the route to it. */
-  function addSlot(roleKey){
-    var CLASS = { induction:'induction', analgesia:'opioid', nmb:'nmb' };
-    try {
-      if (root.drefSet) root.drefSet('iref', 'cat', CLASS[roleKey] || 'all');
-      var host = document.querySelector('#induction-host .idref');
-      if (host && host.scrollIntoView) host.scrollIntoView({ block:'nearest' });
-    } catch(e){ console.warn('[induction] reference filter unavailable', e); }
-  }
-
   /* SELECTION IS A TOGGLE, IN PLACE. Adding is adding and removing is
      removing; a role may hold more than one agent. Focus returns to the row's
      own button after the re-render, so pressing USE on the eleventh drug does
@@ -995,7 +978,6 @@
 
   root.Induction = { render:render, protocol:protocol,
                      toggle:toggle, remove:remove, openRole:openRoleFn,
-                     addSlot:addSlot,
                      clearPlan:clearPlan, clear:clear,
                      setTechnique:setTechnique, setRsiVariant:setRsiVariant,
                      get roles(){ return ROLES.map(function (r){ return r.key; }); },

@@ -1603,10 +1603,17 @@ html.lt-immersive body{padding-top:0 !important;}
    the label beside its cards rather than above them, and every row is
    exactly one card tall. Nothing is stretched and no cell is reserved. */
 .tb{min-width:0;display:flex;flex-direction:column;gap:4px;}
-/* LABEL · FOUR CARDS · ONE PLUS. Three columns, and the third is the width
-   of a control rather than the width of a card — the plus is not a fifth
-   slot and must never read as an empty one. */
-.tb-grp{min-width:0;display:grid;grid-template-columns:84px minmax(0,1fr) 34px;
+/* LABEL · FOUR CARDS. Two columns, and the cards take everything the label
+   does not.
+
+   THERE WAS A THIRD TRACK, 34px wide, holding a plus. Its job was to reach
+   the drug reference filtered to this row's class — a shortcut, never the
+   way a drug is actually added, which is the USE control in the reference
+   itself. Below 900px the plus was lifted out of the grid and positioned
+   absolutely in the heading, and the 34px track stayed behind holding
+   nothing: a reserved fifth slot, 39px of dead right-hand space on a
+   390px phone, which is a tenth of the width the doses had to live in. */
+.tb-grp{min-width:0;display:grid;grid-template-columns:84px minmax(0,1fr);
   gap:6px;align-items:stretch;}
 /* THE ROW LABEL IS A CELL, not a band above the row — it carries the row's
    class colour on its left edge the way the cards do. */
@@ -1664,7 +1671,7 @@ html.lt-immersive body{padding-top:0 !important;}
 .tb-c-b:hover{color:var(--ink,#e8eef1);border-color:rgba(255,255,255,.32);}
 .tb-c-b.on{color:#06251f;background:var(--accent,#7ECFC0);border-color:var(--accent,#7ECFC0);}
 @media (max-width:1180px){ .st{grid-template-columns:repeat(2,1fr);}
-  .tb-grp{grid-template-columns:minmax(0,1fr) 34px;gap:4px;}
+  .tb-grp{grid-template-columns:minmax(0,1fr);gap:4px;}
   .tb-grp > .tb-g{grid-column:1 / -1;}
   .tb-row{grid-template-columns:repeat(2,minmax(0,1fr));} }
 
@@ -2277,18 +2284,11 @@ html.lt-immersive body{padding-top:0 !important;}
 .wf-col-side .awp-v{font-size:14px;}
 
 /* ── AN EMPTY SLOT IS A PLUS ─────────────────────────────────────────────
-   Nothing else. "Add drug", "+ Add" and "Add agent" all described a flow
-   that does not exist here — every agent this application holds a dose for
-   is already on the board or in the reference below. It is a 34px rounded
-   square, aligned to the middle of its row, and it is NOT stretched to the
-   height or the width of a card. */
-.tb-s{display:grid;place-items:center;align-self:center;justify-self:stretch;
-  width:34px;height:34px;padding:0;font:inherit;font-size:16px;
-  font-weight:400;line-height:1;color:var(--ink-3,#7d8b95);cursor:pointer;
-  border-radius:8px;background:rgba(255,255,255,.02);
-  border:1px solid rgba(255,255,255,.13);}
-.tb-s:hover{color:var(--accent,#7ECFC0);border-color:rgba(126,207,192,.4);
-  background:rgba(126,207,192,.05);}
+   THE ROW'S PLUS IS GONE, AND SO IS ITS STYLING. It reached the drug
+   reference filtered to the row's class. That is a shortcut to a surface
+   that is already on the page, and it cost every row a 34px track the four
+   doses could have had. The USE control in the reference is how a drug
+   joins a role, and it is untouched. */
 
 /* ── RSI'S VARIANTS, INSIDE THE RSI TILE ─────────────────────────────────
    Revealed only when RSI is the approach; closed they cost nothing. There is
@@ -2384,7 +2384,7 @@ html.lt-immersive body{padding-top:0 !important;}
    anywhere` in an 84px cell broke "Premedication" into "PREMEDICA / TION"
    and "Neuromuscular" into "NEUROMUS / CULAR". The cell is wide enough for
    the longest single word instead, and the label breaks only at spaces. */
-.tb-grp{grid-template-columns:100px minmax(0,1fr) 34px;}
+.tb-grp{grid-template-columns:100px minmax(0,1fr);}
 .tb-g{padding:5px 6px;}
 .tb-g b{font-size:9px;letter-spacing:.06em;overflow-wrap:normal;word-break:normal;
   hyphens:none;}
@@ -2412,7 +2412,7 @@ html.lt-immersive body{padding-top:0 !important;}
 /* THE ROLE LABEL IS TWO WORDS ON TWO LINES, NEVER FOUR FRAGMENTS. 112px
    holds "NEUROMUSCULAR" whole; "BLOCKADE" falls to the second line by
    choice. The width comes out of the card grid, not out of the module. */
-.tb-grp{grid-template-columns:112px minmax(0,1fr) 34px;}
+.tb-grp{grid-template-columns:112px minmax(0,1fr);}
 .tb-g{padding:5px 7px;}
 .tb-g b{font-size:9.5px;letter-spacing:.05em;line-height:1.25;}
 
@@ -2579,9 +2579,11 @@ html.lt-immersive body{padding-top:0 !important;}
    two 54px columns on a phone and one card per row on an iPad: the board was
    laying itself out inside a label column.
 
-   Two tracks here — the cards and the plus — and the label spans both. */
+   ONE TRACK HERE — the cards — and the label spans it. There were two, the
+   second reserved for a plus that no longer exists; the cards take its
+   width now. */
 @media (max-width:1180px){
-  .tb-grp{grid-template-columns:minmax(0,1fr) 34px; gap:5px;}
+  .tb-grp{grid-template-columns:minmax(0,1fr); gap:5px;}
   .tb-grp > .tb-g{grid-column:1 / -1; padding:2px 0;}
   .tb-row{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
 }
@@ -2952,22 +2954,27 @@ html.lt-immersive body{padding-top:0 !important;}
   .eng-wrap .idref{scroll-margin-top:70px;}
 }
 
-/* ── THE ROW'S PLUS BELONGS TO THE ROW'S HEADING ─────────────────────────
-   It sat after the card grid at a 34px target — under the 44px minimum, and
-   the first thing to be cut off when anything shifts. On a phone it moves
-   into the role heading, where there is room beside a short word, and it
-   becomes a real target. It is NOT one of the four drug slots: the four
-   named cards are unchanged and the plus is a control beside them.
-
-   THE HEADING STAYS A BLOCK. Making it a flex row changed the label's box
-   model — the <b> became a flex item three line-heights tall, which the
-   role-label wrap gate catches. It only has to keep clear of the plus. */
-@media (max-width:900px){
-  .eng-wrap #induction-host .tb-grp{position:relative;}
-  .eng-wrap #induction-host .tb-g{padding-right:48px;}
-  .eng-wrap #induction-host .tb-s{
-    position:absolute; top:0; right:0;
-    width:44px; height:44px; min-width:44px; min-height:44px;
-    display:inline-flex; align-items:center; justify-content:center;
-    margin:0; font-size:18px; line-height:1;}
+/* ── THE PHONE SPENDS THE RECLAIMED WIDTH ON THE TWO NUMBERS ─────────────
+   PHONE ONLY, AND WEIGHTED. The card is 179px rather than 160px now. The
+   width goes to the two lines a clinician reads for a dose — the amount for
+   THIS patient first, the rule it came from second. The name and the
+   route/context are NOT enlarged: each costs a whole line of card height at
+   this width, and height is the one thing this pass must not spend. */
+@media (max-width:640px){
+  .eng-wrap #induction-host .tb-c-r{font-size:13px;line-height:1.2;}
+  .eng-wrap #induction-host .tb-c-r i{font-size:11px;}
+  .eng-wrap #induction-host .tb-c-a{font-size:19px;line-height:1.15;}
+  .eng-wrap #induction-host .tb-c-a i{font-size:11.5px;}
 }
+
+/* ── THE ROW'S PLUS IS GONE, AND SO IS THE ROOM IT TOOK ──────────────────
+   It sat after the card grid at a 34px target, then moved into the role
+   heading as a 44px absolute one so it would be reachable with a thumb. The
+   heading carried `padding-right:48px` to keep clear of it, and the grid
+   kept the 34px track the button had left.
+
+   None of that is needed: the plus reached the drug reference filtered to
+   this row's class, and the reference is on the same page with its own USE
+   control on every row. Removing it returns 39px per role to the four doses
+   and 48px to the role heading, which is the whole point. */
+
