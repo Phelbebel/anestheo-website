@@ -570,6 +570,35 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-ptcat-s{font-size:12.5px;color:var(--muted);}
 .ws-ptcat-n{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);
   border:1px solid var(--border);border-radius:var(--radius-xl);padding:3px 11px;}
+/* ALL PATIENTS GETS ORIENTATION, NOT A SECOND STATUS BOARD. Four one-line
+   controls that say where things are and how many are there. */
+.ws-ptgroups.cat-all{display:block;}
+.ws-ptnavrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;}
+.ws-ptnavcard{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.028);
+  border:1px solid var(--border);border-radius:var(--radius-md);padding:9px 12px;
+  font-family:inherit;font-size:13px;font-weight:650;color:var(--ink,#e8eef1);cursor:pointer;
+  min-height:46px;min-width:0;}
+.ws-ptnavcard:hover{border-color:rgba(126,207,192,.34);background:rgba(126,207,192,.05);}
+.ws-ptnavcard .dico{width:16px;height:16px;flex:0 0 auto;color:var(--muted);}
+.ws-ptnavcard .dico:last-child{margin-left:0;color:var(--hint);width:14px;height:14px;}
+.ws-ptnavcard-nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ws-ptnavcard-n{font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;
+  background:rgba(255,255,255,.07);border-radius:var(--radius-xl);padding:2px 9px;flex:0 0 auto;}
+.ws-ptnavcard.attention .dico:first-child{color:#FFB86B;}
+.ws-ptnavcard.pipeline  .dico:first-child{color:#5ee393;}
+.ws-ptnavcard.important .dico:first-child{color:#FFCD66;}
+/* IMPORTANT IS A COLLECTION, AND THE STAR SAYS SO. It is the one group whose
+   icon is filled: a saved list, not a stage of an operation. */
+.ws-ptgrp.important .ws-ptgrp-h .dico,
+.ws-ptgrp.important .ws-ptcard-ic .dico{fill:#FFCD66;stroke:#FFCD66;}
+.ws-ptnavcard.important .dico:first-child{fill:#FFCD66;}
+.ws-ptgrp.important .ws-ptcard-ic{width:36px;height:36px;}
+.ws-ptgrp.important .ws-ptcard-ic .dico{width:20px;height:20px;}
+/* The categories stop looking like a live filter while another tab is open. */
+.ws-navgrp.muted .ws-subnav{opacity:.45;}
+.ws-navgrp.muted .ws-subnav-i.active{background:rgba(255,255,255,.05);box-shadow:none;}
+.ws-navgrp.muted .ws-subnav-i.active .dico{color:var(--muted);}
+.ws-navgrp.muted .ws-subnav-i.active .ws-subnav-n{color:var(--muted);background:rgba(255,255,255,.07);}
 @media (max-width:900px){
   .ws-ptgroups{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
 }
@@ -582,6 +611,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
   .ws-ptcard-nm{font-size:13.5px;}
   .ws-ptcard-sub{font-size:11.5px;}
   .ws-ptcat-t{font-size:15px;}
+  .ws-ptnavrow{grid-template-columns:1fr;}
   /* A THUMB TARGET IS 44px HERE, as it is on every other control in this
      workspace. The rail entries and the group's View all were 36 and 33. */
   .ws-subnav-i{min-height:44px;font-size:13.5px;padding:9px 10px;}
@@ -883,7 +913,32 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-d-section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin:18px 0 8px;}
 .ws-d-notes{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;color:#fff;font-size:14px;font-family:inherit;min-height:90px;resize:vertical;outline:none;}
 .ws-d-notes:focus{border-color:var(--teal2);}
-@media(max-width:760px){.ws-shell{grid-template-columns:1fr;gap:14px;}.ws-rail{position:static;flex-direction:row;flex-wrap:wrap;overflow-x:auto;}.ws-railgrp{flex-direction:row;flex-wrap:wrap;}.ws-railgrp + .ws-railgrp{margin-top:0;}.ws-railgrp-lbl{display:none;}.ws-rail-sp{display:none;}}
+@media(max-width:760px){.ws-shell{grid-template-columns:1fr;gap:14px;}
+/* THE PATIENTS GROUP OWNS ITS OWN BAND. The rail becomes a wrapping row of
+   chips at this width, and a column-flex group dropped into it takes a
+   shrink-to-fit width, which let Questions sit in the gap beside the patient
+   categories. It spans the row instead, and the categories become the same
+   kind of horizontal chip strip the rail itself uses: thumb sized, scrolling
+   inside their own container so the page never scrolls sideways. */
+/* A wrapping flex row sizes itself to its widest child, and a child asking
+   for 100% of it makes that circular: the group resolved to 820px inside a
+   348px rail and its chips ran out past the card. The row is pinned to the
+   rail's own width first, and only then does the patients group span it. */
+.ws-railgrp-pt{flex:1 1 100%;min-width:0;max-width:100%;}
+.ws-navgrp{flex:1 1 100%;min-width:0;max-width:100%;}
+.ws-navgrp .ws-tab-parent{max-width:100%;}
+/* The strip scrolls INSIDE the rail card. Without min-width:0 a nowrap flex
+   row refuses to shrink, and the chips ran out past the card's own edge. */
+.ws-navgrp .ws-subnav{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;margin:6px 0 2px;padding:0 0 4px;border-left:none;gap:6px;
+  min-width:0;max-width:100%;scrollbar-width:none;}
+.ws-navgrp .ws-subnav::-webkit-scrollbar{display:none;}
+.ws-navgrp .ws-subnav-i{flex:0 0 auto;min-height:44px;border:1px solid var(--border);
+  border-radius:var(--radius-xl);padding:8px 13px;white-space:nowrap;}
+.ws-navgrp .ws-subnav-i.active{box-shadow:none;border-color:rgba(126,207,192,.5);
+  background:rgba(126,207,192,.14);}
+.ws-tab-parent .ws-nav-chev{display:none;}
+.ws-rail{position:static;flex-direction:row;flex-wrap:wrap;overflow-x:auto;}.ws-railgrp{flex-direction:row;flex-wrap:wrap;}.ws-railgrp + .ws-railgrp{margin-top:0;}.ws-railgrp-lbl{display:none;}.ws-rail-sp{display:none;}}
 /* ════════ Operating List (Phase 1 — read-only, date-first) ════════ */
 /* The lifecycle colours (--done / --info / --action / --urgent) come from
    tokens.css, and this region's reading contrast is declared once with the
@@ -1679,16 +1734,12 @@ function wsRenderMyPatients(){
   if(imp) imp.textContent=_wsMyPatients.filter(function(p){return p.starred && !p.archived;}).length||0;
   var del=document.getElementById('ws-mp-deleted-n');
   if(del) del.textContent=(_wsRecycle?_wsRecycle.length:0)||0;
-  /* The rail's counts are the SAME numbers, grouped. Nothing is recomputed
-     from a second source. */
-  var n=function(id){ var e=document.getElementById(id); return e?(parseInt(e.textContent,10)||0):0; };
-  var railN={ all:_wsMyPatients.filter(function(p){return !p.archived;}).length||0,
-    attention:n('ws-mp-awaiting-n')+n('ws-mp-review-n'),
-    pipeline:n('ws-mp-approved-n')+n('ws-mp-scheduled-n'),
-    important:n('ws-mp-important-n'),
-    history:n('ws-mp-completed-n')+n('ws-mp-archived-n')+n('ws-mp-deleted-n') };
-  Object.keys(railN).forEach(function(k){
-    var e=document.getElementById('ws-ptnav-n-'+k); if(e) e.textContent=railN[k];
+  /* The rail's counts are the SAME numbers, grouped. They are computed from
+     the one list rather than read back out of the cards, because the cards a
+     category does not show are not in the DOM to be read. */
+  var C=wsMpCounts();
+  ['all','attention','pipeline','important','history'].forEach(function(k){
+    var e=document.getElementById('ws-ptnav-n-'+k); if(e) e.textContent=C[k];
   });
   wsRenderMpStats();
   var box=document.getElementById('ws-mp-list'); if(!box) return;
@@ -3077,6 +3128,25 @@ var WS_MP_CATS={
                icon:'clock', title:'History and Storage', sub:'Completed records, archive, and recycle bin.' }
 };
 var _wsMpCat='all';
+/* ONE SOURCE FOR EVERY NUMBER ON THIS PAGE. Stage counts are the active
+   (non-archived) list; archived and starred are the other two dimensions;
+   the bin is its own read. Nothing here queries anything: it counts the list
+   the page already loaded. */
+function wsMpCounts(){
+  var L=_wsMyPatients||[];
+  var c={};
+  WS_MP_STAGES.forEach(function(st){
+    c[st]=L.filter(function(p){ return !p.archived && p.stage===st; }).length||0;
+  });
+  c.archived=L.filter(function(p){ return p.archived; }).length||0;
+  c.important=L.filter(function(p){ return p.starred && !p.archived; }).length||0;
+  c.deleted=(_wsRecycle?_wsRecycle.length:0)||0;
+  c.all=L.filter(function(p){ return !p.archived; }).length||0;
+  c.attention=c.awaiting+c.review;
+  c.pipeline=c.approved+c.scheduled;
+  c.history=c.completed+c.archived+c.deleted;
+  return c;
+}
 function wsMpCatOf(stage){
   if(!stage) return 'all';
   if(stage.indexOf('cat:')===0) return stage.slice(4);
@@ -3086,6 +3156,60 @@ function wsMpCatOf(stage){
     }
   }
   return 'all';
+}
+/* ── THE SUMMARY ANSWERS THE SELECTED CATEGORY, NOT ALL OF THEM ──────────
+   The first version showed all four groups at once, which is the wall of
+   equally weighted boxes this redesign exists to remove, only tidier. A
+   category now shows ITS OWN sub-statuses, and All Patients shows a compact
+   orientation row: four one-line controls that say where things are, not a
+   second status board.
+
+   Every card calls wsMpStage() with a stage that already existed, and carries
+   the count element wsRenderMyPatients() already writes into. */
+function wsPtCard(stage, icon, name, sub, n){
+  return '<button class="ws-ptcard" data-s="'+stage+'" onclick="wsMpStage(\''+stage+'\')">' +
+    '<span class="ws-ptcard-ic">'+dIcon(icon)+'</span>' +
+    '<span class="ws-ptcard-n" id="ws-mp-'+stage+'-n">'+(n||0)+'</span>' +
+    '<span class="ws-ptcard-tx"><span class="ws-ptcard-nm">'+name+'</span>' +
+    '<span class="ws-ptcard-sub">'+sub+'</span></span>' +
+    '<span class="ws-ptcard-go">'+dIcon('arrow-right')+'</span></button>';
+}
+function wsPtGroup(cls, icon, title, cards){
+  return '<div class="ws-ptgrp '+cls+'"><div class="ws-ptgrp-h">'+dIcon(icon)+
+    '<span class="ws-ptgrp-t">'+title+'</span></div>' +
+    '<div class="ws-ptgrp-b">'+cards+'</div></div>';
+}
+/* A one-line orientation control, for All Patients only. */
+function wsPtNavCard(cat, icon, name, n){
+  return '<button class="ws-ptnavcard '+cat+'" onclick="wsPtCat(\''+cat+'\')">' +
+    dIcon(icon)+'<span class="ws-ptnavcard-nm">'+name+'</span>' +
+    '<span class="ws-ptnavcard-n">'+(n||0)+'</span>'+dIcon('arrow-right')+'</button>';
+}
+function wsPtSummary(cat){
+  var C=wsMpCounts();
+  if(cat==='attention')
+    return wsPtGroup('attention','alert-triangle','Needs Attention',
+      wsPtCard('awaiting','file-text','Awaiting Questionnaire','Waiting on patient',C.awaiting) +
+      wsPtCard('review','clock','Awaiting Review','Needs your review, action required',C.review));
+  if(cat==='pipeline')
+    return wsPtGroup('pipeline','activity','Active Pipeline',
+      wsPtCard('approved','check-circle','Approved','Ready for scheduling',C.approved) +
+      wsPtCard('scheduled','calendar','Scheduled','Upcoming surgery',C.scheduled));
+  if(cat==='important')
+    return wsPtGroup('important','star','Important',
+      wsPtCard('important','star','Important','Starred by you',C.important));
+  /* THE THREE DESTINATIONS, AND THE BIN IS ONE OF THEM. A doctor should never
+     have to guess where a deleted patient went. */
+  if(cat==='history')
+    return wsPtGroup('history','clock','History and Storage',
+      wsPtCard('completed','check-circle','Completed','Finished',C.completed) +
+      wsPtCard('archived','archive','Archived','Stored, out of the active list',C.archived) +
+      wsPtCard('deleted','trash','Recycle Bin','Deleted, restorable',C.deleted));
+  return '<div class="ws-ptnavrow">' +
+    wsPtNavCard('attention','alert-triangle','Needs Attention',C.attention) +
+    wsPtNavCard('pipeline','activity','Active Pipeline',C.pipeline) +
+    wsPtNavCard('important','star','Important',C.important) +
+    wsPtNavCard('history','clock','History',C.history) + '</div>';
 }
 /* The rail's chevron. Collapsing hides the categories, it never changes which
    one is selected. */
@@ -3114,15 +3238,36 @@ window.wsPtCat=wsPtCat;
 function wsPtSyncNav(){
   var cat=_wsMpCat;
   document.querySelectorAll('#ws-ptsubnav .ws-subnav-i').forEach(function(b){
-    b.classList.toggle('active', b.getAttribute('data-cat')===cat);
+    var on=b.getAttribute('data-cat')===cat;
+    b.classList.toggle('active', on);
+    /* On a phone the categories are a horizontal strip, so the selected one
+       has to be brought into view or the rail shows a category nobody chose.
+       The strip's own scrollLeft is set rather than scrollIntoView(), which
+       scrolls the nearest scrollable ancestor too and would move the page. */
+    if(on){
+      var strip=b.parentElement;
+      if(strip && strip.scrollWidth>strip.clientWidth+2){
+        /* offsetLeft answers against the nearest POSITIONED ancestor, which
+           this strip is not, so it pointed at the rail. Rect maths asks the
+           two elements directly. */
+        var bl=b.getBoundingClientRect(), sl=strip.getBoundingClientRect();
+        var want=(bl.left-sl.left)+strip.scrollLeft-(strip.clientWidth-bl.width)/2;
+        strip.scrollLeft=Math.max(0, Math.min(want, strip.scrollWidth-strip.clientWidth));
+      }
+    }
   });
   var groups=document.getElementById('ws-ptgroups');
   if(groups){
-    groups.className='ws-ptgroups'+(cat!=='all'?(' focus-'+cat):'');
+    groups.className='ws-ptgroups cat-'+cat;
+    groups.innerHTML=wsPtSummary(cat);
     groups.querySelectorAll('.ws-ptcard').forEach(function(c){
       c.classList.toggle('active', c.getAttribute('data-s')===_wsMpStage);
     });
   }
+  /* WHILE CONSULTATION REQUESTS IS OPEN, the patient categories are not
+     filtering anything on screen, and the rail should not pretend they are. */
+  var nav=document.getElementById('ws-ptnav');
+  if(nav) nav.classList.toggle('muted', _wsWf==='consults');
   var h=document.getElementById('ws-ptcat-h'), def=WS_MP_CATS[cat];
   if(h && def){
     var one=(_wsMpStage||'').indexOf('cat:')!==0;
@@ -3142,6 +3287,8 @@ function wsMpCardSub(s){ return {awaiting:'Waiting on patient',review:'Needs you
   deleted:'Deleted, restorable'}[s]||''; }
 function wsWf(w){
   _wsWf=w; wsMpStateSet({wf:w});
+  var _nav=document.getElementById('ws-ptnav');
+  if(_nav) _nav.classList.toggle('muted', w==='consults');
   document.querySelectorAll('#sec-patients .ws-wftab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-wf')===w); });
   document.querySelectorAll('#sec-patients .ws-wf').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-wf')===w); });
 }
@@ -3937,7 +4084,7 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<span class="ws-tab-ic">'+dIcon(icon)+'</span><span class="ws-tab-tx">'+label+'</span></button>';
     }
     var rail =
-      '<div class="ws-railgrp">' +
+      '<div class="ws-railgrp ws-railgrp-pt">' +
         '<div class="ws-railgrp-lbl">Clinical Workspace</div>' +
         (verifiedDoctor
           ? railTab('oplist','clipboard-list','Operating List',';wsLoadOpList()') +
@@ -4024,38 +4171,6 @@ document.addEventListener('DOMContentLoaded', async function(){
         '</a>' +
       '</div>';
 
-    /* ── THE FOUR SUMMARY GROUPS ─────────────────────────────────────────
-       A card is a filter control, not an ornament: every one of them calls
-       wsMpStage() with a stage the board already understood, and carries the
-       count element the render function already wrote into. Nothing here
-       invents a patient state, renames one, or merges two. */
-    function ptCard(stage, icon, name, sub){
-      return '<button class="ws-ptcard" data-s="'+stage+'" onclick="wsMpStage(\''+stage+'\')">' +
-        '<span class="ws-ptcard-ic">'+dIcon(icon)+'</span>' +
-        '<span class="ws-ptcard-n" id="ws-mp-'+stage+'-n">0</span>' +
-        '<span class="ws-ptcard-tx"><span class="ws-ptcard-nm">'+name+'</span>' +
-        '<span class="ws-ptcard-sub">'+sub+'</span></span>' +
-        '<span class="ws-ptcard-go">'+dIcon('arrow-right')+'</span></button>';
-    }
-    function ptGroup(cat, cls, icon, title, cards){
-      return '<div class="ws-ptgrp '+cls+'" data-grp="'+cat+'">' +
-        '<div class="ws-ptgrp-h">'+dIcon(icon)+'<span class="ws-ptgrp-t">'+title+'</span>' +
-          '<button class="ws-ptgrp-all" onclick="wsPtCat(\''+cat+'\')">View all '+dIcon('arrow-right')+'</button></div>' +
-        '<div class="ws-ptgrp-b">'+cards+'</div></div>';
-    }
-    var grpAttention = ptGroup('attention','attention','alert-triangle','Needs Attention',
-      ptCard('awaiting','file-text','Awaiting Questionnaire','Waiting on patient') +
-      ptCard('review','clock','Awaiting Review','Needs your review'));
-    var grpPipeline = ptGroup('pipeline','pipeline','activity','Active Pipeline',
-      ptCard('approved','check-circle','Approved','Ready for scheduling') +
-      ptCard('scheduled','calendar','Scheduled','Upcoming surgery'));
-    var grpImportant = ptGroup('important','important','star','Important',
-      ptCard('important','star','Important','Starred by you'));
-    var grpHistory = ptGroup('history','history','clock','History and Storage',
-      ptCard('completed','check-circle','Completed','Finished') +
-      ptCard('archived','archive','Archived','Stored, out of the active list') +
-      ptCard('deleted','trash','Recycle Bin','Deleted, restorable'));
-
     // SECTION 2 — Patient Management (board switcher: one workflow at a time)
     var secPatients =
       '<div class="ws-sec active" id="sec-patients">' +
@@ -4094,9 +4209,7 @@ document.addEventListener('DOMContentLoaded', async function(){
              their arrangement changed. Each card calls wsMpStage(), the
              filter that already existed. */
           '<div class="ws-ptcat-h" id="ws-ptcat-h"></div>' +
-          '<div class="ws-ptgroups" id="ws-ptgroups">' +
-            grpAttention + grpPipeline + grpImportant + grpHistory +
-          '</div>' +
+          '<div class="ws-ptgroups" id="ws-ptgroups"></div>' +
           // Search + sort toolbar
           '<div class="ws-mp-tools">' +
             '<div class="ws-mp-search" id="ws-mp-search"><span class="si">&#128269;</span>' +
