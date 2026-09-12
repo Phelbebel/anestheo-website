@@ -240,6 +240,99 @@ const BOARD_PROBE = `(() => {
     await s.ctx.close();
   }
 
+  /* ── 1b. VERTICAL RHYTHM BETWEEN MAJOR PHONE MODULES ─────────────────
+     THE GATES ABOVE MEASURED X AND WIDTH AND MISSED A VOID YOU COULD SEE
+     FROM ACROSS THE ROOM. Stacked on a phone, every one of the four modules
+     ended up the last child of its own wrapper, and a rule written to keep
+     the last line of a section out from under a floating emergency button
+     — long since docked at the TOP of the screen — gave each of them 64px
+     of empty ink below its final row. Measured from the last painted box to
+     the next module's heading that was 82px, 94px and 87px of nothing.
+
+     WHAT THIS MEASURES, AND WHY IT IS NOT A WRAPPER. A section's own border
+     box includes whatever empty padding it carries, so comparing wrapper to
+     wrapper reports a tidy 12px while the screen shows 82. This walks the
+     module for the bottom-most thing that actually paints — ink, or a box
+     with a background, a border or a shadow — and measures from there to
+     the top of the next module's heading. A card's own padding is inside a
+     painted card and is correctly not counted as a gap.
+
+     AND IT PINS NO SCROLL POSITION. The assertion that caught the last
+     regression scrolled to a fixed y and asked what was underneath, which
+     made it a hostage to every content-height change above it. This is
+     relative geometry between two modules and does not care where the page
+     is scrolled. */
+  console.log('\n1b. VERTICAL RHYTHM ON A PHONE');
+  const RHYTHM = `(() => {
+    const R = e => e.getBoundingClientRect();
+    const paintsBox = cs => {
+      const bg = cs.backgroundColor;
+      const hasBg = bg && bg !== 'transparent' && !/rgba\(0, 0, 0, 0\)/.test(bg);
+      const bordered = ['Top','Right','Bottom','Left'].some(side =>
+        parseFloat(cs['border' + side + 'Width']) > 0 &&
+        cs['border' + side + 'Style'] !== 'none');
+      return hasBg || bordered || cs.boxShadow !== 'none';
+    };
+    const lastPainted = root => {
+      let best = null;
+      (function walk(n){
+        if (n.nodeType !== 1) return;
+        const r = R(n), cs = getComputedStyle(n);
+        const visible = r.height > 0 && r.width > 0 && cs.visibility !== 'hidden' &&
+                        cs.display !== 'none' && cs.opacity !== '0';
+        const ownText = [...n.childNodes].some(c => c.nodeType === 3 && c.textContent.trim());
+        if (visible && n !== root && (n.children.length === 0 || ownText || paintsBox(cs)))
+          if (!best || r.bottom > best + 0.5) best = r.bottom;
+        for (const c of n.children) walk(c);
+      })(root);
+      return best;
+    };
+    const secs = [...document.querySelectorAll('#induction-host .wf-sec')].map(el => ({
+      el, title:(el.querySelector('.wf-t') || {textContent:''}).textContent.trim(),
+      head: el.querySelector('.wf-h') }));
+    const find = re => secs.find(x => re.test(x.title));
+    const plan = find(/drug plan/i), airway = find(/airway plan/i),
+          backup = find(/backup|difficult/i), ref = find(/reference/i);
+    const gap = (a, b) => (!a || !b) ? null
+      : Math.round((R(b.head || b.el).top - lastPainted(a.el)) * 10) / 10;
+    return { found: !!(plan && airway && backup && ref),
+             planToAirwayGap: gap(plan, airway),
+             airwayToBackupGap: gap(airway, backup),
+             backupToReferenceGap: gap(backup, ref) };
+  })()`;
+  for (const [name, w, h] of [['iPhone 390',390,844], ['iPhone 393',393,852],
+                              ['iPhone 430',430,932]]) {
+    const s = await open(b, w, h, IOS);
+    await s.pg.evaluate(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','77'); set('i-age-unit','y'); set('i-sex','M');
+      set('i-height','177'); set('i-weight','77'); set('i-asa','II');
+      compute(); setDomain('induction');
+    });
+    await s.pg.waitForTimeout(400);
+    const g = await s.pg.evaluate(RHYTHM);
+    const P = name + ': ';
+    t(P + 'all four major modules are on the page', g.found === true, g);
+    /* 12 IS THE FLOOR AND 24 THE CEILING. Below 12 the modules crowd into
+       one another and the headings stop reading as separations; above 24 the
+       band is doing nothing but pushing the next module off the screen. */
+    [['planToAirwayGap','Selected drug plan → Airway plan'],
+     ['airwayToBackupGap','Airway plan → Backup difficult airway'],
+     ['backupToReferenceGap','Backup difficult airway → Drug reference']]
+      .forEach(([k, label]) => {
+        t(P + label + ' is 12–24px',
+          typeof g[k] === 'number' && g[k] >= 12 && g[k] <= 24, g[k] + 'px');
+      });
+    /* AND NONE OF THEM IS NEGATIVE — a gap that has become an overlap is a
+       different defect with the same number. */
+    t(P + '...and no module overlaps the one before it',
+      [g.planToAirwayGap, g.airwayToBackupGap, g.backupToReferenceGap]
+        .every(v => typeof v === 'number' && v > 0),
+      [g.planToAirwayGap, g.airwayToBackupGap, g.backupToReferenceGap]);
+    await s.ctx.close();
+  }
+
   /* ── 2. THE DESKTOP IS UNTOUCHED ────────────────────────────────────── */
   console.log('\n2. THE APPROVED DESKTOP KEEPS ITS COMPOSITION');
   {

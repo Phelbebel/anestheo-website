@@ -656,8 +656,51 @@
   .awp-v{font-size:19px;}
   .pdx-v{font-size:21px;}
   .eng-wrap .cw-derived .cw-d-val{font-size:18px;}
-  /* the floating SOS must not sit on top of the last line of a section */
-  #output .wf-sec:last-child{padding-bottom:64px;}
+  /* PAGE-END ROOM BELONGS TO THE PAGE, ONCE.
+     This was `#output .wf-sec:last-child{padding-bottom:64px}`, written when
+     the emergency control was a floating action button hovering over the
+     bottom of the viewport: the last line of a section had to be kept out
+     from under it. The control is not there any more — it is docked in the
+     sticky identity strip at the TOP of the screen (#ws-sos sits at y=5),
+     so bottom padding protects nothing from it.
+
+     What the rule still did was fire on EVERY section that happened to be
+     the last child of its wrapper, and on a phone all four modules are:
+     the plan closes .wf-col-main, the airway closes .wf-col-side, the backup
+     closes .wf-bkp and the reference closes .wf-full. Each therefore carried
+     64px of empty ink below its last line, on top of the 12px the layout
+     already put between modules — an 82px void under the drug board, 94px
+     under the airway, 87px under the backup, none of which any rule claimed
+     to own.
+
+     The page still wants room after its final line so the last control is
+     not flush against the bottom of the screen. That is one piece of space
+     at one place, and it is the scroll container's. */
+  #output{padding-bottom:64px;}
+}
+
+/* ── ONE LAYER OWNS THE SPACE BETWEEN MAJOR PHONE MODULES ────────────────
+   PHONE ONLY. Stacked, the four modules are separated by three different
+   properties — the flex gap that splits the plan column from the airway
+   column, and the margin-top on each of the two full-width strips below
+   them. All three were 12px and all three sat under 64px of the section
+   padding removed above, so the real separation was never the number any
+   of them declared.
+
+   They are set together here, once, at the size the separation should
+   actually read at. Nothing inside a module moves: a card's own padding is
+   the card's and is left alone, which is why the airway tile still carries
+   its 15px under the last line of text. That is inside a bordered tile, not
+   a gap between modules.
+
+   620px, not 640: this is the same phone band the section padding above
+   belongs to, so the two edits cannot disagree about what a phone is. The
+   tablet stack at 768 keeps the 12px it has. */
+@media (max-width:620px){
+  .eng-wrap #induction-host .wf-cols{gap:20px;}
+  .eng-wrap #induction-host .wf-bkp{margin-top:20px;}
+  .eng-wrap #induction-host .wf-full{margin-top:20px;}
+  .eng-wrap #induction-host .wf-ctx{margin-top:20px;}
 }
 
 /* ══ SELECTING A DRUG ═════════════════════════════════════════════════════
