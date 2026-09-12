@@ -471,6 +471,123 @@ body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: #fff;
 .ws-rec-add input{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;color:#fff;font-size:13px;font-family:inherit;outline:none;}
 .ws-invite-band{margin-top:26px;padding:18px;border:1px solid var(--border);border-radius:var(--radius-lg);background:rgba(255,255,255,.025);}
 /* Patient Management — two-workflow navigation */
+/* ── PATIENTS: A GROUPED SIDEBAR, NOT EIGHT EQUAL TILES ──────────────────
+   The workspace used to open on a row of eight stage tabs of identical
+   weight: awaiting, review, approved, scheduled, completed, important,
+   archived and recycle bin, side by side. Three of those are not workflow
+   at all, and a doctor scanning the row had to read every one to find the
+   two that needed them today.
+
+   The rail carries the grouping now. Five entries, each a group rather than
+   a raw status, and the main area answers one of them at a time. */
+.ws-navgrp{display:flex;flex-direction:column;}
+.ws-tab-parent{display:flex;align-items:center;width:100%;}
+.ws-tab-parent .ws-nav-chev{margin-left:auto;display:inline-flex;transition:transform .16s ease;color:var(--muted);}
+.ws-navgrp.open .ws-tab-parent .ws-nav-chev{transform:rotate(180deg);}
+.ws-subnav{display:none;flex-direction:column;gap:1px;margin:2px 0 4px 13px;padding-left:11px;
+  border-left:1px solid var(--border);}
+.ws-navgrp.open .ws-subnav{display:flex;}
+.ws-subnav-i{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;
+  border:none;border-radius:var(--radius-sm);padding:7px 9px;font-family:inherit;font-size:13px;
+  font-weight:600;color:var(--muted);cursor:pointer;min-height:36px;}
+.ws-subnav-i:hover{color:#fff;background:rgba(255,255,255,.05);}
+.ws-subnav-i .dico{width:15px;height:15px;flex:0 0 auto;}
+.ws-subnav-i.active{color:#fff;background:rgba(126,207,192,.13);box-shadow:inset 2px 0 0 var(--accent);}
+.ws-subnav-i.active .dico{color:var(--accent);}
+/* Each group keeps the colour its cards use, so the rail and the board agree. */
+.ws-subnav-i[data-cat="attention"].active .dico{color:#FFB86B;}
+.ws-subnav-i[data-cat="important"].active .dico{color:#FFCD66;}
+.ws-subnav-i .ws-subnav-n{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--muted);
+  background:rgba(255,255,255,.07);border-radius:var(--radius-xl);padding:1px 7px;min-width:20px;text-align:center;}
+.ws-subnav-i.active .ws-subnav-n{color:var(--on-accent);background:var(--accent);}
+
+.ws-mp-emptyact{display:flex;justify-content:center;margin-top:14px;}
+.ws-mp-binlink{margin-top:10px;}
+.ws-mp-emptycta{box-shadow:none;}
+/* ── THE PRIMARY ACTION LOOKS LIKE THE PRIMARY ACTION ────────────────────*/
+.ws-pt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.ws-pt-new{display:inline-flex;align-items:center;gap:11px;background:var(--accent);color:var(--on-accent);
+  border:none;border-radius:var(--radius-md);padding:13px 20px;font-family:inherit;font-size:15px;
+  font-weight:800;cursor:pointer;min-height:50px;box-shadow:0 6px 18px rgba(61,220,151,.18);}
+.ws-pt-new:hover{filter:brightness(1.06);}
+.ws-pt-new .dico{width:19px;height:19px;stroke-width:2.4;}
+.ws-pt-new .ws-pt-new-tx{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;}
+.ws-pt-new .ws-pt-new-tx i{font-style:normal;font-size:11px;font-weight:600;opacity:.72;}
+
+/* ── GROUPED SUMMARY, FOUR GROUPS NOT EIGHT TILES ────────────────────────*/
+.ws-ptgroups{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:12px;margin:0 0 18px;}
+.ws-ptgrp{border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;
+  background:rgba(255,255,255,.022);min-width:0;}
+.ws-ptgrp-h{display:flex;align-items:center;gap:8px;margin:0 0 10px;}
+.ws-ptgrp-h .dico{width:17px;height:17px;flex:0 0 auto;}
+.ws-ptgrp-t{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+.ws-ptgrp-all{margin-left:auto;background:none;border:none;font-family:inherit;font-size:11.5px;
+  font-weight:700;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:var(--radius-sm);}
+.ws-ptgrp-all:hover{color:#fff;}
+.ws-ptgrp-b{display:grid;gap:8px;}
+.ws-ptcard{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 11px;font-family:inherit;
+  color:#fff;cursor:pointer;min-height:56px;min-width:0;}
+.ws-ptcard:hover{border-color:rgba(126,207,192,.34);background:rgba(126,207,192,.05);}
+.ws-ptcard .ws-ptcard-ic{width:30px;height:30px;flex:0 0 auto;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);color:var(--muted);}
+.ws-ptcard .ws-ptcard-ic .dico{width:16px;height:16px;}
+.ws-ptcard-n{font-size:21px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:24px;}
+.ws-ptcard-tx{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:2px;}
+.ws-ptcard-nm{font-size:12.5px;font-weight:750;line-height:1.2;}
+.ws-ptcard-sub{font-size:10.5px;font-weight:600;color:var(--hint);line-height:1.25;}
+.ws-ptcard .ws-ptcard-go{flex:0 0 auto;color:var(--hint);display:inline-flex;}
+.ws-ptcard .ws-ptcard-go .dico{width:14px;height:14px;}
+.ws-ptcard.active{border-color:rgba(126,207,192,.5);background:rgba(126,207,192,.1);}
+/* THE FOUR GROUPS DO NOT LOOK ALIKE, because they are not alike. */
+.ws-ptgrp.attention{border-color:rgba(255,184,107,.3);background:rgba(255,184,107,.035);}
+.ws-ptgrp.attention .ws-ptgrp-h .dico,.ws-ptgrp.attention .ws-ptgrp-t{color:#FFB86B;}
+.ws-ptgrp.attention .ws-ptcard-n{color:#FFC98A;}
+.ws-ptgrp.attention .ws-ptcard-ic{background:rgba(255,184,107,.13);color:#FFB86B;}
+.ws-ptgrp.pipeline{border-color:rgba(61,220,151,.28);background:rgba(61,220,151,.035);}
+.ws-ptgrp.pipeline .ws-ptgrp-h .dico,.ws-ptgrp.pipeline .ws-ptgrp-t{color:#5ee393;}
+.ws-ptgrp.pipeline .ws-ptcard-n{color:#7fe9b4;}
+.ws-ptgrp.pipeline .ws-ptcard-ic{background:rgba(61,220,151,.13);color:#5ee393;}
+.ws-ptgrp.important{border-color:rgba(255,205,102,.32);background:rgba(255,205,102,.035);}
+.ws-ptgrp.important .ws-ptgrp-h .dico,.ws-ptgrp.important .ws-ptgrp-t{color:#FFCD66;}
+.ws-ptgrp.important .ws-ptcard-n{color:#FFCD66;}
+.ws-ptgrp.important .ws-ptcard-ic{background:rgba(255,205,102,.14);color:#FFCD66;}
+/* History and storage are destinations, not stages: no accent, on purpose. */
+.ws-ptgrp.history{border-color:var(--border);background:rgba(255,255,255,.018);}
+.ws-ptgrp.history .ws-ptgrp-h .dico,.ws-ptgrp.history .ws-ptgrp-t{color:var(--muted);}
+.ws-ptgrp.history .ws-ptcard{background:rgba(255,255,255,.02);}
+.ws-ptgrp.history .ws-ptcard-n{color:var(--dim,#cfe);}
+.ws-ptgrp.history .ws-ptcard-ic{background:rgba(255,255,255,.05);color:var(--muted);}
+.ws-ptgrp.history .ws-ptcard[data-s="deleted"] .ws-ptcard-ic{color:#FF9B86;background:rgba(255,155,134,.1);}
+/* The selected category's own group leads; the others stay available. */
+.ws-ptgroups.focus-attention .ws-ptgrp.attention,
+.ws-ptgroups.focus-pipeline .ws-ptgrp.pipeline,
+.ws-ptgroups.focus-important .ws-ptgrp.important,
+.ws-ptgroups.focus-history .ws-ptgrp.history{box-shadow:0 0 0 1px rgba(126,207,192,.3);}
+.ws-ptcat-h{display:flex;align-items:center;gap:10px;margin:0 0 12px;}
+.ws-ptcat-h .dico{width:18px;height:18px;color:var(--accent);}
+.ws-ptcat-t{font-size:16px;font-weight:800;}
+.ws-ptcat-s{font-size:12.5px;color:var(--muted);}
+.ws-ptcat-n{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);
+  border:1px solid var(--border);border-radius:var(--radius-xl);padding:3px 11px;}
+@media (max-width:900px){
+  .ws-ptgroups{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));}
+}
+@media (max-width:640px){
+  .ws-ptgroups{grid-template-columns:1fr;gap:10px;margin-bottom:14px;}
+  .ws-pt-head{flex-direction:column;align-items:stretch;}
+  .ws-pt-new{width:100%;justify-content:center;min-height:54px;}
+  .ws-ptcard{min-height:60px;}
+  .ws-ptcard-n{font-size:23px;}
+  .ws-ptcard-nm{font-size:13.5px;}
+  .ws-ptcard-sub{font-size:11.5px;}
+  .ws-ptcat-t{font-size:15px;}
+  /* A THUMB TARGET IS 44px HERE, as it is on every other control in this
+     workspace. The rail entries and the group's View all were 36 and 33. */
+  .ws-subnav-i{min-height:44px;font-size:13.5px;padding:9px 10px;}
+  .ws-subnav-i .dico{width:17px;height:17px;}
+  .ws-ptgrp-all{min-height:44px;padding:6px 10px;font-size:12.5px;}
+}
 .ws-wftabs{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 18px;border-bottom:1px solid var(--border);padding-bottom:0;}
 .ws-wftab{display:flex;align-items:center;gap:8px;background:none;border:none;border-bottom:2px solid transparent;padding:10px 6px 12px;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;}
 .ws-wftab:hover{color:#fff;}
@@ -974,6 +1091,14 @@ function wsEsc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){r
 
 // ── Premium Lucide inline-SVG icon system (doctor workspace) ──
 var DICONS = {
+  'chevron-down':'<path d="m6 9 6 6 6-6"/>',
+  'inbox':'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  'archive':'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  'trash':'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  'check-circle':'<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>',
+  'calendar':'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  'file-text':'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  'plus':'<path d="M5 12h14"/><path d="M12 5v14"/>',
   'layout-grid':'<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
   'clipboard-list':'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
   'users':'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -1091,7 +1216,7 @@ function wsClinicStage(p){
   if(p.questionnaire_status==='completed') return 'review';
   return 'awaiting';
 }
-function wsStageLabel(s){ return {awaiting:'Awaiting questionnaire', review:'Questionnaire submitted — awaiting your review', approved:'Plan approved', scheduled:'Scheduled for surgery', completed:'Completed'}[s]||s; }
+function wsStageLabel(s){ return {awaiting:'Awaiting questionnaire', review:'Questionnaire submitted, awaiting your review', approved:'Plan approved', scheduled:'Scheduled for surgery', completed:'Completed'}[s]||s; }
 var WS_MP_STAGES=['awaiting','review','approved','scheduled','completed'];
 // Views that are NOT workflow stages. They slice the same list by the other
 // two dimensions — organization (important) and lifecycle (archived, deleted)
@@ -1554,6 +1679,17 @@ function wsRenderMyPatients(){
   if(imp) imp.textContent=_wsMyPatients.filter(function(p){return p.starred && !p.archived;}).length||0;
   var del=document.getElementById('ws-mp-deleted-n');
   if(del) del.textContent=(_wsRecycle?_wsRecycle.length:0)||0;
+  /* The rail's counts are the SAME numbers, grouped. Nothing is recomputed
+     from a second source. */
+  var n=function(id){ var e=document.getElementById(id); return e?(parseInt(e.textContent,10)||0):0; };
+  var railN={ all:_wsMyPatients.filter(function(p){return !p.archived;}).length||0,
+    attention:n('ws-mp-awaiting-n')+n('ws-mp-review-n'),
+    pipeline:n('ws-mp-approved-n')+n('ws-mp-scheduled-n'),
+    important:n('ws-mp-important-n'),
+    history:n('ws-mp-completed-n')+n('ws-mp-archived-n')+n('ws-mp-deleted-n') };
+  Object.keys(railN).forEach(function(k){
+    var e=document.getElementById('ws-ptnav-n-'+k); if(e) e.textContent=railN[k];
+  });
   wsRenderMpStats();
   var box=document.getElementById('ws-mp-list'); if(!box) return;
   // The Recycle Bin is a different read entirely (recycle_bin_list), not a
@@ -1561,16 +1697,44 @@ function wsRenderMyPatients(){
   // in the active list at all.
   if(_wsMpStage==='deleted'){ wsRenderRecycleBin(box); return; }
   var term=(_wsMpSearch||'').trim().toLowerCase();
+  /* A CATEGORY IS THE UNION OF STAGES IT ALREADY CONTAINED. 'cat:attention'
+     is awaiting plus review, and nothing about either stage changed to make
+     that true. The single-stage filters below are untouched. */
+  var isCat=(_wsMpStage||'').indexOf('cat:')===0;
+  var def=isCat?WS_MP_CATS[_wsMpStage.slice(4)]:null;
   var archView=(_wsMpStage==='archived'), impView=(_wsMpStage==='important');
   var list=_wsMyPatients.filter(function(p){
     // Archived rows appear ONLY under Archived. Important shows active starred
     // patients across every stage. Every other filter is a workflow stage.
-    if(archView){ if(!p.archived) return false; }
+    if(isCat){
+      if(!def) return false;
+      // History shows completed plus the archived store; the bin is rendered
+      // beneath the list because it is a different read entirely.
+      if(p.archived) return def.views.indexOf('archived')>=0;
+      if(def.views.indexOf('important')>=0 && !def.stages.length) return !!p.starred;
+      if(def.stages.indexOf(p.stage)<0) return false;
+    }
+    else if(archView){ if(!p.archived) return false; }
     else if(impView){ if(p.archived || !p.starred) return false; }
     else { if(p.archived) return false; if(p.stage!==_wsMpStage) return false; }
     if(!term) return true;
     return [p.name,p.procedure,p.hospital].filter(Boolean).join(' ').toLowerCase().indexOf(term)>=0;
   }).sort(wsMpComparator(_wsMpSort));
+  var catCount=document.getElementById('ws-ptcat-n');
+  if(catCount) catCount.textContent=list.length+(list.length===1?' patient':' patients');
+  /* THE BIN IS A DESTINATION, NOT A ROW IN THIS LIST. It is a different read
+     with its own restore and permanent-delete controls, so the History group
+     links to it rather than mixing two kinds of record in one list. */
+  var binLink='';
+  if(_wsMpStage==='cat:history'){
+    var bn=(_wsRecycle?_wsRecycle.length:0)||0;
+    binLink='<button class="ws-ptcard ws-mp-binlink" data-s="deleted" onclick="wsMpStage(\'deleted\')">'+
+      '<span class="ws-ptcard-ic">'+dIcon('trash')+'</span>'+
+      '<span class="ws-ptcard-n">'+bn+'</span>'+
+      '<span class="ws-ptcard-tx"><span class="ws-ptcard-nm">Recycle Bin</span>'+
+      '<span class="ws-ptcard-sub">Deleted, restorable</span></span>'+
+      '<span class="ws-ptcard-go">'+dIcon('arrow-right')+'</span></button>';
+  }
   // Starred first within the chosen order — the star is a priority marker, so
   // it should shorten the search, not just decorate the row.
   list.sort(function(a,b){ return (b.starred?1:0)-(a.starred?1:0); });
@@ -1581,7 +1745,8 @@ function wsRenderMyPatients(){
         '<div class="s">Try a different name, procedure, or hospital.</div>'+
         '<button class="ws-btn pc-green ws-mp-clearbtn" onclick="wsMpClearSearch()">Clear search</button></div>';
     } else {
-      box.innerHTML='<div class="ws-empty">'+wsMpEmpty(_wsMpStage)+'</div>';
+      box.innerHTML='<div class="ws-empty">'+wsMpEmpty(_wsMpStage)+
+        '<div class="ws-mp-emptyact">'+wsMpEmptyCta(_wsMpStage)+'</div></div>'+binLink;
     }
     return;
   }
@@ -1636,9 +1801,26 @@ function wsRenderMyPatients(){
         progOrArch+'</div>'+
       '<div class="ws-mp-right">'+dateChip+right+'</div>'+
     '</div>';
-  }).join('');
+  }).join('')+binLink;
 }
-function wsMpEmpty(st){ return {awaiting:'No patients awaiting questionnaire.',review:'Nothing awaiting your review.',approved:'No approved patients.',scheduled:'No scheduled surgeries.',completed:'No completed patients yet.',archived:'No archived patients. Archive a completed or inactive patient from their record.',important:'Nothing marked Important. Use the &#8942; menu on any patient to mark them.'}[st]||'No patients in this stage.'; }
+/* THE EMPTY STATE SAYS WHICH LIST IS EMPTY. A category and a single stage
+   are different questions, so they get different answers. */
+function wsMpEmpty(st){
+  if((st||'').indexOf('cat:')===0) return {
+    'cat:all':'No patients yet.',
+    'cat:attention':'No patients currently need review.',
+    'cat:pipeline':'No patients are currently approved or scheduled.',
+    'cat:important':'No starred patients yet.',
+    'cat:history':'No records in this view.'
+  }[st]||'No patients in this view.';
+  return {awaiting:'No patients awaiting questionnaire.',review:'Nothing awaiting your review.',approved:'No approved patients.',scheduled:'No scheduled surgeries.',completed:'No completed patients yet.',archived:'No archived patients. Archive a completed or inactive patient from their record.',important:'Nothing marked Important. Use the &#8942; menu on any patient to mark them.'}[st]||'No patients in this stage.';
+}
+/* A category that is empty offers the one action that fills it. */
+function wsMpEmptyCta(st){
+  if(st==='cat:history'||st==='archived'||st==='deleted'||st==='completed') return '';
+  return '<button class="ws-pt-new ws-mp-emptycta" onclick="wsOpenAddModal()">'+dIcon('plus')+
+    '<span class="ws-pt-new-tx">New Patient<i>Create pre-op workflow</i></span></button>';
+}
 
 /* ══════════ Recycle Bin ══════════════════════════════════════════════════
    Read through recycle_bin_list(), which answers the authorization question
@@ -2875,7 +3057,89 @@ window.wsAddToLiveTools = wsAddToLiveTools;
 
 window.wsAddToLiveTools = wsAddToLiveTools;
 // Patient Management navigation: two workflows, each with internal stages.
-var _wsWf='mypatients', _wsMpStage='awaiting', _wsCrStage='new', _wsMpSearch='', _wsMpSort='surgery';
+var _wsWf='mypatients', _wsMpStage='cat:all', _wsCrStage='new', _wsMpSearch='', _wsMpSort='surgery';
+/* ── CATEGORIES: GROUPS OF THE STAGES THAT ALREADY EXIST ─────────────────
+   Not one new patient state. Each category is a set of the stages and views
+   the board already had, so a category filter is the union of filters the
+   list already knew how to apply. `stage` selects one; `cat` selects its
+   group. Selecting a category sets _wsMpStage to 'cat:<name>', which the
+   list filter below understands as "any stage in this group". */
+var WS_MP_CATS={
+  all:       { stages:['awaiting','review','approved','scheduled','completed'], views:[],
+               icon:'users', title:'All Patients', sub:'Every active patient in your workspace.' },
+  attention: { stages:['awaiting','review'], views:[],
+               icon:'alert-triangle', title:'Needs Attention', sub:'Patients that require your action or review.' },
+  pipeline:  { stages:['approved','scheduled'], views:[],
+               icon:'activity', title:'Active Pipeline', sub:'Approved plans and scheduled surgery.' },
+  important: { stages:[], views:['important'],
+               icon:'star', title:'Important', sub:'Starred by you.' },
+  history:   { stages:['completed'], views:['archived','deleted'],
+               icon:'clock', title:'History and Storage', sub:'Completed records, archive, and recycle bin.' }
+};
+var _wsMpCat='all';
+function wsMpCatOf(stage){
+  if(!stage) return 'all';
+  if(stage.indexOf('cat:')===0) return stage.slice(4);
+  for(var k in WS_MP_CATS){
+    if(WS_MP_CATS[k].stages.indexOf(stage)>=0 || WS_MP_CATS[k].views.indexOf(stage)>=0){
+      if(k!=='all') return k;
+    }
+  }
+  return 'all';
+}
+/* The rail's chevron. Collapsing hides the categories, it never changes which
+   one is selected. */
+function wsPtNav(ev){
+  var g=document.getElementById('ws-ptnav'); if(!g) return;
+  var onPatients=document.querySelector('#sec-patients') &&
+                 document.querySelector('#sec-patients').classList.contains('active');
+  if(!onPatients){ if(ev) ev.preventDefault(); g.classList.add('open'); wsShow('patients'); return; }
+  g.classList.toggle('open');
+  var b=g.querySelector('.ws-tab-parent');
+  if(b) b.setAttribute('aria-expanded', g.classList.contains('open')?'true':'false');
+}
+window.wsPtNav=wsPtNav;
+/* Selecting a category from the rail or from a group's View all. */
+function wsPtCat(cat){
+  if(!WS_MP_CATS[cat]) cat='all';
+  var sec=document.getElementById('sec-patients');
+  if(sec && !sec.classList.contains('active')) wsShow('patients');
+  var g=document.getElementById('ws-ptnav'); if(g) g.classList.add('open');
+  if(_wsWf!=='mypatients') wsWf('mypatients');
+  if(cat==='history' && !_wsRecycleLoaded) wsLoadRecycleBin();
+  wsMpStage('cat:'+cat);
+}
+window.wsPtCat=wsPtCat;
+/* Paint the rail, the group emphasis and the category heading. */
+function wsPtSyncNav(){
+  var cat=_wsMpCat;
+  document.querySelectorAll('#ws-ptsubnav .ws-subnav-i').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-cat')===cat);
+  });
+  var groups=document.getElementById('ws-ptgroups');
+  if(groups){
+    groups.className='ws-ptgroups'+(cat!=='all'?(' focus-'+cat):'');
+    groups.querySelectorAll('.ws-ptcard').forEach(function(c){
+      c.classList.toggle('active', c.getAttribute('data-s')===_wsMpStage);
+    });
+  }
+  var h=document.getElementById('ws-ptcat-h'), def=WS_MP_CATS[cat];
+  if(h && def){
+    var one=(_wsMpStage||'').indexOf('cat:')!==0;
+    var nm=one?wsMpCardName(_wsMpStage):def.title;
+    var sb=one?wsMpCardSub(_wsMpStage):def.sub;
+    h.innerHTML=dIcon(def.icon)+'<span><span class="ws-ptcat-t">'+nm+'</span><br>'+
+      '<span class="ws-ptcat-s">'+sb+'</span></span>'+
+      '<span class="ws-ptcat-n" id="ws-ptcat-n">0</span>';
+  }
+}
+function wsMpCardName(s){ return {awaiting:'Awaiting Questionnaire',review:'Awaiting Review',
+  approved:'Approved',scheduled:'Scheduled',completed:'Completed',important:'Important',
+  archived:'Archived',deleted:'Recycle Bin'}[s]||'Patients'; }
+function wsMpCardSub(s){ return {awaiting:'Waiting on patient',review:'Needs your review',
+  approved:'Ready for scheduling',scheduled:'Upcoming surgery',completed:'Finished',
+  important:'Starred by you',archived:'Stored, out of the active list',
+  deleted:'Deleted, restorable'}[s]||''; }
 function wsWf(w){
   _wsWf=w; wsMpStateSet({wf:w});
   document.querySelectorAll('#sec-patients .ws-wftab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-wf')===w); });
@@ -2887,10 +3151,13 @@ function wsStageSwitch(wfSel, s){
   wf.querySelectorAll('.ws-spanel').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-s')===s); });
 }
 function wsMpStage(s){
-  _wsMpStage=s; wsMpStateSet({mpStage:s});
+  _wsMpStage=s; _wsMpCat=wsMpCatOf(s); wsMpStateSet({mpStage:s});
   var wf=document.querySelector('#sec-patients .ws-wf[data-wf="mypatients"]');
   if(wf) wf.querySelectorAll('.ws-stab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-s')===s); });
-  if(s==='deleted' && !_wsRecycleLoaded) wsLoadRecycleBin();
+  /* The bin is a separate read, so it is fetched whenever a view that shows
+     it is entered, one stage or the whole History group. */
+  if((s==='deleted' || s==='cat:history') && !_wsRecycleLoaded) wsLoadRecycleBin();
+  wsPtSyncNav();
   wsRenderMyPatients();
 }
 function wsCrStage(s){ _wsCrStage=s; wsMpStateSet({crStage:s}); wsStageSwitch('consults', s); }
@@ -2912,7 +3179,8 @@ function wsMpSort(v){ _wsMpSort=v||'surgery'; wsMpStateSet({sort:_wsMpSort}); ws
 function wsMpRestoreState(){
   var st=wsMpStateGet();
   if(st.wf==='mypatients'||st.wf==='consults') _wsWf=st.wf;
-  if(WS_MP_STAGES.indexOf(st.mpStage)>=0 || wsMpIsView(st.mpStage)) _wsMpStage=st.mpStage;
+  if(WS_MP_STAGES.indexOf(st.mpStage)>=0 || wsMpIsView(st.mpStage) ||
+     ((st.mpStage||'').indexOf('cat:')===0 && WS_MP_CATS[st.mpStage.slice(4)])) _wsMpStage=st.mpStage;
   if(st.crStage==='new'||st.crStage==='active'||st.crStage==='done') _wsCrStage=st.crStage;
   _wsMpSearch=(typeof st.search==='string')?st.search:'';
   _wsMpSort=(st.sort==='surgery'||st.sort==='updated'||st.sort==='name')?st.sort:'surgery';
@@ -3657,6 +3925,13 @@ document.addEventListener('DOMContentLoaded', async function(){
     // Which panel the workspace opens on. A verified doctor lands on their
     // patients; an unverified one has none, so they land on what they do have.
     var homeSec = verifiedDoctor ? 'patients' : 'welcome';
+    /* A category entry in the rail. It selects the category AND brings the
+       patients section forward, so it works from any other section. */
+    function ptNav(cat, icon, label){
+      return '<button class="ws-subnav-i" data-cat="'+cat+'" onclick="wsPtCat(\''+cat+'\')">' +
+        dIcon(icon) + '<span class="ws-subnav-tx">'+label+'</span>' +
+        '<span class="ws-subnav-n" id="ws-ptnav-n-'+cat+'">0</span></button>';
+    }
     function railTab(sec, icon, label, extra){
       return '<button class="ws-tab'+(sec===homeSec?' active':'')+'" data-sec="'+sec+'" onclick="wsShow(\''+sec+'\')'+(extra||'')+'">' +
         '<span class="ws-tab-ic">'+dIcon(icon)+'</span><span class="ws-tab-tx">'+label+'</span></button>';
@@ -3666,7 +3941,28 @@ document.addEventListener('DOMContentLoaded', async function(){
         '<div class="ws-railgrp-lbl">Clinical Workspace</div>' +
         (verifiedDoctor
           ? railTab('oplist','clipboard-list','Operating List',';wsLoadOpList()') +
-            railTab('patients','users','Patients') +
+            /* PATIENTS IS A GROUP, AND THE RAIL SAYS SO. The five entries
+               below are categories, not raw statuses: Needs Attention is the
+               two stages that are waiting on somebody, Active Pipeline is the
+               two that are moving, and History is where finished and stored
+               records live. The eight-tile row this replaces made all of them
+               look equally urgent. Each entry drives the SAME wsMpStage()
+               filter the board already used. */
+            '<div class="ws-navgrp open" id="ws-ptnav">' +
+              '<button class="ws-tab ws-tab-parent'+('patients'===homeSec?' active':'')+'" data-sec="patients" ' +
+                'aria-expanded="true" aria-controls="ws-ptsubnav" onclick="wsPtNav(event)">' +
+                '<span class="ws-tab-ic">'+dIcon('users')+'</span>' +
+                '<span class="ws-tab-tx">Patients</span>' +
+                '<span class="ws-nav-chev" aria-hidden="true">'+dIcon('chevron-down')+'</span>' +
+              '</button>' +
+              '<div class="ws-subnav" id="ws-ptsubnav" role="group" aria-label="Patient categories">' +
+                ptNav('all','users','All Patients') +
+                ptNav('attention','alert-triangle','Needs Attention') +
+                ptNav('pipeline','activity','Active Pipeline') +
+                ptNav('important','star','Important') +
+                ptNav('history','clock','History') +
+              '</div>' +
+            '</div>' +
             railTab('ask','message-circle','Questions')
           /* Not hidden buttons over live data. These three sections are not
              built at all for an unverified doctor, and the database would
@@ -3728,11 +4024,52 @@ document.addEventListener('DOMContentLoaded', async function(){
         '</a>' +
       '</div>';
 
+    /* ── THE FOUR SUMMARY GROUPS ─────────────────────────────────────────
+       A card is a filter control, not an ornament: every one of them calls
+       wsMpStage() with a stage the board already understood, and carries the
+       count element the render function already wrote into. Nothing here
+       invents a patient state, renames one, or merges two. */
+    function ptCard(stage, icon, name, sub){
+      return '<button class="ws-ptcard" data-s="'+stage+'" onclick="wsMpStage(\''+stage+'\')">' +
+        '<span class="ws-ptcard-ic">'+dIcon(icon)+'</span>' +
+        '<span class="ws-ptcard-n" id="ws-mp-'+stage+'-n">0</span>' +
+        '<span class="ws-ptcard-tx"><span class="ws-ptcard-nm">'+name+'</span>' +
+        '<span class="ws-ptcard-sub">'+sub+'</span></span>' +
+        '<span class="ws-ptcard-go">'+dIcon('arrow-right')+'</span></button>';
+    }
+    function ptGroup(cat, cls, icon, title, cards){
+      return '<div class="ws-ptgrp '+cls+'" data-grp="'+cat+'">' +
+        '<div class="ws-ptgrp-h">'+dIcon(icon)+'<span class="ws-ptgrp-t">'+title+'</span>' +
+          '<button class="ws-ptgrp-all" onclick="wsPtCat(\''+cat+'\')">View all '+dIcon('arrow-right')+'</button></div>' +
+        '<div class="ws-ptgrp-b">'+cards+'</div></div>';
+    }
+    var grpAttention = ptGroup('attention','attention','alert-triangle','Needs Attention',
+      ptCard('awaiting','file-text','Awaiting Questionnaire','Waiting on patient') +
+      ptCard('review','clock','Awaiting Review','Needs your review'));
+    var grpPipeline = ptGroup('pipeline','pipeline','activity','Active Pipeline',
+      ptCard('approved','check-circle','Approved','Ready for scheduling') +
+      ptCard('scheduled','calendar','Scheduled','Upcoming surgery'));
+    var grpImportant = ptGroup('important','important','star','Important',
+      ptCard('important','star','Important','Starred by you'));
+    var grpHistory = ptGroup('history','history','clock','History and Storage',
+      ptCard('completed','check-circle','Completed','Finished') +
+      ptCard('archived','archive','Archived','Stored, out of the active list') +
+      ptCard('deleted','trash','Recycle Bin','Deleted, restorable'));
+
     // SECTION 2 — Patient Management (board switcher: one workflow at a time)
     var secPatients =
       '<div class="ws-sec active" id="sec-patients">' +
-        '<div class="ws-sec-head"><div><div class="ws-sec-title">Patient management</div>' +
-          '<div class="ws-sec-sub">Two workflows &mdash; My Patients (you create) and Consultation Requests (they ask)</div></div>' +
+        '<div class="ws-sec-head ws-pt-head"><div><div class="ws-sec-title">Patient Management</div>' +
+          '<div class="ws-sec-sub">Create patients, review requests, and track surgical readiness.</div></div>' +
+          /* THE PRIMARY ACTION, AT THE WEIGHT OF A PRIMARY ACTION. It calls
+             wsOpenAddModal(), the one creation flow this page has ever had.
+             There is no Import beside it: nothing in this build imports
+             anything, and a button that does nothing is worse than a button
+             that is missing. */
+          '<button class="ws-pt-new" onclick="wsOpenAddModal()">' +
+            dIcon('plus') +
+            '<span class="ws-pt-new-tx">New Patient<i>Create pre-op workflow</i></span>' +
+          '</button>' +
           '</div>' +
 
         // ── Top-level workflow tabs ──
@@ -3747,18 +4084,18 @@ document.addEventListener('DOMContentLoaded', async function(){
           '<div class="ws-mp-headline">' +
             '<div class="hl-total"><b id="ws-mp-hl-total">0</b> <span class="hl-total-l">patients</span></div>' +
             '<button id="ws-mp-hl-pill" class="hl-attn" onclick="wsMpStage(\'review\')"><span class="d"></span>All caught up</button>' +
-            '<button class="ws-btn ws-btn-wa hl-add" onclick="wsOpenAddModal()">&#10133; New Patient</button>' +
+            /* The small New Patient that used to sit here is gone: the page
+               has one primary action now, in the header, at the weight a
+               primary action should have. It calls the same wsOpenAddModal(). */
           '</div>' +
-          // Stage pipeline (single source of stage info; reads left→right, no arrows)
-          '<div class="ws-stagetabs ws-mp-pipe">' +
-            '<button class="ws-stab active" data-s="awaiting" onclick="wsMpStage(\'awaiting\')"><span class="ws-stab-badge s0" id="ws-mp-awaiting-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Questionnaire</span><span class="ws-stab-sub">Waiting on patient</span></span></button>' +
-            '<button class="ws-stab attn" data-s="review" onclick="wsMpStage(\'review\')"><span class="ws-stab-badge s1" id="ws-mp-review-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Awaiting Review <span class="ws-stab-flag">Action needed</span></span><span class="ws-stab-sub">Needs your review</span></span></button>' +
-            '<button class="ws-stab" data-s="approved" onclick="wsMpStage(\'approved\')"><span class="ws-stab-badge s2" id="ws-mp-approved-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Approved</span><span class="ws-stab-sub">Ready for scheduling</span></span></button>' +
-            '<button class="ws-stab acc-up" data-s="scheduled" onclick="wsMpStage(\'scheduled\')"><span class="ws-stab-badge s3" id="ws-mp-scheduled-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Scheduled</span><span class="ws-stab-sub">Upcoming surgery</span></span></button>' +
-            '<button class="ws-stab" data-s="completed" onclick="wsMpStage(\'completed\')"><span class="ws-stab-badge s4" id="ws-mp-completed-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Completed</span><span class="ws-stab-sub">Finished</span></span></button>' +
-            '<button class="ws-stab ws-stab-imp" data-s="important" onclick="wsMpStage(\'important\')"><span class="ws-stab-badge s6" id="ws-mp-important-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Important</span><span class="ws-stab-sub">Starred by you</span></span></button>' +
-            '<button class="ws-stab ws-stab-arch" data-s="archived" onclick="wsMpStage(\'archived\')"><span class="ws-stab-badge s5" id="ws-mp-archived-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Archived</span><span class="ws-stab-sub">Hidden from active list</span></span></button>' +
-            '<button class="ws-stab ws-stab-bin" data-s="deleted" onclick="wsMpStage(\'deleted\')"><span class="ws-stab-badge s5" id="ws-mp-deleted-n">0</span><span class="ws-stab-tx"><span class="ws-stab-nm">Recycle Bin</span><span class="ws-stab-sub">Deleted &middot; restorable</span></span></button>' +
+          /* ── FOUR GROUPS, NOT EIGHT EQUAL TILES ──────────────────────
+             Every count below is the SAME element id the board has always
+             written into, so the numbers come from the same real query; only
+             their arrangement changed. Each card calls wsMpStage(), the
+             filter that already existed. */
+          '<div class="ws-ptcat-h" id="ws-ptcat-h"></div>' +
+          '<div class="ws-ptgroups" id="ws-ptgroups">' +
+            grpAttention + grpPipeline + grpImportant + grpHistory +
           '</div>' +
           // Search + sort toolbar
           '<div class="ws-mp-tools">' +
@@ -3788,7 +4125,7 @@ document.addEventListener('DOMContentLoaded', async function(){
             '<div class="ws-bh"><span class="ws-bt">New Consultation Requests</span><span class="ws-bsub">Accept (as consultation or surgical) or decline</span></div>' +
             '<div id="ws-requests"></div></div></div>' +
           '<div class="ws-spanel" data-s="active"><div class="ws-board cr">' +
-            '<div class="ws-bh"><span class="ws-bt">&#128172; Active Consultations</span><span class="ws-bsub">Advice only &mdash; open the workspace, recommend, or convert to surgical</span></div>' +
+            '<div class="ws-bh"><span class="ws-bt">&#128172; Active Consultations</span><span class="ws-bsub">Advice only: open the workspace, recommend, or convert to surgical</span></div>' +
             '<div id="ws-consultations"></div></div></div>' +
           '<div class="ws-spanel" data-s="done"><div class="ws-board cr">' +
             '<div class="ws-bh"><span class="ws-bt">Completed Consultations</span><span class="ws-bsub">Closed consultations (read-only record)</span></div>' +
