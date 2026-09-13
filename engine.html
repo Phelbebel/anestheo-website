@@ -1350,6 +1350,41 @@ table.dtab-red .dtab-dose{width:18%;}
 .eng-wrap .tiva-m2 b{display:block;font-size:13px;font-weight:750;color:var(--ink);}
 .eng-wrap .tiva-m2 i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-3);
   line-height:1.4;margin-top:2px;}
+/* ── PRIMARY READS FIRST, REFERENCE READS QUIETER ───────────────────────
+   The secondary tier is the same content at a lower voice: smaller heading,
+   slightly muted body, one rule separating it from the answer above. */
+/* Quieter, not taller. Dropping five blocks into one column made the desktop
+   page longer than the version this replaces, which trades one problem for
+   another: the secondary tier flows in two columns where there is room, and
+   its lower voice comes from type and colour rather than from stacking. */
+.eng-wrap .tiva-sec{margin-top:14px;padding-top:13px;border-top:1px solid var(--hair);}
+@media (min-width:641px){
+  .eng-wrap .tiva-card:not(.sm) .tiva-sec{columns:2;column-gap:18px;}
+  .eng-wrap .tiva-card:not(.sm) .tiva-sec .tiva-blk{break-inside:avoid;
+    -webkit-column-break-inside:avoid;margin-top:0;padding-top:0;border-top:none;
+    margin-bottom:14px;display:inline-block;width:100%;}
+}
+.eng-wrap .tiva-sec .tiva-blk-h{font-size:9.5px;color:var(--ink-3);letter-spacing:.14em;}
+.eng-wrap .tiva-sec .tiva-blk.warn .tiva-blk-h{color:var(--warning,#E8A838);}
+.eng-wrap .tiva-sec .bul li{color:var(--ink-2);}
+.eng-wrap .tiva-sec .tiva-m2 b{font-weight:700;}
+/* the primary block, the one the page exists to answer */
+.eng-wrap .tiva-card-b > .tiva-blk:first-child .tiva-blk-h{font-size:10.5px;color:var(--tv-ink);}
+/* a folded reference section on a phone */
+.eng-wrap .tiva-fold{border-top:1px solid var(--hair);}
+.eng-wrap .tiva-fold:first-child{border-top:none;}
+.eng-wrap .tiva-fold > summary{list-style:none;cursor:pointer;display:flex;align-items:center;
+  gap:8px;min-height:46px;padding:11px 0;font-size:10.5px;font-weight:800;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);}
+.eng-wrap .tiva-fold > summary::-webkit-details-marker{display:none;}
+.eng-wrap .tiva-fold > summary::after{content:'';margin-left:auto;width:8px;height:8px;
+  border-right:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);
+  transform:rotate(45deg) translateY(-2px);transition:transform .16s ease;}
+.eng-wrap .tiva-fold[open] > summary{color:var(--tv-ink);}
+.eng-wrap .tiva-fold[open] > summary::after{transform:rotate(225deg) translateY(-2px);
+  border-color:var(--tv-ink);}
+.eng-wrap .tiva-fold-b{padding:0 0 12px;}
+
 /* the info strip at the foot */
 .eng-wrap .tiva-strip{display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:13px 15px;
   border:1px solid var(--hair);border-left:2px solid rgba(126,207,192,.55);
@@ -1372,6 +1407,27 @@ table.dtab-red .dtab-dose{width:18%;}
 
 /* PACU is recovery, and it reads in the teal the workspace uses for a
    completed, settled state rather than the grey of everything else. */
+/* ── PACU ON A PHONE: TWO SCORES, THEN THE SCALE ────────────────────────
+   Three fields in one flex row gave each about a third of 350px, which is
+   enough for "Pain 0-10" and not for "Sedation / alertness": the label wrapped
+   to three lines over a control narrower than the word above it. Pain and
+   nausea are the same shape as each other and pair naturally; the scale is a
+   sentence and a five-option select, and it takes the width.
+
+   The controls come up to 46px, which is the target the rest of this
+   workspace uses, and the label and the value are both brightened: a score a
+   clinician reads at a glance should not be the dimmest text on the card. */
+@media (max-width:640px){
+  .eng-wrap .lt-pacu-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .eng-wrap .lt-pacu-row .lt-pf:nth-child(3){grid-column:1 / -1;}
+  .eng-wrap .lt-pf{gap:5px;}
+  .eng-wrap .lt-pf label{font-size:11.5px;letter-spacing:.09em;color:var(--ink-2);}
+  .eng-wrap .lt-pf input,.eng-wrap .lt-pf select{
+    min-height:46px;padding:10px 12px;font-size:16px;font-weight:700;color:#fff;
+    background:rgba(255,255,255,.075);border-color:rgba(255,255,255,.16);}
+  .eng-wrap .lt-pf input::placeholder{color:rgba(255,255,255,.3);font-weight:600;}
+  .eng-wrap .pacu-mod .lt-rec{font-size:13px;color:var(--ink-2);}
+}
 .eng-wrap .pacu-mod{border-left:2px solid rgba(126,207,192,.5);}
 .eng-wrap .pacu-mod .pacu-mod-head{color:var(--accent);}
 
@@ -1382,6 +1438,12 @@ table.dtab-red .dtab-dose{width:18%;}
   .eng-wrap .tiva-tops{grid-template-columns:1fr;gap:10px;}
   .eng-wrap .tiva-grid,.eng-wrap .tiva-mini{grid-template-columns:1fr;}
   .eng-wrap .tiva-top-v{font-size:24px;}
+  /* the three technique cards give back some of their padding, not content */
+  .eng-wrap .tiva-card.sm .tiva-card-h{padding:11px 13px;}
+  .eng-wrap .tiva-card.sm .tiva-card-b{padding:4px 13px 8px;}
+  .eng-wrap .tiva-mini{gap:10px;margin-top:10px;}
+  .eng-wrap .tiva-card-b{padding:12px 14px;}
+  .eng-wrap .tiva-strip{margin-top:12px;}
 }
 /* ══ NEUTRALISING THE REMAINING GREEN ═══════════════════════════════════
    Structure carries no hue. Each rule below replaces a green structural
@@ -6243,11 +6305,17 @@ function renderDomainLead(dom){
        selected tab already says which workspace this is. The step number
        stays as an ordinal, unlabelled, because it still orders the eight
        workspaces of a case. */
+    /* ONE PAGE HEADER, NOT TWO. The TIVA workspace carries its own hero,
+       which states the title and the same subtitle this strip was printing
+       directly above it. The strip keeps what the hero does not have, the
+       ordinal and the compact domain name, and drops the sentence it was
+       repeating. Every other domain is untouched: they have no hero, so this
+       strip is still their only header. */
     (L[0] != null ? '<span class="wfl-n">' + L[0] + ' of 8</span>' : '') +
     '<span class="wfl-tx"><span class="wfl-h">' +
       '<span class="wfl-t">' + L[1] + '</span>' +
       '<span class="wfl-tag" id="wfl-tag" hidden></span></span>' +
-    '<span class="wfl-s">' + L[2] + '</span></span>';
+    (dom === 'tiva' ? '' : '<span class="wfl-s">' + L[2] + '</span>') + '</span>';
 }
 window.renderDomainLead = renderDomainLead;
 
@@ -6305,6 +6373,9 @@ function domReflow(dom){
     }
   }
   var lt = ge('wfl-tag');
+  /* Same reason: on TIVA the hero already says what this page is, and a
+     REFERENCE chip beside a compact domain name is the third time. */
+  if(dom === 'tiva') leadTag = '';
   if(lt){ lt.textContent = leadTag; lt.hidden = !leadTag; }
   if(window.balanceRows) balanceRows();
 }
@@ -6867,6 +6938,15 @@ function sedM2(label, detail){
 }
 /* One panel, rendered whole. `two` puts the first two blocks side by side,
    which is what the big agents want and the small cards do not. */
+/* PHONE ONLY. Secondary reference inside a long agent folds there and stays
+   open everywhere else. It is a <details>, so the content is in the DOM and
+   one tap away; nothing is removed and nothing is unreachable. */
+function sedIsPhone(){ return (window.innerWidth||1024) <= 640; }
+function sedFold(h, body, openAlways){
+  if(openAlways || !sedIsPhone()) return sedBlk(h, body);
+  return '<details class="tiva-fold"><summary>'+h+'</summary>'+
+    '<div class="tiva-fold-b">'+body+'</div></details>';
+}
 function sedCard(idx, w, opt){
   var def = SED[idx], skin = SED_SKIN[idx] || SED_SKIN[0];
   var d = def[2](w), o = opt || {};
@@ -6882,10 +6962,15 @@ function sedCard(idx, w, opt){
     if(blk.rows) b += blk.rows.map(function(r){
       return isModels ? sedM2(r[0], r[1]) : metric(r[0], r[1], ''); }).join('');
     if(blk.list) b += bul(blk.list);
-    (o.lead && o.lead.test(blk.h||'') ? lead : rest).push(sedBlk(blk.h, b, isCaution));
+    if(o.lead && o.lead.test(blk.h||'')){ lead.push(sedBlk(blk.h, b, isCaution)); return; }
+    /* A CAUTION NEVER FOLDS. Hyperalgesia management lives in remifentanil's
+       cautions, and a clinician meeting it should not have to find a control
+       first. Everything else in the secondary tier folds on a phone. */
+    rest.push(sedFold(blk.h, b, isCaution));
   });
+  var sec = rest.length ? '<div class="tiva-sec">'+rest.join('')+'</div>' : '';
   var body = (o.pre||'') +
-    (lead.length ? '<div class="tiva-two">'+lead.join('')+'</div>' : '') + rest.join('');
+    (lead.length ? '<div class="tiva-two">'+lead.join('')+'</div>' : '') + sec;
   return '<div class="tiva-card '+skin.cls+(o.sm?' sm':'')+'">'+head +
     '<div class="tiva-card-b">'+body+'</div></div>';
 }
@@ -6904,9 +6989,14 @@ function sedInline(i){
     metric('Induction (Ce)','4 – 6','mcg/mL') +
     metric('Maintenance (Ce)','2.5 – 4','mcg/mL') +
     metric('Manual infusion','10 → 8 → 6','mg/kg/h'));
+  /* PRIMARY IS THE THREE FIGURES, AND NOTHING SHARES ITS RANK. Models and the
+     broader target ranges were beside them at equal weight, which made six
+     blocks look like six answers. They are reference, and they read as
+     reference now. Remifentanil keeps its own targets primary and its
+     cautions immediately under them. */
   var main = '<div class="tiva-grid">' +
-    sedCard(0, w, { lead:/target ranges|^models?$/i, pre:propTargets }) +
-    sedCard(1, w, { lead:/target ranges|caution/i }) +
+    sedCard(0, w, { pre:propTargets }) +
+    sedCard(1, w, { lead:/target ranges/i }) +
   '</div>';
   /* The three techniques, compact and each its own colour. */
   var mini = '<div class="tiva-mini">' +

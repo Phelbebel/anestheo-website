@@ -431,6 +431,8 @@ async function openEngine(b, viewport) {
                    title:(document.querySelector('#wf-lead .wfl-t')||{}).textContent||'',
                    sub:(document.querySelector('#wf-lead .wfl-s')||{}).textContent||'',
                    tag:(document.querySelector('#wf-lead .wfl-tag')||{}).textContent||'',
+                   heroSub:(document.querySelector('.tiva-hero-s')||{}).textContent||'',
+                   heroTitle:(document.querySelector('.tiva-hero-t')||{}).textContent||'',
                    folded:document.querySelectorAll('.panel.head-folded').length,
                    panels:[...document.querySelectorAll('.panel[data-domain="'+d+'"]')].length };
       });
@@ -438,8 +440,20 @@ async function openEngine(b, viewport) {
       return out;
     })()`);
     const doms = Object.keys(leads);
-    t('every workflow domain has a lead', doms.every(d => leads[d] && leads[d].title &&
-      leads[d].sub), doms.filter(d => !leads[d] || !leads[d].title || !leads[d].sub));
+    /* EVERY DOMAIN STILL SAYS WHAT IT IS. WAS: every domain's lead carries a
+       title AND a subtitle. TIVA is the one workspace with a header of its
+       own now, and the strip was printing the same sentence directly above
+       it. The strip keeps the ordinal and the name there; the sentence moved
+       rather than vanished, and the assertion checks it at its new address
+       instead of dropping the requirement. */
+    t('every workflow domain has a lead',
+      doms.every(d => leads[d] && leads[d].title) &&
+      doms.filter(d => d !== 'tiva').every(d => leads[d].sub),
+      doms.filter(d => !leads[d] || !leads[d].title ||
+                       (d !== 'tiva' && !leads[d].sub)));
+    t('...and the one domain without a strip subtitle carries it in its own header',
+      leads.tiva.sub === '' && /Target-controlled infusion models/.test(leads.tiva.heroSub||''),
+      { strip:leads.tiva.sub, hero:(leads.tiva.heroSub||'').slice(0,60) });
     /* "Phase 3", not a bare 3 in a circle — the circle is what the Induction
        sections use for their steps, and on a phone the two sat touching. */
     /* WAS: "Phase 1..8". "Phase" was development vocabulary that reached the
@@ -476,9 +490,15 @@ async function openEngine(b, viewport) {
        a control it is never folded — the drug reference's Table/Cards switch
        lives in that slot and folding would take a working control off the
        page. */
+    /* WAS: the folded head's tag moves into the lead, so TIVA's lead read
+       "Reference". The tag was the third place this page said what it is,
+       after the strip's own name and the hero's title, so it is suppressed
+       there. The head still folds, which is what this assertion is actually
+       about, and the identity it was carrying is asserted on the hero. */
     t('a single panel repeating the workspace title folds its head',
-      leads.tiva.folded === 1 && leads.tiva.tag === 'Reference',
-      { folded:leads.tiva.folded, tag:leads.tiva.tag });
+      leads.tiva.folded === 1 && leads.tiva.tag === '' &&
+      /TIVA/.test(leads.tiva.heroTitle||''),
+      { folded:leads.tiva.folded, tag:leads.tiva.tag, hero:leads.tiva.heroTitle });
     t('...and a workspace of several panels folds none',
       leads.maintenance.folded === 0 && leads.local.folded === 0);
     const dref = await s.pg.evaluate(`(() => {
