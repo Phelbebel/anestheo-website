@@ -1258,6 +1258,131 @@ table.dtab-red .dtab-dose{width:18%;}
   overflow-wrap:anywhere;}
 #output .rw-c{color:var(--ink-3);opacity:.82;}
 
+/* ══ TIVA / TCI · A COLOUR PER AGENT, SO THE PAGE CAN BE SCANNED ════════
+   This screen was one hue end to end: propofol, remifentanil, dexmedetomidine,
+   the paediatric technique and the MRI technique all rendered in the same
+   grey, one tab at a time, and a clinician looking for a remifentanil target
+   had to read the tab strip to find out what they were looking at.
+
+   Each agent gets an identity, and it is the identity ClinicalContent already
+   uses where one exists, so the board and this reference agree: propofol
+   gold, remifentanil blue, dexmedetomidine the lavender-cyan of its alpha-2
+   class, paediatric green, MRI purple. Colour carries the GROUPING only. It
+   never encodes urgency, and no number changes because of it. */
+.eng-wrap .tiva-hero{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:16px var(--pad) 15px;border-bottom:1px solid var(--hair);margin-bottom:14px;}
+.eng-wrap .tiva-hero-ic{width:46px;height:46px;flex:0 0 auto;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  background:rgba(126,207,192,.1);border:1px solid rgba(126,207,192,.26);}
+.eng-wrap .tiva-hero-tx{flex:1 1 240px;min-width:0;}
+.eng-wrap .tiva-hero-t{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.15;color:var(--ink);}
+.eng-wrap .tiva-hero-s{font-size:12.5px;color:var(--ink-3);margin-top:3px;line-height:1.45;}
+.eng-wrap .tiva-hero-a{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;
+  min-height:40px;padding:9px 15px;border-radius:var(--radius-md);font-size:13px;font-weight:700;
+  color:var(--ink);background:rgba(126,207,192,.1);border:1px solid rgba(126,207,192,.3);
+  cursor:pointer;font-family:inherit;}
+.eng-wrap .tiva-hero-a:hover{background:rgba(126,207,192,.18);}
+
+/* the three headline targets */
+.eng-wrap .tiva-tops{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));
+  gap:12px;margin:0 0 16px;}
+.eng-wrap .tiva-top{display:flex;align-items:center;gap:14px;padding:14px 16px;
+  border-radius:var(--radius-lg);border:1px solid var(--tv-line);background:var(--tv-fill);min-width:0;}
+.eng-wrap .tiva-top-ic{width:44px;height:44px;flex:0 0 auto;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  background:var(--tv-soft);border:1px solid var(--tv-line);}
+.eng-wrap .tiva-top-tx{min-width:0;}
+.eng-wrap .tiva-top-l{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--tv-ink);}
+.eng-wrap .tiva-top-v{font-size:26px;font-weight:800;line-height:1.1;color:var(--ink);
+  font-variant-numeric:tabular-nums;margin-top:3px;}
+.eng-wrap .tiva-top-v span{font-size:13px;font-weight:600;color:var(--ink-3);margin-left:5px;}
+.eng-wrap .tiva-top-s{font-size:11px;color:var(--ink-3);margin-top:3px;}
+
+/* an agent block */
+.eng-wrap .tiva-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;}
+.eng-wrap .tiva-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:14px;margin-top:14px;}
+.eng-wrap .tiva-card{border:1px solid var(--tv-line);border-radius:var(--radius-lg);
+  background:var(--tv-fill);overflow:hidden;min-width:0;}
+.eng-wrap .tiva-card-h{display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:var(--tv-soft);border-bottom:1px solid var(--tv-line);}
+.eng-wrap .tiva-card-ic{width:36px;height:36px;flex:0 0 auto;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  background:var(--tv-soft2);border:1px solid var(--tv-line);}
+.eng-wrap .tiva-card-t{font-size:16px;font-weight:800;color:var(--ink);line-height:1.2;}
+.eng-wrap .tiva-card-s{font-size:11.5px;color:var(--ink-3);margin-top:2px;line-height:1.35;}
+.eng-wrap .tiva-card-b{padding:14px 16px;}
+.eng-wrap .tiva-card.sm .tiva-card-t{font-size:14.5px;}
+.eng-wrap .tiva-card.sm .tiva-card-b{padding:12px 14px;}
+/* the block inside a card */
+.eng-wrap .tiva-blk + .tiva-blk{margin-top:14px;padding-top:13px;border-top:1px solid var(--hair);}
+.eng-wrap .tiva-blk-h{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:800;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--tv-ink);margin:0 0 9px;}
+.eng-wrap .tiva-blk.warn .tiva-blk-h{color:var(--warning,#E8A838);}
+.eng-wrap .tiva-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;}
+/* a lead block is a sibling of the two-column band, not of a block, so the
+   separator rule above does not reach it */
+.eng-wrap .tiva-blk + .tiva-two{margin-top:14px;padding-top:13px;border-top:1px solid var(--hair);}
+.eng-wrap .tiva-two > .tiva-blk + .tiva-blk{margin-top:0;padding-top:0;border-top:none;}
+/* rows and bullets inside a card keep the instrument's own rhythm */
+/* A TARGET ROW STACKS RATHER THAN STRETCHES. These labels are real clinical
+   phrases, not the two-word labels a right-aligned value column assumes:
+   "Loss of consciousness" and "Intense stimulus (intubation/incision)" do not
+   share a line with their number inside a column of this width, and forcing
+   them to left the value orphaned on a line of its own, right-aligned against
+   nothing. Label above, value below, both flush left, and the number carries
+   the agent's own colour so the eye lands on it first. */
+/* #output-scoped, because the row rules these override are: a selector of
+   four classes still loses to one id. */
+#output .tiva-card .rw{display:block;padding:8px 0;border-bottom:1px solid var(--hair);}
+#output .tiva-card .rw:last-child{border-bottom:none;}
+#output .tiva-card .rw .rw-n{display:block;font-size:12px;font-weight:600;color:var(--ink-3);
+  line-height:1.35;text-align:left;flex:none;}
+#output .tiva-card .rw .rw-v{display:block;text-align:left;margin-top:2px;flex:none;
+  font-size:16.5px;font-weight:800;color:var(--tv-ink);white-space:normal;line-height:1.2;}
+/* a phrase value is prose, not a figure, and should not shout */
+#output .tiva-card .rw.txt .rw-v{font-size:13px;font-weight:650;color:var(--ink-2);}
+.eng-wrap .tiva-card .bul li{font-size:12.5px;line-height:1.5;}
+.eng-wrap .tiva-card .bul li::marker{color:var(--tv-ink);}
+.eng-wrap .tiva-m2{padding:8px 0;border-bottom:1px solid var(--hair);}
+.eng-wrap .tiva-m2:last-child{border-bottom:none;}
+.eng-wrap .tiva-m2 b{display:block;font-size:13px;font-weight:750;color:var(--ink);}
+.eng-wrap .tiva-m2 i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-3);
+  line-height:1.4;margin-top:2px;}
+/* the info strip at the foot */
+.eng-wrap .tiva-strip{display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:13px 15px;
+  border:1px solid var(--hair);border-left:2px solid rgba(126,207,192,.55);
+  border-radius:var(--radius-md);background:rgba(255,255,255,.022);}
+.eng-wrap .tiva-strip-ic{flex:0 0 auto;font-size:15px;line-height:1.3;color:var(--accent);}
+.eng-wrap .tiva-strip-tx{font-size:12.5px;color:var(--ink-2);line-height:1.55;min-width:0;}
+.eng-wrap .tiva-strip-tx b{color:var(--ink);font-weight:700;}
+
+/* ── THE FIVE IDENTITIES ────────────────────────────────────────────────*/
+.eng-wrap .tv-prop{--tv-ink:#F5C451;--tv-line:rgba(245,196,81,.3);
+  --tv-fill:rgba(245,196,81,.045);--tv-soft:rgba(245,196,81,.09);--tv-soft2:rgba(245,196,81,.16);}
+.eng-wrap .tv-remi{--tv-ink:#6FB4FF;--tv-line:rgba(111,180,255,.3);
+  --tv-fill:rgba(111,180,255,.045);--tv-soft:rgba(111,180,255,.09);--tv-soft2:rgba(111,180,255,.16);}
+.eng-wrap .tv-dex{--tv-ink:#5BD6D0;--tv-line:rgba(91,214,208,.3);
+  --tv-fill:rgba(91,214,208,.045);--tv-soft:rgba(91,214,208,.09);--tv-soft2:rgba(91,214,208,.16);}
+.eng-wrap .tv-peds{--tv-ink:#5EE393;--tv-line:rgba(94,227,147,.3);
+  --tv-fill:rgba(94,227,147,.045);--tv-soft:rgba(94,227,147,.09);--tv-soft2:rgba(94,227,147,.16);}
+.eng-wrap .tv-mri{--tv-ink:#B69BFF;--tv-line:rgba(182,155,255,.32);
+  --tv-fill:rgba(182,155,255,.05);--tv-soft:rgba(182,155,255,.1);--tv-soft2:rgba(182,155,255,.17);}
+
+/* PACU is recovery, and it reads in the teal the workspace uses for a
+   completed, settled state rather than the grey of everything else. */
+.eng-wrap .pacu-mod{border-left:2px solid rgba(126,207,192,.5);}
+.eng-wrap .pacu-mod .pacu-mod-head{color:var(--accent);}
+
+@media (max-width:900px){
+  .eng-wrap .tiva-hero{padding:13px var(--pad) 12px;gap:11px;}
+  .eng-wrap .tiva-hero-t{font-size:20px;}
+  .eng-wrap .tiva-hero-a{width:100%;justify-content:center;}
+  .eng-wrap .tiva-tops{grid-template-columns:1fr;gap:10px;}
+  .eng-wrap .tiva-grid,.eng-wrap .tiva-mini{grid-template-columns:1fr;}
+  .eng-wrap .tiva-top-v{font-size:24px;}
+}
 /* ══ NEUTRALISING THE REMAINING GREEN ═══════════════════════════════════
    Structure carries no hue. Each rule below replaces a green structural
    token found in the audit, not a decorative preference. */
@@ -3100,18 +3225,33 @@ function compute(){
     'Clinical judgement overrides all.</div>';
 
   // TIVA / TCI
+  /* THE PAGE SAYS WHAT IT IS BEFORE IT SAYS A NUMBER, and the three numbers
+     a clinician came for are the first three things under it. The values are
+     the same values this module has always printed; only their arrangement
+     and their colour changed. */
+  var tivaTop = function(cls, ico, label, value, unit, sub){
+    return '<div class="tiva-top '+cls+'">' +
+      '<div class="tiva-top-ic">'+ico+'</div>' +
+      '<div class="tiva-top-tx"><div class="tiva-top-l">'+label+'</div>' +
+      '<div class="tiva-top-v">'+value+'<span>'+unit+'</span></div>' +
+      '<div class="tiva-top-s">'+sub+'</div></div></div>';
+  };
   var tivaRows =
-    kpis([ kpi('Induction Ce','4–6','mcg/mL'), kpi('Maintenance Ce','2.5–4','mcg/mL'),
-           kpi('Remi Ce','2–6','ng/mL') ]) +
-    grp('Propofol targets',
-      metric('Induction (Ce)','4 – 6','mcg/mL')+
-      metric('Maintenance (Ce)','2.5 – 4','mcg/mL')+
-      metric('Manual infusion','10 → 8 → 6','mg/kg/h')) +
-    grp('Models',
-      m2('Marsh','Plasma target &middot; total body weight, no age term','TBW','')+
-      m2('Schnider','Effect-site target &middot; age, height, lean body mass','Ce','')+
-      m2('Minto (remifentanil)','Effect-site &middot; age and lean body mass','Ce','')) +
-    note('Reduce targets with opioid synergy and with age. TIVA with a neuromuscular blocker needs depth-of-anaesthesia monitoring.');
+    '<div class="tiva-hero">' +
+      '<div class="tiva-hero-ic">&#129504;</div>' +
+      '<div class="tiva-hero-tx">' +
+        '<div class="tiva-hero-t">TIVA / TCI &amp; sedation</div>' +
+        '<div class="tiva-hero-s">Target-controlled infusion models and sedation references for TIVA ' +
+          'and procedural sedation.</div>' +
+      '</div>' +
+      '<button type="button" class="tiva-hero-a" onclick="setDomain(\'drugs\')">' +
+        '&#128214; Reference</button>' +
+    '</div>' +
+    '<div class="tiva-tops">' +
+      tivaTop('tv-prop','&#128137;','Propofol, induction (Ce)','4 – 6','mcg/mL','Target effect-site concentration') +
+      tivaTop('tv-prop','&#128137;','Propofol, maintenance (Ce)','2.5 – 4','mcg/mL','Target effect-site concentration') +
+      tivaTop('tv-remi','&#128167;','Remifentanil (Ce)','2 – 6','ng/mL','Target effect-site concentration') +
+    '</div>';
   var tivaHelpers='';
 
   // VASOPRESSORS / INOTROPES
@@ -3343,13 +3483,12 @@ function compute(){
     '<div class="crisis-body" id="crisis-inline-body"></div>';
 
   // ── TCI / Sedation reference panel (educational, not decision support) ──
-  var sedBody =
-    tivaRows +
-    note(w0 ? ('Weight-based examples for <b>'+w0+' kg</b>.') : 'Enter a weight for weight-based examples — otherwise per-kg ranges are shown.')+
-    '<div class="ref-tabs" id="sed-tabs-inline">'+
-      SED.map(function(s,i){ return '<button type="button" class="ref-tab'+(i===_sedIdx?' on':'')+'" data-label="'+s[0]+'" onclick="sedInline('+i+')">'+s[0]+'</button>'; }).join('')+
-    '</div>'+
-    '<div id="sed-inline-body"></div>';
+  /* THE TAB STRIP IS GONE. Five agents behind five tabs meant four of them
+     were invisible, and the one on screen looked like every other one. They
+     are laid out together now, each in its own colour, so the page can be
+     scanned instead of clicked through. #sed-inline-body is still the mount
+     and still carries every panel's content. */
+  var sedBody = tivaRows + '<div id="sed-inline-body"></div>';
 
   // ── Airway Tubes (large reference module) ──────────────────────────────
   var tubeSuggest = kpis([
@@ -6280,23 +6419,28 @@ var SED = [
        canonical migration later; this removes one duplicated induction dose,
        not a screen. */
     {h:'Use case', list:['TIVA maintenance (often with remifentanil)','Procedural / conscious sedation at low Ce','Induction and general anaesthesia']},
-    {h:'Key cautions', list:['Dose-dependent hypotension and apnoea','Pain on injection','Propofol infusion syndrome (PRIS) — avoid prolonged high-dose, especially children / ICU','Context-sensitive half-time rises with long infusions','No analgesia — pair with an analgesic']},
-    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce targets ~20–40%, titrate slowly (↑ sensitivity, ↓ clearance)','Children need higher mg/kg and infusion rates','Schnider / Marsh not validated <16 y — use Paedfusor / Kataria','Avoid prolonged high-dose infusions in children (PRIS risk)']}
+    {h:'Key cautions', list:['Dose-dependent hypotension and apnoea','Pain on injection','Propofol infusion syndrome (PRIS), avoid prolonged high-dose, especially children / ICU','Context-sensitive half-time rises with long infusions','No analgesia, pair with an analgesic']},
+    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce targets ~20–40%, titrate slowly (↑ sensitivity, ↓ clearance)','Children need higher mg/kg and infusion rates','Schnider / Marsh not validated <16 y, use Paedfusor / Kataria','Avoid prolonged high-dose infusions in children (PRIS risk)']}
   ]};}],
 
-  ['Remifentanil','Minto model — effect-site (Ce), scales with age & lean body mass', function(w){ return { blocks:[
+  ['Remifentanil','Minto model, effect-site (Ce), scales with age & lean body mass', function(w){ return { blocks:[
     {h:'Model', rows:[['Minto','Ce target; adjusts for age and lean body mass']]},
     {h:'Target ranges (Ce)', rows:[
       ['Analgesia / sedation adjunct','1–3 ng/mL'],
       ['GA adjunct (with propofol)','3–8 ng/mL'],
       ['Intense stimulus (intubation/incision)','6–10 ng/mL'],
       ['Weight-based alt (no TCI / paeds)','0.05–0.5 mcg/kg/min']]},
-    {h:'Use case', list:['Analgesic component of TIVA','Obtund response to laryngoscopy / strong stimulus','Rapid offset — fast, predictable emergence']},
-    {h:'Key cautions', list:['Apnoea — ensure ventilation is controlled','Chest-wall / glottic rigidity (rapid bolus or high Ce)','Bradycardia and hypotension','Acute tolerance / opioid-induced hyperalgesia','No residual analgesia — establish multimodal analgesia before offset']},
-    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce ~50%; slower titration','Minto not validated <12 y — use weight-based infusion','Always combine with a hypnotic (no amnesia alone)']}
+    {h:'Use case', list:['Analgesic component of TIVA','Obtund response to laryngoscopy / strong stimulus','Rapid offset, fast, predictable emergence']},
+    /* HYPERALGESIA IS NAMED AND THEN ANSWERED. Listing it as a caution and
+       stopping there tells a clinician a problem exists and nothing about
+       what to do at the moment they meet it. The management line is the
+       standard multimodal approach and stays deliberately conditional: it
+       ends at local protocol, because that is where the choice is made. */
+    {h:'Key cautions', list:['Apnoea, ensure ventilation is controlled','Chest-wall / glottic rigidity (rapid bolus or high Ce)','Bradycardia and hypotension','Acute tolerance and opioid-induced hyperalgesia (with prolonged high doses)','No residual analgesia, establish multimodal analgesia before offset','<b>Management of hyperalgesia:</b> reduce or stop remifentanil, use a longer-acting opioid or multimodal analgesia, consider ketamine, and consider magnesium or dexmedetomidine according to local protocol']},
+    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce ~50%; slower titration','Minto not validated <12 y, use weight-based infusion','Always combine with a hypnotic (no amnesia alone)']}
   ]};}],
 
-  ['Dexmedetomidine','Alpha-2 agonist — sedation with largely preserved respiration', function(w){ return { blocks:[
+  ['Dexmedetomidine','Alpha-2 agonist, sedation with largely preserved respiration', function(w){ return { blocks:[
     /* THE LAST WEIGHT-SCALED DOSE IN SED[] IS GONE. The loading row printed
        "1 mcg/kg over 10 min" and then multiplied it by the patient's weight,
        which is the same defect as I and I-b: a per-patient dose computed
@@ -6317,11 +6461,11 @@ var SED = [
       ['Procedural sedation','load 0.5–1 mcg/kg → 0.2–1 mcg/kg/hr'],
       ['MRI sedation','1–2 mcg/kg load + 1–2 mcg/kg/hr (± propofol)'],
       ['Awake fibreoptic / regional adjunct','1 mcg/kg over 10 min → 0.3–0.7 mcg/kg/hr']]},
-    {h:'Key cautions', list:['Bradycardia and hypotension (worse with loading dose)','Transient hypertension during loading (biphasic BP response)','Slow onset — not for rapid deepening','Not a reliable sole general anaesthetic','Caution with heart block or AV-nodal blocking drugs']},
+    {h:'Key cautions', list:['Bradycardia and hypotension (worse with loading dose)','Transient hypertension during loading (biphasic BP response)','Slow onset, not for rapid deepening','Not a reliable sole general anaesthetic','Caution with heart block or AV-nodal blocking drugs']},
     {h:'Elderly / paediatric adjustment', list:['Elderly: consider no-load or a slower loading dose','Paediatric: widely used off-label; similar per-kg ranges','Caution in cardiac conduction abnormalities']}
   ]};}],
 
-  ['Pediatric sedation','Spontaneous-ventilation techniques — weight-based, airway-ready', function(w){ return { blocks:[
+  ['Pediatric sedation','Spontaneous-ventilation techniques, weight-based, airway-ready', function(w){ return { blocks:[
     {h:'MRI / imaging', rows:[
       ['Dexmedetomidine','1–2 mcg/kg load + 1–2 mcg/kg/hr'],
       ['± Propofol','low infusion to supplement']]},
@@ -6342,10 +6486,10 @@ var SED = [
        left as a heading over nothing — compacted, not filled. */
     {h:'Propofol guidance', rows:[
       ['Infusion','100–300 mcg/kg/min, titrate to effect']]},
-    {h:'Airway / ventilation warnings', list:['Maintain spontaneous ventilation; capnography mandatory','Airway rescue, suction and oxygen ready; pre-oxygenate','Children desaturate fast (low FRC) — small reserve','Strict fasting; weight-based dosing throughout','Neonates / infants are higher risk — involve senior / PICU early']}
+    {h:'Airway / ventilation warnings', list:['Maintain spontaneous ventilation; capnography mandatory','Airway rescue, suction and oxygen ready; pre-oxygenate','Children desaturate fast (low FRC), small reserve','Strict fasting; weight-based dosing throughout','Neonates / infants are higher risk, involve senior / PICU early']}
   ]};}],
 
-  ['MRI sedation','Sedation in the MRI environment — limited access', function(w){ return { blocks:[
+  ['MRI sedation','Sedation in the MRI environment, limited access', function(w){ return { blocks:[
     {h:'MRI-safe setup', list:['MRI-conditional monitors and infusion pumps','Long extension lines; clinician outside the bore','Zone IV safety checklist; remove ferromagnetic items']},
     {h:'Regimens', rows:[
       ['Dexmedetomidine ± propofol','spontaneous ventilation'],
@@ -6700,33 +6844,84 @@ function tubeInline(i){
 window.tubeInline=tubeInline; window.tubeCat=tubeCat;
 
 var _sedIdx = 0;
-function sedInline(i){
-  _sedIdx = i;
-  var tabs = ge('sed-tabs-inline');
-  if(tabs) tabs.querySelectorAll('.ref-tab').forEach(function(b,bi){ b.classList.toggle('on', bi===i); });
-  var body = ge('sed-inline-body'); if(!body) return;
-  var w = crisisWeight();
-  var d = SED[i][2](w);
-  var html = '<div class="ref-head"><div class="ref-name">'+SED[i][0]+'<i>'+SED[i][1]+'</i></div></div>';
-  /* ANSWER BEFORE IT TEACHES.
-     A block of value rows is an answer — targets, model basis, infusion
-     rates — and stays on the surface. A block of prose bullets is the
-     teaching layer: use cases, elderly/paediatric adjustment, model
-     rationale. Those fold. Cautions are the exception and never fold. */
-  var cols = ['',''], L3 = '', ci = 0;
+/* ── THE TCI / SEDATION REFERENCE, LAID OUT RATHER THAN TABBED ───────────
+   Every panel in SED[] renders, each in its own colour, in the order a
+   clinician meets them: the two agents a TIVA is actually built from as full
+   blocks, then the three techniques as compact cards. The content is SED[]'s
+   own, unchanged and uncomputed. This function still writes into
+   #sed-inline-body, and sedInline(i) still exists and is still called with an
+   index, because callers pass one; the index no longer hides four panels. */
+var SED_SKIN = [
+  { cls:'tv-prop', ico:'&#128137;', sub:'Common targets for TIVA using propofol, effect-site unless stated.' },
+  { cls:'tv-remi', ico:'&#128167;', sub:'Common targets for TIVA and procedural sedation.' },
+  { cls:'tv-dex',  ico:'&#128100;', sub:'Adjunct for sedation and analgesia.' },
+  { cls:'tv-peds', ico:'&#128106;', sub:'Age-appropriate TIVA and sedation.' },
+  { cls:'tv-mri',  ico:'&#128301;', sub:'TIVA and procedural sedation for MRI.' }
+];
+function sedBlk(h, body, warn){
+  return '<div class="tiva-blk'+(warn?' warn':'')+'">' +
+    '<div class="tiva-blk-h">'+(warn?'&#9888; ':'')+h+'</div>'+body+'</div>';
+}
+function sedM2(label, detail){
+  return '<div class="tiva-m2"><b>'+label+'</b><i>'+detail+'</i></div>';
+}
+/* One panel, rendered whole. `two` puts the first two blocks side by side,
+   which is what the big agents want and the small cards do not. */
+function sedCard(idx, w, opt){
+  var def = SED[idx], skin = SED_SKIN[idx] || SED_SKIN[0];
+  var d = def[2](w), o = opt || {};
+  var head = '<div class="tiva-card-h"><div class="tiva-card-ic">'+skin.ico+'</div>' +
+    '<div><div class="tiva-card-t">'+def[0]+'</div>' +
+    '<div class="tiva-card-s">'+(skin.sub||def[1])+'</div></div></div>';
+  var lead = [], rest = [];
   d.blocks.forEach(function(blk){
-    var isAnswer = !!blk.rows;
     var isCaution = /caution|warning|risk/i.test(blk.h||'');
     var b = '';
-    if(blk.rows) b += blk.rows.map(function(r){ return metric(r[0], r[1], ''); }).join('');
+    /* A models block reads as label-and-explanation, not as a value row. */
+    var isModels = /^models?$/i.test(blk.h||'');
+    if(blk.rows) b += blk.rows.map(function(r){
+      return isModels ? sedM2(r[0], r[1]) : metric(r[0], r[1], ''); }).join('');
     if(blk.list) b += bul(blk.list);
-    if(isAnswer || isCaution){ cols[ci % 2] += grp(blk.h, b); ci++; }
-    else L3 += grp(blk.h, b);
+    (o.lead && o.lead.test(blk.h||'') ? lead : rest).push(sedBlk(blk.h, b, isCaution));
   });
-  html += '<div class="ref-cols"><div>'+cols[0]+'</div><div>'+cols[1]+'</div></div>';
-  if(L3) html += '<details class="ref-more"><summary>Models, use cases &amp; dose adjustment</summary>'+L3+'</details>';
-  html += foot('Reference and education only — not automatic clinical decision support. Always verify doses against current local protocols and the patient\u2019s context.');
-  body.innerHTML = html;
+  var body = (o.pre||'') +
+    (lead.length ? '<div class="tiva-two">'+lead.join('')+'</div>' : '') + rest.join('');
+  return '<div class="tiva-card '+skin.cls+(o.sm?' sm':'')+'">'+head +
+    '<div class="tiva-card-b">'+body+'</div></div>';
+}
+function sedInline(i){
+  if(typeof i === 'number') _sedIdx = i;
+  var body = ge('sed-inline-body'); if(!body) return;
+  var w = crisisWeight();
+  /* The two agents a TIVA is built from, side by side. Propofol leads with
+     its targets and its models; remifentanil with its target and the
+     cautions that matter at the bedside. */
+  /* THE THREE FIGURES THIS MODULE HAS ALWAYS LED WITH. They are the same
+     values the summary cards above carry, plus the manual infusion rate,
+     which has no canonical counterpart and is legacy display content: it is
+     printed, never computed, and nothing reads it as data. */
+  var propTargets = sedBlk('TIVA targets',
+    metric('Induction (Ce)','4 – 6','mcg/mL') +
+    metric('Maintenance (Ce)','2.5 – 4','mcg/mL') +
+    metric('Manual infusion','10 → 8 → 6','mg/kg/h'));
+  var main = '<div class="tiva-grid">' +
+    sedCard(0, w, { lead:/target ranges|^models?$/i, pre:propTargets }) +
+    sedCard(1, w, { lead:/target ranges|caution/i }) +
+  '</div>';
+  /* The three techniques, compact and each its own colour. */
+  var mini = '<div class="tiva-mini">' +
+    sedCard(2, w, { sm:true }) + sedCard(3, w, { sm:true }) + sedCard(4, w, { sm:true }) +
+  '</div>';
+  var wt = crisisWeight();
+  var strip = '<div class="tiva-strip"><span class="tiva-strip-ic">&#8505;</span>' +
+    '<div class="tiva-strip-tx">Reduce targets with opioid synergy and with age. ' +
+    'TIVA with a neuromuscular blocker needs depth-of-anaesthesia monitoring.' +
+    (wt ? '<br>Weight-based examples for <b>'+wt+' kg</b>.'
+        : '<br>Enter a weight for weight-based examples, otherwise per-kg ranges are shown.') +
+    '</div></div>';
+  body.innerHTML = main + mini + strip +
+    foot('Reference and education only, not automatic clinical decision support. ' +
+         'Always verify doses against current local protocols and the patient’s context.');
 }
 window.sedInline=sedInline;
 
