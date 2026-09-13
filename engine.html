@@ -2119,6 +2119,13 @@ table.dtab-red .dtab-dose{width:18%;}
   border:1px solid var(--hair);border-radius:var(--radius-md);
   box-shadow:none;margin-bottom:8px;
 }
+/* PACU'S TEAL RULE, RE-ASSERTED WHERE IT CAN WIN. It was declared earlier in
+   this stylesheet and then silently undone: the shorthand directly above sets
+   all four borders at equal specificity, and the later rule takes it. The
+   heading kept its teal, so the panel still read as recovery and the defect
+   only showed up when the computed value was measured. Same declaration, same
+   colour, stated after the rule that was overwriting it. */
+.eng-wrap .pacu-mod{border-left:2px solid rgba(126,207,192,.5);}
  /* one row: identity left, status and the emergency control right */
 .eng-wrap .cw-hero{padding:13px var(--pad);gap:16px;flex-direction:row;
   align-items:center;justify-content:space-between;flex-wrap:wrap;}
