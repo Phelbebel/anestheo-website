@@ -2097,9 +2097,14 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
   t('...and mxCard no longer emits a pearls row at all',
     !/body \+= mxRow\('Practical pearls'/.test(ENGC),
     'mxCard emits no pearls row');
-  t('...though the nitrous oxide card keeps its coverage statement',
-    /mxRow\('Practical pearls','No concentration or MAC is published here/.test(ENG),
-    'N2O coverage pearl retained');
+  /* WAS: the nitrous oxide card keeps its practical-pearls row, which held
+     the sentence explaining why no number is published. That row is gone
+     too: "Practical pearls" is a clinical heading, and the card is no longer
+     allowed to carry clinical headings at all. The same statement survives
+     as a Coverage row, which describes our data rather than the drug, and is
+     asserted in section 20. */
+  t('...and no card emits a pearls row any more, nitrous oxide included',
+    !/mxRow\('Practical pearls'/.test(ENGC), 'no pearls row anywhere');
   t('...while the effects row renders only when there is something to say',
     /if\(effect\) fold \+= mxRow\('Key effects'/.test(ENGC),
     'effects row is conditional');
@@ -2254,6 +2259,80 @@ console.log('\n20. NITROUS OXIDE CARRIES NO NUMBER');
   t('...and the card states a coverage line instead',
     /Numeric reference under review/.test(ENG),
     'N2O coverage text present');
+
+  /* ── AN AGENT WITHOUT A RECORD MAY BE NAMED, NOT DESCRIBED ───────────
+     THE INVARIANT: where no canonical record exists, Maintenance may render
+     identity, visual styling and an explicit coverage state. It may NOT
+     render page-authored claims about pharmacology, indications, effects,
+     cautions, dosing, MAC or practical use.
+
+     Nitrous oxide is the only agent this currently applies to, and the card
+     broke the rule for everything except the two numbers: it called the
+     agent an "Analgesic adjunct", described it as used alongside a volatile
+     or intravenous technique, and carried a three-sentence CAUTIONS row on
+     air-filled spaces, cuff pressure and combustion. All uncited, all in the
+     same rows and the same amber warning style as the CITED cautions on the
+     three agents beside it, so a reader could not tell which card was
+     sourced. The statements were not wrong, which is precisely why they had
+     to go: plausible uncited prose is the kind that survives review.
+
+     Asserted against the two N2O builders specifically, so that prose
+     elsewhere in the file cannot mask a regression here. */
+  const N2OQ = (/var mxN2OQuick =[\s\S]*?;\n(?=\s*var )/.exec(ENGC) || [''])[0];
+  const N2OC = (/var mxN2OCard =[\s\S]*?';\n(?=\s*var )/.exec(ENGC) || [''])[0];
+  t('both nitrous oxide builders were found, so the rest of this means something',
+    N2OQ.length > 80 && N2OC.length > 80, { quick:N2OQ.length, card:N2OC.length });
+  t('...neither carries a subtitle', !/mx-q-s|mx-card-s/.test(N2OQ + N2OC),
+    (/(mx-q-s|mx-card-s)[^<]*/.exec(N2OQ + N2OC) || ['none'])[0]);
+  /* ENGC, not ENG: the phrase survives in the comment above the builder that
+     explains why it was removed, which is documentation rather than output. */
+  t('...and the "Analgesic adjunct" descriptor is gone from the rendered page',
+    !/Analgesic adjunct/.test(ENGC), 'no Analgesic adjunct in code');
+  t('...no Key effects row', !/mxRow\('Key effects'/.test(N2OC), 'no key effects');
+  t('...no Cautions row', !/mxRow\('Cautions'/.test(N2OC), 'no cautions');
+  t('...no Practical pearls row', !/mxRow\('Practical pearls'/.test(N2OC),
+    'no practical pearls');
+  /* The specific claims, by content, so they cannot return in a reworded row.
+     Scoped to the MAINTENANCE volatile section rather than the whole file:
+     the laser-tube module has its own long-standing line about nitrous oxide
+     supporting combustion, inside content about airway fires, which is a
+     different module with its own provenance and is not what this pass
+     touched. Asserting over the whole file would have quietly deleted it. */
+  const MXVOL = (/var VOLATILE_SKIN[\s\S]*?var volatileBody =[\s\S]*?';\n/.exec(ENGC) || [''])[0];
+  t('...and none of the four uncited claims survives in the maintenance section',
+    !/adjunct alongside a volatile/i.test(MXVOL) &&
+    !/diffuses into air filled spaces/i.test(MXVOL) &&
+    !/raises cuff pressure/i.test(MXVOL) &&
+    !/supports combustion/i.test(MXVOL),
+    [/adjunct alongside a volatile/i, /diffuses into air filled spaces/i,
+     /raises cuff pressure/i, /supports combustion/i].map(r => r.test(MXVOL)));
+  /* What must REMAIN: identity, styling, and the coverage states. */
+  t('the quick card still names the agent and states two coverage lines',
+    /Nitrous oxide/.test(N2OQ) && /vx-n2o/.test(N2OQ) &&
+    (N2OQ.match(/Numeric reference under review/g) || []).length === 2,
+    (N2OQ.match(/Numeric reference under review/g) || []).length + ' coverage lines');
+  t('...and the detailed card does the same',
+    /Nitrous oxide/.test(N2OC) && /vx-n2o/.test(N2OC) &&
+    (N2OC.match(/Numeric reference under review/g) || []).length === 2,
+    (N2OC.match(/Numeric reference under review/g) || []).length + ' coverage lines');
+  t('...with one plain coverage statement about our data, not about the drug',
+    /mxRow\('Coverage','No reviewed numeric or clinical reference is published yet\.','cov'\)/
+      .test(N2OC), 'coverage row present');
+  /* No number of any kind may appear in either card's VISIBLE TEXT. Stronger
+     than checking the two specifically declined figures: it fails on ANY
+     digit, so no concentration, percentage or MAC value can be introduced in
+     any wording. Markup is stripped first because identifiers legitimately
+     carry digits: the class is vx-n2o and the builders are mxN2OQuick and
+     mxN2OCard, and those 2s are not clinical values. */
+  const visible = src => src
+    .replace(/&#\d+;/g, ' ')                 /* html entities */
+    .replace(/class="[^"]*"/g, ' ')          /* class names, e.g. vx-n2o */
+    .replace(/var mx\w+\s*=/g, ' ')          /* the builder's own name */
+    .replace(/<[^>]*>/g, ' ');               /* every remaining tag */
+  t('...and neither card shows a digit in its visible text',
+    !/\d/.test(visible(N2OQ)) && !/\d/.test(visible(N2OC)),
+    { quick:(visible(N2OQ).match(/\d/g) || []).join(''),
+      card:(visible(N2OC).match(/\d/g) || []).join('') });
 }
 
 /* ── ANTIBIOTIC PROPHYLAXIS: OFF THE WORKSPACE, NOT OUT OF THE APP ───────

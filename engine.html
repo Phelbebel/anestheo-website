@@ -3592,7 +3592,30 @@ function compute(){
       '</div></div>' +
       '<div class="mx-card-b">'+body+'</div></div>';
   }
-  /* Nitrous oxide: an identity and an honest coverage state, no number. */
+  /* ── NITROUS OXIDE: IDENTITY AND A COVERAGE STATE. NOTHING ELSE. ───────
+     THE RULE THIS CARD EXISTS TO DEMONSTRATE: an agent with no canonical
+     record may be named, coloured and reported as not yet covered. It may
+     not be described. Not its pharmacology, not its indications, not its
+     effects, not its cautions, not its practical use.
+
+     This card broke that rule for everything except the two numbers. It
+     called the agent an "Analgesic adjunct", said it was "used as an adjunct
+     alongside a volatile agent or an intravenous technique", and carried a
+     three-sentence CAUTIONS row about air-filled spaces, tracheal tube cuff
+     pressure and combustion near a laser. Every one of those is a clinical
+     claim, written in this file, with no record and no citation behind it,
+     printed in the same rows and the same amber warning style as the cited
+     cautions on the three agents beside it. A reader has no way to tell
+     which of the four cards is sourced.
+
+     The statements are not wrong. That is exactly why removing them matters:
+     plausible uncited prose is the kind that survives review, and a page
+     that prints it becomes an uncited clinical database one true sentence at
+     a time. They come back when a reviewed nitrous oxide record exists, out
+     of ClinicalContent, through the same gate as everything else.
+
+     What is left says what we actually know: this agent is in the set, and
+     we have not published a reference for it.                              */
   var mxN2OQuick =
     '<div class="mx-q vx-n2o"><div class="mx-q-h"><div class="mx-q-ic">&#9738;</div>' +
       '<div class="mx-q-n">Nitrous oxide</div></div>' +
@@ -3603,17 +3626,18 @@ function compute(){
          number in it: that IS the comparison this card contributes. */
       '<div class="mx-q-mac"><div class="mx-q-l">MAC</div>' +
         '<div class="mx-q-mac-v cov">Numeric reference under review</div></div>' +
-      '<div class="mx-q-s">Analgesic adjunct</div></div>';
+    '</div>';
   var mxN2OCard =
     '<div class="mx-card vx-n2o"><div class="mx-card-h"><div class="mx-card-ic">&#9738;</div>' +
-      '<div><div class="mx-card-t">Nitrous oxide</div>' +
-      '<div class="mx-card-s">Analgesic adjunct</div></div></div>' +
+      '<div><div class="mx-card-t">Nitrous oxide</div></div></div>' +
       '<div class="mx-card-b">' +
         mxRow('Typical maintenance','Numeric reference under review','cov') +
         mxRow('MAC','Numeric reference under review','cov') +
-        mxRow('Key effects','Used as an adjunct alongside a volatile agent or an intravenous technique.') +
-        mxRow('Cautions','Nitrous oxide diffuses into air filled spaces. It diffuses into a tracheal tube cuff and raises cuff pressure over time. It supports combustion, so it is never used where a laser is in use.','warn') +
-        mxRow('Practical pearls','No concentration or MAC is published here until a label backed value has been reviewed.') +
+        /* A statement about our data, not about the drug. It says nothing a
+           clinician could mistake for guidance, and it is the same thing the
+           two rows above say, stated once in plain words so the card reads
+           as deliberately incomplete rather than broken. */
+        mxRow('Coverage','No reviewed numeric or clinical reference is published yet.','cov') +
       '</div></div>';
   var volatileBody =
     '<div class="mx-hero"><div class="mx-hero-ic">&#128138;</div>' +
