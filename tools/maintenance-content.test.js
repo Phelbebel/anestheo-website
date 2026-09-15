@@ -2078,20 +2078,16 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
   const ENGSK = /VOLATILE_SKIN\s*=\s*\{[\s\S]*?\n  \};/.exec(ENG);
   const sent = s => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ')
                              .replace(/\s+/g, ' ').trim();
-  t('...and no caution restates that agent’s effects line',
-    VOL.every(id => { const d = CC.byId(id);
-      const m = new RegExp("'" + id + "':\\{[\\s\\S]*?effects:'([^']*)'").exec(ENGSK ? ENGSK[0] : '');
-      if (!m) return true;                       /* no effects row to collide with */
-      return sent(d.warn).indexOf(sent(m[1])) < 0; }),
-    VOL.map(id => { const m = new RegExp("'" + id + "':\\{[\\s\\S]*?effects:'([^']*)'")
-                      .exec(ENGSK ? ENGSK[0] : '');
-                    return id + '=' + (m ? m[1].slice(0, 34) : 'no effects row'); }));
+  /* WAS: this read the effects string out of VOLATILE_SKIN. That object no
+     longer carries clinical prose, so the assertion had quietly become
+     vacuous, passing for all three agents because it found nothing to
+     compare against. A test that cannot fail is worse than no test: it looks
+     like coverage. The effect-versus-caution comparison is made against the
+     CANONICAL effect in the effects section below, where it now lives. */
   t('...and no caution restates one of that agent’s own dose notes',
     VOL.every(id => { const d = CC.byId(id);
       return (d.doses || []).every(x => !x.note || sent(d.warn).indexOf(sent(x.note)) < 0); }),
     []);
-  /* The pearls are gone on purpose: every one of them was a second printing
-     of a cited row on the same card. */
   /* The pearls are gone from the three AGENT cards. Nitrous oxide keeps its
      own hand-written card, and its pearls row is the sentence that says why
      no number is published there, which is the opposite of a duplicate. */
@@ -2105,8 +2101,109 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
     /mxRow\('Practical pearls','No concentration or MAC is published here/.test(ENG),
     'N2O coverage pearl retained');
   t('...while the effects row renders only when there is something to say',
-    /if\(sk\.effects\) body \+= mxRow\('Key effects'/.test(ENGC),
+    /if\(effect\) fold \+= mxRow\('Key effects'/.test(ENGC),
     'effects row is conditional');
+
+  /* ── EVERY EFFECTS ROW IS CANONICAL AND CITED ────────────────────────
+     THE ARCHITECTURAL INVARIANT: clinical prose comes from ClinicalContent,
+     VOLATILE_SKIN controls presentation. Two of these three sentences used
+     to live in engine.html as uncited strings printed under a KEY EFFECTS
+     heading, where they read exactly as clinical as the cited rows above
+     them. All three are records now, and the renderer has no fallback to
+     the skin, so the invariant cannot quietly decay: a missing citation
+     costs a visible row rather than silently printing unsourced prose. */
+  const SETID = {
+    'drug.sevoflurane':'DailyMed setid bdde7502-6218-401c-9a4f-dd3bc3a80f72',
+    'drug.desflurane' :'DailyMed setid 561c51aa-76fd-2eb8-e063-6394a90a7021',
+    'drug.isoflurane' :'DailyMed setid 525a2467-548d-4b10-b181-91b90e99ae1b' };
+  t('every volatile agent carries a canonical effect statement',
+    VOL.every(id => { const e = CC.byId(id).effect;
+      return typeof e === 'string' && e.length > 40; }),
+    VOL.map(id => id + '=' + String((CC.byId(id).effect || '').length)));
+  t('...each one reviewed and cited to DailyMed',
+    VOL.every(id => { const e = CC.byId(id).effectEvidence;
+      return !!(e && e.state === 'reviewed' && e.authority === 'DailyMed'); }),
+    VOL.map(id => id + '=' + ((CC.byId(id).effectEvidence || {}).authority || 'NONE')));
+  t('...each naming an explicit source section',
+    VOL.every(id => { const s = (CC.byId(id).effectEvidence || {}).section;
+      return typeof s === 'string' && s.length > 8; }),
+    VOL.map(id => ((CC.byId(id).effectEvidence || {}).section || 'NONE')));
+  t('...to the SAME setid as that agent\u2019s own dose records',
+    VOL.every(id => { const d = CC.byId(id), sid = (d.effectEvidence || {}).documentId;
+      return sid === SETID[id] && d.doses.every(x => x.evidence.documentId === sid); }),
+    VOL.map(id => id + '=' + ((CC.byId(id).effectEvidence || {}).documentId || '').slice(-12)));
+  t('...and the same setid its caution is sourced to',
+    VOL.every(id => { const d = CC.byId(id);
+      return d.effectEvidence.documentId === d.warnEvidence.documentId; }));
+  /* Effect is DESCRIPTIVE, caution is RISK. Neither may swallow the other,
+     or one of the two questions a clinician asks stops being answered. */
+  t('...and no effect restates that agent\u2019s caution, or the reverse',
+    VOL.every(id => { const d = CC.byId(id);
+      return sent(d.warn).indexOf(sent(d.effect)) < 0 &&
+             sent(d.effect).indexOf(sent(d.warn)) < 0; }), []);
+  t('...nor restates one of that agent\u2019s own dose notes',
+    VOL.every(id => { const d = CC.byId(id);
+      return (d.doses || []).every(x => !x.note ||
+        sent(d.effect).indexOf(sent(x.note)) < 0); }), []);
+  /* The three effects must distinguish the three agents. Identical or
+     overlapping statements would make the comparison grid pointless. */
+  t('...and the three of them are distinct statements',
+    new Set(VOL.map(id => sent(CC.byId(id).effect))).size === 3,
+    VOL.map(id => sent(CC.byId(id).effect).slice(0, 34)));
+  /* Checked by load-bearing terms rather than exact string, so the prose can
+     be tightened without the assertion becoming a spelling test. */
+  t('...sevoflurane on pungency and mask induction',
+    /nonpungent/i.test(CC.byId('drug.sevoflurane').effect) &&
+    /mask induction/i.test(CC.byId('drug.sevoflurane').effect),
+    CC.byId('drug.sevoflurane').effect);
+  t('...desflurane on effect following inspired concentration',
+    /inspired concentration/i.test(CC.byId('drug.desflurane').effect) &&
+    /rapid/i.test(CC.byId('drug.desflurane').effect),
+    CC.byId('drug.desflurane').effect);
+  t('...isoflurane on rhythm and the rate-for-stroke-volume compensation',
+    /rhythm/i.test(CC.byId('drug.isoflurane').effect) &&
+    /heart rate/i.test(CC.byId('drug.isoflurane').effect) &&
+    /stroke volume/i.test(CC.byId('drug.isoflurane').effect) &&
+    /PaCO/i.test(CC.byId('drug.isoflurane').effect),
+    CC.byId('drug.isoflurane').effect);
+
+  /* ── VOLATILE_SKIN IS PRESENTATION METADATA AND NOTHING ELSE ──────────*/
+  t('VOLATILE_SKIN carries no clinical effects prose for any agent',
+    !!ENGSK && !/effects\s*:/.test(ENGSK[0]),
+    (/effects\s*:\s*'([^']*)'/.exec(ENGSK ? ENGSK[0] : '') || ['none'])[0]);
+  t('...only class, icon and role',
+    !!ENGSK && (ENGSK[0].match(/\b(cls|ico|role|effects|pearl|warn|dose|mac)\s*:/g) || [])
+      .every(k => /^(cls|ico|role)\s*:$/.test(k)),
+    [...new Set((ENGSK ? ENGSK[0] : '').match(/\b\w+\s*:/g) || [])].join(' '));
+  t('...and the renderer has NO fallback to it',
+    /var effect = d\.effect \|\| '';/.test(ENGC) && !/sk\.effects/.test(ENGC),
+    'd.effect only, no sk.effects anywhere');
+
+  /* ── THE PHONE FOLD, AS A CONTRACT ON WHAT MAY BE HIDDEN ─────────────
+     Asserted here against the source because it is a rule about WHICH rows
+     are foldable. Whether the fold actually collapses, and at what width, is
+     measured in live-tools-responsive.test.js. */
+  t('only Context and Key effects go inside the fold',
+    /if\(note\) fold \+= mxRow\('Context'/.test(ENGC) &&
+    /if\(effect\) fold \+= mxRow\('Key effects'/.test(ENGC) &&
+    !/fold \+= mxRow\('Cautions'/.test(ENGC) &&
+    !/fold \+= mxRow\('MAC/i.test(ENGC),
+    'Context and Key effects only');
+  t('...cautions are appended to the card body, outside it',
+    /if\(d\.warn\) body \+= mxRow\('Cautions', d\.warn, 'warn'\)/.test(ENGC),
+    'cautions render unconditionally on the body');
+  t('...and every dose row is on the body too, never in the fold',
+    /rows\.forEach\(function\(r\)\{[\s\S]{0,160}body \+= mxRow\(r\.label/.test(ENGC),
+    'dose and MAC rows go straight onto the body');
+  t('...one disclosure per card, not one per row',
+    (ENGC.match(/class="mx-fold-b"/g) || []).length === 1,
+    (ENGC.match(/class="mx-fold-b"/g) || []).length + ' disclosure template');
+  t('...its default state is decided by CSS, not by measuring the viewport',
+    !/innerWidth|matchMedia/.test(
+      (/window\.mxFoldToggle[\s\S]{0,320}?\};/.exec(ENGC) || [''])[0]),
+    'mxFoldToggle only records the click');
+  t('...and the nitrous oxide card is not folded at all',
+    !/mxN2OCard[\s\S]{0,900}mx-fold/.test(ENGC), 'N2O card has no disclosure');
 }
 
 /* ── NITROUS OXIDE STAYS NUMBERLESS ──────────────────────────────────────

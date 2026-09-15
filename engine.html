@@ -1296,6 +1296,12 @@ table.dtab-red .dtab-dose{width:18%;}
 /* Phone only. The desktop quick card is approved as it stands, and MAC is on
    the detailed card directly below it there. */
 .eng-wrap .mx-q-mac{display:none;}
+/* THE DISCLOSURE DOES NOT EXIST ABOVE 640px. The button is out of the layout
+   and out of the accessibility tree, and its contents are simply rows in the
+   card, exactly as they were before the fold was added. A desktop reader is
+   never asked to click to see ordinary reference material. */
+.eng-wrap .mx-fold-b{display:none;}
+.eng-wrap .mx-fold-c{display:block;}
 
 /* the detailed agent cards */
 .eng-wrap .mx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(262px,1fr));gap:13px;}
@@ -1396,6 +1402,23 @@ table.dtab-red .dtab-dose{width:18%;}
   .eng-wrap .mx-q-mac-v{font-size:11px;font-weight:700;color:var(--ink-2);line-height:1.3;
     font-variant-numeric:tabular-nums;}
   .eng-wrap .mx-q-mac-v.cov{font-weight:650;color:var(--ink-3);font-style:italic;}
+
+  /* ── ONE DISCLOSURE PER CARD, 44px, COLLAPSED UNTIL ASKED ────────────
+     Full width so the target is the row rather than the word, and the
+     chevron turns rather than swapping glyph so the state reads at a
+     glance. The content is display:none while closed, which is what keeps
+     it out of the accessibility tree as well as out of the layout. */
+  .eng-wrap .mx-fold{border-top:1px solid var(--line);margin-top:2px;}
+  .eng-wrap .mx-fold-b{display:flex;width:100%;min-height:44px;align-items:center;
+    justify-content:space-between;gap:10px;padding:0;background:none;border:0;
+    font:inherit;font-size:11.5px;font-weight:800;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--vx-ink);cursor:pointer;text-align:left;}
+  .eng-wrap .mx-fold-ch{font-size:12px;line-height:1;color:var(--ink-3);
+    transition:transform .15s ease;}
+  .eng-wrap .mx-fold.open .mx-fold-ch{transform:rotate(180deg);}
+  .eng-wrap .mx-fold-c{display:none;padding-bottom:4px;}
+  .eng-wrap .mx-fold.open .mx-fold-c{display:block;}
+  .eng-wrap .mx-fold-c .mx-r:first-child{border-top:0;padding-top:0;}
 }
 
 /* ══ TIVA / TCI · A COLOUR PER AGENT, SO THE PAGE CAN BE SCANNED ════════
@@ -3435,12 +3458,26 @@ function compute(){
      The haemodynamic line stays under desflurane's effects and no longer
      appears in its cautions as well. The nonpungency line stays under
      sevoflurane's effects, which is where it always belonged. */
+  /* PRESENTATION ONLY. THE INVARIANT IS THAT NOTHING HERE IS CLINICAL.
+     Colour identity, icon, and the two or three words under the agent's name
+     that say what it is for. No concentration, no effect, no caution, no
+     property of the drug that a clinician would read as a claim.
+
+     It did carry clinical prose. Sevoflurane's nonpungency and desflurane's
+     haemodynamic line sat here as uncited strings, printed under a KEY
+     EFFECTS heading where they read exactly as clinical as the cited rows
+     above them. Both are canonical records now, cited to their own setid,
+     and the renderer reads d.effect with no fallback to this object: a
+     fallback is how uncited prose survives a cleanup like this one.
+
+     `role` is the remaining judgement call and is deliberately not a claim
+     about pharmacology. "Rapid control" describes the place the agent takes
+     in a list, the way a column heading does. If it ever starts naming a
+     property of the drug it has become clinical and belongs in the record. */
   var VOLATILE_SKIN = {
-    'drug.sevoflurane':{ cls:'vx-sevo', ico:'&#9738;', role:'Primary agent for maintenance',
-      effects:'Nonpungent, so it is tolerated for inhalational induction.' },
-    'drug.desflurane':{ cls:'vx-des', ico:'&#9738;', role:'Rapid control',
-      effects:'Dose dependent fall in blood pressure. Above 1 MAC it may raise heart rate.' },
-    'drug.isoflurane':{ cls:'vx-iso', ico:'&#9738;', role:'Familiar, stable agent' }
+    'drug.sevoflurane':{ cls:'vx-sevo', ico:'&#9738;', role:'Primary agent for maintenance' },
+    'drug.desflurane': { cls:'vx-des',  ico:'&#9738;', role:'Rapid control' },
+    'drug.isoflurane': { cls:'vx-iso',  ico:'&#9738;', role:'Familiar, stable agent' }
   };
   var VOLATILE_IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
   function mxVolDoses(id){
@@ -3455,6 +3492,13 @@ function compute(){
     });
   }
   function mxFind(rows, re){ for(var i=0;i<rows.length;i++) if(re.test(rows[i].label||'')) return rows[i]; return null; }
+  /* The only thing script does here is record that the clinician opened it.
+     Which state is the default, and whether the control exists at all, is
+     decided by the stylesheet. */
+  window.mxFoldToggle = function(btn){
+    var f = btn.parentNode, on = f.classList.toggle('open');
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  };
   /* the compact card at the top of the page */
   function mxQuick(id){
     var sk = VOLATILE_SKIN[id], d = window.ClinicalContent && window.ClinicalContent.byId(id);
@@ -3484,9 +3528,45 @@ function compute(){
       var isMac = /^MAC/i.test(r.label);
       body += mxRow(r.label, '<b>'+r.val+'</b>'+(r.unit?'<i> '+r.unit+'</i>':''), isMac?'':'big');
     });
+    /* SECONDARY PROSE FOLDS ON A PHONE, AND ONLY THERE. Context and Key
+       effects are reference material: worth having, not worth 400px of the
+       first screen. They go behind one disclosure per card, never several,
+       and everything a clinician might act on immediately stays where it is.
+
+       What never folds: the concentrations, MAC, and the cautions. A warning
+       behind a tap is a warning that will not be read, and a concentration
+       behind a tap is the reason the page exists.
+
+       The default state is CSS, not script. Above 640px the button is
+       display:none and the content is shown; at or below it the button
+       appears and the content is hidden until .open is set. Nothing measures
+       the viewport in JavaScript, so there is no width at which the two
+       disagree and nothing to re-run after a re-render or a rotation. The
+       collapsed content is display:none rather than visually hidden, so it
+       leaves the accessibility tree with it and is not read twice. */
     var note = (mxFind(rows,/^maintenance/i)||{}).note || '';
-    if(note) body += mxRow('Context', note);
-    if(sk.effects) body += mxRow('Key effects', sk.effects);
+    /* CANONICAL ONLY, WITH NO FALLBACK. All three agents carry a cited
+       `effect` on their record. If one ever does not, the row does not
+       render, which is the correct outcome: a card that shows nothing under
+       Key effects is a gap somebody will notice and fill with a citation,
+       and a card that quietly falls back to a string in this file is a gap
+       nobody notices at all. */
+    var effect = d.effect || '';
+    var fold = '';
+    if(note) fold += mxRow('Context', note);
+    if(effect) fold += mxRow('Key effects', effect);
+    if(fold){
+      var fid = 'mxf-' + id.replace(/[^a-z0-9]+/gi,'-');
+      body +=
+        '<div class="mx-fold">' +
+          '<button type="button" class="mx-fold-b" aria-expanded="false" ' +
+            'aria-controls="'+fid+'" onclick="mxFoldToggle(this)">' +
+            '<span>Context &amp; effects</span>' +
+            '<span class="mx-fold-ch" aria-hidden="true">&#9662;</span>' +
+          '</button>' +
+          '<div class="mx-fold-c" id="'+fid+'">'+fold+'</div>' +
+        '</div>';
+    }
     if(d.warn) body += mxRow('Cautions', d.warn, 'warn');
     return '<div class="mx-card '+sk.cls+'"><div class="mx-card-h"><div class="mx-card-ic">'+sk.ico+'</div>' +
       '<div><div class="mx-card-t">'+d.name+'</div><div class="mx-card-s">'+sk.role+'</div></div></div>' +

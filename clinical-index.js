@@ -1042,6 +1042,21 @@ var DRUGS = [
                  section:'DOSAGE AND ADMINISTRATION, MAC values in oxygen and in nitrous oxide' } }
   ],
   prep:'', severity:'caution',
+  /* MOVED OUT OF THE PAGE AND INTO THE RECORD. This sentence lived in
+     engine.html's VOLATILE_SKIN as presentation prose with no source behind
+     it. It is a clinical claim about an agent, so it belongs here, cited,
+     where the publishing gate can see it. The skin now carries colour, icon
+     and role and nothing a clinician would read as clinical.
+
+     Note the section: this comes from the INDUCTION paragraph of the label,
+     which is where the nonpungency claim is made. That does not make it an
+     induction dose record and it publishes no concentration; it is the
+     descriptive property that distinguishes this agent from the other two. */
+  effect:'Nonpungent and does not cause respiratory irritability; suitable for mask induction in adults and children.',
+  effectEvidence:{ state:'reviewed', authority:'DailyMed',
+                   title:'Sevoflurane, Inhalation Anesthetic, Prescribing Information',
+                   documentId:'DailyMed setid bdde7502-6218-401c-9a4f-dd3bc3a80f72',
+                   section:'DOSAGE AND ADMINISTRATION, Induction' },
   /* WAS: "Nonpungent, so it is tolerated for inhalational induction.
      Maintenance concentration is titrated to effect." That is not a caution.
      It is a favourable property, and it was printing under an amber CAUTIONS
@@ -1086,6 +1101,22 @@ var DRUGS = [
                  section:'DOSAGE AND ADMINISTRATION, MAC values by age' } }
   ],
   prep:'', severity:'caution',
+  /* MOVED OUT OF THE PAGE, AND NARROWED TO WHAT ONLY THIS AGENT SAYS. The
+     skin's line was "Dose dependent fall in blood pressure. Above 1 MAC it
+     may raise heart rate." That is true, uncited, and it is also most of
+     what the caution below already says: the effects row and the cautions
+     row were answering the same question twice, which is exactly what this
+     card was cleaned up to stop doing.
+
+     Nothing is lost. The haemodynamic material is still on the card, in the
+     cautions where a rapid rise in concentration is the thing to watch for.
+     What goes in effects is the property that distinguishes desflurane from
+     the other two agents and appears nowhere else on the card. */
+  effect:'Changes in clinical effect rapidly follow changes in inspired concentration.',
+  effectEvidence:{ state:'reviewed', authority:'DailyMed',
+                   title:'Desflurane, Inhalation Anesthetic, Prescribing Information',
+                   documentId:'DailyMed setid 561c51aa-76fd-2eb8-e063-6394a90a7021',
+                   section:'CLINICAL PHARMACOLOGY, 12.2 Pharmacodynamics' },
   /* WAS: a restatement of the card's effects row, blood pressure and heart
      rate said twice on one card in two wordings. The haemodynamic effect
      stays under effects; what belongs in a warning is the paediatric airway
@@ -1132,6 +1163,23 @@ var DRUGS = [
                  section:'DOSAGE AND ADMINISTRATION, MAC values by age' } }
   ],
   prep:'', severity:'caution',
+  /* THE EFFECTS ROW COMES BACK, FROM THE LABEL THIS TIME. The old one said
+     "MAC is age dependent and decreases with increasing age", which was the
+     MAC row printed twice, so it was deleted and the card was left with no
+     effects row at all. What replaces it is a pharmacodynamic description
+     out of the same document as every other isoflurane value here, carrying
+     its own citation for the same reason warn does: prose under a heading a
+     clinician reads as clinical is clinical, and it needs a source.
+
+     effect is DESCRIPTIVE and warn is RISK. They are deliberately not merged:
+     a clinician scanning for what an agent does and a clinician scanning for
+     what to watch for are asking two different questions, and one row cannot
+     answer both without burying one of them. */
+  effect:'Heart rhythm is generally stable. With controlled ventilation and a normal PaCO₂, cardiac output is maintained mainly by a rise in heart rate that compensates for reduced stroke volume.',
+  effectEvidence:{ state:'reviewed', authority:'DailyMed',
+                   title:'Isoflurane, Inhalation Anesthetic, Prescribing Information',
+                   documentId:'DailyMed setid 525a2467-548d-4b10-b181-91b90e99ae1b',
+                   section:'CLINICAL PHARMACOLOGY, 12.2 Pharmacodynamics' },
   /* THIS RECORD HAD NO warn AT ALL, so mxCard's `if(d.warn)` silently dropped
      the CAUTIONS row and one card in a four-card comparison grid warned about
      nothing. An absent warning reads as "nothing to watch for", which is the

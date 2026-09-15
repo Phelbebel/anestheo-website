@@ -1058,6 +1058,109 @@ const BOARD_PROBE = `(() => {
       q.macText[3]);
     t(P + '...and no prose role line taking up the room', q.roleHidden === true);
     console.log('     ' + P + 'quick block ' + q.height + 'px, page ' + q.pageH + 'px');
+
+    /* ── THE DETAILED CARDS FOLD THEIR SECONDARY PROSE, AND ONLY THAT ──
+       Context and Key effects are reference material and go behind one
+       disclosure per card. The concentrations, MAC and the cautions do not:
+       a warning behind a tap will not be read, and a concentration behind a
+       tap is the reason the page exists. Measured from the rendered page,
+       not from the stylesheet, so a rule that is present but overridden
+       fails here. */
+    const f = await s.pg.evaluate(`(() => {
+      const vis = e => !!(e && e.getBoundingClientRect().height > 0 &&
+                          getComputedStyle(e).display !== 'none');
+      /* The three VOLATILE AGENT cards, named by their identity classes.
+         '.mx-card' alone also matches the Monitoring & access cards, which
+         have no secondary prose and nothing to fold. */
+      const cards = [...document.querySelectorAll(
+        '.mx-card.vx-sevo, .mx-card.vx-des, .mx-card.vx-iso')];
+      const label = r => ((r.querySelector('.mx-r-l')||{}).textContent||'').trim();
+      const read = () => cards.map(c => {
+        const rows = [...c.querySelectorAll('.mx-r')];
+        const shown = rows.filter(vis).map(label);
+        return { name:(c.querySelector('.mx-card-t')||{}).textContent||'',
+                 shown,
+                 folds:c.querySelectorAll('.mx-fold').length,
+                 btn:(() => { const b = c.querySelector('.mx-fold-b');
+                   if (!vis(b)) return null;
+                   const r = b.getBoundingClientRect();
+                   return { h:Math.round(r.height), w:Math.round(r.width),
+                            expanded:b.getAttribute('aria-expanded'),
+                            controls:b.getAttribute('aria-controls'),
+                            targetOk:!!document.getElementById(b.getAttribute('aria-controls')) }; })() };
+      });
+      const before = read();
+      cards.forEach(c => { const b = c.querySelector('.mx-fold-b'); if (b) b.click(); });
+      const after = read();
+      return { n:cards.length, before, after,
+               overflowX:document.documentElement.scrollWidth -
+                         document.documentElement.clientWidth };
+    })()`);
+    t(P + 'each detailed agent card has exactly one disclosure',
+      f.before.every(c => c.folds === 1), f.before.map(c => c.name + ':' + c.folds));
+    t(P + '...collapsed by default, hiding Context and Key effects',
+      f.before.every(c => c.shown.indexOf('Context') < 0 &&
+                          c.shown.indexOf('Key effects') < 0),
+      f.before.map(c => c.name + '=[' + c.shown.join(',') + ']'));
+    t(P + '...while every concentration and MAC row stays visible',
+      f.before.every(c => c.shown.some(l => /^Maintenance|^Additional/i.test(l)) &&
+                          c.shown.some(l => /^MAC/i.test(l))),
+      f.before.map(c => c.name + '=[' + c.shown.join(',') + ']'));
+    t(P + '...and the cautions stay visible, never folded',
+      f.before.every(c => c.shown.indexOf('Cautions') >= 0),
+      f.before.map(c => c.name + ':' + (c.shown.indexOf('Cautions') >= 0)));
+    t(P + '...with a target at least 44px tall and full width',
+      f.before.every(c => c.btn && c.btn.h >= 44 && c.btn.w > 200),
+      f.before.map(c => c.btn && (c.name + ':' + c.btn.h + 'x' + c.btn.w)));
+    t(P + '...announcing itself as collapsed, and pointing at a real element',
+      f.before.every(c => c.btn && c.btn.expanded === 'false' && c.btn.targetOk === true),
+      f.before.map(c => c.btn && (c.name + ':' + c.btn.expanded)));
+    t(P + 'opening it reveals Context and Key effects',
+      f.after.every(c => c.shown.indexOf('Context') >= 0 &&
+                         c.shown.indexOf('Key effects') >= 0),
+      f.after.map(c => c.name + '=[' + c.shown.join(',') + ']'));
+    t(P + '...and says so', f.after.every(c => c.btn && c.btn.expanded === 'true'),
+      f.after.map(c => c.btn && (c.name + ':' + c.btn.expanded)));
+    t(P + '...without scrolling the page sideways', f.overflowX === 0, f.overflowX);
+    await s.ctx.close();
+  }
+
+  /* ── ABOVE 640px THE DISCLOSURE DOES NOT EXIST ──────────────────────────
+     Not "starts open": the control is out of the layout entirely and the
+     rows are simply rows. A desktop reader is never asked to click to see
+     ordinary reference material, and the 1194 and 1536 compositions are
+     unchanged by the fold. */
+  for (const [name, w, h] of [['tablet 1194',1194,834], ['desktop 1536',1536,864]]) {
+    const s = await open(b, w, h);
+    await s.pg.evaluate(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+      set('i-asa','II');
+      compute(); setDomain('maintenance');
+    });
+    await s.pg.waitForTimeout(450);
+    const d = await s.pg.evaluate(`(() => {
+      const vis = e => !!(e && e.getBoundingClientRect().height > 0 &&
+                          getComputedStyle(e).display !== 'none');
+      const cards = [...document.querySelectorAll(
+        '.mx-card.vx-sevo, .mx-card.vx-des, .mx-card.vx-iso')];
+      return cards.map(c => {
+        const shown = [...c.querySelectorAll('.mx-r')].filter(vis)
+          .map(r => ((r.querySelector('.mx-r-l')||{}).textContent||'').trim());
+        return { name:(c.querySelector('.mx-card-t')||{}).textContent||'', shown,
+                 btnVisible:vis(c.querySelector('.mx-fold-b')) };
+      });
+    })()`);
+    const P = name + ': ';
+    t(P + 'Context and Key effects are visible without interaction',
+      d.every(c => c.shown.indexOf('Context') >= 0 && c.shown.indexOf('Key effects') >= 0),
+      d.map(c => c.name + '=[' + c.shown.join(',') + ']'));
+    t(P + '...and there is no disclosure control to click',
+      d.every(c => c.btnVisible === false), d.map(c => c.name + ':' + c.btnVisible));
+    t(P + '...isoflurane among them, with its cited effects row',
+      (d.find(c => /Isoflurane/i.test(c.name)) || { shown:[] })
+        .shown.indexOf('Key effects') >= 0);
     await s.ctx.close();
   }
 
