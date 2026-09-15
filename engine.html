@@ -1258,6 +1258,146 @@ table.dtab-red .dtab-dose{width:18%;}
   overflow-wrap:anywhere;}
 #output .rw-c{color:var(--ink-3);opacity:.82;}
 
+/* ══ MAINTENANCE · THE SAME GROUPING LANGUAGE AS TIVA ══════════════════
+   This page was one grey wall: volatile agents did not exist on it at all,
+   and ventilation, monitoring and an unpublished antibiotic placeholder read
+   as three helpings of the same thing. It borrows TIVA's system rather than
+   inventing a second one, so the two maintenance screens agree: an agent
+   owns a colour, a section owns a colour, and the colour carries the
+   grouping only. It never encodes urgency and no value depends on it. */
+.eng-wrap .mx-hero{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:16px var(--pad) 15px;border-bottom:1px solid var(--hair);margin-bottom:14px;}
+.eng-wrap .mx-hero-ic{width:46px;height:46px;flex:0 0 auto;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  background:rgba(126,207,192,.1);border:1px solid rgba(126,207,192,.26);}
+.eng-wrap .mx-hero-tx{flex:1 1 240px;min-width:0;}
+.eng-wrap .mx-hero-t{font-size:24px;font-weight:800;letter-spacing:-.01em;line-height:1.15;color:var(--ink);}
+.eng-wrap .mx-hero-s{font-size:12.5px;color:var(--ink-3);margin-top:3px;line-height:1.45;}
+.eng-wrap .mx-sec-h{display:flex;align-items:center;gap:9px;margin:20px 0 11px;
+  font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);}
+.eng-wrap .mx-sec-h::after{content:'';flex:1 1 auto;height:1px;background:var(--hair);}
+
+/* the quick reference row */
+.eng-wrap .mx-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(218px,1fr));gap:12px;}
+.eng-wrap .mx-q{border:1px solid var(--vx-line);border-radius:var(--radius-lg);
+  background:var(--vx-fill);padding:14px 15px;min-width:0;}
+.eng-wrap .mx-q-h{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.eng-wrap .mx-q-ic{width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:flex;
+  align-items:center;justify-content:center;font-size:16px;
+  background:var(--vx-soft2);border:1px solid var(--vx-line);}
+.eng-wrap .mx-q-n{font-size:15.5px;font-weight:800;color:var(--ink);line-height:1.2;}
+.eng-wrap .mx-q-l{font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--vx-ink);margin-bottom:3px;}
+.eng-wrap .mx-q-v{font-size:23px;font-weight:800;color:var(--ink);line-height:1.1;
+  font-variant-numeric:tabular-nums;}
+.eng-wrap .mx-q-v span{font-size:13px;font-weight:600;color:var(--ink-3);margin-left:4px;}
+.eng-wrap .mx-q-v.cov{font-size:13px;font-weight:650;color:var(--ink-3);font-style:italic;line-height:1.35;}
+.eng-wrap .mx-q-s{font-size:11px;color:var(--ink-3);margin-top:5px;line-height:1.35;}
+/* Phone only. The desktop quick card is approved as it stands, and MAC is on
+   the detailed card directly below it there. */
+.eng-wrap .mx-q-mac{display:none;}
+
+/* the detailed agent cards */
+.eng-wrap .mx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(262px,1fr));gap:13px;}
+.eng-wrap .mx-card{border:1px solid var(--vx-line);border-radius:var(--radius-lg);
+  background:var(--vx-fill);overflow:hidden;min-width:0;}
+.eng-wrap .mx-card-h{display:flex;align-items:center;gap:11px;padding:13px 15px;
+  background:var(--vx-soft);border-bottom:1px solid var(--vx-line);}
+.eng-wrap .mx-card-ic{width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:flex;
+  align-items:center;justify-content:center;font-size:16px;
+  background:var(--vx-soft2);border:1px solid var(--vx-line);}
+.eng-wrap .mx-card-t{font-size:15.5px;font-weight:800;color:var(--ink);line-height:1.2;}
+.eng-wrap .mx-card-s{font-size:11px;color:var(--ink-3);margin-top:2px;line-height:1.35;}
+.eng-wrap .mx-card-b{padding:4px 15px 12px;}
+/* ROWS, NOT BULLETS. Every line in this page is a label and its answer on a
+   divided row, so a caution reads the same way a concentration does. */
+.eng-wrap .mx-r{display:flex;align-items:baseline;gap:12px;padding:9px 0;
+  border-bottom:1px solid var(--hair);}
+.eng-wrap .mx-r:last-child{border-bottom:none;}
+.eng-wrap .mx-r-l{flex:0 0 40%;max-width:150px;font-size:11px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);line-height:1.3;}
+.eng-wrap .mx-r-v{flex:1 1 auto;min-width:0;font-size:13px;font-weight:650;color:var(--ink-2);
+  line-height:1.45;}
+.eng-wrap .mx-r-v b{color:var(--ink);font-weight:800;}
+.eng-wrap .mx-r.big .mx-r-v{font-size:17px;font-weight:800;color:var(--vx-ink);
+  font-variant-numeric:tabular-nums;}
+.eng-wrap .mx-r.big .mx-r-v i{font-style:normal;font-size:12px;font-weight:600;color:var(--ink-3);margin-left:4px;}
+.eng-wrap .mx-r.warn .mx-r-l{color:var(--warning,#E8A838);}
+.eng-wrap .mx-r.cov .mx-r-v{font-style:italic;font-weight:600;color:var(--ink-3);}
+/* a check row, for the monitoring standards */
+.eng-wrap .mx-ck{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--hair);font-size:13px;color:var(--ink-2);}
+.eng-wrap .mx-ck:last-child{border-bottom:none;}
+.eng-wrap .mx-ck i{flex:0 0 auto;width:18px;height:18px;border-radius:5px;display:inline-flex;
+  align-items:center;justify-content:center;font-style:normal;font-size:11px;font-weight:800;
+  background:var(--vx-soft2);color:var(--vx-ink);border:1px solid var(--vx-line);}
+.eng-wrap .mx-note{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:11px 13px;
+  border:1px solid var(--vx-line);border-left:2px solid var(--vx-ink);
+  border-radius:var(--radius-md);background:var(--vx-soft);}
+.eng-wrap .mx-note-ic{flex:0 0 auto;font-size:14px;color:var(--vx-ink);line-height:1.3;}
+.eng-wrap .mx-note-tx{font-size:12.5px;color:var(--ink-2);line-height:1.5;min-width:0;}
+.eng-wrap .mx-note-tx b{color:var(--ink);font-weight:700;}
+.eng-wrap .mx-sub{margin-top:13px;}
+.eng-wrap .mx-sub-h{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--vx-ink);margin:0 0 7px;}
+.eng-wrap .mx-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px;}
+
+/* ── THE IDENTITIES ─────────────────────────────────────────────────────*/
+.eng-wrap .vx-sevo{--vx-ink:#F5C451;--vx-line:rgba(245,196,81,.3);
+  --vx-fill:rgba(245,196,81,.045);--vx-soft:rgba(245,196,81,.09);--vx-soft2:rgba(245,196,81,.16);}
+.eng-wrap .vx-des{--vx-ink:#FF9A5A;--vx-line:rgba(255,154,90,.3);
+  --vx-fill:rgba(255,154,90,.045);--vx-soft:rgba(255,154,90,.09);--vx-soft2:rgba(255,154,90,.16);}
+.eng-wrap .vx-iso{--vx-ink:#B69BFF;--vx-line:rgba(182,155,255,.32);
+  --vx-fill:rgba(182,155,255,.05);--vx-soft:rgba(182,155,255,.1);--vx-soft2:rgba(182,155,255,.17);}
+.eng-wrap .vx-n2o{--vx-ink:#6FB4FF;--vx-line:rgba(111,180,255,.3);
+  --vx-fill:rgba(111,180,255,.045);--vx-soft:rgba(111,180,255,.09);--vx-soft2:rgba(111,180,255,.16);}
+.eng-wrap .vx-vent{--vx-ink:#5AA9FF;--vx-line:rgba(90,169,255,.3);
+  --vx-fill:rgba(90,169,255,.04);--vx-soft:rgba(90,169,255,.085);--vx-soft2:rgba(90,169,255,.15);}
+.eng-wrap .vx-mon{--vx-ink:#5EE393;--vx-line:rgba(94,227,147,.3);
+  --vx-fill:rgba(94,227,147,.04);--vx-soft:rgba(94,227,147,.085);--vx-soft2:rgba(94,227,147,.15);}
+
+@media (max-width:900px){
+  .eng-wrap .mx-quick{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
+}
+@media (max-width:640px){
+  .eng-wrap .mx-hero{padding:13px var(--pad) 12px;gap:11px;}
+  .eng-wrap .mx-hero-t{font-size:20px;}
+  .eng-wrap .mx-grid,.eng-wrap .mx-two{grid-template-columns:1fr;gap:10px;}
+  .eng-wrap .mx-r{flex-direction:column;gap:2px;padding:8px 0;}
+  .eng-wrap .mx-r-l{flex:none;max-width:none;font-size:11px;}
+  .eng-wrap .mx-r-v{font-size:13.5px;}
+  .eng-wrap .mx-r.big .mx-r-v{font-size:19px;}
+
+  /* ── THE QUICK ROW STAYS A COMPARISON ON A PHONE: 2 x 2, NOT A COLUMN ──
+     It used to fall into one column with the rest, which produced four
+     full-width cards, about 900px of scrolling, and then four DETAILED cards
+     repeating every one of them. A comparison you have to scroll through one
+     card at a time is not a comparison, and it was the single largest thing
+     on the page.
+
+     Two by two is the smallest grid that still lets a clinician see four
+     agents at once. Everything that is prose comes out: the role line goes,
+     and what stays is the name, the number, and the MAC the number should be
+     read against. The MAC line is phone-only because the desktop layout is
+     approved as it stands and the detailed card carries MAC there. */
+  .eng-wrap .mx-quick{grid-template-columns:1fr 1fr;gap:9px;}
+  .eng-wrap .mx-q{padding:10px 11px;}
+  .eng-wrap .mx-q-h{gap:8px;margin-bottom:7px;}
+  .eng-wrap .mx-q-ic{width:26px;height:26px;border-radius:7px;font-size:13px;}
+  .eng-wrap .mx-q-n{font-size:13px;}
+  .eng-wrap .mx-q-l{font-size:9px;letter-spacing:.09em;margin-bottom:2px;}
+  .eng-wrap .mx-q-v{font-size:20px;}
+  .eng-wrap .mx-q-v span{font-size:11px;margin-left:3px;}
+  .eng-wrap .mx-q-v.cov{font-size:11px;line-height:1.3;}
+  .eng-wrap .mx-q-s{display:none;}
+  .eng-wrap .mx-q-mac{display:block;margin-top:7px;padding-top:7px;
+    border-top:1px solid var(--vx-line);}
+  .eng-wrap .mx-q-mac .mx-q-l{margin-bottom:1px;}
+  .eng-wrap .mx-q-mac-v{font-size:11px;font-weight:700;color:var(--ink-2);line-height:1.3;
+    font-variant-numeric:tabular-nums;}
+  .eng-wrap .mx-q-mac-v.cov{font-weight:650;color:var(--ink-3);font-style:italic;}
+}
+
 /* ══ TIVA / TCI · A COLOUR PER AGENT, SO THE PAGE CAN BE SCANNED ════════
    This screen was one hue end to end: propofol, remifentanil, dexmedetomidine,
    the paediatric technique and the MRI technique all rendered in the same
@@ -3257,24 +3397,178 @@ function compute(){
          '<a href="/difficult-airway.html">difficult airway algorithm</a>.');
 
   // ── VENTILATION (compact module) — PBW-driven, targets as one table
+  /* ── VOLATILE AGENTS, READ FROM THE CANONICAL MODEL ───────────────────
+     NOT ONE CONCENTRATION IS WRITTEN HERE. Every value below comes out of
+     ClinicalContent through the same publishability and population gates the
+     drug board uses, so this page cannot disagree with the drug reference and
+     cannot print a figure the evidence layer would refuse. That is the whole
+     reason the agents were added as reviewed records first.
+
+     Nitrous oxide has no record, deliberately: its concentration and MAC were
+     not established against a label in this pass. Its card exists, carries its
+     colour, and prints a coverage state where a number would go. */
+  function mxRow(label, value, cls){
+    return '<div class="mx-r'+(cls?' '+cls:'')+'"><div class="mx-r-l">'+label+'</div>' +
+      '<div class="mx-r-v">'+value+'</div></div>';
+  }
+  /* EVERY ROW ON THESE CARDS NOW HAS A JOB NOBODY ELSE IS DOING, and the
+     pearls are gone because not one of them was doing a job of its own:
+
+       sevo pearl  "Titrate to effect. MAC falls with age..."   CONTEXT already
+                                                                says titrate to
+                                                                effect; the MAC
+                                                                row says the rest
+       des  pearl  "Concomitant nitrous oxide reduces..."       verbatim CONTEXT
+       iso  pearl  "With oxygen alone an additional amount..."  verbatim the
+                                                                Additional dose row
+       iso  effects "MAC is age dependent and decreases..."     verbatim the MAC row
+
+     Each was a second printing of a cited row directly above it. Deleting
+     them removes roughly a third of the card's height on a phone and removes
+     nothing a clinician could not already read on the same card.
+
+     They are NOT replaced with new sentences. Writing fresh clinical prose to
+     fill a row is how the unsourced text got here in the first place; a row
+     with nothing sourced to say does not render. Isoflurane consequently has
+     no effects row, and that gap is reported rather than papered over.
+
+     The haemodynamic line stays under desflurane's effects and no longer
+     appears in its cautions as well. The nonpungency line stays under
+     sevoflurane's effects, which is where it always belonged. */
+  var VOLATILE_SKIN = {
+    'drug.sevoflurane':{ cls:'vx-sevo', ico:'&#9738;', role:'Primary agent for maintenance',
+      effects:'Nonpungent, so it is tolerated for inhalational induction.' },
+    'drug.desflurane':{ cls:'vx-des', ico:'&#9738;', role:'Rapid control',
+      effects:'Dose dependent fall in blood pressure. Above 1 MAC it may raise heart rate.' },
+    'drug.isoflurane':{ cls:'vx-iso', ico:'&#9738;', role:'Familiar, stable agent' }
+  };
+  var VOLATILE_IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
+  function mxVolDoses(id){
+    var CCx = window.ClinicalContent; if(!CCx) return [];
+    var d = CCx.byId(id); if(!d) return [];
+    var pop = window.patientContext ? CCx.patientPopulation(window.patientContext) : null;
+    return (d.doses||[]).filter(function(x){
+      return CCx.isDosePublishable(d, x) && CCx.doseEligibility(x, pop, d).eligible;
+    }).map(function(x){
+      var r = CCx.renderDose(x, null);
+      return { label:x.label, val:r.val, unit:r.unit, note:x.note||'' };
+    });
+  }
+  function mxFind(rows, re){ for(var i=0;i<rows.length;i++) if(re.test(rows[i].label||'')) return rows[i]; return null; }
+  /* the compact card at the top of the page */
+  function mxQuick(id){
+    var sk = VOLATILE_SKIN[id], d = window.ClinicalContent && window.ClinicalContent.byId(id);
+    if(!sk || !d) return '';
+    var rows = mxVolDoses(id), m = mxFind(rows, /^maintenance/i) || rows[0];
+    var val = m ? ('<div class="mx-q-v">'+m.val+(m.unit?'<span>'+m.unit+'</span>':'')+'</div>')
+                : '<div class="mx-q-v cov">Numeric reference under review</div>';
+    /* MAC comes from the same canonical record as the concentration, printed
+       as its source states it. No number is computed and none is written
+       here; if the record carries no MAC the line prints the coverage state,
+       exactly as the concentration does. */
+    var mac = mxFind(rows, /^MAC/i);
+    var macRow = '<div class="mx-q-mac"><div class="mx-q-l">MAC</div>' +
+      (mac ? '<div class="mx-q-mac-v">'+mac.val+'</div>'
+           : '<div class="mx-q-mac-v cov">Numeric reference under review</div>') + '</div>';
+    return '<div class="mx-q '+sk.cls+'"><div class="mx-q-h"><div class="mx-q-ic">'+sk.ico+'</div>' +
+      '<div class="mx-q-n">'+d.name+'</div></div>' +
+      '<div class="mx-q-l">'+(m?m.label:'Maintenance')+'</div>'+val + macRow +
+      '<div class="mx-q-s">'+sk.role+'</div></div>';
+  }
+  /* the detailed card below it */
+  function mxCard(id){
+    var sk = VOLATILE_SKIN[id], CCx = window.ClinicalContent, d = CCx && CCx.byId(id);
+    if(!sk || !d) return '';
+    var rows = mxVolDoses(id), body = '';
+    rows.forEach(function(r){
+      var isMac = /^MAC/i.test(r.label);
+      body += mxRow(r.label, '<b>'+r.val+'</b>'+(r.unit?'<i> '+r.unit+'</i>':''), isMac?'':'big');
+    });
+    var note = (mxFind(rows,/^maintenance/i)||{}).note || '';
+    if(note) body += mxRow('Context', note);
+    if(sk.effects) body += mxRow('Key effects', sk.effects);
+    if(d.warn) body += mxRow('Cautions', d.warn, 'warn');
+    return '<div class="mx-card '+sk.cls+'"><div class="mx-card-h"><div class="mx-card-ic">'+sk.ico+'</div>' +
+      '<div><div class="mx-card-t">'+d.name+'</div><div class="mx-card-s">'+sk.role+'</div></div></div>' +
+      '<div class="mx-card-b">'+body+'</div></div>';
+  }
+  /* Nitrous oxide: an identity and an honest coverage state, no number. */
+  var mxN2OQuick =
+    '<div class="mx-q vx-n2o"><div class="mx-q-h"><div class="mx-q-ic">&#9738;</div>' +
+      '<div class="mx-q-n">Nitrous oxide</div></div>' +
+      '<div class="mx-q-l">Concentration</div>' +
+      '<div class="mx-q-v cov">Numeric reference under review</div>' +
+      /* The same MAC line the other three carry, so the 2 x 2 phone grid
+         compares like with like. There is no record behind it and there is no
+         number in it: that IS the comparison this card contributes. */
+      '<div class="mx-q-mac"><div class="mx-q-l">MAC</div>' +
+        '<div class="mx-q-mac-v cov">Numeric reference under review</div></div>' +
+      '<div class="mx-q-s">Analgesic adjunct</div></div>';
+  var mxN2OCard =
+    '<div class="mx-card vx-n2o"><div class="mx-card-h"><div class="mx-card-ic">&#9738;</div>' +
+      '<div><div class="mx-card-t">Nitrous oxide</div>' +
+      '<div class="mx-card-s">Analgesic adjunct</div></div></div>' +
+      '<div class="mx-card-b">' +
+        mxRow('Typical maintenance','Numeric reference under review','cov') +
+        mxRow('MAC','Numeric reference under review','cov') +
+        mxRow('Key effects','Used as an adjunct alongside a volatile agent or an intravenous technique.') +
+        mxRow('Cautions','Nitrous oxide diffuses into air filled spaces. It diffuses into a tracheal tube cuff and raises cuff pressure over time. It supports combustion, so it is never used where a laser is in use.','warn') +
+        mxRow('Practical pearls','No concentration or MAC is published here until a label backed value has been reviewed.') +
+      '</div></div>';
+  var volatileBody =
+    '<div class="mx-hero"><div class="mx-hero-ic">&#128138;</div>' +
+      '<div class="mx-hero-tx"><div class="mx-hero-t">Maintenance</div>' +
+      '<div class="mx-hero-s">Volatile anaesthetics, ventilation, monitoring and vascular access.</div>' +
+      '</div></div>' +
+    '<div class="mx-sec-h">Volatile agents, quick reference</div>' +
+    '<div class="mx-quick">' +
+      VOLATILE_IDS.map(mxQuick).join('') + mxN2OQuick +
+    '</div>' +
+    '<div class="mx-sec-h">Volatile agents, detailed</div>' +
+    '<div class="mx-grid">' +
+      VOLATILE_IDS.map(mxCard).join('') + mxN2OCard +
+    '</div>' +
+    '<div class="mx-note"><span class="mx-note-ic">&#8505;</span><div class="mx-note-tx">' +
+      'Every concentration and MAC figure above is read from the reviewed clinical record for that ' +
+      'agent and is shown as its source states it. MAC falls with age, so the source tables are ' +
+      'printed as tables rather than reduced to one number, and no value is interpolated for this patient.' +
+      '</div></div>';
+
+  /* VENTILATION KEEPS EVERY FORMULA IT HAD. PBW, the tidal volume ladder,
+     minute ventilation and the rate are the same arithmetic from the same
+     inputs; only the presentation changed, from a stack of groups to divided
+     rows inside one blue section. */
   var ventBody =
-    kpis([ kpi('PBW', r0(pbw), 'kg'), kpi('TV 6–8', r0(tv6)+'–'+r0(tv8), 'mL'),
-           kpi('MV', r1(mvLo)+'–'+r1(mvHi), 'L/min'), kpi('RR', rr, '/min') ]) +
-    grp('Tidal volume by mL/kg PBW',
-      metric('6 mL/kg',r0(tv6),'mL')+metric('7 mL/kg',r0(tv7),'mL')+
-      metric('8 mL/kg',r0(tv8),'mL')+metric('9 mL/kg',r0(tv9),'mL')+
-      metric('10 mL/kg',r0(tv10),'mL')) +
-    (pedsVent ? grp('Paediatric (actual weight)', pedsVent) : '') +
-    grp('Pressure targets',
-      metric('Peak','&lt; 35–40','cmH₂O')+
-      metric('Plateau','≤ 30','cmH₂O')+
-      metric('Driving (Pplat − PEEP)','≤ 15','cmH₂O')+
-      metric('PEEP (routine)','≥ 5','cmH₂O')) +
-    grp('Protective ventilation',
-      bul(['TV 6–8 mL/kg PBW ('+r0(tv6)+'–'+r0(tv8)+' mL), lowest tolerated FiO₂',
-           'ARDS: TV 6 mL/kg ('+r0(tv6)+' mL), higher PEEP, permissive hypercapnia',
-           'Prone if P/F &lt; 150; recruit as needed'])) +
-    foot('Reference targets, not mandatory settings — titrate to the patient.');
+    '<div class="mx-card vx-vent"><div class="mx-card-h"><div class="mx-card-ic">&#127788;</div>' +
+      '<div><div class="mx-card-t">Ventilation</div>' +
+      '<div class="mx-card-s">Predicted body weight based, for this patient.</div></div></div>' +
+      '<div class="mx-card-b">' +
+        mxRow('Predicted body weight','<b>'+r0(pbw)+'</b><i> kg</i>','big') +
+        mxRow('Tidal volume, 6 to 8 mL/kg','<b>'+r0(tv6)+' to '+r0(tv8)+'</b><i> mL</i>','big') +
+        mxRow('Minute ventilation','<b>'+r1(mvLo)+' to '+r1(mvHi)+'</b><i> L/min</i>','big') +
+        mxRow('Respiratory rate','<b>'+rr+'</b><i> /min</i>','big') +
+        '<div class="mx-sub"><div class="mx-sub-h">Tidal volume by mL/kg PBW</div>' +
+          mxRow('6 mL/kg', '<b>'+r0(tv6)+'</b><i> mL</i>') +
+          mxRow('7 mL/kg', '<b>'+r0(tv7)+'</b><i> mL</i>') +
+          mxRow('8 mL/kg', '<b>'+r0(tv8)+'</b><i> mL</i>') +
+          mxRow('9 mL/kg', '<b>'+r0(tv9)+'</b><i> mL</i>') +
+          mxRow('10 mL/kg','<b>'+r0(tv10)+'</b><i> mL</i>') +
+        '</div>' +
+        (pedsVent ? '<div class="mx-sub"><div class="mx-sub-h">Paediatric, actual weight</div>'+pedsVent+'</div>' : '') +
+        '<div class="mx-sub"><div class="mx-sub-h">Pressure targets, cmH&#8322;O</div>' +
+          mxRow('Peak','<b>&lt; 35 to 40</b>') +
+          mxRow('Plateau','<b>&#8804; 30</b>') +
+          mxRow('Driving (Pplat &#8722; PEEP)','<b>&#8804; 15</b>') +
+          mxRow('PEEP, routine','<b>&#8805; 5</b>') +
+        '</div>' +
+        '<div class="mx-sub"><div class="mx-sub-h">Protective ventilation</div>' +
+          mxRow('Routine','Tidal volume 6 to 8 mL/kg PBW (<b>'+r0(tv6)+' to '+r0(tv8)+' mL</b>), lowest tolerated FiO&#8322;') +
+          mxRow('ARDS','Tidal volume 6 mL/kg (<b>'+r0(tv6)+' mL</b>), higher PEEP, permissive hypercapnia') +
+          mxRow('Severe','Prone if P/F &lt; 150, recruit as needed') +
+        '</div>' +
+        '<div class="mx-note"><span class="mx-note-ic">&#8505;</span><div class="mx-note-tx">' +
+          'Reference targets, not mandatory settings. Titrate to the patient.</div></div>' +
+      '</div></div>';
 
   // ── DRUG REFERENCES — grouped INDUCTION / RELAXANT / ANALGESIA / REVERSAL.
   //    Each card is a mini dashboard: name | dose, then indication, then how it
@@ -3571,27 +3865,43 @@ function compute(){
     '<div id="tube-tabs-host"></div><div id="tube-inline-body"></div>';
 
   // ── Monitoring & access (compact) ─────────────────────────────────────
+  /* MONITORING KEEPS ITS CONTENT AND LOSES ITS BULLETS. The standards read as
+     check rows because that is what they are, a list a clinician confirms;
+     everything else is a label and its answer. Four sub-panels in one teal
+     section rather than four unrelated groups. */
+  function mxCk(t){ return '<div class="mx-ck"><i>&#10003;</i>'+t+'</div>'; }
+  function mxPanel(title, body){
+    return '<div class="mx-card vx-mon"><div class="mx-card-h">' +
+      '<div class="mx-card-ic">&#128225;</div><div><div class="mx-card-t">'+title+'</div></div></div>' +
+      '<div class="mx-card-b">'+body+'</div></div>';
+  }
   var monBody =
-    grp('Standard monitoring',
-      metric('Always','ECG · SpO₂ · NIBP · capnography','')+
-      metric('Temperature','Any anaesthetic over 30 min','')+
-      metric('Neuromuscular','Whenever a neuromuscular blocker is given','')+
-      metric('Agent / FiO₂','With alarms enabled','')) +
-    grp('Arterial line',
-      metric('Adult cannula','20','G')+
-      metric('Small adult / child','22','G')+
-      metric('Sites','Radial · brachial · femoral · dorsalis pedis','')+
-      metric('Transducer','Level at the phlebostatic axis','')) +
-    grp('Central venous',
-      metric('Adult catheter','7 Fr triple lumen','')+
-      metric('Right IJ depth','15 – 16','cm')+
-      metric('Left IJ depth','18 – 20','cm')+
-      metric('Subclavian depth','16 – 18','cm')+
-      metric('Tip position','Cavo-atrial junction','')) +
-    grp('Depth of anaesthesia',
-      metric('Processed EEG target','40 – 60','')+
-      metric('Strongly advised','TIVA with a neuromuscular blocker','')) +
-    note('Use ultrasound for arterial and central venous access. Confirm venous placement before dilating.');
+    '<div class="mx-two">' +
+      mxPanel('Standard monitoring',
+        mxCk('ECG') + mxCk('SpO&#8322;') + mxCk('NIBP') + mxCk('Capnography') +
+        mxCk('Temperature, any anaesthetic over 30 min') +
+        mxCk('Neuromuscular, whenever a blocker is given') +
+        mxCk('Agent and FiO&#8322;, with alarms enabled')) +
+      mxPanel('Arterial access',
+        mxRow('Adult cannula','<b>20</b><i> G</i>') +
+        mxRow('Small adult or child','<b>22</b><i> G</i>') +
+        mxRow('Sites','Radial, brachial, femoral, dorsalis pedis') +
+        mxRow('Transducer','Level at the phlebostatic axis')) +
+    '</div>' +
+    '<div class="mx-two" style="margin-top:13px">' +
+      mxPanel('Central venous access',
+        mxRow('Adult catheter','7 Fr triple lumen') +
+        mxRow('Right IJ depth','<b>15 to 16</b><i> cm</i>') +
+        mxRow('Left IJ depth','<b>18 to 20</b><i> cm</i>') +
+        mxRow('Subclavian depth','<b>16 to 18</b><i> cm</i>') +
+        mxRow('Tip position','Cavo-atrial junction')) +
+      mxPanel('Depth of anaesthesia',
+        mxRow('Processed EEG target','<b>40 to 60</b>') +
+        mxRow('Strongly advised','TIVA with a neuromuscular blocker')) +
+    '</div>' +
+    '<div class="mx-note vx-mon"><span class="mx-note-ic">&#8505;</span><div class="mx-note-tx">' +
+      'Use ultrasound for arterial and central venous access. Confirm venous placement before dilating.' +
+      '</div></div>';
 
   // ── Regional blocks & ultrasound (compact) ────────────────────────────
   var blockBody =
@@ -3705,6 +4015,13 @@ function compute(){
      page would be destroyed on the first keystroke. */
   out.innerHTML='<div id="wf-lead" class="wf-lead" hidden></div>'+
     '<div id="induction-host" class="wf-host"></div>'+
+    /* VOLATILE AGENTS LEAD MAINTENANCE, at the width of the page. In a
+       half-width stack the four quick cards fell into one column and the
+       agent row stopped being a row, which is the whole point of it. The
+       panel renders entirely from reviewed canonical records. */
+    '<div class="panels-wide">'+
+      panel('&#128138;','Volatile agents','Maintenance',volatileBody,'')+
+    '</div>'+
     '<div class="panels-wide dref-lead">'+
       /* The controls ride in the panel's tag slot so the title and the
          Table/Cards switch share one line, which is how the reference reads.
@@ -3720,7 +4037,12 @@ function compute(){
       panel('&#129656;','Fluids &amp; blood',isPeds?'Paediatric':'Adult',fluidsBloodBody,'')+
       /* access sits with what runs through it; prophylaxis is a drug */
       panel('&#128225;','Monitoring &amp; access','Standards',monBody,'')+
-      panel('&#128137;','Antibiotic prophylaxis','Under review',abxBody,'')+
+      /* ANTIBIOTIC PROPHYLAXIS IS OFF THIS WORKSPACE, NOT DELETED. The module
+         is an unpublished placeholder whose own note says no agent or dose is
+         present until an antimicrobial reviewer signs it. Its body, its search
+         entry and its domain mapping stay in the repository for that review;
+         what changes is that Maintenance no longer opens on a module with
+         nothing in it. */
       panel('&#128138;','Analgesia','Opioids &amp; adjuncts',analgesiaBody,'')+
       panel('&#9851;','Reversal / end case','Reversal &amp; PONV',reversalBody,'')+
       (isPeds? panel('&#129490;','Paediatric','Weight-based',pedHtml,'compact') : '')+
@@ -3835,9 +4157,30 @@ var DREF_I = {
   /* The induction mount's scope is the canonical groups an induction reaches
      for, which is the same list the section used before it became a table.
      Reversal is there because sugammadex is drawn up before rocuronium is
-     given, not after. */
+     given, not after.
+
+     VOLATILE HAS LEFT THIS SCOPE, AND THE REASON IS NOT COSMETIC. The group
+     was listed here while it held nothing publishable, so it cost nothing and
+     said nothing. The moment sevoflurane, desflurane and isoflurane became
+     reviewed records it turned into a live path: seven maintenance-scoped
+     concentrations rendering inside the workstation that asks the induction
+     question, above a board whose own note tells the clinician no volatile
+     induction dose is reviewed. The number a clinician reads and the sentence
+     beside it would have been in contradiction.
+
+     The agents are not hidden from the application. The full Drug reference
+     mount below has groups:null and publishes all three, which is where a
+     reviewed record belongs, and Maintenance prints them from the same
+     canonical records. What they may not do is appear in an INDUCTION
+     surface, because no reviewed induction-phase record exists for any of
+     them. If one is ever written, it publishes through the induction selector
+     on its own merits and this line changes with it.
+
+     Note that drefRows() intersects the search rank with this scope rather
+     than widening past it, so removing the group removes the agents from the
+     query path too, not merely from the default listing. */
   iref: { id:'iref', cat:'all', view:'table', q:'', open:null, compact:true,
-          groups:['induction','volatile','analgesia','nmb','reversal'] }
+          groups:['induction','analgesia','nmb','reversal'] }
 };
 function drefI(id){ return DREF_I[id] || DREF_I.dref; }
 /* Kept as a live handle on the workspace mount: several call sites and the
@@ -4025,6 +4368,20 @@ function drefHasDuration(rows){
    this application's model, so it gets no button rather than a button that
    would have to invent one. Nothing is ever preselected, nothing is removed
    on the clinician's behalf, and a second agent in a group joins the first. */
+/* THE SECOND GATE, AND IT IS INDEPENDENT OF SCOPE. A drug only acquires a
+   USE / USING control if its canonical group maps to a plan role here. The
+   volatile group deliberately has no entry, so drefRoleOf() returns null for
+   sevoflurane, desflurane and isoflurane and drefPlanCell() renders an empty
+   cell — no button, no aria-pressed, no path into the selected drug plan.
+
+   This holds in the FULL Drug reference, where all three agents do render.
+   They can be read there; they cannot be used from there. A maintenance
+   concentration is reference information in an induction context, never a
+   selectable induction agent, and the rule is enforced by the absence of a
+   key rather than by a filter somebody has to remember to apply.
+
+   A volatile agent may only gain this entry alongside a separately reviewed
+   induction-scoped record that satisfies the induction selector. */
 var DREF_ROLE_GROUP = { induction:'induction', analgesia:'analgesia', nmb:'nmb' };
 function drefRoleOf(id){
   var CC = window.ClinicalContent, src = CC && CC.byId ? CC.byId(id) : null;
@@ -4650,7 +5007,10 @@ function panelKey(title){ return (title||'').replace(/<[^>]+>/g,'').replace(/&[^
    none names a drug, and none states a dose. */
 var DOMAIN_LEAD = {
   induction:   [1, 'Induction', 'Plan, airway and backup for this patient.'],
-  maintenance: [2, 'Maintenance', 'Ventilation, monitoring and vascular access, and antibiotic prophylaxis.'],
+  /* The antibiotic module is off this workspace, so the lead stops promising
+     it. The sentence itself is suppressed on this domain the way it is on
+     TIVA, because the page now carries its own header. */
+  maintenance: [2, 'Maintenance', 'Volatile anaesthetics, ventilation, monitoring and vascular access.'],
   tiva:        [3, 'TIVA / TCI &amp; sedation', 'Target-controlled infusion models and sedation references.'],
   analgesia:   [4, 'Analgesia', 'Opioids and analgesic adjuncts, scaled to this patient\'s weight.'],
   reversal:    [5, 'Reversal / end case', 'Neuromuscular reversal and postoperative nausea and vomiting.'],
@@ -4682,6 +5042,10 @@ var PANEL_DOMAIN = {
   'tiva-tci-sedation':'tiva',
 
   'ventilation':'maintenance', 'monitoring-access':'maintenance',
+  'volatile-agents':'maintenance',
+  /* The panel is off the Maintenance workspace but the mapping stays: the
+     module still exists for the antimicrobial review, and a stale bookmark or
+     a saved layout should still resolve to a domain. */
   'antibiotic-prophylaxis':'maintenance',
 
   /* Analgesia and Reversal are NEW panels composed from drug groups that
@@ -6322,7 +6686,8 @@ function renderDomainLead(dom){
     '<span class="wfl-tx"><span class="wfl-h">' +
       '<span class="wfl-t">' + L[1] + '</span>' +
       '<span class="wfl-tag" id="wfl-tag" hidden></span></span>' +
-    (dom === 'tiva' ? '' : '<span class="wfl-s">' + L[2] + '</span>') + '</span>';
+    ((dom === 'tiva' || dom === 'maintenance') ? ''
+       : '<span class="wfl-s">' + L[2] + '</span>') + '</span>';
 }
 window.renderDomainLead = renderDomainLead;
 

@@ -1338,6 +1338,9 @@ const fill = (pg, o) => pg.evaluate(o => {
                  nDrugs: new Set(items.map(e => {
                    const n = e.querySelector('.dtab-n, .dm-n');
                    return n ? n.textContent : ''; })).size,
+                 names: items.map(e => {
+                   const n = e.querySelector('.dtab-n, .dm-n');
+                   return n ? n.textContent.trim() : ''; }),
                  heights: items.slice(0,6).map(e => Math.round(e.getBoundingClientRect().height)),
                  toggle: !!document.querySelector('.dref-view'),
                  /* THE VALUES MUST NOT CHANGE WITH THE PRESENTATION. */
@@ -1356,7 +1359,25 @@ const fill = (pg, o) => pg.evaluate(o => {
       })()`);
       t(w + ': the reference renders the ' + MODES[w] + ' presentation',
         rr.mode === MODES[w], { mode:rr.mode, containerWidth:rr.refW });
-      /* WAS: TWELVE DRUGS, SIXTEEN ROWS — twelve publishable drugs in the
+      /* TWENTY DRUGS AND TWENTY-NINE ROWS, AND THE VOLATILE PACKAGE DID NOT
+         CHANGE EITHER NUMBER. It briefly did. Sevoflurane, desflurane and
+         isoflurane became reviewed records, the induction mount's scope still
+         listed the volatile group from when that group held nothing
+         publishable, and seven maintenance concentrations arrived here —
+         23 drugs, 36 rows. That was a leak, not a widening.
+
+         This mount is the reference INSIDE the induction workstation, above a
+         board whose own note tells the clinician that no volatile induction
+         dose is reviewed. Printing a volatile concentration there contradicts
+         the sentence beside it. The group left iref's scope; the agents are
+         published in the full Drug reference and in Maintenance, which is
+         where a reviewed maintenance record belongs.
+
+         So this pair is a BOUNDARY assertion now, not only a drift one. If it
+         reads 23 and 36 again, the induction scope has re-acquired the
+         volatile group and the boundary is gone.
+
+         WAS: TWELVE DRUGS, SIXTEEN ROWS — twelve publishable drugs in the
          induction scope carrying nineteen reviewed records, three of which
          (propofol, fentanyl and rocuronium paediatric) are withheld from a
          44-year-old, leaving sixteen rendered rows.
@@ -1377,6 +1398,11 @@ const fill = (pg, o) => pg.evaluate(o => {
          so an accidental duplicate still fails. */
       t(w + ': ...over all twenty drugs', rr.nDrugs === 20, rr.nDrugs);
       t(w + ': ...as twenty-nine reviewed rows', rr.n === 29, rr.n);
+      /* C. Named, so the failure says which agent leaked rather than only
+            that a count moved. */
+      t(w + ': ...and no volatile agent among them',
+        !/sevoflurane|desflurane|isoflurane/i.test(rr.names.join(' ')),
+        rr.names.filter(n => /sevoflurane|desflurane|isoflurane/i.test(n)));
       if (rr.mode === 'reduced')
         t(w + ': ...with Preparation folded into the detail, the rest kept',
           rr.cols.join('|') === 'Drug|Use|Dose|This patient', rr.cols);
@@ -1401,6 +1427,85 @@ const fill = (pg, o) => pg.evaluate(o => {
       const bad = ws.filter(w => JSON.stringify(RESP[w]) !== JSON.stringify(ref));
       t('every width prints identical clinical values',
         bad.length === 0, { widths:ws, disagreed:bad });
+    }
+
+    /* ── THE INDUCTION VOLATILE BOUNDARY, RENDERED ───────────────────────
+       maintenance-content.test.js proves the four gates as properties of the
+       model and of engine.html's source. This proves the consequence on the
+       actual page: the agents are absent from the induction reference by
+       every path including an explicit search, present in the full Drug
+       reference where a reviewed record belongs, and carry no route into the
+       selected drug plan from either. */
+    {
+      const v = await open(b, 1440, 1250);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(650);
+      /* One helper, defined in the page, used by every probe below so that
+         the induction mount and the full mount are read the same way. */
+      const ROWS = `const rowsIn = sel => [...document.querySelectorAll(
+          sel + ' tr.dtab-r, ' + sel + ' .dcard')];
+        const namesIn = sel => rowsIn(sel).map(e => {
+          const n = e.querySelector('.dtab-n, .dm-n'); return n ? n.textContent.trim() : ''; });
+        const VOL = /sevoflurane|desflurane|isoflurane/i;`;
+
+      /* C. Default induction reference: no volatile agent. */
+      const idef = await v.pg.evaluate(`(() => {
+        ${ROWS}
+        const names = namesIn('#iref-body');
+        return { names, vol:names.filter(n => VOL.test(n)) };
+      })()`);
+      t('C. the default induction reference contains no volatile agent',
+        idef.vol.length === 0, idef.vol);
+
+      /* D. And an explicit search does not widen it. Each agent is typed into
+            the induction reference's own search box; the correct answer is an
+            empty result, because drefRows() intersects the query with the
+            mount's scope rather than reaching past it into the index. The
+            same query is run against the FULL reference in the same breath,
+            so a zero here is proved to be the scope and not a broken search. */
+      for (const q of ['sevoflurane', 'desflurane', 'isoflurane']) {
+        const r = await v.pg.evaluate(`(async () => {
+          ${ROWS}
+          const set = (id, val) => { const el = document.getElementById(id);
+            if (!el) return false;
+            el.value = val; el.dispatchEvent(new Event('input', { bubbles:true }));
+            return true; };
+          const okI = set('iref-q', ${JSON.stringify(q)});
+          const okF = set('dref-q', ${JSON.stringify(q)});
+          await new Promise(r => setTimeout(r, 300));
+          return { boxes:[okI, okF],
+                   induction:namesIn('#iref-body'),
+                   full:namesIn('#dref-body'),
+                   fullUse:rowsIn('#dref-body')
+                     .filter(e => VOL.test((e.querySelector('.dtab-n, .dm-n')||{}).textContent||''))
+                     .map(e => e.querySelectorAll('[data-plan-for]').length)
+                     .reduce((a, b) => a + b, 0) };
+        })()`);
+        t('D. both search boxes exist, so an empty result means the scope',
+          r.boxes[0] === true && r.boxes[1] === true, r.boxes);
+        t('D. searching "' + q + '" in the induction reference returns nothing',
+          r.induction.length === 0, r.induction);
+        /* F. the same query in the full reference DOES find it. */
+        t('F. ...while the full Drug reference finds it',
+          r.full.some(n => new RegExp(q, 'i').test(n)), r.full.slice(0, 4));
+        /* E. and the row it finds offers no USE control. */
+        t('E. ...and that row carries no USE control',
+          r.fullUse === 0, r.fullUse);
+      }
+
+      /* E, stated once more over the whole surface: every [data-plan-for] on
+         the page belongs to a drug whose group maps to a plan role, and no
+         volatile id is among them. This is the assertion that fails if
+         DREF_ROLE_GROUP ever gains a volatile entry. */
+      const plan = await v.pg.evaluate(`(() => {
+        const ids = [...document.querySelectorAll('[data-plan-for]')]
+          .map(e => e.getAttribute('data-plan-for'));
+        return { total:ids.length,
+                 volatile:ids.filter(id => /sevoflurane|desflurane|isoflurane/i.test(id)) };
+      })()`);
+      t('E. no volatile agent is addable to the selected drug plan, anywhere on the page',
+        plan.volatile.length === 0 && plan.total > 0, plan);
+      t('...and no runtime errors through any of it', v.errs.length === 0, v.errs.slice(0,2));
+      await v.ctx.close();
     }
 
     /* ── THE ACCESS MODEL IS UNCHANGED BY ANY OF IT ── */

@@ -999,14 +999,151 @@ var DRUGS = [
                note:'Citations supplied and verified by the clinical owner outside the build environment.',
                sourceAccessed:true } },
 
+/* ══ VOLATILE AGENTS ══════════════════════════════════════════════════════
+   MAINTENANCE CONCENTRATIONS, NOT INDUCTION ONES. Every value below is the
+   label's own maintenance figure, and the induction concentrations these
+   labels also carry are deliberately NOT here: the induction board asks a
+   different question and is answered by the induction phase, which no
+   volatile record enters. So "volatile induction dosing is not reviewed"
+   stays true while maintenance becomes available.
+
+   MAC IS A TABLE, AND IT STAYS A TABLE. Each label states MAC at particular
+   ages, and it falls with age. Reducing that to one adult number, or
+   interpolating a figure for the patient on screen, would be this file
+   inventing a value its sources do not contain. The table is carried
+   verbatim through `display`, so the reader gets the source's own rows and
+   the note that MAC decreases with age, and no arithmetic happens anywhere.
+
+   NITROUS OXIDE IS ABSENT ON PURPOSE. Its concentration and MAC were not
+   established against a label in this pass, so it has no record here and the
+   page prints its coverage state rather than a number. A card that looks
+   complete is not a reason to publish a figure.                            */
 { id:'drug.sevoflurane', name:'Sevoflurane', group:'volatile',
   pclass:'inhalational',
   aliases:['sevoflurane','sevo','sevorane','ultane'],
   klass:'Halogenated volatile anaesthetic',
   indications:['inhalational induction','maintenance of anaesthesia'],
-  doses:[], prep:'', severity:'caution',
-  provenance:{ state:'proposed-unverified', reviewer:'internal_clinical',
-               candidateSource:'SmPC + MAC reference tables', sourceAccessed:false } }
+  doses:[
+    { label:'Maintenance', route:'Inhalational', phase:'maintenance',
+      low:0.5, high:3, unit:'%', type:'range',
+      note:'Surgical levels are usually achieved with or without nitrous oxide. Titrate to effect.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Sevoflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid bdde7502-6218-401c-9a4f-dd3bc3a80f72',
+                 section:'DOSAGE AND ADMINISTRATION, Maintenance' } },
+    { label:'MAC in oxygen', route:'Inhalational', phase:'maintenance',
+      display:'2.1% at age 40', unit:'',
+      note:'MAC is age dependent and decreases with increasing age.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Sevoflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid bdde7502-6218-401c-9a4f-dd3bc3a80f72',
+                 section:'DOSAGE AND ADMINISTRATION, MAC values in oxygen and in nitrous oxide' } }
+  ],
+  prep:'', severity:'caution',
+  /* WAS: "Nonpungent, so it is tolerated for inhalational induction.
+     Maintenance concentration is titrated to effect." That is not a caution.
+     It is a favourable property, and it was printing under an amber CAUTIONS
+     heading and duplicating the card's own effects row, so a clinician
+     scanning for what to watch for was handed something reassuring. The
+     nonpungency statement keeps its place under effects, where it belongs.
+
+     What replaces it is label material, and it carries its own citation:
+     warn is drug-level prose, and prose without a source has no business
+     inside a record marked reviewed. warnEvidence is read by the same shape
+     of gate the dose citations use. */
+  warn:'Fresh gas flow below 1 L/min is not recommended: low flow raises Compound A exposure and the risk of renal injury. Respiratory depression and QT prolongation have been reported. Trigger for malignant hyperthermia, and perioperative hyperkalaemia has occurred.',
+  warnEvidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Sevoflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid bdde7502-6218-401c-9a4f-dd3bc3a80f72',
+                 section:'WARNINGS AND PRECAUTIONS' },
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.desflurane', name:'Desflurane', group:'volatile',
+  pclass:'inhalational',
+  aliases:['desflurane','suprane'],
+  klass:'Halogenated volatile anaesthetic',
+  indications:['maintenance of anaesthesia'],
+  doses:[
+    { label:'Maintenance', route:'Inhalational', phase:'maintenance',
+      low:2.5, high:8.5, unit:'%', type:'range',
+      note:'Adult maintenance. Concomitant nitrous oxide reduces the concentration required.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Desflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid 561c51aa-76fd-2eb8-e063-6394a90a7021',
+                 section:'DOSAGE AND ADMINISTRATION, Maintenance' } },
+    { label:'MAC in 100% oxygen', route:'Inhalational', phase:'maintenance',
+      display:'7.3% at 25 y, 6.0% at 45 y, 5.2% at 70 y', unit:'',
+      note:'MAC decreases with age. Concomitant nitrous oxide reduces MAC.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Desflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid 561c51aa-76fd-2eb8-e063-6394a90a7021',
+                 section:'DOSAGE AND ADMINISTRATION, MAC values by age' } }
+  ],
+  prep:'', severity:'caution',
+  /* WAS: a restatement of the card's effects row, blood pressure and heart
+     rate said twice on one card in two wordings. The haemodynamic effect
+     stays under effects; what belongs in a warning is the paediatric airway
+     restriction, the consequence of raising the dial quickly in a patient who
+     cannot tolerate it, and the absorbent. */
+  warn:'Not for maintenance in non-intubated children: coughing, laryngospasm and other respiratory adverse reactions are increased. A rapid rise in concentration can sharply raise heart rate and blood pressure, which is undesirable in coronary artery disease. Desiccated carbon dioxide absorbent can produce carbon monoxide. Trigger for malignant hyperthermia.',
+  warnEvidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Desflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid 561c51aa-76fd-2eb8-e063-6394a90a7021',
+                 section:'WARNINGS AND PRECAUTIONS' },
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+{ id:'drug.isoflurane', name:'Isoflurane', group:'volatile',
+  pclass:'inhalational',
+  aliases:['isoflurane','forane','forene'],
+  klass:'Halogenated volatile anaesthetic',
+  indications:['maintenance of anaesthesia'],
+  doses:[
+    { label:'Maintenance with nitrous oxide', route:'Inhalational', phase:'maintenance',
+      low:1, high:2.5, unit:'%', type:'range',
+      note:'Surgical levels may be sustained in this range when nitrous oxide is used.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Isoflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid 525a2467-548d-4b10-b181-91b90e99ae1b',
+                 section:'DOSAGE AND ADMINISTRATION, Maintenance' } },
+    { label:'Additional with oxygen alone', route:'Inhalational', phase:'maintenance',
+      low:0.5, high:1, unit:'%', type:'range',
+      note:'An additional amount may be required when isoflurane is given with oxygen alone.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Isoflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid 525a2467-548d-4b10-b181-91b90e99ae1b',
+                 section:'DOSAGE AND ADMINISTRATION, Maintenance' } },
+    { label:'MAC in 100% oxygen', route:'Inhalational', phase:'maintenance',
+      display:'1.28% at 19 to 30 y, 1.15% at 31 to 55 y, 1.05% at 55 to 83 y', unit:'',
+      note:'MAC is age dependent and decreases with increasing age.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Isoflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid 525a2467-548d-4b10-b181-91b90e99ae1b',
+                 section:'DOSAGE AND ADMINISTRATION, MAC values by age' } }
+  ],
+  prep:'', severity:'caution',
+  /* THIS RECORD HAD NO warn AT ALL, so mxCard's `if(d.warn)` silently dropped
+     the CAUTIONS row and one card in a four-card comparison grid warned about
+     nothing. An absent warning reads as "nothing to watch for", which is the
+     most expensive thing a card like this can imply. */
+  warn:'Dose dependent vasodilatation and hypotension, marked in hypovolaemia or haemodynamic compromise. Hepatic injury has followed repeated exposure to halogenated anaesthetics. Desiccated carbon dioxide absorbent can produce carbon monoxide. Trigger for malignant hyperthermia.',
+  warnEvidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Isoflurane, Inhalation Anesthetic, Prescribing Information',
+                 documentId:'DailyMed setid 525a2467-548d-4b10-b181-91b90e99ae1b',
+                 section:'WARNINGS AND PRECAUTIONS' },
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } }
 ];
 
 /* ── REGIONAL AVAILABILITY (future-compatible, not filtered in this pass) ──

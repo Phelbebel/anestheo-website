@@ -47,21 +47,44 @@ console.log('\n=== PHASE 4A · MAINTENANCE CONTENT MODEL ====================\n'
    not have widened it by a single record. */
 console.log('1. THE PUBLISHING GATE');
 
+/* ── SEVOFLURANE WENT THROUGH THE GATE, IT DID NOT GO ROUND IT ───────────
+   WAS: sevoflurane is proposed-unverified, carries no dose, is not
+   publishable, is returned by no group render and is absent from search. It
+   was the file's worked example of an unpublished record, and every one of
+   those assertions was true because nobody had reviewed it.
+
+   The volatile package reviewed it, along with desflurane and isoflurane, so
+   the example inverts. What must not change is the GATE, and the way to show
+   that is to assert the same things in the same order about a record that now
+   satisfies it: full provenance, every dose individually publishable, present
+   in its group, findable by name and by trade name.
+
+   The unpublished worked example does not disappear. Nitrous oxide takes it
+   over below: it was deliberately NOT given a record in this pass, so the
+   Maintenance page prints a coverage state where its concentration would be. */
 const sevo = CC.byId('drug.sevoflurane');
 t('sevoflurane is still in the dataset', !!sevo, sevo && sevo.id);
-t('...still proposed-unverified', sevo.provenance.state === 'proposed-unverified',
+t('...reviewed, by the clinical owner', sevo.provenance.state === 'reviewed' &&
+  sevo.provenance.reviewer === 'clinical_owner' && sevo.provenance.sourceAccessed === true,
   sevo.provenance.state);
-t('...still carries no dose at all', Array.isArray(sevo.doses) && sevo.doses.length === 0,
-  sevo.doses);
-t('...and is not publishable', CC.isPublishable(sevo) === false);
-/* THE GATE, EXERCISED RATHER THAN INSPECTED: no render path returns it. */
-t('...so no group render returns it',
-  CC.GROUPS.every(g => !CC.visibleDrugsInGroup(g.id, 75).some(r => r.id === 'drug.sevoflurane')));
-t('...and searching for it by name returns nothing',
-  CC.search('sevoflurane', { limit: 50 }).every(h => h.item.id !== 'drug.sevoflurane'),
-  CC.search('sevoflurane', { limit: 50 }).map(h => h.item.id));
-t('...nor does searching its trade name', CC.search('sevorane', { limit: 50 })
-  .every(h => h.item.id !== 'drug.sevoflurane'));
+t('...and every dose it carries is individually publishable',
+  sevo.doses.length > 0 && sevo.doses.every(x => CC.isDosePublishable(sevo, x)),
+  sevo.doses.map(x => x.label));
+t('...and it is publishable', CC.isPublishable(sevo) === true);
+/* THE GATE, EXERCISED RATHER THAN INSPECTED: the render path returns it now. */
+t('...so its own group returns it',
+  CC.visibleDrugsInGroup('volatile', 75).some(r => r.id === 'drug.sevoflurane'));
+t('...and searching for it by name finds it',
+  CC.search('sevoflurane', { limit: 50 }).some(h => h.item.id === 'drug.sevoflurane'));
+t('...as does searching its trade name', CC.search('sevorane', { limit: 50 })
+  .some(h => h.item.id === 'drug.sevoflurane'));
+/* NITROUS OXIDE IS THE UNPUBLISHED CASE NOW, and it is unpublished by being
+   absent rather than by being present and gated, which is the stronger form:
+   there is no record for a renderer to reach for. */
+t('nitrous oxide has no canonical record, so no number can be published for it',
+  !CC.byId('drug.nitrous-oxide') &&
+  !CC.DRUGS.some(d => /nitrous/i.test(d.name || '')),
+  CC.DRUGS.filter(d => /nitrous/i.test(d.name || '')).map(d => d.id));
 
 const unpub = CC.DRUGS.filter(d => !CC.isPublishable(d));
 t('every unpublishable record is invisible to every group render',
@@ -99,14 +122,39 @@ t('every declared phase comes from the vocabulary, none invented',
    induction — which is deliberately NOT the intraoperative antivagal record
    the board asks for. The phase exists precisely so the two cannot be
    confused. */
+/* WAS: induction,intubation,premedication,rsi, and the guarantee underneath
+   it was that MAINTENANCE was still empty. The volatile package fills it:
+   sevoflurane, desflurane and isoflurane carry reviewed maintenance
+   concentrations, which is the whole point of the Maintenance workspace
+   having content at all. 'maintenance' joins the declared set. */
 t('...and induction-scope phases are all this migration declared',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort()
-    .join(',') === 'induction,intubation,premedication,rsi',
+    .join(',') === 'induction,intubation,maintenance,premedication,rsi',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort());
-t('...so every group returns nothing for maintenance',
-  CC.GROUPS.every(g => CC.visibleInGroupForPhase(g.id, 75, CC.PHASES.MAINTENANCE).length === 0));
-t('...and the coverage report says zero everywhere, not "unknown"',
-  Object.values(CC.phaseCoverage(CC.PHASES.MAINTENANCE)).every(v => v.withPhase === 0),
+/* WAS: every group returns nothing for maintenance. Exactly one group returns
+   something now, and it is the volatile group, which is the only place a
+   maintenance concentration belongs. Every other group is still empty for
+   that phase, and that is asserted rather than left implied. */
+t('...so only the volatile group answers the maintenance phase',
+  CC.visibleInGroupForPhase('volatile', 75, CC.PHASES.MAINTENANCE).length > 0 &&
+  CC.GROUPS.filter(g => g.id !== 'volatile')
+    .every(g => CC.visibleInGroupForPhase(g.id, 75, CC.PHASES.MAINTENANCE).length === 0),
+  CC.GROUPS.filter(g => CC.visibleInGroupForPhase(g.id, 75, CC.PHASES.MAINTENANCE).length)
+    .map(g => g.id));
+t('...and the maintenance records are volatile agents and nothing else',
+  CC.DRUGS.filter(d => (d.doses||[]).some(x => x.phase === 'maintenance'))
+    .map(d => d.id).sort().join(',') ===
+  'drug.desflurane,drug.isoflurane,drug.sevoflurane',
+  CC.DRUGS.filter(d => (d.doses||[]).some(x => x.phase === 'maintenance')).map(d => d.id));
+/* WAS: zero everywhere. The volatile group is no longer zero; every other
+   group still is, and the report still answers with a number rather than
+   "unknown", which is what this assertion was protecting. */
+t('...and the coverage report answers with a number for every group',
+  Object.keys(CC.phaseCoverage(CC.PHASES.MAINTENANCE)).every(k =>
+    typeof CC.phaseCoverage(CC.PHASES.MAINTENANCE)[k].withPhase === 'number') &&
+  Object.keys(CC.phaseCoverage(CC.PHASES.MAINTENANCE))
+    .filter(k => k !== 'volatile')
+    .every(k => CC.phaseCoverage(CC.PHASES.MAINTENANCE)[k].withPhase === 0),
   CC.phaseCoverage(CC.PHASES.MAINTENANCE));
 
 /* THE TWO SPECIFIC HAZARDS THE BRIEF NAMES. */
@@ -220,9 +268,34 @@ t('...and none of them declares a maintenance phase',
 /* ── 6. MAC IS AN AGE FACTOR, NOT AN AGENT MAC ───────────────────────────*/
 console.log('\n6. MAC');
 
-t('the model holds no agent MAC value',
-  !CC.DRUGS.some(d => /\bMAC\b/.test(JSON.stringify(d.doses || []))),
-  'no dose expresses a MAC multiple');
+/* WAS: the model holds no agent MAC value. It holds three now, one per
+   reviewed volatile agent, and each is the SOURCE'S OWN TABLE carried
+   verbatim rather than a single number: MAC falls with age, and reducing the
+   label's rows to one figure, or interpolating one for the patient on screen,
+   would be this model inventing a value its sources do not contain.
+
+   So the assertion is no longer "there is no MAC". It is that every MAC in
+   the model is a reviewed, cited, non-computed string, and that none of them
+   is expressed as a MAC MULTIPLE, which is the thing the age factor below
+   is and these are not. */
+const MACD = [];
+CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
+  if (/\bMAC\b/.test(x.label || '')) MACD.push({ id:d.id, x:x });
+}));
+t('every agent MAC in the model is reviewed, cited and not computed',
+  MACD.length === 3 &&
+  MACD.every(m => m.x.evidence && m.x.evidence.state === 'reviewed' &&
+                  m.x.evidence.authority && m.x.evidence.documentId && m.x.evidence.section) &&
+  MACD.every(m => typeof m.x.display === 'string' && m.x.display.length > 0) &&
+  MACD.every(m => m.x.low == null && m.x.high == null && m.x.value == null),
+  MACD.map(m => m.id + ': ' + m.x.display));
+t('...and each one carries its source age context rather than one number',
+  MACD.every(m => /age|y\b/i.test(m.x.display)),
+  MACD.map(m => m.x.display));
+t('...and no dose expresses a MAC multiple',
+  !CC.DRUGS.some(d => (d.doses||[]).some(x =>
+    /\d\s*(x|times|multiple)\s*MAC/i.test(JSON.stringify(x)))),
+  'MAC multiples belong to the age factor, not to an agent record');
 t('...only a calculator descriptor, whose summary says what it is',
   (CC.ITEMS.find(i => i.id === 'calc.mac') || {}).summary === 'Relative to a 40-year-old',
   (CC.ITEMS.find(i => i.id === 'calc.mac') || {}).summary);
@@ -381,6 +454,22 @@ if (fs.existsSync(SNAP)) {
      shipped long before this branch — and it is corrected here rather than
      preserved, because preserving it would be preserving a rounding error
      instead of the calculation.
+
+     ── AND A THIRD TIME, FOR THE VOLATILE PACKAGE ───────────────────────
+     Three agents entered the volatile group, which had been empty: sevoflurane
+     reviewed up from proposed-unverified, desflurane and isoflurane created.
+     FIFTEEN ROWS APPEARED, three drugs at five weights, and that is the whole
+     difference:
+
+       165 rows -> 180,  37 drugs -> 39,  33 publishable -> 36
+
+     Zero rows were removed and NOT ONE FIELD of an existing row changed by a
+     character, which is the guarantee that matters: adding a volatile agent
+     did not move a single figure the board or the reference already printed.
+
+     The five weight buckets all hold the same three rows, because a volatile
+     concentration is not weight scaled. If a future edit ever made one of
+     them differ between 3.4 kg and 120 kg, this guard would say so.
 
      From here it is a frozen guard again, and an exact one. */
   t('every baselined row still renders identically, field for field',
@@ -651,9 +740,40 @@ console.log('\n12. DOSE-LEVEL PUBLISHABILITY');
 const prop = CC.byId('drug.propofol');
 t('a migrated dose with no evidence block still publishes',
   CC.isDosePublishable(prop, prop.doses[0]) === true);
+/* WAS: sevoflurane, which was this file's unpublishable drug until it was
+   reviewed. The first repair pointed the test at esmolol, and that was the
+   wrong repair: it made a SAFETY RULE depend on whichever real drug happens
+   to be unreviewed today. Review esmolol next month and the rule stops being
+   tested, silently, with the suite still green.
+
+   So the fixture is synthetic and local. It is never added to
+   ClinicalContent.DRUGS, it models nothing clinical, and it exists only to be
+   a parent that fails isPublishable(). Paired with it is a dose that is
+   FULLY reviewed and FULLY cited — authority, documentId and section all
+   present — because a dose that would fail on its own proves nothing about
+   the parent gate. Both halves are needed for the assertion to mean what it
+   says: the drug-level gate dominates a perfect dose-level citation. */
+const UNPUBLISHABLE_PARENT = { id:'drug.__fixture_unpublishable',
+  name:'Synthetic fixture, not a drug',
+  provenance:{ state:'proposed-unverified' } };
+const FULLY_CITED_DOSE = { label:'Fixture', populationClass:'A',
+  evidence:{ state:'reviewed', authority:'DailyMed',
+             documentId:'fixture-document-id', section:'DOSAGE AND ADMINISTRATION' } };
+t('the fixture parent really is unpublishable, and the dose really is fully cited',
+  CC.isPublishable(UNPUBLISHABLE_PARENT) === false &&
+  CC.isDosePublishable(CC.byId('drug.propofol'), FULLY_CITED_DOSE) === true,
+  { parent:CC.isPublishable(UNPUBLISHABLE_PARENT),
+    doseUnderGoodParent:CC.isDosePublishable(CC.byId('drug.propofol'), FULLY_CITED_DOSE) });
 t('a dose on an unpublishable drug never publishes',
-  CC.isDosePublishable(CC.byId('drug.sevoflurane'), { evidence:{ state:'reviewed',
-    authority:'x', documentId:'y', section:'z' } }) === false);
+  CC.isDosePublishable(UNPUBLISHABLE_PARENT, FULLY_CITED_DOSE) === false);
+t('...and the synthetic fixture never entered the real dataset',
+  !CC.DRUGS.some(d => d.id === UNPUBLISHABLE_PARENT.id) &&
+  CC.byId(UNPUBLISHABLE_PARENT.id) == null,
+  CC.DRUGS.filter(d => /__fixture/.test(d.id)).map(d => d.id));
+t('...and the drugs that remain unpublishable are exactly the three untouched ones',
+  CC.DRUGS.filter(d => !CC.isPublishable(d)).map(d => d.id).sort().join(',') ===
+  'drug.esmolol,drug.labetalol,drug.ondansetron',
+  CC.DRUGS.filter(d => !CC.isPublishable(d)).map(d => d.id));
 t('proposed-unverified at dose level does not publish',
   CC.isDosePublishable(prop, { evidence:{ state:'proposed-unverified' } }) === false);
 t('REVIEWED WITHOUT A CITATION DOES NOT PUBLISH',
@@ -666,8 +786,14 @@ t('a fully cited reviewed dose publishes',
 /* WAS: 25. Seven new canonical records and lidocaine-iv leaving
    proposed-unverified make 33. The GATE is untouched — what changed is how
    many drugs satisfy it, and every one of the eight carries a full citation. */
-t('the drug-level gate is untouched: exactly 33 publishable drugs',
-  CC.DRUGS.filter(CC.isPublishable).length === 33,
+/* THE VOLATILE PACKAGE MOVED THESE NUMBERS. Three agents, sevoflurane
+   (reviewed up from proposed-unverified) plus desflurane and isoflurane
+   (new), carrying seven reviewed doses between them: two, two and three.
+   Every one is cited to a DailyMed label with an authority, a document id
+   and a section, and none of them is weight scaled, because a volatile
+   concentration is not a per-kilogram dose. */
+t('the drug-level gate is untouched: exactly 36 publishable drugs',
+  CC.DRUGS.filter(CC.isPublishable).length === 36,
   CC.DRUGS.filter(CC.isPublishable).length);
 
 /* ── DOSE ENUMERATION AND THE WITHHELD ROW ──────────────────────────────*/
@@ -683,17 +809,19 @@ t('every drug visibleDrugsInGroup returns still appears in visibleDosesInGroup',
   })), 'enumeration adds rows, it never drops a drug');
 t('...and the drugs carrying more than one are exactly the migrated ones',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id).sort().join(',') ===
-  'drug.alfentanil,drug.fentanyl,drug.glycopyrrolate,drug.ketamine,drug.mivacurium,' +
-  'drug.propofol,drug.remifentanil,drug.rocuronium,drug.suxamethonium',
+  'drug.alfentanil,drug.desflurane,drug.fentanyl,drug.glycopyrrolate,drug.isoflurane,' +
+  'drug.ketamine,drug.mivacurium,drug.propofol,drug.remifentanil,drug.rocuronium,' +
+  'drug.sevoflurane,drug.suxamethonium',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id));
 /* WAS: the six Tier-1 drugs. The eight the completeness package added carry a
    populationClass for the same reason — a reviewed record must say who it is
    for — so the list grows by exactly those eight and by nothing else. */
 t('the classified records are exactly the ones the reviewed packages touched',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort().join(',') ===
-  'drug.alfentanil,drug.atracurium,drug.atropine,drug.etomidate,drug.fentanyl,' +
-  'drug.glycopyrrolate,drug.ketamine,drug.lidocaine-iv,drug.mivacurium,drug.propofol,' +
-  'drug.remifentanil,drug.rocuronium,drug.suxamethonium,drug.thiopental',
+  'drug.alfentanil,drug.atracurium,drug.atropine,drug.desflurane,drug.etomidate,' +
+  'drug.fentanyl,drug.glycopyrrolate,drug.isoflurane,drug.ketamine,drug.lidocaine-iv,' +
+  'drug.mivacurium,drug.propofol,drug.remifentanil,drug.rocuronium,drug.sevoflurane,' +
+  'drug.suxamethonium,drug.thiopental',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort());
 t('ageBand appears only on class-C records',
   CC.DRUGS.every(d => (d.doses||[]).every(x => !x.ageBand || x.populationClass === 'C')));
@@ -928,8 +1056,8 @@ t('11 legacy compatibility does NOT populate or mutate populationClass',
     (d.doses||[]).map(x => [x.populationClass, x.population, x.evidence && x.evidence.state])))
     === beforeLegacy,
   'the dataset is byte-identical after every eligibility call');
-t('...and exactly 26 doses carry a populationClass — the reviewed ones',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 26,
+t('...and exactly 33 doses carry a populationClass, the reviewed ones',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 33,
   CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0));
 /* WAS: every publishable drug is existing-unchanged. Eight now read
    'reviewed', and the safety question is not how many but WHICH — a legacy
@@ -939,8 +1067,12 @@ t('...and exactly 26 doses carry a populationClass — the reviewed ones',
    eighth, lidocaine-iv, was proposed-unverified and therefore unpublishable.
    Every one of the 25 drugs that WAS existing-unchanged still is, which is
    asserted here directly rather than by counting. */
+/* The volatile package adds three: sevoflurane was proposed-unverified and is
+   reviewed now, desflurane and isoflurane did not exist before it. Still not
+   one record that was existing-unchanged has become reviewed. */
 var UPGRADED = ['drug.lidocaine-iv','drug.etomidate','drug.thiopental','drug.atropine',
-                'drug.glycopyrrolate','drug.alfentanil','drug.atracurium','drug.mivacurium'];
+                'drug.glycopyrrolate','drug.alfentanil','drug.atracurium','drug.mivacurium',
+                'drug.sevoflurane','drug.desflurane','drug.isoflurane'];
 t('12 legacy compatibility does NOT change provenance.state',
   CC.DRUGS.filter(CC.isPublishable)
     .filter(d => UPGRADED.indexOf(d.id) < 0)
@@ -953,16 +1085,16 @@ t('13 NO existing-unchanged record became reviewed',
   CC.DRUGS.every(d => (d.doses||[]).every(x =>
     !x.evidence || x.evidence.state !== 'reviewed' || !!x.populationClass)) &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 26 &&
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 33 &&
   /* the drugs whose provenance is 'reviewed' are only ever the eight, and no
      drug that carried a legacy record is among them */
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed')
     .every(d => UPGRADED.indexOf(d.id) >= 0),
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed').map(d => d.id));
-t('...and dose-level evidence exists ONLY on the 26 reviewed records',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 26 &&
+t('...and dose-level evidence exists ONLY on the 33 reviewed records',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 33 &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 26);
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 33);
 
 /* THE NAMED HELD RECORDS, EXERCISED THROUGH THE REAL SELECTOR. */
 [['drug.midazolam','induction'], ['drug.dexmedetomidine','induction'],
@@ -995,7 +1127,7 @@ const reviewed = [];
 CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
   if (x.evidence && x.evidence.state === 'reviewed') reviewed.push({ id:d.id, dose:x });
 }));
-t('EXACTLY 26 REVIEWED DOSE RECORDS', reviewed.length === 26, reviewed.length);
+t('EXACTLY 33 REVIEWED DOSE RECORDS', reviewed.length === 33, reviewed.length);
 t('...every one carries a full citation',
   reviewed.every(r => r.dose.evidence.authority && r.dose.evidence.title &&
                       r.dose.evidence.documentId && r.dose.evidence.section));
@@ -1164,9 +1296,13 @@ t('dexmedetomidine: dose and provenance unchanged, colour reclassified',
   dexH.doses[0].unit === 'mcg/kg/h' && dexH.doses[0].population === 'adult' &&
   dexH.provenance.state === 'existing-unchanged' &&
   dexH.pclass === 'alpha2' && dexH.doses[0].populationClass === undefined);
-t('sevoflurane still proposed-unverified with no dose',
-  CC.byId('drug.sevoflurane').doses.length === 0 &&
-  CC.byId('drug.sevoflurane').provenance.state === 'proposed-unverified');
+/* WAS: sevoflurane still proposed-unverified with no dose. Reviewed now, and
+   what this block is about is that the OTHER records were not disturbed by
+   that, so the assertion becomes the positive form. */
+t('sevoflurane is reviewed and carries maintenance doses only',
+  CC.byId('drug.sevoflurane').doses.length > 0 &&
+  CC.byId('drug.sevoflurane').provenance.state === 'reviewed' &&
+  CC.byId('drug.sevoflurane').doses.every(x => x.phase === 'maintenance'));
 t('reversal drugs still render for an adult',
   CC.visibleDosesInGroup('reversal',70,ADULT).every(r => !r.withheld));
 
@@ -1797,6 +1933,225 @@ const precisionPop = p => {
     !!peds && !!im && peds.value === 0.004 && im.value === 0.004 &&
     WANT.every(w => at(peds, w[0]) === w[1] && at(im, w[0]) === w[1]),
     WANT.map(w => w[0] + 'kg=' + at(peds, w[0])).join(' '));
+}
+
+/* ── THE INDUCTION SAFETY BOUNDARY ───────────────────────────────────────
+   THE RULE, FROZEN: a volatile maintenance record may never acquire a USE /
+   USING action in an induction surface unless that agent has a separately
+   reviewed induction-scoped record that satisfies the induction selector.
+
+   Sevoflurane, desflurane and isoflurane have no such record. They are
+   legitimate canonical content and they belong in Maintenance and in the full
+   Drug reference; what they may not become is a selectable induction agent,
+   because the board's own note tells the clinician that no volatile induction
+   dose is reviewed and a number appearing beside that sentence would
+   contradict it.
+
+   Four independent gates enforce this, and all four are asserted below so
+   that removing any one of them fails the suite rather than quietly widening
+   the surface. The phase gate and the catalog gate are properties of the
+   content model. The scope gate and the role gate are properties of the
+   reference renderer and are read out of engine.html's source, because that
+   is where they live; the DOM-level consequences are asserted in
+   live-tools-shell.test.js, which can actually render the thing.           */
+console.log('\n18. THE INDUCTION SAFETY BOUNDARY');
+
+const VOLATILE_IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
+const INDUCTION_PHASES = ['induction','intubation','rsi','premedication'];
+
+/* A. No publishable induction-phase dose exists on any of the three. This is
+      the gate that matters most: the induction selector selects by phase, so
+      an empty result here means there is nothing for it to find. */
+{
+  const offending = [];
+  VOLATILE_IDS.forEach(id => {
+    const d = CC.byId(id);
+    (d.doses || []).forEach(x => {
+      if (INDUCTION_PHASES.indexOf(x.phase) >= 0 && CC.isDosePublishable(d, x))
+        offending.push(id + '/' + x.label + '/' + x.phase);
+    });
+  });
+  t('A. no volatile agent has a publishable induction-phase dose',
+    offending.length === 0, offending);
+  /* Stated positively as well, so a future record that declared no phase at
+     all could not slip through the filter above by being neither. */
+  t('...and every publishable volatile dose declares phase maintenance, nothing else',
+    VOLATILE_IDS.every(id => { const d = CC.byId(id);
+      return (d.doses || []).filter(x => CC.isDosePublishable(d, x))
+                            .every(x => x.phase === 'maintenance'); }),
+    VOLATILE_IDS.map(id => { const d = CC.byId(id);
+      return id + '=[' + (d.doses||[]).map(x => x.phase).join(',') + ']'; }));
+}
+
+/* B. None is a member of the induction board. Membership is decided by
+      induction-catalog.js and is entirely separate from the phase gate, so
+      this holds even if a phase were miswritten. */
+{
+  const CAT = require(REPO + '/induction-catalog.js');
+  const members = [];
+  (CAT.rows || []).forEach(r => (r.members || []).forEach(m => {
+    if (m.canonicalId) members.push(m.canonicalId); }));
+  t('B. no volatile agent is a member of the induction board',
+    VOLATILE_IDS.every(id => members.indexOf(id) < 0),
+    VOLATILE_IDS.filter(id => members.indexOf(id) >= 0));
+  t('...and the catalog still holds the sixteen members it held before',
+    members.length === 16, members.length);
+}
+
+/* C/D. The induction embedded reference's scope no longer lists the volatile
+        group. drefRows() intersects the search rank WITH this scope rather
+        than widening past it, so dropping the group removes the agents from
+        the query path too, not only from the default listing — which is why
+        the second assertion reads the intersection out of the source. */
+{
+  const iref = /iref:\s*\{[^}]*groups:\s*\[([^\]]*)\]/.exec(ENGC);
+  const dref = /dref:\s*\{[^}]*groups:\s*(null)/.exec(ENGC);
+  t('C. the induction reference scope does not include the volatile group',
+    !!iref && !/volatile/.test(iref[1]), iref ? iref[1].trim() : 'SCOPE NOT FOUND');
+  t('...and the scope it does have is unchanged otherwise',
+    !!iref && iref[1].replace(/['"\s]/g, '') === 'induction,analgesia,nmb,reversal',
+    iref ? iref[1].trim() : '');
+  t('D. search narrows within that scope rather than widening past it',
+    /rank\s*\?\s*Object\.prototype\.hasOwnProperty\.call\(rank,\s*d\.id\)\s*:\s*true/
+      .test(ENGC.replace(/\s+/g, ' ')),
+    'drefRows filters drefDrugs(inst) by rank, it does not union with it');
+  /* F, the other half of the boundary: the FULL reference keeps every group,
+     so the agents stay discoverable where a reviewed record belongs. */
+  t('F. the full Drug reference scope is still every canonical group',
+    !!dref, dref ? 'groups:null' : 'FULL SCOPE NOT FOUND OR NARROWED');
+}
+
+/* E. Even where a volatile row DOES render — the full Drug reference — it
+      carries no USE control and cannot enter the selected drug plan, because
+      drefRoleOf() has no mapping for the volatile group. This gate is
+      independent of scope, which is the point of asserting it separately. */
+{
+  const m = /DREF_ROLE_GROUP\s*=\s*\{([^}]*)\}/.exec(ENGC);
+  t('E. no plan role is mapped for the volatile group',
+    !!m && !/volatile/.test(m[1]), m ? m[1].trim() : 'ROLE MAP NOT FOUND');
+  t('...and the three roles that do map are unchanged',
+    !!m && m[1].replace(/['"\s]/g, '') ===
+      'induction:induction,analgesia:analgesia,nmb:nmb',
+    m ? m[1].trim() : '');
+  t('...and a drug with no role renders an empty cell, never a button',
+    /function drefPlanCell\(d\)\s*\{\s*var role = drefRoleOf\(d\.id\);\s*if\(!role\) return '<td class="dtab-add"><\/td>';/
+      .test(ENGC.replace(/\s+/g, ' ').replace(/\s*\(/g, '(')) ||
+    /if\(!role\) return '<td class="dtab-add"><\/td>'/.test(ENGC),
+    'drefPlanCell returns an empty cell when drefRoleOf is null');
+}
+
+/* ── A CAUTION IS CITED, OR IT IS NOT A CAUTION ──────────────────────────
+   warn is drug-level prose and it renders under an amber CAUTIONS heading, so
+   it is read as a safety statement. Unsourced prose under that heading is the
+   defect this section exists to prevent: sevoflurane's warn used to say
+   "Nonpungent, so it is tolerated for inhalational induction", which is a
+   favourable property, and isoflurane had no warn at all so its card silently
+   carried no caution row.
+
+   Every volatile warn now carries warnEvidence with the SAME setid as that
+   agent's dose citations, so a caution cannot be sourced to one label while
+   the concentration beside it comes from another.                          */
+console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
+{
+  const VOL = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
+  t('every volatile agent carries a caution',
+    VOL.every(id => { const w = CC.byId(id).warn; return typeof w === 'string' && w.length > 40; }),
+    VOL.map(id => id + '=' + String((CC.byId(id).warn || '').length)));
+  t('...each one cited to DailyMed, with authority, document and section',
+    VOL.every(id => { const e = CC.byId(id).warnEvidence;
+      return !!(e && e.state === 'reviewed' && e.authority === 'DailyMed' &&
+                e.documentId && e.section); }),
+    VOL.map(id => id + '=' + ((CC.byId(id).warnEvidence || {}).section || 'NONE')));
+  t('...to the SAME document as that agent’s own dose records',
+    VOL.every(id => { const d = CC.byId(id);
+      const setid = (d.warnEvidence || {}).documentId;
+      return (d.doses || []).every(x => x.evidence.documentId === setid); }),
+    VOL.map(id => { const d = CC.byId(id);
+      return id + '=' + ((d.warnEvidence||{}).documentId||'').slice(-12); }));
+  /* The specific sentence that was wrong, asserted by content. A caution row
+     may not carry the nonpungency claim, whatever else it says. */
+  t('...and no caution repeats the nonpungency claim',
+    VOL.every(id => !/nonpungent/i.test(CC.byId(id).warn || '')),
+    VOL.filter(id => /nonpungent/i.test(CC.byId(id).warn || '')));
+  /* Nothing on a card may be printed twice. warn, the effects line and every
+     dose note are compared as normalized sentences. */
+  const ENGSK = /VOLATILE_SKIN\s*=\s*\{[\s\S]*?\n  \};/.exec(ENG);
+  const sent = s => String(s).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ')
+                             .replace(/\s+/g, ' ').trim();
+  t('...and no caution restates that agent’s effects line',
+    VOL.every(id => { const d = CC.byId(id);
+      const m = new RegExp("'" + id + "':\\{[\\s\\S]*?effects:'([^']*)'").exec(ENGSK ? ENGSK[0] : '');
+      if (!m) return true;                       /* no effects row to collide with */
+      return sent(d.warn).indexOf(sent(m[1])) < 0; }),
+    VOL.map(id => { const m = new RegExp("'" + id + "':\\{[\\s\\S]*?effects:'([^']*)'")
+                      .exec(ENGSK ? ENGSK[0] : '');
+                    return id + '=' + (m ? m[1].slice(0, 34) : 'no effects row'); }));
+  t('...and no caution restates one of that agent’s own dose notes',
+    VOL.every(id => { const d = CC.byId(id);
+      return (d.doses || []).every(x => !x.note || sent(d.warn).indexOf(sent(x.note)) < 0); }),
+    []);
+  /* The pearls are gone on purpose: every one of them was a second printing
+     of a cited row on the same card. */
+  /* The pearls are gone from the three AGENT cards. Nitrous oxide keeps its
+     own hand-written card, and its pearls row is the sentence that says why
+     no number is published there, which is the opposite of a duplicate. */
+  t('...and no volatile agent skin still carries a pearl',
+    !!ENGSK && !/pearl\s*:/.test(ENGSK[0]),
+    (/pearl\s*:\s*'([^']*)'/.exec(ENGSK ? ENGSK[0] : '') || ['none'])[0]);
+  t('...and mxCard no longer emits a pearls row at all',
+    !/body \+= mxRow\('Practical pearls'/.test(ENGC),
+    'mxCard emits no pearls row');
+  t('...though the nitrous oxide card keeps its coverage statement',
+    /mxRow\('Practical pearls','No concentration or MAC is published here/.test(ENG),
+    'N2O coverage pearl retained');
+  t('...while the effects row renders only when there is something to say',
+    /if\(sk\.effects\) body \+= mxRow\('Key effects'/.test(ENGC),
+    'effects row is conditional');
+}
+
+/* ── NITROUS OXIDE STAYS NUMBERLESS ──────────────────────────────────────
+   No reviewed record exists, so no number may be published for it — not the
+   mockup's 50 to 70%, not MAC 104%, and nothing derived. The Maintenance card
+   is allowed to say that a numeric reference is under review; it is not
+   allowed to say a number. */
+console.log('\n20. NITROUS OXIDE CARRIES NO NUMBER');
+{
+  t('no canonical nitrous oxide record exists at all',
+    !CC.DRUGS.some(d => /nitrous/i.test(d.name || '') || /nitrous|n2o/i.test(d.id || '')),
+    CC.DRUGS.filter(d => /nitrous/i.test(d.name || '')).map(d => d.id));
+  /* The two numbers specifically declined, asserted by value rather than by
+     absence of a record, so that inlining either one into the workspace fails
+     here even though it would never touch ClinicalContent. */
+  const MX = ENG.slice(ENG.indexOf('mxVolCard') >= 0 ? 0 : 0);
+  t('...and neither declined number appears anywhere in the maintenance workspace',
+    !/\b50\s*(to|-|–)\s*70\s*%/.test(MX) && !/MAC\s*104/i.test(MX),
+    [/\b50\s*(to|-|–)\s*70\s*%/.test(MX), /MAC\s*104/i.test(MX)]);
+  t('...and the card states a coverage line instead',
+    /Numeric reference under review/.test(ENG),
+    'N2O coverage text present');
+}
+
+/* ── ANTIBIOTIC PROPHYLAXIS: OFF THE WORKSPACE, NOT OUT OF THE APP ───────
+   The panel was removed from the Maintenance composition. That is a
+   composition decision and nothing more, so the module, its body builder, its
+   domain mapping and its icon all stay — and this asserts BOTH halves,
+   because a test that only checked the panel was gone would be satisfied by
+   somebody deleting the module outright. */
+console.log('\n21. ANTIBIOTIC PROPHYLAXIS IS OFF MAINTENANCE, NOT DELETED');
+{
+  t('the Maintenance composition no longer assembles the Antibiotic panel',
+    !/panel\([^)]*Antibiotic prophylaxis[^)]*\)/.test(ENGC),
+    (/panel\([^)]*Antibiotic prophylaxis[^)]*\)/.exec(ENGC) || ['not assembled'])[0]);
+  t('...and the Maintenance lead no longer promises it',
+    !/maintenance:\s*\[[^\]]*antibiotic/i.test(ENGC),
+    (/maintenance:\s*\[[^\]]*\]/.exec(ENGC) || [''])[0].slice(0, 110));
+  t('...but abxBody is still defined', /var abxBody\s*=/.test(ENGC), 'abxBody present');
+  t('...and the PANEL_DOMAIN mapping is still there',
+    /'antibiotic-prophylaxis'\s*:\s*'maintenance'/.test(ENG),
+    'antibiotic-prophylaxis -> maintenance');
+  t('...and so is its icon, so the module stays renderable elsewhere',
+    (ENG.match(/'antibiotic-prophylaxis'\s*:/g) || []).length >= 2,
+    (ENG.match(/'antibiotic-prophylaxis'\s*:/g) || []).length + ' references');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

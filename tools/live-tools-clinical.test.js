@@ -431,7 +431,11 @@ async function openEngine(b, viewport) {
                    title:(document.querySelector('#wf-lead .wfl-t')||{}).textContent||'',
                    sub:(document.querySelector('#wf-lead .wfl-s')||{}).textContent||'',
                    tag:(document.querySelector('#wf-lead .wfl-tag')||{}).textContent||'',
+                   /* Both heroes live in #output at once and the hidden one
+                      still has text, so each is read by its own selector
+                      rather than by whichever matches first. */
                    heroSub:(document.querySelector('.tiva-hero-s')||{}).textContent||'',
+                   mxHeroSub:(document.querySelector('.mx-hero-s')||{}).textContent||'',
                    heroTitle:(document.querySelector('.tiva-hero-t')||{}).textContent||'',
                    folded:document.querySelectorAll('.panel.head-folded').length,
                    panels:[...document.querySelectorAll('.panel[data-domain="'+d+'"]')].length };
@@ -446,14 +450,20 @@ async function openEngine(b, viewport) {
        it. The strip keeps the ordinal and the name there; the sentence moved
        rather than vanished, and the assertion checks it at its new address
        instead of dropping the requirement. */
+    /* Maintenance joins TIVA: it has a header of its own now, so the strip
+       stops repeating the sentence directly above it. The other nine domains
+       have no hero and the strip is still their only header. */
+    var HERO_DOMS = ['tiva','maintenance'];
     t('every workflow domain has a lead',
       doms.every(d => leads[d] && leads[d].title) &&
-      doms.filter(d => d !== 'tiva').every(d => leads[d].sub),
+      doms.filter(d => HERO_DOMS.indexOf(d) < 0).every(d => leads[d].sub),
       doms.filter(d => !leads[d] || !leads[d].title ||
-                       (d !== 'tiva' && !leads[d].sub)));
-    t('...and the one domain without a strip subtitle carries it in its own header',
-      leads.tiva.sub === '' && /Target-controlled infusion models/.test(leads.tiva.heroSub||''),
-      { strip:leads.tiva.sub, hero:(leads.tiva.heroSub||'').slice(0,60) });
+                       (HERO_DOMS.indexOf(d) < 0 && !leads[d].sub)));
+    t('...and the domains without a strip subtitle carry it in their own header',
+      leads.tiva.sub === '' && /Target-controlled infusion models/.test(leads.tiva.heroSub||'') &&
+      leads.maintenance.sub === '' && /Volatile anaesthetics/.test(leads.maintenance.mxHeroSub||''),
+      { tiva:(leads.tiva.heroSub||'').slice(0,40),
+        maintenance:(leads.maintenance.mxHeroSub||'').slice(0,40) });
     /* "Phase 3", not a bare 3 in a circle — the circle is what the Induction
        sections use for their steps, and on a phone the two sat touching. */
     /* WAS: "Phase 1..8". "Phase" was development vocabulary that reached the

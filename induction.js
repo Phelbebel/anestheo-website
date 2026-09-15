@@ -569,10 +569,17 @@
           note:'Neuromuscular blockade now asks for the rapid sequence context only, ' +
                'with no fall back to a routine intubating dose. An agent without a ' +
                'reviewed rapid sequence record says so rather than showing another number.' },
+    /* NARROWED, BECAUSE HALF OF IT STOPPED BEING TRUE. Volatile MAINTENANCE
+       concentrations are reviewed now and the Maintenance workspace prints
+       them from the canonical records. Volatile INDUCTION concentrations are
+       not, and this board asks the induction question, so the statement is
+       made specific rather than left standing as a claim about the whole
+       dataset that the dataset no longer supports. */
     inhalational:{ label:'Inhalational induction', cls:'stx-inh',
-          note:'Volatile dosing is not reviewed in the current clinical dataset, so no ' +
-               'concentration, MAC or inspired percentage is shown. The board below ' +
-               'remains available for the intravenous agents used alongside it.' },
+          note:'Volatile induction dosing is not reviewed in the current clinical ' +
+               'dataset, so no induction concentration or inspired percentage is shown ' +
+               'here. The board below remains available for the intravenous agents used ' +
+               'alongside it, and reviewed maintenance concentrations are in Maintenance.' },
     tiva:{ label:'TIVA / TCI', cls:'stx-tiva',
           note:'No target-controlled infusion content has been reviewed in this ' +
                'application — no target concentration, model or infusion rate. The ' +

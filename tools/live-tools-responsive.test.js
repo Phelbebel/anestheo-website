@@ -1008,6 +1008,59 @@ const BOARD_PROBE = `(() => {
     await s.ctx.close();
   }
 
+  /* ── THE MAINTENANCE QUICK COMPARE IS A GRID ON A PHONE, NOT A COLUMN ──
+     It fell into one column with everything else, so four full-width cards
+     preceded four DETAILED cards that repeated them: about 900px of scroll
+     for a comparison the clinician could no longer make, because no two
+     agents were on screen together.
+
+     Two by two, measured rather than asserted from the CSS: the four cards
+     must occupy exactly two distinct top offsets and two distinct left
+     offsets, and the block they form must fit the budget. A media query that
+     is present but overridden would pass a source check and fail this one. */
+  for (const [name, w, h] of [['iPhone 390',390,844], ['iPhone 393',393,852]]) {
+    const s = await open(b, w, h, IOS);
+    await s.pg.evaluate(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+      set('i-asa','II');
+      compute(); setDomain('maintenance');
+    });
+    await s.pg.waitForTimeout(450);
+    const q = await s.pg.evaluate(`(() => {
+      const wrap = document.querySelector('.mx-quick');
+      if (!wrap) return { found:false };
+      const cards = [...wrap.querySelectorAll('.mx-q')];
+      const r = cards.map(e => e.getBoundingClientRect());
+      const rows = new Set(r.map(x => Math.round(x.top)));
+      const cols = new Set(r.map(x => Math.round(x.left)));
+      const wr = wrap.getBoundingClientRect();
+      return { found:true, n:cards.length, rows:rows.size, cols:cols.size,
+               height:Math.round(wr.height),
+               names:cards.map(e => (e.querySelector('.mx-q-n')||{}).textContent||''),
+               macShown:cards.map(e => { const m = e.querySelector('.mx-q-mac');
+                 return !!(m && getComputedStyle(m).display !== 'none'); }),
+               macText:cards.map(e => ((e.querySelector('.mx-q-mac-v')||{}).textContent||'').trim()),
+               roleHidden:cards.every(e => { const x = e.querySelector('.mx-q-s');
+                 return !x || getComputedStyle(x).display === 'none'; }),
+               pageH:document.documentElement.scrollHeight };
+    })()`);
+    const P = name + ': ';
+    t(P + 'the quick compare holds all four agents', q.found && q.n === 4, q.n);
+    t(P + '...laid out two by two', q.rows === 2 && q.cols === 2,
+      { rows:q.rows, cols:q.cols });
+    t(P + '...inside the 250 to 350px budget', q.height >= 200 && q.height <= 350, q.height);
+    t(P + '...each showing the MAC it should be read against', q.macShown.every(Boolean),
+      q.macShown);
+    t(P + '...with nitrous oxide stating a coverage line, never a number',
+      /under review/i.test(q.macText[3] || '') && !/\d/.test(q.macText[3] || ''),
+      q.macText[3]);
+    t(P + '...and no prose role line taking up the room', q.roleHidden === true);
+    console.log('     ' + P + 'quick block ' + q.height + 'px, page ' + q.pageH + 'px');
+    await s.ctx.close();
+  }
+
   /* The measurement in the source has to be the measurement that was taken. */
   {
     const css = fs.readFileSync('/home/user/anestheo-website/live-tools.css', 'utf8');
