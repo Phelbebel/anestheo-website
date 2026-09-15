@@ -2171,10 +2171,38 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
   t('VOLATILE_SKIN carries no clinical effects prose for any agent',
     !!ENGSK && !/effects\s*:/.test(ENGSK[0]),
     (/effects\s*:\s*'([^']*)'/.exec(ENGSK ? ENGSK[0] : '') || ['none'])[0]);
-  t('...only class, icon and role',
-    !!ENGSK && (ENGSK[0].match(/\b(cls|ico|role|effects|pearl|warn|dose|mac)\s*:/g) || [])
-      .every(k => /^(cls|ico|role)\s*:$/.test(k)),
+  /* WAS: cls, ico and role. `role` was defended as describing an agent's
+     place in a list rather than a property of the drug, and reading the three
+     strings back settled it the other way: "Rapid control" is a claim about
+     kinetics, "Familiar, stable agent" one about haemodynamics, and "Primary
+     agent for maintenance" reads as a recommendation. None had a source, and
+     all three sat where every other card in this application prints the
+     drug's class. The subtitle is d.klass now.
+
+     So the invariant is exact rather than a blocklist: the ONLY keys allowed
+     in this object are cls and ico. A blocklist has to anticipate the next
+     field somebody adds; this fails on anything that is not those two. */
+  t('...only a visual class and an icon, nothing else',
+    !!ENGSK && [...new Set((ENGSK[0].match(/\b(\w+)\s*:/g) || [])
+      .map(k => k.replace(/\s*:$/, '')))]
+      .filter(k => k !== 'VOLATILE_SKIN').sort().join(',') === 'cls,ico',
     [...new Set((ENGSK ? ENGSK[0] : '').match(/\b\w+\s*:/g) || [])].join(' '));
+  t('...with no role key left anywhere in it',
+    !!ENGSK && !/\brole\s*:/.test(ENGSK[0]),
+    (/\brole\s*:\s*'([^']*)'/.exec(ENGSK ? ENGSK[0] : '') || ['none'])[0]);
+  t('...and the renderer reads no role from it',
+    !/sk\.role/.test(ENGC), 'sk.role appears nowhere');
+  /* The subtitle a clinician reads under the agent's name is canonical. */
+  t('the detailed card subtitle comes from the canonical class',
+    /<div class="mx-card-s">'\+d\.klass\+'<\/div>/.test(ENGC) ||
+    /d\.klass \? '<div class="mx-card-s">'\+d\.klass/.test(ENGC),
+    'mx-card-s renders d.klass');
+  t('...and every volatile record actually carries that class',
+    VOL.every(id => (CC.byId(id).klass || '') === 'Halogenated volatile anaesthetic'),
+    VOL.map(id => CC.byId(id).klass));
+  t('...while the quick card prints no subtitle at all',
+    !/mx-q-s/.test((/function mxQuick\(id\)\{[\s\S]*?\n  \}/.exec(ENGC) || [''])[0]),
+    'mxQuick emits no .mx-q-s');
   t('...and the renderer has NO fallback to it',
     /var effect = d\.effect \|\| '';/.test(ENGC) && !/sk\.effects/.test(ENGC),
     'd.effect only, no sk.effects anywhere');

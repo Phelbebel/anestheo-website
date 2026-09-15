@@ -3470,14 +3470,24 @@ function compute(){
      and the renderer reads d.effect with no fallback to this object: a
      fallback is how uncited prose survives a cleanup like this one.
 
-     `role` is the remaining judgement call and is deliberately not a claim
-     about pharmacology. "Rapid control" describes the place the agent takes
-     in a list, the way a column heading does. If it ever starts naming a
-     property of the drug it has become clinical and belongs in the record. */
+     `role` IS GONE TOO, AND THE ARGUMENT FOR KEEPING IT WAS WRONG. It was
+     defended here as describing the place an agent takes in a list rather
+     than a property of the drug. Read the three strings back:
+
+       "Rapid control"               a claim about kinetics
+       "Familiar, stable agent"      a claim about haemodynamics, and
+                                     "familiar" is not a fact about anything
+       "Primary agent for maintenance"   reads as a recommendation
+
+     A clinician does not see a column heading there. They see three words
+     under the drug's name, in the same place every other card in this
+     application puts the drug's class, and they read them as a claim. None
+     had a source. The subtitle now comes from d.klass, which is canonical
+     and says what the agent IS rather than what we think of it. */
   var VOLATILE_SKIN = {
-    'drug.sevoflurane':{ cls:'vx-sevo', ico:'&#9738;', role:'Primary agent for maintenance' },
-    'drug.desflurane': { cls:'vx-des',  ico:'&#9738;', role:'Rapid control' },
-    'drug.isoflurane': { cls:'vx-iso',  ico:'&#9738;', role:'Familiar, stable agent' }
+    'drug.sevoflurane':{ cls:'vx-sevo', ico:'&#9738;' },
+    'drug.desflurane': { cls:'vx-des',  ico:'&#9738;' },
+    'drug.isoflurane': { cls:'vx-iso',  ico:'&#9738;' }
   };
   var VOLATILE_IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
   function mxVolDoses(id){
@@ -3516,8 +3526,13 @@ function compute(){
            : '<div class="mx-q-mac-v cov">Numeric reference under review</div>') + '</div>';
     return '<div class="mx-q '+sk.cls+'"><div class="mx-q-h"><div class="mx-q-ic">'+sk.ico+'</div>' +
       '<div class="mx-q-n">'+d.name+'</div></div>' +
+      /* NO SUBTITLE ON THE QUICK CARD. It carried the skin's role line; the
+         canonical replacement is d.klass, and all three agents are the same
+         class, so printing it here would be the same nine words three times
+         across a four-card comparison. The class is on the detailed card
+         directly below, once per agent, which is where it belongs. */
       '<div class="mx-q-l">'+(m?m.label:'Maintenance')+'</div>'+val + macRow +
-      '<div class="mx-q-s">'+sk.role+'</div></div>';
+      '</div>';
   }
   /* the detailed card below it */
   function mxCard(id){
@@ -3569,7 +3584,12 @@ function compute(){
     }
     if(d.warn) body += mxRow('Cautions', d.warn, 'warn');
     return '<div class="mx-card '+sk.cls+'"><div class="mx-card-h"><div class="mx-card-ic">'+sk.ico+'</div>' +
-      '<div><div class="mx-card-t">'+d.name+'</div><div class="mx-card-s">'+sk.role+'</div></div></div>' +
+      /* The subtitle is the drug's CLASS, out of the canonical record. If a
+         record ever carries none the line does not render, rather than
+         falling back to something written here. */
+      '<div><div class="mx-card-t">'+d.name+'</div>' +
+        (d.klass ? '<div class="mx-card-s">'+d.klass+'</div>' : '') +
+      '</div></div>' +
       '<div class="mx-card-b">'+body+'</div></div>';
   }
   /* Nitrous oxide: an identity and an honest coverage state, no number. */
