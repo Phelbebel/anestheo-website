@@ -2738,6 +2738,18 @@ html.lt-immersive body{padding-top:0 !important;}
   color:var(--ink,#eaf2f0); margin-bottom:3px;}
 .stx-t{display:block; font-size:11.5px; font-weight:600; line-height:1.45;
   color:var(--ink-2,#a9b8bf);}
+/* "Apply suggested plan". Rendered only when the plan is the clinician's AND
+   the strategy resolves to at least one selectable agent, so it is absent
+   entirely while no preset is configured. A quiet inline control inside the
+   panel it belongs to: it offers, it does not announce. 44px on a phone,
+   where everything in this application that can be pressed is. */
+.stx-apply{display:inline-block; margin-top:9px; padding:7px 12px;
+  min-height:32px; border-radius:8px; cursor:pointer;
+  font:inherit; font-size:11.5px; font-weight:800; letter-spacing:.04em;
+  color:var(--ink); background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.18);}
+.stx-apply:hover{background:rgba(255,255,255,.09);}
+@media (max-width:900px){ .stx-apply{min-height:44px; padding:10px 14px;} }
 .stx-rsi{border-left-color:#FF8A72;}
 .stx-inh{border-left-color:#45D0D8;}   /* PCLASS.inhalational, the colour the class already has */
 .stx-tiva{border-left-color:#7ECFC0;}

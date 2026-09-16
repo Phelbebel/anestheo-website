@@ -133,6 +133,166 @@
      UI. Adding is adding; removal is always explicit and per agent. */
   var picked = {};        /* role -> [drug id, ...] */
 
+  /* ── STRATEGY PRESETS: A SUGGESTION LAYER, AND NOTHING BELOW IT ────────
+     A strategy can propose a starting set of agents. It proposes IDS ONLY.
+     There is no dose here, no weight, no context, no prose and no duplicate
+     record: a suggested drug lands in the same picked{} as a drug the
+     clinician pressed, renders through the same card, and asks the same
+     canonical selector the same question. If this layer disappeared, every
+     number on the board would be unchanged.
+
+     KEYED BY ROW, NOT BY ROLE. picked{} is keyed by role, and two catalog
+     rows share the role 'induction' — premedication and hypnosis. A preset
+     keyed by role could not tell them apart and would empty one while
+     filling the other. So presets name the ROW, which is also what decides
+     the dose context, and applyPreset() resolves row to role on the way in.
+
+     EMPTY ON PURPOSE. Every array below is empty and this commit is
+     clinically inert: it proves the state path without making a
+     recommendation. Populating them is a separate, reviewed decision. */
+  var STRATEGY_PRESETS = {
+    iv: { rows:{
+      premedication:{ preferred:[], alternatives:[] },
+      analgesia:    { preferred:[], alternatives:[] },
+      hypnosis:     { preferred:[], alternatives:[] },
+      nmb:          { preferred:[], alternatives:[] } } },
+    rsi: { variants:{
+      classic: { rows:{
+        premedication:{ preferred:[], alternatives:[] },
+        analgesia:    { preferred:[], alternatives:[] },
+        hypnosis:     { preferred:[], alternatives:[] },
+        nmb:          { preferred:[], alternatives:[] } } },
+      modified:{ rows:{
+        premedication:{ preferred:[], alternatives:[] },
+        analgesia:    { preferred:[], alternatives:[] },
+        hypnosis:     { preferred:[], alternatives:[] },
+        nmb:          { preferred:[], alternatives:[] } } } } },
+    /* INHALATIONAL STAYS EMPTY UNTIL INDUCTION-PHASE VOLATILE RECORDS EXIST.
+       The reviewed sevoflurane, desflurane, isoflurane and nitrous oxide
+       records are MAINTENANCE records. They are not reachable from here:
+       none is a catalog member, the eligibility gate below asks an induction
+       context they have no row for, and this object names no agent at all. */
+    inhalational:{ rows:{} },
+    tiva:        { rows:{} }
+  };
+
+  /* ── WHO OWNS THE PLAN ─────────────────────────────────────────────────
+     Not "is picked{} empty". A clinician who deliberately emptied a plan has
+     customized it, and re-filling it from a strategy would overrule a
+     decision they made on purpose. Emptiness is a state of the plan;
+     ownership is a fact about who last changed it, and they are different. */
+  var planCustomized = false;
+  var appliedPresetKey = null;
+
+  function presetKeyFor(t, v){
+    if (!t) return null;
+    var p = STRATEGY_PRESETS[t];
+    if (!p) return null;
+    if (p.variants) return v ? (t + '/' + v) : null;   /* RSI needs its variant */
+    return t;
+  }
+  function presetFor(t, v){
+    var p = STRATEGY_PRESETS[t];
+    if (!p) return null;
+    if (p.variants) return v ? (p.variants[v] || null) : null;
+    return p;
+  }
+  /* rowKey -> { roleKey, memberKeys } straight from the catalog, so the
+     preset layer cannot disagree with the board about what a row contains. */
+  function rowIndex(){
+    var cat = root.InductionCatalog, out = {};
+    (cat && cat.rows || []).forEach(function (row){
+      out[row.key] = { roleKey:row.role, rowKey:row.key,
+        memberKeys:(row.members || []).map(function (m){
+          return m.canonicalId || (CATALOG_PREFIX + m.key); }) };
+    });
+    return out;
+  }
+
+  /* ── ONE MUTATION PATH, TWO SOURCES ───────────────────────────────────
+     Manual and preset selections land in the same picked{} through the same
+     function. The ONLY thing `source` decides is whether the plan becomes
+     customized; it never changes what is stored, so there is no second class
+     of selection and no parallel "recommended" state to drift out of sync.
+
+     Keyed by ROLE because that is what picked{} is keyed by and what both
+     callers hold: a card's onclick passes its role, and the drug reference
+     passes a role from DREF_ROLE_GROUP. A role cannot be inverted to a row —
+     'induction' is two rows — so the row-to-role resolution happens in
+     applyPreset(), which is the only caller that starts from a row. */
+  function setPlanSelection(roleKey, pk, selected, source){
+    var ids = idsFor(roleKey).slice();
+    var at = ids.indexOf(pk);
+    if (selected && at < 0) ids.push(pk);
+    else if (!selected && at >= 0) ids.splice(at, 1);
+    else return false;                       /* already in the wanted state */
+    if (ids.length) picked[roleKey] = ids; else delete picked[roleKey];
+    if (source === 'manual') planCustomized = true;
+    return true;
+  }
+
+  /* ── ELIGIBILITY IS THE BOARD'S, NOT THE PRESET'S ─────────────────────
+     resolvePreset() asks contextRow() — the same call tbCard() makes, with
+     the same role, id and row — so a preset can only select what the card
+     beside it would show a number for. A withheld row, an unpublishable
+     drug, a paediatric patient meeting an adult-only record, or an RSI
+     blocker with no reviewed rapid sequence dose all resolve to nothing.
+
+     NOTHING IS SUBSTITUTED. `alternatives` are never auto-selected: if the
+     preferred agent cannot be offered, the row is reported unresolved and
+     the clinician decides. Silently swapping in another drug because the
+     first was unavailable is a clinical decision this layer must not make.
+
+     A preset id that is not a catalog member also resolves to nothing. It
+     would land in picked{} with no card to show it or unselect it. */
+  function resolvePreset(t, v){
+    var key = presetKeyFor(t, v), p = presetFor(t, v);
+    var out = { key:key, select:[], unresolved:[], rows:[] };
+    if (!p || !p.rows) return out;
+    var idx = rowIndex();
+    Object.keys(p.rows).forEach(function (rowKey){
+      var meta = idx[rowKey];
+      var spec = p.rows[rowKey] || {};
+      if (!meta) {                                   /* row not on the board */
+        (spec.preferred || []).forEach(function (id){
+          out.unresolved.push({ rowKey:rowKey, id:id, reason:'row not in catalog' }); });
+        return;
+      }
+      out.rows.push(rowKey);
+      (spec.preferred || []).forEach(function (id){
+        if (meta.memberKeys.indexOf(id) < 0) {
+          out.unresolved.push({ rowKey:rowKey, id:id, reason:'not a board member' }); return; }
+        var row = contextRow(meta.roleKey, id, meta.rowKey);
+        if (row && !row.withheld) out.select.push({ roleKey:meta.roleKey, rowKey:rowKey, id:id });
+        else out.unresolved.push({ rowKey:rowKey, id:id,
+          reason:(row && row.coverage) ? row.coverage : 'no reviewed row for this context' });
+      });
+    });
+    return out;
+  }
+
+  /* Applies the resolved preset. Only rows the preset DEFINES are replaced;
+     a row it says nothing about keeps whatever is in it. Guarded by
+     ownership unless force is passed, which is what "Apply suggested plan"
+     and any future reset control use. */
+  function applyPreset(t, v, opts){
+    opts = opts || {};
+    var r = resolvePreset(t, v);
+    if (!r.key) return r;
+    if (planCustomized && !opts.force) { r.skipped = 'plan is customized'; return r; }
+    var idx = rowIndex();
+    r.rows.forEach(function (rowKey){
+      var meta = idx[rowKey]; if (!meta) return;
+      meta.memberKeys.forEach(function (pk){
+        setPlanSelection(meta.roleKey, pk, false, 'preset'); });
+    });
+    r.select.forEach(function (sel){
+      setPlanSelection(sel.roleKey, sel.id, true, 'preset'); });
+    planCustomized = false;
+    appliedPresetKey = r.key;
+    return r;
+  }
+
   function idsFor(key){ return picked[key] || []; }
   function hasDrug(key, id){ return idsFor(key).indexOf(id) >= 0; }
 
@@ -592,10 +752,25 @@
     if (!s) return '';
     var vlabel = (technique === 'rsi' && rsiVariant)
       ? ' &middot; ' + (rsiVariant === 'classic' ? 'Classic' : 'Modified') : '';
+    /* ── THE OFFER, AND ONLY WHEN THERE IS SOMETHING TO OFFER ───────────
+       Rendered when the plan is the clinician's AND the current strategy
+       resolves to at least one selectable agent. Hidden rather than
+       disabled: a greyed control asks the clinician to wonder what it would
+       have done, and with no configured preset the honest answer is nothing.
+
+       Every preset is empty in this pass, so resolve().select is empty and
+       this never renders. A visible button here today would be a bug. */
+    var offer = '';
+    if (planCustomized && technique) {
+      var r = resolvePreset(technique, rsiVariant);
+      if (r.select.length) offer =
+        '<button type="button" class="stx-apply" ' +
+          'onclick="Induction.applySuggestedPlan()">Apply suggested plan</button>';
+    }
     return '<div class="stx ' + (s.cls || '') + '" role="status">' +
       '<span class="stx-b">Active strategy</span>' +
       '<span class="stx-n">' + esc(s.label) + vlabel + '</span>' +
-      '<span class="stx-t">' + s.note + '</span>' +
+      '<span class="stx-t">' + s.note + '</span>' + offer +
     '</div>';
   }
 
@@ -929,15 +1104,31 @@
      drug, no selection. Pressing the chosen one clears it. */
   function setTechnique(id){
     technique = (technique === id) ? null : id;
-    /* Leaving RSI leaves its variant behind with it; nothing else is
-       touched, and no drug is added, removed or swapped. */
+    /* Leaving RSI leaves its variant behind with it. */
     if (technique !== 'rsi') rsiVariant = null;
+    /* AN UNTOUCHED PLAN MAY BE FILLED; A CUSTOMIZED ONE MAY NOT. applyPreset
+       is guarded on ownership and returns without writing when the plan
+       belongs to the clinician, so the branch is the same either way and
+       there is one place that decides. With every preset empty this selects
+       nothing and the cockpit is unchanged. */
+    if (technique) applyPreset(technique, rsiVariant);
     render();
   }
   /* Records which rapid sequence. No dose, drug or phase reads this. */
   function setRsiVariant(id){
     if (technique !== 'rsi') return;
     rsiVariant = (rsiVariant === id) ? null : id;
+    /* Classic and Modified may suggest different agents. They never ask a
+       different dose question: contextFor() returns ['rsi'] for both, and
+       nothing here touches that. */
+    if (rsiVariant) applyPreset(technique, rsiVariant);
+    render();
+  }
+
+  /* "Apply suggested plan", and any future reset control, are this call. */
+  function applySuggestedPlan(){
+    if (!technique) return;
+    applyPreset(technique, rsiVariant, { force:true });
     render();
   }
 
@@ -954,11 +1145,11 @@
      removing; a role may hold more than one agent. Focus returns to the row's
      own button after the re-render, so pressing USE on the eleventh drug does
      not throw the keyboard back to the first. */
+  /* THE MANUAL PATH. Goes through setPlanSelection with source 'manual', so
+     pressing a card, or USE in the drug reference which calls this same
+     function, is what marks the plan as the clinician's. */
   function toggle(key, id){
-    var ids = idsFor(key).slice();
-    var at = ids.indexOf(id);
-    if (at >= 0) ids.splice(at, 1); else ids.push(id);
-    if (ids.length) picked[key] = ids; else delete picked[key];
+    setPlanSelection(key, id, idsFor(key).indexOf(id) < 0, 'manual');
     render();
     var el = document.querySelector('#induction-host [data-plan-for="' + id + '"]');
     if (el) el.focus({ preventScroll:true });
@@ -966,15 +1157,26 @@
 
   /* Removal is always explicit, and always of ONE agent. */
   function remove(key, id){
-    var ids = idsFor(key).filter(function (x){ return x !== id; });
-    if (ids.length) picked[key] = ids; else delete picked[key];
+    setPlanSelection(key, id, false, 'manual');
     render();
   }
 
-  function clearPlan(){ picked = {}; render(); }
+  function clearPlan(){
+    picked = {}; planCustomized = false; appliedPresetKey = null; render();
+  }
 
-  /* New Case ends a case, and a plan belongs to the case that was ended. */
-  function clear(){ picked = {}; technique = null; render(); }
+  /* New Case ends a case, and a plan belongs to the case that was ended.
+     rsiVariant WAS LEFT BEHIND HERE. setTechnique() clears it when the
+     technique changes, but clear() assigns technique directly and so never
+     ran that line: a case begun after New Case could still be carrying
+     'modified' from the case before it. Nothing rendered it once technique
+     was null, which is why it went unnoticed, and it would have surfaced the
+     moment rsiVariant started choosing a preset. */
+  function clear(){
+    picked = {}; technique = null; rsiVariant = null;
+    planCustomized = false; appliedPresetKey = null;
+    render();
+  }
 
   /* Opens the crisis protocol IN PLACE — the induction plan stays on screen
      behind it. The keys are the protocol's own keys in CRISIS, so this names
@@ -987,6 +1189,22 @@
                      toggle:toggle, remove:remove, openRole:openRoleFn,
                      clearPlan:clearPlan, clear:clear,
                      setTechnique:setTechnique, setRsiVariant:setRsiVariant,
+                     applySuggestedPlan:applySuggestedPlan,
+                     /* READ ONLY. Ownership is reported, never assigned from
+                        outside: the only things that may change it are a
+                        clinician's action and a preset application. */
+                     get planCustomized(){ return planCustomized; },
+                     get appliedPresetKey(){ return appliedPresetKey; },
+                     /* TEST SEAM. The shipped presets are empty, so the
+                        eligibility and substitution rules have nothing real
+                        to be proved against. This lets a suite install a
+                        synthetic preset and assert what the engine does with
+                        it. It is the only writable hook and it touches no
+                        clinical content: a preset is ids. */
+                     __presetsForTest:function (p){
+                       if (p === undefined) return STRATEGY_PRESETS;
+                       STRATEGY_PRESETS = p; return STRATEGY_PRESETS; },
+                     __resolvePresetForTest:function (t, v){ return resolvePreset(t, v); },
                      get roles(){ return ROLES.map(function (r){ return r.key; }); },
                      get technique(){ return technique; },
                      /* CANONICAL IDS ONLY. The drug reference reads this to

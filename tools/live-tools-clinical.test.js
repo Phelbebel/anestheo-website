@@ -2510,6 +2510,269 @@ async function openEngine(b, viewport) {
       t('no runtime errors on the ASA path', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }
+    /* ── STRATEGY PRESETS: THE STATE ENGINE, WITH NO CLINICAL CONTENT ───
+       The shipped presets are empty on purpose, so most of what matters here
+       is that NOTHING happens: a strategy click must not select a drug, and
+       a customized plan must survive every strategy change byte for byte.
+       The rules that need real content to be provable — eligibility,
+       preferred-only, no substitution — are proved against a SYNTHETIC
+       preset installed through the test seam. A synthetic preset is ids; it
+       carries no dose and cannot introduce clinical content. */
+    {
+      const v = await openEngine(b, { width:1536, height:1150 });
+      await v.pg.evaluate(`(() => {
+        newCase();
+        const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
+        set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+        set('i-asa','II'); compute();
+      })()`);
+      await v.pg.waitForTimeout(500);
+      const R = async expr => v.pg.evaluate(`(() => { const I = window.Induction; ${expr} })()`);
+      /* The induction workstation only activates with a patient, so any probe
+         that calls newCase() has to put one back before the next probe reads
+         the DOM. Without this the board, the strategy panel and the Apply
+         control are all simply absent, and a probe would be asserting against
+         a deactivated workspace rather than against the engine. */
+      const refill = () => v.pg.evaluate(`(() => {
+        const set = (i,x) => { const e = document.getElementById(i); if (e) e.value = x; };
+        set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+        set('i-asa','II'); compute();
+      })()`);
+
+      await R(`I.clear(); return 1;`);
+      const shipped = await R(`return JSON.parse(JSON.stringify(I.__presetsForTest()));`);
+
+      /* M. The inhalational preset names no agent at all, volatile or not. */
+      const flat = JSON.stringify(shipped);
+      t('M. no volatile agent appears in any shipped preset',
+        !/sevoflurane|desflurane|isoflurane|nitrous/i.test(flat),
+        (flat.match(/drug\.[a-z-]+/gi) || []).join(',') || 'no drug ids at all');
+      t('...and the inhalational preset defines no rows',
+        Object.keys(shipped.inhalational.rows || {}).length === 0);
+      t('...and every shipped preset is clinically inert',
+        !/drug\./.test(flat), 'no drug id in any preset');
+
+      /* A + B. A strategy click runs the machinery and selects nothing. */
+      const a = await R(`I.clear();
+        const before = I.planKeys.slice();
+        I.setTechnique('iv');
+        return { before, after:I.planKeys.slice(), tech:I.technique,
+                 customized:I.planCustomized, applied:I.appliedPresetKey };`);
+      t('A. a technique click on an untouched plan reaches the preset path',
+        a.tech === 'iv' && a.customized === false, a);
+      t('B. ...and with empty presets selects zero drugs',
+        a.after.length === 0 && a.before.length === 0, a.after);
+
+      /* C. A manual board toggle takes ownership. */
+      const c = await R(`I.clear(); I.setTechnique('iv');
+        const card = document.querySelector('#induction-host .tb-c[data-drug]');
+        card.click();
+        return { customized:I.planCustomized, plan:I.planKeys.slice() };`);
+      t('C. a manual board toggle sets planCustomized', c.customized === true, c);
+
+      /* D. The drug reference USE path reaches the same manual mutation. */
+      const d = await R(`I.clear();
+        const b = document.querySelector('#induction-host [data-plan-for]');
+        if (!b) return { skipped:true };
+        window.drefAddToPlan('induction', 'drug.propofol');
+        return { customized:I.planCustomized, plan:I.planKeys.slice() };`);
+      t('D. the drug reference USE path also sets planCustomized',
+        d.customized === true && d.plan.indexOf('induction/drug.propofol') >= 0, d);
+
+      /* E + F. A customized plan survives every strategy change untouched. */
+      const e = await R(`I.clear();
+        window.drefAddToPlan('induction', 'drug.propofol');
+        window.drefAddToPlan('nmb', 'drug.rocuronium');
+        const base = JSON.stringify(I.planKeys.slice().sort());
+        const seen = [];
+        ['iv','rsi','inhalational','tiva','rsi'].forEach(x => {
+          I.setTechnique(x); seen.push(JSON.stringify(I.planKeys.slice().sort())); });
+        return { base, seen, customized:I.planCustomized };`);
+      t('E. changing technique on a customized plan leaves picked byte-identical',
+        e.seen.every(x => x === e.base) && e.customized === true,
+        { base:e.base, drifted:e.seen.filter(x => x !== e.base) });
+      const f = await R(`I.clear();
+        window.drefAddToPlan('induction', 'drug.propofol');
+        I.setTechnique('rsi');
+        const base = JSON.stringify(I.planKeys.slice().sort());
+        I.setRsiVariant('classic');  const c1 = JSON.stringify(I.planKeys.slice().sort());
+        I.setRsiVariant('modified'); const m1 = JSON.stringify(I.planKeys.slice().sort());
+        return { base, c1, m1 };`);
+      t('F. Classic <-> Modified on a customized plan leaves picked byte-identical',
+        f.c1 === f.base && f.m1 === f.base, f);
+
+      /* H. New Case clears every piece of the state, rsiVariant included. */
+      const h = await R(`I.clear();
+        I.setTechnique('rsi'); I.setRsiVariant('modified');
+        window.drefAddToPlan('induction', 'drug.propofol');
+        window.newCase();
+        return { plan:I.planKeys.slice(), tech:I.technique,
+                 customized:I.planCustomized, applied:I.appliedPresetKey,
+                 variantShown:!!document.querySelector('#induction-host .st-v.on') };`);
+      t('H. New Case clears plan, technique, customized and appliedPresetKey',
+        h.plan.length === 0 && h.tech === null &&
+        h.customized === false && h.applied === null, h);
+      t('...and the RSI variant with them, which clear() used to leave behind',
+        h.variantShown === false, h.variantShown);
+      /* newCase() emptied the patient with the case. Put one back, or every
+         DOM probe below reads a deactivated workstation. */
+      await refill(); await v.pg.waitForTimeout(400);
+      t('...and the workstation is active again for the probes that follow',
+        await R(`return !!document.querySelector('#induction-host .tb-c[data-drug]');`));
+
+      /* ── THE SYNTHETIC PRESET ───────────────────────────────────────── */
+      const SYNTH = `I.__presetsForTest({
+        iv:{ rows:{ hypnosis:{ preferred:['drug.propofol'],
+                               alternatives:['drug.etomidate'] } } },
+        rsi:{ variants:{
+          classic:{ rows:{ nmb:{ preferred:['drug.atracurium'],
+                                 alternatives:['drug.rocuronium'] } } },
+          modified:{ rows:{ hypnosis:{ preferred:['drug.propofol'], alternatives:[] } } } } },
+        inhalational:{ rows:{} }, tiva:{ rows:{} } });`;
+
+      /* G + J. Applying selects exactly the preferred agent and claims the plan. */
+      const g = await R(`I.clear(); ${SYNTH}
+        I.setTechnique('iv');
+        return { plan:I.planKeys.slice(), customized:I.planCustomized,
+                 applied:I.appliedPresetKey };`);
+      t('G. applying a preset leaves planCustomized false and records its key',
+        g.customized === false && g.applied === 'iv', g);
+      t('J. ...selecting ONLY the preferred agent, never the alternative',
+        g.plan.length === 1 && g.plan[0] === 'induction/drug.propofol', g.plan);
+
+      /* I + K. An ineligible preferred agent selects nothing, and its
+         alternative is NOT substituted. Atracurium has no reviewed RSI
+         record; rocuronium does, which is what makes this a real test of
+         non-substitution rather than of availability. */
+      const k = await R(`I.clear(); ${SYNTH}
+        I.setTechnique('rsi'); I.setRsiVariant('classic');
+        const r = I.__resolvePresetForTest('rsi','classic');
+        return { plan:I.planKeys.slice(), select:r.select, unresolved:r.unresolved };`);
+      t('I. an ineligible RSI blocker is not selected',
+        k.plan.indexOf('nmb/drug.atracurium') < 0 && k.select.length === 0, k);
+      t('K. ...and its eligible alternative is NOT silently substituted',
+        k.plan.indexOf('nmb/drug.rocuronium') < 0 && k.plan.length === 0, k.plan);
+      t('...the row is reported unresolved, with the reason the model gave',
+        k.unresolved.length === 1 && k.unresolved[0].id === 'drug.atracurium' &&
+        /RSI dose not reviewed/i.test(k.unresolved[0].reason || ''),
+        k.unresolved);
+
+      /* The offer appears only when there is something to offer. */
+      const offer = await R(`I.clear(); ${SYNTH}
+        I.setTechnique('iv');
+        const none = !!document.querySelector('#induction-host .stx-apply');
+        window.drefAddToPlan('nmb','drug.rocuronium');
+        const after = !!document.querySelector('#induction-host .stx-apply');
+        return { none, after, customized:I.planCustomized };`);
+      t('the Apply control is absent while the plan is not customized',
+        offer.none === false, offer);
+      t('...and offered once it is, since this preset resolves to an agent',
+        offer.after === true && offer.customized === true, offer);
+      const forced = await R(`
+        document.querySelector('#induction-host .stx-apply').click();
+        return { plan:I.planKeys.slice(), customized:I.planCustomized,
+                 applied:I.appliedPresetKey };`);
+      t('...and pressing it reapplies the preset and returns ownership',
+        forced.customized === false && forced.applied === 'iv' &&
+        forced.plan.indexOf('induction/drug.propofol') >= 0, forced);
+
+      /* L. Variants suggest differently; they never ask a different dose. */
+      const l = await R(`I.clear(); ${SYNTH}
+        const ctx = [];
+        I.setTechnique('rsi');
+        ['classic','modified'].forEach(x => { I.setRsiVariant(x);
+          const roc = document.querySelector('#induction-host .tb-c[data-drug="drug.rocuronium"]');
+          ctx.push((roc.querySelector('.tb-c-r')||roc.querySelector('.tb-c-cov')||{}).textContent.trim());
+          I.setRsiVariant(x); });
+        return ctx;`);
+      t('L. Classic and Modified ask the identical NMB dose question',
+        l[0] === l[1] && /1\.2|0\.6/.test(l[0] || ''), l);
+
+      /* ── TWO ROWS, ONE ROLE: THE ISOLATION THAT KEYING BY ROW BUYS ─────
+         premedication and hypnosis are different catalog ROWS that share the
+         role 'induction', so both land in the same picked.induction[] array.
+         A preset that manages one of them must replace only that row's
+         members and leave the other row's selection exactly where it is.
+
+         This is the failure the row-keyed schema exists to prevent: a preset
+         keyed by role would have emptied the whole induction bucket and
+         taken the clinician's premedication with it. Nothing below touches
+         picked{} directly; every selection and every application goes
+         through the shipped toggle / applyPreset path. */
+      const iso = await R(`
+        I.__presetsForTest({
+          iv:{ rows:{ hypnosis:{ preferred:['drug.etomidate'], alternatives:[] } } },
+          rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
+          inhalational:{ rows:{} }, tiva:{ rows:{} } });
+        I.clear(); I.setTechnique('iv');
+        /* Manual, through the board's own control, one member of each row. */
+        const card = id => document.querySelector(
+          '#induction-host .tb-c[data-drug="' + id + '"]');
+        card('drug.midazolam').click();     /* premedication row */
+        card('drug.propofol').click();      /* hypnosis row */
+        const before = I.planKeys.slice().sort();
+        /* Apply a preset that manages ONLY the hypnosis row. */
+        I.applySuggestedPlan();
+        const after = I.planKeys.slice().sort();
+        return { before, after, customized:I.planCustomized,
+                 applied:I.appliedPresetKey };`);
+      t('a preset managing only hypnosis replaces that row',
+        iso.after.indexOf('induction/drug.etomidate') >= 0 &&
+        iso.after.indexOf('induction/drug.propofol') < 0, iso.after);
+      t('...and LEAVES the premedication selection in the same role bucket',
+        iso.after.indexOf('induction/drug.midazolam') >= 0, iso.after);
+      t('...which is the collision a role-keyed preset would have caused',
+        iso.before.indexOf('induction/drug.midazolam') >= 0 &&
+        iso.before.indexOf('induction/drug.propofol') >= 0, iso.before);
+      t('...and applying returns ownership to the preset',
+        iso.customized === false && iso.applied === 'iv', iso);
+
+      /* The reverse: manage only premedication, leave hypnosis alone. */
+      const iso2 = await R(`
+        I.__presetsForTest({
+          iv:{ rows:{ premedication:{ preferred:['drug.atropine'], alternatives:[] } } },
+          rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
+          inhalational:{ rows:{} }, tiva:{ rows:{} } });
+        I.clear(); I.setTechnique('iv');
+        const card = id => document.querySelector(
+          '#induction-host .tb-c[data-drug="' + id + '"]');
+        card('drug.midazolam').click();     /* premedication row */
+        card('drug.ketamine').click();      /* hypnosis row */
+        const before = I.planKeys.slice().sort();
+        I.applySuggestedPlan();
+        return { before, after:I.planKeys.slice().sort() };`);
+      t('the reverse holds: a premedication preset leaves hypnosis untouched',
+        iso2.after.indexOf('induction/drug.ketamine') >= 0, iso2.after);
+      t('...while replacing the premedication row it manages',
+        iso2.after.indexOf('induction/drug.atropine') >= 0 &&
+        iso2.after.indexOf('induction/drug.midazolam') < 0, iso2.after);
+      /* A row the preset says nothing about is not touched at all, which is
+         what "manages" has to mean for this to be safe. */
+      const iso3 = await R(`
+        I.__presetsForTest({
+          iv:{ rows:{ hypnosis:{ preferred:['drug.etomidate'], alternatives:[] } } },
+          rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
+          inhalational:{ rows:{} }, tiva:{ rows:{} } });
+        I.clear(); I.setTechnique('iv');
+        window.drefAddToPlan('analgesia','drug.fentanyl');
+        window.drefAddToPlan('nmb','drug.rocuronium');
+        I.applySuggestedPlan();
+        return I.planKeys.slice().sort();`);
+      t('...and rows the preset never mentions keep their selections entirely',
+        iso3.indexOf('analgesia/drug.fentanyl') >= 0 &&
+        iso3.indexOf('nmb/drug.rocuronium') >= 0 &&
+        iso3.indexOf('induction/drug.etomidate') >= 0, iso3);
+
+      /* Restore the shipped presets so nothing downstream sees the synthetic
+         one, and leave the workspace as it was found. */
+      await R(`I.__presetsForTest(${JSON.stringify(shipped)}); I.clear(); return 1;`);
+      const restored = await R(`return { presets:JSON.stringify(I.__presetsForTest()),
+                                         plan:I.planKeys.slice() };`);
+      t('the shipped presets are restored after the synthetic ones',
+        !/drug\./.test(restored.presets) && restored.plan.length === 0, restored.plan);
+      t('no runtime errors through the preset engine', v.errs.length === 0, v.errs.slice(0,2));
+      await v.ctx.close();
+    }
   } finally {
     await b.close();
   }
