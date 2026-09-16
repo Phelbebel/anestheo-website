@@ -1191,6 +1191,109 @@ var DRUGS = [
                  section:'WARNINGS AND PRECAUTIONS' },
   provenance:{ state:'reviewed', reviewer:'clinical_owner',
                note:'Citations supplied and verified by the clinical owner outside the build environment.',
+               sourceAccessed:true } },
+
+/* ── NITROUS OXIDE ────────────────────────────────────────────────────────
+   IT HAS A RECORD NOW, AND THAT IS THE ONLY REASON THE PAGE MAY DESCRIBE IT.
+   Until this record existed the Maintenance card was allowed to name the
+   agent, colour it and say that no reference was published. It was not
+   allowed to say what the gas does, because nothing behind it had been
+   reviewed. That constraint is satisfied here rather than bypassed.
+
+   THE HEADLINE NUMBER IS NOT A DOSE, AND ITS LABEL SAYS SO. 50 to 70% is the
+   range of concentrations REPORTED ACROSS THE GENERAL ANAESTHESIA STUDIES
+   included in the Cochrane review, not a recommendation, and clinical use
+   depends on context. The row is labelled "Common GA adjunct" for that
+   reason: read under the heading "Maintenance" it would become a recommended
+   maintenance concentration, which is a claim no source here supports.
+
+   MAC IS FROM THE HUMAN DETERMINATION, NOT A TEXTBOOK RESTATEMENT. Hornbein
+   1982 measured a mean of 1.04 atm absolute in man. It is carried as display
+   only, with low, high and value all absent, so no arithmetic can reach it,
+   and it is deliberately NOT connected to patientContext.derived.mac, which
+   is a general age scalar computed elsewhere: multiplying an agent MAC by it
+   would manufacture a patient-specific figure nobody reviewed.
+
+   THE INDICATIONS DO NOT SAY "MAINTENANCE OF ANAESTHESIA". With a MAC above
+   100% this agent cannot be a sole maintenance anaesthetic at atmospheric
+   pressure, so the record must not describe it as one even in a field that
+   never reaches the screen. It is an adjunct, and an analgesic.
+
+   LAPAROSCOPY IS A CAUTION, NOT A CONTRAINDICATION, and the wording is
+   deliberate because the primary evidence genuinely disagrees. Taylor 1992
+   (PMID 1550279) randomised 50 laparoscopic cholecystectomies and its
+   blinded surgeon found no significant difference in operating conditions or
+   bowel distension. El-Galley 2007 (PMID 17512015) randomised laparoscopic
+   donor nephrectomies and reported distension in half, severe enough to
+   interfere with surgery in a quarter. Writing "contraindicated" would state
+   as settled something two randomised trials answer differently.          */
+{ id:'drug.nitrous-oxide', name:'Nitrous oxide', group:'volatile',
+  pclass:'inhalational',
+  aliases:['nitrous oxide','nitrous','n2o','laughing gas'],
+  klass:'Inhaled anaesthetic gas',
+  /* NOT 'maintenance of anaesthesia'. See the header note: MAC > 100%. */
+  indications:['adjunct to general anaesthesia','analgesia'],
+  doses:[
+    { label:'Common GA adjunct', route:'Inhalational', phase:'maintenance',
+      display:'50–70%', unit:'',
+      note:'The range of concentrations used across the general anaesthesia studies in this review, not a recommended or universal dose; clinical use depends on the indication. After discontinuation, supplemental oxygen can reduce diffusion hypoxia.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'Cochrane Database of Systematic Reviews',
+                 title:'Nitrous oxide-based versus nitrous oxide-free general anaesthesia and accidental awareness during general anaesthesia in surgical patients (Hounsome et al., 2016)',
+                 documentId:'PMID 27508523, Cochrane review CD011052',
+                 section:'Characteristics of included studies, nitrous oxide concentrations' } },
+    { label:'MAC', route:'Inhalational', phase:'maintenance',
+      display:'≈104%', unit:'',
+      note:'Mean 1.04 atm absolute, measured in man. MAC above 100% means nitrous oxide cannot provide 1 MAC as a sole anaesthetic at normal atmospheric pressure. Printed as the source states it; no age adjustment or interpolation is applied.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'PubMed / Anesthesia & Analgesia',
+                 title:'Hornbein TF, Eger EI II, Winter PM, Smith G, Wetstone D, Smith KH. The minimum alveolar concentration of nitrous oxide in man. Anesth Analg. 1982;61(7):553-556.',
+                 documentId:'PMID 7201254',
+                 section:'Human MAC determination, abstract' } }
+  ],
+  prep:'', severity:'caution',
+  effect:'Provides analgesia but is a weak anaesthetic, the least potent of the inhaled agents. Low blood solubility gives rapid uptake and washout, and co-administration reduces the concentration of another inhaled anaesthetic that is required.',
+  effectEvidence:{ state:'reviewed', authority:'OpenAnesthesia, with the ESA Task Force review',
+                   title:'Nitrous Oxide (OpenAnesthesia); European Society of Anaesthesiology Task Force on Nitrous Oxide, Br J Anaesth 2019',
+                   documentId:'OpenAnesthesia keyword article, Nitrous Oxide; PMID 30916011',
+                   section:'Pharmacologic properties and clinical indications' },
+  /* ── THE CAUTION IS WRITTEN TO BE SCANNED, NOT READ ────────────────────
+     Four labelled blocks separated by <br>, because this row is always
+     visible including on a phone and a clinician reaching for it is looking
+     for one of four things, not reading a paragraph. The renderer puts this
+     string into innerHTML, so the breaks are safe; the claims stay here in
+     the record rather than being assembled in the page.
+
+     "Decompression sickness" was in the first draft of this list and has
+     been REMOVED. It is physiologically adjacent to the closed-space
+     mechanism and it sounded right, which is exactly why it should not have
+     been there: no source was supplied for how it belongs on a
+     perioperative card, and plausibility is not provenance. The
+     well-supported vascular air embolism warning stays.
+
+     The ophthalmic warning is deliberately narrow. The danger is RESIDUAL
+     INTRAOCULAR GAS after retinal surgery, not ophthalmic surgery in
+     general, and the Royal College of Ophthalmologists alert is specific
+     about that. Generalising it would make the card wrong in the common
+     case. */
+  warn:'<b>AVOID, CLOSED GAS SPACES:</b> pneumothorax, bowel obstruction, pneumocephalus or intracranial air, residual intraocular gas after retinal surgery, middle ear surgery, and significant risk of vascular air embolism. Nitrous oxide enters a closed space faster than nitrogen leaves it, raising volume where the space is compliant and pressure where it is not.<br><b>B12:</b> avoid in known clinically significant vitamin B12 or methionine synthase deficiency. Assess patients at substantial risk, particularly where exposure is prolonged or repeated; toxicity has followed a single anaesthetic in subclinical deficiency.<br><b>FIRE:</b> supports combustion, so avoid it in airway laser, diathermy or other high fire risk fields.<br><b>LAPAROSCOPY:</b> not an absolute contraindication. It may increase bowel distension and the evidence is mixed, so consider avoiding it where distension would compromise the operative field.',
+  warnEvidence:{ state:'reviewed', authority:'StatPearls, MHRA, Royal College of Ophthalmologists, DailyMed, and two randomised trials',
+                 title:'Nitrous Oxide (StatPearls); Nitrous oxide: neurological and haematological toxic effects (MHRA); Ophthalmic Safety Alert, do not use nitrous oxide when there is gas in an operated eye (RCOphth, 18 December 2018); Nitrous Oxide gas labelling (DailyMed)',
+                 documentId:'NCBI Bookshelf NBK532922; DailyMed setid b7e230d1-e201-4984-ba8b-5b88ec5a1bbf; PMID 1550279; PMID 17512015',
+                 section:'Closed gas spaces: StatPearls, Contraindications. Intraocular gas: RCOphth Ophthalmic Safety Alert, 18 December 2018. Vitamin B12: MHRA drug safety update on neurological and haematological toxicity. Combustion: DailyMed setid b7e230d1-e201-4984-ba8b-5b88ec5a1bbf, Principal Display Panel, fire and oxidizer warning. Laparoscopy: PMID 1550279 (no significant difference) and PMID 17512015 (distension interfering with surgery).' },
+  /* THE SOURCES WERE READ, JUST NOT BY THIS BUILD. Every primary source here
+     is blocked by this environment's network egress, so the in-build
+     corroboration was against search-engine summaries only. The clinical
+     owner opened and checked the primary and authoritative sources
+     externally, which is what sourceAccessed records, and has since approved
+     the final content, which is what reviewer records.
+
+     Those two facts are kept separate on purpose. sourceAccessed says the
+     citations were verified; reviewer says the wording built on them was
+     signed off. A record can have the first without the second, and this one
+     did, for exactly one review cycle.                                     */
+  provenance:{ state:'reviewed', reviewer:'clinical_owner',
+               note:'Primary and authoritative sources were directly reviewed outside the build environment. Final clinical content approved by the clinical owner.',
                sourceAccessed:true } }
 ];
 

@@ -1040,7 +1040,10 @@ const BOARD_PROBE = `(() => {
                height:Math.round(wr.height),
                names:cards.map(e => (e.querySelector('.mx-q-n')||{}).textContent||''),
                macShown:cards.map(e => { const m = e.querySelector('.mx-q-mac');
-                 return !!(m && getComputedStyle(m).display !== 'none'); }),
+                 return !!(m && getComputedStyle(m).display !== 'none' &&
+                           m.getBoundingClientRect().height > 0); }),
+               macClipped:cards.filter(e => { const v = e.querySelector('.mx-q-mac-v');
+                 return v && v.scrollHeight > v.clientHeight + 1; }).length,
                macText:cards.map(e => ((e.querySelector('.mx-q-mac-v')||{}).textContent||'').trim()),
                roleHidden:cards.every(e => { const x = e.querySelector('.mx-q-s');
                  return !x || getComputedStyle(x).display === 'none'; }),
@@ -1053,9 +1056,18 @@ const BOARD_PROBE = `(() => {
     t(P + '...inside the 250 to 350px budget', q.height >= 200 && q.height <= 350, q.height);
     t(P + '...each showing the MAC it should be read against', q.macShown.every(Boolean),
       q.macShown);
-    t(P + '...with nitrous oxide stating a coverage line, never a number',
-      /under review/i.test(q.macText[3] || '') && !/\d/.test(q.macText[3] || ''),
-      q.macText[3]);
+    /* WAS: nitrous oxide states a coverage line, never a number. That was the
+       correct assertion while the agent had no reviewed record, and it is
+       intentionally superseded now that it has one: the card shows a cited
+       MAC like the other three. What survives, and is asserted instead, is
+       that all four quick cards carry a real MAC figure, so the 2 x 2 grid
+       compares like with like rather than three numbers and a placeholder. */
+    t(P + '...with all four MAC lines carrying a figure, not a placeholder',
+      q.macText.length === 4 && q.macText.every(m => /\d/.test(m || '')) &&
+      !q.macText.some(m => /under review/i.test(m || '')),
+      q.macText);
+    t(P + '...nitrous oxide among them', /104/.test(q.macText[3] || ''), q.macText[3]);
+    t(P + '...none of them clipped', q.macClipped === 0, q.macClipped);
     t(P + '...and no prose role line taking up the room', q.roleHidden === true);
     console.log('     ' + P + 'quick block ' + q.height + 'px, page ' + q.pageH + 'px');
 
@@ -1161,6 +1173,28 @@ const BOARD_PROBE = `(() => {
     t(P + '...isoflurane among them, with its cited effects row',
       (d.find(c => /Isoflurane/i.test(c.name)) || { shown:[] })
         .shown.indexOf('Key effects') >= 0);
+    /* ── THE QUICK CARD'S MAC IS NOT A PHONE FEATURE ────────────────────
+       It was: display:none with a phone-only override, on the reasoning that
+       a desktop reader has the detailed card below. That fails the job the
+       quick row does. It is the comparison strip, and a concentration cannot
+       be compared between agents without the MAC it is read against. Nitrous
+       oxide made it obvious, because its MAC being above 100% is the single
+       most important thing about it and the desktop card was hiding it. */
+    const qm = await s.pg.evaluate(`(() => {
+      const vis = e => !!(e && e.getBoundingClientRect().height > 0 &&
+                          getComputedStyle(e).display !== 'none');
+      const cards = [...document.querySelectorAll('.mx-quick .mx-q')];
+      return { n:cards.length,
+               shown:cards.filter(c => vis(c.querySelector('.mx-q-mac'))).length,
+               text:cards.map(c => ((c.querySelector('.mx-q-mac-v')||{}).textContent||'').trim()),
+               names:cards.map(c => ((c.querySelector('.mx-q-n')||{}).textContent||'').trim()) };
+    })()`);
+    t(P + 'every quick card shows its MAC without opening anything',
+      qm.n === 4 && qm.shown === 4, { cards:qm.n, macVisible:qm.shown });
+    t(P + '...each carrying a figure', qm.text.every(m => /\d/.test(m || '')), qm.text);
+    t(P + '...nitrous oxide showing its above-100% MAC',
+      /Nitrous/i.test(qm.names[3] || '') && /104/.test(qm.text[3] || ''),
+      qm.names[3] + ' = ' + qm.text[3]);
     await s.ctx.close();
   }
 

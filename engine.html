@@ -1293,9 +1293,22 @@ table.dtab-red .dtab-dose{width:18%;}
 .eng-wrap .mx-q-v span{font-size:13px;font-weight:600;color:var(--ink-3);margin-left:4px;}
 .eng-wrap .mx-q-v.cov{font-size:13px;font-weight:650;color:var(--ink-3);font-style:italic;line-height:1.35;}
 .eng-wrap .mx-q-s{font-size:11px;color:var(--ink-3);margin-top:5px;line-height:1.35;}
-/* Phone only. The desktop quick card is approved as it stands, and MAC is on
-   the detailed card directly below it there. */
-.eng-wrap .mx-q-mac{display:none;}
+/* MAC IS ON THE QUICK CARD AT EVERY WIDTH, AND IT WAS NOT. This rule read
+   display:none with a phone-only override, on the reasoning that a desktop
+   reader has the detailed card right below. That reasoning fails the job the
+   quick row exists to do: it is the comparison strip, and a concentration is
+   not comparable between agents without the MAC it should be read against.
+   It failed hardest on nitrous oxide, whose whole point is that its MAC is
+   above 100% and it therefore cannot stand alone.
+
+   Secondary in weight, not in visibility: smaller type, muted ink, under a
+   hairline, beneath the concentration. */
+.eng-wrap .mx-q-mac{display:block;margin-top:9px;padding-top:8px;
+  border-top:1px solid var(--vx-line);}
+.eng-wrap .mx-q-mac .mx-q-l{margin-bottom:2px;}
+.eng-wrap .mx-q-mac-v{font-size:12px;font-weight:700;color:var(--ink-2);
+  line-height:1.35;font-variant-numeric:tabular-nums;}
+.eng-wrap .mx-q-mac-v.cov{font-weight:650;color:var(--ink-3);font-style:italic;}
 /* THE DISCLOSURE DOES NOT EXIST ABOVE 640px. The button is out of the layout
    and out of the accessibility tree, and its contents are simply rows in the
    card, exactly as they were before the fold was added. A desktop reader is
@@ -1396,12 +1409,10 @@ table.dtab-red .dtab-dose{width:18%;}
   .eng-wrap .mx-q-v span{font-size:11px;margin-left:3px;}
   .eng-wrap .mx-q-v.cov{font-size:11px;line-height:1.3;}
   .eng-wrap .mx-q-s{display:none;}
-  .eng-wrap .mx-q-mac{display:block;margin-top:7px;padding-top:7px;
-    border-top:1px solid var(--vx-line);}
+  /* The MAC line is shown at every width now; the phone only tightens it. */
+  .eng-wrap .mx-q-mac{margin-top:7px;padding-top:7px;}
   .eng-wrap .mx-q-mac .mx-q-l{margin-bottom:1px;}
-  .eng-wrap .mx-q-mac-v{font-size:11px;font-weight:700;color:var(--ink-2);line-height:1.3;
-    font-variant-numeric:tabular-nums;}
-  .eng-wrap .mx-q-mac-v.cov{font-weight:650;color:var(--ink-3);font-style:italic;}
+  .eng-wrap .mx-q-mac-v{font-size:11px;line-height:1.3;}
 
   /* ── ONE DISCLOSURE PER CARD, 44px, COLLAPSED UNTIL ASKED ────────────
      Full width so the target is the row rather than the word, and the
@@ -3485,11 +3496,20 @@ function compute(){
      had a source. The subtitle now comes from d.klass, which is canonical
      and says what the agent IS rather than what we think of it. */
   var VOLATILE_SKIN = {
-    'drug.sevoflurane':{ cls:'vx-sevo', ico:'&#9738;' },
-    'drug.desflurane': { cls:'vx-des',  ico:'&#9738;' },
-    'drug.isoflurane': { cls:'vx-iso',  ico:'&#9738;' }
+    'drug.sevoflurane':  { cls:'vx-sevo', ico:'&#9738;' },
+    'drug.desflurane':   { cls:'vx-des',  ico:'&#9738;' },
+    'drug.isoflurane':   { cls:'vx-iso',  ico:'&#9738;' },
+    'drug.nitrous-oxide':{ cls:'vx-n2o',  ico:'&#9738;' }
   };
-  var VOLATILE_IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
+  /* NITROUS OXIDE IS A RECORD NOW, SO IT IS JUST ANOTHER ID IN THIS LIST.
+     It used to be two hand-written builders sitting beside this array,
+     because it had no record and the generic renderer would have drawn
+     nothing. Those builders are gone: the same mxQuick and mxCard draw all
+     four agents from ClinicalContent, through the same publishability and
+     population gates, so the fourth card cannot disagree with the other
+     three about where its content came from. */
+  var VOLATILE_IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane',
+                      'drug.nitrous-oxide'];
   function mxVolDoses(id){
     var CCx = window.ClinicalContent; if(!CCx) return [];
     var d = CCx.byId(id); if(!d) return [];
@@ -3502,6 +3522,22 @@ function compute(){
     });
   }
   function mxFind(rows, re){ for(var i=0;i<rows.length;i++) if(re.test(rows[i].label||'')) return rows[i]; return null; }
+  /* THE HEADLINE ROW IS THE FIRST NON-MAC ROW, NOT THE ONE CALLED
+     "Maintenance". This used to match /^maintenance/i, which works only
+     while every agent's primary row happens to be named that. Nitrous
+     oxide's is "Common GA adjunct" deliberately, because its figure is a
+     reported range rather than a recommended maintenance concentration, and
+     a selector keyed to the word would have silently found nothing and
+     dropped the number. No concentration is written in this comment, or
+     anywhere else in this file: the number lives in the record.
+
+     Behaviour for the other three is unchanged: their first publishable row
+     is the maintenance one in every case, so first-non-MAC picks exactly
+     what the old regex picked. */
+  function mxPrimary(rows){
+    for(var i=0;i<rows.length;i++) if(!/^MAC/i.test(rows[i].label||'')) return rows[i];
+    return null;
+  }
   /* The only thing script does here is record that the clinician opened it.
      Which state is the default, and whether the control exists at all, is
      decided by the stylesheet. */
@@ -3513,7 +3549,7 @@ function compute(){
   function mxQuick(id){
     var sk = VOLATILE_SKIN[id], d = window.ClinicalContent && window.ClinicalContent.byId(id);
     if(!sk || !d) return '';
-    var rows = mxVolDoses(id), m = mxFind(rows, /^maintenance/i) || rows[0];
+    var rows = mxVolDoses(id), m = mxPrimary(rows);
     var val = m ? ('<div class="mx-q-v">'+m.val+(m.unit?'<span>'+m.unit+'</span>':'')+'</div>')
                 : '<div class="mx-q-v cov">Numeric reference under review</div>';
     /* MAC comes from the same canonical record as the concentration, printed
@@ -3531,7 +3567,10 @@ function compute(){
          class, so printing it here would be the same nine words three times
          across a four-card comparison. The class is on the detailed card
          directly below, once per agent, which is where it belongs. */
-      '<div class="mx-q-l">'+(m?m.label:'Maintenance')+'</div>'+val + macRow +
+      /* Neutral when nothing is publishable for this patient: "Concentration"
+         is true of all four agents, where "Maintenance" would mislabel the
+         nitrous oxide row whose own label is "Common GA adjunct". */
+      '<div class="mx-q-l">'+(m?m.label:'Concentration')+'</div>'+val + macRow +
       '</div>';
   }
   /* the detailed card below it */
@@ -3559,7 +3598,7 @@ function compute(){
        disagree and nothing to re-run after a re-render or a rotation. The
        collapsed content is display:none rather than visually hidden, so it
        leaves the accessibility tree with it and is not read twice. */
-    var note = (mxFind(rows,/^maintenance/i)||{}).note || '';
+    var note = (mxPrimary(rows)||{}).note || '';
     /* CANONICAL ONLY, WITH NO FALLBACK. All three agents carry a cited
        `effect` on their record. If one ever does not, the row does not
        render, which is the correct outcome: a card that shows nothing under
@@ -3592,65 +3631,39 @@ function compute(){
       '</div></div>' +
       '<div class="mx-card-b">'+body+'</div></div>';
   }
-  /* ── NITROUS OXIDE: IDENTITY AND A COVERAGE STATE. NOTHING ELSE. ───────
-     THE RULE THIS CARD EXISTS TO DEMONSTRATE: an agent with no canonical
-     record may be named, coloured and reported as not yet covered. It may
-     not be described. Not its pharmacology, not its indications, not its
-     effects, not its cautions, not its practical use.
+  /* ── NITROUS OXIDE USED TO BE BUILT BY HAND HERE. IT IS NOT ANY MORE. ──
+     Two builders lived at this spot, mxN2OQuick and mxN2OCard, because the
+     agent had no canonical record and the generic renderer would have drawn
+     nothing for it. They were reduced to identity and a coverage state once
+     it became clear that everything else they said, the "Analgesic adjunct"
+     descriptor, the effects line and a three-sentence caution, was uncited
+     clinical prose printed in the same rows and the same amber style as the
+     CITED cautions beside it.
 
-     This card broke that rule for everything except the two numbers. It
-     called the agent an "Analgesic adjunct", said it was "used as an adjunct
-     alongside a volatile agent or an intravenous technique", and carried a
-     three-sentence CAUTIONS row about air-filled spaces, tracheal tube cuff
-     pressure and combustion near a laser. Every one of those is a clinical
-     claim, written in this file, with no record and no citation behind it,
-     printed in the same rows and the same amber warning style as the cited
-     cautions on the three agents beside it. A reader has no way to tell
-     which of the four cards is sourced.
-
-     The statements are not wrong. That is exactly why removing them matters:
-     plausible uncited prose is the kind that survives review, and a page
-     that prints it becomes an uncited clinical database one true sentence at
-     a time. They come back when a reviewed nitrous oxide record exists, out
-     of ClinicalContent, through the same gate as everything else.
-
-     What is left says what we actually know: this agent is in the set, and
-     we have not published a reference for it.                              */
-  var mxN2OQuick =
-    '<div class="mx-q vx-n2o"><div class="mx-q-h"><div class="mx-q-ic">&#9738;</div>' +
-      '<div class="mx-q-n">Nitrous oxide</div></div>' +
-      '<div class="mx-q-l">Concentration</div>' +
-      '<div class="mx-q-v cov">Numeric reference under review</div>' +
-      /* The same MAC line the other three carry, so the 2 x 2 phone grid
-         compares like with like. There is no record behind it and there is no
-         number in it: that IS the comparison this card contributes. */
-      '<div class="mx-q-mac"><div class="mx-q-l">MAC</div>' +
-        '<div class="mx-q-mac-v cov">Numeric reference under review</div></div>' +
-    '</div>';
-  var mxN2OCard =
-    '<div class="mx-card vx-n2o"><div class="mx-card-h"><div class="mx-card-ic">&#9738;</div>' +
-      '<div><div class="mx-card-t">Nitrous oxide</div></div></div>' +
-      '<div class="mx-card-b">' +
-        mxRow('Typical maintenance','Numeric reference under review','cov') +
-        mxRow('MAC','Numeric reference under review','cov') +
-        /* A statement about our data, not about the drug. It says nothing a
-           clinician could mistake for guidance, and it is the same thing the
-           two rows above say, stated once in plain words so the card reads
-           as deliberately incomplete rather than broken. */
-        mxRow('Coverage','No reviewed numeric or clinical reference is published yet.','cov') +
-      '</div></div>';
+     The record exists now, so the special case goes with it. Nitrous oxide
+     is an id in VOLATILE_IDS and its card is drawn by the same mxQuick and
+     mxCard as the other three, through the same publishability and
+     population gates. There is no longer a code path by which the fourth
+     card can say something the evidence layer has not approved.            */
   var volatileBody =
     '<div class="mx-hero"><div class="mx-hero-ic">&#128138;</div>' +
       '<div class="mx-hero-tx"><div class="mx-hero-t">Maintenance</div>' +
       '<div class="mx-hero-s">Volatile anaesthetics, ventilation, monitoring and vascular access.</div>' +
       '</div></div>' +
-    '<div class="mx-sec-h">Volatile agents, quick reference</div>' +
+    /* "INHALED AGENTS", NOT "VOLATILE AGENTS", BECAUSE NITROUS OXIDE IS NOT ONE.
+       It is an inhaled anaesthetic gas, not a volatile liquid, and once it
+       became the fourth card the heading was making a pharmacological claim
+       about it that is simply wrong. Only the VISIBLE wording changes: the
+       canonical group is still `volatile`, which is an internal key that the
+       induction scope, the drug reference and the baseline all depend on, and
+       renaming it would be a refactor wearing a copy fix as a disguise. */
+    '<div class="mx-sec-h">Inhaled agents, quick reference</div>' +
     '<div class="mx-quick">' +
-      VOLATILE_IDS.map(mxQuick).join('') + mxN2OQuick +
+      VOLATILE_IDS.map(mxQuick).join('') +
     '</div>' +
-    '<div class="mx-sec-h">Volatile agents, detailed</div>' +
+    '<div class="mx-sec-h">Inhaled agents, detailed</div>' +
     '<div class="mx-grid">' +
-      VOLATILE_IDS.map(mxCard).join('') + mxN2OCard +
+      VOLATILE_IDS.map(mxCard).join('') +
     '</div>' +
     '<div class="mx-note"><span class="mx-note-ic">&#8505;</span><div class="mx-note-tx">' +
       'Every concentration and MAC figure above is read from the reviewed clinical record for that ' +

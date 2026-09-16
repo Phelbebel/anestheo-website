@@ -81,10 +81,21 @@ t('...as does searching its trade name', CC.search('sevorane', { limit: 50 })
 /* NITROUS OXIDE IS THE UNPUBLISHED CASE NOW, and it is unpublished by being
    absent rather than by being present and gated, which is the stronger form:
    there is no record for a renderer to reach for. */
-t('nitrous oxide has no canonical record, so no number can be published for it',
-  !CC.byId('drug.nitrous-oxide') &&
-  !CC.DRUGS.some(d => /nitrous/i.test(d.name || '')),
-  CC.DRUGS.filter(d => /nitrous/i.test(d.name || '')).map(d => d.id));
+/* WAS: nitrous oxide has no canonical record, so no number can be published
+   for it. That was the correct guard while the agent was unreviewed, and it is
+   intentionally superseded: the record exists now, so the guard becomes the
+   positive one. A number may be published BECAUSE it is cited, which is a
+   stronger statement than the absence it replaces. */
+t('nitrous oxide has a canonical record, and it is reviewed',
+  !!CC.byId('drug.nitrous-oxide') &&
+  CC.byId('drug.nitrous-oxide').provenance.state === 'reviewed' &&
+  CC.isPublishable(CC.byId('drug.nitrous-oxide')),
+  (CC.byId('drug.nitrous-oxide') || {}).id);
+t('...and every number it publishes is cited',
+  CC.byId('drug.nitrous-oxide').doses.every(x =>
+    x.evidence && x.evidence.state === 'reviewed' &&
+    x.evidence.authority && x.evidence.documentId && x.evidence.section),
+  CC.byId('drug.nitrous-oxide').doses.map(x => x.label + ' <- ' + x.evidence.authority));
 
 const unpub = CC.DRUGS.filter(d => !CC.isPublishable(d));
 t('every unpublishable record is invisible to every group render',
@@ -144,7 +155,7 @@ t('...so only the volatile group answers the maintenance phase',
 t('...and the maintenance records are volatile agents and nothing else',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.phase === 'maintenance'))
     .map(d => d.id).sort().join(',') ===
-  'drug.desflurane,drug.isoflurane,drug.sevoflurane',
+  'drug.desflurane,drug.isoflurane,drug.nitrous-oxide,drug.sevoflurane',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.phase === 'maintenance')).map(d => d.id));
 /* WAS: zero everywhere. The volatile group is no longer zero; every other
    group still is, and the report still answers with a number rather than
@@ -283,15 +294,38 @@ CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
   if (/\bMAC\b/.test(x.label || '')) MACD.push({ id:d.id, x:x });
 }));
 t('every agent MAC in the model is reviewed, cited and not computed',
-  MACD.length === 3 &&
+  MACD.length === 4 &&
   MACD.every(m => m.x.evidence && m.x.evidence.state === 'reviewed' &&
                   m.x.evidence.authority && m.x.evidence.documentId && m.x.evidence.section) &&
   MACD.every(m => typeof m.x.display === 'string' && m.x.display.length > 0) &&
   MACD.every(m => m.x.low == null && m.x.high == null && m.x.value == null),
   MACD.map(m => m.id + ': ' + m.x.display));
-t('...and each one carries its source age context rather than one number',
-  MACD.every(m => /age|y\b/i.test(m.x.display)),
-  MACD.map(m => m.x.display));
+/* WAS: every MAC must carry age context. That was right while all three MACs
+   were halogenated agents whose labels print an age TABLE, and the risk being
+   guarded was reducing a table to a single number. Nitrous oxide's source
+   states one figure and no table, so demanding age context of it would force
+   an age banding no source provides, which is the opposite of the intent.
+
+   So the requirement is split rather than relaxed. Where the source gives a
+   table the display must still carry its age context; where it gives a single
+   figure the display must still be verbatim, uncomputed, and carry a note
+   explaining what the single figure means. Neither agent can quietly become
+   the other. */
+const MAC_TABLE = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
+t('...and every tabulated MAC carries its source age context',
+  MACD.filter(m => MAC_TABLE.indexOf(m.id) >= 0)
+      .every(m => /age|y\b/i.test(m.x.display)),
+  MACD.filter(m => MAC_TABLE.indexOf(m.id) >= 0).map(m => m.x.display));
+t('...and the single-figure MAC says why it is a single figure',
+  MACD.filter(m => MAC_TABLE.indexOf(m.id) < 0).length === 1 &&
+  MACD.filter(m => MAC_TABLE.indexOf(m.id) < 0)
+      .every(m => m.id === 'drug.nitrous-oxide' &&
+                  /sole an(a)?esthetic|1 MAC/i.test(m.x.note || '') &&
+                  /no age adjustment|not.*interpolat|no.*interpolation/i.test(m.x.note || '')),
+  MACD.filter(m => MAC_TABLE.indexOf(m.id) < 0).map(m => m.id + ': ' + m.x.display));
+t('...and no MAC anywhere is connected to the patient age factor',
+  MACD.every(m => !/derived|patientContext|ageFactor/i.test(JSON.stringify(m.x))),
+  'agent MAC is never multiplied by patientContext.derived.mac');
 t('...and no dose expresses a MAC multiple',
   !CC.DRUGS.some(d => (d.doses||[]).some(x =>
     /\d\s*(x|times|multiple)\s*MAC/i.test(JSON.stringify(x)))),
@@ -792,8 +826,8 @@ t('a fully cited reviewed dose publishes',
    Every one is cited to a DailyMed label with an authority, a document id
    and a section, and none of them is weight scaled, because a volatile
    concentration is not a per-kilogram dose. */
-t('the drug-level gate is untouched: exactly 36 publishable drugs',
-  CC.DRUGS.filter(CC.isPublishable).length === 36,
+t('the drug-level gate is untouched: exactly 37 publishable drugs',
+  CC.DRUGS.filter(CC.isPublishable).length === 37,
   CC.DRUGS.filter(CC.isPublishable).length);
 
 /* ── DOSE ENUMERATION AND THE WITHHELD ROW ──────────────────────────────*/
@@ -810,8 +844,8 @@ t('every drug visibleDrugsInGroup returns still appears in visibleDosesInGroup',
 t('...and the drugs carrying more than one are exactly the migrated ones',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id).sort().join(',') ===
   'drug.alfentanil,drug.desflurane,drug.fentanyl,drug.glycopyrrolate,drug.isoflurane,' +
-  'drug.ketamine,drug.mivacurium,drug.propofol,drug.remifentanil,drug.rocuronium,' +
-  'drug.sevoflurane,drug.suxamethonium',
+  'drug.ketamine,drug.mivacurium,drug.nitrous-oxide,drug.propofol,drug.remifentanil,' +
+  'drug.rocuronium,drug.sevoflurane,drug.suxamethonium',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id));
 /* WAS: the six Tier-1 drugs. The eight the completeness package added carry a
    populationClass for the same reason — a reviewed record must say who it is
@@ -820,8 +854,8 @@ t('the classified records are exactly the ones the reviewed packages touched',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort().join(',') ===
   'drug.alfentanil,drug.atracurium,drug.atropine,drug.desflurane,drug.etomidate,' +
   'drug.fentanyl,drug.glycopyrrolate,drug.isoflurane,drug.ketamine,drug.lidocaine-iv,' +
-  'drug.mivacurium,drug.propofol,drug.remifentanil,drug.rocuronium,drug.sevoflurane,' +
-  'drug.suxamethonium,drug.thiopental',
+  'drug.mivacurium,drug.nitrous-oxide,drug.propofol,drug.remifentanil,drug.rocuronium,' +
+  'drug.sevoflurane,drug.suxamethonium,drug.thiopental',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort());
 t('ageBand appears only on class-C records',
   CC.DRUGS.every(d => (d.doses||[]).every(x => !x.ageBand || x.populationClass === 'C')));
@@ -1056,8 +1090,8 @@ t('11 legacy compatibility does NOT populate or mutate populationClass',
     (d.doses||[]).map(x => [x.populationClass, x.population, x.evidence && x.evidence.state])))
     === beforeLegacy,
   'the dataset is byte-identical after every eligibility call');
-t('...and exactly 33 doses carry a populationClass, the reviewed ones',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 33,
+t('...and exactly 35 doses carry a populationClass, the reviewed ones',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 35,
   CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0));
 /* WAS: every publishable drug is existing-unchanged. Eight now read
    'reviewed', and the safety question is not how many but WHICH — a legacy
@@ -1072,29 +1106,32 @@ t('...and exactly 33 doses carry a populationClass, the reviewed ones',
    one record that was existing-unchanged has become reviewed. */
 var UPGRADED = ['drug.lidocaine-iv','drug.etomidate','drug.thiopental','drug.atropine',
                 'drug.glycopyrrolate','drug.alfentanil','drug.atracurium','drug.mivacurium',
-                'drug.sevoflurane','drug.desflurane','drug.isoflurane'];
+                'drug.sevoflurane','drug.desflurane','drug.isoflurane',
+                /* nitrous oxide is created reviewed, like desflurane and
+                   isoflurane were: it never held a legacy record to upgrade. */
+                'drug.nitrous-oxide'];
 t('12 legacy compatibility does NOT change provenance.state',
   CC.DRUGS.filter(CC.isPublishable)
     .filter(d => UPGRADED.indexOf(d.id) < 0)
     .every(d => d.provenance.state === 'existing-unchanged') &&
   CC.DRUGS.filter(CC.isPublishable)
-    .filter(d => UPGRADED.indexOf(d.id) < 0).length === 25,
+    .filter(d => UPGRADED.indexOf(d.id) < 0).length === 25,   /* unchanged: N2O is new, not converted */
   CC.DRUGS.filter(CC.isPublishable)
     .filter(d => d.provenance.state !== 'existing-unchanged').map(d => d.id));
 t('13 NO existing-unchanged record became reviewed',
   CC.DRUGS.every(d => (d.doses||[]).every(x =>
     !x.evidence || x.evidence.state !== 'reviewed' || !!x.populationClass)) &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 33 &&
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 35 &&
   /* the drugs whose provenance is 'reviewed' are only ever the eight, and no
      drug that carried a legacy record is among them */
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed')
     .every(d => UPGRADED.indexOf(d.id) >= 0),
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed').map(d => d.id));
-t('...and dose-level evidence exists ONLY on the 33 reviewed records',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 33 &&
+t('...and dose-level evidence exists ONLY on the 35 reviewed records',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 35 &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 33);
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 35);
 
 /* THE NAMED HELD RECORDS, EXERCISED THROUGH THE REAL SELECTOR. */
 [['drug.midazolam','induction'], ['drug.dexmedetomidine','induction'],
@@ -1127,7 +1164,7 @@ const reviewed = [];
 CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
   if (x.evidence && x.evidence.state === 'reviewed') reviewed.push({ id:d.id, dose:x });
 }));
-t('EXACTLY 33 REVIEWED DOSE RECORDS', reviewed.length === 33, reviewed.length);
+t('EXACTLY 35 REVIEWED DOSE RECORDS', reviewed.length === 35, reviewed.length);
 t('...every one carries a full citation',
   reviewed.every(r => r.dose.evidence.authority && r.dose.evidence.title &&
                       r.dose.evidence.documentId && r.dose.evidence.section));
@@ -2244,97 +2281,191 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
    mockup's 50 to 70%, not MAC 104%, and nothing derived. The Maintenance card
    is allowed to say that a numeric reference is under review; it is not
    allowed to say a number. */
-console.log('\n20. NITROUS OXIDE CARRIES NO NUMBER');
+console.log('\n20. NITROUS OXIDE IS A REVIEWED RECORD, AND THE PAGE READS IT');
 {
-  t('no canonical nitrous oxide record exists at all',
-    !CC.DRUGS.some(d => /nitrous/i.test(d.name || '') || /nitrous|n2o/i.test(d.id || '')),
-    CC.DRUGS.filter(d => /nitrous/i.test(d.name || '')).map(d => d.id));
-  /* The two numbers specifically declined, asserted by value rather than by
-     absence of a record, so that inlining either one into the workspace fails
-     here even though it would never touch ClinicalContent. */
-  const MX = ENG.slice(ENG.indexOf('mxVolCard') >= 0 ? 0 : 0);
-  t('...and neither declined number appears anywhere in the maintenance workspace',
-    !/\b50\s*(to|-|–)\s*70\s*%/.test(MX) && !/MAC\s*104/i.test(MX),
-    [/\b50\s*(to|-|–)\s*70\s*%/.test(MX), /MAC\s*104/i.test(MX)]);
-  t('...and the card states a coverage line instead',
-    /Numeric reference under review/.test(ENG),
-    'N2O coverage text present');
+  /* ── THE INVARIANT DID NOT CHANGE. WHAT SATISFIES IT DID. ──────────────
+     The rule has always been: if clinical content is displayed, it comes from
+     reviewed canonical data. While nitrous oxide had no record the only way to
+     satisfy that was identity plus a coverage state and nothing else, and this
+     section asserted exactly that.
 
-  /* ── AN AGENT WITHOUT A RECORD MAY BE NAMED, NOT DESCRIBED ───────────
-     THE INVARIANT: where no canonical record exists, Maintenance may render
-     identity, visual styling and an explicit coverage state. It may NOT
-     render page-authored claims about pharmacology, indications, effects,
-     cautions, dosing, MAC or practical use.
+     The record exists now, so the same rule is satisfied from the other side:
+     the card may describe the agent BECAUSE every sentence on it is cited. The
+     absence assertions are superseded, and what replaces them is stricter,
+     because it checks provenance field by field rather than checking that
+     nothing is said.
 
-     Nitrous oxide is the only agent this currently applies to, and the card
-     broke the rule for everything except the two numbers: it called the
-     agent an "Analgesic adjunct", described it as used alongside a volatile
-     or intravenous technique, and carried a three-sentence CAUTIONS row on
-     air-filled spaces, cuff pressure and combustion. All uncited, all in the
-     same rows and the same amber warning style as the CITED cautions on the
-     three agents beside it, so a reader could not tell which card was
-     sourced. The statements were not wrong, which is precisely why they had
-     to go: plausible uncited prose is the kind that survives review.
+     The one thing that must not come back is page-authored prose, and that is
+     asserted harder than before. */
+  const N2O = CC.byId('drug.nitrous-oxide');
 
-     Asserted against the two N2O builders specifically, so that prose
-     elsewhere in the file cannot mask a regression here. */
-  const N2OQ = (/var mxN2OQuick =[\s\S]*?;\n(?=\s*var )/.exec(ENGC) || [''])[0];
-  const N2OC = (/var mxN2OCard =[\s\S]*?';\n(?=\s*var )/.exec(ENGC) || [''])[0];
-  t('both nitrous oxide builders were found, so the rest of this means something',
-    N2OQ.length > 80 && N2OC.length > 80, { quick:N2OQ.length, card:N2OC.length });
-  t('...neither carries a subtitle', !/mx-q-s|mx-card-s/.test(N2OQ + N2OC),
-    (/(mx-q-s|mx-card-s)[^<]*/.exec(N2OQ + N2OC) || ['none'])[0]);
-  /* ENGC, not ENG: the phrase survives in the comment above the builder that
-     explains why it was removed, which is documentation rather than output. */
-  t('...and the "Analgesic adjunct" descriptor is gone from the rendered page',
-    !/Analgesic adjunct/.test(ENGC), 'no Analgesic adjunct in code');
-  t('...no Key effects row', !/mxRow\('Key effects'/.test(N2OC), 'no key effects');
-  t('...no Cautions row', !/mxRow\('Cautions'/.test(N2OC), 'no cautions');
-  t('...no Practical pearls row', !/mxRow\('Practical pearls'/.test(N2OC),
-    'no practical pearls');
-  /* The specific claims, by content, so they cannot return in a reworded row.
-     Scoped to the MAINTENANCE volatile section rather than the whole file:
-     the laser-tube module has its own long-standing line about nitrous oxide
-     supporting combustion, inside content about airway fires, which is a
-     different module with its own provenance and is not what this pass
-     touched. Asserting over the whole file would have quietly deleted it. */
-  const MXVOL = (/var VOLATILE_SKIN[\s\S]*?var volatileBody =[\s\S]*?';\n/.exec(ENGC) || [''])[0];
-  t('...and none of the four uncited claims survives in the maintenance section',
-    !/adjunct alongside a volatile/i.test(MXVOL) &&
-    !/diffuses into air filled spaces/i.test(MXVOL) &&
-    !/raises cuff pressure/i.test(MXVOL) &&
-    !/supports combustion/i.test(MXVOL),
-    [/adjunct alongside a volatile/i, /diffuses into air filled spaces/i,
-     /raises cuff pressure/i, /supports combustion/i].map(r => r.test(MXVOL)));
-  /* What must REMAIN: identity, styling, and the coverage states. */
-  t('the quick card still names the agent and states two coverage lines',
-    /Nitrous oxide/.test(N2OQ) && /vx-n2o/.test(N2OQ) &&
-    (N2OQ.match(/Numeric reference under review/g) || []).length === 2,
-    (N2OQ.match(/Numeric reference under review/g) || []).length + ' coverage lines');
-  t('...and the detailed card does the same',
-    /Nitrous oxide/.test(N2OC) && /vx-n2o/.test(N2OC) &&
-    (N2OC.match(/Numeric reference under review/g) || []).length === 2,
-    (N2OC.match(/Numeric reference under review/g) || []).length + ' coverage lines');
-  t('...with one plain coverage statement about our data, not about the drug',
-    /mxRow\('Coverage','No reviewed numeric or clinical reference is published yet\.','cov'\)/
-      .test(N2OC), 'coverage row present');
-  /* No number of any kind may appear in either card's VISIBLE TEXT. Stronger
-     than checking the two specifically declined figures: it fails on ANY
-     digit, so no concentration, percentage or MAC value can be introduced in
-     any wording. Markup is stripped first because identifiers legitimately
-     carry digits: the class is vx-n2o and the builders are mxN2OQuick and
-     mxN2OCard, and those 2s are not clinical values. */
-  const visible = src => src
-    .replace(/&#\d+;/g, ' ')                 /* html entities */
-    .replace(/class="[^"]*"/g, ' ')          /* class names, e.g. vx-n2o */
-    .replace(/var mx\w+\s*=/g, ' ')          /* the builder's own name */
-    .replace(/<[^>]*>/g, ' ');               /* every remaining tag */
-  t('...and neither card shows a digit in its visible text',
-    !/\d/.test(visible(N2OQ)) && !/\d/.test(visible(N2OC)),
-    { quick:(visible(N2OQ).match(/\d/g) || []).join(''),
-      card:(visible(N2OC).match(/\d/g) || []).join('') });
+  t('the record carries an identity the page can render',
+    N2O.name === 'Nitrous oxide' && N2O.group === 'volatile' &&
+    N2O.pclass === 'inhalational' && N2O.klass === 'Inhaled anaesthetic gas',
+    [N2O.name, N2O.group, N2O.pclass, N2O.klass].join(' | '));
+  t('...findable by name, abbreviation and common name',
+    ['nitrous oxide','n2o','laughing gas'].every(q =>
+      CC.search(q, { limit:50 }).some(h => h.item.id === 'drug.nitrous-oxide')),
+    N2O.aliases.join(', '));
+
+  /* ── EVERY PUBLISHED FIELD IS CITED ───────────────────────────────────*/
+  t('the concentration is cited to the Cochrane review',
+    N2O.doses[0].evidence.documentId.indexOf('27508523') >= 0 &&
+    N2O.doses[0].evidence.state === 'reviewed',
+    N2O.doses[0].evidence.documentId);
+  t('...and its label says adjunct, NOT maintenance',
+    /adjunct/i.test(N2O.doses[0].label) && !/^maintenance$/i.test(N2O.doses[0].label),
+    N2O.doses[0].label);
+  t('...because the figure is a reported range, not a recommended dose',
+    /not a recommended or universal dose/i.test(N2O.doses[0].note || '') &&
+    /depends on the indication/i.test(N2O.doses[0].note || ''),
+    (N2O.doses[0].note || '').slice(0, 76));
+  t('...and the MAC is the human determination, not a textbook restatement',
+    (N2O.doses.find(x => /^MAC/i.test(x.label)) || {}).evidence.documentId === 'PMID 7201254',
+    (N2O.doses.find(x => /^MAC/i.test(x.label)) || {}).evidence.documentId);
+  t('...whose note states the atmospheric-pressure consequence',
+    /1\.04 atm|atm absolute/i.test((N2O.doses.find(x => /^MAC/i.test(x.label))||{}).note || '') &&
+    /sole an(a)?esthetic/i.test((N2O.doses.find(x => /^MAC/i.test(x.label))||{}).note || ''));
+  /* MAC above 100% means this agent cannot stand alone, so the record must
+     not describe it as a maintenance agent even in a field nobody renders. */
+  t('...and the indications call it an adjunct, never sole maintenance',
+    N2O.indications.some(i => /adjunct/i.test(i)) &&
+    !N2O.indications.some(i => /^maintenance of an(a)?esthesia$/i.test(i)),
+    N2O.indications.join(' | '));
+  t('the MAC is cited, display-only, and carries no computable field',
+    (() => { const m = N2O.doses.find(x => /^MAC/i.test(x.label));
+      return !!m && m.evidence.state === 'reviewed' && !!m.evidence.documentId &&
+             typeof m.display === 'string' &&
+             m.low == null && m.high == null && m.value == null; })(),
+    (N2O.doses.find(x => /^MAC/i.test(x.label)) || {}).display);
+  t('the effect is cited',
+    N2O.effectEvidence.state === 'reviewed' && !!N2O.effectEvidence.authority &&
+    !!N2O.effectEvidence.documentId && !!N2O.effectEvidence.section,
+    N2O.effectEvidence.authority);
+  t('the warning is cited',
+    N2O.warnEvidence.state === 'reviewed' && !!N2O.warnEvidence.authority &&
+    !!N2O.warnEvidence.documentId && !!N2O.warnEvidence.section,
+    N2O.warnEvidence.documentId);
+  /* WAS: sourceAccessed is false and the note says no source was read
+     in-build. True while only this build had looked at them; the clinical
+     owner has since opened the primary sources externally, so it would now be
+     a false statement in the other direction. What the record must NOT claim
+     is final sign-off, and that is what the reviewer field is held to. */
+  t('...and provenance records that the sources were externally reviewed',
+    N2O.provenance.sourceAccessed === true &&
+    /directly reviewed outside the build environment/i.test(N2O.provenance.note || ''),
+    'sourceAccessed=' + N2O.provenance.sourceAccessed);
+  /* WAS: stops short of claiming final clinical-owner sign-off, asserting
+     reviewer !== 'clinical_owner' and that the note still said pending. That
+     was the correct hold while the content was in review, and it is
+     intentionally released: the clinical owner has approved the final
+     content. The two provenance facts stay SEPARATE, which is what this now
+     checks, because a record can have verified citations without approved
+     wording and this one did for a cycle. */
+  t('...and the clinical owner has approved the final content',
+    N2O.provenance.reviewer === 'clinical_owner' &&
+    /approved by the clinical owner/i.test(N2O.provenance.note || '') &&
+    !/pending/i.test(N2O.provenance.note || '') &&
+    /* the two facts stay separate: sourceAccessed is asserted above */
+    N2O.provenance.sourceAccessed === true,
+    'reviewer=' + N2O.provenance.reviewer +
+    ', sourceAccessed=' + N2O.provenance.sourceAccessed);
+
+  /* ── THE CLINICAL SUBSTANCE THE CARD MUST CARRY ───────────────────────*/
+  const SPACES = ['pneumothorax','bowel obstruction','pneumocephalus','intraocular',
+                  'middle ear','air embolism'];
+  t('the caution names the closed gas spaces',
+    SPACES.every(k => new RegExp(k, 'i').test(N2O.warn)),
+    SPACES.filter(k => !new RegExp(k, 'i').test(N2O.warn)));
+  t('...and explains why, rather than only listing them',
+    /faster than nitrogen leaves/i.test(N2O.warn), 'diffusion mechanism stated');
+  t('...and covers vitamin B12 and methionine synthase',
+    /B12/i.test(N2O.warn) && /methionine synthase/i.test(N2O.warn));
+  t('...and combustion in a laser or diathermy field',
+    /combustion/i.test(N2O.warn) && /laser|diathermy/i.test(N2O.warn));
+  /* REMOVED ON REVIEW, AND KEPT OUT. Decompression sickness is
+     physiologically adjacent to the closed-space mechanism and reads as
+     plausible, which is precisely why it was in the first draft and why it
+     had to go: no source was supplied for how it belongs on a perioperative
+     card. Plausibility is not provenance. */
+  t('...and decompression sickness is NOT bundled into the closed-space list',
+    !/decompression/i.test(N2O.warn), 'no unsourced decompression claim');
+  /* The ophthalmic warning is narrow on purpose: the danger is residual
+     intraocular GAS, not ophthalmic surgery in general. */
+  t('...and the ophthalmic warning names residual intraocular gas specifically',
+    /residual intraocular gas/i.test(N2O.warn) &&
+    !/ophthalmic surgery/i.test(N2O.warn), 'intraocular gas, not all eye surgery');
+  t('...and the B12 wording separates known deficiency from risk',
+    /avoid in known/i.test(N2O.warn) && /assess patients at substantial risk/i.test(N2O.warn),
+    'avoid-if-known vs assess-if-at-risk');
+  /* The caution is four labelled blocks so it can be scanned, not read. */
+  t('...and the caution is written in scannable blocks, not one paragraph',
+    N2O.warn.split('<br>').length === 4 &&
+    ['<b>AVOID, CLOSED GAS SPACES:</b>','<b>B12:</b>','<b>FIRE:</b>','<b>LAPAROSCOPY:</b>']
+      .every(h => N2O.warn.indexOf(h) >= 0),
+    N2O.warn.split('<br>').map(b => b.slice(0, 22)));
+  t('...with the combustion label pinned to an exact DailyMed setid',
+    N2O.warnEvidence.documentId.indexOf('b7e230d1-e201-4984-ba8b-5b88ec5a1bbf') >= 0 &&
+    /Principal Display Panel/i.test(N2O.warnEvidence.section),
+    'DailyMed setid b7e230d1-e201-4984-ba8b-5b88ec5a1bbf');
+  t('...and the intraocular alert to the Royal College of Ophthalmologists',
+    /Royal College of Ophthalmologists/i.test(N2O.warnEvidence.authority) &&
+    /Ophthalmic Safety Alert/i.test(N2O.warnEvidence.section) &&
+    /18 December 2018/.test(N2O.warnEvidence.section),
+    'RCOphth alert cited');
+  t('...and the B12 warning to the MHRA',
+    /MHRA/i.test(N2O.warnEvidence.authority) && /MHRA/i.test(N2O.warnEvidence.section),
+    'MHRA drug safety update cited');
+
+  /* ── THE LAPAROSCOPY WORDING, WHICH IS THE POINT OF THIS RECORD ───────
+     Two randomised trials answer this differently: PMID 1550279 found no
+     significant difference in operating conditions or bowel distension in
+     laparoscopic cholecystectomy; PMID 17512015 found distension in about
+     half of laparoscopic donor nephrectomies, interfering with surgery in
+     about a quarter. Writing "contraindicated" would state as settled a
+     question the primary evidence does not settle. */
+  t('LAPAROSCOPY IS A CAUTION, NEVER AN ABSOLUTE CONTRAINDICATION',
+    /laparoscopy:<\/b>\s*not an absolute contraindication/i.test(N2O.warn) &&
+    !/contraindicated in laparoscop/i.test(N2O.warn),
+    (/LAPAROSCOPY[^<]*/i.exec(N2O.warn) || [''])[0].slice(0, 86));
+  t('...and says the evidence is mixed rather than asserting a direction',
+    /mixed/i.test(N2O.warn) && /consider avoiding/i.test(N2O.warn));
+  t('...with both trials named in the evidence mapping',
+    N2O.warnEvidence.section.indexOf('1550279') >= 0 &&
+    N2O.warnEvidence.section.indexOf('17512015') >= 0,
+    N2O.warnEvidence.section.slice(-86));
+
+  /* ── NOTHING CLINICAL ABOUT N2O IS AUTHORED IN THE PAGE ───────────────*/
+  t('the hand-written nitrous oxide builders are gone',
+    !/var mxN2OQuick\s*=/.test(ENGC) && !/var mxN2OCard\s*=/.test(ENGC),
+    'mxN2OQuick and mxN2OCard removed');
+  t('...and nitrous oxide is drawn by the same renderer as the other three',
+    /VOLATILE_IDS = \[[^\]]*'drug\.nitrous-oxide'/.test(ENGC.replace(/\s+/g, ' ')),
+    'nitrous oxide is an id in VOLATILE_IDS');
+  /* Scoped to the MAINTENANCE volatile section, for the same reason the
+     combustion assertion is: two long-standing lines elsewhere in the file
+     legitimately mention nitrous oxide, and a whole-file check would demand
+     their deletion as collateral. The Analgesia domain lead says "analgesic
+     adjuncts" about opioids and has nothing to do with this agent, and the
+     airway-tubes cuff note says nitrous oxide diffuses into a tracheal tube
+     cuff. Both are other modules with their own provenance, and both are
+     reported rather than quietly removed. */
+  const MXSEC = (/var VOLATILE_SKIN[\s\S]*?var volatileBody =[\s\S]*?';\n/.exec(ENGC) || [''])[0];
+  t('...so the maintenance section authors no N2O pharmacology or contraindication prose',
+    MXSEC.length > 400 &&
+    !/analgesic adjunct/i.test(MXSEC) && !/pneumothorax/i.test(MXSEC) &&
+    !/methionine/i.test(MXSEC) && !/diffuses into/i.test(MXSEC) &&
+    !/laparoscop/i.test(MXSEC) && !/combustion/i.test(MXSEC),
+    [/analgesic adjunct/i, /pneumothorax/i, /methionine/i, /diffuses into/i,
+     /laparoscop/i, /combustion/i].map(r => r.test(MXSEC)));
+  /* The figures are published now, but they must arrive from the record and
+     from nowhere else, so neither may be written in the page. */
+  t('...and no N2O concentration or MAC figure is written in the page',
+    !/\b50\s*(to|-|–)\s*70\s*%/.test(ENGC) && !/104\s*%/.test(ENGC),
+    [/\b50\s*(to|-|–)\s*70\s*%/.test(ENGC), /104\s*%/.test(ENGC)]);
+  t('...and the coverage-only special case is gone from the renderer',
+    !/mxRow\('Coverage'/.test(ENGC), 'no hard-coded coverage row');
 }
-
 /* ── ANTIBIOTIC PROPHYLAXIS: OFF THE WORKSPACE, NOT OUT OF THE APP ───────
    The panel was removed from the Maintenance composition. That is a
    composition decision and nothing more, so the module, its body builder, its
