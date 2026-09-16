@@ -2381,8 +2381,38 @@ console.log('\n20. NITROUS OXIDE IS A REVIEWED RECORD, AND THE PAGE READS IT');
     /faster than nitrogen leaves/i.test(N2O.warn), 'diffusion mechanism stated');
   t('...and covers vitamin B12 and methionine synthase',
     /B12/i.test(N2O.warn) && /methionine synthase/i.test(N2O.warn));
-  t('...and combustion in a laser or diathermy field',
-    /combustion/i.test(N2O.warn) && /laser|diathermy/i.test(N2O.warn));
+  /* ── THE FIRE BLOCK NAMES A CONDITION, NOT A DEVICE ──────────────────
+     WAS: "...and combustion in a laser or diathermy field", satisfied by the
+     bare word "diathermy". That word was doing too much work in the warning
+     it checked: electrosurgery is in use somewhere in a very large share of
+     operations, and a clinician reading "avoid it in airway laser, diathermy
+     or other high fire risk fields" could reasonably conclude nitrous oxide
+     was off the table for most of them.
+
+     The hazard is not the device. It is an ignition source meeting an
+     oxidiser enriched atmosphere. So the assertion now requires all three
+     concepts the warning must carry, and separately forbids the unqualified
+     device prohibition it used to permit. */
+  t('...and combustion, stated as a condition rather than a device',
+    /supports combustion/i.test(N2O.warn) &&
+    /oxidiser enriched|oxidizer enriched/i.test(N2O.warn) &&
+    /ignition source/i.test(N2O.warn) &&
+    /airway laser/i.test(N2O.warn),
+    (/<b>FIRE:<\/b>[^<]*/i.exec(N2O.warn) || [''])[0].slice(0, 96));
+  /* The specific over-broad readings that must not come back. */
+  t('...and never an unqualified prohibition on electrosurgery',
+    !/avoid[^.]{0,40}\bdiathermy\b/i.test(N2O.warn) &&
+    !/contraindicated[^.]{0,40}\b(diathermy|electrocautery|electrosurgery)\b/i.test(N2O.warn) &&
+    !/\bdiathermy\b/i.test(N2O.warn),
+    'no bare device prohibition');
+  t('...and the example is the AIRWAY field, where the two actually meet',
+    /airway laser or airway electrosurgery/i.test(N2O.warn),
+    'airway laser / airway electrosurgery');
+  t('...with APSF cited for the procedural condition, DailyMed for the hazard',
+    /APSF/i.test(N2O.warnEvidence.authority) &&
+    /APSF surgical fire guidance/i.test(N2O.warnEvidence.section) &&
+    N2O.warnEvidence.documentId.indexOf('b7e230d1-e201-4984-ba8b-5b88ec5a1bbf') >= 0,
+    'DailyMed setid + APSF procedural context');
   /* REMOVED ON REVIEW, AND KEPT OUT. Decompression sickness is
      physiologically adjacent to the closed-space mechanism and reads as
      plausible, which is precisely why it was in the first draft and why it

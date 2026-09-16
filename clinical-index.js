@@ -1271,16 +1271,26 @@ var DRUGS = [
      perioperative card, and plausibility is not provenance. The
      well-supported vascular air embolism warning stays.
 
+     THE FIRE BLOCK NAMES A CONDITION, NOT A DEVICE. It used to read "avoid it
+     in airway laser, diathermy or other high fire risk fields", and the bare
+     word "diathermy" was doing too much work: electrosurgery is in use
+     somewhere in a very large share of operations, and reading that line a
+     clinician could reasonably conclude nitrous oxide was off the table for
+     most of them. The hazard is not the device. It is an ignition source
+     meeting an oxidiser enriched atmosphere, which is why airway laser and
+     airway electrosurgery are the examples and why the sentence states the
+     condition before it states the example.
+
      The ophthalmic warning is deliberately narrow. The danger is RESIDUAL
      INTRAOCULAR GAS after retinal surgery, not ophthalmic surgery in
      general, and the Royal College of Ophthalmologists alert is specific
      about that. Generalising it would make the card wrong in the common
      case. */
-  warn:'<b>AVOID, CLOSED GAS SPACES:</b> pneumothorax, bowel obstruction, pneumocephalus or intracranial air, residual intraocular gas after retinal surgery, middle ear surgery, and significant risk of vascular air embolism. Nitrous oxide enters a closed space faster than nitrogen leaves it, raising volume where the space is compliant and pressure where it is not.<br><b>B12:</b> avoid in known clinically significant vitamin B12 or methionine synthase deficiency. Assess patients at substantial risk, particularly where exposure is prolonged or repeated; toxicity has followed a single anaesthetic in subclinical deficiency.<br><b>FIRE:</b> supports combustion, so avoid it in airway laser, diathermy or other high fire risk fields.<br><b>LAPAROSCOPY:</b> not an absolute contraindication. It may increase bowel distension and the evidence is mixed, so consider avoiding it where distension would compromise the operative field.',
-  warnEvidence:{ state:'reviewed', authority:'StatPearls, MHRA, Royal College of Ophthalmologists, DailyMed, and two randomised trials',
-                 title:'Nitrous Oxide (StatPearls); Nitrous oxide: neurological and haematological toxic effects (MHRA); Ophthalmic Safety Alert, do not use nitrous oxide when there is gas in an operated eye (RCOphth, 18 December 2018); Nitrous Oxide gas labelling (DailyMed)',
+  warn:'<b>AVOID, CLOSED GAS SPACES:</b> pneumothorax, bowel obstruction, pneumocephalus or intracranial air, residual intraocular gas after retinal surgery, middle ear surgery, and significant risk of vascular air embolism. Nitrous oxide enters a closed space faster than nitrogen leaves it, raising volume where the space is compliant and pressure where it is not.<br><b>B12:</b> avoid in known clinically significant vitamin B12 or methionine synthase deficiency. Assess patients at substantial risk, particularly where exposure is prolonged or repeated; toxicity has followed a single anaesthetic in subclinical deficiency.<br><b>FIRE:</b> supports combustion. Avoid it where an oxidiser enriched atmosphere would meet an ignition source, above all during airway laser or airway electrosurgery and other high fire risk procedures.<br><b>LAPAROSCOPY:</b> not an absolute contraindication. It may increase bowel distension and the evidence is mixed, so consider avoiding it where distension would compromise the operative field.',
+  warnEvidence:{ state:'reviewed', authority:'StatPearls, MHRA, Royal College of Ophthalmologists, DailyMed, APSF, and two randomised trials',
+                 title:'Nitrous Oxide (StatPearls); Nitrous oxide: neurological and haematological toxic effects (MHRA); Ophthalmic Safety Alert, do not use nitrous oxide when there is gas in an operated eye (RCOphth, 18 December 2018); Nitrous Oxide gas labelling (DailyMed); Surgical Fire Prevention: A Review, and Upper Airway Management Guide for Laser Airway Surgery (Anesthesia Patient Safety Foundation)',
                  documentId:'NCBI Bookshelf NBK532922; DailyMed setid b7e230d1-e201-4984-ba8b-5b88ec5a1bbf; PMID 1550279; PMID 17512015',
-                 section:'Closed gas spaces: StatPearls, Contraindications. Intraocular gas: RCOphth Ophthalmic Safety Alert, 18 December 2018. Vitamin B12: MHRA drug safety update on neurological and haematological toxicity. Combustion: DailyMed setid b7e230d1-e201-4984-ba8b-5b88ec5a1bbf, Principal Display Panel, fire and oxidizer warning. Laparoscopy: PMID 1550279 (no significant difference) and PMID 17512015 (distension interfering with surgery).' },
+                 section:'Closed gas spaces: StatPearls, Contraindications. Intraocular gas: RCOphth Ophthalmic Safety Alert, 18 December 2018. Vitamin B12: MHRA drug safety update on neurological and haematological toxicity. Combustion: DailyMed setid b7e230d1-e201-4984-ba8b-5b88ec5a1bbf, Principal Display Panel, fire and oxidizer warning, for the hazard itself; APSF surgical fire guidance for the procedural condition, that risk arises where an ignition source such as a laser or electrosurgery meets an oxidiser enriched field, and that nitrous oxide is not used during airway laser surgery. Laparoscopy: PMID 1550279 (no significant difference) and PMID 17512015 (distension interfering with surgery).' },
   /* THE SOURCES WERE READ, JUST NOT BY THIS BUILD. Every primary source here
      is blocked by this environment's network egress, so the in-build
      corroboration was against search-engine summaries only. The clinical
