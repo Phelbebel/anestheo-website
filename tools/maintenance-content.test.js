@@ -2281,6 +2281,98 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
    mockup's 50 to 70%, not MAC 104%, and nothing derived. The Maintenance card
    is allowed to say that a numeric reference is under review; it is not
    allowed to say a number. */
+/* ── THE ROCURONIUM AIRWAY WARNING ──────────────────────────────────────
+   WAS: "Only after confirming you can ventilate - unless sugammadex is drawn
+   up." Both halves were wrong and the second was wrong in the direction that
+   costs an airway.
+
+   "Confirm you can ventilate first" is not how a rapid sequence is done, and
+   this drug's RSI record is exactly what the board serves under the RSI
+   strategy, so the card contradicted the technique that surfaced it. DAS 2025
+   recommends EARLIER neuromuscular block, not a ventilation check before it.
+
+   "Unless sugammadex is drawn up" read as permission to paralyse without a
+   plan because the antidote was on the trolley. Reversal is not rescue: it
+   restores neuromuscular function, not airway patency, and not adequate
+   ventilation inside the desaturation window.
+
+   These assertions are content assertions on purpose. The old wording could
+   return in a paraphrase and still be wrong, so the forbidden MEANINGS are
+   checked, not just the old string. */
+console.log('\n20. THE ROCURONIUM AIRWAY WARNING');
+{
+  const ROC = CC.byId('drug.rocuronium');
+  const W = ROC.warn || '', E = ROC.warnEvidence || {};
+
+  /* The four concepts the replacement must carry. */
+  t('it requires an airway rescue plan around the drug',
+    /airway rescue plan/i.test(W), W.slice(0, 48));
+  t('...names sugammadex as a PLANNED strategy that must be dosed and to hand',
+    /intended reversal or wake up strategy/i.test(W) &&
+    /calculate the dose/i.test(W) && /immediately available/i.test(W));
+  t('...states that reversal does not guarantee ventilation or oxygenation',
+    /does not guarantee adequate ventilation or oxygenation/i.test(W));
+  t('...and that it must not delay the difficult airway / CICO algorithm',
+    /must never delay/i.test(W) && /CICO/i.test(W));
+
+  /* The three meanings that must never come back, checked as meanings. */
+  t('the "confirm you can ventilate first" instruction is gone',
+    !/confirm\w*\s+(that\s+)?you\s+can\s+ventilate/i.test(W) &&
+    !/only after[^.]{0,30}ventilat/i.test(W), 'no pre-paralysis ventilation check');
+  t('...and nothing says the drug is safe because sugammadex is drawn up',
+    !/drawn up/i.test(W) &&
+    !/unless[^.]{0,40}sugammadex/i.test(W), 'no "unless sugammadex" permission');
+  t('...and sugammadex is never described as rescuing CICO',
+    !/sugammadex[^.]{0,40}(rescue|rescues|rescuing)/i.test(W) &&
+    !/(rescue|rescues)[^.]{0,40}sugammadex/i.test(W), 'reversal is not rescue');
+  /* The efficacy claim the product must not make. */
+  t('...and the record claims no superiority over suxamethonium',
+    !/superior|better than|more effective/i.test(W), 'no comparative efficacy claim');
+
+  /* ── PROVENANCE: THREE CLAIMS, THREE SOURCES, MAPPED ONE TO ONE ──────*/
+  t('the warning is cited and reviewed',
+    E.state === 'reviewed' && !!E.authority && !!E.documentId && !!E.section,
+    E.state);
+  t('...to DAS 2025 for the rescue framework',
+    /Difficult Airway Society/i.test(E.authority) &&
+    /DAS 2025/i.test(E.title) && E.documentId.indexOf('41203471') >= 0 &&
+    E.documentId.indexOf('10.1016/j.bja.2025.10.006') >= 0,
+    'DAS 2025 cited');
+  t('...to Naguib 2016 for the limitation of reversal',
+    E.documentId.indexOf('27140684') >= 0 &&
+    E.documentId.indexOf('10.1213/ANE.0000000000001347') >= 0 &&
+    /Myth of Rescue Reversal/i.test(E.title),
+    'PMID 27140684 cited');
+  t('...and to SCCM 2023 for rocuronium standing as an RSI agent',
+    /Society of Critical Care Medicine/i.test(E.authority) &&
+    /Crit Care Med 2023;51\(10\):1411-1430/.test(E.documentId),
+    'SCCM 2023 cited');
+  /* Each source must be tied to the claim it actually supports. */
+  t('...with each claim mapped to the source that supports it, not blurred',
+    /DAS 2025/.test(E.section) && /Naguib 2016/.test(E.section) &&
+    /SCCM 2023/.test(E.section) &&
+    /neither agent claimed superior/i.test(E.section),
+    E.section.slice(-70));
+
+  /* ── EVERYTHING ELSE ON THIS RECORD IS FROZEN ────────────────────────*/
+  t('the dose records are untouched: routine 0.6, paediatric 0.6, RSI 0.6 to 1.2',
+    ROC.doses.length === 3 &&
+    ROC.doses[0].value === 0.6 && ROC.doses[0].phase === 'intubation' &&
+    ROC.doses[1].value === 0.6 && ROC.doses[1].populationClass === 'B' &&
+    ROC.doses[2].low === 0.6 && ROC.doses[2].high === 1.2 &&
+    ROC.doses[2].phase === 'rsi',
+    ROC.doses.map(x => x.label + '/' + x.phase).join(', '));
+  t('...and the drug-level provenance stays existing-unchanged',
+    ROC.provenance.state === 'existing-unchanged', ROC.provenance.state);
+  t('...with identity, class and preparation unchanged',
+    ROC.name === 'Rocuronium' && ROC.group === 'nmb' && ROC.pclass === 'nmb' &&
+    ROC.prep === '<b>10 mg/mL</b>' && ROC.severity === 'critical');
+  /* Suxamethonium was explicitly out of scope for this change. */
+  t('...and suxamethonium is untouched by this pass',
+    /Contraindicated in hyperkalaemia/i.test(CC.byId('drug.suxamethonium').warn || ''),
+    (CC.byId('drug.suxamethonium').warn || '').slice(0, 50));
+}
+
 console.log('\n20. NITROUS OXIDE IS A REVIEWED RECORD, AND THE PAGE READS IT');
 {
   /* ── THE INVARIANT DID NOT CHANGE. WHAT SATISFIES IT DID. ──────────────

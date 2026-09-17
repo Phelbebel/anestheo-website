@@ -372,8 +372,48 @@ var DRUGS = [
   /* The RSI dose left this string for a dose record. A preparation says what
      is in the vial; it does not carry a dose the model cannot see. */
   prep:'<b>10 mg/mL</b>',
-  warn:'Only after confirming you can ventilate — unless sugammadex is drawn up.',
+  /* ── THE AIRWAY WARNING, REWRITTEN BECAUSE IT WAS WRONG TWICE OVER ────
+     WAS: "Only after confirming you can ventilate - unless sugammadex is
+     drawn up." Both halves failed, and the second failed dangerously.
+
+     "Confirm you can ventilate first" is not how a rapid sequence is done,
+     and this drug's own RSI record is the one the board serves under the RSI
+     strategy: the card would have instructed the clinician to do the thing
+     the technique deliberately omits. DAS 2025 moves the other way again,
+     recommending EARLIER neuromuscular block, because block facilitates mask
+     ventilation rather than threatening it.
+
+     "Unless sugammadex is drawn up" is the dangerous half. It reads as a
+     permission: paralyse without a plan, because the antidote is on the
+     trolley. Reversal is not rescue. Restoring neuromuscular function does
+     not restore airway patency, and it does not restore adequate ventilation
+     inside the desaturation window; where oedema from failed attempts is
+     what closed the airway, sugammadex does nothing at all except consume
+     the time that should have gone to the algorithm.
+
+     What replaces it keeps sugammadex as a PLANNED strategy that must be
+     dosed and to hand, and removes it as a substitute for the rescue
+     sequence. eFONA is named as part of that sequence, not as something
+     rocuronium specifically requires.
+
+     NOT SAID, ON PURPOSE: that rocuronium is better than suxamethonium.
+     Cochrane 2015 found suxamethonium superior for intubating conditions.
+     Contemporary guidance accepts either agent, and any future product
+     preference is a default-selection decision about contraindications and
+     reversibility, not a claim about intubating conditions. */
+  warn:'Use it inside a defined airway rescue plan. If sugammadex is the intended reversal or wake up strategy, calculate the dose and have it immediately available. Reversing the block does not guarantee adequate ventilation or oxygenation, and must never delay progression through the difficult airway and CICO algorithm.',
+  /* THREE CLAIMS, THREE SOURCES, MAPPED ONE TO ONE. None is asked to support
+     a statement it does not make: the guideline supplies the rescue
+     framework, the trial supplies the limitation, and SCCM supplies the
+     standing of the agent itself. */
+  warnEvidence:{ state:'reviewed', authority:'Difficult Airway Society; Anesthesia & Analgesia; Society of Critical Care Medicine',
+                 title:'DAS 2025 guidelines for management of unanticipated difficult tracheal intubation in adults (Ahmad, El-Boghdadly et al., Br J Anaesth 2026;136:283-307); The Myth of Rescue Reversal in "Can\'t Intubate, Can\'t Ventilate" Scenarios (Naguib et al., Anesth Analg 2016;123:82-92); SCCM Clinical Practice Guidelines for Rapid Sequence Intubation in the Critically Ill Adult Patient (Crit Care Med 2023;51:1411-1430)',
+                 documentId:'PMID 41203471, DOI 10.1016/j.bja.2025.10.006; PMID 27140684, DOI 10.1213/ANE.0000000000001347; Crit Care Med 2023;51(10):1411-1430',
+                 section:'Airway rescue planning and progression, including emergency front of neck access: DAS 2025, revised ABCD rescue approach and earlier neuromuscular block. Reversal does not guarantee ventilation or oxygenation and is not a CICO rescue: Naguib 2016. Rocuronium as an accepted rapid sequence agent where suxamethonium is not contraindicated, with neither agent claimed superior: SCCM 2023.' },
   severity:'critical',
+  /* The DRUG's provenance is untouched. Its dose records were not reviewed in
+     this pass and none changed; what gained a citation is the warning, which
+     carries its own evidence block exactly as the volatile agents' do. */
   provenance:{ state:'existing-unchanged', verbatim:'Intubation · 0.6–1.2 mg/kg TBW' } },
 
 { id:'drug.suxamethonium', name:'Suxamethonium', group:'nmb',
