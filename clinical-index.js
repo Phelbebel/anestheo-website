@@ -404,11 +404,11 @@ var DRUGS = [
   warn:'Use it inside a defined airway rescue plan. If sugammadex is the intended reversal or wake up strategy, calculate the dose and have it immediately available. Reversing the block does not guarantee adequate ventilation or oxygenation, and must never delay progression through the difficult airway and CICO algorithm.',
   /* THREE CLAIMS, THREE SOURCES, MAPPED ONE TO ONE. None is asked to support
      a statement it does not make: the guideline supplies the rescue
-     framework, the trial supplies the limitation, and SCCM supplies the
+     framework, the study supplies the limitation, and SCCM supplies the
      standing of the agent itself. */
   warnEvidence:{ state:'reviewed', authority:'Difficult Airway Society; Anesthesia & Analgesia; Society of Critical Care Medicine',
                  title:'DAS 2025 guidelines for management of unanticipated difficult tracheal intubation in adults (Ahmad, El-Boghdadly et al., Br J Anaesth 2026;136:283-307); The Myth of Rescue Reversal in "Can\'t Intubate, Can\'t Ventilate" Scenarios (Naguib et al., Anesth Analg 2016;123:82-92); SCCM Clinical Practice Guidelines for Rapid Sequence Intubation in the Critically Ill Adult Patient (Crit Care Med 2023;51:1411-1430)',
-                 documentId:'PMID 41203471, DOI 10.1016/j.bja.2025.10.006; PMID 27140684, DOI 10.1213/ANE.0000000000001347; Crit Care Med 2023;51(10):1411-1430',
+                 documentId:'PMID 41203471, DOI 10.1016/j.bja.2025.10.006; PMID 27140684, DOI 10.1213/ANE.0000000000001347; PMID 37707379, DOI 10.1097/CCM.0000000000006000, Crit Care Med 2023;51(10):1411-1430',
                  section:'Airway rescue planning and progression, including emergency front of neck access: DAS 2025, revised ABCD rescue approach and earlier neuromuscular block. Reversal does not guarantee ventilation or oxygenation and is not a CICO rescue: Naguib 2016. Rocuronium as an accepted rapid sequence agent where suxamethonium is not contraindicated, with neither agent claimed superior: SCCM 2023.' },
   severity:'critical',
   /* The DRUG's provenance is untouched. Its dose records were not reviewed in

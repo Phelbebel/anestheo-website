@@ -2347,6 +2347,31 @@ console.log('\n20. THE ROCURONIUM AIRWAY WARNING');
     /Society of Critical Care Medicine/i.test(E.authority) &&
     /Crit Care Med 2023;51\(10\):1411-1430/.test(E.documentId),
     'SCCM 2023 cited');
+  /* A journal citation alone is not a resolvable identifier. All three
+     sources now carry a PMID and a DOI, so each can be opened from the
+     record rather than searched for. */
+  t('...with the SCCM guideline resolvable by PMID and DOI',
+    E.documentId.indexOf('37707379') >= 0 &&
+    E.documentId.indexOf('10.1097/CCM.0000000000006000') >= 0,
+    'PMID 37707379, DOI 10.1097/CCM.0000000000006000');
+  t('...and every cited source carries both a PMID and a DOI',
+    (E.documentId.match(/PMID \d+/g) || []).length === 3 &&
+    (E.documentId.match(/DOI 10\.\d{4,}/g) || []).length === 3,
+    { pmids:(E.documentId.match(/PMID \d+/g) || []),
+      dois:(E.documentId.match(/DOI 10\.[^,;]+/g) || []).length });
+  /* The approved wording is frozen. Asserted verbatim, so a later edit that
+     "improves" it has to come back through review. */
+  t('...and the approved warning text is unchanged, verbatim',
+    W === 'Use it inside a defined airway rescue plan. If sugammadex is the ' +
+          'intended reversal or wake up strategy, calculate the dose and have ' +
+          'it immediately available. Reversing the block does not guarantee ' +
+          'adequate ventilation or oxygenation, and must never delay ' +
+          'progression through the difficult airway and CICO algorithm.',
+    W.length + ' chars');
+  /* Naguib 2016 is an analysis, not a trial; the comment that describes it
+     must not promote it to one. */
+  t('...and the source descriptions do not miscall the analysis a trial',
+    !/the trial supplies/.test(IDX), 'Naguib 2016 is not described as a trial');
   /* Each source must be tied to the claim it actually supports. */
   t('...with each claim mapped to the source that supports it, not blurred',
     /DAS 2025/.test(E.section) && /Naguib 2016/.test(E.section) &&
