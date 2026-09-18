@@ -1198,6 +1198,156 @@ const BOARD_PROBE = `(() => {
     await s.ctx.close();
   }
 
+  /* ── DAYLIGHT READABILITY: MEASURED AFTER A 25% WHITE WASH ──────────────
+     Ordinary contrast measurement passed this workstation and the labels were
+     still unreadable on a hospital monitor in a bright room, which is what a
+     photograph showed. WCAG on a calibrated panel is necessary and not
+     sufficient, so both colours are blended 25% toward white first — which is
+     what glare and poor black levels do to the pair — and the ratio is taken
+     after that. The old label tier scored 3.9:1 washed while measuring 6.4:1
+     normally, and that gap is the bug this guards.
+
+     Only OPERATIONAL text is held to this: the labels a clinician reads while
+     using the thing. Decorative chrome, the avatar chip and the drag handle
+     keep their tier, and semantic class colours are not touched at all. */
+  {
+    const s = await open(b, 1536, 900);
+    await s.pg.evaluate(`(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i);
+        if (e) { e.value = v; e.dispatchEvent(new Event('change',{bubbles:true})); } };
+      set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+      set('i-asa','II'); set('i-proc','Laparoscopic cholecystectomy'); compute();
+      const a = document.getElementById('app'); if (a) a.classList.add('pt-open');
+    })()`);
+    await s.pg.waitForTimeout(700);
+    const R = await s.pg.evaluate(`(() => {
+      const P = c => { const m = /rgba?\\(([^)]+)\\)/.exec(c||''); if (!m) return null;
+        const p = m[1].split(',').map(Number);
+        return { r:p[0], g:p[1], b:p[2], a:p.length>3?p[3]:1 }; };
+      const over = (f,bg) => ({ r:f.r*f.a+bg.r*(1-f.a), g:f.g*f.a+bg.g*(1-f.a),
+                                b:f.b*f.a+bg.b*(1-f.a), a:1 });
+      const lum = c => { const f = v => { v/=255;
+        return v<=0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
+        return 0.2126*f(c.r)+0.7152*f(c.g)+0.0722*f(c.b); };
+      const ratio = (a,bg) => { const L1=lum(a), L2=lum(bg);
+        return (Math.max(L1,L2)+0.05)/(Math.min(L1,L2)+0.05); };
+      const wash = c => ({ r:c.r*0.75+255*0.25, g:c.g*0.75+255*0.25, b:c.b*0.75+255*0.25, a:1 });
+      const BASE = { r:10, g:12, b:12, a:1 };
+      const bgOf = e => { let n=e; while (n && n!==document.documentElement) {
+        const c = getComputedStyle(n).backgroundColor;
+        if (c && c!=='rgba(0, 0, 0, 0)' && c!=='transparent') return c; n=n.parentElement; }
+        return 'rgb(10,12,12)'; };
+      const measure = (name, sel, idx, ph) => {
+        const l = [...document.querySelectorAll(sel)].filter(e => e.offsetParent);
+        const e = l[idx||0]; if (!e) return { name, missing:true };
+        const cs = getComputedStyle(e);
+        const col = ph ? getComputedStyle(e,'::placeholder').color : cs.color;
+        const f0 = P(col); const b0 = P(bgOf(e)) || BASE; if (!f0) return { name, missing:true };
+        const bg = b0.a<1 ? over(b0,BASE) : b0;
+        const fg = over({ ...f0, a:f0.a*parseFloat(cs.opacity||1) }, bg);
+        return { name, size:parseFloat(cs.fontSize), weight:cs.fontWeight,
+                 normal:ratio(fg,bg), washed:ratio(wash(fg),wash(bg)) };
+      };
+      return [
+        measure('AGE','#acc-patient .inp label',0),
+        measure('SEX','#acc-patient .inp label',1),
+        measure('HEIGHT','#acc-patient .inp label',2),
+        measure('WEIGHT','#acc-patient .inp label',3),
+        measure('ASA','#acc-patient .inp label',4),
+        measure('PROCEDURE','#acc-patient .inp label',5),
+        measure('Pain','.lt-pf label',0),
+        measure('Nausea','.lt-pf label',1),
+        measure('Sedation','.lt-pf label',2),
+        measure('Case timers','.ws-rail-h',0),
+        measure('timer name','.ws-rail .lt-head',0),
+        measure('nav inactive','#cmd-strip .cmd-b:not(.on)',1),
+        measure('placeholder','#i-age',0,true),
+        measure('card route','.tb-c-u',0)
+      ];
+    })()`);
+    const found = R.filter(x => !x.missing);
+    t('every operational label under audit was found on the page',
+      found.length === R.length, R.filter(x => x.missing).map(x => x.name));
+    /* The headline requirement. 4.5:1 AFTER the wash, not before. */
+    t('OPERATIONAL TEXT CLEARS 4.5:1 AFTER A 25% WHITE WASH',
+      found.every(x => x.washed >= 4.5),
+      found.filter(x => x.washed < 4.5)
+           .map(x => x.name + ' ' + x.washed.toFixed(2)));
+    /* Size is the other half: wide-tracked 10px uppercase is what vanished
+       first, and colour alone would not have fixed it. */
+    t('...and the field labels are at least 12px, not miniaturised',
+      ['AGE','SEX','HEIGHT','WEIGHT','ASA','PROCEDURE','Pain','Nausea','Sedation']
+        .every(n => { const x = found.find(y => y.name === n); return x && x.size >= 11.5; }),
+      found.filter(x => x.size < 11.5).map(x => x.name + ' ' + x.size + 'px'));
+    /* A placeholder must be readable and must still be quieter than the white
+       value a clinician has typed, or the field looks filled when it is not. */
+    const ph = found.find(x => x.name === 'placeholder');
+    t('...and the placeholder is legible yet still weaker than an entered value',
+      ph && ph.washed >= 4.5 && ph.washed < 8, ph && ph.washed.toFixed(2));
+    console.log('     washed contrast: ' +
+      found.map(x => x.name + ' ' + x.washed.toFixed(1)).join(', '));
+    await s.ctx.close();
+  }
+
+  /* ── THE STICKY HEADER IS A SURFACE, AND SOS IS A CELL IN IT ───────────
+     Below 1180px the header was declared sticky but given no background, so
+     the workspace scrolled THROUGH it: a drug card's mg/kg printed across
+     the brand and "AIRWAY PLAN" printed across the domain links. SOS was
+     absolutely positioned on top of the same strip.
+
+     WHAT THIS CAN AND CANNOT ASSERT. A sticky header overlays whatever is
+     scrolled beneath it — that is what sticky MEANS — so a rect-intersection
+     count can never be zero for anything in the header, and it is not zero
+     for the brand, the search button or the avatar either. The invariant
+     that is real, and that the defect actually broke, is that nothing shows
+     THROUGH: at every scroll position the thing painted at the button's own
+     centre is the button. That is asserted directly by hit-testing. */
+  {
+    const s = await open(b, 390, 844);
+    await fillByTyping(s.pg);
+    await s.pg.waitForTimeout(700);
+    await s.pg.evaluate(`(() => { const b = document.querySelector(
+      '#induction-host [data-plan-for="drug.propofol"]'); if (b) b.click(); })()`);
+    await s.pg.waitForTimeout(400);
+
+    const m = await s.pg.evaluate(`(() => {
+      const sos = document.getElementById('ws-sos');
+      const id  = document.getElementById('ws-id');
+      const cin = document.querySelector('#cmd-strip .cmd-in');
+      const gs = getComputedStyle(sos), gi = getComputedStyle(id);
+      const a = (String(gi.backgroundColor).match(/[\\d.]+/g) || [0,0,0,1]);
+      return {
+        pos:gs.position, col:gs.gridColumnStart,
+        h:Math.round(sos.getBoundingClientRect().height),
+        bg:gs.backgroundColor,
+        headerAlpha:+(a[3] === undefined ? 1 : a[3]),
+        stripRight:Math.round(cin.getBoundingClientRect().right),
+        sosLeft:Math.round(sos.getBoundingClientRect().left) };
+    })()`);
+
+    /* NO HIT-TEST HERE, DELIBERATELY. The obvious assertion — walk scroll
+       offsets and check what document.elementFromPoint returns over the
+       header — passes on the broken build: elementFromPoint reports the
+       STACKING order, and a z-index:60 sticky header is topmost whether or
+       not it has a background. A pixel comparison cannot stand in either,
+       because the .97 alpha and the blur make the band legitimately differ
+       by a few percent with the content beneath. What is left is the cause,
+       asserted directly: the surface is opaque, and the button is a cell in
+       the header's layout rather than an overlay on it. Both fail on main. */
+    t('390: the phone header is an opaque surface, not a hole',
+      m.headerAlpha >= 0.9, m.headerAlpha);
+    /* [ scrolling domain links ][ reserved SOS cell ] — the links cannot
+       reach the button's column, so it is no longer an overlay. */
+    t('390: SOS sits in a reserved header cell, not over the strip',
+      m.pos === 'static' && m.col === '2' && m.sosLeft >= m.stripRight,
+      { position:m.pos, column:m.col, stripRight:m.stripRight, sosLeft:m.sosLeft });
+    /* Unchanged control: same red, same 44px target. */
+    t('390: ...with its appearance and touch target untouched',
+      m.h >= 44 && m.bg === 'rgb(192, 57, 43)', { height:m.h, background:m.bg });
+    await s.ctx.close();
+  }
+
   /* The measurement in the source has to be the measurement that was taken. */
   {
     const css = fs.readFileSync('/home/user/anestheo-website/live-tools.css', 'utf8');

@@ -2780,7 +2780,7 @@ html.lt-immersive body{padding-top:0 !important;}
      rejected build was drawing. The label keeps its reading size. */
   .eng-wrap #acc-patient .inp input,
   .eng-wrap #acc-patient .inp select{min-height:46px; font-size:15.5px; padding:8px 10px;}
-  .eng-wrap #acc-patient .inp label{font-size:10.5px;}
+  .eng-wrap #acc-patient .inp label{font-size:12px;}
 
   /* ── ONE PATIENT-START SURFACE ─────────────────────────────────────────
      The second and third "no patient" panels are gone from the markup; what
@@ -3033,3 +3033,234 @@ html.lt-immersive body{padding-top:0 !important;}
    control on every row. Removing it returns 39px per role to the four doses
    and 48px to the role heading, which is the whole point. */
 
+
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LIVE TOOLS READABILITY PALETTE — APPROVED, FROZEN
+   --------------------------------------------------------------------------
+   Written against a photograph of this workstation on a hospital PC. On a
+   calibrated panel the old label layer measured 6.4:1, comfortably past WCAG
+   AA. In a bright room on a display with mediocre blacks it was gone, while
+   the white primary text stayed perfectly readable. That asymmetry was the
+   bug: the hierarchy was tuned for a good monitor in a dim room.
+
+   THE TEST THESE VALUES ARE HELD TO. Both foreground and background are
+   blended 25% toward white first, which is what glare and poor black levels
+   do to the pair, and the ratio is measured after that. Operational text
+   clears 4.5:1 AFTER that wash. Ordinary contrast measurement is necessary
+   and, as the photograph proved, not sufficient.
+
+   THE RULE. No clinically operational text may be darker than --lt-text-meta.
+   Only placeholders and unit qualifiers may use --lt-text-placeholder. Only
+   genuinely disabled or unavailable content may use --lt-text-disabled, and
+   nothing below maps a label, a field name, a route line, a clinical section
+   name, a PACU category or a Crisis protocol name to it.
+
+   SCOPE. These are Live Tools tokens on .eng-wrap. The site-wide ink tokens
+   in tokens.css are NOT redefined: the marketing pages are not what was
+   photographed, and this must not silently restyle them.
+
+   MAPPED, NOT BLANKET-REPLACED. Each group below names the selector that
+   actually governs it, found by reading the computed styles on the running
+   page rather than by grepping for a token. --ink-3 and --hint are left
+   alone; where they fed operational text, that selector is addressed by
+   name. Specificity leads with `body` because the rules being overridden sit
+   in engine.html's inline <style>, which is later in the cascade than this
+   file at equal weight.                                                     */
+.eng-wrap{
+  --lt-text-primary:     #FFFFFF;
+  --lt-text-label:       #E8EEF2;
+  --lt-text-secondary:   #D6E0E6;
+  --lt-text-meta:        #C4D0D7;
+  --lt-text-placeholder: #B8C5CD;
+  --lt-text-disabled:    #788B98;
+}
+
+/* ── THE FLOOR, SO THE RULE HOLDS WHERE THE MAP DOES NOT REACH ────────────
+   The groups below are mapped one by one, by name, as asked. Measuring the
+   whole page afterwards found 32 more styles still sitting at --ink-3 or
+   --hint: the Airway Plan equipment labels, the drug reference column
+   headers (Drug / Use / Dose / This patient / Preparation), the per-kg unit
+   suffixes, the Airway Tubes module headings. All of it is clinically
+   operational, and the frozen rule says operational text may not be darker
+   than --lt-text-meta.
+
+   So the two legacy tokens are pinned to that floor INSIDE Live Tools. This
+   is a backstop, not the mechanism: every group in the specification is still
+   mapped explicitly below, and this only catches what no group named. It also
+   means a module added later cannot reintroduce #8E9899 text by inheritance.
+
+   --ink-3 is declared on #output in engine.html at id specificity, so it has
+   to be restated at higher specificity there as well as on the wrapper.
+   tokens.css is untouched: the marketing site keeps its own scale. */
+.eng-wrap{--ink-3:var(--lt-text-meta); --hint:var(--lt-text-meta);}
+body .eng-wrap #output{--ink-3:var(--lt-text-meta); --hint:var(--lt-text-meta);}
+
+/* ── 1 · TOP PATIENT SUMMARY ──────────────────────────────────────────────
+   Values were already white. The captions under them were --ink-faint at
+   9.5px: the smallest, darkest text in the bar that tells you which number
+   is the weight and which is the height. */
+body .eng-wrap .case-bar .case-f i{
+  color:var(--lt-text-label); font-size:10.5px; font-weight:700; opacity:1;}
+/* THE CAPTION MUST STAY A RANK BELOW THE FACT IT CAPTIONS. At 11.5px against
+   a 12.5px phone value the two read as one rank, which is the hierarchy the
+   bar exists to carry — a number is worthless if you cannot tell at a glance
+   whether it is the weight or the height. The caption is 10.5px and the value
+   goes to 15px, a ratio of 1.43.
+
+   PHONE AND TABLET ONLY. Above 900px the value is already 16px against this
+   10.5px caption (1.52) — restating 15px there would SHRINK the desktop fact,
+   which is the opposite of this pass. Both selectors are named because .wide
+   (the procedure) carries its own smaller size. */
+@media (max-width:900px){
+  body .eng-wrap .case-bar .case-f b,
+  body .eng-wrap .case-bar .case-f.wide b{font-size:15px;}
+}
+
+/* ── 2 · PATIENT SETUP ────────────────────────────────────────────────────
+   The panel title and the six field labels. 10.5px at .12em was the other
+   half of why these vanished: wide tracking on small uppercase thins the
+   strokes, and thin strokes are what a washed-out panel loses first, so the
+   tracking comes back to .07em as the size goes up. */
+body .eng-wrap .cw-acc-t{color:var(--lt-text-label); font-size:12px; letter-spacing:.07em;}
+/* #acc-patient and #acc-derived restate the title inside a media query at id
+   specificity, which outranks the rule above. Named explicitly rather than
+   fought with !important, so the next person can see why this line exists. */
+body .eng-wrap #acc-patient .cw-acc-t,
+body .eng-wrap #acc-derived .cw-acc-t{
+  color:var(--lt-text-label); font-size:12px; letter-spacing:.07em;}
+body .eng-wrap .inp label{
+  color:var(--lt-text-label); font-size:12px; font-weight:700; letter-spacing:.07em;}
+
+/* Entered values stay primary; the empty-field hints and the unit qualifier
+   sit one step below so a blank field never reads as a filled one. opacity is
+   pinned because Firefox applies its own to placeholders. */
+body .eng-wrap .inp input{color:var(--lt-text-primary);}
+body .eng-wrap .inp input::placeholder,
+body .eng-wrap .lt-pf input::placeholder,
+body .eng-wrap .dref-search::placeholder{
+  color:var(--lt-text-placeholder); font-weight:600; opacity:1;}
+body .eng-wrap #i-age-unit{color:var(--lt-text-placeholder); font-weight:600;}
+
+/* ── 3 · WORKSPACE SECTION SUBTITLES ──────────────────────────────────────
+   "Records the approach", "16 available · doses for 75 kg · none selected",
+   "Primary plan with equipment". Titles stay white; these carried weight 500,
+   which is thin for text this size on a washed display. */
+body .eng-wrap .wf-sub{color:var(--lt-text-secondary); font-weight:600;}
+body .eng-wrap .wfl-s{color:var(--lt-text-secondary); font-weight:600;}
+body .eng-wrap .st-s{color:var(--lt-text-secondary);}
+
+/* ── 4 · BOARD ROW LABELS ─────────────────────────────────────────────────
+   PREMEDICATION / ADJUNCTS, ANALGESIA, HYPNOSIS, NEUROMUSCULAR BLOCKADE.
+   These are navigation landmarks down the left of the drug board: they are
+   how a clinician finds the row they want, so they are label tier, not meta. */
+body .eng-wrap .tb-g b{
+  color:var(--lt-text-label); font-size:11.5px; font-weight:700; letter-spacing:.05em;}
+
+/* ── 5 · DRUG CARDS ───────────────────────────────────────────────────────
+   Drug names keep their pharmacologic class colour and are not touched here.
+   The route and context line was 8px at --ink-faint, the smallest text in the
+   workstation, and it is what separates an induction record from a
+   premedication one. The per-kg rule moves up to label tier; the calculated
+   amount for this patient keeps its existing clinical emphasis. */
+/* 9.5px, not 10.5px. The route and context line wraps, so its size sets the
+   card's height: at 10.5px "IV · Pre-intubation airway-reflex attenuation"
+   ran to five lines and the tallest card reached 122.5px against a 110px
+   cockpit ceiling. 9.5px is the largest size that holds every card inside it
+   (105.1px). The colour is untouched — it was never the size carrying the
+   contrast: #C4D0D7 measures 5.9:1 washed at any size. */
+body .eng-wrap .tb-c-u{color:var(--lt-text-meta); font-size:9.5px; font-weight:700;}
+body .eng-wrap .tb-c-r{color:var(--lt-text-label);}
+body .eng-wrap .tb-c-cov{color:var(--lt-text-meta);}
+
+/* Drug reference rows carry the same two kinds of text. Units were the accent
+   colour at opacity:.75; the colour is semantic and stays, the transparency
+   goes. A unit is half of what the number means. */
+body .eng-wrap .dtab-au{opacity:1;}
+body .eng-wrap .dtab-p2{color:var(--lt-text-meta);}
+body .eng-wrap .dref-cat .n{opacity:.9;}
+
+/* ── 6 · PACU / RECOVERY ──────────────────────────────────────────────────
+   PAIN 0-10, NAUSEA 0-10, SEDATION / ALERTNESS. A nurse reads these off a
+   monitor and types a number; they must not inherit faint ink. */
+body .eng-wrap .lt-pf label{
+  color:var(--lt-text-label); font-size:12px; font-weight:700; letter-spacing:.07em;}
+body .eng-wrap .lt-pacu-note,
+body .eng-wrap .lt-pf .lt-sub{color:var(--lt-text-secondary);}
+
+/* Two more the sweep caught. "Not entered" is how the identity and laboratory
+   accordions report that they are empty, which is a fact a clinician acts on
+   rather than decoration, so it is meta rather than disabled. The PACU
+   sentence under the three score fields is the supporting operational text
+   the specification puts at secondary. */
+body .eng-wrap .cw-acc-sub{color:var(--lt-text-meta);}
+body .eng-wrap .lt-rec{color:var(--lt-text-secondary);}
+
+/* ── 7 · CRISIS CENTER ────────────────────────────────────────────────────
+   Protocol names and the explanatory line under them. The red and orange
+   emergency semantics of the panel itself are untouched. */
+body .eng-wrap .wsc-t{color:var(--lt-text-secondary);}
+body .eng-wrap .wsc-note{color:var(--lt-text-meta);}
+
+/* ── 8 · TOP NAVIGATION ───────────────────────────────────────────────────
+   The active tab keeps its accent and underline, so the hierarchy is carried
+   by state rather than by making the alternatives hard to find. Only the
+   inactive colour moves. */
+body .eng-wrap #cmd-strip .cmd-b:not(.on){color:var(--lt-text-secondary); font-weight:600;}
+
+/* ── THE CASE TIMER RAIL ──────────────────────────────────────────────────
+   The rail heading was 9.5px and the timer names 9px, the two smallest pieces
+   of operational text in the workstation. The numbers are 26px and
+   unmistakable; the caption saying whether you are looking at anaesthesia
+   time or tourniquet time was a third of that. Tighter tracking buys back the
+   width the larger size costs, so the 190px rail still holds
+   "RELAXANT / INTUBATION" on the same two lines. */
+body .eng-wrap .ws-rail-h{
+  color:var(--lt-text-label); font-size:11px; letter-spacing:.06em;}
+body .eng-wrap .ws-rail .lt-head{
+  color:var(--lt-text-label); font-size:11px; letter-spacing:.06em;}
+
+/* ── 9 · THE TWO OPERATIONAL ITEMS THE GROUPS DID NOT NAME ────────────────
+   EDIT reopens the patient form and the disclaimer qualifies every dose on
+   the screen. Both were #8E9899 — 3.87:1 after the wash — which is the same
+   grey the field labels were rescued from. Neither becomes white: EDIT is a
+   secondary route beside NEW CASE and the disclaimer is standing context,
+   so both sit at the operational floor rather than above it. */
+body .eng-wrap .case-edit{color:var(--lt-text-meta);}
+body .eng-wrap .disclaimer{color:var(--lt-text-meta);}
+
+/* ── 10 · THE STICKY HEADER IS A SURFACE, NOT A HOLE ──────────────────────
+   Below 1180px the header was declared sticky in engine.html but given a
+   background only by the >=1180px rule in this file, so on a phone the
+   workspace scrolled THROUGH it: "AIRWAY PLAN" printed across the domain
+   links, a drug card's mg/kg printed across the brand, and the SOS button
+   sat on a Suxamethonium card. Same four declarations the desktop header
+   already carries, now at every width. This is the readability defect the
+   pass exists for — a header you cannot read because a drug card is printed
+   through it — and it is present on main. */
+@media(max-width:1179.98px){
+  body .eng-wrap .ws-id{background:rgba(10,12,12,.97);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,.10);}
+}
+
+/* ── 11 · SOS GETS A RESERVED CELL, NOT A FLOAT ───────────────────────────
+   It was position:absolute inside the strip, so the strip's own domain links
+   ran underneath it and so did anything else that happened to be at those
+   coordinates. The strip becomes two cells —
+
+       [ scrolling domain links ][ reserved SOS cell ]
+
+   — so the links can never occupy the button's region: they scroll inside
+   track 1 and the button owns track 2. Appearance, size, colour, label,
+   44px target and handler are untouched; only the positioning method
+   changes, from an overlay to a member of the header's own layout. */
+@media (max-width:640px){
+  body .eng-wrap .ws-id .ws-id-in .cmd{display:grid;
+    grid-template-columns:minmax(0,1fr) auto; align-items:center;
+    column-gap:8px;}
+  body .eng-wrap .ws-id .ws-id-in .cmd-in{grid-column:1; min-width:0;}
+  body .eng-wrap .ws-id .ws-id-in .ws-sos{grid-column:2; position:static;
+    top:auto; right:auto; transform:none; align-self:center;}
+}
