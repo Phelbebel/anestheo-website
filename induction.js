@@ -147,33 +147,68 @@
      filling the other. So presets name the ROW, which is also what decides
      the dose context, and applyPreset() resolves row to role on the way in.
 
-     EMPTY ON PURPOSE. Every array below is empty and this commit is
-     clinically inert: it proves the state path without making a
-     recommendation. Populating them is a separate, reviewed decision. */
+     PREFERRED IS SELECTED; ALTERNATIVES ARE NOT. `preferred` is what the
+     strategy puts on the board for an untouched plan. `alternatives` is the
+     rest of the row that this approach commonly reaches for, and nothing
+     auto-selects from it — it is never a substitute when the preferred agent
+     cannot be offered, because choosing a different drug because the first
+     was unavailable is a clinical decision, not a fallback.
+
+     WHAT IS DELIBERATELY NOT PREFERRED. An empty `preferred` is a statement,
+     not an omission. RSI names a blocker and no hypnotic and no opioid,
+     because which induction agent and which opioid suit a rapid sequence is
+     a patient and context decision and the board is where it is made. TIVA
+     names propofol and not remifentanil, because an opioid is not what makes
+     an anaesthetic total intravenous. */
   var STRATEGY_PRESETS = {
     iv: { rows:{
       premedication:{ preferred:[], alternatives:[] },
       analgesia:    { preferred:[], alternatives:[] },
-      hypnosis:     { preferred:[], alternatives:[] },
+      hypnosis:     { preferred:['drug.propofol'],
+                      alternatives:['drug.etomidate','drug.ketamine','drug.thiopental'] },
       nmb:          { preferred:[], alternatives:[] } } },
+    /* CLASSIC AND MODIFIED SUGGEST THE SAME AGENTS IN V1 and ask the SAME
+       dose question: contextFor() returns ['rsi'] for both and nothing here
+       touches it. They are two keys rather than one because the variant is
+       what the clinician declared, and a later review may separate them
+       without moving the machinery. */
     rsi: { variants:{
       classic: { rows:{
         premedication:{ preferred:[], alternatives:[] },
-        analgesia:    { preferred:[], alternatives:[] },
-        hypnosis:     { preferred:[], alternatives:[] },
-        nmb:          { preferred:[], alternatives:[] } } },
+        analgesia:    { preferred:[],
+                        alternatives:['drug.fentanyl','drug.alfentanil'] },
+        hypnosis:     { preferred:[],
+                        alternatives:['drug.propofol','drug.etomidate',
+                                      'drug.ketamine','drug.thiopental'] },
+        nmb:          { preferred:['drug.rocuronium'],
+                        alternatives:['drug.suxamethonium'] } } },
       modified:{ rows:{
         premedication:{ preferred:[], alternatives:[] },
-        analgesia:    { preferred:[], alternatives:[] },
-        hypnosis:     { preferred:[], alternatives:[] },
-        nmb:          { preferred:[], alternatives:[] } } } } },
+        analgesia:    { preferred:[],
+                        alternatives:['drug.fentanyl','drug.alfentanil'] },
+        hypnosis:     { preferred:[],
+                        alternatives:['drug.propofol','drug.etomidate',
+                                      'drug.ketamine','drug.thiopental'] },
+        nmb:          { preferred:['drug.rocuronium'],
+                        alternatives:['drug.suxamethonium'] } } } } },
     /* INHALATIONAL STAYS EMPTY UNTIL INDUCTION-PHASE VOLATILE RECORDS EXIST.
        The reviewed sevoflurane, desflurane, isoflurane and nitrous oxide
        records are MAINTENANCE records. They are not reachable from here:
        none is a catalog member, the eligibility gate below asks an induction
-       context they have no row for, and this object names no agent at all. */
+       context they have no row for, and this object names no agent at all.
+       Populating it is an evidence review, not a layout decision, and until
+       that review happens the strategy's own note is the whole answer. */
     inhalational:{ rows:{} },
-    tiva:        { rows:{} }
+    /* TIVA NAMES AN AGENT AND NOTHING ABOUT DELIVERING IT. No model, no
+       target concentration, no infusion rate: propofol is part of the
+       declared plan, and Marsh, Schnider, Eleveld and every TCI setting
+       remain absent from this application. The strategy's own note still
+       says so. */
+    tiva: { rows:{
+      premedication:{ preferred:[], alternatives:[] },
+      analgesia:    { preferred:[], alternatives:['drug.remifentanil'] },
+      hypnosis:     { preferred:['drug.propofol'], alternatives:[] },
+      nmb:          { preferred:[], alternatives:[] } } }
   };
 
   /* ── WHO OWNS THE PLAN ─────────────────────────────────────────────────
@@ -271,17 +306,48 @@
     return out;
   }
 
+  /* Which rows a preset key declares, read back out of the same object the
+     preset came from. Takes the key rather than the pair because that is
+     what appliedPresetKey holds. */
+  function presetRowsForKey(key){
+    if (!key) return [];
+    var parts = String(key).split('/');
+    var p = presetFor(parts[0], parts.length > 1 ? parts[1] : null);
+    return (p && p.rows) ? Object.keys(p.rows) : [];
+  }
+
   /* Applies the resolved preset. Only rows the preset DEFINES are replaced;
      a row it says nothing about keeps whatever is in it. Guarded by
      ownership unless force is passed, which is what "Apply suggested plan"
-     and any future reset control use. */
+     and any future reset control use.
+
+     ── A PRESET-OWNED PLAN SHOWS THE CURRENT PRESET, NOT THE SUM OF THEM ──
+     The rows cleared are the union of what the INCOMING preset declares and
+     what the OUTGOING one declared. Clearing only the incoming preset's rows
+     is right for a plan the clinician built, and wrong for one a previous
+     preset built: switching from IV to RSI would have left propofol standing
+     because RSI's hypnosis row prefers nothing, and the board would have
+     shown a rapid sequence carrying the last strategy's induction agent.
+     Switching to Inhalational, which declares no rows at all, would have
+     left the whole previous plan in place under a strategy that selects
+     nothing.
+
+     It reads appliedPresetKey and nothing else. There is no list of drugs
+     here, no "if the last strategy was IV" and no per-agent special case:
+     a preset's rows are cleared because a preset owned them, and a plan the
+     clinician owns is not reached at all — the ownership guard above returns
+     first. */
   function applyPreset(t, v, opts){
     opts = opts || {};
     var r = resolvePreset(t, v);
     if (!r.key) return r;
     if (planCustomized && !opts.force) { r.skipped = 'plan is customized'; return r; }
     var idx = rowIndex();
-    r.rows.forEach(function (rowKey){
+    var clear = {};
+    r.rows.forEach(function (rowKey){ clear[rowKey] = 1; });
+    presetRowsForKey(appliedPresetKey).forEach(function (rowKey){ clear[rowKey] = 1; });
+    r.cleared = Object.keys(clear);
+    r.cleared.forEach(function (rowKey){
       var meta = idx[rowKey]; if (!meta) return;
       meta.memberKeys.forEach(function (pk){
         setPlanSelection(meta.roleKey, pk, false, 'preset'); });
@@ -291,6 +357,40 @@
     planCustomized = false;
     appliedPresetKey = r.key;
     return r;
+  }
+
+  /* ── RETIRING A PRESET-OWNED PLAN ─────────────────────────────────────
+     There is one valid strategy state that has no concrete preset: RSI
+     before Classic or Modified has been chosen. Entering it used to leave
+     the previous preset's agents standing, so the board read "Active
+     strategy: rapid sequence induction" over an induction agent the IV
+     preset had chosen — a strategy and a plan that disagree, with nothing
+     on screen to say which one the clinician meant.
+
+     This retires what a preset owns, and only that. It reads
+     appliedPresetKey to find the rows, removes through the same
+     setPlanSelection path every other change uses, and names no drug: the
+     rows come from the preset object, so a preset that changes tomorrow
+     retires correctly tomorrow.
+
+     IT DOES NOT TOUCH A PLAN THE CLINICIAN BUILT. planCustomized is the
+     first thing it asks, and a customized plan is returned untouched — the
+     explicit "Apply suggested plan" remains the only way to replace one.
+     Nor does retiring MAKE the plan customized: nothing the clinician did
+     changed, so the ownership flag does not move. */
+  function retireAppliedPresetPlan(){
+    if (planCustomized) return { skipped:'plan is customized' };
+    var rows = presetRowsForKey(appliedPresetKey);
+    if (!rows.length) { appliedPresetKey = null; return { cleared:[] }; }
+    var idx = rowIndex(), cleared = [];
+    rows.forEach(function (rowKey){
+      var meta = idx[rowKey]; if (!meta) return;
+      cleared.push(rowKey);
+      meta.memberKeys.forEach(function (pk){
+        setPlanSelection(meta.roleKey, pk, false, 'preset'); });
+    });
+    appliedPresetKey = null;
+    return { cleared:cleared };
   }
 
   function idsFor(key){ return picked[key] || []; }
@@ -662,11 +762,18 @@
   }
 
   /* ── 1 · INDUCTION STRATEGY ──────────────────────────────────────────
-     The approach, recorded and nothing more. It selects no drug, changes no
-     dose and prefers nothing; the subtitle says so on the screen rather than
-     leaving the clinician to find out. What it DOES do is tell the dose
-     selector which context to ask about, which is why a blocker's card
-     changes number when a rapid sequence is chosen and nothing else does. */
+     The approach, and the starting plan that follows from it. Choosing one
+     does two things: it tells the dose selector which context to ask about,
+     which is why a blocker's card changes number when a rapid sequence is
+     chosen and nothing else does, and on an UNTOUCHED plan it selects the
+     agents its preset names.
+
+     IT STILL CHANGES NO DOSE AND INVENTS NO AGENT. A preset holds ids; the
+     number under a suggested drug comes from the same canonical record, the
+     same context and the same card as one the clinician pressed. And it
+     never overrules them: a plan that has been edited by hand is the
+     clinician's, and the strategy offers to replace it rather than doing
+     so. */
   function strategySection(){
     var tiles = TECHNIQUES.map(function (t){
       var on = technique === t.id;
@@ -698,7 +805,7 @@
         '</button>' + vars +
       '</div>';
     }).join('');
-    return section(NUM, 'Induction strategy', 'Records the approach — selects no drug',
+    return section(NUM, 'Induction strategy', 'Sets the approach · loads a suggested plan when available',
       '<div class="st">' + tiles + '</div>' + strategyContext());
   }
 
@@ -719,8 +826,11 @@
      list and stays that way; a strip that filled the gap with a plausible
      figure would be the exact failure this file exists to prevent.
 
-     NOTHING HERE SELECTS A DRUG. It is a caption on the board, not an entry
-     in the plan. */
+     THE STRIP ITSELF SELECTS NOTHING. It is a caption on the board: what
+     the chosen strategy means for the doses being asked for. The agents an
+     untouched plan starts with come from that strategy's preset, and they
+     are visible where every other selection is — on the board — rather than
+     being narrated here a second time. */
   var STRATEGY_CONTEXT = {
     iv: { label:'Intravenous induction',
           note:'The board asks for reviewed induction doses. Blockers ask for the ' +
@@ -758,8 +868,9 @@
        disabled: a greyed control asks the clinician to wonder what it would
        have done, and with no configured preset the honest answer is nothing.
 
-       Every preset is empty in this pass, so resolve().select is empty and
-       this never renders. A visible button here today would be a bug. */
+       It renders only where the preset would actually change something:
+       Inhalational names no agent, so no button appears under it however the
+       plan was built. */
     var offer = '';
     if (planCustomized && technique) {
       var r = resolvePreset(technique, rsiVariant);
@@ -1109,9 +1220,23 @@
     /* AN UNTOUCHED PLAN MAY BE FILLED; A CUSTOMIZED ONE MAY NOT. applyPreset
        is guarded on ownership and returns without writing when the plan
        belongs to the clinician, so the branch is the same either way and
-       there is one place that decides. With every preset empty this selects
-       nothing and the cockpit is unchanged. */
-    if (technique) applyPreset(technique, rsiVariant);
+       there is one place that decides.
+
+       THE THIRD CASE IS A STRATEGY WITH NO PRESET YET. RSI before its
+       variant is chosen is a real state that resolves to no preset key, and
+       the question is asked generally — "is this a strategy, and does it
+       resolve to a preset" — rather than by naming RSI. Entering it retires
+       whatever preset owned the plan, so the board never shows one
+       strategy's agents under another strategy's name.
+
+       TURNING THE STRATEGY OFF IS NOT THAT CASE. `technique` is null here,
+       so neither branch runs and the plan stays exactly as it is: the
+       strategy records the approach, the plan records what is being given,
+       and dropping the first does not erase the second. */
+    if (technique) {
+      if (presetKeyFor(technique, rsiVariant)) applyPreset(technique, rsiVariant);
+      else retireAppliedPresetPlan();
+    }
     render();
   }
   /* Records which rapid sequence. No dose, drug or phase reads this. */

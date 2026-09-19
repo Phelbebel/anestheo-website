@@ -2549,8 +2549,40 @@ async function openEngine(b, viewport) {
         (flat.match(/drug\.[a-z-]+/gi) || []).join(',') || 'no drug ids at all');
       t('...and the inhalational preset defines no rows',
         Object.keys(shipped.inhalational.rows || {}).length === 0);
-      t('...and every shipped preset is clinically inert',
-        !/drug\./.test(flat), 'no drug id in any preset');
+      /* WAS: "every shipped preset is clinically inert", asserting that no
+         preset named any drug at all. That was the contract of the phase
+         that proved the state path without making a suggestion, and it is
+         obsolete: the presets carry agents now. What replaces it is the
+         constraint that actually protects the clinician — a preset may name
+         ONLY a member of the board it is about to select on. An id that is
+         not a catalog member would land in picked{} with no card to show it
+         and no control to remove it. */
+      const MEMBERS = await R(`
+        const out = {};
+        (window.InductionCatalog.rows || []).forEach(r => {
+          (r.members || []).forEach(m => {
+            out[m.canonicalId || ('drug.' + m.key)] = r.key; }); });
+        return out;`);
+      const NAMED = [...new Set(flat.match(/drug\.[a-z0-9-]+/gi) || [])];
+      t('...and every id any shipped preset names is a board member',
+        NAMED.length > 0 && NAMED.every(id => MEMBERS[id]),
+        NAMED.filter(id => !MEMBERS[id]).join(',') || NAMED.length + ' ids, all on the board');
+      /* And each is named in the row it actually belongs to: a preset that
+         put rocuronium under `hypnosis` would resolve to nothing and fail
+         silently, which is worse than failing loudly. */
+      const MISROWED = [];
+      Object.keys(shipped).forEach(function walk(k){
+        const p = shipped[k];
+        const rows = p.variants
+          ? Object.keys(p.variants).map(vk => p.variants[vk].rows || {})
+          : [p.rows || {}];
+        rows.forEach(rs => Object.keys(rs).forEach(rowKey => {
+          ['preferred','alternatives'].forEach(bucket =>
+            (rs[rowKey][bucket] || []).forEach(id => {
+              if (MEMBERS[id] !== rowKey) MISROWED.push(k + '/' + rowKey + ':' + id); })); }));
+      });
+      t('...in the catalog row it actually belongs to',
+        MISROWED.length === 0, MISROWED);
 
       /* A + B. A strategy click runs the machinery and selects nothing. */
       const a = await R(`I.clear();
@@ -2560,8 +2592,12 @@ async function openEngine(b, viewport) {
                  customized:I.planCustomized, applied:I.appliedPresetKey };`);
       t('A. a technique click on an untouched plan reaches the preset path',
         a.tech === 'iv' && a.customized === false, a);
-      t('B. ...and with empty presets selects zero drugs',
-        a.after.length === 0 && a.before.length === 0, a.after);
+      /* WAS: "with empty presets selects zero drugs". The IV preset names an
+         agent now, so the claim inverts: the machinery selects it, and the
+         plan it selected into stays the preset's. */
+      t('B. ...and selects the IV preset\u2019s preferred agent, nothing else',
+        a.before.length === 0 && a.after.length === 1 &&
+        a.after[0] === 'induction/drug.propofol' && a.applied === 'iv', a);
 
       /* C. A manual board toggle takes ownership. */
       const c = await R(`I.clear(); I.setTechnique('iv');
@@ -2619,6 +2655,223 @@ async function openEngine(b, viewport) {
       await refill(); await v.pg.waitForTimeout(400);
       t('...and the workstation is active again for the probes that follow',
         await R(`return !!document.querySelector('#induction-host .tb-c[data-drug]');`));
+
+      /* ══ THE SHIPPED PRESETS, AS BEHAVIOUR ═══════════════════════════
+         Everything below drives the REAL presets through the real controls.
+         The synthetic-preset block that follows proves the engine; this
+         proves what the engine was given. Both are needed: an engine that
+         works on a fixture and ships the wrong suggestion is still wrong. */
+      await R(`I.clear(); return 1;`);
+
+      const sA = await R(`I.clear(); I.setTechnique('iv');
+        return { plan:I.planKeys.slice().sort(), tech:I.technique,
+                 applied:I.appliedPresetKey, customized:I.planCustomized };`);
+      t('IV on a fresh plan selects propofol and only propofol',
+        sA.tech === 'iv' && sA.plan.length === 1 &&
+        sA.plan[0] === 'induction/drug.propofol', sA);
+      t('...no opioid, no blocker and no premedication come with it',
+        !sA.plan.some(k => /^analgesia\/|^nmb\//.test(k)) &&
+        !sA.plan.some(k => /midazolam|lidocaine|atropine|glycopyrrolate/.test(k)), sA.plan);
+
+      /* THE PARENT TILE DECLARES THE APPROACH; THE VARIANT CHOOSES AGENTS.
+         Pressing RSI cannot apply a preset because there is no RSI preset
+         until Classic or Modified says which one, and presetKeyFor() returns
+         null for a variant-bearing technique with no variant. */
+      const sB = await R(`I.clear(); I.setTechnique('rsi');
+        return { plan:I.planKeys.slice().sort(), tech:I.technique,
+                 variant:I.rsiVariant === undefined ? null : I.rsiVariant,
+                 applied:I.appliedPresetKey };`);
+      t('the RSI parent tile applies no preset until a variant is chosen',
+        sB.tech === 'rsi' && sB.plan.length === 0 && sB.applied === null, sB);
+
+      const sC = await R(`I.clear(); I.setTechnique('rsi'); I.setRsiVariant('classic');
+        const roc = document.querySelector('#induction-host .tb-c[data-drug="drug.rocuronium"]');
+        return { plan:I.planKeys.slice().sort(), applied:I.appliedPresetKey,
+                 customized:I.planCustomized,
+                 rocDose:(roc && (roc.querySelector('.tb-c-r')||{}).textContent || '').trim() };`);
+      t('RSI Classic selects rocuronium and leaves every other row empty',
+        sC.plan.length === 1 && sC.plan[0] === 'nmb/drug.rocuronium' &&
+        sC.applied === 'rsi/classic', sC);
+      t('...deciding neither the hypnotic nor the opioid for the clinician',
+        !sC.plan.some(k => /^induction\/|^analgesia\//.test(k)), sC.plan);
+      /* The blocker is asking the rapid sequence question, not the routine
+         one: the preset chose an agent, it did not choose a number. */
+      t('...while the blocker asks the RSI dose context',
+        /1\.2/.test(sC.rocDose), sC.rocDose);
+
+      const sD = await R(`I.clear(); I.setTechnique('rsi'); I.setRsiVariant('modified');
+        const roc = document.querySelector('#induction-host .tb-c[data-drug="drug.rocuronium"]');
+        return { plan:I.planKeys.slice().sort(), applied:I.appliedPresetKey,
+                 rocDose:(roc && (roc.querySelector('.tb-c-r')||{}).textContent || '').trim() };`);
+      t('RSI Modified selects the same agents as Classic in v1',
+        sD.plan.join() === sC.plan.join() && sD.applied === 'rsi/modified', sD);
+      t('...and asks the identical dose question',
+        sD.rocDose === sC.rocDose, { classic:sC.rocDose, modified:sD.rocDose });
+
+      const sE = await R(`I.clear(); I.setTechnique('tiva');
+        return { plan:I.planKeys.slice().sort(), applied:I.appliedPresetKey };`);
+      t('TIVA selects propofol', sE.plan.indexOf('induction/drug.propofol') >= 0 &&
+        sE.applied === 'tiva', sE);
+      t('...and does NOT select remifentanil, which is an alternative',
+        sE.plan.indexOf('analgesia/drug.remifentanil') < 0 && sE.plan.length === 1, sE.plan);
+
+      /* INHALATIONAL SELECTS NOTHING AND REACHES NO MAINTENANCE RECORD.
+         Its preset declares no rows, no volatile agent is a catalog member,
+         and the note the clinician reads still says the induction dosing is
+         not reviewed. */
+      const sF = await R(`I.clear(); I.setTechnique('inhalational');
+        const board = [...document.querySelectorAll('#induction-host .tb-c')]
+          .map(c => c.textContent);
+        return { plan:I.planKeys.slice(), applied:I.appliedPresetKey,
+                 note:(document.querySelector('#induction-host .stx-t')||{}).textContent||'',
+                 offer:!!document.querySelector('#induction-host .stx-apply'),
+                 volatileOnBoard:board.filter(x =>
+                   /sevoflurane|desflurane|isoflurane|nitrous/i.test(x)).length };`);
+      t('Inhalational selects nothing at all', sF.plan.length === 0, sF);
+      t('...no volatile agent is on the induction board to select',
+        sF.volatileOnBoard === 0, sF.volatileOnBoard);
+      t('...and the note still says the induction dosing is not reviewed',
+        /not reviewed/i.test(sF.note), sF.note.slice(0, 90));
+      t('...with no Apply control, because there is nothing to apply',
+        sF.offer === false, sF.offer);
+
+      /* ── TURNING THE STRATEGY OFF IS NOT UNDOING THE PLAN ───────────
+         The strategy records the approach; the plan records what is being
+         given. Dropping the first does not erase the second, and it does not
+         make the plan the clinician's either — nothing they did changed. */
+      const sOff = await R(`I.clear(); I.setTechnique('iv');
+        const before = I.planKeys.slice().sort();
+        I.setTechnique('iv');                       /* press the active tile */
+        return { before, after:I.planKeys.slice().sort(), tech:I.technique,
+                 customized:I.planCustomized, applied:I.appliedPresetKey };`);
+      t('deselecting the active strategy leaves the plan exactly as it was',
+        sOff.tech === null && sOff.after.join() === sOff.before.join() &&
+        sOff.after.join() === 'induction/drug.propofol', sOff);
+      t('...and does not make the plan customized merely by being dropped',
+        sOff.customized === false, sOff);
+
+      /* ── A STRATEGY WITH NO PRESET YET RETIRES THE ONE BEFORE IT ─────
+         RSI before its variant is a real state that resolves to no preset
+         key. Leaving IV's agents standing under it would have put "Active
+         strategy: rapid sequence induction" over an induction agent chosen
+         by a different strategy — a board that disagrees with itself. */
+      const sPar = await R(`I.clear(); I.setTechnique('iv');
+        const fromIV = I.planKeys.slice().sort();
+        I.setTechnique('rsi');
+        return { fromIV, plan:I.planKeys.slice(), tech:I.technique,
+                 variant:I.rsiVariant === undefined ? null : I.rsiVariant,
+                 applied:I.appliedPresetKey, customized:I.planCustomized,
+                 variantsShown:document.querySelectorAll('#induction-host .st-vb').length };`);
+      t('IV to the RSI parent retires the preset-owned plan immediately',
+        sPar.fromIV.join() === 'induction/drug.propofol' &&
+        sPar.plan.length === 0, sPar);
+      t('...leaving the strategy active with no variant and no applied preset',
+        sPar.tech === 'rsi' && sPar.variant === null && sPar.applied === null, sPar);
+      t('...with Classic and Modified on screen to choose from',
+        sPar.variantsShown === 2, sPar.variantsShown);
+      t('...and the plan still belongs to the preset layer, not the clinician',
+        sPar.customized === false, sPar.customized);
+
+      /* The same press against a plan the clinician built must do nothing. */
+      const sParC = await R(`I.clear(); I.setTechnique('iv');
+        const card = id => document.querySelector(
+          '#induction-host .tb-c[data-drug="' + id + '"]');
+        card('drug.propofol').click();                /* remove, manually */
+        card('drug.ketamine').click();                /* choose another  */
+        const mine = I.planKeys.slice().sort();
+        I.setTechnique('rsi');
+        return { mine, after:I.planKeys.slice().sort(), tech:I.technique,
+                 customized:I.planCustomized };`);
+      t('THE RSI PARENT DOES NOT RETIRE A PLAN THE CLINICIAN BUILT',
+        sParC.after.join() === sParC.mine.join() &&
+        sParC.after.join() === 'induction/drug.ketamine', sParC);
+      t('...and that plan is still theirs afterwards',
+        sParC.customized === true && sParC.tech === 'rsi', sParC);
+
+      /* From the retired parent state, each variant selects its own preset. */
+      const sPV = await R(`I.clear(); I.setTechnique('iv'); I.setTechnique('rsi');
+        I.setRsiVariant('classic');
+        const c = { plan:I.planKeys.slice().sort(), applied:I.appliedPresetKey };
+        I.clear(); I.setTechnique('iv'); I.setTechnique('rsi');
+        I.setRsiVariant('modified');
+        const m = { plan:I.planKeys.slice().sort(), applied:I.appliedPresetKey };
+        return { c, m };`);
+      t('RSI parent to Classic selects rocuronium and nothing else',
+        sPV.c.plan.join() === 'nmb/drug.rocuronium' &&
+        sPV.c.applied === 'rsi/classic', sPV.c);
+      t('RSI parent to Modified selects rocuronium and nothing else',
+        sPV.m.plan.join() === 'nmb/drug.rocuronium' &&
+        sPV.m.applied === 'rsi/modified', sPV.m);
+
+      /* ── TRANSITIONS: THE PLAN SHOWS THE CURRENT PRESET ──────────────
+         Not the sum of the presets pressed. Each of these starts from the
+         previous one's result, exactly as a clinician changing their mind
+         would, and every step goes through setTechnique/setRsiVariant. */
+      const sG = await R(`I.clear();
+        const step = [];
+        const note = k => step.push({ k, plan:I.planKeys.slice().sort(),
+                                      applied:I.appliedPresetKey });
+        I.setTechnique('iv');                              note('iv');
+        I.setTechnique('rsi'); I.setRsiVariant('classic'); note('rsi/classic');
+        I.setTechnique('iv');                              note('iv again');
+        I.setTechnique('tiva');                            note('tiva');
+        I.setTechnique('inhalational');                    note('inhalational');
+        return { step, customized:I.planCustomized };`);
+      const at = k => (sG.step.find(x => x.k === k) || { plan:[] }).plan;
+      t('IV to RSI Classic leaves rocuronium alone, not propofol as well',
+        at('rsi/classic').join() === 'nmb/drug.rocuronium', at('rsi/classic'));
+      t('RSI Classic back to IV leaves propofol alone, not the blocker as well',
+        at('iv again').join() === 'induction/drug.propofol', at('iv again'));
+      t('IV to TIVA matches the TIVA preset and accumulates nothing',
+        at('tiva').join() === 'induction/drug.propofol', at('tiva'));
+      /* The hardest one: a preset that declares NO rows still has to clear
+         the previous preset's, or the whole plan survives under a strategy
+         that selects nothing. */
+      t('...and Inhalational, which declares no rows, clears the previous preset',
+        at('inhalational').length === 0, at('inhalational'));
+      t('...none of which took ownership away from the preset layer',
+        sG.customized === false, sG.customized);
+
+      /* ── OWNERSHIP SURVIVES THE POPULATED PRESETS ────────────────────
+         The engine test below proves this against a fixture; this proves it
+         against presets that actually select, which is when a silent
+         overwrite would cost a clinician their plan. */
+      const sH = await R(`I.clear(); I.setTechnique('iv');
+        const card = id => document.querySelector(
+          '#induction-host .tb-c[data-drug="' + id + '"]');
+        card('drug.propofol').click();                 /* remove, manually */
+        card('drug.ketamine').click();                 /* choose another  */
+        const mine = I.planKeys.slice().sort();
+        const owned = I.planCustomized;
+        I.setTechnique('tiva');                        /* TIVA prefers propofol */
+        const afterSwitch = I.planKeys.slice().sort();
+        const offered = !!document.querySelector('#induction-host .stx-apply');
+        I.applySuggestedPlan();
+        return { mine, owned, afterSwitch, offered,
+                 afterApply:I.planKeys.slice().sort(),
+                 applied:I.appliedPresetKey, customized:I.planCustomized };`);
+      t('a manual edit takes the plan off the preset layer',
+        sH.owned === true && sH.mine.join() === 'induction/drug.ketamine', sH);
+      t('CHANGING STRATEGY DOES NOT OVERWRITE A PLAN THE CLINICIAN BUILT',
+        sH.afterSwitch.join() === sH.mine.join(), sH);
+      t('...it offers to, where the strategy resolves to something',
+        sH.offered === true, sH.offered);
+      t('...and only pressing that replaces it with the current preset',
+        sH.afterApply.join() === 'induction/drug.propofol' &&
+        sH.applied === 'tiva' && sH.customized === false, sH);
+
+      /* New Case clears the preset state with the plan. Asserted against the
+         shipped presets, because a preset that selects on activation is
+         exactly what a stale appliedPresetKey would re-apply. */
+      const sI = await R(`I.clear();
+        I.setTechnique('rsi'); I.setRsiVariant('classic');
+        window.newCase();
+        return { plan:I.planKeys.slice(), tech:I.technique,
+                 applied:I.appliedPresetKey, customized:I.planCustomized };`);
+      t('New Case clears the plan, the strategy and the preset state',
+        sI.plan.length === 0 && sI.tech === null &&
+        sI.applied === null && sI.customized === false, sI);
+      await refill(); await v.pg.waitForTimeout(400);
 
       /* ── THE SYNTHETIC PRESET ───────────────────────────────────────── */
       const SYNTH = `I.__presetsForTest({
@@ -2768,8 +3021,14 @@ async function openEngine(b, viewport) {
       await R(`I.__presetsForTest(${JSON.stringify(shipped)}); I.clear(); return 1;`);
       const restored = await R(`return { presets:JSON.stringify(I.__presetsForTest()),
                                          plan:I.planKeys.slice() };`);
+      /* WAS: asserted the restored presets contained no drug id, which was
+         only ever a proxy for "these are the shipped ones". It is compared
+         against the snapshot taken before the synthetic presets now, which
+         is the thing it was trying to say and survives the presets being
+         populated. */
       t('the shipped presets are restored after the synthetic ones',
-        !/drug\./.test(restored.presets) && restored.plan.length === 0, restored.plan);
+        restored.presets === JSON.stringify(shipped) && restored.plan.length === 0,
+        restored.plan);
       t('no runtime errors through the preset engine', v.errs.length === 0, v.errs.slice(0,2));
       await v.ctx.close();
     }
