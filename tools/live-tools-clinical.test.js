@@ -2584,7 +2584,8 @@ async function openEngine(b, viewport) {
       t('...in the catalog row it actually belongs to',
         MISROWED.length === 0, MISROWED);
 
-      /* A + B. A strategy click runs the machinery and selects nothing. */
+      /* A + B. A strategy click reaches the preset path and initializes an
+         untouched plan from the shipped preferred agent. */
       const a = await R(`I.clear();
         const before = I.planKeys.slice();
         I.setTechnique('iv');

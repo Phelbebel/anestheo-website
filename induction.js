@@ -14,9 +14,10 @@
    every agent, then a technique, then a blocker — five numbered sections in
    the implementation's order rather than the case's. The question this screen
    exists to answer is "what am I actually giving", and it is answered in one
-   block: a compact technique strip, one Add agent control, and a single dense
-   grid of exactly the agents the clinician chose, each with its dose for this
-   patient and each removable where it stands.
+   block: a compact technique strip over a single dense grid of every agent
+   the board carries, each with its dose for this patient, each selectable
+   and removable where it stands. There is no Add-agent chooser to open —
+   the agents are already on screen, and selecting one is pressing it.
 
    THE DISPLAY IS FLAT; THE STATE IS GROUPED. Agents are stored per canonical
    role, which is what the chooser groups by and what removal is keyed on —
@@ -40,19 +41,40 @@
    on this screen is wrong, it is wrong in clinical-index.js or in compute(),
    and it is wrong identically everywhere else it appears.
 
-   ── TECHNIQUE RECORDS; IT DOES NOT PRESCRIBE ──────────────────────────────
-   It adds no drug, removes none, and alters no dose by any amount. Nothing is
-   selected by default and nothing is labelled recommended or preferred,
-   because this application holds no data supporting such a recommendation —
-   the clinician chooses.
+   ── THE STRATEGY RECORDS THE APPROACH, AND MAY START THE PLAN ─────────────
+   Choosing one does two things. It tells the dose selector which context to
+   ask about, which is why a blocker's card changes number under a rapid
+   sequence and nothing else does. And on an UNTOUCHED plan it selects the
+   agents its preset names, so a strategy is a starting point rather than a
+   caption.
+
+   A PRESET HOLDS IDS. No dose, no weight, no concentration, no context and
+   no duplicate record appears in it. A suggested agent lands in the same
+   picked{} as one the clinician pressed, renders through the same card, and
+   asks ClinicalContent the same question through the same canonical
+   selector. Delete this layer and every number on the board is unchanged.
+
+   The strategy may suggest rocuronium. It does not create, alter or hold
+   rocuronium's dose: that comes from the reviewed record, through
+   contextFor(), exactly as it does when the clinician selects the drug
+   themselves.
+
+   WHAT IT WILL NOT DO. It selects nothing on a fresh screen until a strategy
+   is chosen, it names no agent it has no reviewed row for, it never
+   substitutes an alternative when the suggested one cannot be offered, and
+   it never overrules the clinician: the first manual edit transfers the plan
+   to them, and from then on a strategy change offers to replace it rather
+   than doing so.
+
+   Classic and Modified RSI describe how the airway is secured. They may
+   carry different preset metadata, and in v1 they carry the same; neither
+   changes the dose question, because contextFor() returns the same rapid
+   sequence context for both and no dose figure exists in a preset to
+   override it with.
 
    There is no route control. It duplicated what the selected agents already
    express, and contradicted itself the moment a plan held both a volatile and
    an intravenous agent.
-
-   Technique is never bound to a blocker. Classic and Modified RSI describe
-   how the airway is secured; either can be performed with either blocker, and
-   this application holds no technique-specific dose to say otherwise.
 */
 (function (root) {
   'use strict';
@@ -63,12 +85,20 @@
      gone with it rather than left dangling; nothing derives a route from the
      selection, because that would be a recommendation in disguise. */
 
-  /* RSI TECHNIQUE IS NOT A DRUG. This application holds no technique-specific
-     dose, no preoxygenation time, no cricoid-pressure guidance and no
-     apnoeic-oxygenation protocol, so this records what the clinician is doing
-     and asserts nothing about it. It must never be wired to a blocker: a
-     blocker's dose is defined once, by the drug, for the indication the drug
-     data names — and "Classic RSI" is not the name of a drug. */
+  /* RSI TECHNIQUE IS NOT A DOSE RECORD. This application holds no
+     technique-specific dose, no preoxygenation time, no cricoid-pressure
+     guidance and no apnoeic-oxygenation protocol.
+
+     Its preset may SUGGEST a blocker — rocuronium, by id. That is a starting
+     selection, not a number: the dose stays defined once, by the drug, for
+     the indication the drug's reviewed record names, and reaches the card
+     through contextFor() whether the clinician chose the agent or a preset
+     did. Neither variant hardcodes, overrides or scales it, and "Classic
+     RSI" is still not the name of a drug.
+
+     NO DOSE FIGURE BELONGS IN STRATEGY_PRESETS. A preset that carried one
+     would be a second source for a number that already has an owner, and
+     the two would drift. */
   /* FOUR APPROACHES, AND RSI IS ONE OF THEM — NOT TWO.
      Classic and Modified were top-level tiles beside IV Hypnotic and
      Inhalational, which made a rapid sequence look like two different
@@ -96,9 +126,15 @@
       icon:'M6 3h12M8 3v5.5L4.6 19a2 2 0 0 0 1.9 2.6h11a2 2 0 0 0 1.9-2.6L16 8.5V3' }
   ];
 
-  /* WHICH RSI, recorded only once RSI itself is the approach. It is metadata:
-     no dose, no drug and no phase depends on it — both variants are a rapid
-     sequence and the selector is asked for the same context either way. */
+  /* WHICH RSI, recorded only once RSI itself is the approach. It chooses
+     which preset is applied — rsi/classic or rsi/modified — and in v1 the
+     two suggest the same agents, so the choice is recorded rather than
+     acted on differently.
+
+     WHAT IT DOES NOT CHOOSE IS THE DOSE. Both variants are a rapid sequence
+     and the selector is asked for the same context either way; no dose or
+     phase record is duplicated per variant, and there is nothing in a
+     preset that could answer the question differently if it were. */
   var rsiVariant = null;
 
   /* null until the clinician picks one. Not a default: an unrecorded
@@ -630,18 +666,28 @@
      what the column shows.
 
      Every eligible induction-relevant drug is present the moment the patient
-     loads. Nothing is selected for the clinician; selecting one moves
-     nothing and hides nothing. There is no chooser, no empty plan container
-     and no "+ Add" anywhere in this workflow — USE and ✓ USING happen in the
-     row the drug already occupies.
+     loads, and every one of them stays present whatever is selected:
+     choosing an agent moves nothing and hides nothing. There is no chooser,
+     no empty plan container and no "+ Add" anywhere in this workflow — USE
+     and ✓ USING happen in the row the drug already occupies.
+
+     A FRESH CASE SHOWS NOTHING IN USE. Choosing a strategy may light the
+     agents its preset prefers, and the clinician adds and removes in place
+     from there; the first of those edits makes the plan theirs and the
+     strategy stops changing it on its own.
 
      THE GROUPS COME FROM THE RECORDS, NOT A CURATED LIST. A drug is a
      primary induction agent when its own canonical dose label says
      Induction; the rest of that group is an adjunct, which is exactly what
      Premedication and Sedation already say about midazolam and
-     dexmedetomidine. Etomidate and thiopental are not in the canonical model
-     and so are absent — a row with no dose is a drug the clinician has to
-     look up somewhere else. */
+     dexmedetomidine.
+
+     WAS: "Etomidate and thiopental are not in the canonical model and so are
+     absent." Both carry canonical records now and both are on the board, in
+     the hypnosis row, where the IV and RSI presets name them among their
+     alternatives. The rule the sentence was illustrating is unchanged: a
+     drug is here because a record answers for it, and a row with no dose is
+     a drug the clinician has to look up somewhere else. */
   function isPrimaryInduction(id){
     var CC = root.ClinicalContent, d = (CC && CC.byId) ? CC.byId(id) : null;
     return !!(d && (d.doses || []).some(function (x){ return /^Induction/.test(x.label || ''); }));
@@ -1211,8 +1257,18 @@
     restoreRef(keepTop);
   }
 
-  /* Records the technique. Deliberately touches nothing else: no dose, no
-     drug, no selection. Pressing the chosen one clears it. */
+  /* Records the approach, and moves the suggested plan with it. On a plan
+     that still belongs to the preset layer it applies the new strategy's
+     preset, or retires the old one where the new strategy has no preset yet.
+
+     It changes no dose and invents no drug: what it writes are ids, and the
+     numbers under them come from the same records they always did. It does
+     not overwrite a plan the clinician edited — every path below is guarded
+     on ownership.
+
+     PRESSING THE ACTIVE TILE CLEARS THE STRATEGY AND KEEPS THE PLAN. The
+     strategy records the approach and the plan records what is being given;
+     dropping the first is not a reason to erase the second. */
   function setTechnique(id){
     technique = (technique === id) ? null : id;
     /* Leaving RSI leaves its variant behind with it. */
@@ -1239,7 +1295,12 @@
     }
     render();
   }
-  /* Records which rapid sequence. No dose, drug or phase reads this. */
+  /* Records which rapid sequence, and selects that variant's preset —
+     rsi/classic or rsi/modified. In v1 the two suggest the same agents.
+
+     NEITHER VARIANT CARRIES A DOSE. contextFor() returns the same rapid
+     sequence context for both, nothing here touches it, and no dose or
+     phase record is duplicated per variant. */
   function setRsiVariant(id){
     if (technique !== 'rsi') return;
     rsiVariant = (rsiVariant === id) ? null : id;
