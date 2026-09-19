@@ -138,9 +138,12 @@ t('every declared phase comes from the vocabulary, none invented',
    sevoflurane, desflurane and isoflurane carry reviewed maintenance
    concentrations, which is the whole point of the Maintenance workspace
    having content at all. 'maintenance' joins the declared set. */
+/* 'spontaneous-respiration' joins the set with the reviewed adult fentanyl
+   dose. It is the narrowest phase in the model and exists so a controlled-
+   airway plan cannot be answered with a spontaneously-breathing regimen. */
 t('...and induction-scope phases are all this migration declared',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort()
-    .join(',') === 'induction,intubation,maintenance,premedication,rsi',
+    .join(',') === 'induction,intubation,maintenance,premedication,rsi,spontaneous-respiration',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort());
 /* WAS: every group returns nothing for maintenance. Exactly one group returns
    something now, and it is the volatile group, which is the only place a
@@ -385,10 +388,17 @@ t('...and no canonical record carries their values',
 /* THE CONFLICT THAT MATTERS. tivaRows prints a propofol manual infusion rate
    the canonical model does not hold. It is legacy reference content and stays
    until reviewed — but nothing may read it as data. */
-t('the propofol infusion rate in tivaRows has no canonical counterpart',
-  /Manual infusion/.test(ENG) &&
+/* WAS: this asserted that tivaRows still printed a "Manual infusion"
+   10 -> 8 -> 6 mg/kg/h and that no canonical propofol record matched it —
+   documenting a dose on a clinician-facing screen that the model had never
+   reviewed. The figure is gone, and so are the two effect-site targets
+   beside it. The claim becomes its absence, plus the part that always
+   mattered: no propofol infusion record exists to print, so nothing may
+   print one. */
+t('no uncited propofol infusion rate is left in the TIVA module',
+  !/Manual infusion/.test(ENG) && !/10 \u2192 8 \u2192 6/.test(ENG) &&
   CC.byId('drug.propofol').doses.every(x => !/\/h$/.test(x.unit)),
-  'legacy display value only');
+  'no manual infusion rate, and no canonical record to render one');
 
 /* ── 9. THE REFACTOR CHANGED NO RENDER INPUT ─────────────────────────────
    visibleDrugsInGroup() had its body extracted into rowFor(). Every field it
@@ -525,12 +535,12 @@ if (fs.existsSync(SNAP)) {
     CC.DRUGS.filter(CC.isPublishable).length === stats.publishableDrugCount,
     { now: CC.DRUGS.filter(CC.isPublishable).length, baseline: stats.publishableDrugCount });
   const CAT = require(REPO + '/induction-catalog.js');
-  t('the default board is four rows', CAT.rows.length === stats.catalogRows);
+  t('the default board is five rows', CAT.rows.length === stats.catalogRows);
   t('...of four members each',
     JSON.stringify(CAT.rows.map(r => r.members.length)) ===
     JSON.stringify(stats.catalogMembersPerRow), CAT.rows.map(r => r.members.length));
-  t('...and every one of the sixteen resolves to a canonical record',
-    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0) === 16 &&
+  t('...and every one of the nineteen resolves to a canonical record',
+    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0) === 19 &&
     CAT.rows.every(r => r.members.every(m => m.canonicalId && CC.byId(m.canonicalId))),
     CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0));
 } else {
@@ -1090,8 +1100,12 @@ t('11 legacy compatibility does NOT populate or mutate populationClass',
     (d.doses||[]).map(x => [x.populationClass, x.population, x.evidence && x.evidence.state])))
     === beforeLegacy,
   'the dataset is byte-identical after every eligibility call');
-t('...and exactly 35 doses carry a populationClass, the reviewed ones',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 35,
+/* 35 -> 38. The strategy-regimen pass added three reviewed rows: fentanyl's
+   adult anaesthetic dose, which the SmPC states in absolute micrograms, and
+   sevoflurane's adult and paediatric induction titrations. The invariant is
+   unchanged — a populationClass appears on reviewed rows and nowhere else. */
+t('...and exactly 38 doses carry a populationClass, the reviewed ones',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 38,
   CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0));
 /* WAS: every publishable drug is existing-unchanged. Eight now read
    'reviewed', and the safety question is not how many but WHICH — a legacy
@@ -1122,16 +1136,16 @@ t('13 NO existing-unchanged record became reviewed',
   CC.DRUGS.every(d => (d.doses||[]).every(x =>
     !x.evidence || x.evidence.state !== 'reviewed' || !!x.populationClass)) &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 35 &&
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 38 &&
   /* the drugs whose provenance is 'reviewed' are only ever the eight, and no
      drug that carried a legacy record is among them */
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed')
     .every(d => UPGRADED.indexOf(d.id) >= 0),
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed').map(d => d.id));
-t('...and dose-level evidence exists ONLY on the 35 reviewed records',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 35 &&
+t('...and dose-level evidence exists ONLY on the 38 reviewed records',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 38 &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 35);
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 38);
 
 /* THE NAMED HELD RECORDS, EXERCISED THROUGH THE REAL SELECTOR. */
 [['drug.midazolam','induction'], ['drug.dexmedetomidine','induction'],
@@ -1164,7 +1178,7 @@ const reviewed = [];
 CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
   if (x.evidence && x.evidence.state === 'reviewed') reviewed.push({ id:d.id, dose:x });
 }));
-t('EXACTLY 35 REVIEWED DOSE RECORDS', reviewed.length === 35, reviewed.length);
+t('EXACTLY 38 REVIEWED DOSE RECORDS', reviewed.length === 38, reviewed.length);
 t('...every one carries a full citation',
   reviewed.every(r => r.dose.evidence.authority && r.dose.evidence.title &&
                       r.dose.evidence.documentId && r.dose.evidence.section));
@@ -1336,10 +1350,20 @@ t('dexmedetomidine: dose and provenance unchanged, colour reclassified',
 /* WAS: sevoflurane still proposed-unverified with no dose. Reviewed now, and
    what this block is about is that the OTHER records were not disturbed by
    that, so the assertion becomes the positive form. */
-t('sevoflurane is reviewed and carries maintenance doses only',
+/* WAS: "carries maintenance doses only". It carries an induction titration
+   as well now, reviewed against the UK SmPC, and the invariant that matters
+   moved with it: every dose it carries declares a PHASE, so no row of this
+   record can answer a question it was not written for. A phaseless volatile
+   dose would match the legacy tier and could surface anywhere. */
+t('sevoflurane is reviewed and every dose it carries declares its phase',
   CC.byId('drug.sevoflurane').doses.length > 0 &&
   CC.byId('drug.sevoflurane').provenance.state === 'reviewed' &&
-  CC.byId('drug.sevoflurane').doses.every(x => x.phase === 'maintenance'));
+  CC.byId('drug.sevoflurane').doses.every(x =>
+    x.phase === 'maintenance' || x.phase === 'induction'));
+t('...and the two phases are both present and cannot be confused',
+  CC.byId('drug.sevoflurane').doses.filter(x => x.phase === 'induction').length === 2 &&
+  CC.byId('drug.sevoflurane').doses.filter(x => x.phase === 'maintenance').length === 2,
+  CC.byId('drug.sevoflurane').doses.map(x => x.phase));
 t('reversal drugs still render for an adult',
   CC.visibleDosesInGroup('reversal',70,ADULT).every(r => !r.withheld));
 
@@ -1429,10 +1453,16 @@ t('10 NO RSI→INTUBATION FALLBACK for any blocker, adult or child',
       return CC.dosesForPhase(d, 'rsi').length > 0 && rsi.val !== rou.val;
     })),
   'an RSI row is either a real RSI record or no number at all');
-t('...and the RSI context list has exactly one entry for a blocker',
-  /roleKey === 'nmb'\) return isRSI\(\) \? \['rsi'\] : \['intubation'\]/
-    .test(code(read('induction.js'))),
-  'one entry means there is nothing to fall back to');
+/* The chain of conditions became a table when TIVA and Inhalational needed
+   their own questions. The claim is unchanged and is now checked against
+   every strategy at once: a blocker's list is ONE entry, whichever approach
+   is running, so an RSI question has nothing to fall back to and a routine
+   question cannot reach an RSI record. */
+t('...and the blocker list has exactly one entry under EVERY strategy',
+  (() => { const IND = code(read('induction.js'));
+    const nmb = IND.match(/nmb:\[[^\]]*\]/g) || [];
+    return nmb.length >= 4 && nmb.every(x => (x.match(/'/g) || []).length === 2); })(),
+  (code(read('induction.js')).match(/nmb:\[[^\]]*\]/g) || []).join(' '));
 
 /* 11 · Classic and Modified RSI are the same context */
 {
@@ -1456,9 +1486,12 @@ t('...and the RSI context list has exactly one entry for a blocker',
   t('12 no technique handler adds, removes or swaps a drug',
     !!setTech && !/picked|toggle|remove|drugs?\(/.test(setTech[1]),
     setTech ? setTech[1].replace(/\s+/g,' ').trim() : 'setTechnique not found');
+  /* The plan names phases — that is what the strategy-context table is —
+     but it must not SELECT doses by phase or compute anything from one.
+     doseRowForContext is the only thing that walks the model's tiers. */
   t('...and the plan holds no phase logic of its own',
-    !/dosesForPhase|\.phase ===/.test(IND),
-    'ClinicalContent remains the authority');
+    !/dosesForPhase|\.phase ===/.test(IND) && !/\*\s*wt|wt\s*\*/.test(IND),
+    'ClinicalContent remains the authority for every number');
 }
 
 /* 13 · the reference is not technique-dependent */
@@ -1495,10 +1528,12 @@ t('...so it can never answer an RSI question with an intubating dose',
   'the intubating range stays out of reach of an RSI question');
 /* The blocker's return statement itself, not the lines near it. */
 t('THE BLOCKER LIST NEVER INCLUDES THE UNPHASED TIER', (() => {
-  const m = /roleKey === 'nmb'\)\s*return ([^;]+);/.exec(code(read('induction.js')));
-  return !!m && !/legacy|LEGACY|unphased/.test(m[1]) &&
-         m[1].replace(/\s+/g,'') === "isRSI()?['rsi']:['intubation']";
-})(), (/roleKey === 'nmb'\)\s*return ([^;]+);/.exec(code(read('induction.js')))||[])[1]);
+  /* Read off the table rather than off one return statement. A legacy tier
+     in any blocker cell would let an unphased record answer an intubating
+     or a rapid sequence question. */
+  const nmb = code(read('induction.js')).match(/nmb:\[[^\]]*\]/g) || [];
+  return nmb.length >= 4 && nmb.every(x => !/L\b|legacy|LEGACY|unphased/.test(x));
+})(), (code(read('induction.js')).match(/nmb:\[[^\]]*\]/g) || []).join(' '));
 t('...and a legacy record reached through the tier is still population-gated',
   ctxRow('drug.midazolam', 15, CHILD, ['induction', LEG]).withheld === true &&
   ctxRow('drug.midazolam', 15, CHILD, ['induction', LEG]).val === '');
@@ -1619,15 +1654,22 @@ t('board membership comes from the catalog, not from a record group',
 /* THE CATALOG ITSELF */
 const CAT = require(REPO + '/induction-catalog.js');
 const CATSRC = read('induction-catalog.js');
-t('the display catalog exists and declares four rows',
-  !!CAT && (CAT.rows||[]).length === 4, (CAT.rows||[]).map(r => r.key));
-t('...four members each, sixteen slots in the frozen order',
-  (CAT.rows||[]).every(r => r.members.length === 4) &&
+/* FOUR ROWS OF FOUR BECAME FIVE ROWS, THE FIFTH OF THREE. The volatile
+   induction row is the addition, and it is the only row carrying a
+   `strategy` key: it is drawn under the inhalational approach and under no
+   other. The order of the first sixteen slots is unchanged, which is what
+   this assertion has always been protecting. */
+t('the display catalog exists and declares five rows',
+  !!CAT && (CAT.rows||[]).length === 5, (CAT.rows||[]).map(r => r.key));
+t('...nineteen slots in the frozen order, the volatile row last',
+  CAT.rows.slice(0, 4).every(r => r.members.length === 4) &&
+  CAT.rows[4].members.length === 3 &&
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []).join() ===
   ['midazolam','lidocaine-iv','atropine','glycopyrrolate',
    'fentanyl','morphine','remifentanil','alfentanil',
    'propofol','etomidate','ketamine','thiopental',
-   'rocuronium','atracurium','mivacurium','suxamethonium'].join(),
+   'rocuronium','atracurium','mivacurium','suxamethonium',
+   'sevoflurane','desflurane','isoflurane'].join(),
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []));
 t('...every canonicalId it names resolves to a real record',
   CAT.rows.every(r => r.members.every(m => !m.canonicalId || !!CC.byId(m.canonicalId))),
@@ -1707,11 +1749,9 @@ t('...and dexmedetomidine keeps everything except the board slot',
    the dose that induces this patient. The row asks for an induction dose or
    nothing, at every weight and in both techniques. */
 t('the hypnosis row asks for an induction dose and nothing else',
-  (() => { const m = /rowKey === 'hypnosis'\)\s*return ([^;]+);/
-              .exec(code(read('induction.js')));
-    return !!m && !/legacy|LEGACY|unphased/.test(m[1]) &&
-           m[1].replace(/\s+/g,'') === "isRSI()?['rsi','induction']:['induction']"; })(),
-  (/rowKey === 'hypnosis'\)\s*return ([^;]+);/.exec(code(read('induction.js')))||[])[1]);
+  (() => { const hyp = code(read('induction.js')).match(/hypnosis:\[[^\]]*\]/g) || [];
+    return hyp.length >= 4 && hyp.every(x => !/L\b|legacy|LEGACY|unphased/.test(x)); })(),
+  (code(read('induction.js')).match(/hypnosis:\[[^\]]*\]/g) || []).join(' '));
 t('...so an adult gets no dexmedetomidine number from it',
   (() => { const r = ctxRow('drug.dexmedetomidine', 75, ADULT_ASA, ['induction']);
     return r && r.withheld === true && r.val === '' && r.doseNum === '' &&
@@ -1750,10 +1790,32 @@ t('...and propofol, ketamine and etomidate are unchanged by the narrowing',
 /* The premedication and analgesia rows keep the tier: without it midazolam,
    morphine and the legacy fentanyl row would print a coverage line while the
    reference beside them printed a dose. */
-t('...and the other rows keep the unphased tier they need',
-  /return isRSI\(\) \? \['rsi', 'induction', legacy\] : \['induction', legacy\];/
-    .test(code(read('induction.js'))) &&
-  !ctxRow('drug.midazolam', 75, ADULT_ASA, ['induction', LEG]).withheld);
+/* Read off the table now rather than off the fall-through return. What must
+   remain true is that premedication and analgesia keep a legacy tier —
+   without it the plan prints a coverage line for midazolam and morphine
+   while the reference beside it prints their dose. */
+/* WAS: premedication AND analgesia keep the unphased tier. Analgesia lost
+   it: the tier was the last thing standing between an intubation plan and
+   fentanyl's unreviewed 1-3 mcg/kg adult row, once the reviewed row was
+   scoped away from controlled-airway questions. Premedication keeps it, and
+   midazolam is why — without it the plan prints a coverage line while the
+   reference beside it prints the dose. */
+t('...and premedication keeps the unphased tier it needs',
+  (() => { const IND = code(read('induction.js'));
+    const pre = IND.match(/premedication:\[[^\]]*\]/g) || [];
+    const ana = IND.match(/analgesia:\[[^\]]*\]/g) || [];
+    return pre.length >= 4 && pre.every(x => /L\b/.test(x)) &&
+           ana.length >= 4 && ana.every(x => !/L\b/.test(x)); })() &&
+  !ctxRow('drug.midazolam', 75, ADULT_ASA, ['induction', LEG]).withheld,
+  (code(read('induction.js')).match(/analgesia:\[[^\]]*\]/g) || []).join(' '));
+/* And the row it was protecting is now unreachable from a strategy. */
+t('...while no strategy context can reach the unreviewed adult fentanyl row',
+  ['induction', 'rsi,induction', 'tiva,infusion,induction'].every(spec => {
+    const r = ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(','));
+    return r.withheld === true; }),
+  ['induction', 'rsi,induction', 'tiva,infusion,induction'].map(spec =>
+    spec + ':' + (ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(',')).withheld
+                    ? 'withheld' : ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(',')).val)));
 
 /* AN ALPHA-2 AGONIST IS NOT A CONVENTIONAL HYPNOTIC, and the colour says so
    without any dose moving. */
@@ -1972,25 +2034,165 @@ const precisionPop = p => {
     WANT.map(w => w[0] + 'kg=' + at(peds, w[0])).join(' '));
 }
 
+/* ── THE ANALGESIA ROW HAS NO GENERIC FALLBACK ──────────────────────────
+   Two agents used to be answered by the unphased tier under this row, and
+   neither answer was about induction. Fentanyl's was an unreviewed 1-3
+   mcg/kg adult range no source states; morphine's is a POSTOPERATIVE
+   analgesia dose. The tier is gone, and the rule is a property of the
+   CONTEXT — not of either drug. Nothing below names a drug to protect it;
+   the two are named only to prove the rule reaches them.                  */
+console.log('\n17d. NO GENERIC FALLBACK UNDER ANALGESIA');
+{
+  const CTX = { iv:['induction'], rsi:['rsi','induction'],
+                inhalational:['induction'], tiva:['tiva','infusion','induction'] };
+  /* 1 + 2 · Neither row answers any strategy's analgesia question. */
+  [['drug.morphine', /0\.05|0\.1/], ['drug.fentanyl', /1.{0,3}3\s*mcg\/kg/]]
+    .forEach(([id, forbidden]) => {
+      const nm = CC.byId(id).name;
+      t('  ' + nm.padEnd(12) + ' is withheld under every strategy analgesia context',
+        Object.keys(CTX).every(k => ctxRow(id, 75, ADULT_ASA, CTX[k]).withheld === true),
+        Object.keys(CTX).map(k => k + ':' +
+          (ctxRow(id, 75, ADULT_ASA, CTX[k]).withheld ? 'withheld'
+            : ctxRow(id, 75, ADULT_ASA, CTX[k]).val)));
+      /* 4 · And what renders is the coverage state, never the figure. */
+      t('  ...and what renders is a coverage state, not that number',
+        Object.keys(CTX).every(k => { const r = ctxRow(id, 75, ADULT_ASA, CTX[k]);
+          return !!r.coverage && r.val === '' && r.doseNum === '' &&
+                 !forbidden.test(JSON.stringify(r)); }),
+        Object.keys(CTX).map(k => k + ':' + ctxRow(id, 75, ADULT_ASA, CTX[k]).coverage));
+    });
+  /* 5 · The records are untouched and still reachable where they belong. */
+  t('  the postoperative morphine record still exists and is publishable',
+    (() => { const d = CC.byId('drug.morphine');
+      const x = (d.doses || [])[0];
+      return !!x && /Postoperative/i.test(x.label) && CC.isDosePublishable(d, x); })(),
+    (CC.byId('drug.morphine').doses || []).map(x => x.label));
+  t('  ...and the FULL drug reference scope still admits it',
+    (() => { const dref = /dref:\s*\{[^}]*groups:\s*(null)/.exec(ENGC);
+      return !!dref; })(), 'groups:null — every canonical group');
+  t('  ...as does the unreviewed adult fentanyl row, unchanged',
+    (() => { const d = CC.byId('drug.fentanyl');
+      const x = (d.doses || []).find(y => !y.phase);
+      return !!x && x.low === 1 && x.high === 3 && !x.evidence &&
+             CC.isDosePublishable(d, x); })(),
+    (CC.byId('drug.fentanyl').doses || []).map(x => (x.phase || '(unphased)')));
+  /* 3 · Both remain board members, so both keep a usable card. */
+  t('  both remain members of the induction board',
+    (() => { const members = (CAT.rows || []).reduce((a, r) =>
+        a.concat((r.members || []).map(m => m.canonicalId)), []);
+      return members.indexOf('drug.morphine') >= 0 &&
+             members.indexOf('drug.fentanyl') >= 0; })(), 'still on the board');
+  /* THE RULE IS IN THE CONTEXT TABLE, NOT IN A DRUG CHECK. */
+  t('  and no analgesia context anywhere carries the legacy tier',
+    (() => { const ana = code(read('induction.js')).match(/analgesia:\[[^\]]*\]/g) || [];
+      return ana.length >= 4 && ana.every(x => !/L\b|legacy|LEGACY|unphased/.test(x)); })(),
+    (code(read('induction.js')).match(/analgesia:\[[^\]]*\]/g) || []).join(' '));
+  t('  ...and no drug id appears in the strategy-context table at all',
+    !/drug\./.test((/function strategyContexts\(\)\{[\s\S]*?\n  \}/
+      .exec(code(read('induction.js'))) || [''])[0]),
+    'the rule is context-level, not per drug');
+}
+
+/* ── A STRATEGY PLAN IS IDS AND CONTEXT NAMES, NEVER A DOSE ──────────────
+   The whole safety argument for letting a strategy build a regimen rests on
+   this: the plan layer names agents and the phases to ask about, and every
+   number still comes out of ClinicalContent through the same selector a
+   manual selection uses. A milligram in STRATEGY_PLANS, or a phase table
+   that had grown a concentration, would be a second source for a figure
+   that already has an owner — and the two would drift.                    */
+console.log('\n17b. THE PLAN LAYER CARRIES NO CLINICAL NUMBER');
+{
+  const IND = read('induction.js');
+  const plans = /var STRATEGY_PLANS = \{[\s\S]*?\n  \};/.exec(code(IND));
+  const ctxmap = /function strategyContexts\(\)\{[\s\S]*?\n  \}/.exec(code(IND));
+  t('STRATEGY_PLANS exists and is drug ids only',
+    !!plans && !/\d+(\.\d+)?\s*(mg|mcg|ng|%|mL|g)\b/.test(plans[0]),
+    plans ? (plans[0].match(/\d+(\.\d+)?\s*(mg|mcg|ng|%|mL|g)\b/g) || []).join(',') || 'no dose token'
+          : 'STRATEGY_PLANS not found');
+  t('...and every entry it names is a drug id',
+    !!plans && (plans[0].match(/'[^']+'/g) || [])
+      .filter(x => !/^'(selected|alternatives|rows|variants|iv|rsi|classic|modified|inhalational|tiva|premedication|analgesia|hypnosis|nmb|volatile)'$/.test(x))
+      .every(x => /^'drug\./.test(x)),
+    (plans ? (plans[0].match(/'[^']+'/g) || []) : [])
+      .filter(x => !/^'drug\./.test(x) && !/^'(selected|alternatives|rows|variants|iv|rsi|classic|modified|inhalational|tiva|premedication|analgesia|hypnosis|nmb|volatile)'$/.test(x)));
+  t('...and the strategy-context table names phases, not numbers',
+    !!ctxmap && !/\d+(\.\d+)?\s*(mg|mcg|ng|%|mL|g)\b/.test(ctxmap[0]),
+    ctxmap ? (ctxmap[0].match(/\d+(\.\d+)?\s*(mg|mcg|ng|%|mL|g)\b/g) || []).join(',') || 'no dose token'
+           : 'strategyContexts not found');
+  /* TIVA ASKS FOR INFUSION CONTENT AND MUST NOT INVENT IT. The two tiers are
+     declared so a reviewed infusion record is answered the day it is
+     written; until then they resolve to nothing and the question falls
+     through to induction. Neither name may become a number here. */
+  t('...TIVA declares its own tiers ahead of induction',
+    !!ctxmap && /tiva:\s*\{[\s\S]*?hypnosis:\['tiva', 'infusion', 'induction'\]/.test(ctxmap[0]),
+    'tiva/infusion tiers present');
+  t('...and no record uses them yet, so nothing is being invented',
+    CC.DRUGS.every(d => (d.doses || []).every(x =>
+      x.phase !== 'tiva' && x.phase !== 'infusion')),
+    CC.DRUGS.reduce((a, d) => a.concat((d.doses || [])
+      .filter(x => x.phase === 'tiva' || x.phase === 'infusion')
+      .map(x => d.id)), []));
+  /* NO TCI MODEL OR TARGET IS NAMED IN THE PLAN LAYER EITHER. */
+  t('...and no TCI model or target appears anywhere in the plan layer',
+    !!plans && !/Marsh|Schnider|Eleveld|Minto|Paedfusor|Kataria|Ce\b|effect.site/i.test(plans[0]),
+    'no model named');
+}
+
+/* ── NO UNCITED TCI TARGET IS CLINICIAN-FACING ───────────────────────────
+   The TIVA module printed effect-site and plasma targets on three separate
+   surfaces — the landing tiles, the reference panel and the inline card —
+   with no canonical record behind any of them, and they disagreed with each
+   other. They are gone. This fails if any returns, in any of the three.   */
+console.log('\n17c. NO UNCITED TCI TARGET');
+{
+  /* The whole file, not one block: the three surfaces that carried these
+     figures sit in different places in it, and a fourth appearing anywhere
+     is what this is here to catch. The crisis protocols' adrenaline
+     preparation is the one legitimate mcg/mL in the document and is named
+     so this cannot be read as asserting the unit never appears. */
+  const CeHits = (ENGC.match(/[\d.\u2013-]+\s*(mcg|ng)\/mL/g) || [])
+    .filter(x => !/20\s*mcg\/mL/.test(x));   /* adrenaline 1 mg in 50 mL */
+  t('no target concentration is left anywhere in the document',
+    CeHits.length === 0, CeHits.join(' ; ') || 'none');
+  t('...and no manual infusion rate either',
+    !/Manual infusion/.test(ENGC) && !/10 → 8 → 6/.test(ENG),
+    'no manual infusion row');
+  t('...nor a percentage reduction of a target that is not published',
+    !/reduce Ce/i.test(ENGC), (ENGC.match(/reduce Ce[^']*/gi) || []).join(' ; '));
+  /* The models may still be NAMED — that is not a dose — and the gap has to
+     be reported rather than left as an empty heading. */
+  t('...while the gap is stated rather than left blank',
+    /not reviewed/i.test(ENGC) && /Schnider/.test(ENGC),
+    'coverage state present, models still named');
+  /* And no canonical record exists that could have justified them. */
+  t('...and no propofol infusion or target record exists to justify one',
+    (CC.byId('drug.propofol').doses || []).every(x =>
+      !/\/h$|\/min$/.test(x.unit || '') && !/mcg\/mL/.test(x.unit || '')),
+    (CC.byId('drug.propofol').doses || []).map(x => x.unit).join(','));
+}
+
 /* ── THE INDUCTION SAFETY BOUNDARY ───────────────────────────────────────
-   THE RULE, FROZEN: a volatile maintenance record may never acquire a USE /
-   USING action in an induction surface unless that agent has a separately
-   reviewed induction-scoped record that satisfies the induction selector.
+   WHAT THIS USED TO SAY, AND WHY IT CHANGED. The old rule was a blanket: no
+   volatile may be selectable in an induction surface at all, enforced by
+   four gates — no induction-phase dose, no board membership, not in the
+   reference scope, no plan role. That was the right rule while no volatile
+   held an induction record, because the only thing a volatile card could
+   have shown was a MAINTENANCE concentration standing where an induction
+   dose belongs.
 
-   Sevoflurane, desflurane and isoflurane have no such record. They are
-   legitimate canonical content and they belong in Maintenance and in the full
-   Drug reference; what they may not become is a selectable induction agent,
-   because the board's own note tells the clinician that no volatile induction
-   dose is reviewed and a number appearing beside that sentence would
-   contradict it.
+   Sevoflurane holds a reviewed induction record now, from the UK SmPC, and
+   it is a titration protocol rather than a concentration: start, increment,
+   maximum. So the blanket is replaced by the rule it was standing in for,
+   which is narrower and stronger:
 
-   Four independent gates enforce this, and all four are asserted below so
-   that removing any one of them fails the suite rather than quietly widening
-   the surface. The phase gate and the catalog gate are properties of the
-   content model. The scope gate and the role gate are properties of the
-   reference renderer and are read out of engine.html's source, because that
-   is where they live; the DOM-level consequences are asserted in
-   live-tools-shell.test.js, which can actually render the thing.           */
+     A VOLATILE MAY ENTER THE INDUCTION BOARD ONLY THROUGH A PUBLISHABLE
+     INDUCTION-PHASE RECORD, AND A MAINTENANCE-PHASE RECORD MAY NEVER ANSWER
+     AN INDUCTION QUESTION.
+
+   The gates below enforce that instead. Two of them are unchanged: the
+   induction reference SCOPE still excludes the volatile group, so no
+   maintenance concentration reached that surface either, and the board's
+   membership is still decided by induction-catalog.js alone.              */
 console.log('\n18. THE INDUCTION SAFETY BOUNDARY');
 
 const VOLATILE_IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane'];
@@ -2000,24 +2202,63 @@ const INDUCTION_PHASES = ['induction','intubation','rsi','premedication'];
       the gate that matters most: the induction selector selects by phase, so
       an empty result here means there is nothing for it to find. */
 {
-  const offending = [];
+  /* A. THE ONLY INDUCTION-PHASE VOLATILE DOSE IS A REVIEWED ONE, and it is
+        the one agent an evidence review was done for. Desflurane and
+        isoflurane still hold maintenance records only, so an induction
+        question finds nothing on either — which is what a clinician should
+        see until someone reviews their induction concentrations too. */
+  const inductionDoses = [];
   VOLATILE_IDS.forEach(id => {
     const d = CC.byId(id);
     (d.doses || []).forEach(x => {
       if (INDUCTION_PHASES.indexOf(x.phase) >= 0 && CC.isDosePublishable(d, x))
-        offending.push(id + '/' + x.label + '/' + x.phase);
+        inductionDoses.push({ id:id, label:x.label, phase:x.phase,
+                              state:(x.evidence || {}).state });
     });
   });
-  t('A. no volatile agent has a publishable induction-phase dose',
-    offending.length === 0, offending);
-  /* Stated positively as well, so a future record that declared no phase at
-     all could not slip through the filter above by being neither. */
-  t('...and every publishable volatile dose declares phase maintenance, nothing else',
+  t('A. every publishable induction-phase volatile dose is REVIEWED',
+    inductionDoses.length > 0 &&
+    inductionDoses.every(x => x.state === 'reviewed'),
+    inductionDoses.map(x => x.id + '/' + x.phase + '/' + x.state));
+  t('...and sevoflurane is the only volatile that has one',
+    inductionDoses.every(x => x.id === 'drug.sevoflurane'),
+    [...new Set(inductionDoses.map(x => x.id))]);
+  /* Stated positively as well, so a record that declared no phase at all
+     could not slip through by being neither: an unphased volatile dose would
+     match the legacy tier and could surface under any question. */
+  t('...and every publishable volatile dose declares a phase',
     VOLATILE_IDS.every(id => { const d = CC.byId(id);
       return (d.doses || []).filter(x => CC.isDosePublishable(d, x))
-                            .every(x => x.phase === 'maintenance'); }),
+                            .every(x => x.phase === 'maintenance' ||
+                                        x.phase === 'induction'); }),
     VOLATILE_IDS.map(id => { const d = CC.byId(id);
       return id + '=[' + (d.doses||[]).map(x => x.phase).join(',') + ']'; }));
+  /* THE CROSSING TEST, AT THE MODEL. Neither phase may answer the other's
+     question, for any of the three, at any weight. */
+  const A2 = CC.patientPopulation({ context:{ adult:true }, age:{ value:42, unit:'years' } });
+  t('...and no maintenance row can answer an induction question',
+    VOLATILE_IDS.every(id => {
+      const d = CC.byId(id);
+      const r = CC.doseRowForContext(d, 75, A2, ['induction']);
+      if (r.withheld) return true;
+      /* A titration carries its figure in the dose column, a range in the
+         patient column; compare whichever the row actually printed. */
+      const shown = r.doseRule || r.val;
+      return (d.doses || []).some(x => x.phase === 'induction' &&
+        CC.renderDose(x, 75).val === shown); }),
+    VOLATILE_IDS.map(id => id + ':' +
+      (CC.doseRowForContext(CC.byId(id), 75, A2, ['induction']).withheld
+        ? 'withheld' : 'induction-row')));
+  t('...and no induction row can answer a maintenance question',
+    VOLATILE_IDS.every(id => {
+      const d = CC.byId(id);
+      const r = CC.doseRowForContext(d, 75, A2, ['maintenance']);
+      if (r.withheld) return true;
+      const shown = r.doseRule || r.val;
+      return (d.doses || []).some(x => x.phase === 'maintenance' &&
+        CC.renderDose(x, 75).val === shown); }),
+    VOLATILE_IDS.map(id => id + ':' +
+      CC.doseRowForContext(CC.byId(id), 75, A2, ['maintenance']).val));
 }
 
 /* B. None is a member of the induction board. Membership is decided by
@@ -2028,11 +2269,28 @@ const INDUCTION_PHASES = ['induction','intubation','rsi','premedication'];
   const members = [];
   (CAT.rows || []).forEach(r => (r.members || []).forEach(m => {
     if (m.canonicalId) members.push(m.canonicalId); }));
-  t('B. no volatile agent is a member of the induction board',
-    VOLATILE_IDS.every(id => members.indexOf(id) < 0),
-    VOLATILE_IDS.filter(id => members.indexOf(id) >= 0));
-  t('...and the catalog still holds the sixteen members it held before',
-    members.length === 16, members.length);
+  /* B. WAS: no volatile is a member of the induction board. All three are
+        now, in a row of their own — and the rule that replaced the blanket
+        is asserted here as membership's own precondition: a volatile on the
+        board must hold a publishable induction-phase record, or the card it
+        draws can only ever report that one is missing. Sevoflurane does;
+        desflurane and isoflurane are alternatives in the same row and their
+        cards say so. */
+  const volMembers = VOLATILE_IDS.filter(id => members.indexOf(id) >= 0);
+  t('B. the volatile row exists and holds exactly the three volatiles',
+    volMembers.length === 3, volMembers);
+  t('...and it is the only row scoped to a strategy',
+    (CAT.rows || []).filter(r => r.strategy).length === 1 &&
+    (CAT.rows || []).find(r => r.strategy).strategy === 'inhalational',
+    (CAT.rows || []).map(r => r.key + ':' + (r.strategy || '-')));
+  t('...and at least one of them can actually answer an induction question',
+    volMembers.some(id => (CC.byId(id).doses || []).some(x =>
+      x.phase === 'induction' && CC.isDosePublishable(CC.byId(id), x))),
+    volMembers.map(id => id + ':' + ((CC.byId(id).doses || [])
+      .filter(x => x.phase === 'induction').length)));
+  t('...and the catalog holds nineteen members, sixteen unchanged',
+    members.length === 19 &&
+    members.slice(0, 16).indexOf('drug.sevoflurane') < 0, members.length);
 }
 
 /* C/D. The induction embedded reference's scope no longer lists the volatile
@@ -2043,11 +2301,23 @@ const INDUCTION_PHASES = ['induction','intubation','rsi','premedication'];
 {
   const iref = /iref:\s*\{[^}]*groups:\s*\[([^\]]*)\]/.exec(ENGC);
   const dref = /dref:\s*\{[^}]*groups:\s*(null)/.exec(ENGC);
-  t('C. the induction reference scope does not include the volatile group',
-    !!iref && !/volatile/.test(iref[1]), iref ? iref[1].trim() : 'SCOPE NOT FOUND');
-  t('...and the scope it does have is unchanged otherwise',
-    !!iref && iref[1].replace(/['"\s]/g, '') === 'induction,analgesia,nmb,reversal',
+  /* C. WAS: the volatile group is not in the induction reference scope at
+        all. It is now — and admission is by PHASE, which is the rule that
+        makes it safe. A group named in groupPhase admits only rows written
+        for the listed phases, so sevoflurane's induction titration is
+        reachable and nine maintenance rows are not. */
+  const gp = /iref:\s*\{[\s\S]*?groupPhase:\s*\{([^}]*)\}/.exec(ENGC);
+  t('C. the induction reference scope includes the volatile group',
+    !!iref && /volatile/.test(iref[1]), iref ? iref[1].trim() : 'SCOPE NOT FOUND');
+  t('...and admits it by INDUCTION phase only',
+    !!gp && /volatile/.test(gp[1]) && /induction/.test(gp[1]) &&
+    !/maintenance/.test(gp[1]), gp ? gp[1].trim() : 'NO groupPhase');
+  t('...and the rest of the scope is unchanged',
+    !!iref && iref[1].replace(/['"\s]/g, '') === 'induction,analgesia,nmb,reversal,volatile',
     iref ? iref[1].trim() : '');
+  t('...and the filter admits nothing whose phase is not listed',
+    /if \(allow && allow\.indexOf\(d\.phase\) < 0\) return;/.test(ENGC),
+    'drefDrugs applies groupPhase per row');
   t('D. search narrows within that scope rather than widening past it',
     /rank\s*\?\s*Object\.prototype\.hasOwnProperty\.call\(rank,\s*d\.id\)\s*:\s*true/
       .test(ENGC.replace(/\s+/g, ' ')),
@@ -2099,10 +2369,13 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
       return !!(e && e.state === 'reviewed' && e.authority === 'DailyMed' &&
                 e.documentId && e.section); }),
     VOL.map(id => id + '=' + ((CC.byId(id).warnEvidence || {}).section || 'NONE')));
-  t('...to the SAME document as that agent’s own dose records',
+  /* Same narrowing as the effect line above: the caution and the maintenance
+     figures come from one label and still have to agree about which. */
+  t('...to the SAME document as that agent’s own MAINTENANCE dose records',
     VOL.every(id => { const d = CC.byId(id);
       const setid = (d.warnEvidence || {}).documentId;
-      return (d.doses || []).every(x => x.evidence.documentId === setid); }),
+      return (d.doses || []).filter(x => x.phase === 'maintenance')
+        .every(x => x.evidence.documentId === setid); }),
     VOL.map(id => { const d = CC.byId(id);
       return id + '=' + ((d.warnEvidence||{}).documentId||'').slice(-12); }));
   /* The specific sentence that was wrong, asserted by content. A caution row
@@ -2170,10 +2443,31 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
     VOL.every(id => { const s = (CC.byId(id).effectEvidence || {}).section;
       return typeof s === 'string' && s.length > 8; }),
     VOL.map(id => ((CC.byId(id).effectEvidence || {}).section || 'NONE')));
-  t('...to the SAME setid as that agent\u2019s own dose records',
+  /* WAS: every dose on a volatile record cites the SAME document as its
+     effect line. That held while every figure on the three came from one US
+     label. Sevoflurane's induction titration does not: the US dosage section
+     does not carry that numeric regimen, so it is cited to the UK SmPC and
+     saying otherwise would point a reader at a document that does not
+     contain the numbers.
+
+     The invariant that survives is the one that was doing the work — every
+     dose cites SOMETHING, in full — plus the narrower form of the original:
+     every MAINTENANCE dose still cites the agent's own setid, so the
+     maintenance figures and the effect line still agree about their source. */
+  t('...to the SAME setid as that agent\u2019s own MAINTENANCE dose records',
     VOL.every(id => { const d = CC.byId(id), sid = (d.effectEvidence || {}).documentId;
-      return sid === SETID[id] && d.doses.every(x => x.evidence.documentId === sid); }),
+      return sid === SETID[id] && d.doses.filter(x => x.phase === 'maintenance')
+        .every(x => x.evidence.documentId === sid); }),
     VOL.map(id => id + '=' + ((CC.byId(id).effectEvidence || {}).documentId || '').slice(-12)));
+  /* And an induction dose cited elsewhere says where, in full. */
+  t('...while an induction dose names its own source completely',
+    VOL.every(id => (CC.byId(id).doses || [])
+      .filter(x => x.phase === 'induction')
+      .every(x => x.evidence && x.evidence.authority && x.evidence.title &&
+                  x.evidence.documentId && x.evidence.section)),
+    VOL.map(id => id + ':' + (CC.byId(id).doses || [])
+      .filter(x => x.phase === 'induction')
+      .map(x => (x.evidence || {}).authority).join(',')).filter(x => !/:$/.test(x)));
   t('...and the same setid its caution is sourced to',
     VOL.every(id => { const d = CC.byId(id);
       return d.effectEvidence.documentId === d.warnEvidence.documentId; }));

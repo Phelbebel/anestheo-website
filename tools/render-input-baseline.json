@@ -4320,13 +4320,14 @@
   "totalRows": 185,
   "drugCount": 40,
   "publishableDrugCount": 37,
-  "catalogRows": 4,
+  "catalogRows": 5,
   "catalogMembersPerRow": [
    4,
    4,
    4,
-   4
+   4,
+   3
   ],
-  "catalogCanonicalIds": 16
+  "catalogCanonicalIds": 19
  }
 }

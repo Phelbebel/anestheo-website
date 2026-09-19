@@ -96,7 +96,7 @@
      did. Neither variant hardcodes, overrides or scales it, and "Classic
      RSI" is still not the name of a drug.
 
-     NO DOSE FIGURE BELONGS IN STRATEGY_PRESETS. A preset that carried one
+     NO DOSE FIGURE BELONGS IN STRATEGY_PLANS. A preset that carried one
      would be a second source for a number that already has an owner, and
      the two would drift. */
   /* FOUR APPROACHES, AND RSI IS ONE OF THEM — NOT TWO.
@@ -157,7 +157,14 @@
   var ROLES = [
     { key:'induction', group:'induction', label:'Induction and sedation' },
     { key:'analgesia', group:'analgesia', label:'Opioids and analgesia' },
-    { key:'nmb',       group:'nmb',       label:'Neuromuscular blockade' }
+    { key:'nmb',       group:'nmb',       label:'Neuromuscular blockade' },
+    /* A VOLATILE IS NOT AN IV HYPNOTIC. It has its own role rather than
+       sharing 'induction', because sharing would put sevoflurane in the same
+       bucket as propofol: selecting one would sit beside the other under the
+       same heading, and a preset managing the hypnosis row would empty the
+       volatile with it. Different agent, different route, different dose
+       question, different row. */
+    { key:'volatile',  group:'volatile',  label:'Volatile induction' }
   ];
   /* role -> ARRAY of explicitly selected drug ids.
 
@@ -169,82 +176,96 @@
      UI. Adding is adding; removal is always explicit and per agent. */
   var picked = {};        /* role -> [drug id, ...] */
 
-  /* ── STRATEGY PRESETS: A SUGGESTION LAYER, AND NOTHING BELOW IT ────────
-     A strategy can propose a starting set of agents. It proposes IDS ONLY.
-     There is no dose here, no weight, no context, no prose and no duplicate
-     record: a suggested drug lands in the same picked{} as a drug the
-     clinician pressed, renders through the same card, and asks the same
+  /* ── STRATEGY PLANS: A COMPLETE STARTING REGIMEN, AND NOTHING BELOW IT ─
+     A strategy proposes a whole anaesthetic, not one agent. It proposes IDS
+     ONLY. There is no dose here, no weight, no context, no prose and no
+     duplicate record: a suggested drug lands in the same picked{} as a drug
+     the clinician pressed, renders through the same card, and asks the same
      canonical selector the same question. If this layer disappeared, every
      number on the board would be unchanged.
 
      KEYED BY ROW, NOT BY ROLE. picked{} is keyed by role, and two catalog
-     rows share the role 'induction' — premedication and hypnosis. A preset
+     rows share the role 'induction' — premedication and hypnosis. A plan
      keyed by role could not tell them apart and would empty one while
-     filling the other. So presets name the ROW, which is also what decides
-     the dose context, and applyPreset() resolves row to role on the way in.
+     filling the other. So plans name the ROW, which is also what decides the
+     dose context, and applyPreset() resolves row to role on the way in.
 
-     PREFERRED IS SELECTED; ALTERNATIVES ARE NOT. `preferred` is what the
-     strategy puts on the board for an untouched plan. `alternatives` is the
-     rest of the row that this approach commonly reaches for, and nothing
-     auto-selects from it — it is never a substitute when the preferred agent
-     cannot be offered, because choosing a different drug because the first
-     was unavailable is a clinical decision, not a fallback.
+     SELECTED IS THE PLAN; ALTERNATIVES ARE NOT. Everything in `selected`
+     becomes active on an untouched plan. `alternatives` is the rest of the
+     row this approach commonly reaches for, and nothing auto-selects from
+     it — it is never a substitute when a selected agent cannot be offered,
+     because choosing a different drug because the first was unavailable is a
+     clinical decision this layer must not make.
 
-     WHAT IS DELIBERATELY NOT PREFERRED. An empty `preferred` is a statement,
-     not an omission. RSI names a blocker and no hypnotic and no opioid,
-     because which induction agent and which opioid suit a rapid sequence is
-     a patient and context decision and the board is where it is made. TIVA
-     names propofol and not remifentanil, because an opioid is not what makes
-     an anaesthetic total intravenous. */
-  var STRATEGY_PRESETS = {
+     AND SELECTED IS NOT ENOUGH ON ITS OWN. resolvePreset() will not activate
+     an agent whose strategy context resolves to an unreviewed row. Naming a
+     drug here is a request, not a guarantee. */
+  var STRATEGY_PLANS = {
     iv: { rows:{
-      premedication:{ preferred:[], alternatives:[] },
-      analgesia:    { preferred:[], alternatives:[] },
-      hypnosis:     { preferred:['drug.propofol'],
+      premedication:{ selected:[], alternatives:[] },
+      analgesia:    { selected:['drug.fentanyl'],
+                      alternatives:['drug.alfentanil','drug.remifentanil','drug.morphine'] },
+      hypnosis:     { selected:['drug.propofol'],
                       alternatives:['drug.etomidate','drug.ketamine','drug.thiopental'] },
-      nmb:          { preferred:[], alternatives:[] } } },
-    /* CLASSIC AND MODIFIED SUGGEST THE SAME AGENTS IN V1 and ask the SAME
-       dose question: contextFor() returns ['rsi'] for both and nothing here
-       touches it. They are two keys rather than one because the variant is
-       what the clinician declared, and a later review may separate them
-       without moving the machinery. */
+      /* A STARTING PLAN, NOT A CLAIM THAT EVERY IV ANAESTHETIC IS PARALYSED.
+         This regimen is the intubation-oriented default; the blocker asks
+         the ROUTINE intubating context, never the rapid sequence one, and it
+         is removed in one press for an LMA or a spontaneously breathing
+         technique. Nothing on the card says a blocker is required. */
+      nmb:          { selected:['drug.rocuronium'],
+                      alternatives:['drug.atracurium','drug.mivacurium','drug.suxamethonium'] } } },
+
+    /* CLASSIC AND MODIFIED ARE TWO OBJECTS, NOT ONE OBJECT NAMED TWICE. They
+       hold the same agents in v1 and they may not tomorrow; aliasing them
+       would make a future divergence a refactor instead of an edit. Neither
+       invents a pharmacological difference to justify two buttons, and both
+       ask the same RSI dose context, because contextFor() returns the same
+       rapid sequence tier for both and no dose lives in this object. */
     rsi: { variants:{
       classic: { rows:{
-        premedication:{ preferred:[], alternatives:[] },
-        analgesia:    { preferred:[],
-                        alternatives:['drug.fentanyl','drug.alfentanil'] },
-        hypnosis:     { preferred:[],
-                        alternatives:['drug.propofol','drug.etomidate',
-                                      'drug.ketamine','drug.thiopental'] },
-        nmb:          { preferred:['drug.rocuronium'],
+        premedication:{ selected:[], alternatives:[] },
+        analgesia:    { selected:['drug.fentanyl'],
+                        alternatives:['drug.alfentanil','drug.remifentanil'] },
+        hypnosis:     { selected:['drug.propofol'],
+                        alternatives:['drug.etomidate','drug.ketamine','drug.thiopental'] },
+        nmb:          { selected:['drug.rocuronium'],
                         alternatives:['drug.suxamethonium'] } } },
       modified:{ rows:{
-        premedication:{ preferred:[], alternatives:[] },
-        analgesia:    { preferred:[],
-                        alternatives:['drug.fentanyl','drug.alfentanil'] },
-        hypnosis:     { preferred:[],
-                        alternatives:['drug.propofol','drug.etomidate',
-                                      'drug.ketamine','drug.thiopental'] },
-        nmb:          { preferred:['drug.rocuronium'],
+        premedication:{ selected:[], alternatives:[] },
+        analgesia:    { selected:['drug.fentanyl'],
+                        alternatives:['drug.alfentanil','drug.remifentanil'] },
+        hypnosis:     { selected:['drug.propofol'],
+                        alternatives:['drug.etomidate','drug.ketamine','drug.thiopental'] },
+        nmb:          { selected:['drug.rocuronium'],
                         alternatives:['drug.suxamethonium'] } } } } },
-    /* INHALATIONAL STAYS EMPTY UNTIL INDUCTION-PHASE VOLATILE RECORDS EXIST.
-       The reviewed sevoflurane, desflurane, isoflurane and nitrous oxide
-       records are MAINTENANCE records. They are not reachable from here:
-       none is a catalog member, the eligibility gate below asks an induction
-       context they have no row for, and this object names no agent at all.
-       Populating it is an evidence review, not a layout decision, and until
-       that review happens the strategy's own note is the whole answer. */
-    inhalational:{ rows:{} },
-    /* TIVA NAMES AN AGENT AND NOTHING ABOUT DELIVERING IT. No model, no
-       target concentration, no infusion rate: propofol is part of the
-       declared plan, and Marsh, Schnider, Eleveld and every TCI setting
-       remain absent from this application. The strategy's own note still
-       says so. */
+
+    /* MASK INDUCTION STARTS WITH THE VAPOUR AND NOTHING ELSE. No opioid and
+       no blocker are selected: an inhalational induction is commonly chosen
+       exactly where intravenous access and paralysis are not yet part of the
+       first step. The clinician adds them when the case does. */
+    inhalational:{ rows:{
+      volatile:     { selected:['drug.sevoflurane'],
+                      alternatives:['drug.desflurane','drug.isoflurane'] },
+      premedication:{ selected:[], alternatives:[] },
+      analgesia:    { selected:[], alternatives:['drug.fentanyl','drug.alfentanil'] },
+      hypnosis:     { selected:[], alternatives:['drug.propofol','drug.ketamine'] },
+      nmb:          { selected:[], alternatives:['drug.rocuronium','drug.suxamethonium'] } } },
+
+    /* PROPOFOL AND REMIFENTANIL ARE BOTH THE PLAN. The opioid is not an
+       optional extra here the way it is elsewhere: remifentanil is the
+       analgesic component of a total intravenous anaesthetic and it is
+       selected, not offered.
+
+       THIS OBJECT NAMES NO MODEL AND NO TARGET. Marsh, Schnider, Eleveld,
+       Minto, a plasma target, an effect-site target and an infusion rate are
+       all absent, because no reviewed record holds any of them. The agents
+       render their reviewed induction records until that changes. */
     tiva: { rows:{
-      premedication:{ preferred:[], alternatives:[] },
-      analgesia:    { preferred:[], alternatives:['drug.remifentanil'] },
-      hypnosis:     { preferred:['drug.propofol'], alternatives:[] },
-      nmb:          { preferred:[], alternatives:[] } } }
+      premedication:{ selected:[], alternatives:[] },
+      analgesia:    { selected:['drug.remifentanil'],
+                      alternatives:['drug.fentanyl','drug.alfentanil'] },
+      hypnosis:     { selected:['drug.propofol'], alternatives:['drug.ketamine'] },
+      nmb:          { selected:[], alternatives:['drug.rocuronium','drug.atracurium'] } } }
   };
 
   /* ── WHO OWNS THE PLAN ─────────────────────────────────────────────────
@@ -257,13 +278,13 @@
 
   function presetKeyFor(t, v){
     if (!t) return null;
-    var p = STRATEGY_PRESETS[t];
+    var p = STRATEGY_PLANS[t];
     if (!p) return null;
     if (p.variants) return v ? (t + '/' + v) : null;   /* RSI needs its variant */
     return t;
   }
   function presetFor(t, v){
-    var p = STRATEGY_PRESETS[t];
+    var p = STRATEGY_PLANS[t];
     if (!p) return null;
     if (p.variants) return v ? (p.variants[v] || null) : null;
     return p;
@@ -318,7 +339,7 @@
      would land in picked{} with no card to show it or unselect it. */
   function resolvePreset(t, v){
     var key = presetKeyFor(t, v), p = presetFor(t, v);
-    var out = { key:key, select:[], unresolved:[], rows:[] };
+    var out = { key:key, select:[], unresolved:[], withheld:[], rows:[] };
     if (!p || !p.rows) return out;
     var idx = rowIndex();
     Object.keys(p.rows).forEach(function (rowKey){
@@ -330,13 +351,40 @@
         return;
       }
       out.rows.push(rowKey);
-      (spec.preferred || []).forEach(function (id){
+      (spec.selected || []).forEach(function (id){
         if (meta.memberKeys.indexOf(id) < 0) {
           out.unresolved.push({ rowKey:rowKey, id:id, reason:'not a board member' }); return; }
+        /* ── SELECTING A DRUG AND SHOWING A DOSE ARE TWO DECISIONS ──────
+           They used to be one: an agent was activated only where the
+           strategy's context already resolved to a reviewed row, so an agent
+           whose dose for THIS technique had not been reviewed silently fell
+           out of the regimen. That reads as a clinical statement it is not —
+           "fentanyl is not part of a rapid sequence" — when the truth is
+           narrower and duller: we hold no reviewed row for that question yet.
+
+           So the strategy declares the PLAN and the model answers the DOSE.
+           What this layer checks is that the id is a real member of the row
+           and resolves to a canonical, publishable record — enough for a card
+           that can be shown, pressed and unpressed. What it does not check is
+           whether that record has an answer for this context, because the
+           card says so itself: a withheld row prints its coverage line where
+           the numbers would be, and the clinician sees both that the agent is
+           in the plan and that its dose for this technique is not reviewed.
+
+           NOTHING IS SUBSTITUTED TO FILL THAT GAP. The context list decides
+           what may answer, and a row written for another question is not
+           reachable from here however publishable it is. */
+        var CCx = root.ClinicalContent;
+        var d = CCx && CCx.byId ? CCx.byId(id) : null;
+        if (!d || !CCx.isPublishable(d)) {
+          out.unresolved.push({ rowKey:rowKey, id:id,
+            reason:'no publishable canonical record' }); return; }
+        out.select.push({ roleKey:meta.roleKey, rowKey:rowKey, id:id });
+        /* Reported, not acted on: the plan carries the agent either way, and
+           this is what a caller inspecting the resolution can read. */
         var row = contextRow(meta.roleKey, id, meta.rowKey);
-        if (row && !row.withheld) out.select.push({ roleKey:meta.roleKey, rowKey:rowKey, id:id });
-        else out.unresolved.push({ rowKey:rowKey, id:id,
-          reason:(row && row.coverage) ? row.coverage : 'no reviewed row for this context' });
+        if (!row || row.withheld) out.withheld.push({ rowKey:rowKey, id:id,
+          reason:(row && row.coverage) ? row.coverage : 'no row for this context' });
       });
     });
     return out;
@@ -533,38 +581,80 @@
      sequence, so the context the selector is asked for is the same either
      way — which is the frozen rule, unchanged by the tiles above it. */
   function isRSI(){ return technique === 'rsi'; }
-  function contextFor(roleKey, rowKey){
-    var CC = root.ClinicalContent;
-    /* A BLOCKER'S LIST NEVER GROWS. Both entries are single, so an RSI
-       question has nothing to fall back to and a routine question cannot
-       reach an RSI record. There is no unphased blocker record and no tier
-       here that could answer with one if there were. */
-    if (roleKey === 'nmb') return isRSI() ? ['rsi'] : ['intubation'];
-    /* ── THE HYPNOSIS ROW ASKS A NARROWER QUESTION ─────────────────────
-       It has no unphased tier. That tier exists so records predating the
-       reviewed migration still render, and it matches ANY record declaring
-       no context — which for dexmedetomidine is a sedation infusion,
-       0.2-0.7 mcg/kg/h, a maintenance rate for a sedated patient. Printed in
-       the hypnosis slot of an induction board it reads as the dose that
-       induces this patient, which it is not, and no wording on the card can
-       undo where the number is standing.
+  /* ── STRATEGY x ROW -> THE QUESTION THE BOARD ASKS ────────────────────
+     One table, read once, instead of a chain of conditions that grew an
+     `if` every time a strategy was added. Each cell is a list of dose
+     PHASES in priority order; doseRowForContext walks them and returns the
+     first publishable, eligible row it finds.
 
-       So the question the row asks is the question the row means: a dose
-       reviewed for INDUCTION, or nothing. Propofol and ketamine answer it
-       from their own phased records; dexmedetomidine has no such record and
-       says so. This narrows what the board will accept — it does not change
-       what the model holds, and the sedation record is still exactly one row
-       of the drug reference below, in its own context. */
-    if (rowKey === 'hypnosis') return isRSI() ? ['rsi', 'induction'] : ['induction'];
-    /* Premedication and analgesia keep the unphased tier: without it the
-       plan would print a coverage line for midazolam, morphine and the
-       legacy fentanyl row while the reference beside it printed their dose. */
-    var legacy = CC ? CC.LEGACY_CONTEXT : '(unphased)';
-    return isRSI() ? ['rsi', 'induction', legacy] : ['induction', legacy];
+     THIS TABLE CONTAINS NO DOSE. It contains the names of questions. Every
+     number comes from the record the question finds, which is why a blocker
+     changes value under a rapid sequence and propofol does not.
+
+     A BLOCKER'S LIST NEVER GROWS. Both entries are single, so an RSI
+     question has nothing to fall back to and a routine question cannot
+     reach an RSI record.
+
+     THE ANALGESIA ROW LOST ITS LEGACY TIER, and that is the second half of
+     the fentanyl correction. Scoping the reviewed adult row to a
+     spontaneous-respiration phase stopped it answering a controlled-airway
+     plan — and left the tier below it to answer instead, with the very
+     unreviewed 1-3 mcg/kg row the scoping was protecting the board from.
+
+     Two agents lose a number here and both are right to. Fentanyl's adult
+     card now reports that no reviewed row answers this context, which is
+     true. Morphine's only row is POSTOPERATIVE analgesia, and an induction
+     board printing a postoperative dose is the same failure the hypnosis row
+     removed when it dropped dexmedetomidine's sedation infusion. Both drugs
+     keep their card, their place in the row and their entry in the drug
+     reference, where the record is shown in its own context.
+
+     THE HYPNOSIS ROW HAS NO LEGACY TIER. That tier exists so records
+     predating the reviewed migration still render, and it matches ANY
+     record declaring no phase — which for dexmedetomidine is a sedation
+     infusion, a maintenance rate for a sedated patient. Printed in the
+     hypnosis slot of an induction board it reads as the dose that induces
+     this patient, which it is not.
+
+     THE VOLATILE ROW ASKS FOR INDUCTION AND ONLY INDUCTION. Sevoflurane
+     holds a maintenance record and an induction record; this is the line
+     that keeps them apart. There is no tier here that a maintenance row
+     could answer, under any strategy, ever.
+
+     TIVA ASKS FOR INFUSION CONTENT FIRST AND FINDS NONE TODAY. 'tiva' and
+     'infusion' are real phases in the model that no record uses yet, so the
+     lookup falls through to 'induction' and the agents render their
+     reviewed induction records. When a reviewed infusion record is written
+     it is answered here without a code change — and until then nothing
+     invents one. */
+  var LEGACY = function (){ var CC = root.ClinicalContent;
+    return CC ? CC.LEGACY_CONTEXT : '(unphased)'; };
+  function strategyContexts(){
+    var L = LEGACY();
+    return {
+      iv: {
+        premedication:['induction', L], analgesia:['induction'],
+        hypnosis:['induction'], nmb:['intubation'], volatile:['induction'] },
+      rsi: {
+        premedication:['rsi', 'induction', L], analgesia:['rsi', 'induction'],
+        hypnosis:['rsi', 'induction'], nmb:['rsi'], volatile:['induction'] },
+      inhalational: {
+        premedication:['induction', L], analgesia:['induction'],
+        hypnosis:['induction'], nmb:['intubation'], volatile:['induction'] },
+      tiva: {
+        premedication:['induction', L], analgesia:['tiva', 'infusion', 'induction'],
+        hypnosis:['tiva', 'infusion', 'induction'], nmb:['intubation'],
+        volatile:['induction'] }
+    };
   }
-  /* THE MODEL DECIDES, NOT THIS FILE. doseRowForContext() applies the same
-     publishability, population, age-band and applicability rules as every
-     other surface; this passes it a context and renders what comes back. */
+  function contextFor(roleKey, rowKey){
+    var map = strategyContexts();
+    /* No strategy chosen is not a fifth strategy. The board still has to ask
+       something, and what it asks is the ordinary intravenous question. */
+    var table = map[technique] || map.iv;
+    var key = rowKey || roleKey;
+    return table[key] || table[roleKey] || ['induction', LEGACY()];
+  }
   function contextRow(roleKey, id, rowKey){
     var CC = root.ClinicalContent;
     if (!CC || !CC.doseRowForContext) return null;
@@ -730,7 +820,14 @@
     var CC = root.ClinicalContent;
     var cat = root.InductionCatalog;
     if (!CC || !cat) return [];
-    return (cat.rows || []).map(function (row){
+    return (cat.rows || []).filter(function (row){
+      /* A ROW SCOPED TO A STRATEGY IS DRAWN ONLY UNDER IT. The volatile row
+         is the first of these: under IV, RSI or TIVA it would be a heading
+         over three cards that the strategy did not ask about and cannot
+         answer, every one of them reporting that an induction concentration
+         is not reviewed for the question being asked. */
+      return !row.strategy || row.strategy === technique;
+    }).map(function (row){
       /* THE ROW'S OWN KEY TRAVELS WITH IT. `key` is the plan bucket a
          selection lands in and two rows share it; `rowKey` is which row this
          is, and it is what decides the dose context the row asks about. */
@@ -772,10 +869,36 @@
                                                : 'Dose not reviewed' };
     var pk = planKey(base);
     var on = hasDrug(roleKey, pk);
+    /* ── PER-KG IS A RULE; AN ABSOLUTE DOSE IS AN AMOUNT ───────────────
+       A weight-based record has both: the rule the clinician checks
+       ("2-2.5 mg/kg TBW") and the amount it comes to for this patient
+       ("150-188 mg"). A record the label states in absolute units has only
+       the second — 50-200 mcg is already the amount, and no weight makes it
+       anything else.
+
+       It used to print in the RULE slot with the amount blank, which put the
+       same figure in a different column from the one the drug reference uses
+       for it. Two surfaces, one dose, two positions: a clinician comparing
+       them has to work out that nothing differs. The amount goes where every
+       other amount goes, and the rule stays empty because there is not one.
+
+       THE TITRATION PROTOCOL IS THE EXCEPTION AND STAYS IN THE RULE SLOT.
+       "Start 0.5-1% · up 0.5-1% · max 8%" is a procedure, not an amount, and
+       it is not a figure for this patient's weight either. */
+    /* A RATE IS A RULE, NOT AN AMOUNT. 0.5-1 mcg/kg/min is set on a pump and
+       stays per-kg however much the patient weighs, so it belongs in the
+       rule slot beside 2-2.5 mg/kg. Only a dose the source states in
+       absolute units — 50-200 mcg — is an amount that needs no weight. */
+    var perKg = /\/kg/.test(String(d.unit || ''));
+    var isTitration = /^Start /.test(String(d.val || ''));
+    var absolute = !d.doseNum && d.val && !d.withheld && !perKg && !isTitration;
     var rule = d.doseNum
       ? '<b>' + d.doseNum + '</b> <i>' + esc(d.doseUnit || '') + '</i>'
-      : (d.val ? '<b>' + esc(d.val) + '</b> <i>' + esc(d.unit || '') + '</i>' : '');
-    var amount = (d.doseNum && d.val) ? esc(d.val) + '<i>' + esc(d.unit || '') + '</i>' : '';
+      : ((d.val && !absolute && !d.withheld)
+           ? '<b>' + esc(d.val) + '</b> <i>' + esc(d.unit || '') + '</i>' : '');
+    var amount = (d.doseNum && d.val)
+      ? esc(d.val) + '<i>' + esc(d.unit || '') + '</i>'
+      : (absolute ? esc(d.val) + '<i>' + esc(d.unit || '') + '</i>' : '');
     /* THE CARD IS THE CONTROL. A text button inside it spent a third of the
        last line — the line the patient's amount is on — saying what the card
        itself can say by lighting up. The card is a <button>, it carries
@@ -891,16 +1014,22 @@
        not, and this board asks the induction question, so the statement is
        made specific rather than left standing as a claim about the whole
        dataset that the dataset no longer supports. */
+    /* WAS: "Volatile induction dosing is not reviewed in the current clinical
+       dataset, so no induction concentration is shown here." True when it was
+       written and false the moment sevoflurane's induction record landed —
+       and it would have stood directly above a card showing that record. What
+       replaces it says which agent holds one, because the answer for the
+       other two is still no. */
     inhalational:{ label:'Inhalational induction', cls:'stx-inh',
-          note:'Volatile induction dosing is not reviewed in the current clinical ' +
-               'dataset, so no induction concentration or inspired percentage is shown ' +
-               'here. The board below remains available for the intravenous agents used ' +
-               'alongside it, and reviewed maintenance concentrations are in Maintenance.' },
+          note:'The volatile row asks for a reviewed INDUCTION record and takes no ' +
+               'answer from a maintenance one. Sevoflurane holds a reviewed induction ' +
+               'titration; desflurane and isoflurane do not, and say so. Maintenance ' +
+               'concentrations for all three remain in Maintenance.' },
     tiva:{ label:'TIVA / TCI', cls:'stx-tiva',
-          note:'No target-controlled infusion content has been reviewed in this ' +
-               'application — no target concentration, model or infusion rate. The ' +
-               'reviewed bolus and infusion records the drug reference already holds ' +
-               'are unchanged and appear below.' }
+          note:'Propofol and remifentanil are the declared plan. No target-controlled ' +
+               'infusion content is reviewed in this application — no target ' +
+               'concentration, model or infusion rate — so none is shown anywhere. ' +
+               'Both agents render the reviewed records the drug reference holds.' }
   };
   function strategyContext(){
     if (!technique) return '';
@@ -1388,8 +1517,8 @@
                         it. It is the only writable hook and it touches no
                         clinical content: a preset is ids. */
                      __presetsForTest:function (p){
-                       if (p === undefined) return STRATEGY_PRESETS;
-                       STRATEGY_PRESETS = p; return STRATEGY_PRESETS; },
+                       if (p === undefined) return STRATEGY_PLANS;
+                       STRATEGY_PLANS = p; return STRATEGY_PLANS; },
                      __resolvePresetForTest:function (t, v){ return resolvePreset(t, v); },
                      get roles(){ return ROLES.map(function (r){ return r.key; }); },
                      get technique(){ return technique; },

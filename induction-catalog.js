@@ -95,6 +95,30 @@
           { key:'atracurium',    canonicalId:'drug.atracurium' },
           { key:'mivacurium',    canonicalId:'drug.mivacurium' },
           { key:'suxamethonium', canonicalId:'drug.suxamethonium' }
+        ] },
+      /* ── THE VOLATILE ROW, AND WHY IT IS A ROW ─────────────────────────
+         Sevoflurane is not an intravenous hypnotic and does not belong
+         beside propofol: different route, different administration, and a
+         different question about the dose. It gets its own row and its own
+         role so that a plan managing hypnosis cannot empty it and a plan
+         managing it cannot empty hypnosis.
+
+         `strategy` IS COMPOSITION, NOT MEDICINE. It says which approach this
+         row belongs to, the same kind of fact as which row a member sits in.
+         It carries no dose, no concentration and no claim; the row is simply
+         not drawn under a strategy it is not part of, because a volatile
+         induction row under TIVA is a question nobody asked.
+
+         THE MEMBERS ARE THE SAME RECORDS THE MAINTENANCE WORKSPACE USES.
+         One drug.sevoflurane, holding an induction record and a maintenance
+         record, and the context the board asks decides which one answers.
+         Nothing is duplicated to get it here. */
+      { key:'volatile', label:'Volatile induction', role:'volatile',
+        strategy:'inhalational',
+        members:[
+          { key:'sevoflurane', canonicalId:'drug.sevoflurane' },
+          { key:'desflurane',  canonicalId:'drug.desflurane' },
+          { key:'isoflurane',  canonicalId:'drug.isoflurane' }
         ] }
     ]
   };

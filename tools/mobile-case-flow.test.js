@@ -655,8 +655,15 @@ async function type(pg, sel, text) {
           seen[id].planKeys === chosen.planKeys, seen[id].planKeys);
         t('strategy/' + id + ': a context surface states the active strategy',
           !!seen[id].stx, (seen[id].stx || '').slice(0, 50));
-        t('strategy/' + id + ': the board is still four rows of four, 2-up on a phone',
-          (seen[id].boardRows || []).join(' ') === '4/2 4/2 4/2 4/2',
+        /* FOUR ROWS, PLUS THE VOLATILE ROW WHERE THE STRATEGY ASKS FOR IT.
+           The volatile induction row is scoped to the inhalational approach
+           and is not drawn under the other three; under inhalational it is a
+           fifth row of three agents. Still 2-up on a phone, which is what
+           this assertion is actually about. */
+        const expectRows = id === 'inhalational'
+          ? '4/2 4/2 4/2 4/2 3/2' : '4/2 4/2 4/2 4/2';
+        t('strategy/' + id + ': the board rows stay 2-up on a phone',
+          (seen[id].boardRows || []).join(' ') === expectRows,
           seen[id].boardRows);
       }
       t('strategy: every strategy produces a DIFFERENT workstation state',
@@ -699,8 +706,17 @@ async function type(pg, sel, text) {
       const NUMERIC = /\b\d+(\.\d+)?\s*(%|mac|vol%|mcg\/ml|ng\/ml|µg\/ml)\b/i;
       t('inhalational: no concentration, MAC or inspired percentage',
         !NUMERIC.test(seen.inhalational.stx || ''), seen.inhalational.stx);
-      t('inhalational: it says the volatile dosing is not reviewed',
-        /not reviewed/i.test(seen.inhalational.stx || ''), seen.inhalational.stx);
+      /* WAS: the strip must say the volatile dosing "is not reviewed". That
+         was true of all three volatiles; sevoflurane holds a reviewed
+         induction titration now, and a strip still saying so would sit
+         directly above the card showing it. The claim becomes the one that
+         is still true and still protects the clinician: the strip says an
+         induction record is what the row asks for, and it still reports the
+         two agents that do not have one. */
+      t('inhalational: the strip says an INDUCTION record is what is asked for',
+        /induction record/i.test(seen.inhalational.stx || '') &&
+        /do not|not reviewed/i.test(seen.inhalational.stx || ''),
+        seen.inhalational.stx);
       t('TIVA: no target concentration or model invented',
         !NUMERIC.test(seen.tiva.stx || '') &&
         !/marsh|schnider|minto|eleveld/i.test(seen.tiva.stx || ''), seen.tiva.stx);

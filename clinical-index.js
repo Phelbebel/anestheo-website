@@ -81,7 +81,23 @@ function fmtNum(n, dec){
 }
 
 /* Render one structured dose for a given patient weight (kg | null). */
+/* A TITRATION IS THREE FACTS IN AN ORDER, and the renderer builds the line
+   from the three rather than from a sentence stored beside them. There is no
+   `display` string on a titration row on purpose: a free-text copy would be
+   the thing a reader trusts while start, increment and max quietly drifted
+   away from it, and the structured fields would become decoration. This is
+   the ONLY place the compact form is composed, so the plan card, the drug
+   reference and any future surface cannot disagree about it. */
+function titrationLine(d){
+  var span = function (r){ return (r.low === r.high) ? String(r.low)
+                                                     : (r.low + '\u2013' + r.high); };
+  var u = d.unit || '';
+  return 'Start ' + span(d.start) + u +
+         ' \u00b7 \u2191 ' + span(d.increment) + u +
+         ' \u00b7 max ' + d.max + u;
+}
 function renderDose(d, wt){
+  if (d.type === 'titration-protocol') return { val:titrationLine(d), unit:'' };
   if (d.display) return { val:d.display, unit:d.unit || '' };
   /* A RATE (mcg/kg/min, mcg/kg/h) always stays per-kg — it is set on a pump.
      A SINGLE DOSE (mg/kg) converts to the absolute amount for this patient,
@@ -112,6 +128,12 @@ function supportLine(item, dose, wt){
   var bits = [];
   if (dose.route) bits.push('<b class="rt">' + dose.route + '</b>');
   if (dose.label) bits.push(dose.label);
+  if (dose.type === 'titration-protocol'){
+    /* The compact line already carries start, increment and maximum. Adding
+       "maximum 8" after it would say the ceiling twice. */
+    bits.push(titrationLine(dose));
+    return bits.filter(Boolean).join(' · ');
+  }
   if (dose.basisWeight){
     var lo = dose.low != null ? (dose.low+'–'+dose.high) : String(dose.value);
     if (dose.alt && dose.alt.value != null) lo += ' / ' + dose.alt.value + ' ' + dose.alt.label;
@@ -481,6 +503,44 @@ var DRUGS = [
     { label:'Peri-induction analgesia', route:'IV',
       low:1, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
       population:'adult' },
+    /* ── THE ADULT DOSE THE LABEL ACTUALLY STATES ─────────────────────────
+       REVIEWED 19/09. The row above is the reason this one exists. It says
+       1-3 mcg/kg for an adult and no source says that: the SmPC gives the
+       adult anaesthetic dose in ABSOLUTE micrograms, and it gives 1-3 mcg/kg
+       only for children aged 2 to 11. Adding an evidence object to the row
+       above would have manufactured provenance for a number the label does
+       not contain, so the reviewed adult dose is a NEW row carrying what the
+       label says, in the units the label says it in.
+
+       IT IS NOT CONVERTED. 50-200 mcg is not divided by a weight to look
+       like the row above it, and no weight-adjusted equivalent is computed
+       anywhere: basisWeight is absent, so renderDose prints the range as the
+       label states it whatever the patient weighs.
+
+       THE INITIAL DOSE FOR A SPONTANEOUSLY BREATHING ADULT is the one the
+       induction board asks for: at induction the airway is not yet secured.
+       The label's assisted-ventilation regimen is a different clinical
+       situation with its own much wider range, and it is deliberately not
+       written here — publishing it would need its own review and its own
+       context, and a second adult induction row would compete with this one
+       for the same question. */
+    { label:'Anaesthesia, spontaneous respiration \u2014 initial', route:'IV',
+      /* NOT phase:'induction'. It was, and that made it the answer to every
+         adult induction query — including the IV and rapid sequence plans,
+         which select a blocker and are therefore controlled-airway regimens.
+         The label separates the two cases and so does this. */
+      phase:'spontaneous-respiration',
+      low:50, high:200, unit:'mcg', type:'range',
+      note:'Initial dose in a spontaneously breathing adult; supplemental '
+         + 'doses of 50 micrograms. Individualise to age, body weight, '
+         + 'physical status, underlying condition, other drugs, and the type '
+         + 'of surgery and anaesthesia. Higher initial doses apply where '
+         + 'ventilation is assisted, which this row does not cover.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'eMC / UK SmPC',
+                 title:'Fentanyl 50 micrograms/ml Solution for Injection',
+                 documentId:'eMC Summary of Product Characteristics',
+                 section:'4.2 Posology and method of administration, adults' } },
     /* REVIEWED 3/11 */
     { label:'Induction and maintenance', route:'IV', phase:'induction',
       low:2, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
@@ -1079,7 +1139,68 @@ var DRUGS = [
       evidence:{ state:'reviewed', authority:'DailyMed',
                  title:'Sevoflurane, Inhalation Anesthetic, Prescribing Information',
                  documentId:'DailyMed setid bdde7502-6218-401c-9a4f-dd3bc3a80f72',
-                 section:'DOSAGE AND ADMINISTRATION, MAC values in oxygen and in nitrous oxide' } }
+                 section:'DOSAGE AND ADMINISTRATION, MAC values in oxygen and in nitrous oxide' } },
+
+    /* ── INDUCTION IS A TITRATION, NOT A RANGE ────────────────────────────
+       REVIEWED 19/09. Everything above this point is MAINTENANCE, and the
+       two must never answer each other's question: 0.5-3% printed under an
+       induction strategy would be a maintenance concentration standing where
+       a clinician reads the dose that puts the patient to sleep.
+
+       IT IS NOT low/high. Flattening the label's protocol to 0.5-8% would
+       print a therapeutic range where the source describes a procedure: a
+       starting concentration, a step size and a ceiling, in that order. A
+       clinician reading "0.5-8%" would reasonably start anywhere in it.
+       type:'titration-protocol' keeps the three as three, and renderDose
+       builds the line from them rather than from a sentence written here, so
+       the structured fields are the content and not decoration beside it.
+
+       TWO ROWS, ONE PROTOCOL. The titration is identical for adults and
+       children; what differs is the concentration each population usually
+       needs and how quickly it works. Splitting by population means the card
+       shows the sentence for the patient in front of the clinician instead
+       of both and a decision about which applies.
+
+       THE SOURCE IS THE UK SmPC, NAMED AS SUCH. The US label confirms
+       sevoflurane is suitable for mask induction — that sentence is already
+       this record's `effect` — but its dosage section does not carry this
+       numeric regimen, so the citation below is the eMC SmPC and not
+       DailyMed. Citing the setid above for these numbers would point a
+       reader at a document that does not contain them. */
+    { label:'Induction', route:'Inhalational', phase:'induction',
+      type:'titration-protocol',
+      start:{ low:0.5, high:1 }, increment:{ low:0.5, high:1 }, max:8,
+      unit:'%',
+      note:'In oxygen, with or without nitrous oxide. Increase in steps until '
+         + 'the required depth is reached, titrated to age and clinical '
+         + 'status. Inspired concentrations up to 5% usually produce surgical '
+         + 'anaesthesia in under 2 minutes in adults.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'eMC / UK SmPC',
+                 title:'Sevoflurane 100% Inhalation Vapour, liquid (Piramal Critical Care Ltd)',
+                 documentId:'eMC Summary of Product Characteristics, updated 12 August 2026',
+                 section:'4.2 Posology and method of administration, Anaesthesia Induction' } },
+    { label:'Induction', route:'Inhalational', phase:'induction',
+      type:'titration-protocol',
+      start:{ low:0.5, high:1 }, increment:{ low:0.5, high:1 }, max:8,
+      unit:'%',
+      note:'In oxygen, with or without nitrous oxide. Increase in steps until '
+         + 'the required depth is reached, titrated to age and clinical '
+         + 'status. Inspired concentrations up to 7% usually produce surgical '
+         + 'anaesthesia in under 2 minutes in children.',
+      /* 'B', NOT 'C'. 'C' is AGE_BANDED and its gate calls inAgeBand(), so a
+         'C' row without an ageBand is withheld from every child — which is
+         what happened when this was first written. Propofol's paediatric
+         induction row is 'C' because its label states 3 to 16 years; the
+         sevoflurane SmPC section says "children" and states no band, and
+         inventing one to match the neighbouring record would be writing a
+         limit no source has set. 'B' is reviewed-for-paediatric with no band
+         claimed, which is exactly what the source supports. */
+      population:'paediatric', populationClass:'B',
+      evidence:{ state:'reviewed', authority:'eMC / UK SmPC',
+                 title:'Sevoflurane 100% Inhalation Vapour, liquid (Piramal Critical Care Ltd)',
+                 documentId:'eMC Summary of Product Characteristics, updated 12 August 2026',
+                 section:'4.2 Posology and method of administration, Anaesthesia Induction' } }
   ],
   prep:'', severity:'caution',
   /* MOVED OUT OF THE PAGE AND INTO THE RECORD. This sentence lived in
@@ -1684,11 +1805,26 @@ function rowFor(d, dose, wt){
         ruleUnit = dose.unit + (dose.basis ? (' '+dose.basis) : '');
         rule = ruleNum + ' ' + ruleUnit;
       } else if (dose.basis){ rule = dose.basis; ruleUnit = dose.basis; }
-      if (dose.max){
+      /* A TITRATION HAS ALREADY SAID ITS MAXIMUM. renderDose composed
+         "Start 0.5-1% · up 0.5-1% · max 8%" from the same field, so appending
+         "max 8" here printed the ceiling twice on one row, once with its unit
+         and once without. The ceiling belongs to the composed line and is
+         emitted in exactly one place. */
+      if (dose.max && dose.type !== 'titration-protocol'){
         rule += (rule ? ' · ' : '') + 'max ' + dose.max;
         ruleUnit += (ruleUnit ? ' · ' : '') + 'max ' + dose.max;
       }
-      return { id:d.id, name:d.name, val:r.val, unit:r.unit,
+      /* ── A TITRATION IS THE DOSE, NOT THE AMOUNT FOR THIS PATIENT ─────
+         renderDose returns the protocol as the row's value, which put it
+         under "This patient" in the reference table — and the protocol is
+         identical for every patient of that population. It does not scale
+         with a weight and there is nothing patient-specific about it. It
+         belongs in the dose column, and the patient column stays empty
+         rather than repeating it. */
+      var titration = (dose.type === 'titration-protocol');
+      if (titration){ rule = r.val; ruleNum = r.val; ruleUnit = ''; }
+      return { id:d.id, name:d.name,
+               val:titration ? '' : r.val, unit:titration ? '' : r.unit,
                /* The pharmacological class in the record's own words.
                   Additive: `pclass` is the colour system's coarse bucket and
                   says "neuromuscular blocker"; `klass` is what the entry
@@ -1770,11 +1906,24 @@ function visibleDrugsInGroup(groupId, wt){
    covers two contexts carries two dose records — which is why dose
    enumeration (visibleDosesInGroup, below) had to come before this vocabulary
    was of any use: a second record on a drug was invisible until it did.     */
+/* A PHASE IS THE QUESTION A ROW ANSWERS. SPONTANEOUS is the narrowest of
+   them and exists because a label can separate two regimens that share a
+   drug, a route and a moment in the case. Fentanyl's adult SmPC dosing is
+   one initial dose for a patient who is breathing and a different, far wider
+   one for a patient whose ventilation is assisted; an induction board that
+   selected a blocker and then printed the spontaneous-respiration figure
+   would be answering the wrong question with a real number, which is worse
+   than answering none.
+
+   No strategy context asks for this phase today. It is reachable from the
+   drug reference, which enumerates what a record holds, and from any future
+   context written for a spontaneously breathing technique. */
 var PHASES = { INDUCTION:'induction', MAINTENANCE:'maintenance',
                REDOSE:'redose', REVERSAL:'reversal',
                INTUBATION:'intubation', RSI:'rsi',
                PREMEDICATION:'premedication', ANALGESIA:'analgesia',
-               SEDATION:'sedation', INFUSION:'infusion', RESCUE:'rescue' };
+               SEDATION:'sedation', INFUSION:'infusion', RESCUE:'rescue',
+               SPONTANEOUS:'spontaneous-respiration' };
 
 function dosesForPhase(d, phase){
   if (!d || !d.doses || !phase) return [];

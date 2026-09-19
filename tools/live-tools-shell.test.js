@@ -1341,6 +1341,14 @@ const fill = (pg, o) => pg.evaluate(o => {
                  names: items.map(e => {
                    const n = e.querySelector('.dtab-n, .dm-n');
                    return n ? n.textContent.trim() : ''; }),
+                 /* The whole row, so an assertion can say WHICH record of a
+                    drug was admitted rather than only that the drug was. */
+                 rows: items.map(e => {
+                   const q = sel => { const x = e.querySelector(sel);
+                     return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
+                   return { name:q('.dtab-n, .dm-n'), use:q('.dtab-u, .dm-u'),
+                            rule:q('.dtab-r, .dm-r'), amount:q('.dtab-a, .dm-a'),
+                            all:e.textContent.replace(/\s+/g, ' ').trim() }; }),
                  heights: items.slice(0,6).map(e => Math.round(e.getBoundingClientRect().height)),
                  toggle: !!document.querySelector('.dref-view'),
                  /* THE VALUES MUST NOT CHANGE WITH THE PRESENTATION. */
@@ -1391,18 +1399,43 @@ const fill = (pg, o) => pg.evaluate(o => {
          above, glycopyrrolate paediatric, and propofol's new 65-and-over
          record, which a 44-year-old does not meet. 34 − 5 = 29.
 
+         NOW THIRTY. Fentanyl gained one reviewed row in the strategy-regimen
+         pass: the adult anaesthetic dose the SmPC actually states, 50-200 mcg
+         in absolute units. The unreviewed 1-3 mcg/kg adult row it sits beside
+         is unchanged and still rendered here, because the reference is a
+         formulary and prints what the model holds — the difference is that a
+         strategy may no longer auto-select the unreviewed one. 35 − 5 = 30.
+
+         NO VOLATILE IS IN THIS COUNT. Sevoflurane gained an induction record
+         and a place on the induction BOARD in the same pass; the induction
+         drug REFERENCE scope was deliberately not widened to the volatile
+         group, so no maintenance concentration entered this surface. If this
+         number ever jumps by the size of the volatile group, that is what
+         happened.
+
          The elderly row being absent HERE is the point of the count: the
          reference withholds by population exactly as the board does, so a
          number that included it would be evidence of a leak. The count that
          must not drift is the DRUG count; the row count is asserted beside it
          so an accidental duplicate still fails. */
-      t(w + ': ...over all twenty drugs', rr.nDrugs === 20, rr.nDrugs);
-      t(w + ': ...as twenty-nine reviewed rows', rr.n === 29, rr.n);
-      /* C. Named, so the failure says which agent leaked rather than only
-            that a count moved. */
-      t(w + ': ...and no volatile agent among them',
-        !/sevoflurane|desflurane|isoflurane/i.test(rr.names.join(' ')),
-        rr.names.filter(n => /sevoflurane|desflurane|isoflurane/i.test(n)));
+      t(w + ': ...over all twenty-one drugs', rr.nDrugs === 21, rr.nDrugs);
+      t(w + ': ...as thirty-one reviewed rows', rr.n === 31, rr.n);
+      /* C. WAS: no volatile agent among them, at all. Sevoflurane holds a
+            reviewed INDUCTION record now and this is an induction reference,
+            so it belongs — and the rule that replaced the blanket is what is
+            asserted instead: the only volatile admitted is one that answers
+            the question this surface asks. Desflurane and isoflurane hold
+            maintenance records only and must still be absent, and no
+            maintenance concentration may appear for sevoflurane either. */
+      t(w + ': ...and the only volatile among them is sevoflurane',
+        !/desflurane|isoflurane|nitrous/i.test(rr.names.join(' ')),
+        rr.names.filter(n => /desflurane|isoflurane|nitrous/i.test(n)));
+      t(w + ': ...admitted for its induction titration, not a maintenance row',
+        (() => { const sevo = rr.rows.filter(r => /sevoflurane/i.test(r.all || ''));
+          return sevo.length === 1 && /Induction/.test(sevo[0].all) &&
+                 /Start/.test(sevo[0].all) &&
+                 !/0\.5.{0,3}3\s*%/.test(sevo[0].all); })(),
+        rr.rows.filter(r => /sevoflurane/i.test(r.all || '')).map(r => r.all.slice(0, 120)));
       if (rr.mode === 'reduced')
         t(w + ': ...with Preparation folded into the detail, the rest kept',
           rr.cols.join('|') === 'Drug|Use|Dose|This patient', rr.cols);
@@ -1447,14 +1480,28 @@ const fill = (pg, o) => pg.evaluate(o => {
           const n = e.querySelector('.dtab-n, .dm-n'); return n ? n.textContent.trim() : ''; });
         const VOL = /sevoflurane|desflurane|isoflurane/i;`;
 
-      /* C. Default induction reference: no volatile agent. */
+      /* C. WAS: the default induction reference contains no volatile agent.
+            The rule it stood for was that a maintenance concentration may not
+            reach an induction surface, and that still holds — what changed is
+            that sevoflurane has a reviewed INDUCTION record and the surface
+            admits volatiles by phase rather than excluding the group. So the
+            claim becomes: sevoflurane yes, and only its induction row; the
+            two agents with maintenance records only, no. */
       const idef = await v.pg.evaluate(`(() => {
         ${ROWS}
         const names = namesIn('#iref-body');
-        return { names, vol:names.filter(n => VOL.test(n)) };
+        const sevo = rowsIn('#iref-body')
+          .filter(e => /sevoflurane/i.test(e.textContent))
+          .map(e => e.textContent.replace(/\s+/g, ' ').trim());
+        return { names, sevo,
+                 other:names.filter(n => /desflurane|isoflurane|nitrous/i.test(n)) };
       })()`);
-      t('C. the default induction reference contains no volatile agent',
-        idef.vol.length === 0, idef.vol);
+      t('C. the induction reference admits sevoflurane, for its induction row',
+        idef.sevo.length === 1 && /Induction/.test(idef.sevo[0]) &&
+        /Start/.test(idef.sevo[0]) && !/0\.5.{0,3}3\s*%/.test(idef.sevo[0]),
+        idef.sevo.map(x => x.slice(0, 110)));
+      t('C. ...and admits no volatile that holds maintenance records only',
+        idef.other.length === 0, idef.other);
 
       /* D. And an explicit search does not widen it. Each agent is typed into
             the induction reference's own search box; the correct answer is an
@@ -1462,7 +1509,12 @@ const fill = (pg, o) => pg.evaluate(o => {
             mount's scope rather than reaching past it into the index. The
             same query is run against the FULL reference in the same breath,
             so a zero here is proved to be the scope and not a broken search. */
-      for (const q of ['sevoflurane', 'desflurane', 'isoflurane']) {
+      /* Sevoflurane is deliberately absent from this loop: it is IN the
+         induction scope now, and asserting a search for it returns nothing
+         would assert the opposite of what section C just proved. The two
+         agents that hold maintenance records only are still unreachable, and
+         a search is how a clinician would try hardest to reach them. */
+      for (const q of ['desflurane', 'isoflurane']) {
         const r = await v.pg.evaluate(`(async () => {
           ${ROWS}
           const set = (id, val) => { const el = document.getElementById(id);

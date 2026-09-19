@@ -4117,11 +4117,25 @@ function compute(){
       '<button type="button" class="tiva-hero-a" onclick="setDomain(\'drugs\')">' +
         '&#128214; Reference</button>' +
     '</div>' +
-    '<div class="tiva-tops">' +
-      tivaTop('tv-prop','&#128137;','Propofol, induction (Ce)','4 – 6','mcg/mL','Target effect-site concentration') +
-      tivaTop('tv-prop','&#128137;','Propofol, maintenance (Ce)','2.5 – 4','mcg/mL','Target effect-site concentration') +
-      tivaTop('tv-remi','&#128167;','Remifentanil (Ce)','2 – 6','ng/mL','Target effect-site concentration') +
-    '</div>';
+    /* ── THE THREE TARGETS ARE GONE, AND NO NUMBER REPLACES THEM ───────
+       They read "Propofol, induction (Ce) 4 – 6 mcg/mL", "Propofol,
+       maintenance (Ce) 2.5 – 4" and "Remifentanil (Ce) 2 – 6 ng/mL", in the
+       largest type on the page, with no canonical record behind any of them:
+       no evidence object, no provenance, no population gate. They disagreed
+       with the reference panel below, which gave propofol induction as 3–6
+       or 4–6 depending on the model. And the induction workstation's own
+       TIVA note tells the clinician this application holds no reviewed
+       target, model or infusion rate — which this row contradicted, in the
+       same session, in bigger type.
+
+       A COVERAGE STATE, NOT A SUBSTITUTE NUMBER. What belongs where a
+       reviewed target would go is the fact that there is not one yet. */
+    '<div class="tiva-gap"><span class="tiva-gap-ic">&#8505;</span>' +
+      '<div class="tiva-gap-tx"><b>TCI targets are not reviewed yet.</b> ' +
+      'Target concentrations, and the model-specific values that go with ' +
+      'them, are not held as reviewed clinical records here, so none is ' +
+      'shown. The reviewed bolus and infusion records for propofol and ' +
+      'remifentanil are in the drug reference and are unchanged.</div></div>';
   var tivaHelpers='';
 
   // VASOPRESSORS / INOTROPES
@@ -4686,8 +4700,22 @@ var DREF_I = {
      Note that drefRows() intersects the search rank with this scope rather
      than widening past it, so removing the group removes the agents from the
      query path too, not merely from the default listing. */
+  /* ── THE VOLATILE GROUP IS ADMITTED BY PHASE, NOT WHOLESALE ──────────
+     Sevoflurane holds a reviewed induction titration and belongs in an
+     induction reference. Its MAINTENANCE concentration does not, and neither
+     do desflurane's or isoflurane's, which are the only rows those two have.
+     Adding 'volatile' to the list above without this would have brought nine
+     maintenance rows into the induction workspace to get one induction row.
+
+     groupPhase names, per group, the phases this instance will admit. It is
+     a property of the SURFACE — which question this reference is answering —
+     and it holds no drug name and no dose. A group absent from it is admitted
+     in full, exactly as before. The day desflurane gains a reviewed induction
+     record it appears here with no change to this line; until then it does
+     not appear at all, which is the honest answer. */
   iref: { id:'iref', cat:'all', view:'table', q:'', open:null, compact:true,
-          groups:['induction','analgesia','nmb','reversal'] }
+          groups:['induction','analgesia','nmb','reversal','volatile'],
+          groupPhase:{ volatile:['induction'] } }
 };
 function drefI(id){ return DREF_I[id] || DREF_I.dref; }
 /* Kept as a live handle on the workspace mount: several call sites and the
@@ -4758,8 +4786,14 @@ function drefDrugs(inst){
   var wt = drefWeight(), pop = drefPop(), seen = {}, out = [];
   var ids = (inst && inst.groups) ? inst.groups
                                   : CC.GROUPS.map(function(g){ return g.id; });
+  var byPhase = (inst && inst.groupPhase) || null;
   ids.forEach(function(gid){
+    var allow = byPhase && byPhase[gid];
     CC.visibleDosesInGroup(gid, wt, pop).forEach(function(d){
+      /* A phase-restricted group admits only the rows written for the
+         question this surface asks. A row with no phase at all is not
+         admitted either: it has not declared which question it answers. */
+      if (allow && allow.indexOf(d.phase) < 0) return;
       var k = drefRowKey(d);
       if(seen[k]) return; seen[k] = 1; out.push(d);
     });
@@ -7341,11 +7375,17 @@ var SED = [
       ['Schnider','Effect-site (Ce) target; adjusts for age & lean body mass'],
       ['Marsh','Plasma target; weight-based (does not use age)'],
       ['Paediatric','Paedfusor (1–16 y, ≥5 kg) / Kataria (3–16 y)']]},
-    {h:'Target ranges', rows:[
-      ['Sedation (Schnider Ce)','0.5–1.5 mcg/mL'],
-      ['Loss of consciousness','~2.5–4 mcg/mL (typical)'],
-      ['General anaesthesia (Ce)','3–6 mcg/mL'],
-      ['Marsh induction (plasma)','4–6 mcg/mL']]},
+    /* ── THE TARGET RANGES ARE GONE ──────────────────────────────────
+       Four concentrations — sedation, loss of consciousness, general
+       anaesthesia and a Marsh induction target — none of them a canonical
+       record. They were the most numerically specific content on the page
+       and the least sourced, and the induction figure here disagreed with
+       the one the TIVA landing tiles printed. The models above stay:
+       naming Schnider, Marsh, Paedfusor and Kataria and saying what each
+       scales with is not a dose. The numbers return through review. */
+    {h:'Target ranges', note:'Not reviewed in this application. No target ' +
+      'concentration is published for any model until its own canonical ' +
+      'record exists.'},
     /* DEFECT I — THE NON-TCI INDUCTION BOLUS IS GONE FROM HERE.
        This row printed "2–2.5 mg/kg" and scaled it by the patient's weight,
        and it did so outside ClinicalContent: no publishability gate, no
@@ -7370,16 +7410,24 @@ var SED = [
        not a screen. */
     {h:'Use case', list:['TIVA maintenance (often with remifentanil)','Procedural / conscious sedation at low Ce','Induction and general anaesthesia']},
     {h:'Key cautions', list:['Dose-dependent hypotension and apnoea','Pain on injection','Propofol infusion syndrome (PRIS), avoid prolonged high-dose, especially children / ICU','Context-sensitive half-time rises with long infusions','No analgesia, pair with an analgesic']},
-    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce targets ~20–40%, titrate slowly (↑ sensitivity, ↓ clearance)','Children need higher mg/kg and infusion rates','Schnider / Marsh not validated <16 y, use Paedfusor / Kataria','Avoid prolonged high-dose infusions in children (PRIS risk)']}
+    /* "Reduce Ce targets ~20-40%" went with the targets it adjusted: a
+       percentage of an unpublished number is still an unpublished number,
+       and it is the one a clinician would apply to the frailest patient
+       here. The qualitative lines beside it name no dose and stay. */
+    {h:'Elderly / paediatric adjustment', list:['Elderly: increased sensitivity and reduced clearance, titrate slowly','Children need higher mg/kg and infusion rates','Schnider / Marsh not validated <16 y, use Paedfusor / Kataria','Avoid prolonged high-dose infusions in children (PRIS risk)']}
   ]};}],
 
   ['Remifentanil','Minto model, effect-site (Ce), scales with age & lean body mass', function(w){ return { blocks:[
     {h:'Model', rows:[['Minto','Ce target; adjusts for age and lean body mass']]},
-    {h:'Target ranges (Ce)', rows:[
-      ['Analgesia / sedation adjunct','1–3 ng/mL'],
-      ['GA adjunct (with propofol)','3–8 ng/mL'],
-      ['Intense stimulus (intubation/incision)','6–10 ng/mL'],
-      ['Weight-based alt (no TCI / paeds)','0.05–0.5 mcg/kg/min']]},
+    /* THE SAME REMOVAL, PLUS ONE THAT WAS NOT A TARGET AT ALL. Three Ce
+       ranges go for the reason the propofol ones go. The fourth row was a
+       weight-based infusion rate, 0.05-0.5 mcg/kg/min, written here outside
+       the model — and remifentanil's own canonical record says 0.05-0.2.
+       One drug, one page, two different infusion rates, and the uncited one
+       was the wider. The canonical records render in the drug reference and
+       on the board; this copy does not come back. */
+    {h:'Target ranges (Ce)', note:'Not reviewed in this application. The ' +
+      'reviewed remifentanil infusion records are in the drug reference.'},
     {h:'Use case', list:['Analgesic component of TIVA','Obtund response to laryngoscopy / strong stimulus','Rapid offset, fast, predictable emergence']},
     /* HYPERALGESIA IS NAMED AND THEN ANSWERED. Listing it as a caution and
        stopping there tells a clinician a problem exists and nothing about
@@ -7387,7 +7435,7 @@ var SED = [
        standard multimodal approach and stays deliberately conditional: it
        ends at local protocol, because that is where the choice is made. */
     {h:'Key cautions', list:['Apnoea, ensure ventilation is controlled','Chest-wall / glottic rigidity (rapid bolus or high Ce)','Bradycardia and hypotension','Acute tolerance and opioid-induced hyperalgesia (with prolonged high doses)','No residual analgesia, establish multimodal analgesia before offset','<b>Management of hyperalgesia:</b> reduce or stop remifentanil, use a longer-acting opioid or multimodal analgesia, consider ketamine, and consider magnesium or dexmedetomidine according to local protocol']},
-    {h:'Elderly / paediatric adjustment', list:['Elderly: reduce Ce ~50%; slower titration','Minto not validated <12 y, use weight-based infusion','Always combine with a hypnotic (no amnesia alone)']}
+    {h:'Elderly / paediatric adjustment', list:['Elderly: increased sensitivity, titrate more slowly','Minto not validated <12 y, use weight-based infusion','Always combine with a hypnotic (no amnesia alone)']}
   ]};}],
 
   ['Dexmedetomidine','Alpha-2 agonist, sedation with largely preserved respiration', function(w){ return { blocks:[
@@ -7841,6 +7889,11 @@ function sedCard(idx, w, opt){
     if(blk.rows) b += blk.rows.map(function(r){
       return isModels ? sedM2(r[0], r[1]) : metric(r[0], r[1], ''); }).join('');
     if(blk.list) b += bul(blk.list);
+    /* A BLOCK MAY REPORT THAT IT HAS NOTHING TO REPORT. Where reviewed
+       values do not exist yet the heading stays and the coverage state
+       stands in for the rows, so the gap is visible rather than the section
+       silently disappearing and taking the question with it. */
+    if(blk.note) b += '<div class="note">'+blk.note+'</div>';
     if(o.lead && o.lead.test(blk.h||'')){ lead.push(sedBlk(blk.h, b, isCaution)); return; }
     /* A CAUTION NEVER FOLDS. Hyperalgesia management lives in remifentanil's
        cautions, and a clinician meeting it should not have to find a control
@@ -7860,14 +7913,21 @@ function sedInline(i){
   /* The two agents a TIVA is built from, side by side. Propofol leads with
      its targets and its models; remifentanil with its target and the
      cautions that matter at the bedside. */
-  /* THE THREE FIGURES THIS MODULE HAS ALWAYS LED WITH. They are the same
-     values the summary cards above carry, plus the manual infusion rate,
-     which has no canonical counterpart and is legacy display content: it is
-     printed, never computed, and nothing reads it as data. */
+  /* ── THE THIRD COPY OF THE SAME UNSOURCED FIGURES ──────────────────
+     This module led with induction Ce 4-6, maintenance Ce 2.5-4 and a manual
+     infusion of 10 -> 8 -> 6 mg/kg/h. The first two were the landing tiles'
+     numbers again; the old comment here conceded the third "has no canonical
+     counterpart and is legacy display content", which is an accurate
+     description of a dose a clinician would read off the screen and set on a
+     pump. "Printed, never computed" is not a safety property.
+
+     All three go. The heading stays so the gap is visible where the answer
+     used to be. */
   var propTargets = sedBlk('TIVA targets',
-    metric('Induction (Ce)','4 – 6','mcg/mL') +
-    metric('Maintenance (Ce)','2.5 – 4','mcg/mL') +
-    metric('Manual infusion','10 → 8 → 6','mg/kg/h'));
+    '<div class="note">Not reviewed in this application. No target ' +
+    'concentration or manual infusion rate is published until each has its ' +
+    'own canonical record; the reviewed propofol records are in the drug ' +
+    'reference.</div>');
   /* PRIMARY IS THE THREE FIGURES, AND NOTHING SHARES ITS RANK. Models and the
      broader target ranges were beside them at equal weight, which made six
      blocks look like six answers. They are reference, and they read as
@@ -7883,7 +7943,8 @@ function sedInline(i){
   '</div>';
   var wt = crisisWeight();
   var strip = '<div class="tiva-strip"><span class="tiva-strip-ic">&#8505;</span>' +
-    '<div class="tiva-strip-tx">Reduce targets with opioid synergy and with age. ' +
+    '<div class="tiva-strip-tx">Opioid synergy and increasing age both reduce ' +
+    'the hypnotic requirement. ' +
     'TIVA with a neuromuscular blocker needs depth-of-anaesthesia monitoring.' +
     (wt ? '<br>Weight-based examples for <b>'+wt+' kg</b>.'
         : '<br>Enter a weight for weight-based examples, otherwise per-kg ranges are shown.') +
