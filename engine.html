@@ -1361,15 +1361,228 @@ table.dtab-red .dtab-dose{width:18%;}
   letter-spacing:.13em;text-transform:uppercase;color:var(--vx-ink);margin:0 0 7px;}
 .eng-wrap .mx-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:13px;}
 
+/* ═══════════════════════════════════════════════════════════════════════
+   THE INHALED AGENT CARDS
+   ═══════════════════════════════════════════════════════════════════════
+   Four cards that a clinician reads standing up, at a monitor that is not
+   the one this was designed on. Three decisions carry the whole section:
+
+   COLOUR IS IDENTITY, NOT DECORATION. The agent's colour appears on the
+   border, the icon, the bullets and the value emphasis, and nowhere on the
+   body text, which stays near-white at every card. A tinted card that dims
+   its own sentences would undo the daylight pass one section at a time.
+
+   AMBER MEANS CAUTION, AND ONLY CAUTION. One warning language across all
+   four agents, so the eye learns it once. Key effects therefore never use
+   amber, whatever the agent's own colour is.
+
+   THE PANELS ARE THE HIERARCHY. Values sit in a divided strip, effects in
+   the agent's own tinted panel, cautions in the shared amber one. Nothing
+   in this section is a paragraph inside a box.                           */
+
+.eng-wrap .mx-agent{position:relative;border:1px solid var(--vx-line);
+  border-radius:18px;background:
+    linear-gradient(180deg,var(--vx-fill),rgba(255,255,255,0)) ,var(--ground-2,#0E1519);
+  box-shadow:0 0 0 1px rgba(255,255,255,.02) inset, 0 10px 30px -18px var(--vx-glow);
+  overflow:hidden;min-width:0;display:flex;flex-direction:column;}
+
+/* ── HEADER ─────────────────────────────────────────────────────────── */
+.eng-wrap .mx-agent .mx-card-h{display:flex;align-items:center;gap:13px;
+  padding:15px 17px 14px;background:var(--vx-soft);
+  border-bottom:1px solid var(--vx-line);}
+.eng-wrap .mx-agent .mx-card-ic{width:42px;height:42px;flex:0 0 auto;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:21px;line-height:1;
+  color:var(--vx-bright);background:var(--vx-soft2);border:1px solid var(--vx-line);}
+.eng-wrap .mx-agent .mx-card-hx{min-width:0;flex:1 1 auto;}
+.eng-wrap .mx-agent .mx-card-t{font-size:25px;font-weight:800;color:#FFFFFF;
+  line-height:1.12;letter-spacing:-.01em;}
+.eng-wrap .mx-agent .mx-card-s{font-size:14.5px;font-weight:700;color:#DCE6EC;
+  margin-top:3px;line-height:1.3;}
+
+/* ── BODY GRID ──────────────────────────────────────────────────────────
+   Three tracks. The value cells take one each; the effects and cautions
+   panels span all three. The disclosure and its contents are display:contents
+   above the phone breakpoint, so the Context cell lands in the strip as a
+   third sibling instead of being wrapped in a box that only a phone needs. */
+/* ONE COLUMN BY DEFAULT, BECAUSE THE CARD IS 315px WIDE, NOT 510px.
+   The workstation gives this domain a 974px centre column at 1536, so three
+   cards across are 315px each: a three-cell strip inside one of them would
+   put "MAINTENANCE" in 95px and break the label. The cells stack, full
+   width, and only the wide nitrous card opens out into a strip. */
+.eng-wrap .mx-agent .mx-card-b{display:grid;gap:11px;padding:14px 17px 16px;
+  grid-template-columns:minmax(0,1fr);align-content:start;}
+.eng-wrap .mx-agent .mx-fold,
+.eng-wrap .mx-agent .mx-fold-c{display:contents;}
+
+/* ── THE VALUE STRIP ────────────────────────────────────────────────────
+   Divided cells, not a table: the label is small and bright, the value is
+   the largest thing on the card after its name. */
+.eng-wrap .mx-agent .mx-sc{min-width:0;padding:11px 13px;border-radius:12px;
+  background:rgba(255,255,255,.028);border:1px solid var(--hair,rgba(255,255,255,.07));
+  border-left:2px solid var(--vx-line);}
+.eng-wrap .mx-agent .mx-sc-l{font-size:12px;font-weight:800;letter-spacing:.09em;
+  text-transform:uppercase;color:#CBD7DE;line-height:1.25;}
+.eng-wrap .mx-agent .mx-sc-v{margin-top:5px;font-size:25px;font-weight:800;color:#FFFFFF;
+  line-height:1.15;font-variant-numeric:tabular-nums;word-break:break-word;}
+/* The MAC tables print as their source states them, so a cell may hold three
+   ages and three values. It steps down rather than truncating: no figure on
+   this card is ever abbreviated to fit a box. */
+.eng-wrap .mx-agent .mx-sc-v.long{font-size:17px;line-height:1.3;}
+.eng-wrap .mx-agent .mx-sc-v span{font-size:14px;font-weight:700;color:#DCE6EC;margin-left:4px;}
+.eng-wrap .mx-agent .mx-sc-v em{font-style:italic;font-size:15px;font-weight:700;color:#CBD7DE;}
+.eng-wrap .mx-agent .mx-sc-t{margin-top:5px;font-size:14px;font-weight:700;color:#DCE6EC;
+  line-height:1.45;}
+
+/* ── PANELS ─────────────────────────────────────────────────────────── */
+.eng-wrap .mx-agent .mx-pan{grid-column:1/-1;border-radius:12px;padding:12px 14px 13px;}
+.eng-wrap .mx-agent .mx-pan-h{display:flex;align-items:center;gap:8px;font-size:13.5px;
+  font-weight:800;letter-spacing:.11em;text-transform:uppercase;line-height:1.2;
+  margin-bottom:9px;}
+.eng-wrap .mx-agent .mx-pan-i{font-size:14px;line-height:1;font-style:normal;}
+.eng-wrap .mx-agent .mx-li{list-style:none;margin:0;padding:0;display:grid;gap:7px;}
+.eng-wrap .mx-agent .mx-li li{position:relative;padding-left:17px;font-size:15px;
+  font-weight:700;color:#EDF3F7;line-height:1.5;}
+.eng-wrap .mx-agent .mx-li li::before{content:"";position:absolute;left:0;top:.56em;
+  width:7px;height:7px;border-radius:50%;background:currentColor;}
+/* THE LEAD TERM IS THE HANDLE. Nitrous oxide's four hazards were written as
+   labelled blocks — AVOID CLOSED GAS SPACES, B12, FIRE, LAPAROSCOPY — and a
+   clinician reaching for one of them is looking for the label, not reading
+   the list. The label is the record's own <b>; only its weight changes. */
+.eng-wrap .mx-agent .mx-li li b{color:#FFFFFF;font-weight:800;letter-spacing:.02em;}
+.eng-wrap .mx-agent .mx-pan-warn .mx-li li b{color:#FFC233;font-weight:800;
+  letter-spacing:.04em;}
+
+/* KEY EFFECTS — the agent's own colour. Never amber. */
+.eng-wrap .mx-agent .mx-pan-eff{background:var(--vx-pan);
+  border:1px solid var(--vx-line);border-left:3px solid var(--vx-ink);}
+.eng-wrap .mx-agent .mx-pan-eff .mx-pan-h{color:var(--vx-bright);}
+.eng-wrap .mx-agent .mx-pan-eff .mx-li li::before{background:var(--vx-bright);}
+
+/* CAUTIONS — one shared language at every agent. */
+.eng-wrap .mx-agent .mx-pan-warn{background:rgba(255,194,51,.07);
+  border:1px solid #D69B1F;border-left:3px solid #D69B1F;}
+.eng-wrap .mx-agent .mx-pan-warn .mx-pan-h{color:#FFC233;}
+.eng-wrap .mx-agent .mx-pan-warn .mx-li li::before{background:#FFC233;}
+
+/* ── SUPPORTING CARDS BESIDE NITROUS ────────────────────────────────── */
+.eng-wrap .mx-agent .mx-pan-sup{background:var(--vx-pan);
+  border:1px solid var(--vx-line);border-left:3px solid var(--vx-ink);}
+.eng-wrap .mx-agent .mx-pan-sup .mx-pan-h{color:var(--vx-bright);}
+.eng-wrap .mx-agent .mx-pan-sup .mx-li li::before{background:var(--vx-bright);}
+.eng-wrap .mx-agent .mx-li li u{display:block;text-decoration:none;font-size:12px;
+  font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#CBD7DE;
+  margin-bottom:3px;}
+.eng-wrap .mx-agent .mx-li li u + span{display:block;}
+.eng-wrap .mx-agent .mx-li li span + span{margin-top:4px;}
+
+/* ── THE COMPOSITION ────────────────────────────────────────────────────
+   THERE IS NO THREE-ACROSS MODE, and that is the point of this block. The
+   workstation gives this domain a centre column of 974px at 1536 — the timer
+   rail and the Crisis rail take the rest — so three detailed cards across
+   are 315px each, which is the skinny-tower layout this redesign exists to
+   remove. Each agent is given the width its own reviewed content needs:
+
+     [ SEVOFLURANE ][ DESFLURANE ]
+     [        ISOFLURANE         ]      more metric rows than the other two
+     [       NITROUS OXIDE       ]      the longest cautions in the section
+     [ why adjunct ][ with a volatile ]
+
+   MEASURED AGAINST THE CONTAINER, NOT THE VIEWPORT, because the rails move
+   independently of the window: the same 1194px viewport is 632px of usable
+   column, and a viewport media query would be answering the wrong question. */
+.eng-wrap .mx-vol-wrap{container-type:inline-size;display:grid;gap:15px;}
+.eng-wrap .mx-vol-pair,
+.eng-wrap .mx-sup-row{display:grid;grid-template-columns:minmax(0,1fr);
+  gap:15px;align-items:start;}
+.eng-wrap .mx-sup .mx-card-t{font-size:19px;}
+.eng-wrap .mx-sup .mx-card-ic{width:34px;height:34px;font-size:16px;border-radius:10px;}
+.eng-wrap .mx-sup .mx-card-h{padding:12px 15px;}
+.eng-wrap .mx-sup .mx-card-b{padding:12px 15px 14px;gap:10px;}
+.eng-wrap .mx-sup .mx-card-s{font-size:13.5px;}
+.eng-wrap .mx-sup .mx-sc-v{font-size:22px;}
+.eng-wrap .mx-sup .mx-li li{font-size:14px;}
+
+@container (min-width:900px){
+  /* Two cards here and one everywhere else. 974px less a 15px gutter gives
+     sevoflurane and desflurane about 480px each, which is the width their
+     three-cell strip needs. */
+  .eng-wrap .mx-vol-pair{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .eng-wrap .mx-sup-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+  /* THE FACTS SHARE A ROW; THE PROSE TAKES THE WIDTH. Context is a sentence
+     and maintenance and MAC are compact values, so they do not compete for
+     equal tracks: a third cell made a clinical sentence into a narrow
+     paragraph beside two short numbers, at 140px on the 480px cards and
+     still compressed on the 974px one.
+       [ CONCENTRATION ][ MAC ]
+       [ CONTEXT               ]
+     Isoflurane is the exception and keeps its own arrangement below: its
+     fourth cell is a second reviewed CONCENTRATION, not prose.            */
+  .eng-wrap .mx-vol-pair .mx-agent .mx-card-b,
+  .eng-wrap .mx-agent.vx-n2o:not(.mx-sup) .mx-card-b{
+    grid-template-columns:repeat(2,minmax(0,1fr));}
+  .eng-wrap .mx-vol-pair .mx-agent .mx-sc-ctx,
+  .eng-wrap .mx-agent.vx-n2o:not(.mx-sup) .mx-sc-ctx{grid-column:1/-1;}
+  /* Isoflurane carries four metric cells, not three:
+       [ MAINTENANCE WITH N2O ][ MAC ]
+       [ ADDITIONAL WITH O2   ][ CONTEXT ]                                */
+  .eng-wrap .mx-agent.vx-iso .mx-card-b{grid-template-columns:repeat(2,minmax(0,1fr));}
+  /* The panels always take the whole card. Setting effects and cautions side
+     by side balances only when both lists happen to be the same length, and
+     they are not: isoflurane has two effects against four cautions, so half
+     the card would be empty by construction. */
+  .eng-wrap .mx-agent .mx-pan{grid-column:1/-1;}
+}
+@container (min-width:760px) and (max-width:899.98px){
+  /* The agent cards are single column here. The supporting pair stays two
+     across only while each keeps about 370px; at the 632px column a 1194px
+     viewport gives them they would be 308px, and the co-administration lines
+     broke over four lines each, so below this they stack instead. */
+  .eng-wrap .mx-sup-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+@media (max-width:640px){
+  /* THE DISCLOSURE COMES BACK. Above this width the fold is display:contents
+     and its children are ordinary cells; here it is a block again, the button
+     appears, and Context and Key effects go behind it. Cautions and every
+     concentration stay where they are — a warning behind a tap is a warning
+     that will not be read. */
+  .eng-wrap .mx-agent .mx-fold{display:block;grid-column:1/-1;}
+  .eng-wrap .mx-agent .mx-fold-c{display:none;}
+  .eng-wrap .mx-agent .mx-fold.open .mx-fold-c{display:grid;gap:11px;margin-top:11px;}
+  .eng-wrap .mx-agent .mx-card-t{font-size:21px;}
+  .eng-wrap .mx-agent .mx-sc-v{font-size:22px;}
+  .eng-wrap .mx-agent .mx-li li{font-size:14.5px;}
+}
+
 /* ── THE IDENTITIES ─────────────────────────────────────────────────────*/
-.eng-wrap .vx-sevo{--vx-ink:#F5C451;--vx-line:rgba(245,196,81,.3);
-  --vx-fill:rgba(245,196,81,.045);--vx-soft:rgba(245,196,81,.09);--vx-soft2:rgba(245,196,81,.16);}
-.eng-wrap .vx-des{--vx-ink:#FF9A5A;--vx-line:rgba(255,154,90,.3);
-  --vx-fill:rgba(255,154,90,.045);--vx-soft:rgba(255,154,90,.09);--vx-soft2:rgba(255,154,90,.16);}
-.eng-wrap .vx-iso{--vx-ink:#B69BFF;--vx-line:rgba(182,155,255,.32);
-  --vx-fill:rgba(182,155,255,.05);--vx-soft:rgba(182,155,255,.1);--vx-soft2:rgba(182,155,255,.17);}
-.eng-wrap .vx-n2o{--vx-ink:#6FB4FF;--vx-line:rgba(111,180,255,.3);
-  --vx-fill:rgba(111,180,255,.045);--vx-soft:rgba(111,180,255,.09);--vx-soft2:rgba(111,180,255,.16);}
+/* ── THE FOUR AGENT IDENTITIES ──────────────────────────────────────────
+   One agent, one colour, recognisable across a theatre. Desflurane and
+   nitrous oxide are both blue and must not be confusable: desflurane is the
+   bright cyan-blue, nitrous is navy, and they never sit in the same row.
+
+   --vx-ink    the agent's voice: name accents, bullets, value emphasis
+   --vx-bright a lighter tone for text that sits ON a tinted panel
+   --vx-line   the card's border
+   --vx-glow   the outer halo, deliberately faint
+   --vx-fill   the card tint over the clinical ground
+   --vx-pan    the inner panel tint, weaker than the card's                */
+.eng-wrap .vx-sevo{--vx-ink:#FFD400;--vx-bright:#FFE35A;--vx-line:#FFC400;
+  --vx-glow:rgba(255,212,0,.28);--vx-fill:rgba(255,212,0,.08);
+  --vx-pan:rgba(255,212,0,.055);
+  --vx-soft:rgba(255,212,0,.10);--vx-soft2:rgba(255,212,0,.17);}
+.eng-wrap .vx-des{--vx-ink:#2FA8FF;--vx-bright:#72C7FF;--vx-line:#35B2FF;
+  --vx-glow:rgba(47,168,255,.28);--vx-fill:rgba(47,168,255,.08);
+  --vx-pan:rgba(47,168,255,.055);
+  --vx-soft:rgba(47,168,255,.10);--vx-soft2:rgba(47,168,255,.17);}
+.eng-wrap .vx-iso{--vx-ink:#C96CFF;--vx-bright:#DFA3FF;--vx-line:#D476FF;
+  --vx-glow:rgba(201,108,255,.28);--vx-fill:rgba(201,108,255,.08);
+  --vx-pan:rgba(201,108,255,.055);
+  --vx-soft:rgba(201,108,255,.10);--vx-soft2:rgba(201,108,255,.17);}
+.eng-wrap .vx-n2o{--vx-ink:#3D78D8;--vx-bright:#72A7F3;--vx-line:#3D78D8;
+  --vx-navy:#244D86;
+  --vx-glow:rgba(61,120,216,.26);--vx-fill:rgba(46,95,175,.12);
+  --vx-pan:rgba(61,120,216,.07);
+  --vx-soft:rgba(61,120,216,.13);--vx-soft2:rgba(61,120,216,.20);}
 .eng-wrap .vx-vent{--vx-ink:#5AA9FF;--vx-line:rgba(90,169,255,.3);
   --vx-fill:rgba(90,169,255,.04);--vx-soft:rgba(90,169,255,.085);--vx-soft2:rgba(90,169,255,.15);}
 .eng-wrap .vx-mon{--vx-ink:#5EE393;--vx-line:rgba(94,227,147,.3);
@@ -3573,15 +3786,75 @@ function compute(){
       '<div class="mx-q-l">'+(m?m.label:'Concentration')+'</div>'+val + macRow +
       '</div>';
   }
+  /* ── PRESENTATION SPLITS THE SENTENCES. IT DOES NOT WRITE THEM. ───────
+     A caution that arrives as one run of prose is read as one run of prose,
+     and the three or four separate things it actually says are found by
+     whoever reads to the end. The record still owns every word; this only
+     decides where the line breaks fall.
+
+     TWO RULES, AND NOTHING ELSE:
+
+     A record that declares its own blocks with <br> keeps exactly those
+     blocks. Nitrous oxide's caution is four labelled hazards written as a
+     set, and splitting inside one of them would strand a mechanism from the
+     hazard it explains.
+
+     Otherwise the split is on SENTENCE BOUNDARIES ONLY: a full stop that
+     closes a word, followed by a space and a capital. A colon, a semicolon
+     or a comma never splits, so "Fresh gas flow below 1 L/min is not
+     recommended: low flow raises Compound A exposure and the risk of renal
+     injury" stays one statement rather than becoming three fragments that
+     have lost the reason connecting them.                                 */
+  function mxBits(str){
+    var t = String(str == null ? '' : str).trim();
+    if(!t) return [];
+    var parts = /<br\s*\/?>/i.test(t)
+      ? t.split(/<br\s*\/?>/i)
+      : t.replace(/([a-z0-9)₂])\.\s+(?=[A-Z<])/g, '$1.\u0001').split('\u0001');
+    return parts.map(function(x){ return x.trim(); }).filter(Boolean);
+  }
+  function mxList(bits){
+    if(!bits.length) return '';
+    return '<ul class="mx-li">' + bits.map(function(b){
+      return '<li>' + b + '</li>'; }).join('') + '</ul>';
+  }
+  function mxBlock(kind, head, inner){
+    if(!inner) return '';
+    return '<div class="mx-pan mx-pan-' + kind + '" data-lab="' + head + '">' +
+      '<div class="mx-pan-h"><span class="mx-pan-i" aria-hidden="true">' +
+        (kind === 'warn' ? '&#9888;' : '&#9679;') + '</span>' + head + '</div>' +
+      inner + '</div>';
+  }
+  /* A value cell. The LABEL IS THE RECORD'S OWN: isoflurane's first row is
+     "Maintenance with nitrous oxide" and nitrous oxide's is "Common GA
+     adjunct", and a cell that printed "Maintenance" over either of them
+     would be relabelling a reviewed figure to make three cards match. */
+  function mxCell(label, val, unit, extraCls){
+    var long = String(val).replace(/<[^>]*>/g,'').length > 16;
+    return '<div class="mx-sc' + (extraCls ? ' ' + extraCls : '') + '" data-lab="' + label + '">' +
+      '<div class="mx-sc-l">' + label + '</div>' +
+      '<div class="mx-sc-v' + (long ? ' long' : '') + '">' + val +
+        (unit ? '<span>' + unit + '</span>' : '') + '</div></div>';
+  }
   /* the detailed card below it */
   function mxCard(id){
     var sk = VOLATILE_SKIN[id], CCx = window.ClinicalContent, d = CCx && CCx.byId(id);
     if(!sk || !d) return '';
-    var rows = mxVolDoses(id), body = '';
-    rows.forEach(function(r){
-      var isMac = /^MAC/i.test(r.label);
-      body += mxRow(r.label, '<b>'+r.val+'</b>'+(r.unit?'<i> '+r.unit+'</i>':''), isMac?'':'big');
-    });
+    var rows = mxVolDoses(id);
+    var prim = mxPrimary(rows), mac = mxFind(rows, /^MAC/i);
+    /* EVERY OTHER PUBLISHABLE ROW STILL PRINTS. Isoflurane carries a second
+       reviewed concentration, for oxygen alone, and a summary strip showing
+       only the first row would have dropped a reviewed dose off the card.
+       They follow the strip as cells of their own, at the same rank. */
+    var extra = rows.filter(function(r){ return r !== prim && r !== mac; });
+    var body =
+      mxCell(prim ? prim.label : 'Concentration',
+             prim ? '<b>' + prim.val + '</b>' : '<em>Numeric reference under review</em>',
+             prim ? prim.unit : '') +
+      mxCell('MAC',
+             mac ? '<b>' + mac.val + '</b>' : '<em>Numeric reference under review</em>',
+             mac ? mac.unit : '');
+
     /* SECONDARY PROSE FOLDS ON A PHONE, AND ONLY THERE. Context and Key
        effects are reference material: worth having, not worth 400px of the
        first screen. They go behind one disclosure per card, never several,
@@ -3592,44 +3865,123 @@ function compute(){
        behind a tap is the reason the page exists.
 
        The default state is CSS, not script. Above 640px the button is
-       display:none and the content is shown; at or below it the button
-       appears and the content is hidden until .open is set. Nothing measures
-       the viewport in JavaScript, so there is no width at which the two
-       disagree and nothing to re-run after a re-render or a rotation. The
-       collapsed content is display:none rather than visually hidden, so it
-       leaves the accessibility tree with it and is not read twice. */
-    var note = (mxPrimary(rows)||{}).note || '';
-    /* CANONICAL ONLY, WITH NO FALLBACK. All three agents carry a cited
-       `effect` on their record. If one ever does not, the row does not
+       display:none and the wrapper is display:contents, so the Context cell
+       takes its place in the strip and Key effects is an ordinary panel; at
+       or below it the wrapper is a block, the button appears and the content
+       is hidden until .open is set. Nothing measures the viewport in
+       JavaScript, so there is no width at which the two disagree and nothing
+       to re-run after a re-render or a rotation. The collapsed content is
+       display:none rather than visually hidden, so it leaves the
+       accessibility tree with it and is not read twice. */
+    var note = (prim || {}).note || '';
+    /* CANONICAL ONLY, WITH NO FALLBACK. All four agents carry a cited
+       `effect` on their record. If one ever does not, the panel does not
        render, which is the correct outcome: a card that shows nothing under
        Key effects is a gap somebody will notice and fill with a citation,
        and a card that quietly falls back to a string in this file is a gap
        nobody notices at all. */
     var effect = d.effect || '';
     var fold = '';
-    if(note) fold += mxRow('Context', note);
-    if(effect) fold += mxRow('Key effects', effect);
+    if(note) fold += '<div class="mx-sc mx-sc-ctx" data-lab="Context">' +
+                       '<div class="mx-sc-l">Context</div>' +
+                       '<div class="mx-sc-t">' + note + '</div></div>';
+    if(effect) fold += mxBlock('eff', 'Key effects', mxList(mxBits(effect)));
+    /* A SECOND REVIEWED CONCENTRATION IS STILL A CONCENTRATION. Isoflurane
+       carries one for oxygen alone; it sits with the other values, above the
+       disclosure, not after the prose. */
+    extra.forEach(function(r){
+      body += mxCell(r.label, '<b>' + r.val + '</b>', r.unit, 'mx-sc-x');
+    });
     if(fold){
       var fid = 'mxf-' + id.replace(/[^a-z0-9]+/gi,'-');
       body +=
         '<div class="mx-fold">' +
           '<button type="button" class="mx-fold-b" aria-expanded="false" ' +
-            'aria-controls="'+fid+'" onclick="mxFoldToggle(this)">' +
+            'aria-controls="' + fid + '" onclick="mxFoldToggle(this)">' +
             '<span>Context &amp; effects</span>' +
             '<span class="mx-fold-ch" aria-hidden="true">&#9662;</span>' +
           '</button>' +
-          '<div class="mx-fold-c" id="'+fid+'">'+fold+'</div>' +
+          '<div class="mx-fold-c" id="' + fid + '">' + fold + '</div>' +
         '</div>';
     }
-    if(d.warn) body += mxRow('Cautions', d.warn, 'warn');
-    return '<div class="mx-card '+sk.cls+'"><div class="mx-card-h"><div class="mx-card-ic">'+sk.ico+'</div>' +
+    if(d.warn) body += mxBlock('warn', 'Cautions', mxList(mxBits(d.warn)));
+    return '<div class="mx-card mx-agent ' + sk.cls + '">' +
+      '<div class="mx-card-h"><div class="mx-card-ic">' + sk.ico + '</div>' +
       /* The subtitle is the drug's CLASS, out of the canonical record. If a
          record ever carries none the line does not render, rather than
          falling back to something written here. */
-      '<div><div class="mx-card-t">'+d.name+'</div>' +
-        (d.klass ? '<div class="mx-card-s">'+d.klass+'</div>' : '') +
+      '<div class="mx-card-hx"><div class="mx-card-t">' + d.name + '</div>' +
+        (d.klass ? '<div class="mx-card-s">' + d.klass + '</div>' : '') +
       '</div></div>' +
-      '<div class="mx-card-b">'+body+'</div></div>';
+      '<div class="mx-card-b">' + body + '</div></div>';
+  }
+
+  /* ── THE TWO CARDS BESIDE NITROUS OXIDE ───────────────────────────────
+     THE SPACE WAS EMPTY AND IT IS NOT A LICENCE TO WRITE MEDICINE. The
+     obvious things to put here are combination cards — nitrous with
+     sevoflurane, nitrous with isoflurane, each with a percentage saved and a
+     sentence about haemodynamic stability. THERE IS NO REVIEWED RECORD FOR
+     ANY OF THAT. No combination record exists in clinical-index.js, no
+     MAC-sparing figure exists anywhere in this repository, and "well
+     tolerated", "widely available" and "good for longer procedures" are
+     opinions, not findings. A layout problem is not permission to invent.
+
+     So both cards are assembled from records that already exist, and every
+     line is traceable to the agent whose record it came from:
+
+     WHY IT IS AN ADJUNCT reads nitrous oxide's own MAC row and the note
+     attached to it. That note is the reason the agent is an adjunct and not
+     an anaesthetic, and it is the single most useful thing on this card.
+
+     WITH A VOLATILE AGENT reads the OTHER THREE agents' reviewed dose rows
+     and prints, under each agent's name, what that agent's own label says
+     about being given with nitrous oxide. Nothing is combined, averaged or
+     inferred across them; if a record stops saying anything about nitrous
+     oxide, its line disappears rather than being remembered here.        */
+  function mxN2OWhy(){
+    var CCx = window.ClinicalContent, d = CCx && CCx.byId('drug.nitrous-oxide');
+    if(!d) return '';
+    var mac = mxFind(mxVolDoses('drug.nitrous-oxide'), /^MAC/i);
+    if(!mac || !mac.note) return '';
+    var body = mxCell('MAC', '<b>' + mac.val + '</b>', mac.unit) +
+      mxBlock('sup', 'What that means', mxList(mxBits(mac.note)));
+    return '<div class="mx-card mx-agent mx-sup vx-n2o">' +
+      '<div class="mx-card-h"><div class="mx-card-ic">&#8734;</div>' +
+      '<div class="mx-card-hx"><div class="mx-card-t">Why it is an adjunct</div>' +
+      '<div class="mx-card-s">From this agent’s own MAC record</div></div></div>' +
+      '<div class="mx-card-b">' + body + '</div></div>';
+  }
+  function mxN2OWith(){
+    var CCx = window.ClinicalContent; if(!CCx) return '';
+    var lines = [];
+    ['drug.sevoflurane','drug.desflurane','drug.isoflurane'].forEach(function(id){
+      var d = CCx.byId(id); if(!d) return;
+      var rows = mxVolDoses(id), said = [];
+      rows.forEach(function(r){
+        /* A row whose LABEL names nitrous oxide is a concentration for that
+           combination, so it prints as the label and the figure. */
+        if(/nitrous/i.test(r.label || ''))
+          said.push(r.label + ' <b>' + r.val + (r.unit || '') + '</b>');
+        /* Otherwise only the sentences of the note that are ABOUT nitrous
+           oxide print, in the record's own words. */
+        mxBits(r.note || '').forEach(function(b){ if(/nitrous/i.test(b)) said.push(b); });
+      });
+      /* Each statement keeps its own line. Two of them can come off one
+         record — desflurane's label says something about nitrous oxide under
+         both its maintenance row and its MAC row — and running them together
+         would read as one sentence the label never wrote. */
+      if(said.length) lines.push('<u>' + d.name + '</u>' +
+        said.map(function(x){ return '<span>' + x + '</span>'; }).join(''));
+    });
+    if(!lines.length) return '';
+    return '<div class="mx-card mx-agent mx-sup vx-n2o">' +
+      '<div class="mx-card-h"><div class="mx-card-ic">&#8646;</div>' +
+      '<div class="mx-card-hx"><div class="mx-card-t">With a volatile agent</div>' +
+      '<div class="mx-card-s">As each agent’s own record states it</div></div></div>' +
+      '<div class="mx-card-b">' +
+        mxBlock('sup', 'Co-administration',
+          '<ul class="mx-li">' + lines.map(function(l){ return '<li>' + l + '</li>'; }).join('') + '</ul>') +
+      '</div></div>';
   }
   /* ── NITROUS OXIDE USED TO BE BUILT BY HAND HERE. IT IS NOT ANY MORE. ──
      Two builders lived at this spot, mxN2OQuick and mxN2OCard, because the
@@ -3662,8 +4014,24 @@ function compute(){
       VOLATILE_IDS.map(mxQuick).join('') +
     '</div>' +
     '<div class="mx-sec-h">Inhaled agents, detailed</div>' +
-    '<div class="mx-grid">' +
-      VOLATILE_IDS.map(mxCard).join('') +
+    /* THREE VOLATILES ACROSS, THEN NITROUS WITH THE SPACE BESIDE IT USED.
+       The four cards used to sit in one auto-fit grid, which put nitrous
+       oxide alone on a second row with two thirds of the width empty. The
+       rows are explicit now: the volatiles are the comparison, nitrous is
+       its own composition, and VOLATILE_IDS still decides which agents
+       exist and in what order. */
+    /* THE COMPOSITION, IN DOM ORDER. VOLATILE_IDS still decides which agents
+       exist; this decides how much width each of them gets. Sevoflurane and
+       desflurane share a row because their records are the same shape;
+       isoflurane has four metric cells and nitrous oxide has the longest
+       cautions in the section, so each takes the full column. */
+    '<div class="mx-vol-wrap">' +
+      '<div class="mx-vol-pair">' +
+        mxCard('drug.sevoflurane') + mxCard('drug.desflurane') +
+      '</div>' +
+      mxCard('drug.isoflurane') +
+      mxCard('drug.nitrous-oxide') +
+      '<div class="mx-sup-row">' + mxN2OWhy() + mxN2OWith() + '</div>' +
     '</div>' +
     '<div class="mx-note"><span class="mx-note-ic">&#8505;</span><div class="mx-note-tx">' +
       'Every concentration and MAC figure above is read from the reviewed clinical record for that ' +

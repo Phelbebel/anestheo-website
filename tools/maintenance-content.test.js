@@ -2143,8 +2143,8 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
   t('...and no card emits a pearls row any more, nitrous oxide included',
     !/mxRow\('Practical pearls'/.test(ENGC), 'no pearls row anywhere');
   t('...while the effects row renders only when there is something to say',
-    /if\(effect\) fold \+= mxRow\('Key effects'/.test(ENGC),
-    'effects row is conditional');
+    /if\(effect\) fold \+= mxBlock\('eff', 'Key effects'/.test(ENGC),
+    'effects panel is conditional');
 
   /* ── EVERY EFFECTS ROW IS CANONICAL AND CITED ────────────────────────
      THE ARCHITECTURAL INVARIANT: clinical prose comes from ClinicalContent,
@@ -2236,7 +2236,7 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
     !/sk\.role/.test(ENGC), 'sk.role appears nowhere');
   /* The subtitle a clinician reads under the agent's name is canonical. */
   t('the detailed card subtitle comes from the canonical class',
-    /<div class="mx-card-s">'\+d\.klass\+'<\/div>/.test(ENGC) ||
+    /d\.klass \? '<div class="mx-card-s">' \+ d\.klass/.test(ENGC) ||
     /d\.klass \? '<div class="mx-card-s">'\+d\.klass/.test(ENGC),
     'mx-card-s renders d.klass');
   t('...and every volatile record actually carries that class',
@@ -2254,17 +2254,18 @@ console.log('\n19. VOLATILE CAUTIONS ARE CITED, AND ARE ACTUALLY CAUTIONS');
      are foldable. Whether the fold actually collapses, and at what width, is
      measured in live-tools-responsive.test.js. */
   t('only Context and Key effects go inside the fold',
-    /if\(note\) fold \+= mxRow\('Context'/.test(ENGC) &&
-    /if\(effect\) fold \+= mxRow\('Key effects'/.test(ENGC) &&
-    !/fold \+= mxRow\('Cautions'/.test(ENGC) &&
-    !/fold \+= mxRow\('MAC/i.test(ENGC),
+    /if\(note\) fold \+= '<div class="mx-sc mx-sc-ctx" data-lab="Context">'/.test(ENGC) &&
+    /if\(effect\) fold \+= mxBlock\('eff', 'Key effects'/.test(ENGC) &&
+    !/fold \+= mxBlock\('warn'/.test(ENGC) &&
+    !/fold \+= mxCell\(/.test(ENGC),
     'Context and Key effects only');
   t('...cautions are appended to the card body, outside it',
-    /if\(d\.warn\) body \+= mxRow\('Cautions', d\.warn, 'warn'\)/.test(ENGC),
+    /if\(d\.warn\) body \+= mxBlock\('warn', 'Cautions', mxList\(mxBits\(d\.warn\)\)\)/.test(ENGC),
     'cautions render unconditionally on the body');
   t('...and every dose row is on the body too, never in the fold',
-    /rows\.forEach\(function\(r\)\{[\s\S]{0,160}body \+= mxRow\(r\.label/.test(ENGC),
-    'dose and MAC rows go straight onto the body');
+    /var body =\s*\n?\s*mxCell\(prim \? prim\.label/.test(ENGC) &&
+    /extra\.forEach\(function\(r\)\{[\s\S]{0,120}body \+= mxCell\(r\.label/.test(ENGC),
+    'the primary, MAC and every further concentration go straight onto the body');
   t('...one disclosure per card, not one per row',
     (ENGC.match(/class="mx-fold-b"/g) || []).length === 1,
     (ENGC.match(/class="mx-fold-b"/g) || []).length + ' disclosure template');

@@ -1086,9 +1086,15 @@ const BOARD_PROBE = `(() => {
          have no secondary prose and nothing to fold. */
       const cards = [...document.querySelectorAll(
         '.mx-card.vx-sevo, .mx-card.vx-des, .mx-card.vx-iso')];
-      const label = r => ((r.querySelector('.mx-r-l')||{}).textContent||'').trim();
+      /* EVERY BLOCK ON THE CARD CARRIES ITS OWN LABEL. The card was rows of
+         .mx-r with a .mx-r-l label; it is value cells and titled panels now,
+         and each of them declares what it is in data-lab. The question this
+         asks is unchanged — which labelled blocks can a clinician see — and
+         it is now asked of the thing that is actually on screen rather than
+         of one particular row markup. */
+      const label = r => (r.dataset.lab || '').trim();
       const read = () => cards.map(c => {
-        const rows = [...c.querySelectorAll('.mx-r')];
+        const rows = [...c.querySelectorAll('[data-lab]')];
         const shown = rows.filter(vis).map(label);
         return { name:(c.querySelector('.mx-card-t')||{}).textContent||'',
                  shown,
@@ -1158,8 +1164,8 @@ const BOARD_PROBE = `(() => {
       const cards = [...document.querySelectorAll(
         '.mx-card.vx-sevo, .mx-card.vx-des, .mx-card.vx-iso')];
       return cards.map(c => {
-        const shown = [...c.querySelectorAll('.mx-r')].filter(vis)
-          .map(r => ((r.querySelector('.mx-r-l')||{}).textContent||'').trim());
+        const shown = [...c.querySelectorAll('[data-lab]')].filter(vis)
+          .map(r => (r.dataset.lab || '').trim());
         return { name:(c.querySelector('.mx-card-t')||{}).textContent||'', shown,
                  btnVisible:vis(c.querySelector('.mx-fold-b')) };
       });
@@ -1287,6 +1293,117 @@ const BOARD_PROBE = `(() => {
       ph && ph.washed >= 4.5 && ph.washed < 8, ph && ph.washed.toFixed(2));
     console.log('     washed contrast: ' +
       found.map(x => x.name + ' ' + x.washed.toFixed(1)).join(', '));
+    await s.ctx.close();
+  }
+
+  /* ── THE INHALED AGENT CARDS: PRESENTATION MAY SPLIT, NOT REWRITE ──────
+     The cautions and effects are bullets now instead of runs of prose. That
+     is a layout decision, and the one thing it must never become is an
+     editing decision. This reconstitutes each record's own string from the
+     bullets on screen and requires them to be equal: a word added, a word
+     dropped, a clause moved or a sentence softened all fail here.
+
+     It is asserted against the LIVE CARD, not the source, because the split
+     happens at render time and the only version that matters is the one a
+     clinician reads. */
+  {
+    const s = await open(b, 1536, 950);
+    await s.pg.evaluate(() => {
+      newCase();
+      const set = (i,v) => { const e = document.getElementById(i); if (e) e.value = v; };
+      set('i-age','42'); set('i-sex','M'); set('i-height','175'); set('i-weight','75');
+      set('i-asa','II');
+      compute(); setDomain('maintenance');
+    });
+    await s.pg.waitForTimeout(700);
+
+    const m = await s.pg.evaluate(`(() => {
+      const CC = window.ClinicalContent;
+      const IDS = ['drug.sevoflurane','drug.desflurane','drug.isoflurane','drug.nitrous-oxide'];
+      const norm = x => String(x).replace(/\\s+/g,' ').trim();
+      const card = id => document.querySelector('.mx-agent.' +
+        ({'drug.sevoflurane':'vx-sevo','drug.desflurane':'vx-des',
+          'drug.isoflurane':'vx-iso','drug.nitrous-oxide':'vx-n2o'})[id]);
+      const bits = (c, sel) => c ? [...c.querySelectorAll(sel + ' li')].map(l => l.innerHTML) : null;
+      const rebuilt = (src, parts) => {
+        if (parts === null) return null;
+        /* Join the way the record was written: a record that declared its own
+           blocks with <br> is put back together with <br>. */
+        return norm(parts.join(/<br\\s*\\/?>/i.test(src) ? '<br>' : ' '));
+      };
+      const out = IDS.map(id => {
+        const d = CC.byId(id), c = card(id);
+        const w = bits(c, '.mx-pan-warn'), e = bits(c, '.mx-pan-eff');
+        return { id, name:d.name, found:!!c,
+          warnOk:  rebuilt(d.warn||'', w)   === norm(d.warn||''),
+          effectOk:rebuilt(d.effect||'', e) === norm(d.effect||''),
+          warnN:(w||[]).length, effectN:(e||[]).length,
+          warnGot:rebuilt(d.warn||'', w), warnWant:norm(d.warn||'') };
+      });
+      /* Identity: the frozen accent for each agent, read off the card. */
+      const ink = id => { const c = card(id); return c ?
+        getComputedStyle(c).getPropertyValue('--vx-ink').trim().toUpperCase() : null; };
+      const warnPan = document.querySelector('.mx-agent .mx-pan-warn');
+      const warnHeads = [...document.querySelectorAll('.mx-agent .mx-pan-warn .mx-pan-h')]
+        .map(h => getComputedStyle(h).color);
+      const effHeads = IDS.map(id => { const c = card(id);
+        const h = c && c.querySelector('.mx-pan-eff .mx-pan-h');
+        return h ? getComputedStyle(h).color : null; });
+      const side = document.querySelector('.mx-sup-row');
+      const sideCards = side ? side.querySelectorAll('.mx-agent').length : 0;
+      /* Every word on the two supporting cards must already exist in a
+         canonical record. This is the no-invented-medicine gate. */
+      /* The corpus is every word the canonical records carry, INCLUDING each
+         dose row as it renders: "Maintenance with nitrous oxide 1-2.5%" is a
+         reviewed label and a reviewed figure, and it has to be matchable as
+         the one string the card prints. */
+      const corpus = norm(IDS.map(id => { const d = CC.byId(id);
+        return [d.name, d.klass, d.effect, d.warn,
+                (d.doses||[]).map(x => { const r = CC.renderDose(x, null);
+                  return [x.label, x.note, x.label + ' ' + r.val + (r.unit||'')].join(' ');
+                }).join(' ')].join(' ');
+      }).join(' ')).toLowerCase();
+      /* Statement by statement, as the card prints them: a <li> here is an
+         agent heading followed by one <span> per statement, and reading its
+         textContent would run them together. */
+      const supText = side ? [...side.querySelectorAll('.mx-li li')]
+        .reduce((a, l) => { const sp = [...l.querySelectorAll('span')];
+          (sp.length ? sp : [l]).forEach(x => a.push(norm(x.textContent)));
+          return a; }, []) : [];
+      return { out, side:sideCards,
+        inks:IDS.map(ink),
+        warnHeads:[...new Set(warnHeads)], effHeads:[...new Set(effHeads)],
+        supText,
+        supUnsourced:supText.filter(t => {
+          const q = norm(t).toLowerCase();
+          return q && corpus.indexOf(q) < 0;
+        }) };
+    })()`);
+
+    t('all four inhaled agent cards render', m.out.every(x => x.found),
+      m.out.map(x => x.name + ':' + x.found));
+    t('THE CAUTIONS ARE SPLIT, NOT REWRITTEN — every record reconstitutes exactly',
+      m.out.every(x => x.warnOk),
+      m.out.filter(x => !x.warnOk).map(x => x.name + '\n  got:  ' + x.warnGot +
+                                                  '\n  want: ' + x.warnWant));
+    t('...and so does every effects panel', m.out.every(x => x.effectOk),
+      m.out.filter(x => !x.effectOk).map(x => x.name));
+    t('...and the prose really was broken up, not left as one block',
+      m.out.every(x => x.warnN >= 3), m.out.map(x => x.name + ':' + x.warnN));
+    /* The frozen identities. Desflurane and nitrous oxide are both blue and
+       are the pair a clinician is most likely to confuse, so they are named
+       here rather than merely being "different". */
+    t('each agent carries its frozen colour identity',
+      m.inks.join(',') === '#FFD400,#2FA8FF,#C96CFF,#3D78D8', m.inks);
+    t('...one caution language at every agent, whatever its own colour is',
+      m.warnHeads.length === 1, m.warnHeads);
+    t('...and no effects panel borrows it', m.effHeads.every(c => c !== m.warnHeads[0]),
+      m.effHeads);
+    t('the row under nitrous oxide carries two cards, not nothing',
+      m.side === 2, m.side);
+    t('NOTHING ON THEM IS INVENTED — every line is already in a canonical record',
+      m.supText.length > 0 && m.supUnsourced.length === 0,
+      m.supUnsourced.length ? m.supUnsourced : m.supText.length + ' lines, all sourced');
     await s.ctx.close();
   }
 
