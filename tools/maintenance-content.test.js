@@ -2261,9 +2261,28 @@ const INDUCTION_PHASES = ['induction','intubation','rsi','premedication'];
       CC.doseRowForContext(CC.byId(id), 75, A2, ['maintenance']).val));
 }
 
-/* B. None is a member of the induction board. Membership is decided by
-      induction-catalog.js and is entirely separate from the phase gate, so
-      this holds even if a phase were miswritten. */
+/* B. WAS: "None is a member of the induction board." All three volatiles
+      are members now, in a row of their own, and the heading survived the
+      rewrite of the assertions underneath it — a comment that contradicts
+      the code below it is worse than no comment, because the next reader
+      believes it and goes looking for a membership gate that is gone.
+
+      The contract this block actually holds:
+
+        the volatile row exists on the induction board and carries the three
+        volatiles;
+        it is the only row scoped to a strategy, so it is drawn under the
+        inhalational approach and nowhere else;
+        at least one member can answer an induction question — sevoflurane,
+        through its reviewed induction-phase record;
+        desflurane and isoflurane are present as alternatives and their cards
+        report coverage, because neither holds such a record;
+        and a maintenance-phase row may never answer an induction query,
+        which is asserted in both directions in gate A above.
+
+      Membership is still decided by induction-catalog.js alone, separately
+      from the phase gate, so both have to be wrong for a maintenance
+      concentration to reach an induction surface. */
 {
   const CAT = require(REPO + '/induction-catalog.js');
   const members = [];

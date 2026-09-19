@@ -517,13 +517,26 @@ var DRUGS = [
        anywhere: basisWeight is absent, so renderDose prints the range as the
        label states it whatever the patient weighs.
 
-       THE INITIAL DOSE FOR A SPONTANEOUSLY BREATHING ADULT is the one the
-       induction board asks for: at induction the airway is not yet secured.
+       AND NO STRATEGY ASKS FOR IT. This is the initial dose for a
+       SPONTANEOUSLY BREATHING adult, and the first draft of this comment
+       claimed it was therefore the one the induction board wanted, on the
+       reasoning that the airway is not yet secured at induction. That was
+       wrong about the board: the IV and rapid sequence plans both select a
+       blocker, which makes them controlled-airway regimens, and answering
+       one with a spontaneous-respiration figure is the wrong clinical
+       context wearing a real number.
+
+       So the row carries phase 'spontaneous-respiration' and no strategy
+       context lists that phase. Fentanyl stays in those regimens and its
+       card reports that no reviewed row answers the question — which is
+       true, and better than either alternative. What the row is for is the
+       drug reference, which enumerates what a record holds, and any future
+       context written for a spontaneously breathing technique.
+
        The label's assisted-ventilation regimen is a different clinical
-       situation with its own much wider range, and it is deliberately not
-       written here — publishing it would need its own review and its own
-       context, and a second adult induction row would compete with this one
-       for the same question. */
+       situation again, with its own much wider range, and it is deliberately
+       not written here: publishing it would need its own review and its own
+       context, and a second adult row would compete with this one. */
     { label:'Anaesthesia, spontaneous respiration \u2014 initial', route:'IV',
       /* NOT phase:'induction'. It was, and that made it the answer to every
          adult induction query — including the IV and rapid sequence plans,
