@@ -1400,15 +1400,23 @@ table.dtab-red .dtab-dose{width:18%;}
   margin-top:3px;line-height:1.3;}
 
 /* ── BODY GRID ──────────────────────────────────────────────────────────
-   Three tracks. The value cells take one each; the effects and cautions
-   panels span all three. The disclosure and its contents are display:contents
-   above the phone breakpoint, so the Context cell lands in the strip as a
-   third sibling instead of being wrapped in a box that only a phone needs. */
-/* ONE COLUMN BY DEFAULT, BECAUSE THE CARD IS 315px WIDE, NOT 510px.
-   The workstation gives this domain a 974px centre column at 1536, so three
-   cards across are 315px each: a three-cell strip inside one of them would
-   put "MAINTENANCE" in 95px and break the label. The cells stack, full
-   width, and only the wide nitrous card opens out into a strip. */
+   ONE COLUMN HERE, and the arrangements are declared per agent in the
+   container query below. A card narrow enough to be stacked stacks; nothing
+   assumes a width it has not been given.
+
+   At a container of 900px and above:
+     sevoflurane and desflurane share a two-column row, and each of those two
+       cards — and nitrous oxide, which has the column to itself — carries two
+       value cells with Context spanning the full width beneath them
+     isoflurane keeps its own 2x2 metric arrangement, because its fourth cell
+       is a second reviewed concentration rather than prose
+   Below it every card is a single column of cells.
+
+   The effects and cautions panels always span the whole card, at every width.
+
+   The disclosure and its contents are display:contents above the phone
+   breakpoint, so the Context cell takes its place among the value cells
+   instead of being wrapped in a box that only a phone needs. */
 .eng-wrap .mx-agent .mx-card-b{display:grid;gap:11px;padding:14px 17px 16px;
   grid-template-columns:minmax(0,1fr);align-content:start;}
 .eng-wrap .mx-agent .mx-fold,
@@ -4014,12 +4022,6 @@ function compute(){
       VOLATILE_IDS.map(mxQuick).join('') +
     '</div>' +
     '<div class="mx-sec-h">Inhaled agents, detailed</div>' +
-    /* THREE VOLATILES ACROSS, THEN NITROUS WITH THE SPACE BESIDE IT USED.
-       The four cards used to sit in one auto-fit grid, which put nitrous
-       oxide alone on a second row with two thirds of the width empty. The
-       rows are explicit now: the volatiles are the comparison, nitrous is
-       its own composition, and VOLATILE_IDS still decides which agents
-       exist and in what order. */
     /* THE COMPOSITION, IN DOM ORDER. VOLATILE_IDS still decides which agents
        exist; this decides how much width each of them gets. Sevoflurane and
        desflurane share a row because their records are the same shape;
