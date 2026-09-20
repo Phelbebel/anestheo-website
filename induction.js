@@ -41,12 +41,17 @@
    on this screen is wrong, it is wrong in clinical-index.js or in compute(),
    and it is wrong identically everywhere else it appears.
 
-   ── THE STRATEGY RECORDS THE APPROACH, AND MAY START THE PLAN ─────────────
+   ── THE STRATEGY RECORDS THE APPROACH, AND LOADS THE PLAN ────────────────
    Choosing one does two things. It tells the dose selector which context to
    ask about, which is why a blocker's card changes number under a rapid
-   sequence and nothing else does. And on an UNTOUCHED plan it selects the
-   agents its preset names, so a strategy is a starting point rather than a
-   caption.
+   sequence and nothing else does. And it LOADS that approach's regimen onto
+   the board, so a strategy builds an anaesthetic rather than captioning one.
+
+   IT LOADS IT WHETHER OR NOT THE PLAN HAS BEEN EDITED. Pressing a strategy
+   tile is itself a clinician decision, and it replaces what is on the board
+   with that strategy's regimen. Pressing the tile that is already lit is a
+   no-op: nothing is applied, nothing is cleared, and the plan is left
+   exactly as it stands.
 
    A PRESET HOLDS IDS. No dose, no weight, no concentration, no context and
    no duplicate record appears in it. A suggested agent lands in the same
@@ -60,17 +65,31 @@
    themselves.
 
    WHAT IT WILL NOT DO. It selects nothing on a fresh screen until a strategy
-   is chosen, it names no agent it has no reviewed row for, it never
-   substitutes an alternative when the suggested one cannot be offered, and
-   it never overrules the clinician: the first manual edit transfers the plan
-   to them, and from then on a strategy change offers to replace it rather
-   than doing so.
+   is chosen, it names no agent it has no reviewed row for, and it never
+   substitutes an alternative when the suggested one cannot be offered.
 
-   Classic and Modified RSI describe how the airway is secured. They may
-   carry different preset metadata, and in v1 they carry the same; neither
-   changes the dose question, because contextFor() returns the same rapid
-   sequence context for both and no dose figure exists in a preset to
-   override it with.
+   ── WHO OWNS THE PLAN, AND WHAT MAY CHANGE IT ────────────────────────────
+   The first manual edit transfers the plan to the clinician. From then on
+   NOTHING AMBIENT may touch it: a re-render, a weight change, an age change
+   and any other patient edit re-resolve every dose on the board and leave
+   the choice of agents alone. That is the guarantee, and it holds because
+   render() reaches no preset path at all rather than because a flag is
+   consulted.
+
+   Two things may still change a plan the clinician owns, and both are the
+   clinician asking for it. "Apply suggested plan" re-applies the CURRENT
+   strategy's regimen, which is how a modified plan is reset. And pressing a
+   DIFFERENT strategy loads that strategy's regimen over it — an explicit
+   press is a decision, not an accident, so it is not blocked and it is not
+   demoted to an offer.
+
+   Classic and Modified RSI describe how the airway is secured. THE RSI
+   PARENT ITSELF HOLDS NO REGIMEN — it is a real state with no preset, so
+   entering it clears the board and waits — and the two variants hold one
+   each. They may carry different preset metadata, and in v1 they carry the
+   same; neither changes the dose question, because contextFor() returns the
+   same rapid sequence context for both and no dose figure exists in a preset
+   to override it with.
 
    There is no route control. It duplicated what the selected agents already
    express, and contradicted itself the moment a plan held both a volatile and
@@ -995,18 +1014,33 @@
   }
 
   /* ── 1 · INDUCTION STRATEGY ──────────────────────────────────────────
-     The approach, and the starting plan that follows from it. Choosing one
-     does two things: it tells the dose selector which context to ask about,
+     The approach, and the regimen that follows from it. Choosing one does
+     two things: it tells the dose selector which context to ask about,
      which is why a blocker's card changes number when a rapid sequence is
-     chosen and nothing else does, and on an UNTOUCHED plan it selects the
-     agents its preset names.
+     chosen and nothing else does, and it loads that strategy's regimen onto
+     the board.
+
+     THE TILES ARE A RADIO, NOT A ROW OF TOGGLES. Pressing a different tile
+     loads its regimen and replaces whatever was there, a plan the clinician
+     edited included — an explicit press is a decision, not an accident.
+     Pressing the tile that is already lit does nothing at all. An
+     anaesthetic always has an approach, so there is no state here with a
+     board full of agents and no strategy declared.
+
+     RSI IS THE ONE TILE THAT DECLARES NO REGIMEN OF ITS OWN. Pressing the
+     parent clears the board and shows Classic and Modified; the regimen
+     arrives with the variant.
+
+     WHAT THE CLINICIAN KEEPS. A manual edit makes the plan theirs, and from
+     then on a re-render, a weight change or an age change re-resolves every
+     dose and leaves their choice of agents alone. "Apply suggested plan"
+     appears while that is true and re-applies the CURRENT strategy, which is
+     how a modified plan is reset; it is hidden the moment there is nothing
+     to offer.
 
      IT STILL CHANGES NO DOSE AND INVENTS NO AGENT. A preset holds ids; the
      number under a suggested drug comes from the same canonical record, the
-     same context and the same card as one the clinician pressed. And it
-     never overrules them: a plan that has been edited by hand is the
-     clinician's, and the strategy offers to replace it rather than doing
-     so. */
+     same context and the same card as one the clinician pressed. */
   function strategySection(){
     var tiles = TECHNIQUES.map(function (t){
       var on = technique === t.id;
