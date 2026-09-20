@@ -643,7 +643,30 @@ async function type(pg, sel, text) {
       t('strategy: the clinician selected propofol',
         /drug\.propofol/.test(chosen.planKeys), chosen.planKeys);
 
+      /* WHAT THIS LOOP ASSERTS CHANGED, AND IT CHANGED DELIBERATELY.
+         It used to require planKeys UNCHANGED by every strategy press, on
+         the rule that a plan the clinician had touched was frozen against
+         the strategy layer. That rule produced the state a clinician
+         photographed on this very surface: the tile lit, the board empty,
+         and an "Apply suggested plan" button underneath — the strategy and
+         the plan saying different things with nothing to reconcile them.
+
+         Pressing a strategy tile IS the request to load that strategy, so
+         it force-applies the whole regimen. What must still never move the
+         plan is everything that is not such a press — a re-render, a weight
+         change, a patient edit — and that is asserted in the clinical
+         suite, which can drive those events directly. Here the claim is
+         the phone-side one: the press lands, and the board that comes back
+         is the strategy's own. */
       const seen = {};
+      const REGIMEN = {
+        iv:   '["analgesia/drug.fentanyl","induction/drug.propofol","nmb/drug.rocuronium"]',
+        /* the RSI parent holds no regimen of its own until a variant is
+           chosen, so it retires what the last strategy owned and waits */
+        rsi:  '[]',
+        inhalational: '["volatile/drug.sevoflurane"]',
+        tiva: '["analgesia/drug.remifentanil","induction/drug.propofol"]'
+      };
       for (const id of ['iv', 'rsi', 'inhalational', 'tiva']) {
         await pg.evaluate(t => {
           if (window.Induction.technique) Induction.setTechnique(Induction.technique);
@@ -651,20 +674,27 @@ async function type(pg, sel, text) {
         }, id);
         await pg.waitForTimeout(400);
         seen[id] = await snap(pg);
-        t('strategy/' + id + ': planKeys UNCHANGED by the strategy press',
-          seen[id].planKeys === chosen.planKeys, seen[id].planKeys);
+        t('strategy/' + id + ': the press LOADS that strategy\'s regimen',
+          seen[id].planKeys === REGIMEN[id], seen[id].planKeys);
+        t('strategy/' + id + ': ...and the technique is the one pressed',
+          seen[id].technique === id, seen[id].technique);
         t('strategy/' + id + ': a context surface states the active strategy',
           !!seen[id].stx, (seen[id].stx || '').slice(0, 50));
-        /* FOUR ROWS, PLUS THE VOLATILE ROW WHERE THE STRATEGY ASKS FOR IT.
-           The volatile induction row is scoped to the inhalational approach
-           and is not drawn under the other three; under inhalational it is a
-           fifth row of three agents. Still 2-up on a phone, which is what
-           this assertion is actually about. */
-        const expectRows = id === 'inhalational'
-          ? '4/2 4/2 4/2 4/2 3/2' : '4/2 4/2 4/2 4/2';
+        /* THE CATALOG'S ROWS, PLUS THE VOLATILE ROW WHERE THE STRATEGY ASKS
+           FOR IT. The volatile induction row is scoped to the inhalational
+           approach and is not drawn under the other three. Every row is
+           2-up on a phone, which is what this assertion is actually about —
+           the second number, not the first. The first comes from the
+           catalog, because the analgesia row is three wide since morphine
+           left the board and hard-coding four would mean inventing a fourth
+           opioid to keep a test's arithmetic. */
+        const expectRows = await pg.evaluate(t =>
+          ((window.InductionCatalog || {}).rows || [])
+            .filter(r => !r.strategy || r.strategy === t)
+            .map(r => r.members.length + '/2').join(' '), id);
         t('strategy/' + id + ': the board rows stay 2-up on a phone',
           (seen[id].boardRows || []).join(' ') === expectRows,
-          seen[id].boardRows);
+          { shown:seen[id].boardRows, expect:expectRows });
       }
       t('strategy: every strategy produces a DIFFERENT workstation state',
         new Set(['iv','rsi','inhalational','tiva'].map(k => seen[k].stx)).size === 4,

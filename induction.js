@@ -463,6 +463,13 @@
     var clear = {};
     r.rows.forEach(function (rowKey){ clear[rowKey] = 1; });
     presetRowsForKey(appliedPresetKey).forEach(function (rowKey){ clear[rowKey] = 1; });
+    /* A FORCED APPLY REPLACES THE WHOLE BOARD, not the union of two presets.
+       The union is right when one preset succeeds another; it is not right
+       when a customized plan is being replaced, because the clinician may
+       have selected in a row neither preset names — a volatile chosen by
+       hand, say, which would survive into an intravenous strategy whose
+       board does not even draw that row, selected and invisible. */
+    if (opts.force) Object.keys(idx).forEach(function (rowKey){ clear[rowKey] = 1; });
     r.cleared = Object.keys(clear);
     r.cleared.forEach(function (rowKey){
       var meta = idx[rowKey]; if (!meta) return;
@@ -490,13 +497,19 @@
      rows come from the preset object, so a preset that changes tomorrow
      retires correctly tomorrow.
 
-     IT DOES NOT TOUCH A PLAN THE CLINICIAN BUILT. planCustomized is the
-     first thing it asks, and a customized plan is returned untouched — the
-     explicit "Apply suggested plan" remains the only way to replace one.
-     Nor does retiring MAKE the plan customized: nothing the clinician did
-     changed, so the ownership flag does not move. */
-  function retireAppliedPresetPlan(){
-    if (planCustomized) return { skipped:'plan is customized' };
+     UNFORCED, IT DOES NOT TOUCH A PLAN THE CLINICIAN BUILT. planCustomized
+     is the first thing it asks and a customized plan is returned untouched.
+     Nor does an unforced retirement MAKE the plan customized: nothing the
+     clinician did changed, so the ownership flag does not move.
+
+     FORCED, IT OUTRANKS THE FLAG, because the only caller that forces is an
+     explicit strategy press — the clinician asking for a different approach,
+     which is a decision and not an accident. See setTechnique below. */
+  function retireAppliedPresetPlan(opts){
+    opts = opts || {};
+    /* Forced by an explicit strategy change, which outranks a customized
+       plan; unforced everywhere else, where it must not. */
+    if (planCustomized && !opts.force) return { skipped:'plan is customized' };
     var rows = presetRowsForKey(appliedPresetKey);
     if (!rows.length) { appliedPresetKey = null; return { cleared:[] }; }
     var idx = rowIndex(), cleared = [];
@@ -507,6 +520,9 @@
         setPlanSelection(meta.roleKey, pk, false, 'preset'); });
     });
     appliedPresetKey = null;
+    /* The clinician's edits were discarded by their own explicit choice, so
+       the plan is nobody's again rather than still theirs. */
+    if (opts.force) planCustomized = false;
     return { cleared:cleared };
   }
 
@@ -1419,57 +1435,70 @@
     restoreRef(keepTop);
   }
 
-  /* Records the approach, and moves the suggested plan with it. On a plan
-     that still belongs to the preset layer it applies the new strategy's
-     preset, or retires the old one where the new strategy has no preset yet.
+  /* Records the approach, and loads that approach's regimen with it: the
+     new strategy's preset, or a retirement of the old one where the new
+     strategy has no preset yet.
 
      It changes no dose and invents no drug: what it writes are ids, and the
-     numbers under them come from the same records they always did. It does
-     not overwrite a plan the clinician edited — every path below is guarded
-     on ownership.
+     numbers under them come from the same records they always did.
 
-     PRESSING THE ACTIVE TILE CLEARS THE STRATEGY AND KEEPS THE PLAN. The
-     strategy records the approach and the plan records what is being given;
-     dropping the first is not a reason to erase the second. */
+     ── CHOOSING A STRATEGY IS A CLINICIAN DECISION, AND IT WINS ─────────
+     WAS: setTechnique toggled the tile and then called applyPreset, which
+     refuses to write to a customized plan. The two together produced the
+     state this was written to fix — TIVA lit, "Propofol and remifentanil
+     are the declared plan" on the strip, and a board reading NONE SELECTED
+     with an Apply control beside it. Three surfaces disagreeing about the
+     same plan, and the clinician left to notice and press a button.
+
+     The mistake was treating every write as the same kind of event.
+
+       a re-render, a weight change, a patient edit
+         may never touch what the clinician selected;
+
+       a manual edit inside the current strategy
+         makes the plan theirs and keeps it;
+
+       PRESSING A DIFFERENT STRATEGY IS ITSELF AN EXPLICIT DECISION
+         and replaces the regimen, customized or not.
+
+     Only the last one reaches this function, so this function forces. What
+     protects a customized plan is that nothing else here writes: render()
+     calls no preset path, and neither does compute().
+
+     RADIO, NOT TOGGLE. Pressing the active tile used to clear the strategy
+     and keep its drugs — a second ambiguous state, an anaesthetic with no
+     declared approach. An already-active tile is now a no-op; resetting a
+     modified regimen is what "Apply suggested plan" is for. */
   function setTechnique(id){
-    technique = (technique === id) ? null : id;
+    if (technique === id) return;              /* radio, not toggle */
+    technique = id;
     /* Leaving RSI leaves its variant behind with it. */
     if (technique !== 'rsi') rsiVariant = null;
-    /* AN UNTOUCHED PLAN MAY BE FILLED; A CUSTOMIZED ONE MAY NOT. applyPreset
-       is guarded on ownership and returns without writing when the plan
-       belongs to the clinician, so the branch is the same either way and
-       there is one place that decides.
-
-       THE THIRD CASE IS A STRATEGY WITH NO PRESET YET. RSI before its
-       variant is chosen is a real state that resolves to no preset key, and
-       the question is asked generally — "is this a strategy, and does it
-       resolve to a preset" — rather than by naming RSI. Entering it retires
-       whatever preset owned the plan, so the board never shows one
-       strategy's agents under another strategy's name.
-
-       TURNING THE STRATEGY OFF IS NOT THAT CASE. `technique` is null here,
-       so neither branch runs and the plan stays exactly as it is: the
-       strategy records the approach, the plan records what is being given,
-       and dropping the first does not erase the second. */
-    if (technique) {
-      if (presetKeyFor(technique, rsiVariant)) applyPreset(technique, rsiVariant);
-      else retireAppliedPresetPlan();
-    }
+    /* RSI BEFORE ITS VARIANT IS A STRATEGY WITH NO REGIMEN. It resolves to
+       no preset key, so there is nothing to apply and the previous regimen
+       has to go — otherwise the board shows IV's or TIVA's agents under a
+       rapid sequence heading. Asked generally, not by naming RSI. */
+    if (presetKeyFor(technique, rsiVariant))
+      applyPreset(technique, rsiVariant, { force:true });
+    else
+      retireAppliedPresetPlan({ force:true });
     render();
   }
-  /* Records which rapid sequence, and selects that variant's preset —
-     rsi/classic or rsi/modified. In v1 the two suggest the same agents.
+  /* Records which rapid sequence, and loads that variant's regimen —
+     rsi/classic or rsi/modified. In v1 the two select the same agents.
+
+     Choosing a variant is the same kind of event as choosing a strategy, so
+     it forces for the same reason, and pressing the active variant is the
+     same no-op.
 
      NEITHER VARIANT CARRIES A DOSE. contextFor() returns the same rapid
      sequence context for both, nothing here touches it, and no dose or
      phase record is duplicated per variant. */
   function setRsiVariant(id){
     if (technique !== 'rsi') return;
-    rsiVariant = (rsiVariant === id) ? null : id;
-    /* Classic and Modified may suggest different agents. They never ask a
-       different dose question: contextFor() returns ['rsi'] for both, and
-       nothing here touches that. */
-    if (rsiVariant) applyPreset(technique, rsiVariant);
+    if (rsiVariant === id) return;             /* radio, not toggle */
+    rsiVariant = id;
+    applyPreset(technique, rsiVariant, { force:true });
     render();
   }
 

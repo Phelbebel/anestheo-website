@@ -203,12 +203,15 @@ const BOARD_PROBE = `(() => {
     const m = await s.pg.evaluate(BOARD_PROBE);
     const clip = await s.pg.evaluate(CLIP_PROBE);
     const P = name + ': ';
-    /* WAS: 16 cards, 4 rows, 4 controls. The four row pluses are gone —
-       each was a shortcut to the drug reference that cost its role a 34px
-       track — so the board is 16 cards, 4 rows and NO add control, at every
-       width this suite visits. */
-    t(P + 'the whole board renders — 16 cards, 4 rows, no add controls',
-      m.cards === 16 && m.rows === 4 && m.plus === 0,
+    /* WAS: 16 cards, 4 rows, 4 controls, then 16 cards and no controls. The
+       analgesia row is three wide now: morphine's only canonical dose is
+       postoperative, so on an induction board its card could only report
+       that it had nothing to say, and it left rather than sit there. NO
+       FOURTH AGENT WAS ADDED to keep the grid square — writing a record to
+       fill a cell is the failure the catalog file exists to prevent, so the
+       count this asserts follows the medicine rather than the layout. */
+    t(P + 'the whole board renders — 15 cards, 4 rows, no add controls',
+      m.cards === 15 && m.rows === 4 && m.plus === 0,
       { cards:m.cards, rows:m.rows, plus:m.plus });
     t(P + '...no card below the ' + MIN_CARD + 'px floor',
       m.minWidth >= MIN_CARD, { min:m.minWidth, widths:m.widths });
@@ -217,11 +220,21 @@ const BOARD_PROBE = `(() => {
        is forbidden is an uneven break — 3+1 leaves the fourth drug stranded
        under the first three and stretches the role label over both lines,
        which is exactly what auto-fit produced between 1181 and 1299. */
-    const EXPECT = w >= 740 ? '4' : '2+2';
+    /* A THREE-CARD ROW BREAKS 2+1 ON A PHONE, AND THAT IS NOT AN ORPHAN.
+       The defect this guards against is a FOUR-card row breaking 3+1, which
+       strands the fourth drug under the first three and stretches the role
+       label over both lines. A row of three has no even split available, so
+       the rule is stated as what it always meant: a row fills its lines from
+       the left and the remainder is never more than one short. */
+    const expectFor = n => w >= 740 ? String(n) : (n >= 4 ? '2+2' : '2+1');
     t(P + '...every clinical row breaks evenly, with no orphan card',
-      m.perRow.every(r => r.split('+').every(n => n === r.split('+')[0])), m.perRow);
-    t(P + '...four across on a tablet, two and two on a phone',
-      m.perRow.every(r => r === EXPECT), { expect:EXPECT, got:m.perRow });
+      m.perRow.every(r => { const parts = r.split('+').map(Number);
+        return parts.length === 1 ||
+               parts.every(n => n === parts[0] || n === parts[0] - 1); }), m.perRow);
+    t(P + '...four across on a tablet, two at a time on a phone',
+      m.perRow.every((r, i) => r === expectFor(m.rowSizes ? m.rowSizes[i]
+        : r.split('+').map(Number).reduce((a, b) => a + b, 0))),
+      { got:m.perRow });
     /* The label is one card-row high, not a rectangle spanning a wrap. */
     t(P + '...the role label is not stretched over a wrapped row',
       m.roleTallerThanRow === false,
@@ -353,7 +366,7 @@ const BOARD_PROBE = `(() => {
        width back to something else. */
     t('1536: ...four cards at the approved 122px',
       m.widths.length === 1 && m.widths[0] === 122, m.widths);
-    t('1536: ...16 cards and no add controls', m.cards === 16 && m.plus === 0);
+    t('1536: ...15 cards and no add controls', m.cards === 15 && m.plus === 0);
     await s.ctx.close();
   }
 
@@ -400,7 +413,7 @@ const BOARD_PROBE = `(() => {
       { field:after.weight, context:after.ctxWeight });
     t(P + '...and the fields after the weight are still reachable',
       after.asa === 'II', after.asa);
-    t(P + '...the workstation populates', after.empty === false && after.cards === 16 &&
+    t(P + '...the workstation populates', after.empty === false && after.cards === 15 &&
       after.plus === 0 && after.airway === 10,
       { cards:after.cards, plus:after.plus, airway:after.airway });
     t(P + '...the case line carries what was typed',
@@ -491,7 +504,7 @@ const BOARD_PROBE = `(() => {
     t('A ...and the values survived the fold, which is the whole point',
       v.weight === '75' && v.ctxWeight === 75 && v.asa === 'II',
       { weight:v.weight, ctx:v.ctxWeight, asa:v.asa, editorVisible:vis });
-    t('A ...the workstation populated underneath', v.empty === false && v.cards === 16, v.cards);
+    t('A ...the workstation populated underneath', v.empty === false && v.cards === 15, v.cards);
     await s.ctx.close();
   }
 
@@ -526,7 +539,7 @@ const BOARD_PROBE = `(() => {
     t('B ...ASA can still be chosen afterwards', v.asa === 'II', v.asa);
     t('B ...the weight is still 75, not 7', v.weight === '75' && v.ctxWeight === 75,
       { field:v.weight, ctx:v.ctxWeight });
-    t('B ...and the workstation is populated', v.empty === false && v.cards === 16, v.cards);
+    t('B ...and the workstation is populated', v.empty === false && v.cards === 15, v.cards);
     t('B ...with the editor still open', (await s.pg.evaluate(EDITOR_VISIBLE)) === true);
     await s.ctx.close();
   }
@@ -572,7 +585,7 @@ const BOARD_PROBE = `(() => {
         await s.pg.waitForTimeout(200);
         return (await s.pg.evaluate(EDITOR_VISIBLE)) === false; })());
     t('D ...the workstation stays populated',
-      stillLive.empty === false && stillLive.cards === 16, stillLive.cards);
+      stillLive.empty === false && stillLive.cards === 15, stillLive.cards);
     await s.pg.evaluate(() => ptToggle());          /* reopen */
     await s.pg.waitForTimeout(400);
     const reopened = await vals(s.pg);
@@ -637,7 +650,7 @@ const BOARD_PROBE = `(() => {
     await s.pg.waitForTimeout(400);
     const next = await vals(s.pg);
     t('F ...and the next patient types normally',
-      next.weight === '62' && next.ctxWeight === 62 && next.cards === 16,
+      next.weight === '62' && next.ctxWeight === 62 && next.cards === 15,
       { weight:next.weight, ctx:next.ctxWeight, cards:next.cards });
     await s.ctx.close();
   }

@@ -554,6 +554,37 @@ var DRUGS = [
                  title:'Fentanyl 50 micrograms/ml Solution for Injection',
                  documentId:'eMC Summary of Product Characteristics',
                  section:'4.2 Posology and method of administration, adults' } },
+    /* ── THE ADULT INDUCTION DOSE, FROM A CLINICAL REFERENCE ─────────────
+       REVIEWED 20/09. Neither row above can answer an induction board. The
+       1-3 mcg/kg row is unreviewed and no source states it; the 50-200 mcg
+       row is the SmPC's regimen for a patient who is breathing, and the IV
+       and rapid sequence plans both select a blocker. So the card read
+       "Adult dose not reviewed" beside a selected agent, which is honest
+       and useless.
+
+       THE SOURCE IS A CLINICAL REFERENCE, NOT A PRODUCT LABEL, and the
+       record says so. A label states what the manufacturer registered; this
+       is the dose the reference gives for the indication the board is
+       asking about. Mixing the two would let a reader think the figure has
+       regulatory standing it does not.
+
+       THE OLDER PATIENT IS NAMED, NOT NUMBERED. The source says lower
+       dosing is favoured at 65 and over and gives no separate range, so
+       neither does this. Inventing one — 0.5-1 for the elderly, say —
+       would be writing a recommendation no source made, and the age band
+       machinery would then enforce it. The statement goes in the note where
+       a clinician reads it and applies their own judgement. */
+    { label:'Induction, analgesic adjunct', route:'IV', phase:'induction',
+      low:0.5, high:2, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',
+      note:'Single dose as an adjunct to general anaesthesia. Titrate to the '
+         + 'patient\u2019s clinical condition. Lower dosing is favoured at 65 '
+         + 'years and over; the source gives no separate range for that group, '
+         + 'so none is published here.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'StatPearls (NCBI Bookshelf)',
+                 title:'Fentanyl \u2014 StatPearls',
+                 documentId:'NCBI Bookshelf NBK459275',
+                 section:'Dosage and Administration, anaesthesia adjunct / general anaesthesia' } },
     /* REVIEWED 3/11 */
     { label:'Induction and maintenance', route:'IV', phase:'induction',
       low:2, high:3, unit:'mcg/kg', basis:'TBW', basisWeight:true, type:'range',

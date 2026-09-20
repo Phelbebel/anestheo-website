@@ -63,10 +63,24 @@
           { key:'glycopyrrolate', canonicalId:'drug.glycopyrrolate' }
         ] },
 
+      /* MORPHINE IS NOT ON THIS ROW ANY MORE, AND THAT IS COMPOSITION.
+         Its only canonical dose is POSTOPERATIVE analgesia. The board asks
+         an induction question and the model answered, correctly, that it
+         holds nothing for it — so the card sat in the row reading "Dose not
+         reviewed for this context", which is true and is a poor thing to
+         put in front of a clinician choosing an opioid at induction.
+
+         Nothing clinical changed. The record is untouched, it is publishable,
+         and it renders in the full Drug reference and the analgesia domain
+         where a postoperative dose belongs. What changed is which agents this
+         BOARD offers, which is exactly the decision this file exists to hold.
+
+         THE ROW IS THREE WIDE NOW, AND NO FOURTH IS INVENTED TO FILL IT.
+         Adding an agent so the grid stays 4x4 is how the fabricated records
+         this file was written to prevent got made in the first place. */
       { key:'analgesia', label:'Analgesia', role:'analgesia',
         members:[
           { key:'fentanyl',     canonicalId:'drug.fentanyl' },
-          { key:'morphine',     canonicalId:'drug.morphine' },
           { key:'remifentanil', canonicalId:'drug.remifentanil' },
           { key:'alfentanil',   canonicalId:'drug.alfentanil' }
         ] },

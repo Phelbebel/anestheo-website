@@ -536,11 +536,11 @@ if (fs.existsSync(SNAP)) {
     { now: CC.DRUGS.filter(CC.isPublishable).length, baseline: stats.publishableDrugCount });
   const CAT = require(REPO + '/induction-catalog.js');
   t('the default board is five rows', CAT.rows.length === stats.catalogRows);
-  t('...of four members each',
+  t('...with the member counts the catalog declares',
     JSON.stringify(CAT.rows.map(r => r.members.length)) ===
     JSON.stringify(stats.catalogMembersPerRow), CAT.rows.map(r => r.members.length));
-  t('...and every one of the nineteen resolves to a canonical record',
-    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0) === 19 &&
+  t('...and every one of the eighteen resolves to a canonical record',
+    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0) === 18 &&
     CAT.rows.every(r => r.members.every(m => m.canonicalId && CC.byId(m.canonicalId))),
     CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0));
 } else {
@@ -1104,8 +1104,8 @@ t('11 legacy compatibility does NOT populate or mutate populationClass',
    adult anaesthetic dose, which the SmPC states in absolute micrograms, and
    sevoflurane's adult and paediatric induction titrations. The invariant is
    unchanged — a populationClass appears on reviewed rows and nowhere else. */
-t('...and exactly 38 doses carry a populationClass, the reviewed ones',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 38,
+t('...and exactly 39 doses carry a populationClass, the reviewed ones',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 39,
   CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0));
 /* WAS: every publishable drug is existing-unchanged. Eight now read
    'reviewed', and the safety question is not how many but WHICH — a legacy
@@ -1136,16 +1136,16 @@ t('13 NO existing-unchanged record became reviewed',
   CC.DRUGS.every(d => (d.doses||[]).every(x =>
     !x.evidence || x.evidence.state !== 'reviewed' || !!x.populationClass)) &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 38 &&
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 39 &&
   /* the drugs whose provenance is 'reviewed' are only ever the eight, and no
      drug that carried a legacy record is among them */
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed')
     .every(d => UPGRADED.indexOf(d.id) >= 0),
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed').map(d => d.id));
-t('...and dose-level evidence exists ONLY on the 38 reviewed records',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 38 &&
+t('...and dose-level evidence exists ONLY on the 39 reviewed records',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 39 &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 38);
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 39);
 
 /* THE NAMED HELD RECORDS, EXERCISED THROUGH THE REAL SELECTOR. */
 [['drug.midazolam','induction'], ['drug.dexmedetomidine','induction'],
@@ -1178,7 +1178,7 @@ const reviewed = [];
 CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
   if (x.evidence && x.evidence.state === 'reviewed') reviewed.push({ id:d.id, dose:x });
 }));
-t('EXACTLY 38 REVIEWED DOSE RECORDS', reviewed.length === 38, reviewed.length);
+t('EXACTLY 39 REVIEWED DOSE RECORDS', reviewed.length === 39, reviewed.length);
 t('...every one carries a full citation',
   reviewed.every(r => r.dose.evidence.authority && r.dose.evidence.title &&
                       r.dose.evidence.documentId && r.dose.evidence.section));
@@ -1661,12 +1661,17 @@ const CATSRC = read('induction-catalog.js');
    this assertion has always been protecting. */
 t('the display catalog exists and declares five rows',
   !!CAT && (CAT.rows||[]).length === 5, (CAT.rows||[]).map(r => r.key));
-t('...nineteen slots in the frozen order, the volatile row last',
-  CAT.rows.slice(0, 4).every(r => r.members.length === 4) &&
-  CAT.rows[4].members.length === 3 &&
+/* MORPHINE LEFT THE ANALGESIA ROW. Its only canonical dose is postoperative
+   analgesia, so on an induction board it could only ever report that it had
+   nothing to say. The record is untouched and still renders in the full drug
+   reference; what changed is which agents this board offers. The row is three
+   wide and NO FOURTH AGENT WAS ADDED to keep the grid square — that is how
+   fabricated records get written. */
+t('...eighteen slots in the frozen order, the volatile row last',
+  CAT.rows.map(r => r.members.length).join() === '4,3,4,4,3' &&
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []).join() ===
   ['midazolam','lidocaine-iv','atropine','glycopyrrolate',
-   'fentanyl','morphine','remifentanil','alfentanil',
+   'fentanyl','remifentanil','alfentanil',
    'propofol','etomidate','ketamine','thiopental',
    'rocuronium','atracurium','mivacurium','suxamethonium',
    'sevoflurane','desflurane','isoflurane'].join(),
@@ -1808,14 +1813,14 @@ t('...and premedication keeps the unphased tier it needs',
            ana.length >= 4 && ana.every(x => !/L\b/.test(x)); })() &&
   !ctxRow('drug.midazolam', 75, ADULT_ASA, ['induction', LEG]).withheld,
   (code(read('induction.js')).match(/analgesia:\[[^\]]*\]/g) || []).join(' '));
-/* And the row it was protecting is now unreachable from a strategy. */
-t('...while no strategy context can reach the unreviewed adult fentanyl row',
-  ['induction', 'rsi,induction', 'tiva,infusion,induction'].every(spec => {
-    const r = ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(','));
-    return r.withheld === true; }),
+/* And the row it was protecting against is still unreachable: fentanyl
+   answers from its reviewed induction record, never from the unphased one. */
+t('...while no strategy context reaches the unreviewed adult fentanyl row',
+  ['induction', 'rsi,induction', 'tiva,infusion,induction'].every(spec =>
+    !/1.{0,3}3\s*mcg\/kg/.test(
+      ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(',')).doseRule || '')),
   ['induction', 'rsi,induction', 'tiva,infusion,induction'].map(spec =>
-    spec + ':' + (ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(',')).withheld
-                    ? 'withheld' : ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(',')).val)));
+    spec + ':' + ctxRow('drug.fentanyl', 75, ADULT_ASA, spec.split(',')).doseRule));
 
 /* AN ALPHA-2 AGONIST IS NOT A CONVENTIONAL HYPNOTIC, and the colour says so
    without any dose moving. */
@@ -2045,22 +2050,47 @@ console.log('\n17d. NO GENERIC FALLBACK UNDER ANALGESIA');
 {
   const CTX = { iv:['induction'], rsi:['rsi','induction'],
                 inhalational:['induction'], tiva:['tiva','infusion','induction'] };
-  /* 1 + 2 · Neither row answers any strategy's analgesia question. */
-  [['drug.morphine', /0\.05|0\.1/], ['drug.fentanyl', /1.{0,3}3\s*mcg\/kg/]]
-    .forEach(([id, forbidden]) => {
-      const nm = CC.byId(id).name;
-      t('  ' + nm.padEnd(12) + ' is withheld under every strategy analgesia context',
-        Object.keys(CTX).every(k => ctxRow(id, 75, ADULT_ASA, CTX[k]).withheld === true),
-        Object.keys(CTX).map(k => k + ':' +
-          (ctxRow(id, 75, ADULT_ASA, CTX[k]).withheld ? 'withheld'
-            : ctxRow(id, 75, ADULT_ASA, CTX[k]).val)));
-      /* 4 · And what renders is the coverage state, never the figure. */
-      t('  ...and what renders is a coverage state, not that number',
-        Object.keys(CTX).every(k => { const r = ctxRow(id, 75, ADULT_ASA, CTX[k]);
-          return !!r.coverage && r.val === '' && r.doseNum === '' &&
-                 !forbidden.test(JSON.stringify(r)); }),
-        Object.keys(CTX).map(k => k + ':' + ctxRow(id, 75, ADULT_ASA, CTX[k]).coverage));
-    });
+  /* 1 · FENTANYL ANSWERS NOW, AND FROM THE RIGHT ROW. It holds a reviewed
+     induction record — 0.5-2 mcg/kg, a clinical reference rather than a
+     label — so the question is no longer whether a figure appears but WHICH
+     row produced it. Neither of the two rows this block was written to keep
+     out may be the answer: not the unreviewed 1-3 mcg/kg, and not the
+     spontaneous-respiration 50-200 mcg, which is scoped to a patient who is
+     breathing while every one of these strategies selects a blocker. */
+  t('  Fentanyl     answers every strategy analgesia context',
+    Object.keys(CTX).every(k => ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k]).withheld !== true),
+    Object.keys(CTX).map(k => k + ':' + ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k]).val));
+  t('  ...from the reviewed induction record, 0.5-2 mcg/kg',
+    Object.keys(CTX).every(k => {
+      const r = ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k]);
+      return /0\.5.{0,3}2\s*mcg\/kg/.test(r.doseRule || ''); }),
+    Object.keys(CTX).map(k => k + ':' + ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k]).doseRule));
+  t('  ...never the unreviewed 1-3 mcg/kg row',
+    Object.keys(CTX).every(k => !/1.{0,3}3\s*mcg\/kg/
+      .test(ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k]).doseRule || '')),
+    Object.keys(CTX).map(k => k + ':' + ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k]).doseRule));
+  t('  ...and never the spontaneous-respiration 50-200 mcg row',
+    Object.keys(CTX).every(k => !/50.{0,3}200/
+      .test(JSON.stringify(ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k])))),
+    Object.keys(CTX).map(k => k + ':' + ctxRow('drug.fentanyl', 75, ADULT_ASA, CTX[k]).val));
+  t('  ...while that row is still reachable in its own context',
+    /50.{0,3}200/.test(ctxRow('drug.fentanyl', 75, ADULT_ASA,
+      ['spontaneous-respiration']).val || ''),
+    ctxRow('drug.fentanyl', 75, ADULT_ASA, ['spontaneous-respiration']).val);
+
+  /* 2 · MORPHINE STILL ANSWERS NOTHING HERE, and is no longer on the board
+     to ask. Both facts matter: the context rule would withhold it even if it
+     were, and the catalog no longer offers a card that could only report a
+     gap. */
+  t('  Morphine     is withheld under every strategy analgesia context',
+    Object.keys(CTX).every(k => ctxRow('drug.morphine', 75, ADULT_ASA, CTX[k]).withheld === true),
+    Object.keys(CTX).map(k => k + ':' +
+      (ctxRow('drug.morphine', 75, ADULT_ASA, CTX[k]).withheld ? 'withheld'
+        : ctxRow('drug.morphine', 75, ADULT_ASA, CTX[k]).val)));
+  t('  ...and its postoperative figure appears in none of them',
+    Object.keys(CTX).every(k => !/0\.05|0\.1/
+      .test(JSON.stringify(ctxRow('drug.morphine', 75, ADULT_ASA, CTX[k])))),
+    Object.keys(CTX).map(k => k + ':' + ctxRow('drug.morphine', 75, ADULT_ASA, CTX[k]).coverage));
   /* 5 · The records are untouched and still reachable where they belong. */
   t('  the postoperative morphine record still exists and is publishable',
     (() => { const d = CC.byId('drug.morphine');
@@ -2076,12 +2106,20 @@ console.log('\n17d. NO GENERIC FALLBACK UNDER ANALGESIA');
       return !!x && x.low === 1 && x.high === 3 && !x.evidence &&
              CC.isDosePublishable(d, x); })(),
     (CC.byId('drug.fentanyl').doses || []).map(x => (x.phase || '(unphased)')));
-  /* 3 · Both remain board members, so both keep a usable card. */
-  t('  both remain members of the induction board',
+  /* 3 · Fentanyl keeps its card and now fills it. Morphine has left the
+         board rather than sitting on it with nothing to say — a composition
+         decision, taken in the catalog, with its record untouched. */
+  t('  fentanyl is still a board member and morphine is not',
     (() => { const members = (CAT.rows || []).reduce((a, r) =>
         a.concat((r.members || []).map(m => m.canonicalId)), []);
-      return members.indexOf('drug.morphine') >= 0 &&
-             members.indexOf('drug.fentanyl') >= 0; })(), 'still on the board');
+      return members.indexOf('drug.fentanyl') >= 0 &&
+             members.indexOf('drug.morphine') < 0; })(),
+    (CAT.rows || []).find(r => r.key === 'analgesia').members.map(m => m.key));
+  t('  ...and every agent left on the analgesia row answers an induction context',
+    (CAT.rows || []).find(r => r.key === 'analgesia').members
+      .every(m => ctxRow(m.canonicalId, 75, ADULT_ASA, ['induction']).withheld !== true),
+    (CAT.rows || []).find(r => r.key === 'analgesia').members
+      .map(m => m.key + ':' + ctxRow(m.canonicalId, 75, ADULT_ASA, ['induction']).val));
   /* THE RULE IS IN THE CONTEXT TABLE, NOT IN A DRUG CHECK. */
   t('  and no analgesia context anywhere carries the legacy tier',
     (() => { const ana = code(read('induction.js')).match(/analgesia:\[[^\]]*\]/g) || [];
@@ -2307,9 +2345,9 @@ const INDUCTION_PHASES = ['induction','intubation','rsi','premedication'];
       x.phase === 'induction' && CC.isDosePublishable(CC.byId(id), x))),
     volMembers.map(id => id + ':' + ((CC.byId(id).doses || [])
       .filter(x => x.phase === 'induction').length)));
-  t('...and the catalog holds nineteen members, sixteen unchanged',
-    members.length === 19 &&
-    members.slice(0, 16).indexOf('drug.sevoflurane') < 0, members.length);
+  t('...and the catalog holds eighteen members, the volatiles last',
+    members.length === 18 &&
+    members.slice(0, 15).indexOf('drug.sevoflurane') < 0, members.length);
 }
 
 /* C/D. The induction embedded reference's scope no longer lists the volatile

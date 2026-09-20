@@ -439,6 +439,10 @@ const fill = (pg, o) => pg.evaluate(o => {
           '.wf-col-side .awp-grid > *, .wf-full #iref-body tr.dtab-r')]
           .filter(e => !e.textContent.trim()).length,
         cards: cards.length, perRow: Object.values(rows),
+        catPerRow: ((window.InductionCatalog || {}).rows || [])
+          .filter(r => !r.strategy ||
+                       r.strategy === (window.Induction || {}).technique)
+          .map(r => r.members.length),
         stretched: new Set(heights).size === 1 && heights.length > 2,
         cardWidths: cards.map(c => Math.round(bb(c).width)),
         refTop: Math.round(bb(document.querySelector('.wf-full')).top + window.pageYOffset),
@@ -463,15 +467,27 @@ const fill = (pg, o) => pg.evaluate(o => {
     t('three chosen agents light three rows, and the board does not reflow',
       dens.usingRows === 3 && dens.boardRows === dens.boardRowsBefore,
       { using:dens.usingRows, rows:dens.boardRows, before:dens.boardRowsBefore });
-    /* THE APPROVED COMPOSITION IS FOUR AND FOUR. It was a list of full-width
-       rows; the cockpit specifies four clinical rows of exactly four cards,
-       equal in width, with the row's fifth element a control and not a fifth
-       card. So the width assertion is no longer "full" — it is "equal, and a
-       quarter of the board", and the count is what carries the rest. */
-    t('...and every card in a row is the same width, four to the row',
+    /* THE APPROVED COMPOSITION IS A FOUR-COLUMN GRID. It was a list of
+       full-width rows; the cockpit specifies clinical rows of equal cards on
+       a four-column track, with the row's fifth element a control and not a
+       fifth card. So the width assertion is not "full" — it is "equal, and a
+       quarter of the board", and the count is what carries the rest.
+
+       WAS: "four to the row", four rows of four. That was a literal 4 x 4
+       and it stopped being true when morphine left the analgesia row: its
+       only canonical dose is postoperative, so the card was a permanent
+       coverage line in the row a clinician reads first when choosing an
+       opioid. Keeping the number would have meant inventing a fourth opioid
+       to fill the cell, which is exactly the pressure induction-catalog.js
+       exists to remove. THE CARD WIDTH DOES NOT CHANGE — a short row leaves
+       its fourth track empty rather than stretching three cards across it —
+       so the geometry this assertion protects is intact and asserted
+       literally; only the per-row count now comes from the catalog. */
+    t('...and every card is the same width, each row exactly its catalog row',
       new Set(dens.cardWidths).size === 1 && dens.cardWidths[0] > 70 &&
-      dens.perRow.length === 4 && dens.perRow.every(n => n === 4),
-      { widths:dens.cardWidths, perRow:dens.perRow });
+      dens.perRow.length === dens.catPerRow.length &&
+      dens.perRow.every((n,i) => n === dens.catPerRow[i]),
+      { widths:dens.cardWidths, perRow:dens.perRow, catalog:dens.catPerRow });
     t('no container is more than 26px taller than its contents',
       dens.slack.length === 0, dens.slack);
     /* 30–60px anonymous gaps were the complaint; the brief's band is 10–16px
@@ -535,21 +551,41 @@ const fill = (pg, o) => pg.evaluate(o => {
             const a2 = els[i-1].getBoundingClientRect(), b2 = els[i].getBoundingClientRect();
             gaps.push(+(b2.top - a2.bottom).toFixed(1));
           }
-        /* THE FOUR CARDS TILE THEIR ROW. They no longer span the board — the
-           approved composition is four to a row — so what is measured is that
-           each row of four covers its own strip end to end with nothing but
-           the grid gap between them and no card left standing alone. */
-        const tiled = [...box.querySelectorAll('.tb-row')].every(rw => {
-          const cs = [...rw.querySelectorAll('.tb-c')].map(c => c.getBoundingClientRect());
-          if (cs.length !== 4) return false;
-          const rb = rw.getBoundingClientRect();
-          const w = cs.map(c => c.width);
-          if (Math.max(...w) - Math.min(...w) > 1) return false;
-          for (let i = 1; i < cs.length; i++)
-            if (cs[i].left - cs[i-1].right > 6) return false;
-          return Math.abs(cs[0].left - rb.left) < 2 &&
-                 Math.abs(cs[3].right - rb.right) < 2;
-        });
+        /* THE CARDS TILE A SHARED FOUR-COLUMN TRACK.
+           WAS: every row holds exactly four cards, and the fourth reaches
+           the row's right edge. The analgesia row is three wide now —
+           morphine left the board because its only canonical dose is
+           postoperative — and a row that is short must NOT stretch its cards
+           to fill the strip, because then one row's cards would be a
+           different size from another's and the board would read as two
+           different grids stacked.
+
+           So the measurement is the track, not the count: every card on the
+           board is the same width, every card sits at one of the same four
+           left offsets, and a row is contiguous from its own left edge with
+           nothing but the grid gap between cards. A full row still reaches
+           the right edge, which is what proves the track spans the board. */
+        const rws = [...box.querySelectorAll('.tb-row')];
+        const allC = rws.map(rw =>
+          [...rw.querySelectorAll('.tb-c')].map(c => c.getBoundingClientRect()));
+        const widths = allC.flat().map(c => c.width);
+        const full = allC.find(cs => cs.length === 4);
+        const tiled = allC.length > 0 && full &&
+          Math.max(...widths) - Math.min(...widths) <= 1 &&
+          allC.every((cs, ri) => {
+            if (!cs.length || cs.length > 4) return false;
+            const rb = rws[ri].getBoundingClientRect();
+            for (let i = 1; i < cs.length; i++)
+              if (cs[i].left - cs[i-1].right > 6) return false;
+            /* the same four columns, whatever the row's length */
+            if (!cs.every((c,i) => Math.abs(c.left - full[i].left) < 2)) return false;
+            if (Math.abs(cs[0].left - rb.left) >= 2) return false;
+            /* only a full row may reach the right edge; a short one must
+               leave its missing tracks empty rather than stretching */
+            return cs.length === 4
+              ? Math.abs(cs[3].right - rb.right) < 2
+              : rb.right - cs[cs.length-1].right > 2;
+          });
         return { n:rows.length, on:rows.filter(r => r.on).length,
                  boxW:+bb.width.toFixed(1), boxTop:+bb.top.toFixed(1),
                  tiled: tiled,
@@ -583,7 +619,7 @@ const fill = (pg, o) => pg.evaluate(o => {
         Math.abs(pack[n].boxW - pack.none.boxW) < 1),
       { orderStable:pack[3].order.join() === pack.none.order.join(),
         top:[pack.none.boxTop, pack[3].boxTop], w:[pack.none.boxW, pack[3].boxW] });
-    t('...and no card floats: four equal cards tile every row, end to end',
+    t('...and no card floats: equal cards on one four-column track, no stretching',
       pack.none.tiled === true);
     /* A card carries four lines now — name, route and context, the per-kg
        rule and the amount for this patient — so the band is the four-line
@@ -1406,6 +1442,23 @@ const fill = (pg, o) => pg.evaluate(o => {
          formulary and prints what the model holds — the difference is that a
          strategy may no longer auto-select the unreviewed one. 35 − 5 = 30.
 
+         NOW THIRTY-TWO. Fentanyl gained a second reviewed row, the adult
+         INDUCTION record 0.5-2 mcg/kg TBW, and this patient meets it. The
+         50-200 mcg row is a spontaneous-respiration regimen and could never
+         answer a controlled-airway induction, so the board printed nothing
+         where the commonest opioid at induction should have had a number;
+         the new record is what that gap is closed with. 36 − 5 = 31, and
+         the row this patient gains over the old count is the thirty-second.
+
+         MORPHINE IS STILL COUNTED HERE, and that is the boundary working.
+         It left the induction BOARD in this pass — a composition decision
+         taken in induction-catalog.js, because its only canonical dose is
+         postoperative and the analgesia row was showing a permanent
+         coverage line. The RECORD was not touched, so the reference, which
+         is a formulary and not a board, still prints it. If this number
+         ever drops by morphine's rows, a composition decision has reached
+         the clinical model, which is the thing that must not happen.
+
          NO VOLATILE IS IN THIS COUNT. Sevoflurane gained an induction record
          and a place on the induction BOARD in the same pass; the induction
          drug REFERENCE scope was deliberately not widened to the volatile
@@ -1419,7 +1472,7 @@ const fill = (pg, o) => pg.evaluate(o => {
          must not drift is the DRUG count; the row count is asserted beside it
          so an accidental duplicate still fails. */
       t(w + ': ...over all twenty-one drugs', rr.nDrugs === 21, rr.nDrugs);
-      t(w + ': ...as thirty-one reviewed rows', rr.n === 31, rr.n);
+      t(w + ': ...as thirty-two reviewed rows', rr.n === 32, rr.n);
       /* C. WAS: no volatile agent among them, at all. Sevoflurane holds a
             reviewed INDUCTION record now and this is an induction reference,
             so it belongs — and the rule that replaced the blanket is what is

@@ -935,6 +935,9 @@ async function openEngine(b, viewport) {
       const shape = [...board.querySelectorAll('.tb-grp')].map(g => ({
         cards: g.querySelectorAll('.tb-c').length,
         plus:  g.querySelectorAll('.tb-s').length }));
+      const catShape = ((window.InductionCatalog || {}).rows || [])
+        .filter(r => !r.strategy || r.strategy === (window.Induction || {}).technique)
+        .map(r => r.members.length);
       const canonical = ['induction','analgesia','nmb']
         .reduce((a,g) => { const seen = {};
           CC.visibleDosesInGroup(g, wt, pop).forEach(d => {
@@ -953,7 +956,7 @@ async function openEngine(b, viewport) {
           r.strategy === (window.Induction || {}).technique)
         .reduce((a,r) => a.concat(r.members.map(m =>
           m.canonicalId || ('catalog:' + m.key))), []);
-      return { names, ids, canonical, offBoard, doses, groups, shape,
+      return { names, ids, canonical, offBoard, doses, groups, shape, catShape,
                slots, catSlots,
                catalogInClinicalIndex: !!CC.INDUCTION_PLAN,
                offBoardPublished: offBoard.every(id => {
@@ -967,14 +970,19 @@ async function openEngine(b, viewport) {
        wrote seven fake records to satisfy a 4 x 4 layout would still exist. */
     t('...and the clinical model carries no board composition at all',
       alts.catalogInClinicalIndex === false);
-    /* FOUR AND FOUR, AND NOTHING ELSE. Not 4/4/3, not a fifth empty card.
-       WAS: one control each — a plus that reached the drug reference
-       filtered to the row's class. It is gone, and the assertion inverts:
-       what must be in a role is four cards and no add control of any kind,
-       so a reserved slot cannot come back as an empty one. */
-    t('...four rows of exactly four cards, and no add control',
-      alts.shape.length === 4 &&
-      alts.shape.every(r => r.cards === 4 && r.plus === 0), alts.shape);
+    /* EVERY ROW IS EXACTLY ITS CATALOG ROW, AND NOTHING ELSE.
+       WAS: "four rows of exactly four cards", a literal 4 x 4. That number
+       stopped being a fact about the design the moment the analgesia row
+       went to three, and holding it would have meant inventing a fourth
+       opioid to fill the cell — precisely the pressure induction-catalog.js
+       exists to remove. So the shape is asserted against the catalog rather
+       than against a remembered figure, and the part that is actually a rule
+       is kept literal: no add control of any kind, so a reserved slot cannot
+       come back as an empty one. */
+    t('...every row holds exactly its catalog members, and no add control',
+      alts.shape.length === alts.catShape.length &&
+      alts.shape.every((r,i) => r.cards === alts.catShape[i] && r.plus === 0),
+      { shown:alts.shape.map(r => r.cards), catalog:alts.catShape });
     /* An agent the composition leaves off is not hidden — it is published. */
     t('...and an agent it leaves off is still published in the reference',
       alts.offBoardPublished, alts.offBoard);
@@ -1073,9 +1081,14 @@ async function openEngine(b, viewport) {
     /* Not one size across the whole board — a row is as tall as its own
        content — but within a row, a card with no record is the same box as
        the card beside it that has one. */
+    /* WAS: four rows of four. The row count and the card count are the
+       catalog's business and they moved when morphine left the analgesia
+       row; what this assertion is actually about is that a card with no
+       record is not a smaller or taller box than the one beside it. So it
+       asks that, and asks it of whatever rows the catalog draws. */
     t('...and within every row a display card is the same box as a real one',
-      ui._rows.length === 4 &&
-      ui._rows.every(r => r.length === 4 && new Set(r).size === 1), ui._rows);
+      ui._rows.length > 0 &&
+      ui._rows.every(r => r.length > 0 && new Set(r).size === 1), ui._rows);
 
     /* ── THE FOURTH HYPNOSIS SLOT ───────────────────────────────────────
        WAS: thiopental held it as a display member with no record at all, and
@@ -1401,7 +1414,11 @@ async function openEngine(b, viewport) {
       compute(); setDomain('induction');
       return { canonical, sync, before, after, underRsi,
                atracuriumSelectedUnderRsi, found, step,
-               restored: document.querySelectorAll('#induction-host .tb-c').length };
+               restored: document.querySelectorAll('#induction-host .tb-c').length,
+               catalogCards: ((window.InductionCatalog || {}).rows || [])
+                 .filter(r => !r.strategy ||
+                              r.strategy === (window.Induction || {}).technique)
+                 .reduce((n,r) => n + r.members.length, 0) };
     })()`);
     t('a record-backed card still selects and still prints its dose',
       both.canonical.pressed === 'true' && both.canonical.rule === true &&
@@ -1435,7 +1452,8 @@ async function openEngine(b, viewport) {
       both.atracuriumSelectedUnderRsi.digits === false,
       { underRsi:both.underRsi, selected:both.atracuriumSelectedUnderRsi });
     t('...and the board is whole again for the probes that follow',
-      both.restored === 16, both.restored);
+      both.restored === both.catalogCards && both.restored > 0,
+      { shown:both.restored, catalog:both.catalogCards });
 
     /* ── TECHNIQUE RECORDS; IT DOES NOT PRESCRIBE ───────────────────────
        There is no route control any more, so only technique is exercised —
@@ -2671,27 +2689,70 @@ async function openEngine(b, viewport) {
       t('D. the drug reference USE path also sets planCustomized',
         d.customized === true && d.plan.indexOf('induction/drug.propofol') >= 0, d);
 
-      /* E + F. A customized plan survives every strategy change untouched. */
+      /* E + F. WHO OWNS THE PLAN, AND WHEN.
+         These two used to assert the opposite: that a customized plan was
+         frozen against every strategy change. That rule was too strong and
+         it produced the state a clinician actually photographed — TIVA lit,
+         the board empty, and "Apply suggested plan" still on offer. A
+         strategy tile is not an ambient re-render; it is an explicit request
+         to load that strategy, so it force-applies and takes ownership back.
+
+         What the old rule was protecting is still protected, and it is
+         asserted separately below: a re-render, a weight change, a patient
+         edit must never restore an agent the clinician removed. */
       const e = await R(`I.clear();
         window.drefAddToPlan('induction', 'drug.propofol');
         window.drefAddToPlan('nmb', 'drug.rocuronium');
         const base = JSON.stringify(I.planKeys.slice().sort());
         const seen = [];
-        ['iv','rsi','inhalational','tiva','rsi'].forEach(x => {
-          I.setTechnique(x); seen.push(JSON.stringify(I.planKeys.slice().sort())); });
-        return { base, seen, customized:I.planCustomized };`);
-      t('E. changing technique on a customized plan leaves picked byte-identical',
-        e.seen.every(x => x === e.base) && e.customized === true,
-        { base:e.base, drifted:e.seen.filter(x => x !== e.base) });
+        ['iv','inhalational','tiva'].forEach(x => {
+          I.setTechnique(x);
+          seen.push({ tech:x, keys:JSON.stringify(I.planKeys.slice().sort()),
+                      customized:I.planCustomized, applied:I.appliedPresetKey }); });
+        return { base, seen };`);
+      t('E. an explicit strategy change REPLACES a customized plan',
+        e.seen.every(s => s.keys !== e.base), { base:e.base, seen:e.seen });
+      t('...loading each strategy\'s own regimen, not the one before it',
+        new Set(e.seen.map(s => s.keys)).size === e.seen.length, e.seen);
+      t('...and ownership returns to the strategy: customized false, preset applied',
+        e.seen.every(s => s.customized === false && s.applied === s.tech), e.seen);
+
       const f = await R(`I.clear();
         window.drefAddToPlan('induction', 'drug.propofol');
         I.setTechnique('rsi');
         const base = JSON.stringify(I.planKeys.slice().sort());
         I.setRsiVariant('classic');  const c1 = JSON.stringify(I.planKeys.slice().sort());
+        const cCust = I.planCustomized;
+        document.querySelector('#induction-host .tb-c[data-drug="drug.fentanyl"]').click();
+        const edited = JSON.stringify(I.planKeys.slice().sort());
+        const eCust = I.planCustomized;
         I.setRsiVariant('modified'); const m1 = JSON.stringify(I.planKeys.slice().sort());
-        return { base, c1, m1 };`);
-      t('F. Classic <-> Modified on a customized plan leaves picked byte-identical',
-        f.c1 === f.base && f.m1 === f.base, f);
+        return { base, c1, cCust, edited, eCust, m1, mCust:I.planCustomized };`);
+      t('F. pressing Classic force-loads its regimen over a manual selection',
+        f.c1 !== f.base && f.cCust === false, f);
+      t('...a manual edit inside RSI Classic takes ownership and sticks',
+        f.edited !== f.c1 && f.eCust === true, f);
+      t('...and switching to Modified force-loads its own regimen over that',
+        f.m1 === f.c1 && f.mCust === false, f);
+
+      /* THE OTHER HALF OF THE RULE, AND THE ONE THAT MATTERS CLINICALLY.
+         Nothing that is not an explicit strategy press may put an agent back
+         on the board. A weight change re-renders every card and re-resolves
+         every dose; it must not re-resolve the PLAN. */
+      const gStick = await R(`I.clear(); I.setTechnique('tiva');
+        const loaded = JSON.stringify(I.planKeys.slice().sort());
+        document.querySelector(
+          '#induction-host .tb-c[data-drug="drug.remifentanil"]').click();
+        const after = JSON.stringify(I.planKeys.slice().sort());
+        const w = document.getElementById('i-weight');
+        if (w) { w.value = '95'; compute(); }
+        I.render(); I.render();
+        return { loaded, after, rerendered:JSON.stringify(I.planKeys.slice().sort()),
+                 customized:I.planCustomized, tech:I.technique };`);
+      t('G. a re-render and a weight change do NOT restore a removed agent',
+        gStick.rerendered === gStick.after && gStick.after !== gStick.loaded, gStick);
+      t('...and the plan stays customized and the strategy stays lit',
+        gStick.customized === true && gStick.tech === 'tiva', gStick);
 
       /* H. New Case clears every piece of the state, rsiVariant included. */
       const h = await R(`I.clear();
@@ -2737,22 +2798,31 @@ async function openEngine(b, viewport) {
       t('...with the blocker on its routine intubating record, not the RSI one',
         /0\.6/.test(sIV.roc.rule) && !/1\.2/.test(sIV.roc.rule) &&
         /Intubation/.test(sIV.roc.use) && !/Rapid/.test(sIV.roc.use), sIV.roc);
-      /* ── FENTANYL IS IN THE PLAN AND ITS DOSE IS NOT ────────────────
-         WAS: the card shows the reviewed adult 50-200 mcg. That row is the
-         SmPC's spontaneous-respiration regimen, and this strategy selects a
-         blocker — a controlled-airway plan answered with a spontaneously
-         breathing dose is the wrong context wearing a real number.
+      /* ── FENTANYL NOW ANSWERS ITS OWN INDUCTION QUESTION ────────────
+         THE HISTORY HERE IS THE POINT, SO IT STAYS WRITTEN DOWN.
 
-         So the card shows neither that row nor the unreviewed 1-3 mcg/kg
-         one: it reports that no reviewed row answers this question, while
-         the agent stays in the regimen. Selecting a drug and showing a dose
-         are two decisions and this is what it looks like when they differ. */
-      t('...and fentanyl is in the plan with NO dose printed for this context',
-        sIV.fent.rule === '' && sIV.fent.amount === '' &&
-        /not reviewed/i.test(sIV.fent.cov || ''), sIV.fent);
-      t('...neither the spontaneous-respiration row nor the unreviewed one',
-        !/50.{0,3}200/.test(sIV.fent.cov + sIV.fent.rule + sIV.fent.amount) &&
-        !/mcg\/kg/.test(sIV.fent.cov + sIV.fent.rule + sIV.fent.amount), sIV.fent);
+         First the card printed the reviewed adult 50-200 mcg. That row is
+         the SmPC's SPONTANEOUS-RESPIRATION regimen and this strategy selects
+         a blocker, so a controlled-airway plan was being answered with a
+         spontaneously breathing dose — the wrong context wearing a real
+         number. The fix at the time was to print nothing: the agent stayed
+         in the regimen and the card reported that no reviewed row answered
+         the question. That was honest and it was also the commonest opioid
+         at induction going to theatre with a blank dose.
+
+         A reviewed induction-phase record now exists — 0.5-2 mcg/kg TBW,
+         StatPearls NBK459275 — so the honest answer and the useful one are
+         the same answer. The assertions invert accordingly, and the two
+         barriers the old pair was really holding are kept: the
+         spontaneous-respiration row must still never answer here, and the
+         unreviewed 1-3 mcg/kg row must still never answer anywhere. */
+      t('...and fentanyl answers from its reviewed 0.5-2 mcg/kg induction row',
+        /0\.5.{0,3}2\s*mcg\/kg/.test(sIV.fent.rule) && sIV.fent.amount !== '' &&
+        sIV.fent.cov === '' && /Induction/.test(sIV.fent.use), sIV.fent);
+      t('...and NOT from the spontaneous-respiration row or the unreviewed one',
+        !/50.{0,3}200/.test(sIV.fent.rule + sIV.fent.amount + sIV.fent.cov) &&
+        !/1.{0,3}3\s*mcg\/kg/.test(sIV.fent.rule) &&
+        !/[Ss]pontaneous/.test(sIV.fent.use), sIV.fent);
       t('...and propofol on its reviewed induction record',
         /2.{0,3}2\.5/.test(sIV.prop.rule) && /Induction/.test(sIV.prop.use), sIV.prop);
 
@@ -2834,19 +2904,35 @@ async function openEngine(b, viewport) {
          canonical record. Whether a figure appears is decided by the context
          alone, and a card with no answer says so where the numbers would be.
 
-         Midazolam and morphine make the point: both are legacy-only records.
-         Both may be named in a plan and both keep their card — and under the
-         analgesia context, which no longer carries the legacy tier, morphine
-         prints a coverage line rather than its postoperative dose. */
+         Midazolam and atracurium make the point. Midazolam is a legacy-only
+         record and premedication still carries the legacy tier, so it prints.
+         Atracurium holds an intubating dose and no RSI one, so under an RSI
+         plan it is named, it keeps its card, and where its numbers would be
+         it says "RSI dose not reviewed".
+
+         THIS BLOCK USED TO MAKE THE POINT WITH MORPHINE, and that is worth
+         writing down rather than losing in a diff. Morphine's only canonical
+         dose is postoperative; on the analgesia row, which no longer carries
+         the legacy tier, its card was permanently a coverage line in the row
+         a clinician reads first when choosing an opioid at induction. That
+         is a composition decision and it was taken in induction-catalog.js:
+         morphine left the BOARD. The record is untouched and still renders
+         in the drug reference, so nothing clinical changed and the rule this
+         block exists to prove is unchanged — only the agent that
+         demonstrates it, because a drug that is not a board member cannot
+         demonstrate what a board member's card does. */
       const sGate = await R(`I.clear();
         I.__presetsForTest({
-          iv:{ rows:{ premedication:{ selected:['drug.midazolam'], alternatives:[] },
-                      analgesia:{ selected:['drug.morphine'], alternatives:[] },
-                      hypnosis:{ selected:['drug.propofol'], alternatives:[] } } },
-          rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
+          iv:{ rows:{} },
+          rsi:{ variants:{
+            classic:{ rows:{
+              premedication:{ selected:['drug.midazolam'], alternatives:[] },
+              nmb:{ selected:['drug.atracurium'], alternatives:[] },
+              hypnosis:{ selected:['drug.propofol'], alternatives:[] } } },
+            modified:{ rows:{} } } },
           inhalational:{ rows:{} }, tiva:{ rows:{} } });
-        I.setTechnique('iv');
-        const r = I.__resolvePresetForTest('iv', null);
+        I.setTechnique('rsi'); I.setRsiVariant('classic');
+        const r = I.__resolvePresetForTest('rsi', 'classic');
         const cell = id => { const c = document.querySelector(
             '#induction-host .tb-c[data-drug="' + id + '"]');
           return c ? { on:c.classList.contains('on'),
@@ -2856,16 +2942,16 @@ async function openEngine(b, viewport) {
         return { plan:I.planKeys.slice().sort(),
                  withheld:(r.withheld || []).map(w => w.id),
                  unresolved:(r.unresolved || []).map(u => u.id),
-                 morphine:cell('drug.morphine'), midazolam:cell('drug.midazolam'),
+                 atracurium:cell('drug.atracurium'), midazolam:cell('drug.midazolam'),
                  propofol:cell('drug.propofol') };`);
       t('a plan may name an agent whose dose for this context is not reviewed',
-        sGate.plan.indexOf('analgesia/drug.morphine') >= 0 &&
-        sGate.morphine.on === true, sGate.plan);
+        sGate.plan.indexOf('nmb/drug.atracurium') >= 0 &&
+        sGate.atracurium.on === true, sGate.plan);
       t('...and the card reports that rather than printing another row',
-        sGate.morphine.rule === '' && sGate.morphine.amount === '' &&
-        /not reviewed/i.test(sGate.morphine.cov), sGate.morphine);
+        sGate.atracurium.rule === '' && sGate.atracurium.amount === '' &&
+        /not reviewed/i.test(sGate.atracurium.cov), sGate.atracurium);
       t('...the resolution reports it too, as withheld and not as missing',
-        sGate.withheld.indexOf('drug.morphine') >= 0 &&
+        sGate.withheld.indexOf('drug.atracurium') >= 0 &&
         sGate.unresolved.length === 0, { withheld:sGate.withheld, unresolved:sGate.unresolved });
       t('...while an agent whose context IS answered prints its dose',
         sGate.propofol.on === true && /2.{0,3}2\.5/.test(sGate.propofol.rule),
@@ -2881,10 +2967,12 @@ async function openEngine(b, viewport) {
       await R(`I.__presetsForTest(${JSON.stringify(shipped)}); I.clear(); return 1;`);
 
       /* ── THE PAEDIATRIC PATIENT GETS THE PAEDIATRIC RECORD ──────────
-         Fentanyl's reviewed adult dose is absolute micrograms and its
-         reviewed paediatric dose is per-kg. This proves a child never
-         receives the adult figure through the strategy path, and that the
-         unreviewed 1-3 mcg/kg adult row reaches neither. */
+         Fentanyl now holds an adult induction record AND a paediatric one,
+         both per-kg and both different numbers. This proves the population
+         band decides which answers, so a child never receives the adult
+         range and an adult never receives the child's — and that the
+         unreviewed 1-3 mcg/kg row and the absolute-microgram
+         spontaneous-respiration row reach neither. */
       const sPaed = await R(`
         const CCx = window.ClinicalContent;
         const kid = CCx.patientPopulation({ context:{ pediatric:true },
@@ -2901,43 +2989,85 @@ async function openEngine(b, viewport) {
                  adult:{ rule:a.doseRule, val:a.val + ' ' + a.unit, withheld:!!a.withheld,
                          cov:a.coverage || '' } };`);
       t('a child still receives its own reviewed per-kg fentanyl record',
-        /mcg\/kg/.test(sPaed.kid.rule) && !/50.{0,3}200/.test(sPaed.kid.val), sPaed.kid);
-      t('...while the adult receives no fentanyl dose for this context at all',
-        sPaed.adult.withheld === true, sPaed.adult);
+        /2.{0,3}3\s*mcg\/kg/.test(sPaed.kid.rule) &&
+        !/50.{0,3}200/.test(sPaed.kid.val), sPaed.kid);
+      t('...while the adult receives the adult induction record, a different range',
+        sPaed.adult.withheld !== true &&
+        /0\.5.{0,3}2\s*mcg\/kg/.test(sPaed.adult.rule || '') &&
+        sPaed.adult.rule !== sPaed.kid.rule, sPaed);
       t('...neither the spontaneous-respiration row nor the unreviewed one',
         !/50.{0,3}200/.test(sPaed.adult.val || '') &&
         !/1.{0,3}3\s*mcg\/kg/.test(sPaed.adult.rule || ''),
         { adult:sPaed.adult, kid:sPaed.kid.rule });
 
       /* ── OWNERSHIP, AGAINST PLANS THAT ACTUALLY SELECT ───────────────
-         A silent overwrite costs a clinician a whole regimen now, not one
-         drug, so this is re-proved against the shipped plans. */
+         THIS BLOCK USED TO ASSERT THE OPPOSITE AND IT WAS WRONG, so the
+         reasoning is left here rather than replaced silently.
+
+         The rule was: once a clinician touches the board, NO strategy press
+         may change the plan; the tile only offers to replace it. It was
+         written to stop a silent overwrite costing a whole regimen, which is
+         a real thing to prevent. But it treated a deliberate press of a
+         different strategy tile as if it were an accident, and that produced
+         a state a clinician photographed: TIVA lit, the board empty, and
+         "Apply suggested plan" sitting underneath. The strategy said one
+         thing, the plan said another, and the interface said neither.
+
+         The corrected rule separates the two events the old one had fused:
+
+           AN EXPLICIT STRATEGY PRESS is a request to load that strategy.
+           It force-applies the whole regimen and ownership returns to the
+           strategy layer. There is nothing left to "offer" because the
+           press already did it.
+
+           EVERYTHING ELSE — a re-render, a weight change, a patient edit —
+           may never touch the plan. That is where the protection lives now,
+           and it is asserted as G above.
+
+         The offer survives with a smaller and truer job: after a manual edit
+         INSIDE a strategy, it puts that strategy's default regimen back. */
       const sOwn = await R(`I.clear(); I.setTechnique('iv');
         const card = id => document.querySelector(
           '#induction-host .tb-c[data-drug="' + id + '"]');
         card('drug.propofol').click();                 /* remove, manually */
         card('drug.ketamine').click();                 /* choose another  */
         const mine = I.planKeys.slice().sort(), owned = I.planCustomized;
+        const offeredWhileEdited = !!document.querySelector('#induction-host .stx-apply');
         I.setTechnique('rsi');                         const afterParent = I.planKeys.slice().sort();
+        const parentCust = I.planCustomized;
         I.setRsiVariant('classic');                    const afterVariant = I.planKeys.slice().sort();
         I.setTechnique('tiva');                        const afterSwitch = I.planKeys.slice().sort();
         const offered = !!document.querySelector('#induction-host .stx-apply');
+        card('drug.propofol').click();                 /* edit inside TIVA */
+        const edited = I.planKeys.slice().sort();
+        const offeredAfter = !!document.querySelector('#induction-host .stx-apply');
         I.applySuggestedPlan();
-        return { mine, owned, afterParent, afterVariant, afterSwitch, offered,
+        return { mine, owned, offeredWhileEdited, afterParent, parentCust,
+                 afterVariant, afterSwitch, offered, edited, offeredAfter,
                  afterApply:I.planKeys.slice().sort(),
                  applied:I.appliedPresetKey, customized:I.planCustomized };`);
       t('a manual edit takes the whole regimen off the strategy layer',
-        sOwn.owned === true &&
+        sOwn.owned === true && sOwn.offeredWhileEdited === true &&
         sOwn.mine.indexOf('induction/drug.ketamine') >= 0 &&
         sOwn.mine.indexOf('induction/drug.propofol') < 0, sOwn.mine);
-      t('NO STRATEGY CHANGE OVERWRITES A PLAN THE CLINICIAN BUILT',
-        sOwn.afterParent.join() === sOwn.mine.join() &&
-        sOwn.afterVariant.join() === sOwn.mine.join() &&
-        sOwn.afterSwitch.join() === sOwn.mine.join(), sOwn);
-      t('...and the RSI parent does not retire it either',
-        sOwn.afterParent.join() === sOwn.mine.join(), sOwn.afterParent);
-      t('...it offers to replace it instead', sOwn.offered === true, sOwn.offered);
-      t('...and only that press installs the current strategy in full',
+      /* The RSI parent still holds no regimen of its own in v1, so pressing
+         it retires the plan the previous strategy owned and waits for a
+         variant. What is new is that a customized plan no longer blocks it. */
+      t('the RSI parent retires a customized plan rather than being blocked by it',
+        sOwn.afterParent.length === 0 && sOwn.parentCust === false, sOwn);
+      t('...and the variant press then loads the RSI regimen in full',
+        sOwn.afterVariant.join() ===
+          'analgesia/drug.fentanyl,induction/drug.propofol,nmb/drug.rocuronium',
+        sOwn.afterVariant);
+      t('AN EXPLICIT STRATEGY PRESS REPLACES THE PLAN, ketamine included',
+        sOwn.afterSwitch.join() === 'analgesia/drug.remifentanil,induction/drug.propofol' &&
+        sOwn.afterSwitch.indexOf('induction/drug.ketamine') < 0, sOwn.afterSwitch);
+      t('...so there is nothing left to offer: the press already applied it',
+        sOwn.offered === false, sOwn.offered);
+      t('...and the offer returns only for an edit made inside that strategy',
+        sOwn.offeredAfter === true &&
+        sOwn.edited.join() !== sOwn.afterSwitch.join(), sOwn);
+      t('...where pressing it restores that strategy in full',
         sOwn.afterApply.join() === 'analgesia/drug.remifentanil,induction/drug.propofol' &&
         sOwn.applied === 'tiva' && sOwn.customized === false, sOwn);
 
@@ -2968,15 +3098,26 @@ async function openEngine(b, viewport) {
       t('...none of which took ownership from the strategy layer',
         sTrans.customized === false, sTrans.customized);
 
-      /* Deselecting the strategy keeps the plan: the strategy records the
-         approach, the plan records what is being given. */
+      /* THE TILES ARE A RADIO, NOT A ROW OF TOGGLES.
+         WAS: pressing the lit tile deselected it and kept the plan, on the
+         reasoning that the strategy records the approach and the plan
+         records what is being given. In practice that produced a board full
+         of a strategy's agents with NO strategy lit — the same "the two
+         panels disagree" failure as the photographed one, arrived at from
+         the other side, and it is reachable by a mis-click. An anaesthetic
+         always has an approach, so pressing the approach that is already
+         chosen is a no-op: nothing changes and nothing is lost. */
       const sOff = await R(`I.clear(); I.setTechnique('iv');
         const before = I.planKeys.slice().sort();
+        const beforeApplied = I.appliedPresetKey;
         I.setTechnique('iv');
-        return { before, after:I.planKeys.slice().sort(),
-                 tech:I.technique, customized:I.planCustomized };`);
-      t('deselecting the active strategy leaves the regimen as it is',
-        sOff.tech === null && sOff.after.join() === sOff.before.join() &&
+        return { before, beforeApplied, after:I.planKeys.slice().sort(),
+                 tech:I.technique, applied:I.appliedPresetKey,
+                 customized:I.planCustomized };`);
+      t('pressing the active strategy again is a no-op, not a deselect',
+        sOff.tech === 'iv' && sOff.applied === sOff.beforeApplied, sOff);
+      t('...and it leaves the regimen exactly as it was',
+        sOff.after.join() === sOff.before.join() &&
         sOff.after.length === 3 && sOff.customized === false, sOff);
 
       /* The RSI parent retires a strategy-owned regimen before the variant
@@ -2991,6 +3132,254 @@ async function openEngine(b, viewport) {
         sPar.fromIV.length === 3 && sPar.plan.length === 0 &&
         sPar.tech === 'rsi' && sPar.applied === null &&
         sPar.customized === false && sPar.variantsShown === 2, sPar);
+
+      /* ══ THE WORKFLOW CONTRACT, A TO N ════════════════════════════════
+         The named contract for the ownership correction, asserted in one
+         place and in its own order so it can be read as a list rather than
+         reassembled from the blocks above. Several of these are re-proved
+         here deliberately: a contract that is only true as a side effect of
+         another test's setup is one nobody can check. */
+      const IVR   = 'analgesia/drug.fentanyl,induction/drug.propofol,nmb/drug.rocuronium';
+      const TIVAR = 'analgesia/drug.remifentanil,induction/drug.propofol';
+      const CX = await R(`
+        const K = () => I.planKeys.slice().sort().join();
+        const card = id => document.querySelector(
+          '#induction-host .tb-c[data-drug="' + id + '"]');
+        const out = {};
+
+        /* A. fresh -> TIVA */
+        I.clear(); I.setTechnique('tiva');
+        out.A = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey };
+
+        /* B. a plan customized EMPTY under one strategy, then another
+              strategy pressed. This is the photographed state exactly. */
+        I.clear(); I.setTechnique('iv');
+        I.planKeys.slice().forEach(k => {
+          const c = card(k.split('/')[1]); if (c) c.click(); });
+        out.Bmid = { keys:K(), cust:I.planCustomized,
+                     offer:!!document.querySelector('#induction-host .stx-apply') };
+        I.setTechnique('tiva');
+        out.B = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey,
+                  offer:!!document.querySelector('#induction-host .stx-apply') };
+
+        /* C. customized IV -> TIVA */
+        I.clear(); I.setTechnique('iv');
+        card('drug.ketamine').click();
+        out.Cmid = { keys:K(), cust:I.planCustomized };
+        I.setTechnique('tiva');
+        out.C = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey };
+
+        /* D. customized TIVA -> IV */
+        I.clear(); I.setTechnique('tiva');
+        card('drug.remifentanil').click();
+        out.Dmid = { keys:K(), cust:I.planCustomized };
+        I.setTechnique('iv');
+        out.D = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey };
+
+        /* E. customized IV -> RSI parent */
+        I.clear(); I.setTechnique('iv');
+        card('drug.ketamine').click();
+        I.setTechnique('rsi');
+        out.E = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey,
+                  tech:I.technique, variant:!!document.querySelector('#induction-host .st-v.on') };
+
+        /* F. RSI parent -> Classic */
+        I.setRsiVariant('classic');
+        out.F = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey };
+
+        /* G. Classic -> Modified, over a manual edit made inside Classic */
+        card('drug.fentanyl').click();
+        out.Gmid = { keys:K(), cust:I.planCustomized };
+        I.setRsiVariant('modified');
+        out.G = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey };
+
+        /* H. pressing the lit tile */
+        I.clear(); I.setTechnique('iv');
+        const hKeys = K();
+        I.setTechnique('iv');
+        out.H = { before:hKeys, keys:K(), tech:I.technique,
+                  applied:I.appliedPresetKey };
+
+        /* I. Apply suggested plan, after a manual edit inside a strategy */
+        I.clear(); I.setTechnique('tiva');
+        card('drug.propofol').click();
+        out.Imid = { keys:K(), cust:I.planCustomized,
+                     offer:!!document.querySelector('#induction-host .stx-apply') };
+        I.applySuggestedPlan();
+        out.I = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey,
+                  offer:!!document.querySelector('#induction-host .stx-apply') };
+
+        /* N. every analgesia agent the adult board draws answers the
+              induction question with a figure, not a coverage line */
+        I.clear(); I.setTechnique('iv');
+        const row = [...document.querySelectorAll('#induction-host .tb-row')]
+          .find(r => r.querySelector('.tb-c[data-drug="drug.fentanyl"]'));
+        out.N = [...row.querySelectorAll('.tb-c')].map(c => ({
+          id:c.getAttribute('data-drug'),
+          rule:((c.querySelector('.tb-c-r')||{}).textContent||'').trim(),
+          amount:((c.querySelector('.tb-c-a')||{}).textContent||'').trim(),
+          cov:((c.querySelector('.tb-c-cov')||{}).textContent||'').trim() }));
+        out.Nmorphine = !!card('drug.morphine');
+        I.clear();
+        return out;`);
+
+      t('A. fresh -> TIVA loads propofol and remifentanil',
+        CX.A.keys === TIVAR && CX.A.cust === false && CX.A.applied === 'tiva', CX.A);
+      t('B. the photographed state is reachable: a strategy with an empty plan',
+        CX.Bmid.keys === '' && CX.Bmid.cust === true && CX.Bmid.offer === true, CX.Bmid);
+      t('B. ...and pressing another strategy loads it in full, offer gone',
+        CX.B.keys === TIVAR && CX.B.cust === false &&
+        CX.B.applied === 'tiva' && CX.B.offer === false, CX.B);
+      t('C. customized IV -> TIVA loads propofol and remifentanil',
+        CX.Cmid.cust === true && CX.C.keys === TIVAR &&
+        CX.C.keys.indexOf('ketamine') < 0 && CX.C.cust === false, CX);
+      t('D. customized TIVA -> IV loads propofol, fentanyl and rocuronium',
+        CX.Dmid.cust === true && CX.D.keys === IVR && CX.D.cust === false, CX);
+      t('E. customized IV -> RSI parent retires the plan and applies none',
+        CX.E.keys === '' && CX.E.applied === null && CX.E.tech === 'rsi' &&
+        CX.E.variant === false, CX.E);
+      t('F. RSI parent -> Classic loads propofol, fentanyl and rocuronium',
+        CX.F.keys === IVR && CX.F.cust === false &&
+        CX.F.applied === 'rsi/classic', CX.F);
+      t('G. Classic -> Modified loads the complete Modified regimen',
+        CX.Gmid.cust === true && CX.Gmid.keys !== IVR &&
+        CX.G.keys === IVR && CX.G.cust === false &&
+        CX.G.applied === 'rsi/modified', CX);
+      t('H. clicking the active strategy does NOT toggle it off',
+        CX.H.tech === 'iv' && CX.H.keys === CX.H.before &&
+        CX.H.applied === 'iv', CX.H);
+      t('I. Apply suggested plan restores the current strategy after an edit',
+        CX.Imid.cust === true && CX.Imid.offer === true &&
+        CX.I.keys === TIVAR && CX.I.cust === false &&
+        CX.I.applied === 'tiva' && CX.I.offer === false, CX);
+
+      /* J, K and L are the dose half of the contract. The board assertions
+         above prove what the CARD shows; these prove what the MODEL will
+         hand to any caller asking the induction question, so a future
+         surface cannot reach the withdrawn rows by a different route. */
+      const CD = await R(`
+        const CCx = window.ClinicalContent;
+        const adult = CCx.patientPopulation({ context:{ adult:true },
+                                              age:{ value:42, unit:'years' } });
+        const f = CCx.byId('drug.fentanyl');
+        const ind = CCx.doseRowForContext(f, 75, adult, ['induction']);
+        const rows = (f.doses || []).map(d => ({
+          phase:d.phase || '(unphased)', low:d.low, high:d.high, unit:d.unit,
+          pop:d.population, state:(d.evidence || {}).state || '(none)',
+          authority:(d.evidence || {}).authority || '',
+          section:(d.evidence || {}).section || '',
+          documentId:(d.evidence || {}).documentId || '' }));
+        /* The record the resolved row came from, found the way the resolver
+           finds it rather than by index, so the evidence asserted below is
+           the evidence behind the figure on the card. */
+        const src = (f.doses || []).filter(d =>
+          d.phase === ind.phase && d.population === 'adult' &&
+          (d.low + '-' + d.high + ' ' + d.unit) ===
+            (ind.doseNum.replace('–','-') + ' ' + ind.doseUnit.split(' ')[0]))[0] || null;
+        const m = CCx.byId('drug.morphine');
+        return { ind:{ rule:ind.doseRule, num:ind.doseNum, unit:ind.doseUnit,
+                       use:ind.use, phase:ind.phase, amount:ind.val + ' ' + ind.unit,
+                       withheld:!!ind.withheld },
+                 src:src && { low:src.low, high:src.high, unit:src.unit,
+                              label:src.label, evidence:src.evidence || null },
+                 rows,
+                 morphine:{ exists:!!m, publishable:!!m && CCx.isPublishable(m),
+                            doses:(m.doses || []).map(d => d.label) },
+                 catalogIds:((window.InductionCatalog || {}).rows || [])
+                   .reduce((a,r) => a.concat(r.members.map(x => x.canonicalId)), []) };`);
+      t('J. the adult induction question resolves 0.5-2 mcg/kg',
+        CD.ind.num === '0.5–2' && /^mcg\/kg/.test(CD.ind.unit) &&
+        CD.ind.phase === 'induction' && CD.ind.withheld === false, CD.ind);
+      t('J. ...from a reviewed record that names its authority and document',
+        !!CD.src && CD.src.low === 0.5 && CD.src.high === 2 &&
+        (CD.src.evidence || {}).state === 'reviewed' &&
+        /StatPearls/.test((CD.src.evidence || {}).authority || '') &&
+        /NBK459275/.test((CD.src.evidence || {}).documentId || '') &&
+        ((CD.src.evidence || {}).section || '') !== '', CD.src);
+      t('K. the legacy 1-3 mcg/kg row still exists and never answers induction',
+        CD.rows.some(r => r.phase === '(unphased)' && r.low === 1 &&
+                          r.high === 3 && r.state === '(none)') &&
+        CD.ind.num !== '1–3', { ind:CD.ind, rows:CD.rows });
+      t('L. the 50-200 mcg row is spontaneous-respiration and stays there',
+        CD.rows.some(r => r.phase === 'spontaneous-respiration' &&
+                          r.low === 50 && r.high === 200) &&
+        CD.ind.num !== '50–200' && /^mcg\/kg/.test(CD.ind.unit) &&
+        !/[Ss]pontaneous/.test(CD.ind.use), { ind:CD.ind, rows:CD.rows });
+      t('M. morphine keeps its record, publishable, with its doses intact',
+        CD.morphine.exists === true && CD.morphine.publishable === true &&
+        CD.morphine.doses.length > 0, CD.morphine);
+      t('M. ...and is absent from the induction catalog',
+        CD.catalogIds.indexOf('drug.morphine') < 0, CD.catalogIds);
+      t('N. every analgesia agent on the adult board answers with a figure',
+        CX.N.length === 3 &&
+        CX.N.every(c => (c.rule !== '' || c.amount !== '') && c.cov === ''), CX.N);
+      t('N. ...and there is no morphine card to be blank',
+        CX.Nmorphine === false);
+
+      /* ══ THE TWO INVARIANTS, OVER EVERY SEQUENCE ═════════════════════
+         The named cases above say what each transition does. These two say
+         what NO transition may do, and they are checked against every
+         ordered pair of strategy states with every kind of edit in between,
+         because the photographed bug was not any single transition being
+         wrong — it was a combination nobody had walked.
+
+           1. A press that CHANGES the strategy always leaves a regimen.
+              The one exception is the RSI parent, which has no regimen
+              until a variant is chosen and says so on its own strip.
+
+           2. An empty board under a lit strategy is either that RSI parent
+              or one the clinician emptied by hand — and in that case the
+              plan is theirs and the control to put the regimen back is on
+              screen. A lit strategy over an empty board with the plan
+              owned by nobody is the bug, and it is unreachable. */
+      const INV = await R(`
+        const card = id => document.querySelector(
+          '#induction-host .tb-c[data-drug="' + id + '"]');
+        const TECH = ['iv','rsi','inhalational','tiva'];
+        const VAR  = [null,'classic','modified'];
+        const EDITS = [
+          ['none',    () => {}],
+          ['add',     () => { const c = card('drug.ketamine'); if (c) c.click(); }],
+          ['emptied', () => { I.planKeys.slice().forEach(k => {
+                                const c = card(k.split('/')[1]); if (c) c.click(); }); }]];
+        const variantOn = () => !!document.querySelector('#induction-host .st-v.on');
+        const v1 = [], v2 = [], v3 = []; let walked = 0;
+        TECH.forEach(a => VAR.forEach(av => {
+          if (av && a !== 'rsi') return;
+          TECH.forEach(z => VAR.forEach(zv => {
+            if (zv && z !== 'rsi') return;
+            EDITS.forEach(function (e){
+              I.clear();
+              I.setTechnique(a); if (av) I.setRsiVariant(av);
+              const from = I.technique + '/' + variantOn();
+              e[1]();
+              I.setTechnique(z); if (zv) I.setRsiVariant(zv);
+              const to = I.technique + '/' + variantOn();
+              walked++;
+              const tag = a + (av ? '/' + av : '') + ' -[' + e[0] + ']-> ' +
+                          z + (zv ? '/' + zv : '');
+              const s = { tag, tech:I.technique, n:I.planKeys.length,
+                          cust:I.planCustomized, applied:I.appliedPresetKey,
+                          offer:!!document.querySelector('#induction-host .stx-apply') };
+              const rsiParent = I.technique === 'rsi' && !variantOn();
+              if (to !== from && s.n === 0 && !rsiParent) v1.push(s);
+              if (s.tech && s.n === 0 && !rsiParent && !(s.cust && s.offer)) v2.push(s);
+              /* and nothing that is not a press may move it */
+              const held = I.planKeys.slice().sort().join();
+              I.render(); I.render();
+              if (I.planKeys.slice().sort().join() !== held)
+                v3.push({ tag, held, after:I.planKeys.slice().sort().join() });
+            });
+          }));
+        }));
+        I.clear();
+        return { walked, v1, v2, v3 };`);
+      t('EVERY strategy change leaves a regimen, except the RSI parent',
+        INV.walked >= 100 && INV.v1.length === 0, { walked:INV.walked, bad:INV.v1 });
+      t('...and no lit strategy sits over a board nobody owns',
+        INV.v2.length === 0, INV.v2);
+      t('...and a re-render never moves the plan, from any of those states',
+        INV.v3.length === 0, INV.v3);
 
       const sNew = await R(`I.clear(); I.setTechnique('rsi'); I.setRsiVariant('classic');
         window.newCase();
@@ -3089,36 +3478,44 @@ async function openEngine(b, viewport) {
          keyed by role would have emptied the whole induction bucket and
          taken the clinician's premedication with it. Nothing below touches
          picked{} directly; every selection and every application goes
-         through the shipped toggle / applyPreset path. */
+         through the shipped toggle / applyPreset path.
+
+         THE VEHICLE CHANGED WITH THE OWNERSHIP RULE, THE CLAIM DID NOT.
+         These probes used to drive the row-scoped clear through "Apply
+         suggested plan". That button force-applies now — an explicit press
+         loads the strategy's whole regimen, so it clears every row and the
+         row-scoped behaviour is no longer observable through it. The
+         row-scoped clear is still there and still the thing that matters:
+         it is what RETIRING a preset does when the RSI parent is pressed,
+         and that is the path these probes take now. The forced whole-board
+         replace is asserted separately, below. */
       const iso = await R(`
         I.__presetsForTest({
           iv:{ rows:{ hypnosis:{ selected:['drug.etomidate'], alternatives:[] } } },
           rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
           inhalational:{ rows:{} }, tiva:{ rows:{} } });
         I.clear(); I.setTechnique('iv');
-        /* Manual, through the board's own control, one member of each row. */
+        /* Manual, through the board's own control: a premedication member,
+           which lands in the SAME picked.induction[] bucket as etomidate. */
         const card = id => document.querySelector(
           '#induction-host .tb-c[data-drug="' + id + '"]');
-        card('drug.midazolam').click();     /* premedication row */
-        card('drug.propofol').click();      /* hypnosis row */
+        card('drug.midazolam').click();
         const before = I.planKeys.slice().sort();
-        /* Apply a preset that manages ONLY the hypnosis row. */
-        I.applySuggestedPlan();
+        /* Retire the preset. It owns the hypnosis row and nothing else. */
+        I.setTechnique('rsi');
         const after = I.planKeys.slice().sort();
-        return { before, after, customized:I.planCustomized,
-                 applied:I.appliedPresetKey };`);
-      t('a preset managing only hypnosis replaces that row',
-        iso.after.indexOf('induction/drug.etomidate') >= 0 &&
-        iso.after.indexOf('induction/drug.propofol') < 0, iso.after);
-      t('...and LEAVES the premedication selection in the same role bucket',
-        iso.after.indexOf('induction/drug.midazolam') >= 0, iso.after);
+        return { before, after, applied:I.appliedPresetKey };`);
       t('...which is the collision a role-keyed preset would have caused',
         iso.before.indexOf('induction/drug.midazolam') >= 0 &&
-        iso.before.indexOf('induction/drug.propofol') >= 0, iso.before);
-      t('...and applying returns ownership to the preset',
-        iso.customized === false && iso.applied === 'iv', iso);
+        iso.before.indexOf('induction/drug.etomidate') >= 0, iso.before);
+      t('retiring a preset that owns only hypnosis clears that row',
+        iso.after.indexOf('induction/drug.etomidate') < 0, iso.after);
+      t('...and LEAVES the premedication selection in the same role bucket',
+        iso.after.indexOf('induction/drug.midazolam') >= 0, iso.after);
+      t('...and the preset is no longer the owner of anything',
+        iso.applied === null, iso.applied);
 
-      /* The reverse: manage only premedication, leave hypnosis alone. */
+      /* The reverse: own only premedication, leave hypnosis alone. */
       const iso2 = await R(`
         I.__presetsForTest({
           iv:{ rows:{ premedication:{ selected:['drug.atropine'], alternatives:[] } } },
@@ -3127,32 +3524,41 @@ async function openEngine(b, viewport) {
         I.clear(); I.setTechnique('iv');
         const card = id => document.querySelector(
           '#induction-host .tb-c[data-drug="' + id + '"]');
-        card('drug.midazolam').click();     /* premedication row */
-        card('drug.ketamine').click();      /* hypnosis row */
+        card('drug.ketamine').click();      /* hypnosis row, same bucket */
         const before = I.planKeys.slice().sort();
-        I.applySuggestedPlan();
+        I.setTechnique('rsi');
         return { before, after:I.planKeys.slice().sort() };`);
-      t('the reverse holds: a premedication preset leaves hypnosis untouched',
-        iso2.after.indexOf('induction/drug.ketamine') >= 0, iso2.after);
-      t('...while replacing the premedication row it manages',
-        iso2.after.indexOf('induction/drug.atropine') >= 0 &&
-        iso2.after.indexOf('induction/drug.midazolam') < 0, iso2.after);
-      /* A row the preset says nothing about is not touched at all, which is
-         what "manages" has to mean for this to be safe. */
+      t('the reverse holds: retiring a premedication preset leaves hypnosis alone',
+        iso2.before.indexOf('induction/drug.atropine') >= 0 &&
+        iso2.after.indexOf('induction/drug.ketamine') >= 0, iso2);
+      t('...while clearing the premedication row it owned',
+        iso2.after.indexOf('induction/drug.atropine') < 0, iso2.after);
+
+      /* AND THE OTHER HALF: A FORCED APPLY REPLACES THE WHOLE BOARD.
+         Not the union of the incoming and outgoing presets' rows — every
+         row. A clinician who hand-picked a volatile and then pressed an
+         intravenous strategy would otherwise carry that volatile into a
+         board that does not even draw the row it sits in: selected, and
+         invisible. */
       const iso3 = await R(`
         I.__presetsForTest({
           iv:{ rows:{ hypnosis:{ selected:['drug.etomidate'], alternatives:[] } } },
           rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
           inhalational:{ rows:{} }, tiva:{ rows:{} } });
-        I.clear(); I.setTechnique('iv');
+        I.clear();
         window.drefAddToPlan('analgesia','drug.fentanyl');
         window.drefAddToPlan('nmb','drug.rocuronium');
-        I.applySuggestedPlan();
-        return I.planKeys.slice().sort();`);
-      t('...and rows the preset never mentions keep their selections entirely',
-        iso3.indexOf('analgesia/drug.fentanyl') >= 0 &&
-        iso3.indexOf('nmb/drug.rocuronium') >= 0 &&
-        iso3.indexOf('induction/drug.etomidate') >= 0, iso3);
+        window.drefAddToPlan('volatile','drug.sevoflurane');
+        const before = I.planKeys.slice().sort();
+        I.setTechnique('iv');
+        return { before, after:I.planKeys.slice().sort(),
+                 customized:I.planCustomized, applied:I.appliedPresetKey };`);
+      t('an explicit strategy press clears rows the preset never mentions too',
+        iso3.before.length === 3 &&
+        iso3.after.join() === 'induction/drug.etomidate', iso3);
+      t('...including a volatile the incoming board does not draw',
+        iso3.after.indexOf('volatile/drug.sevoflurane') < 0 &&
+        iso3.customized === false && iso3.applied === 'iv', iso3);
 
       /* Restore the shipped presets so nothing downstream sees the synthetic
          one, and leave the workspace as it was found. */
