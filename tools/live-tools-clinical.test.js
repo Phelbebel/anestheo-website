@@ -1091,28 +1091,36 @@ async function openEngine(b, viewport) {
       ui._rows.every(r => r.length > 0 && new Set(r).size === 1), ui._rows);
 
     /* ── THE FOURTH HYPNOSIS SLOT ───────────────────────────────────────
-       WAS: thiopental held it as a display member with no record at all, and
-       then dexmedetomidine held it with a record that could only ever answer
-       a sedation-infusion question. Either way the first row a clinician
-       reads carried a permanent coverage state in its fourth cell.
+       THIS SLOT HAS CHANGED HANDS THREE TIMES AND THE HISTORY IS THE POINT,
+       because every swap was composition and not one of them was clinical.
 
-       NOW: thiopental holds it with a reviewed adult induction dose, so the
-       row asks an induction question four times and gets four answers.
+       Thiopental first held it as a display member with no record at all.
+       Dexmedetomidine then held it with a record that can only answer a
+       sedation-infusion question. 81a19d7 swapped them, on the reasoning
+       that thiopental had by then gained a reviewed adult induction dose
+       and dexmedetomidine's card was a permanent coverage state in the row
+       a clinician reads first.
+
+       NOW DEXMEDETOMIDINE HOLDS IT AGAIN, by the clinical owner's decision:
+       the approved cockpit is propofol / etomidate / ketamine /
+       dexmedetomidine, and the coverage state its card carries is the
+       accepted outcome rather than a defect to design around. The board
+       offers the agent; the model says plainly that it holds no induction
+       dose for it, and never borrows the sedation rate to fill the gap.
 
        Two separate facts have to hold for that to be a composition edit and
-       not a clinical one. Dexmedetomidine left the BOARD and nothing else —
-       its record, its search entry and its reference row are all still there,
-       and the sedation infusion still answers in its own context. Thiopental
-       arrived through the evidence process, not through the board: it is in
-       DRUGS, in search and in the reference, which is exactly what a display
-       member never was. */
+       not a clinical one, and they are asserted in both directions below.
+       Thiopental left the BOARD and nothing else — its reviewed 4-6 mg/kg
+       induction record, its search entry and its reference row are all still
+       there. Dexmedetomidine returned to the board and gained nothing by it:
+       its record is byte-for-byte what it was. */
     const hyp = await s.pg.evaluate(`(() => {
       const CC = window.ClinicalContent;
       const rows = [...document.querySelectorAll('#induction-host .tb-grp')];
       const row = rows[2];
       const cards = [...row.querySelectorAll('.tb-c')];
       const card = n => cards.find(c => (c.querySelector('.tb-c-n')||{}).textContent === n);
-      const dex = card('Thiopental');
+      const four = card('Dexmedetomidine');
       const cell = c => c && { colour:getComputedStyle(c).getPropertyValue('--pc').trim(),
         drug:c.dataset.drug || null, member:c.dataset.member || null,
         planKey:c.dataset.planFor, tag:c.tagName,
@@ -1131,15 +1139,15 @@ async function openEngine(b, viewport) {
         sizes:cards.map(c => { const b = c.getBoundingClientRect();
           return Math.round(b.width) + 'x' + Math.round(b.height); }),
         plus:row.querySelectorAll('.tb-s').length,
-        dex:cell(dex),
-        /* Dexmedetomidine left the board and nothing else. */
-        dexOnBoard: [...document.querySelectorAll('#induction-host .tb-c-n')]
-          .map(e => e.textContent).indexOf('Dexmedetomidine') >= 0,
+        four:cell(four),
+        /* Thiopental left the board and nothing else. */
+        thioOnBoard: [...document.querySelectorAll('#induction-host .tb-c-n')]
+          .map(e => e.textContent).indexOf('Thiopental') >= 0,
         dexInModel: CC.DRUGS.some(d => d.name === 'Dexmedetomidine'),
         dexInSearch: CC.search('Dexmedetomidine')
           .some(r => ((r.item||r).name) === 'Dexmedetomidine'),
-        /* And thiopental arrived on it with a record of its own, rather than
-           being conjured into the slot as a name and a colour. */
+        /* And dexmedetomidine sits on it with a record of its own, rather
+           than being conjured into the slot as a name and a colour. */
         thioInModel: CC.DRUGS.some(d => d.name === 'Thiopental'),
         thioInSearch: CC.search('Thiopental')
           .some(r => ((r.item||r).name) === 'Thiopental'),
@@ -1161,7 +1169,7 @@ async function openEngine(b, viewport) {
         canonical: (() => {
           const wt = window.patientContext.anthropometrics.weight;
           const pop = CC.patientPopulation(window.patientContext);
-          const r = CC.doseRowForContext(CC.byId('drug.thiopental'), wt, pop,
+          const r = CC.doseRowForContext(CC.byId('drug.dexmedetomidine'), wt, pop,
                      ['induction']);
           return r ? { withheld:!!r.withheld, coverage:r.coverage || '',
                        doseNum:r.doseNum || '', doseUnit:r.doseUnit || '',
@@ -1173,26 +1181,32 @@ async function openEngine(b, viewport) {
                      { adult:true, pediatric:false }, [CC.LEGACY_CONTEXT]);
           return r ? { withheld:!!r.withheld, use:r.use, val:r.val,
                        unit:r.unit } : null; })(),
+        /* Thiopental's reviewed induction record still answers, off-board. */
+        thioStillAnswers: (() => {
+          const r = CC.doseRowForContext(CC.byId('drug.thiopental'), 75,
+                     { adult:true, pediatric:false }, ['induction']);
+          return r ? { withheld:!!r.withheld, num:r.doseNum || '',
+                       unit:r.doseUnit || '' } : null; })(),
         /* Nothing from the sedation record may appear in the card, at any
            weight — not the figures, not the rate unit, not the word. */
         forbidden: ['0.2','0.7','mcg/kg/h','Sedation','sedation']
-          .filter(w => (dex ? dex.textContent : '').indexOf(w) >= 0) };
+          .filter(w => (four ? four.textContent : '').indexOf(w) >= 0) };
       /* Selectable exactly like the rest. */
-      if (dex) { dex.click();
-        out.selected = cell(card2('Thiopental'));
+      if (four) { four.click();
+        out.selected = cell(card2('Dexmedetomidine'));
       }
       function card2(n){ return [...document.querySelectorAll('#induction-host .tb-grp')][2]
         .querySelectorAll('.tb-c').length
         ? [...[...document.querySelectorAll('#induction-host .tb-grp')][2]
             .querySelectorAll('.tb-c')]
             .find(c => (c.querySelector('.tb-c-n')||{}).textContent === n) : null; }
-      const again = card2('Thiopental'); if (again) again.click();
-      out.deselected = cell(card2('Thiopental'));
+      const again = card2('Dexmedetomidine'); if (again) again.click();
+      out.deselected = cell(card2('Dexmedetomidine'));
       return out;
     })()`);
-    t('the Hypnosis row is Propofol / Etomidate / Ketamine / Thiopental',
+    t('the Hypnosis row is Propofol / Etomidate / Ketamine / Dexmedetomidine',
       hyp.label === 'Hypnosis' &&
-      hyp.names.join(' / ') === 'Propofol / Etomidate / Ketamine / Thiopental',
+      hyp.names.join(' / ') === 'Propofol / Etomidate / Ketamine / Dexmedetomidine',
       hyp.names);
     /* One box for the four; the absolute size is the viewport's business and
        the pixel proof's, not this assertion's. */
@@ -1201,16 +1215,17 @@ async function openEngine(b, viewport) {
     t('...four cards and no control, all one box',
       hyp.names.length === 4 && hyp.plus === 0 &&
       new Set(hyp.sizes).size === 1, hyp.sizes);
-    /* WAS: three gold and one lavender, because an alpha-2 agonist does not
-       induce anaesthesia and the board should not imply it does. That reason
-       is why dexmedetomidine left the row rather than why it was coloured
-       differently in it — all four cards are induction agents now, and the
-       colour still comes from each record's own pclass. */
-    t('...four gold hypnotics, each coloured by its own record',
-      hyp.colours.every(c => c.toUpperCase() === '#FFD84D'), hyp.colours);
+    /* THREE GOLD AND ONE LAVENDER, and the lavender is the honest part.
+       The colour comes from each record's own pclass, never from the row it
+       sits in, so an alpha-2 agonist in a hypnosis slot is coloured as an
+       alpha-2 agonist. The card does not borrow the row's meaning, which is
+       the same rule that stops it borrowing the row's dose. */
+    t('...three gold hypnotics and one alpha-2, each coloured by its own record',
+      hyp.colours.slice(0,3).every(c => c.toUpperCase() === '#FFD84D') &&
+      hyp.colours[3].toUpperCase() !== '#FFD84D', hyp.colours);
     t('...and the fourth card is a canonical record, not a display member',
-      hyp.dex.drug === 'drug.thiopental' && hyp.dex.member === null &&
-      hyp.dex.planKey === 'drug.thiopental', hyp.dex);
+      hyp.four.drug === 'drug.dexmedetomidine' && hyp.four.member === null &&
+      hyp.four.planKey === 'drug.dexmedetomidine', hyp.four);
     /* NO PHASE FALLBACK IN THE ONE PLACE IT WOULD READ AS AN INDUCTION DOSE.
        The card prints the answer to the induction question and never the
        answer to a question the row did not ask. For thiopental that answer
@@ -1224,16 +1239,16 @@ async function openEngine(b, viewport) {
        rather than accepting an empty one. */
     t('...and it prints the induction question\'s answer, or nothing',
       hyp.canonical === null
-        ? (hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false &&
-           hyp.dex.coverage.length > 0)
+        ? (hyp.four.rule === '' && hyp.four.amount === '' && hyp.four.digits === false &&
+           hyp.four.coverage.length > 0)
         : (hyp.canonical.withheld
-            ? (hyp.dex.coverage === hyp.canonical.coverage &&
-               hyp.dex.rule === '' && hyp.dex.amount === '' && hyp.dex.digits === false)
-            : (hyp.dex.coverage === '' &&
-               hyp.dex.rule.indexOf(hyp.canonical.doseNum || hyp.canonical.val) === 0 &&
-               hyp.dex.rule === hyp.canonical.doseNum + ' ' + hyp.canonical.doseUnit &&
-               hyp.dex.amount === hyp.canonical.val + hyp.canonical.unit)),
-      { card:hyp.dex, model:hyp.canonical });
+            ? (hyp.four.coverage === hyp.canonical.coverage &&
+               hyp.four.rule === '' && hyp.four.amount === '' && hyp.four.digits === false)
+            : (hyp.four.coverage === '' &&
+               hyp.four.rule.indexOf(hyp.canonical.doseNum || hyp.canonical.val) === 0 &&
+               hyp.four.rule === hyp.canonical.doseNum + ' ' + hyp.canonical.doseUnit &&
+               hyp.four.amount === hyp.canonical.val + hyp.canonical.unit)),
+      { card:hyp.four, model:hyp.canonical });
     /* THE SEDATION INFUSION IS THE SPECIFIC THING THAT MUST NOT BE THERE. */
     t('...carrying nothing at all from the sedation record',
       hyp.forbidden.length === 0, hyp.forbidden);
@@ -1246,28 +1261,35 @@ async function openEngine(b, viewport) {
       hyp.legacyStillThere.unit === 'mcg/kg/h' &&
       hyp.dexInRef === 1, hyp.legacyStillThere);
     t('...and it selects and deselects like every other card',
-      hyp.dex.pressed === 'false' && hyp.selected.pressed === 'true' &&
+      hyp.four.pressed === 'false' && hyp.selected.pressed === 'true' &&
       hyp.deselected.pressed === 'false',
-      [hyp.dex.pressed, hyp.selected.pressed, hyp.deselected.pressed]);
-    /* DEXMEDETOMIDINE LEFT THE BOARD AND NOTHING ELSE HAPPENED TO IT.
-       WAS: thiopental is off the board and in no canonical surface before or
-       after — true while it was a nameless display member and false now.
-       NOW: the same shape, one slot over, and the far stronger claim, because
-       leaving the board must cost dexmedetomidine none of its three canonical
-       surfaces. Off a board is not deleted from a formulary. */
-    t('dexmedetomidine is off the board, and keeps every canonical surface',
-      hyp.dexOnBoard === false && hyp.dexInModel === true &&
-      hyp.dexInSearch === true && hyp.dexInRef === 1,
-      { onBoard:hyp.dexOnBoard, model:hyp.dexInModel,
-        search:hyp.dexInSearch, ref:hyp.dexInRef });
-    /* AND THIOPENTAL DID NOT ARRIVE THROUGH THE BOARD. A display member had
-       a name and a colour and no canonical surface at all; the agent in this
-       slot has all three, which is the difference between a record and a
-       cell that needed filling. */
-    t('...and thiopental arrived with a record, not with a slot to fill',
-      hyp.thioInModel === true && hyp.thioInSearch === true &&
-      hyp.thioInRef === 1,
-      { model:hyp.thioInModel, search:hyp.thioInSearch, ref:hyp.thioInRef });
+      [hyp.four.pressed, hyp.selected.pressed, hyp.deselected.pressed]);
+    /* THIOPENTAL LEFT THE BOARD AND NOTHING ELSE HAPPENED TO IT.
+       This assertion has now been written in both directions — it read
+       "dexmedetomidine is off the board" until the cockpit was restored —
+       and the claim is the one that must hold whichever way the slot goes:
+       leaving the board costs an agent none of its canonical surfaces.
+       Off a board is not deleted from a formulary. */
+    t('thiopental is off the board, and keeps every canonical surface',
+      hyp.thioOnBoard === false && hyp.thioInModel === true &&
+      hyp.thioInSearch === true && hyp.thioInRef === 1,
+      { onBoard:hyp.thioOnBoard, model:hyp.thioInModel,
+        search:hyp.thioInSearch, ref:hyp.thioInRef });
+    /* ...INCLUDING ITS REVIEWED INDUCTION DOSE. The strongest proof that
+       this was composition is that the record still answers the induction
+       question for a clinician who reaches it from the reference. */
+    t('...and its reviewed 4-6 mg/kg induction record still answers',
+      !!hyp.thioStillAnswers && hyp.thioStillAnswers.withheld === false &&
+      hyp.thioStillAnswers.num === '4\u20136' &&
+      /^mg\/kg/.test(hyp.thioStillAnswers.unit), hyp.thioStillAnswers);
+    /* AND DEXMEDETOMIDINE DID NOT ARRIVE THROUGH THE BOARD. A display member
+       had a name and a colour and no canonical surface at all; the agent in
+       this slot has all three, which is the difference between a record and
+       a cell that needed filling. */
+    t('...and dexmedetomidine sits there with a record, not a slot to fill',
+      hyp.dexInModel === true && hyp.dexInSearch === true &&
+      hyp.dexInRef === 1,
+      { model:hyp.dexInModel, search:hyp.dexInSearch, ref:hyp.dexInRef });
     /* AND DEXMEDETOMIDINE GAINED NOTHING BY BEING PUT ON A BOARD. */
     t('dexmedetomidine\'s record is untouched by the board change',
       hyp.dexRecord.doses === 1 && hyp.dexRecord.low === 0.2 &&
@@ -3345,11 +3367,18 @@ async function openEngine(b, viewport) {
                           r.low === 50 && r.high === 200) &&
         CD.ind.num !== '50–200' && /^mcg\/kg/.test(CD.ind.unit) &&
         !/[Ss]pontaneous/.test(CD.ind.use), { ind:CD.ind, rows:CD.rows });
+      /* M. WRITTEN IN BOTH DIRECTIONS NOW, AND THAT IS THE POINT.
+         This asserted "morphine is absent from the induction catalog" while
+         it was off the board. The clinical owner has restored the approved
+         four-agent cockpit, so it asserts presence instead — and the half
+         that never moved is the half that matters: whichever way the board
+         goes, the RECORD is untouched. Composition changed twice;
+         clinical-index.js changed neither time. */
       t('M. morphine keeps its record, publishable, with its doses intact',
         CD.morphine.exists === true && CD.morphine.publishable === true &&
         CD.morphine.doses.length > 0, CD.morphine);
-      t('M. ...and is absent from the induction catalog',
-        CD.catalogIds.indexOf('drug.morphine') < 0, CD.catalogIds);
+      t('M. ...and it is on the approved board, where the cockpit says',
+        CD.catalogIds.indexOf('drug.morphine') >= 0, CD.catalogIds);
       /* O + P. THE HOLE THIS SECOND PASS CLOSED.
          A forced retirement used to read appliedPresetKey for its rows, so
          a plan built before any strategy was pressed — no preset key, but
@@ -3378,11 +3407,33 @@ async function openEngine(b, viewport) {
         CX.Pparent.n === 0 && CX.Pparent.tech === 'rsi' &&
         CX.Pparent.cust === false && CX.Pparent.applied === null, CX.Pparent);
 
-      t('N. every analgesia agent on the adult board answers with a figure',
-        CX.N.length === 3 &&
-        CX.N.every(c => (c.rule !== '' || c.amount !== '') && c.cov === ''), CX.N);
-      t('N. ...and there is no morphine card to be blank',
-        CX.Nmorphine === false);
+      /* N. EVERY CARD SAYS SOMETHING TRUE, which is the claim that survives
+         the cockpit change. It used to read "every analgesia agent answers
+         with a figure", true only while the row held three agents that all
+         had a reviewed induction dose. The approved board holds four, and
+         morphine's only canonical dose is postoperative — so the honest
+         answer for it is a coverage line, not a figure.
+
+         The rule is therefore: a card prints EITHER a dose for the question
+         the row asks OR a plain statement that none is reviewed. What it may
+         never do is both, or neither, or borrow a dose from another context.
+         That last one is the real risk here and it is asserted separately
+         below: the postoperative 0.05-0.1 mg/kg must not appear. */
+      t('N. every analgesia card either answers, or says it cannot',
+        CX.N.length === 4 &&
+        CX.N.every(c => { const has = (c.rule !== '' || c.amount !== '');
+          return has ? c.cov === '' : c.cov !== ''; }), CX.N);
+      t('N. ...the three with a reviewed induction dose print it',
+        ['drug.fentanyl','drug.remifentanil','drug.alfentanil'].every(id => {
+          const c = CX.N.find(x => x.id === id);
+          return c && (c.rule !== '' || c.amount !== '') && c.cov === ''; }), CX.N);
+      t('N. ...and morphine states its gap without borrowing a dose',
+        CX.Nmorphine === true && (() => {
+          const m = CX.N.find(x => x.id === 'drug.morphine');
+          return !!m && m.rule === '' && m.amount === '' &&
+                 /not reviewed/i.test(m.cov) &&
+                 !/0\.05|0\.1|Postoperative/i.test(m.rule + m.amount + m.cov); })(),
+        CX.N.find(x => x.id === 'drug.morphine'));
 
       /* ══ THE TWO INVARIANTS, OVER EVERY SEQUENCE ═════════════════════
          The named cases above say what each transition does. These two say

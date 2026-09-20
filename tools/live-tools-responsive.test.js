@@ -35,6 +35,19 @@ const fs = require('fs');
 const MOCK = fs.readFileSync(process.env.NB_MOCK || '/tmp/adm/mock.js', 'utf8');
 const BASE = 'http://127.0.0.1:8890';
 
+/* THE CARD COUNT COMES FROM THE CATALOG, NOT FROM MEMORY.
+   It was written out as a literal and had to be edited by hand every time
+   board membership changed — 16, then 15, now 16 again — which is a test
+   that records the last edit rather than the rule. The rule is that the
+   board draws exactly the agents induction-catalog.js declares for the
+   current strategy, and with no strategy chosen that is every row which is
+   not scoped to one. */
+const CATALOG = require('/home/user/anestheo-website/induction-catalog.js');
+const BOARD_CARDS = (CATALOG.rows || [])
+  .filter(r => !r.strategy)
+  .reduce((n, r) => n + (r.members || []).length, 0);
+const BOARD_ROWS = (CATALOG.rows || []).filter(r => !r.strategy).length;
+
 let pass = 0, fail = 0;
 const fmt = d => d === undefined ? '' : (typeof d === 'string' ? d : JSON.stringify(d)).slice(0, 150);
 const t = (n, ok, d) => {
@@ -203,16 +216,18 @@ const BOARD_PROBE = `(() => {
     const m = await s.pg.evaluate(BOARD_PROBE);
     const clip = await s.pg.evaluate(CLIP_PROBE);
     const P = name + ': ';
-    /* WAS: 16 cards, 4 rows, 4 controls, then 16 cards and no controls. The
-       analgesia row is three wide now: morphine's only canonical dose is
-       postoperative, so on an induction board its card could only report
-       that it had nothing to say, and it left rather than sit there. NO
-       FOURTH AGENT WAS ADDED to keep the grid square — writing a record to
-       fill a cell is the failure the catalog file exists to prevent, so the
-       count this asserts follows the medicine rather than the layout. */
-    t(P + 'the whole board renders — 15 cards, 4 rows, no add controls',
-      m.cards === 15 && m.rows === 4 && m.plus === 0,
-      { cards:m.cards, rows:m.rows, plus:m.plus });
+    /* THE BOARD DRAWS EXACTLY WHAT THE CATALOG DECLARES, and the number is
+       read from the catalog rather than written here. It has been 16, then
+       15 when morphine left the analgesia row, and 16 again now the approved
+       four-by-four cockpit is restored; each of those was a membership
+       decision taken in induction-catalog.js, and a literal here only ever
+       recorded the most recent one. What is asserted is the correspondence,
+       plus the part that is a real rule: no add control of any kind. */
+    t(P + 'the whole board renders — ' + BOARD_CARDS + ' cards, ' +
+          BOARD_ROWS + ' rows, no add controls',
+      m.cards === BOARD_CARDS && m.rows === BOARD_ROWS && m.plus === 0,
+      { cards:m.cards, rows:m.rows, plus:m.plus,
+        expect:{ cards:BOARD_CARDS, rows:BOARD_ROWS } });
     t(P + '...no card below the ' + MIN_CARD + 'px floor',
       m.minWidth >= MIN_CARD, { min:m.minWidth, widths:m.widths });
     /* NO ORPHAN DRUG. A tablet row is four cards on ONE line; a phone row is
@@ -366,7 +381,8 @@ const BOARD_PROBE = `(() => {
        width back to something else. */
     t('1536: ...four cards at the approved 122px',
       m.widths.length === 1 && m.widths[0] === 122, m.widths);
-    t('1536: ...15 cards and no add controls', m.cards === 15 && m.plus === 0);
+    t('1536: ...' + BOARD_CARDS + ' cards and no add controls',
+      m.cards === BOARD_CARDS && m.plus === 0, m.cards);
     await s.ctx.close();
   }
 
@@ -413,7 +429,7 @@ const BOARD_PROBE = `(() => {
       { field:after.weight, context:after.ctxWeight });
     t(P + '...and the fields after the weight are still reachable',
       after.asa === 'II', after.asa);
-    t(P + '...the workstation populates', after.empty === false && after.cards === 15 &&
+    t(P + '...the workstation populates', after.empty === false && after.cards === BOARD_CARDS &&
       after.plus === 0 && after.airway === 10,
       { cards:after.cards, plus:after.plus, airway:after.airway });
     t(P + '...the case line carries what was typed',
@@ -504,7 +520,8 @@ const BOARD_PROBE = `(() => {
     t('A ...and the values survived the fold, which is the whole point',
       v.weight === '75' && v.ctxWeight === 75 && v.asa === 'II',
       { weight:v.weight, ctx:v.ctxWeight, asa:v.asa, editorVisible:vis });
-    t('A ...the workstation populated underneath', v.empty === false && v.cards === 15, v.cards);
+    t('A ...the workstation populated underneath',
+      v.empty === false && v.cards === BOARD_CARDS, v.cards);
     await s.ctx.close();
   }
 
@@ -539,7 +556,8 @@ const BOARD_PROBE = `(() => {
     t('B ...ASA can still be chosen afterwards', v.asa === 'II', v.asa);
     t('B ...the weight is still 75, not 7', v.weight === '75' && v.ctxWeight === 75,
       { field:v.weight, ctx:v.ctxWeight });
-    t('B ...and the workstation is populated', v.empty === false && v.cards === 15, v.cards);
+    t('B ...and the workstation is populated',
+      v.empty === false && v.cards === BOARD_CARDS, v.cards);
     t('B ...with the editor still open', (await s.pg.evaluate(EDITOR_VISIBLE)) === true);
     await s.ctx.close();
   }
@@ -585,7 +603,7 @@ const BOARD_PROBE = `(() => {
         await s.pg.waitForTimeout(200);
         return (await s.pg.evaluate(EDITOR_VISIBLE)) === false; })());
     t('D ...the workstation stays populated',
-      stillLive.empty === false && stillLive.cards === 15, stillLive.cards);
+      stillLive.empty === false && stillLive.cards === BOARD_CARDS, stillLive.cards);
     await s.pg.evaluate(() => ptToggle());          /* reopen */
     await s.pg.waitForTimeout(400);
     const reopened = await vals(s.pg);
@@ -650,7 +668,7 @@ const BOARD_PROBE = `(() => {
     await s.pg.waitForTimeout(400);
     const next = await vals(s.pg);
     t('F ...and the next patient types normally',
-      next.weight === '62' && next.ctxWeight === 62 && next.cards === 15,
+      next.weight === '62' && next.ctxWeight === 62 && next.cards === BOARD_CARDS,
       { weight:next.weight, ctx:next.ctxWeight, cards:next.cards });
     await s.ctx.close();
   }

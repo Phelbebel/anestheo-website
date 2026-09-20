@@ -539,8 +539,8 @@ if (fs.existsSync(SNAP)) {
   t('...with the member counts the catalog declares',
     JSON.stringify(CAT.rows.map(r => r.members.length)) ===
     JSON.stringify(stats.catalogMembersPerRow), CAT.rows.map(r => r.members.length));
-  t('...and every one of the eighteen resolves to a canonical record',
-    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0) === 18 &&
+  t('...and every one of the nineteen resolves to a canonical record',
+    CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0) === 19 &&
     CAT.rows.every(r => r.members.every(m => m.canonicalId && CC.byId(m.canonicalId))),
     CAT.rows.reduce((n, r) => n + r.members.filter(m => m.canonicalId).length, 0));
 } else {
@@ -1661,21 +1661,60 @@ const CATSRC = read('induction-catalog.js');
    this assertion has always been protecting. */
 t('the display catalog exists and declares five rows',
   !!CAT && (CAT.rows||[]).length === 5, (CAT.rows||[]).map(r => r.key));
-/* MORPHINE LEFT THE ANALGESIA ROW. Its only canonical dose is postoperative
-   analgesia, so on an induction board it could only ever report that it had
-   nothing to say. The record is untouched and still renders in the full drug
-   reference; what changed is which agents this board offers. The row is three
-   wide and NO FOURTH AGENT WAS ADDED to keep the grid square — that is how
-   fabricated records get written. */
-t('...eighteen slots in the frozen order, the volatile row last',
-  CAT.rows.map(r => r.members.length).join() === '4,3,4,4,3' &&
+/* THE APPROVED COCKPIT IS FOUR BY FOUR, AND THIS IS THE FROZEN ORDER.
+   Two membership decisions have been reversed to get here, and both were
+   composition: morphine left the analgesia row in e5e7c43 and is back;
+   dexmedetomidine left the fourth hypnosis slot in 81a19d7 and is back,
+   with thiopental leaving the cockpit in its place.
+
+   NEITHER REVERSAL TOUCHED A CLINICAL RECORD, in either direction. Morphine
+   and dexmedetomidine were never edited to justify removing them, and
+   thiopental is not edited now to justify removing it: its reviewed
+   4-6 mg/kg induction dose, its reference row and its search entry are all
+   intact and asserted below. This file is the one place board membership is
+   decided, which is exactly why a change here must never reach
+   clinical-index.js.
+
+   THE COCKPIT IS FOUR WIDE IN ALL FOUR CLINICAL ROWS and no agent was
+   invented to make it so — every one of the nineteen slots names a record
+   that already existed. */
+t('...nineteen slots in the frozen order, the volatile row last',
+  CAT.rows.map(r => r.members.length).join() === '4,4,4,4,3' &&
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []).join() ===
   ['midazolam','lidocaine-iv','atropine','glycopyrrolate',
-   'fentanyl','remifentanil','alfentanil',
-   'propofol','etomidate','ketamine','thiopental',
+   'fentanyl','remifentanil','alfentanil','morphine',
+   'propofol','etomidate','ketamine','dexmedetomidine',
    'rocuronium','atracurium','mivacurium','suxamethonium',
    'sevoflurane','desflurane','isoflurane'].join(),
   CAT.rows.reduce((a,r) => a.concat(r.members.map(m => m.key)), []));
+/* THE COCKPIT REGRESSION GUARD. The four clinical rows are four wide, by
+   name, in order. This is the assertion that would have caught the board
+   drifting to 4/3/4/4 without anyone deciding it should. */
+t('...the four clinical rows are exactly four agents each',
+  CAT.rows.filter(r => !r.strategy).map(r => r.members.length).join() === '4,4,4,4',
+  CAT.rows.filter(r => !r.strategy).map(r => r.key + ':' + r.members.length));
+t('...analgesia is fentanyl / remifentanil / alfentanil / morphine',
+  CAT.rows.find(r => r.key === 'analgesia').members.map(m => m.key).join() ===
+  'fentanyl,remifentanil,alfentanil,morphine',
+  CAT.rows.find(r => r.key === 'analgesia').members.map(m => m.key));
+t('...hypnosis is propofol / etomidate / ketamine / dexmedetomidine',
+  CAT.rows.find(r => r.key === 'hypnosis').members.map(m => m.key).join() ===
+  'propofol,etomidate,ketamine,dexmedetomidine',
+  CAT.rows.find(r => r.key === 'hypnosis').members.map(m => m.key));
+/* THIOPENTAL IS NOT A COCKPIT CARD. This says nothing about whether the
+   application holds thiopental — it does, and the next assertions prove it.
+   It says only that it is not one of the four hypnosis slots. */
+t('...and thiopental is NOT in the cockpit hypnosis row',
+  CAT.rows.find(r => r.key === 'hypnosis')
+     .members.every(m => m.key !== 'thiopental' &&
+                         m.canonicalId !== 'drug.thiopental'),
+  CAT.rows.find(r => r.key === 'hypnosis').members.map(m => m.key));
+t('...while thiopental keeps its record, its dose and its search entry',
+  !!CC.byId('drug.thiopental') &&
+  CC.isPublishable(CC.byId('drug.thiopental')) &&
+  (CC.byId('drug.thiopental').doses || []).length >= 1 &&
+  CC.search('Thiopental').some(r => ((r.item||r).id) === 'drug.thiopental'),
+  { doses:(CC.byId('drug.thiopental').doses||[]).length });
 t('...every canonicalId it names resolves to a real record',
   CAT.rows.every(r => r.members.every(m => !m.canonicalId || !!CC.byId(m.canonicalId))),
   CAT.rows.reduce((a,r) => a.concat(r.members.filter(m =>
@@ -1724,27 +1763,37 @@ t('...and that colour is one ClinicalContent already defines',
 }
 
 /* ── THE FOURTH HYPNOSIS SLOT ────────────────────────────────────────────
-   Dexmedetomidine held it and thiopental holds it now. Its reviewed authority
-   is a procedural and ICU sedation infusion — a maintenance rate for a sedated
-   patient — so in the hypnosis slot of an induction board that card could only
-   ever be a coverage state, in the row a clinician reads first.
+   It has changed hands three times and every swap was composition.
+   Dexmedetomidine held it, 81a19d7 gave it to thiopental, and the approved
+   cockpit gives it back to dexmedetomidine.
 
-   This is a composition edit and nothing else. Dexmedetomidine is REMOVED FROM
-   A BOARD, not from the application: its record, its dose, its reference row
-   and its search entry are all untouched, and the row's [+] reaches it. And
-   thiopental gains nothing by being placed — it arrives with the reviewed
-   record the evidence process gave it, which is asserted separately above. */
-t('the board names thiopental, not dexmedetomidine, in the fourth hypnosis slot',
+   THE CARD READS A COVERAGE STATE AND THAT IS THE ACCEPTED OUTCOME.
+   Dexmedetomidine's reviewed authority is a procedural and ICU sedation
+   infusion — a maintenance rate for a sedated patient — so an induction
+   board can only report that it holds no induction dose for it. The board
+   offers the agent; the model refuses to borrow the sedation rate to fill
+   the cell. Both halves are asserted, here and below.
+
+   THIOPENTAL IS REMOVED FROM A BOARD, NOT FROM THE APPLICATION: its
+   reviewed record, its dose, its reference row and its search entry are all
+   untouched, exactly as dexmedetomidine's were while it was the one off the
+   board. That symmetry is the whole point of this file existing. */
+t('the board names dexmedetomidine, not thiopental, in the fourth hypnosis slot',
   (() => { const hyp = CAT.rows.find(r => r.key === 'hypnosis');
-    return hyp.members[3].key === 'thiopental' &&
-           hyp.members[3].canonicalId === 'drug.thiopental' &&
-           hyp.members.every(m => m.key !== 'dexmedetomidine'); })(),
+    return hyp.members[3].key === 'dexmedetomidine' &&
+           hyp.members[3].canonicalId === 'drug.dexmedetomidine' &&
+           hyp.members.every(m => m.key !== 'thiopental'); })(),
   CAT.rows.find(r => r.key === 'hypnosis').members.map(m => m.key));
-t('...and dexmedetomidine keeps everything except the board slot',
+t('...and thiopental keeps everything except the board slot',
+  !!CC.byId('drug.thiopental') &&
+  (CC.byId('drug.thiopental').doses||[]).length >= 1 &&
+  CC.isPublishable(CC.byId('drug.thiopental')) &&
+  CC.search('Thiopental').some(r => ((r.item||r).id) === 'drug.thiopental'),
+  { doses:(CC.byId('drug.thiopental').doses||[]).length });
+t('...and dexmedetomidine gained nothing clinical by returning to it',
   !!CC.byId('drug.dexmedetomidine') &&
   (CC.byId('drug.dexmedetomidine').doses||[]).length === 1 &&
-  CC.isPublishable(CC.byId('drug.dexmedetomidine')) &&
-  CC.search('Dexmedetomidine').some(r => ((r.item||r).id) === 'drug.dexmedetomidine'),
+  CC.isPublishable(CC.byId('drug.dexmedetomidine')),
   { doses:(CC.byId('drug.dexmedetomidine').doses||[]).length });
 
 /* ── THE HYPNOSIS ROW HAS NO UNPHASED TIER ──────────────────────────────
@@ -2106,18 +2155,29 @@ console.log('\n17d. NO GENERIC FALLBACK UNDER ANALGESIA');
       return !!x && x.low === 1 && x.high === 3 && !x.evidence &&
              CC.isDosePublishable(d, x); })(),
     (CC.byId('drug.fentanyl').doses || []).map(x => (x.phase || '(unphased)')));
-  /* 3 · Fentanyl keeps its card and now fills it. Morphine has left the
-         board rather than sitting on it with nothing to say — a composition
-         decision, taken in the catalog, with its record untouched. */
-  t('  fentanyl is still a board member and morphine is not',
+  /* 3 · Both are board members on the approved cockpit. Fentanyl fills its
+         card from the reviewed induction record; morphine reports that it
+         holds none, which is the point of the assertions above — the row
+         offers four opioids and the model answers honestly for each. */
+  t('  fentanyl and morphine are both board members',
     (() => { const members = (CAT.rows || []).reduce((a, r) =>
         a.concat((r.members || []).map(m => m.canonicalId)), []);
       return members.indexOf('drug.fentanyl') >= 0 &&
-             members.indexOf('drug.morphine') < 0; })(),
+             members.indexOf('drug.morphine') >= 0; })(),
     (CAT.rows || []).find(r => r.key === 'analgesia').members.map(m => m.key));
-  t('  ...and every agent left on the analgesia row answers an induction context',
-    (CAT.rows || []).find(r => r.key === 'analgesia').members
-      .every(m => ctxRow(m.canonicalId, 75, ADULT_ASA, ['induction']).withheld !== true),
+  /* WAS: every agent on the row answers an induction context — true only
+     while the row held three agents that all had one. The approved row holds
+     four, and the claim that matters is not that every card has a number but
+     that no card has the WRONG number. So: the three with a reviewed
+     induction dose answer, and morphine is withheld rather than borrowing
+     its postoperative one. */
+  t('  ...the three opioids with a reviewed induction dose answer',
+    ['drug.fentanyl','drug.remifentanil','drug.alfentanil']
+      .every(id => ctxRow(id, 75, ADULT_ASA, ['induction']).withheld !== true),
+    ['drug.fentanyl','drug.remifentanil','drug.alfentanil']
+      .map(id => id + ':' + (ctxRow(id, 75, ADULT_ASA, ['induction']).val || 'withheld')));
+  t('  ...and morphine is withheld on that row, not answered from elsewhere',
+    ctxRow('drug.morphine', 75, ADULT_ASA, ['induction']).withheld === true,
     (CAT.rows || []).find(r => r.key === 'analgesia').members
       .map(m => m.key + ':' + ctxRow(m.canonicalId, 75, ADULT_ASA, ['induction']).val));
   /* THE RULE IS IN THE CONTEXT TABLE, NOT IN A DRUG CHECK. */
@@ -2345,9 +2405,9 @@ const INDUCTION_PHASES = ['induction','intubation','rsi','premedication'];
       x.phase === 'induction' && CC.isDosePublishable(CC.byId(id), x))),
     volMembers.map(id => id + ':' + ((CC.byId(id).doses || [])
       .filter(x => x.phase === 'induction').length)));
-  t('...and the catalog holds eighteen members, the volatiles last',
-    members.length === 18 &&
-    members.slice(0, 15).indexOf('drug.sevoflurane') < 0, members.length);
+  t('...and the catalog holds nineteen members, the volatiles last',
+    members.length === 19 &&
+    members.slice(0, 16).indexOf('drug.sevoflurane') < 0, members.length);
 }
 
 /* C/D. The induction embedded reference's scope no longer lists the volatile

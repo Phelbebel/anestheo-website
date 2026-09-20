@@ -63,44 +63,61 @@
           { key:'glycopyrrolate', canonicalId:'drug.glycopyrrolate' }
         ] },
 
-      /* MORPHINE IS NOT ON THIS ROW ANY MORE, AND THAT IS COMPOSITION.
-         Its only canonical dose is POSTOPERATIVE analgesia. The board asks
-         an induction question and the model answered, correctly, that it
-         holds nothing for it — so the card sat in the row reading "Dose not
-         reviewed for this context", which is true and is a poor thing to
-         put in front of a clinician choosing an opioid at induction.
+      /* MORPHINE IS ON THIS ROW, AND THE COCKPIT IS FOUR WIDE.
+         It was removed in e5e7c43 on the reasoning that its only canonical
+         dose is POSTOPERATIVE analgesia, so the card sat here reading "Dose
+         not reviewed for this context" — true, and a poor thing to show a
+         clinician choosing an opioid at induction. The clinical owner has
+         decided otherwise: the four-agent cockpit is the approved board, and
+         an opioid a clinician may give is offered here whether or not this
+         application holds a reviewed induction dose for it.
 
-         Nothing clinical changed. The record is untouched, it is publishable,
-         and it renders in the full Drug reference and the analgesia domain
-         where a postoperative dose belongs. What changed is which agents this
-         BOARD offers, which is exactly the decision this file exists to hold.
+         THE CARD WILL READ A COVERAGE STATE, AND THAT IS THE ACCEPTED
+         OUTCOME rather than an oversight. It is what the model honestly
+         holds for this question, and the alternative — printing the
+         postoperative 0.05-0.1 mg/kg under an induction heading — is the
+         wrong-context-real-number failure this whole workspace is built to
+         prevent. Availability and dose coverage are different facts and the
+         card shows both.
 
-         THE ROW IS THREE WIDE NOW, AND NO FOURTH IS INVENTED TO FILL IT.
-         Adding an agent so the grid stays 4x4 is how the fabricated records
-         this file was written to prevent got made in the first place. */
+         NOTHING CLINICAL CHANGED IN EITHER DIRECTION. The record was not
+         touched when morphine left and is not touched now that it returns.
+         This file decides which agents the BOARD offers; clinical-index.js
+         decides what is known about them, and the two never trade. */
       { key:'analgesia', label:'Analgesia', role:'analgesia',
         members:[
           { key:'fentanyl',     canonicalId:'drug.fentanyl' },
           { key:'remifentanil', canonicalId:'drug.remifentanil' },
-          { key:'alfentanil',   canonicalId:'drug.alfentanil' }
+          { key:'alfentanil',   canonicalId:'drug.alfentanil' },
+          { key:'morphine',     canonicalId:'drug.morphine' }
         ] },
 
+      /* THE FOURTH HYPNOSIS SLOT IS DEXMEDETOMIDINE, AND THIOPENTAL HAS
+         LEFT THE COCKPIT — not the formulary.
+
+         81a19d7 made the opposite swap, on the reasoning that
+         dexmedetomidine's only reviewed authority is a procedural and ICU
+         sedation infusion (0.2-0.7 mcg/kg/h), which is not a rapid
+         intravenous induction dose and could never be printed as one, while
+         thiopental holds a reviewed adult induction dose. The clinical owner
+         has decided that the approved cockpit is the four agents below, and
+         that decision is this file's to hold.
+
+         SO THIS CARD READS A COVERAGE STATE, for the same reason morphine's
+         does above, and for the same accepted trade: the board offers the
+         agent, and the model says plainly that it holds no induction dose
+         for it rather than borrowing the sedation infusion rate.
+
+         THIOPENTAL LOSES NOTHING CLINICAL. Its reviewed 4-6 mg/kg induction
+         record is untouched, it keeps its drug-reference row and its search
+         entry, and it stays selectable into the plan from the reference.
+         What it loses is one of four cockpit cards, which is composition. */
       { key:'hypnosis', label:'Hypnosis', role:'induction',
         members:[
-          { key:'propofol',   canonicalId:'drug.propofol' },
-          { key:'etomidate',  canonicalId:'drug.etomidate' },
-          { key:'ketamine',   canonicalId:'drug.ketamine' },
-          /* THE FOURTH HYPNOSIS SLOT IS THIOPENTAL, AND DEXMEDETOMIDINE HAS
-             LEFT IT. Dexmedetomidine's reviewed authority is a procedural and
-             ICU sedation infusion — 0.2-0.7 mcg/kg/h — which is not a rapid
-             intravenous induction dose and could never be printed as one, so
-             the card was permanently a coverage state in the row a clinician
-             reads first. It is not deleted from anything: it keeps its record,
-             its reference row and its search entry, and the row's [+] is how
-             it comes back onto a board that wants it.
-
-             Thiopental takes the slot with a reviewed adult induction dose. */
-          { key:'thiopental', canonicalId:'drug.thiopental' }
+          { key:'propofol',        canonicalId:'drug.propofol' },
+          { key:'etomidate',       canonicalId:'drug.etomidate' },
+          { key:'ketamine',        canonicalId:'drug.ketamine' },
+          { key:'dexmedetomidine', canonicalId:'drug.dexmedetomidine' }
         ] },
 
       { key:'nmb', label:'Neuromuscular blockade', role:'nmb', nmb:true,
