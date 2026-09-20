@@ -197,9 +197,26 @@
      because choosing a different drug because the first was unavailable is a
      clinical decision this layer must not make.
 
-     AND SELECTED IS NOT ENOUGH ON ITS OWN. resolvePreset() will not activate
-     an agent whose strategy context resolves to an unreviewed row. Naming a
-     drug here is a request, not a guarantee. */
+     AND SELECTED DOES NOT MEAN A NUMBER WILL APPEAR. Naming an agent here
+     puts it in the starting regimen; whether a dose is printed beside it is
+     a separate question, answered by the strategy's context and the record,
+     not by this object. An agent stays ACTIVE even when no reviewed row
+     answers the current context, and its card shows the coverage state
+     where the figures would be.
+
+     WAS: "resolvePreset() will not activate an agent whose strategy context
+     resolves to an unreviewed row." That coupled the two decisions, and the
+     coupling said something clinical it had no business saying — an agent
+     silently missing from a regimen reads as "this drug is not part of this
+     technique", when the truth is that we hold no reviewed row for that
+     question yet.
+
+     FENTANYL IS THE CASE TO READ THIS AGAINST. It is named in the IV and
+     both RSI plans. Its reviewed adult row is the SmPC's spontaneous-
+     respiration regimen and those plans select a blocker, so no reviewed row
+     answers them: the agent is selected, in the plan, and its card reports
+     that its dose for this technique is not reviewed. That is the intended
+     end state, not a gap waiting to be filled by a substitute. */
   var STRATEGY_PLANS = {
     iv: { rows:{
       premedication:{ selected:[], alternatives:[] },
@@ -323,20 +340,36 @@
     return true;
   }
 
-  /* ── ELIGIBILITY IS THE BOARD'S, NOT THE PRESET'S ─────────────────────
-     resolvePreset() asks contextRow() — the same call tbCard() makes, with
-     the same role, id and row — so a preset can only select what the card
-     beside it would show a number for. A withheld row, an unpublishable
-     drug, a paediatric patient meeting an adult-only record, or an RSI
-     blocker with no reviewed rapid sequence dose all resolve to nothing.
+  /* ── TWO ELIGIBILITY QUESTIONS, ASKED SEPARATELY ──────────────────────
+     WAS: "a preset can only select what the card beside it would show a
+     number for", and beside it the claim that a withheld row or an RSI
+     blocker with no rapid sequence dose "resolve to nothing". Neither is
+     true of the code below, and the difference is the whole architecture.
 
-     NOTHING IS SUBSTITUTED. `alternatives` are never auto-selected: if the
-     preferred agent cannot be offered, the row is reported unresolved and
-     the clinician decides. Silently swapping in another drug because the
-     first was unavailable is a clinical decision this layer must not make.
+     SELECTION ELIGIBILITY — what this function decides:
+       the id is a real member of the catalog row it is named under;
+       a canonical record exists for it;
+       that record is publishable.
+     That is enough for a card the clinician can see, press and unpress.
 
-     A preset id that is not a catalog member also resolves to nothing. It
-     would land in picked{} with no card to show it or unselect it. */
+     DOSE ELIGIBILITY — what this function does NOT decide:
+       whether a figure appears is settled by the strategy's context list
+       and the record it reaches, in doseRowForContext, exactly as it is for
+       a drug the clinician pressed themselves. Where no compatible reviewed
+       row exists the agent stays selected and its card prints the coverage
+       state instead of a number. Those agents are reported in `withheld` so
+       a caller can read the resolution, and reporting is all that is: the
+       plan carries them either way.
+
+     NOTHING IS SUBSTITUTED TO CLOSE THAT GAP. `alternatives` are never
+     auto-selected. Silently swapping in another drug because the first has
+     no reviewed dose for this technique is a clinical decision this layer
+     must not make, and it is the reason a coverage state is the right
+     answer rather than a second-choice agent.
+
+     A preset id that is not a catalog member still resolves to nothing, and
+     is reported unresolved. It would land in picked{} with no card to show
+     it or unselect it. */
   function resolvePreset(t, v){
     var key = presetKeyFor(t, v), p = presetFor(t, v);
     var out = { key:key, select:[], unresolved:[], withheld:[], rows:[] };
