@@ -483,7 +483,7 @@
     return r;
   }
 
-  /* ── RETIRING A PRESET-OWNED PLAN ─────────────────────────────────────
+  /* ── ENTERING A STRATEGY THAT HAS NO REGIMEN ──────────────────────────
      There is one valid strategy state that has no concrete preset: RSI
      before Classic or Modified has been chosen. Entering it used to leave
      the previous preset's agents standing, so the board read "Active
@@ -491,28 +491,43 @@
      preset had chosen — a strategy and a plan that disagree, with nothing
      on screen to say which one the clinician meant.
 
-     This retires what a preset owns, and only that. It reads
-     appliedPresetKey to find the rows, removes through the same
-     setPlanSelection path every other change uses, and names no drug: the
-     rows come from the preset object, so a preset that changes tomorrow
-     retires correctly tomorrow.
+     THE TWO CALLS ARE NOT THE SAME QUESTION, AND THAT IS WHY THIS SPLITS.
 
-     UNFORCED, IT DOES NOT TOUCH A PLAN THE CLINICIAN BUILT. planCustomized
-     is the first thing it asks and a customized plan is returned untouched.
-     Nor does an unforced retirement MAKE the plan customized: nothing the
+     Unforced, the question is "what does the preset layer still own?", so
+     the rows come from appliedPresetKey. It removes through the same
+     setPlanSelection path every other change uses and names no drug, so a
+     preset that changes tomorrow retires correctly tomorrow. It does not
+     touch a plan the clinician built — planCustomized is the first thing it
+     asks — and it does not MAKE the plan customized either: nothing the
      clinician did changed, so the ownership flag does not move.
 
-     FORCED, IT OUTRANKS THE FLAG, because the only caller that forces is an
-     explicit strategy press — the clinician asking for a different approach,
-     which is a decision and not an accident. See setTechnique below. */
+     Forced, the question is different: the clinician has explicitly asked
+     for a strategy that currently declares no regimen, which is a request
+     for a board with nothing on it. So the rows are EVERY row, exactly as a
+     forced applyPreset clears every row before writing its own.
+
+     THIS USED TO READ appliedPresetKey IN BOTH CASES, AND THAT WAS A HOLE.
+     On a fresh case the clinician can select agents before choosing any
+     strategy at all; then planCustomized is true while appliedPresetKey is
+     still null, presetRowsForKey(null) returns [], and the function took an
+     early return that cleared nothing AND skipped resetting ownership. The
+     result was the RSI parent lit over a plan the clinician had built by
+     hand, still flagged as theirs — the same "two surfaces disagree" state
+     this whole pass exists to remove, reached from the one starting point
+     the sequence sweep never covered, because every sequence it walked
+     applied a preset before the manual edit.
+
+     A FORCED RETIREMENT NOW HAS NO EARLY RETURN. It clears, it drops the
+     preset key, and it hands ownership back, in every case. */
   function retireAppliedPresetPlan(opts){
     opts = opts || {};
     /* Forced by an explicit strategy change, which outranks a customized
        plan; unforced everywhere else, where it must not. */
     if (planCustomized && !opts.force) return { skipped:'plan is customized' };
-    var rows = presetRowsForKey(appliedPresetKey);
-    if (!rows.length) { appliedPresetKey = null; return { cleared:[] }; }
-    var idx = rowIndex(), cleared = [];
+    var idx = rowIndex();
+    var rows = opts.force ? Object.keys(idx)
+                          : presetRowsForKey(appliedPresetKey);
+    var cleared = [];
     rows.forEach(function (rowKey){
       var meta = idx[rowKey]; if (!meta) return;
       cleared.push(rowKey);

@@ -2761,7 +2761,7 @@ async function openEngine(b, viewport) {
         window.newCase();
         return { plan:I.planKeys.slice(), tech:I.technique,
                  customized:I.planCustomized, applied:I.appliedPresetKey,
-                 variantShown:!!document.querySelector('#induction-host .st-v.on') };`);
+                 variantShown:!!document.querySelector('#induction-host .st-vb.on') };`);
       t('H. New Case clears plan, technique, customized and appliedPresetKey',
         h.plan.length === 0 && h.tech === null &&
         h.customized === false && h.applied === null, h);
@@ -3181,7 +3181,7 @@ async function openEngine(b, viewport) {
         card('drug.ketamine').click();
         I.setTechnique('rsi');
         out.E = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey,
-                  tech:I.technique, variant:!!document.querySelector('#induction-host .st-v.on') };
+                  tech:I.technique, variant:!!document.querySelector('#induction-host .st-vb.on') };
 
         /* F. RSI parent -> Classic */
         I.setRsiVariant('classic');
@@ -3208,6 +3208,46 @@ async function openEngine(b, viewport) {
         I.applySuggestedPlan();
         out.I = { keys:K(), cust:I.planCustomized, applied:I.appliedPresetKey,
                   offer:!!document.querySelector('#induction-host .stx-apply') };
+
+        /* O. A PLAN BUILT BEFORE ANY STRATEGY WAS CHOSEN.
+              This is the state a clinician actually starts from and it is
+              the one the sequence sweep below never reached, because every
+              sequence it walked pressed a strategy FIRST. With no preset
+              ever applied, appliedPresetKey is null while planCustomized is
+              true, and a forced retirement that derived its rows from that
+              key cleared nothing and reset nothing — leaving the RSI parent
+              lit over a hand-built plan still flagged as the clinician's. */
+        I.clear();
+        out.Ofresh = { tech:I.technique, n:I.planKeys.length,
+                       cust:I.planCustomized, applied:I.appliedPresetKey };
+        card('drug.propofol').click();
+        card('drug.fentanyl').click();
+        out.Omanual = { tech:I.technique, keys:K(), n:I.planKeys.length,
+                        cust:I.planCustomized, applied:I.appliedPresetKey };
+        I.setTechnique('rsi');
+        out.Oparent = { tech:I.technique, keys:K(), n:I.planKeys.length,
+                        cust:I.planCustomized, applied:I.appliedPresetKey,
+                        variantOn:!!document.querySelector('#induction-host .st-vb.on') };
+        I.setRsiVariant('classic');
+        out.Ovariant = { keys:K(), applied:I.appliedPresetKey,
+                         cust:I.planCustomized,
+                         onCards:document.querySelectorAll(
+                           '#induction-host .tb-c.on').length };
+
+        /* P. THE BROADEST HAND-BUILT PLAN, one member of every row the
+              board draws, none of it owned by any preset. A forced
+              retirement must take all of it, not the rows some earlier
+              preset happened to name. */
+        I.clear();
+        const every = [...document.querySelectorAll('#induction-host .tb-row')]
+          .map(r => r.querySelector('.tb-c[data-drug]'))
+          .filter(Boolean);
+        every.forEach(c => c.click());
+        out.Pmanual = { keys:K(), n:I.planKeys.length, rows:every.length,
+                        cust:I.planCustomized, applied:I.appliedPresetKey };
+        I.setTechnique('rsi');
+        out.Pparent = { keys:K(), n:I.planKeys.length, tech:I.technique,
+                        cust:I.planCustomized, applied:I.appliedPresetKey };
 
         /* N. every analgesia agent the adult board draws answers the
               induction question with a figure, not a coverage line */
@@ -3310,6 +3350,34 @@ async function openEngine(b, viewport) {
         CD.morphine.doses.length > 0, CD.morphine);
       t('M. ...and is absent from the induction catalog',
         CD.catalogIds.indexOf('drug.morphine') < 0, CD.catalogIds);
+      /* O + P. THE HOLE THIS SECOND PASS CLOSED.
+         A forced retirement used to read appliedPresetKey for its rows, so
+         a plan built before any strategy was pressed — no preset key, but
+         customized — fell through an early return that cleared nothing and
+         left planCustomized true. The RSI parent lit over the clinician's
+         own agents, which is the disagreement the whole pass removes. */
+      t('O. a fresh case starts empty, with no strategy and no owner',
+        CX.Ofresh.tech === null && CX.Ofresh.n === 0 &&
+        CX.Ofresh.cust === false && CX.Ofresh.applied === null, CX.Ofresh);
+      t('O. ...selecting by hand takes ownership with NO preset key at all',
+        CX.Omanual.tech === null && CX.Omanual.cust === true &&
+        CX.Omanual.applied === null && CX.Omanual.n === 2 &&
+        CX.Omanual.keys === 'analgesia/drug.fentanyl,induction/drug.propofol',
+        CX.Omanual);
+      t('O. ...and the RSI parent clears it: empty, unowned, no variant',
+        CX.Oparent.tech === 'rsi' && CX.Oparent.n === 0 &&
+        CX.Oparent.cust === false && CX.Oparent.applied === null &&
+        CX.Oparent.variantOn === false, CX.Oparent);
+      t('O. ...then Classic loads propofol, fentanyl and rocuronium, 3 in use',
+        CX.Ovariant.keys === IVR && CX.Ovariant.applied === 'rsi/classic' &&
+        CX.Ovariant.cust === false && CX.Ovariant.onCards === 3, CX.Ovariant);
+      t('P. the broadest hand-built plan touches every row the board draws',
+        CX.Pmanual.n === CX.Pmanual.rows && CX.Pmanual.n >= 4 &&
+        CX.Pmanual.cust === true && CX.Pmanual.applied === null, CX.Pmanual);
+      t('P. ...and the RSI parent removes every agent in it',
+        CX.Pparent.n === 0 && CX.Pparent.tech === 'rsi' &&
+        CX.Pparent.cust === false && CX.Pparent.applied === null, CX.Pparent);
+
       t('N. every analgesia agent on the adult board answers with a figure',
         CX.N.length === 3 &&
         CX.N.every(c => (c.rule !== '' || c.amount !== '') && c.cov === ''), CX.N);
@@ -3331,39 +3399,70 @@ async function openEngine(b, viewport) {
               or one the clinician emptied by hand — and in that case the
               plan is theirs and the control to put the regimen back is on
               screen. A lit strategy over an empty board with the plan
-              owned by nobody is the bug, and it is unreachable. */
+              owned by nobody is the bug, and it is unreachable.
+
+         THE SWEEP STARTS FROM NO STRATEGY AS WELL AS FROM EACH ONE, and it
+         did not before. Every sequence it walked used to press a strategy
+         first, so appliedPresetKey was never null at the moment of the
+         manual edit — and the one state it therefore never reached is the
+         one a clinician begins in: a fresh case, agents chosen by hand,
+         then a strategy pressed. That is exactly where the forced
+         retirement's early return hid. A sweep that cannot start from the
+         product's own starting state is not exhaustive, whatever its
+         sequence count says. */
       const INV = await R(`
         const card = id => document.querySelector(
           '#induction-host .tb-c[data-drug="' + id + '"]');
-        const TECH = ['iv','rsi','inhalational','tiva'];
+        /* null = no strategy chosen yet, the state a case opens in */
+        const TECH = [null,'iv','rsi','inhalational','tiva'];
         const VAR  = [null,'classic','modified'];
         const EDITS = [
           ['none',    () => {}],
           ['add',     () => { const c = card('drug.ketamine'); if (c) c.click(); }],
+          ['hand-built', () => { [...document.querySelectorAll(
+                                   '#induction-host .tb-row')]
+                                 .map(r => r.querySelector('.tb-c[data-drug]'))
+                                 .filter(Boolean).forEach(c => c.click()); }],
           ['emptied', () => { I.planKeys.slice().forEach(k => {
                                 const c = card(k.split('/')[1]); if (c) c.click(); }); }]];
-        const variantOn = () => !!document.querySelector('#induction-host .st-v.on');
-        const v1 = [], v2 = [], v3 = []; let walked = 0;
+        const variantOn = () => !!document.querySelector('#induction-host .st-vb.on');
+        const v1 = [], v2 = [], v3 = [], v4 = []; let walked = 0, fromFresh = 0;
         TECH.forEach(a => VAR.forEach(av => {
           if (av && a !== 'rsi') return;
           TECH.forEach(z => VAR.forEach(zv => {
             if (zv && z !== 'rsi') return;
+            if (z === null) return;            /* there is no "unpress" */
             EDITS.forEach(function (e){
               I.clear();
-              I.setTechnique(a); if (av) I.setRsiVariant(av);
+              if (a) { I.setTechnique(a); if (av) I.setRsiVariant(av); }
               const from = I.technique + '/' + variantOn();
               e[1]();
               I.setTechnique(z); if (zv) I.setRsiVariant(zv);
               const to = I.technique + '/' + variantOn();
-              walked++;
-              const tag = a + (av ? '/' + av : '') + ' -[' + e[0] + ']-> ' +
-                          z + (zv ? '/' + zv : '');
+              walked++; if (a === null) fromFresh++;
+              const tag = (a || 'fresh') + (av ? '/' + av : '') +
+                          ' -[' + e[0] + ']-> ' + z + (zv ? '/' + zv : '');
               const s = { tag, tech:I.technique, n:I.planKeys.length,
                           cust:I.planCustomized, applied:I.appliedPresetKey,
                           offer:!!document.querySelector('#induction-host .stx-apply') };
               const rsiParent = I.technique === 'rsi' && !variantOn();
               if (to !== from && s.n === 0 && !rsiParent) v1.push(s);
               if (s.tech && s.n === 0 && !rsiParent && !(s.cust && s.offer)) v2.push(s);
+              /* INVARIANT 4, and the one the first pass was missing.
+                 ENTERING the RSI parent leaves the board empty, because the
+                 parent declares no regimen and the press is a request to
+                 load it. The first two invariants both only examine EMPTY
+                 boards, so a plan that wrongly SURVIVED into the parent
+                 satisfied both — which is exactly how a hand-built plan
+                 outliving a forced retirement went unnoticed.
+
+                 It is a claim about the TRANSITION, not the state. Once at
+                 the parent the clinician may select agents by hand, and
+                 that is a plan they built and own; the board does not go
+                 read-only because no variant is chosen. The to !== from
+                 test is what separates entering the parent from standing
+                 in it. */
+              if (to !== from && rsiParent && s.n > 0) v4.push(s);
               /* and nothing that is not a press may move it */
               const held = I.planKeys.slice().sort().join();
               I.render(); I.render();
@@ -3373,13 +3472,16 @@ async function openEngine(b, viewport) {
           }));
         }));
         I.clear();
-        return { walked, v1, v2, v3 };`);
+        return { walked, fromFresh, v1, v2, v3, v4 };`);
       t('EVERY strategy change leaves a regimen, except the RSI parent',
-        INV.walked >= 100 && INV.v1.length === 0, { walked:INV.walked, bad:INV.v1 });
+        INV.walked >= 160 && INV.fromFresh >= 20 && INV.v1.length === 0,
+        { walked:INV.walked, fromFresh:INV.fromFresh, bad:INV.v1 });
       t('...and no lit strategy sits over a board nobody owns',
         INV.v2.length === 0, INV.v2);
       t('...and a re-render never moves the plan, from any of those states',
         INV.v3.length === 0, INV.v3);
+      t('...and the RSI parent NEVER sits over a plan, whoever built it',
+        INV.v4.length === 0, INV.v4);
 
       const sNew = await R(`I.clear(); I.setTechnique('rsi'); I.setRsiVariant('classic');
         window.newCase();
@@ -3480,59 +3582,74 @@ async function openEngine(b, viewport) {
          picked{} directly; every selection and every application goes
          through the shipped toggle / applyPreset path.
 
-         THE VEHICLE CHANGED WITH THE OWNERSHIP RULE, THE CLAIM DID NOT.
-         These probes used to drive the row-scoped clear through "Apply
-         suggested plan". That button force-applies now — an explicit press
-         loads the strategy's whole regimen, so it clears every row and the
-         row-scoped behaviour is no longer observable through it. The
-         row-scoped clear is still there and still the thing that matters:
-         it is what RETIRING a preset does when the RSI parent is pressed,
-         and that is the path these probes take now. The forced whole-board
-         replace is asserted separately, below. */
+         THE VEHICLE CHANGED TWICE, AND THE CLAIM DID NOT. Worth writing
+         down, because it is the reason this block does not simply assert
+         "clearing one row leaves the other alone" any more.
+
+         These probes first drove the row-scoped clear through "Apply
+         suggested plan", then through retiring a preset at the RSI parent.
+         Both of those force now — an explicit press loads the strategy's
+         whole regimen, and a forced retirement empties the whole board —
+         so NEITHER can observe a partial clear. The unforced branches of
+         applyPreset and retireAppliedPresetPlan still hold the row-scoped
+         logic, and both currently have no caller.
+
+         So the claim is asserted where it is still live: not in what a
+         clear leaves behind, but in the fact that two ROWS sharing one
+         ROLE are addressed independently at all. premedication and
+         hypnosis both write into picked.induction[]; a preset must be able
+         to select into both at once, the board must show both, and a
+         single manual toggle must remove one member without disturbing the
+         other. A role-keyed schema fails every one of those. */
       const iso = await R(`
+        I.__presetsForTest({
+          iv:{ rows:{ premedication:{ selected:['drug.atropine'], alternatives:[] },
+                      hypnosis:{ selected:['drug.etomidate'], alternatives:[] } } },
+          rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
+          inhalational:{ rows:{} }, tiva:{ rows:{} } });
+        I.clear(); I.setTechnique('iv');
+        const card = id => document.querySelector(
+          '#induction-host .tb-c[data-drug="' + id + '"]');
+        const both = I.planKeys.slice().sort();
+        const lit = [...document.querySelectorAll('#induction-host .tb-c.on')]
+          .map(c => c.getAttribute('data-drug')).sort();
+        /* Manual, through the board's own control: remove ONE member of the
+           shared bucket and prove the other is untouched. */
+        card('drug.etomidate').click();
+        const afterOne = I.planKeys.slice().sort();
+        /* And add a third into the same bucket, from the third row. */
+        card('drug.midazolam').click();
+        const afterAdd = I.planKeys.slice().sort();
+        return { both, lit, afterOne, afterAdd };`);
+      t('two rows sharing one role both hold a selection at the same time',
+        iso.both.length === 2 &&
+        iso.both.indexOf('induction/drug.atropine') >= 0 &&
+        iso.both.indexOf('induction/drug.etomidate') >= 0, iso.both);
+      t('...and the board lights both, which a role-keyed bucket could not',
+        iso.lit.join() === 'drug.atropine,drug.etomidate', iso.lit);
+      t('...removing one member of the bucket leaves the other standing',
+        iso.afterOne.join() === 'induction/drug.atropine', iso.afterOne);
+      t('...and a third row writes into the same bucket without collision',
+        iso.afterAdd.length === 2 &&
+        iso.afterAdd.indexOf('induction/drug.atropine') >= 0 &&
+        iso.afterAdd.indexOf('induction/drug.midazolam') >= 0, iso.afterAdd);
+
+      /* The row-scoped branches are unreachable from the UI, so they are
+         proved at the function instead — otherwise the logic that makes a
+         preset "manage" a row rots silently until something calls it. */
+      const iso2 = await R(`
         I.__presetsForTest({
           iv:{ rows:{ hypnosis:{ selected:['drug.etomidate'], alternatives:[] } } },
           rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
           inhalational:{ rows:{} }, tiva:{ rows:{} } });
         I.clear(); I.setTechnique('iv');
-        /* Manual, through the board's own control: a premedication member,
-           which lands in the SAME picked.induction[] bucket as etomidate. */
-        const card = id => document.querySelector(
-          '#induction-host .tb-c[data-drug="' + id + '"]');
-        card('drug.midazolam').click();
-        const before = I.planKeys.slice().sort();
-        /* Retire the preset. It owns the hypnosis row and nothing else. */
-        I.setTechnique('rsi');
-        const after = I.planKeys.slice().sort();
-        return { before, after, applied:I.appliedPresetKey };`);
-      t('...which is the collision a role-keyed preset would have caused',
-        iso.before.indexOf('induction/drug.midazolam') >= 0 &&
-        iso.before.indexOf('induction/drug.etomidate') >= 0, iso.before);
-      t('retiring a preset that owns only hypnosis clears that row',
-        iso.after.indexOf('induction/drug.etomidate') < 0, iso.after);
-      t('...and LEAVES the premedication selection in the same role bucket',
-        iso.after.indexOf('induction/drug.midazolam') >= 0, iso.after);
-      t('...and the preset is no longer the owner of anything',
-        iso.applied === null, iso.applied);
-
-      /* The reverse: own only premedication, leave hypnosis alone. */
-      const iso2 = await R(`
-        I.__presetsForTest({
-          iv:{ rows:{ premedication:{ selected:['drug.atropine'], alternatives:[] } } },
-          rsi:{ variants:{ classic:{ rows:{} }, modified:{ rows:{} } } },
-          inhalational:{ rows:{} }, tiva:{ rows:{} } });
-        I.clear(); I.setTechnique('iv');
-        const card = id => document.querySelector(
-          '#induction-host .tb-c[data-drug="' + id + '"]');
-        card('drug.ketamine').click();      /* hypnosis row, same bucket */
-        const before = I.planKeys.slice().sort();
-        I.setTechnique('rsi');
-        return { before, after:I.planKeys.slice().sort() };`);
-      t('the reverse holds: retiring a premedication preset leaves hypnosis alone',
-        iso2.before.indexOf('induction/drug.atropine') >= 0 &&
-        iso2.after.indexOf('induction/drug.ketamine') >= 0, iso2);
-      t('...while clearing the premedication row it owned',
-        iso2.after.indexOf('induction/drug.atropine') < 0, iso2.after);
+        const r = I.__resolvePresetForTest('iv', null);
+        return { rows:r.rows, key:r.key,
+                 select:(r.select || []).map(s => s.roleKey + '/' + s.id) };`);
+      t('a preset resolves the ROWS it manages, not the roles they share',
+        iso2.rows.join() === 'hypnosis' && iso2.key === 'iv', iso2);
+      t('...while its selections land in the shared role bucket',
+        iso2.select.join() === 'induction/drug.etomidate', iso2.select);
 
       /* AND THE OTHER HALF: A FORCED APPLY REPLACES THE WHOLE BOARD.
          Not the union of the incoming and outgoing presets' rows — every
