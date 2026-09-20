@@ -3048,5 +3048,101 @@ console.log('\n21. ANTIBIOTIC PROPHYLAXIS IS OFF MAINTENANCE, NOT DELETED');
     (ENG.match(/'antibiotic-prophylaxis'\s*:/g) || []).length + ' references');
 }
 
+/* ══ THE WARNING CORPUS IS TRUSTED STATIC CONTENT, AND NOW SAYS SO ═══════
+   The drug reference's warning disclosure interpolates d.warn straight into
+   innerHTML — deliberately, because the corpus is literal strings in
+   clinical-index.js and nothing writes to it at runtime. That is a real
+   trust assumption and it was only ever implicit: nothing stopped a future
+   record arriving with a <script>, an <img onerror> or an attribute on a
+   tag, and nothing would have failed if one did.
+
+   This turns the assumption into an invariant. It is a DATA test, not a
+   sanitizer: the corpus is checked, the renderer is unchanged. If a record
+   ever needs markup outside the approved set, this fails and the choice —
+   widen the list, or sanitize at render — gets made deliberately instead of
+   by accident.
+
+   APPROVED MARKUP, EXACTLY: <b> </b> <br> <br/> <br />, with NO attributes.
+   HTML entities are allowed and must keep decoding: suxamethonium's &gt;
+   and neostigmine's &ge; are the two in the corpus today. */
+{
+  const OK_TAG = /^<(?:b|\/b|br|br\/|br \/)>$/;
+  const fields = [];
+  const push = (id, where, v) => {
+    if (typeof v === 'string' && v) fields.push({ id, where, v }); };
+  CC.DRUGS.forEach(d => {
+    push(d.id, 'warn', d.warn); push(d.id, 'note', d.note);
+    (d.doses || []).forEach((x, i) => {
+      push(d.id, 'doses[' + i + '].warn', x.warn);
+      push(d.id, 'doses[' + i + '].note', x.note); }); });
+  (CC.ITEMS || []).forEach(d => {
+    push(d.id, 'warn', d.warn); push(d.id, 'note', d.note); });
+
+  /* Every tag-looking token in the corpus, with where it came from. */
+  const tags = [];
+  fields.forEach(f => { let m; const re = /<[^>]*>/g;
+    while ((m = re.exec(f.v))) tags.push({ id:f.id, where:f.where, tag:m[0] }); });
+  const bad = tags.filter(x => !OK_TAG.test(x.tag));
+
+  t('the warning corpus is non-trivial, so this invariant is not vacuous',
+    fields.length >= 40 && tags.length >= 8,
+    { fields:fields.length, tags:tags.length });
+  t('every tag in every warn/note field is exactly <b> </b> <br>, no attributes',
+    bad.length === 0, bad.slice(0, 6));
+  /* The ONE record that carries markup, named so a silent change is visible. */
+  t('...and the only record carrying markup is nitrous oxide',
+    [...new Set(tags.map(x => x.id))].join() === 'drug.nitrous-oxide',
+    [...new Set(tags.map(x => x.id))]);
+  t('...no on* handler, no script, no img, no style anywhere in the corpus',
+    !fields.some(f => /<\s*(script|img|style|iframe|svg|object|embed)\b/i.test(f.v) ||
+                      /\son[a-z]+\s*=/i.test(f.v) ||
+                      /javascript:/i.test(f.v)),
+    fields.filter(f => /<\s*(script|img|style)\b/i.test(f.v)).map(f => f.id));
+
+  /* THE GUARD MUST REJECT, NOT MERELY PASS. A safety invariant nobody has
+     watched fail is a safety invariant nobody can trust, so the same
+     predicate is run against the shapes it exists to stop. */
+  const REJECT = ['<script>', '<img src=x onerror=alert(1)>', '<span>',
+                  '<b onclick="x()">', '<br class="y">', '<strong>',
+                  '<B >', '<br  />', '<iframe>', '<a href="#">'];
+  t('...and the predicate REJECTS every disallowed shape',
+    REJECT.every(x => !OK_TAG.test(x)), REJECT.filter(x => OK_TAG.test(x)));
+  t('...while ACCEPTING exactly the approved ones',
+    ['<b>', '</b>', '<br>', '<br/>', '<br />'].every(x => OK_TAG.test(x)),
+    ['<b>', '</b>', '<br>', '<br/>', '<br />'].filter(x => !OK_TAG.test(x)));
+
+  /* ENTITIES ARE CONTENT, NOT MARKUP, and must survive. */
+  const ents = fields.filter(f => /&[a-z]+;|&#[0-9]+;/i.test(f.v));
+  t('the two entity-bearing warnings are still in the corpus',
+    ents.map(f => f.id).sort().join() === 'drug.neostigmine,drug.suxamethonium',
+    ents.map(f => f.id + ':' + (f.v.match(/&[a-z]+;/gi) || []).join()));
+}
+
+/* ══ THE WARNING TRIGGER CARRIES NO CLINICAL TEXT ════════════════════════
+   drefWarnBtn() used to put the whole warning into a native title
+   attribute, which is plain text by specification — so nitrous oxide's
+   headings reached the clinician as literal <b> and <br>. The fix was to
+   delete the title, because the disclosure the button opens already renders
+   the same string correctly. This is the source-level guard against it
+   coming back; the rendered proof is in live-tools-shell. */
+{
+  const fn = (/function drefWarnBtn\(inst, d, i\)\{[\s\S]*?\n\}/.exec(ENGC) || [''])[0];
+  t('drefWarnBtn exists and is found by this test', fn.length > 0, fn.length + ' chars');
+  t('...and builds NO title attribute at all',
+    fn.indexOf('title') < 0, (fn.match(/title[^,]*/) || ['none'])[0]);
+  t('...and never interpolates d.warn into the trigger',
+    fn.indexOf('d.warn') < 0 || /if\(!d\.warn\) return/.test(fn) &&
+      (fn.match(/d\.warn/g) || []).length === 1,
+    (fn.match(/d\.warn/g) || []).length + ' reference(s) — the guard only');
+  t('...while keeping aria-label, aria-expanded and aria-controls',
+    /aria-label=/.test(fn) && /aria-expanded="false"/.test(fn) &&
+    /aria-controls=/.test(fn), 'all three present');
+  /* The readable measure, on the disclosure rather than on a native popup
+     which cannot be styled at all. */
+  t('the disclosure constrains its line length to a readable measure',
+    /\.dtab-warn\s*>\s*span:last-child\{[^}]*max-width:\s*78ch/.test(ENG),
+    (/\.dtab-warn\s*>\s*span:last-child\{[^}]*\}/.exec(ENG) || ['absent'])[0]);
+}
+
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);

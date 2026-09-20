@@ -1641,6 +1641,123 @@ const fill = (pg, o) => pg.evaluate(o => {
         a.newPatientVisible === false, a.newPatientVisible);
       await v.ctx.close();
     }
+    /* ══ THE WARNING DISCLOSURE IS THE WARNING SURFACE ═══════════════════
+       The trigger used to carry the whole clinical warning in a native
+       title attribute. A title is plain text by specification, so nitrous
+       oxide's section headings reached the clinician as literal <b> and
+       <br>, and suxamethonium's &gt; and neostigmine's &ge; as literal
+       entity strings. The disclosure the same button opens has always
+       rendered that string correctly, so the fix was to delete the title
+       rather than to build a second renderer.
+
+       Nitrous oxide lives in the volatile group, which the induction
+       reference admits only at phase 'induction' — it has no such record,
+       so it is not on that surface. The FULL Drug reference is where it
+       renders, and setDomain('drugs') is what puts that panel on screen. */
+    {
+      const v = await open(b, 1536, 1200);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(700);
+      await v.pg.evaluate(`setDomain('drugs')`); await v.pg.waitForTimeout(700);
+
+      const probe = async (q, needle) => {
+        await v.pg.evaluate(`drefSet('dref','q',` + JSON.stringify(q) + `)`);
+        await v.pg.waitForTimeout(700);
+        return v.pg.evaluate(`(() => {
+          const btn = document.querySelector('#dref-body .dtab-wi');
+          if (!btn) return { noBtn:true };
+          const out = { title:btn.getAttribute('title'),
+                        aria:(btn.getAttribute('aria-label')||'').trim(),
+                        visible: btn.offsetParent !== null,
+                        expanded0:btn.getAttribute('aria-expanded') };
+          btn.click();
+          out.expanded1 = btn.getAttribute('aria-expanded');
+          const box = [...document.querySelectorAll('#dref-body .dtab-warn')]
+            .find(e => e.textContent.indexOf(` + JSON.stringify(needle) + `) >= 0);
+          if (box) {
+            const span = box.querySelector('span:last-child');
+            const r = span.getBoundingClientRect(), cs = getComputedStyle(span);
+            out.b = box.querySelectorAll('b').length;
+            out.br = box.querySelectorAll('br').length;
+            out.text = box.textContent;
+            out.spanW = Math.round(r.width);
+            out.maxWidth = cs.maxWidth;
+            out.rightInside = Math.round(r.right) <= window.innerWidth + 1;
+            out.overflowX = Math.max(0, document.documentElement.scrollWidth -
+                                        document.documentElement.clientWidth);
+          }
+          btn.click(); out.expanded2 = btn.getAttribute('aria-expanded');
+          return out; })()`);
+      };
+
+      const n2o = await probe('nitrous', 'AVOID, CLOSED GAS SPACES');
+      t('the warning trigger carries NO title attribute',
+        n2o.title === null, n2o.title);
+      t('...but keeps a non-empty accessible name',
+        /^Caution for /.test(n2o.aria) && n2o.aria.length > 12, n2o.aria);
+      t('...and aria-expanded tracks open and closed',
+        n2o.expanded0 === 'false' && n2o.expanded1 === 'true' &&
+        n2o.expanded2 === 'false',
+        [n2o.expanded0, n2o.expanded1, n2o.expanded2]);
+      /* The counts are tied to the reviewed nitrous record as it stands:
+         four headings, three separators. If that content is legitimately
+         re-written the numbers move with it, and this failing is the
+         correct outcome — it names the record it is pinned to. */
+      t('NITROUS OXIDE renders four bold headings and three line breaks',
+        n2o.b === 4 && n2o.br === 3, { b:n2o.b, br:n2o.br });
+      t('...with no literal <b or <br anywhere in the rendered text',
+        n2o.text.indexOf('<b') < 0 && n2o.text.indexOf('<br') < 0,
+        n2o.text.slice(0, 90));
+      t('...and its line length is capped at a readable measure',
+        n2o.maxWidth !== 'none' && n2o.spanW <= 520 && n2o.spanW > 300,
+        { spanW:n2o.spanW, maxWidth:n2o.maxWidth });
+      t('...inside the viewport, with no horizontal overflow',
+        n2o.rightInside === true && n2o.overflowX === 0,
+        { rightInside:n2o.rightInside, overflowX:n2o.overflowX });
+
+      /* ENTITIES DECODE. These two records are the whole entity corpus. */
+      const sux = await probe('suxamethonium', 'hyperkalaemia');
+      t('SUXAMETHONIUM shows > as a character, not &gt;',
+        sux.text.indexOf('>24 h') >= 0 && sux.text.indexOf('&gt;') < 0,
+        sux.text.replace(/\s+/g,' ').trim().slice(0, 80));
+      t('...and its trigger carries no title either',
+        sux.title === null && /^Contraindication for /.test(sux.aria), sux.aria);
+      const neo = await probe('neostigmine', 'TOF count');
+      t('NEOSTIGMINE shows \u2265 as a character, not &ge;',
+        neo.text.indexOf('\u2265') >= 0 && neo.text.indexOf('&ge;') < 0,
+        neo.text.replace(/\s+/g,' ').trim().slice(0, 80));
+      await v.ctx.close();
+    }
+
+    /* The disclosure must stay inside the viewport and keep wrapping at the
+       widths the workstation is used at — the native tooltip it replaced
+       could not be constrained at all. */
+    for (const w of [1536, 1194, 390]) {
+      const v = await open(b, w, 1100);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(700);
+      await v.pg.evaluate(`setDomain('drugs')`); await v.pg.waitForTimeout(600);
+      await v.pg.evaluate(`drefSet('dref','q','nitrous')`); await v.pg.waitForTimeout(700);
+      const m = await v.pg.evaluate(`(() => {
+        const btn = document.querySelector('#dref-body .dtab-wi');
+        if (!btn) return { noBtn:true };
+        btn.click();
+        const box = [...document.querySelectorAll('#dref-body .dtab-warn')]
+          .find(e => /AVOID, CLOSED GAS SPACES/.test(e.textContent));
+        if (!box) return { noBox:true };
+        const span = box.querySelector('span:last-child');
+        const r = span.getBoundingClientRect(), cs = getComputedStyle(span);
+        return { w:Math.round(r.width), h:Math.round(r.height),
+                 lines: Math.round(r.height / parseFloat(cs.lineHeight)),
+                 rightInside: Math.round(r.right) <= window.innerWidth + 1,
+                 overflowX: Math.max(0, document.documentElement.scrollWidth -
+                                        document.documentElement.clientWidth),
+                 fitsContainer: Math.round(r.width) <= Math.round(
+                   box.getBoundingClientRect().width) + 1 }; })()`);
+      t(w + ': the open warning stays inside the viewport',
+        m.rightInside === true && m.overflowX === 0, m);
+      t(w + ': ...and wraps rather than running off',
+        m.lines >= 8 && m.fitsContainer === true, m);
+      await v.ctx.close();
+    }
   } finally {
     await b.close();
   }
