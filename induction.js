@@ -712,21 +712,45 @@
      invents one. */
   var LEGACY = function (){ var CC = root.ClinicalContent;
     return CC ? CC.LEGACY_CONTEXT : '(unphased)'; };
+  /* ── THE ADJUNCT TIER, AND WHY IT SITS LAST ───────────────────────────
+     'peri-induction' is the phase for an analgesic or sedative adjunct given
+     AROUND induction without being what induces — morphine studied at
+     induction, dexmedetomidine's procedural-sedation loading infusion. See
+     clinical-index.js, where the vocabulary entry is defined.
+
+     IT IS APPENDED, NEVER PREPENDED. A drug holding a record for the
+     question the row actually asks answers from it first: fentanyl still
+     answers the analgesia row from its reviewed induction record, propofol
+     still answers hypnosis from its. The adjunct tier is reached only by a
+     drug that has nothing for the earlier tiers, which is exactly the two
+     cards that were printing a coverage line.
+
+     IT IS NOT THE UNPHASED TIER COMING BACK. L matches any record that
+     declares NO context at all — morphine's postoperative row, the
+     unreviewed fentanyl row, dexmedetomidine's maintenance rate. This
+     matches one declared phase and nothing else, so a record has to be
+     written for this question to be eligible for it. The rows that carry L
+     are unchanged, and no row gains it.
+
+     NMB AND VOLATILE DO NOT ASK. A blocker or a vapour is not an adjunct to
+     induction and has no peri-induction record; adding the tier there would
+     widen what those rows accept for no record that exists. */
   function strategyContexts(){
-    var L = LEGACY();
+    var L = LEGACY(), P = 'peri-induction';
     return {
       iv: {
-        premedication:['induction', L], analgesia:['induction'],
-        hypnosis:['induction'], nmb:['intubation'], volatile:['induction'] },
+        premedication:['induction', P, L], analgesia:['induction', P],
+        hypnosis:['induction', P], nmb:['intubation'], volatile:['induction'] },
       rsi: {
-        premedication:['rsi', 'induction', L], analgesia:['rsi', 'induction'],
-        hypnosis:['rsi', 'induction'], nmb:['rsi'], volatile:['induction'] },
+        premedication:['rsi', 'induction', P, L], analgesia:['rsi', 'induction', P],
+        hypnosis:['rsi', 'induction', P], nmb:['rsi'], volatile:['induction'] },
       inhalational: {
-        premedication:['induction', L], analgesia:['induction'],
-        hypnosis:['induction'], nmb:['intubation'], volatile:['induction'] },
+        premedication:['induction', P, L], analgesia:['induction', P],
+        hypnosis:['induction', P], nmb:['intubation'], volatile:['induction'] },
       tiva: {
-        premedication:['induction', L], analgesia:['tiva', 'infusion', 'induction'],
-        hypnosis:['tiva', 'infusion', 'induction'], nmb:['intubation'],
+        premedication:['induction', P, L],
+        analgesia:['tiva', 'infusion', 'induction', P],
+        hypnosis:['tiva', 'infusion', 'induction', P], nmb:['intubation'],
         volatile:['induction'] }
     };
   }

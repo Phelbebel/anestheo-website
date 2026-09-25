@@ -141,9 +141,15 @@ t('every declared phase comes from the vocabulary, none invented',
 /* 'spontaneous-respiration' joins the set with the reviewed adult fentanyl
    dose. It is the narrowest phase in the model and exists so a controlled-
    airway plan cannot be answered with a spontaneously-breathing regimen. */
+/* 'peri-induction' joins the set with morphine's studied-at-induction dose
+   and dexmedetomidine's procedural-sedation loading infusion. It exists to
+   keep an ADJUNCT given around induction distinct from a drug given TO
+   induce: filing either under 'induction' would have the board state
+   something neither source says. It is a vocabulary entry, not a drug rule —
+   any record may declare it and any row may ask for it. */
 t('...and induction-scope phases are all this migration declared',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort()
-    .join(',') === 'induction,intubation,maintenance,premedication,rsi,spontaneous-respiration',
+    .join(',') === 'induction,intubation,maintenance,peri-induction,premedication,rsi,spontaneous-respiration',
   [...new Set(CC.DRUGS.flatMap(d => (d.doses||[]).map(x => x.phase).filter(Boolean)))].sort());
 /* WAS: every group returns nothing for maintenance. Exactly one group returns
    something now, and it is the volatile group, which is the only place a
@@ -853,8 +859,11 @@ t('every drug visibleDrugsInGroup returns still appears in visibleDosesInGroup',
   })), 'enumeration adds rows, it never drops a drug');
 t('...and the drugs carrying more than one are exactly the migrated ones',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id).sort().join(',') ===
-  'drug.alfentanil,drug.desflurane,drug.fentanyl,drug.glycopyrrolate,drug.isoflurane,' +
-  'drug.ketamine,drug.mivacurium,drug.nitrous-oxide,drug.propofol,drug.remifentanil,' +
+  /* morphine and dexmedetomidine join: each gained a peri-induction record
+     beside the one it already had, and neither old row was touched. */
+  'drug.alfentanil,drug.desflurane,drug.dexmedetomidine,drug.fentanyl,' +
+  'drug.glycopyrrolate,drug.isoflurane,drug.ketamine,drug.mivacurium,' +
+  'drug.morphine,drug.nitrous-oxide,drug.propofol,drug.remifentanil,' +
   'drug.rocuronium,drug.sevoflurane,drug.suxamethonium',
   CC.DRUGS.filter(d => (d.doses||[]).length > 1).map(d => d.id));
 /* WAS: the six Tier-1 drugs. The eight the completeness package added carry a
@@ -862,9 +871,10 @@ t('...and the drugs carrying more than one are exactly the migrated ones',
    for — so the list grows by exactly those eight and by nothing else. */
 t('the classified records are exactly the ones the reviewed packages touched',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort().join(',') ===
-  'drug.alfentanil,drug.atracurium,drug.atropine,drug.desflurane,drug.etomidate,' +
-  'drug.fentanyl,drug.glycopyrrolate,drug.isoflurane,drug.ketamine,drug.lidocaine-iv,' +
-  'drug.mivacurium,drug.nitrous-oxide,drug.propofol,drug.remifentanil,drug.rocuronium,' +
+  'drug.alfentanil,drug.atracurium,drug.atropine,drug.desflurane,' +
+  'drug.dexmedetomidine,drug.etomidate,drug.fentanyl,drug.glycopyrrolate,' +
+  'drug.isoflurane,drug.ketamine,drug.lidocaine-iv,drug.mivacurium,drug.morphine,' +
+  'drug.nitrous-oxide,drug.propofol,drug.remifentanil,drug.rocuronium,' +
   'drug.sevoflurane,drug.suxamethonium,drug.thiopental',
   CC.DRUGS.filter(d => (d.doses||[]).some(x => x.populationClass)).map(d => d.id).sort());
 t('ageBand appears only on class-C records',
@@ -1100,12 +1110,13 @@ t('11 legacy compatibility does NOT populate or mutate populationClass',
     (d.doses||[]).map(x => [x.populationClass, x.population, x.evidence && x.evidence.state])))
     === beforeLegacy,
   'the dataset is byte-identical after every eligibility call');
-/* 35 -> 38. The strategy-regimen pass added three reviewed rows: fentanyl's
-   adult anaesthetic dose, which the SmPC states in absolute micrograms, and
-   sevoflurane's adult and paediatric induction titrations. The invariant is
-   unchanged — a populationClass appears on reviewed rows and nowhere else. */
-t('...and exactly 39 doses carry a populationClass, the reviewed ones',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 39,
+/* 35 -> 38 -> 39 -> 42. The strategy-regimen pass added three reviewed rows,
+   the fentanyl induction record a fourth, and this pass three more: morphine
+   studied at induction, and dexmedetomidine's two label loading infusions,
+   standard and over-65. The invariant is unchanged — a populationClass
+   appears on reviewed rows and nowhere else. */
+t('...and exactly 42 doses carry a populationClass, the reviewed ones',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0) === 42,
   CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.populationClass).length, 0));
 /* WAS: every publishable drug is existing-unchanged. Eight now read
    'reviewed', and the safety question is not how many but WHICH — a legacy
@@ -1136,16 +1147,16 @@ t('13 NO existing-unchanged record became reviewed',
   CC.DRUGS.every(d => (d.doses||[]).every(x =>
     !x.evidence || x.evidence.state !== 'reviewed' || !!x.populationClass)) &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 39 &&
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 42 &&
   /* the drugs whose provenance is 'reviewed' are only ever the eight, and no
      drug that carried a legacy record is among them */
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed')
     .every(d => UPGRADED.indexOf(d.id) >= 0),
   CC.DRUGS.filter(d => d.provenance.state === 'reviewed').map(d => d.id));
-t('...and dose-level evidence exists ONLY on the 39 reviewed records',
-  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 39 &&
+t('...and dose-level evidence exists ONLY on the 42 reviewed records',
+  CC.DRUGS.reduce((a,d) => a + (d.doses||[]).filter(x => x.evidence).length, 0) === 42 &&
   CC.DRUGS.reduce((a,d) => a + (d.doses||[])
-    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 39);
+    .filter(x => x.evidence && x.evidence.state === 'reviewed').length, 0) === 42);
 
 /* THE NAMED HELD RECORDS, EXERCISED THROUGH THE REAL SELECTOR. */
 [['drug.midazolam','induction'], ['drug.dexmedetomidine','induction'],
@@ -1178,7 +1189,7 @@ const reviewed = [];
 CC.DRUGS.forEach(d => (d.doses||[]).forEach(x => {
   if (x.evidence && x.evidence.state === 'reviewed') reviewed.push({ id:d.id, dose:x });
 }));
-t('EXACTLY 39 REVIEWED DOSE RECORDS', reviewed.length === 39, reviewed.length);
+t('EXACTLY 42 REVIEWED DOSE RECORDS', reviewed.length === 42, reviewed.length);
 t('...every one carries a full citation',
   reviewed.every(r => r.dose.evidence.authority && r.dose.evidence.title &&
                       r.dose.evidence.documentId && r.dose.evidence.section));
@@ -1342,9 +1353,18 @@ t('...while an adult still sees it',
    metadata, which is what this block of the model is for. The dose, the
    route, the population and the provenance are what "untouched" means here,
    and they are asserted field by field. */
-t('dexmedetomidine: dose and provenance unchanged, colour reclassified',
-  dexH.doses.length === 1 && dexH.doses[0].low === 0.2 && dexH.doses[0].high === 0.7 &&
+/* WAS: doses.length === 1. Dexmedetomidine now carries three rows — the
+   maintenance rate it always had, plus the label's two procedural-sedation
+   loading infusions. The claim that matters is unchanged and is now made
+   precisely: the ROW THIS ASSERTION IS ABOUT did not move. It is still
+   doses[0], still the rate, still unclassified and still unphased, and the
+   drug's provenance is still existing-unchanged. Adding rows beside a legacy
+   record must never edit it, and that is what is checked. */
+t('dexmedetomidine: the legacy infusion row and provenance unchanged, colour reclassified',
+  dexH.doses[0].label === 'Sedation' &&
+  dexH.doses[0].low === 0.2 && dexH.doses[0].high === 0.7 &&
   dexH.doses[0].unit === 'mcg/kg/h' && dexH.doses[0].population === 'adult' &&
+  dexH.doses[0].phase === undefined && dexH.doses[0].evidence === undefined &&
   dexH.provenance.state === 'existing-unchanged' &&
   dexH.pclass === 'alpha2' && dexH.doses[0].populationClass === undefined);
 /* WAS: sevoflurane still proposed-unverified with no dose. Reviewed now, and
@@ -1790,11 +1810,18 @@ t('...and thiopental keeps everything except the board slot',
   CC.isPublishable(CC.byId('drug.thiopental')) &&
   CC.search('Thiopental').some(r => ((r.item||r).id) === 'drug.thiopental'),
   { doses:(CC.byId('drug.thiopental').doses||[]).length });
-t('...and dexmedetomidine gained nothing clinical by returning to it',
+/* WAS: doses.length === 1 — "the board slot gave it nothing". It still
+   gives it nothing, and that is the claim: the two loading rows it has since
+   gained came from the LABEL through the evidence process, not from being
+   placed on a board. What proves it is that the row the board change found
+   there is still untouched, which is asserted above. */
+t('...and dexmedetomidine gained nothing from the board slot itself',
   !!CC.byId('drug.dexmedetomidine') &&
-  (CC.byId('drug.dexmedetomidine').doses||[]).length === 1 &&
-  CC.isPublishable(CC.byId('drug.dexmedetomidine')),
-  { doses:(CC.byId('drug.dexmedetomidine').doses||[]).length });
+  CC.isPublishable(CC.byId('drug.dexmedetomidine')) &&
+  (CC.byId('drug.dexmedetomidine').doses||[])
+    .filter(x => !x.evidence).length === 1,
+  { doses:(CC.byId('drug.dexmedetomidine').doses||[]).length,
+    unsourced:(CC.byId('drug.dexmedetomidine').doses||[]).filter(x => !x.evidence).length });
 
 /* ── THE HYPNOSIS ROW HAS NO UNPHASED TIER ──────────────────────────────
    The unphased tier matches any record that declares no context, and
@@ -1899,16 +1926,18 @@ t('...and it is separable from every colour already in the palette',
 /* THE RECORD ITSELF IS UNTOUCHED. Colour is display metadata; this is the
    sentence that proves the dose, the route and the population did not move
    when the colour did. */
-t('...and its clinical record is exactly what it was',
+t('...and the sedation-infusion record is exactly what it was',
   (() => { const d = CC.byId('drug.dexmedetomidine');
-    return d.group === 'induction' && d.doses.length === 1 &&
-      d.doses[0].label === 'Sedation' && d.doses[0].route === 'IV' &&
-      d.doses[0].low === 0.2 && d.doses[0].high === 0.7 &&
-      d.doses[0].unit === 'mcg/kg/h' && d.doses[0].population === 'adult' &&
-      d.doses[0].phase === undefined && d.doses[0].evidence === undefined &&
-      d.doses[0].populationClass === undefined &&
+    const rate = (d.doses || []).filter(x => x.unit === 'mcg/kg/h');
+    return d.group === 'induction' && rate.length === 1 &&
+      rate[0] === d.doses[0] &&
+      rate[0].label === 'Sedation' && rate[0].route === 'IV' &&
+      rate[0].low === 0.2 && rate[0].high === 0.7 &&
+      rate[0].population === 'adult' &&
+      rate[0].phase === undefined && rate[0].evidence === undefined &&
+      rate[0].populationClass === undefined &&
       d.provenance.state === 'existing-unchanged'; })(),
-  JSON.stringify(CC.byId('drug.dexmedetomidine').doses));
+  JSON.stringify(CC.byId('drug.dexmedetomidine').doses[0]));
 /* AND IT IS STILL REACHABLE. A class the reference has no chip for would have
    left it findable only through All and search. */
 t('...and the reference still files it under Hypnotics',
@@ -2222,8 +2251,8 @@ console.log('\n17b. THE PLAN LAYER CARRIES NO CLINICAL NUMBER');
      written; until then they resolve to nothing and the question falls
      through to induction. Neither name may become a number here. */
   t('...TIVA declares its own tiers ahead of induction',
-    !!ctxmap && /tiva:\s*\{[\s\S]*?hypnosis:\['tiva', 'infusion', 'induction'\]/.test(ctxmap[0]),
-    'tiva/infusion tiers present');
+    !!ctxmap && /tiva:\s*\{[\s\S]*?hypnosis:\['tiva', 'infusion', 'induction', P\]/.test(ctxmap[0]),
+    'tiva/infusion tiers present, adjunct tier last');
   t('...and no record uses them yet, so nothing is being invented',
     CC.DRUGS.every(d => (d.doses || []).every(x =>
       x.phase !== 'tiva' && x.phase !== 'infusion')),
@@ -3142,6 +3171,177 @@ console.log('\n21. ANTIBIOTIC PROPHYLAXIS IS OFF MAINTENANCE, NOT DELETED');
   t('the disclosure constrains its line length to a readable measure',
     /\.dtab-warn\s*>\s*span:last-child\{[^}]*max-width:\s*78ch/.test(ENG),
     (/\.dtab-warn\s*>\s*span:last-child\{[^}]*\}/.exec(ENG) || ['absent'])[0]);
+}
+
+/* ══ PERI-INDUCTION: TWO ADJUNCTS THAT NOW ANSWER ════════════════════════
+   Morphine and dexmedetomidine each sat on the cockpit printing "Dose not
+   reviewed for this context", because each held only a record for a
+   DIFFERENT question — postoperative analgesia, and a maintenance infusion
+   rate. Neither could be borrowed without the board stating something its
+   source does not say.
+
+   Each gained a record written for the question the row actually asks. The
+   old rows are untouched, and that is asserted field by field: adding beside
+   a legacy record must never edit it. */
+{
+  const M = CC.byId('drug.morphine'), D = CC.byId('drug.dexmedetomidine');
+  const mPost = (M.doses||[]).filter(x => !x.phase);
+  const mPeri = (M.doses||[]).filter(x => x.phase === 'peri-induction');
+  const dRate = (D.doses||[]).filter(x => x.unit === 'mcg/kg/h');
+  const dLoad = (D.doses||[]).filter(x => x.phase === 'peri-induction');
+
+  /* ── MORPHINE ──────────────────────────────────────────────────────── */
+  t('morphine keeps exactly one unphased postoperative row, unedited',
+    mPost.length === 1 && mPost[0].label === 'Postoperative analgesia' &&
+    mPost[0].low === 0.05 && mPost[0].high === 0.1 && mPost[0].unit === 'mg/kg' &&
+    mPost[0].basis === 'TBW' && mPost[0].population === 'adult' &&
+    mPost[0].evidence === undefined && mPost[0].populationClass === undefined,
+    JSON.stringify(mPost[0]));
+  t('...and gains one peri-induction row at 0.1-0.15 mg/kg',
+    mPeri.length === 1 && mPeri[0].low === 0.1 && mPeri[0].high === 0.15 &&
+    mPeri[0].unit === 'mg/kg' && mPeri[0].route === 'IV' &&
+    mPeri[0].population === 'adult' && mPeri[0].populationClass === 'A',
+    JSON.stringify({ low:mPeri[0].low, high:mPeri[0].high, unit:mPeri[0].unit }));
+  t('...cited to the trial that administered it, by PMID and DOI',
+    /PMID 7888292/.test(mPeri[0].evidence.documentId) &&
+    /10\.1111\/j\.1365-2125\.1994\.tb04395\.x/.test(mPeri[0].evidence.documentId) &&
+    mPeri[0].evidence.state === 'reviewed' && !!mPeri[0].evidence.authority &&
+    !!mPeri[0].evidence.section, mPeri[0].evidence.documentId);
+  /* THE SOURCE IS A TRIAL ARM, NOT A RECOMMENDATION. The paper found
+     morphine prolonged extubation, sedated and analgesed poorly and was
+     highly emetic, and its authors preferred other agents. The record must
+     say "studied" and must carry that finding, or the card would cite a
+     study as endorsing what it argued against. */
+  t('...and says it is a STUDIED dose, not a recommended one',
+    /studied/i.test(mPeri[0].label) &&
+    /not a recommended regimen/i.test(mPeri[0].note || '') &&
+    /extubation/i.test(mPeri[0].note || '') &&
+    /emetic/i.test(mPeri[0].note || ''), mPeri[0].label);
+  t('...and never calls morphine an induction agent',
+    mPeri[0].phase === 'peri-induction' &&
+    !/^Induction|primary induction/i.test(mPeri[0].label), mPeri[0].phase);
+  t('...the evidence names the clinical owner and external verification',
+    mPeri[0].evidence.reviewer === 'clinical_owner' &&
+    mPeri[0].evidence.sourceAccessed === true &&
+    /outside the build environment/i.test(mPeri[0].evidence.note || ''),
+    mPeri[0].evidence.reviewer);
+
+  /* ── DEXMEDETOMIDINE ───────────────────────────────────────────────── */
+  t('dexmedetomidine keeps exactly one mcg/kg/h infusion row, unedited',
+    dRate.length === 1 && dRate[0].label === 'Sedation' &&
+    dRate[0].low === 0.2 && dRate[0].high === 0.7 &&
+    dRate[0].population === 'adult' && dRate[0].phase === undefined &&
+    dRate[0].evidence === undefined && dRate[0].populationClass === undefined,
+    JSON.stringify(dRate[0]));
+  t('...and gains exactly two loading rows, both over 10 minutes',
+    dLoad.length === 2 && dLoad.every(x => x.duration === 'over 10 min' &&
+      x.unit === 'mcg/kg' && x.route === 'IV' && x.basisWeight === true),
+    dLoad.map(x => x.value + ' ' + x.unit + ' ' + x.duration));
+  /* THE TWO FIGURES ARE BOTH THE LABEL'S. 0.5 is not half of 1 computed
+     here; it is a separate numeric instruction for a separate population,
+     and if it were derived this suite could not tell the difference. So the
+     values are pinned literally and the age bands are pinned to the
+     label's own boundary. */
+  const dStd = dLoad.filter(x => x.value === 1)[0];
+  const dOld = dLoad.filter(x => x.value === 0.5)[0];
+  t('...the standard loading dose is 1 mcg/kg, banded to 65 and under',
+    !!dStd && dStd.applicability.ageBand.max.value === 65 &&
+    dStd.applicability.ageBand.max.inclusive === true &&
+    !dStd.applicability.ageBand.min,
+    dStd && JSON.stringify(dStd.applicability.ageBand));
+  t('...the over-65 loading dose is 0.5 mcg/kg, banded above 65 exclusively',
+    !!dOld && dOld.applicability.ageBand.min.value === 65 &&
+    dOld.applicability.ageBand.min.inclusive === false &&
+    !dOld.applicability.ageBand.max,
+    dOld && JSON.stringify(dOld.applicability.ageBand));
+  /* NO GAP AND NO OVERLAP AT THE BOUNDARY. Inclusive at 65 on one side and
+     exclusive on the other is what "greater than 65" means; a patient of
+     exactly 65 takes the standard dose. */
+  t('...so 65 exactly is covered once, by the standard record',
+    dStd.applicability.ageBand.max.value === dOld.applicability.ageBand.min.value &&
+    dStd.applicability.ageBand.max.inclusive !== dOld.applicability.ageBand.min.inclusive,
+    'inclusive at 65 below, exclusive at 65 above');
+  t('...both cite the same DailyMed label with distinct sections',
+    dLoad.every(x => x.evidence.state === 'reviewed' &&
+      x.evidence.authority === 'DailyMed' &&
+      x.evidence.documentId === 'ebdfe2e8-30ca-4f18-935a-41bcbbce4937' &&
+      x.evidence.reviewer === 'clinical_owner' &&
+      x.evidence.sourceAccessed === true) &&
+    dLoad[0].evidence.section !== dLoad[1].evidence.section,
+    dLoad.map(x => x.evidence.section.slice(0, 46)));
+  t('...and neither is labelled as induction',
+    dLoad.every(x => /Loading/i.test(x.label) && !/^Induction/i.test(x.label)),
+    dLoad.map(x => x.label));
+  t('...the over-65 row records the bradycardia and hypotension finding',
+    /bradycardia and hypotension/i.test(dOld.note || ''), dOld.note);
+
+  /* ── THE MODEL RESOLVES THEM, AND NEVER THE WRONG ROW ──────────────── */
+  const A40 = { adult:true, pediatric:false, age:{ value:40, unit:'years' } };
+  const A65 = { adult:true, pediatric:false, age:{ value:65, unit:'years' } };
+  const A66 = { adult:true, pediatric:false, age:{ value:66, unit:'years' } };
+  const A77 = { adult:true, pediatric:false, age:{ value:77, unit:'years' } };
+  const ask = (id, pop, ctx) => CC.doseRowForContext(CC.byId(id), 71, pop, ctx);
+  const PERI = ['induction', 'peri-induction'];
+
+  t('morphine resolves its peri-induction row for the board\'s question',
+    ask('drug.morphine', A40, PERI).doseNum === '0.1\u20130.15',
+    ask('drug.morphine', A40, PERI).doseNum);
+  t('...and resolves NOTHING when only induction is asked',
+    ask('drug.morphine', A40, ['induction']).withheld === true,
+    ask('drug.morphine', A40, ['induction']).coverage);
+  t('...and the postoperative row is reachable only from its own tier',
+    ask('drug.morphine', A40, [CC.LEGACY_CONTEXT]).doseNum === '0.05\u20130.1' &&
+    ask('drug.morphine', A40, PERI).doseNum !== '0.05\u20130.1',
+    'legacy tier only');
+  t('dexmedetomidine at 40 resolves 1 mcg/kg over 10 min',
+    ask('drug.dexmedetomidine', A40, PERI).doseNum === '1' &&
+    /over 10 min/.test(ask('drug.dexmedetomidine', A40, PERI).doseUnit),
+    ask('drug.dexmedetomidine', A40, PERI).doseUnit);
+  t('...at exactly 65 still resolves 1 mcg/kg',
+    ask('drug.dexmedetomidine', A65, PERI).doseNum === '1',
+    ask('drug.dexmedetomidine', A65, PERI).doseNum);
+  t('...at 66 resolves 0.5 mcg/kg',
+    ask('drug.dexmedetomidine', A66, PERI).doseNum === '0.5',
+    ask('drug.dexmedetomidine', A66, PERI).doseNum);
+  t('...at 77 resolves 0.5 mcg/kg over 10 min',
+    ask('drug.dexmedetomidine', A77, PERI).doseNum === '0.5' &&
+    /over 10 min/.test(ask('drug.dexmedetomidine', A77, PERI).doseUnit),
+    ask('drug.dexmedetomidine', A77, PERI).doseUnit);
+  t('...and the maintenance rate never answers the loading question',
+    [A40, A65, A66, A77].every(p => {
+      const r = ask('drug.dexmedetomidine', p, PERI);
+      return !/mcg\/kg\/h/.test((r.doseUnit || '') + ' ' + (r.unit || '')) &&
+             r.val !== '0.2\u20130.7'; }),
+    'no rate on the peri-induction tier');
+  /* The rate carries no basisWeight, so its figure is the row's `val` with
+     the unit beside it rather than a per-kg rule \u2014 which is itself the
+     difference between a rate and a weight-scaled dose. */
+  t('...while the rate is still reachable from its own tier',
+    ask('drug.dexmedetomidine', A40, [CC.LEGACY_CONTEXT]).val === '0.2\u20130.7' &&
+    ask('drug.dexmedetomidine', A40, [CC.LEGACY_CONTEXT]).unit === 'mcg/kg/h',
+    ask('drug.dexmedetomidine', A40, [CC.LEGACY_CONTEXT]).val);
+
+  /* ── THE ADJUNCT TIER ADMITS NOTHING ELSE ──────────────────────────── */
+  t('the peri-induction tier is appended, so a primary record still wins',
+    ask('drug.fentanyl', A40, PERI).phase === 'induction' &&
+    ask('drug.propofol', A40, ['induction', 'peri-induction']).phase !== 'peri-induction',
+    { fentanyl:ask('drug.fentanyl', A40, PERI).phase });
+  t('...and exactly two drugs declare a peri-induction record',
+    CC.DRUGS.filter(d => (d.doses||[]).some(x => x.phase === 'peri-induction'))
+      .map(d => d.id).sort().join() === 'drug.dexmedetomidine,drug.morphine',
+    CC.DRUGS.filter(d => (d.doses||[]).some(x => x.phase === 'peri-induction'))
+      .map(d => d.id));
+  /* IT IS NOT THE UNPHASED TIER UNDER A NEW NAME. That tier matches any
+     record declaring no context at all; this matches one declared phase.
+     No analgesia or hypnosis row carries the unphased tier, and none gains
+     it — which is why morphine's postoperative row and dexmedetomidine's
+     rate cannot reach the board however the strategy changes. */
+  t('no analgesia or hypnosis row carries the unphased tier',
+    (() => { const m = /function strategyContexts\(\)\{[\s\S]*?\n  \}/.exec(code(read('induction.js')));
+      if (!m) return false;
+      return !/analgesia:\[[^\]]*\bL\b/.test(m[0]) &&
+             !/hypnosis:\[[^\]]*\bL\b/.test(m[0]); })(),
+    'analgesia and hypnosis ask declared phases only');
 }
 
 console.log('\n  ' + pass + ' passed, ' + fail + ' failed\n');

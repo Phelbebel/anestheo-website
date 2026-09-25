@@ -604,8 +604,47 @@ var DRUGS = [
   pclass:'opioid',
   aliases:['morphine','morphine sulfate','morphine sulphate','mso4'],
   klass:'Opioid',
-  indications:['postoperative analgesia'],
-  doses:[{ label:'Postoperative analgesia', route:'IV', low:0.05, high:0.1, unit:'mg/kg', basis:'TBW', basisWeight:true, population:'adult', type:'range', decimals:1 }],
+  indications:['postoperative analgesia','analgesia given with induction'],
+  doses:[{ label:'Postoperative analgesia', route:'IV', low:0.05, high:0.1, unit:'mg/kg', basis:'TBW', basisWeight:true, population:'adult', type:'range', decimals:1 },
+    /* ── A STUDIED REGIMEN, NOT A RECOMMENDATION ─────────────────────────
+       REVIEWED 25/09. The board asks the analgesia row a peri-induction
+       question and morphine held only a POSTOPERATIVE record, so its card
+       reported that it had nothing to say — true, and unhelpful beside three
+       opioids that answered.
+
+       WHAT THE SOURCE ESTABLISHES, AND WHAT IT DOES NOT. Van den Berg et al
+       gave 374 adults morphine 0.1-0.15 mg/kg IV with induction of
+       anaesthesia. That is an adult, intravenous, peri-induction dose, and
+       it is what this record states. It is NOT a recommendation: in that ENT
+       population morphine prolonged time to extubation through respiratory
+       depression, gave poor postoperative sedation and analgesia, was highly
+       emetic, and the authors preferred other agents. The label says
+       "studied" for that reason, and the note carries the finding.
+
+       A TRIAL ARM IS EVIDENCE OF A DOSE, NOT OF A PREFERENCE, and a card
+       that blurred the two would be worse than the coverage line it
+       replaces. Nothing here calls morphine an induction agent: the phase is
+       peri-induction, which exists to keep that distinction. */
+    { label:'Peri-induction analgesia — studied dose',
+      route:'IV', phase:'peri-induction',
+      low:0.1, high:0.15, unit:'mg/kg', basis:'TBW', basisWeight:true,
+      type:'range', decimals:1,
+      note:'Dose studied when given intravenously with induction of '
+         + 'anaesthesia, not a recommended regimen. In the cited ENT trial '
+         + 'morphine prolonged time to extubation, gave poor postoperative '
+         + 'sedation and analgesia and was highly emetic, and the authors '
+         + 'preferred other analgesics in that population.',
+      population:'adult', populationClass:'A',
+      evidence:{ state:'reviewed', authority:'Br J Clin Pharmacol',
+                 title:'Analgesics and ENT surgery — a clinical comparison of '
+                     + 'the intraoperative, recovery and postoperative effects of '
+                     + 'analgesics given intravenously with induction of anaesthesia',
+                 documentId:'PMID 7888292 · DOI 10.1111/j.1365-2125.1994.tb04395.x',
+                 section:'Methods — morphine 0.1–0.15 mg/kg i.v. given with '
+                       + 'induction of anaesthesia (1994;38(6):533–543)',
+                 reviewer:'clinical_owner', sourceAccessed:true,
+                 note:'Citation supplied and verified by the clinical owner '
+                    + 'outside the build environment.' } }],
   prep:'<b>10 mg/mL</b> · dilute to 1 mg/mL and titrate',
   warn:'Accumulates in renal impairment — reduce or choose an alternative.',
   severity:'caution',
@@ -659,7 +698,69 @@ var DRUGS = [
   aliases:['dexmedetomidine','dexmed','precedex','dexdor','dex'],
   klass:'Alpha-2 agonist',
   indications:['sedation','procedural sedation','awake fibreoptic'],
-  doses:[{ label:'Sedation', route:'IV', low:0.2, high:0.7, unit:'mcg/kg/h', population:'adult', type:'range' }],
+  doses:[{ label:'Sedation', route:'IV', low:0.2, high:0.7, unit:'mcg/kg/h', population:'adult', type:'range' },
+    /* ── THE LOADING INFUSION IS A DIFFERENT RECORD FROM THE RATE ────────
+       REVIEWED 25/09. The maintenance rate above — 0.2-0.7 mcg/kg/h — is
+       what the drug runs at once it is running. It is not how it is started,
+       and printing it where a starting dose belongs would have the card say
+       an hourly rate is the dose to give now. The two are separate clinical
+       facts and they are separate rows.
+
+       NOT AN INDUCTION AGENT, AND THE LABEL DOES NOT SAY IT IS. This is the
+       procedural-sedation loading infusion, so the phase is peri-induction
+       and the label reads "loading — sedation adjunct". Dexmedetomidine does
+       not induce anaesthesia and nothing on this card may imply it does.
+
+       THE TIME IS PART OF THE DOSE. 1 mcg/kg over 10 minutes is not 1 mcg/kg;
+       given as a push it is a different act with a different haemodynamic
+       consequence, which is what the warning on this record is about. The
+       duration rides in the `duration` field so it prints beside the rule. */
+    { label:'Loading — sedation adjunct', route:'IV', phase:'peri-induction',
+      value:1, unit:'mcg/kg', basisWeight:true, type:'protocol',
+      duration:'over 10 min', decimals:1,
+      note:'Loading infusion for initiation of procedural sedation. '
+         + 'Administered over 10 minutes.',
+      population:'adult', populationClass:'A',
+      applicability:{ ageBand:{ max:{ value:65, unit:'years', inclusive:true } } },
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Dexmedetomidine hydrochloride injection',
+                 documentId:'ebdfe2e8-30ca-4f18-935a-41bcbbce4937',
+                 section:'2 Dosage and Administration — Initiation of Procedural Sedation',
+                 reviewer:'clinical_owner', sourceAccessed:true,
+                 note:'Label supplied and verified by the clinical owner '
+                    + 'outside the build environment.' } },
+    /* ── THE GERIATRIC LOADING DOSE IS STATED, NOT DERIVED ───────────────
+       The label gives 0.5 mcg/kg over 10 minutes for patients over 65 as its
+       own numeric instruction. It is NOT half of the adult figure arrived at
+       by arithmetic, and it is not the "less invasive procedures" figure
+       borrowed and re-aimed at an age — both of those would be this
+       application inventing a rule, which is the thing it must never do.
+
+       THE BOUNDARY IS THE LABEL'S. "Greater than 65" means a patient of
+       exactly 65 takes the standard record above, whose band is inclusive at
+       65. Exclusive here, inclusive there: no gap and no overlap, and the
+       65-year boundary is asserted in both directions by the suite.
+
+       WHY THE BAND AND NOT A UI CONDITION. applicabilityFailure() is the one
+       place an age gate is evaluated, for every record that declares one.
+       A check written into the board would be invisible to the reference,
+       to search and to every future surface. */
+    { label:'Loading — sedation adjunct, over 65', route:'IV', phase:'peri-induction',
+      value:0.5, unit:'mcg/kg', basisWeight:true, type:'protocol',
+      duration:'over 10 min', decimals:1,
+      note:'Reduced loading infusion for patients over 65 years. '
+         + 'Administered over 10 minutes. A higher incidence of bradycardia '
+         + 'and hypotension has been observed in this group.',
+      population:'adult', populationClass:'A',
+      applicability:{ ageBand:{ min:{ value:65, unit:'years', inclusive:false } } },
+      evidence:{ state:'reviewed', authority:'DailyMed',
+                 title:'Dexmedetomidine hydrochloride injection',
+                 documentId:'ebdfe2e8-30ca-4f18-935a-41bcbbce4937',
+                 section:'2 Dosage and Administration — Initiation of Procedural '
+                       + 'Sedation, patients over 65 years; 8.5 Geriatric Use',
+                 reviewer:'clinical_owner', sourceAccessed:true,
+                 note:'Label supplied and verified by the clinical owner '
+                    + 'outside the build environment.' } }],
   prep:'<b>4 mcg/mL</b> (200 mcg / 50 mL)',
   warn:'Bradycardia and hypotension, worse with a loading dose.',
   severity:'caution',
@@ -1858,6 +1959,19 @@ function rowFor(d, dose, wt){
         rule += (rule ? ' · ' : '') + 'max ' + dose.max;
         ruleUnit += (ruleUnit ? ' · ' : '') + 'max ' + dose.max;
       }
+      /* ── A DOSE GIVEN OVER A TIME IS NOT THE SAME DOSE ────────────────
+         `duration` has been carried through this function since it was
+         written, with the note that no record used it — "the wire, not a
+         value". A record uses it now: dexmedetomidine's loading infusion is
+         1 mcg/kg OVER 10 MINUTES, and 1 mcg/kg pushed is a different act.
+         The time belongs beside the rule, not in a note the card does not
+         show, so it joins the unit half — which is what both the board and
+         the reference table print. Nothing is computed and no record without
+         a duration is altered. */
+      if (dose.duration){
+        rule += (rule ? ' ' : '') + dose.duration;
+        ruleUnit += (ruleUnit ? ' ' : '') + dose.duration;
+      }
       /* ── A TITRATION IS THE DOSE, NOT THE AMOUNT FOR THIS PATIENT ─────
          renderDose returns the protocol as the row's value, which put it
          under "This patient" in the reference table — and the protocol is
@@ -1878,12 +1992,20 @@ function rowFor(d, dose, wt){
                klass:d.klass || '',
                ind:supportLine(d, dose, wt), prep:d.prep,
                use:[dose.route, dose.label].filter(Boolean).join(' · '),
-               /* Passed through if a dose ever carries one. No record does
-                  today — there is no duration, onset or offset field anywhere
-                  in DRUGS — so this is the wire, not a value. Nothing here
-                  manufactures one, and the table's Dur. column stays absent
-                  until real data arrives. */
-               duration:(dose.duration || ''),
+               /* ── THE DURATION IS IN THE RULE, NOT IN A COLUMN ──────────
+                  A record carries one now: dexmedetomidine's loading infusion
+                  is given over 10 minutes. It is folded into doseRule above,
+                  because that is the string both the board card and the
+                  reference's Dose column print, and it is where a clinician
+                  reads "0.5 mcg/kg over 10 min" as one instruction.
+
+                  SO THIS STAYS EMPTY AND THE Dur. COLUMN STAYS ABSENT.
+                  Passing it through here as well would light a seventh
+                  column across every width to repeat a phrase already in the
+                  Dose cell beside it — a table redesign, to say the same
+                  thing twice. The field remains the wire it always was, for
+                  a consumer that one day wants the duration separately. */
+               duration:'',
                doseRule:rule,
                /* Up to two trade/common names. aliases[0] is the canonical
                   lowercase form of the name already shown above it, so it is
@@ -1962,12 +2084,29 @@ function visibleDrugsInGroup(groupId, wt){
    No strategy context asks for this phase today. It is reachable from the
    drug reference, which enumerates what a record holds, and from any future
    context written for a spontaneously breathing technique. */
+/* ── PERI-INDUCTION IS NOT INDUCTION, AND THE DIFFERENCE IS CLINICAL ──────
+   'induction' means a drug given TO induce anaesthesia: propofol, etomidate,
+   ketamine, thiopental, the volatile titration. A record filed under it is
+   read as "this is what induces this patient".
+
+   'peri-induction' means an analgesic or sedative ADJUNCT given around
+   induction without being what induces. Morphine studied at induction and
+   dexmedetomidine's procedural-sedation loading infusion are both of that
+   kind: real doses, given at that moment, that no source calls induction
+   agents. Filing either under 'induction' would have the board state
+   something neither source says.
+
+   IT IS A VOCABULARY ENTRY, NOT A DRUG RULE. Any record may declare it and
+   any row may ask for it; nothing here names a drug, and the resolver is
+   unchanged. The rows that ask for it are decided in induction.js, generically
+   and per row, exactly as every other tier is. */
 var PHASES = { INDUCTION:'induction', MAINTENANCE:'maintenance',
                REDOSE:'redose', REVERSAL:'reversal',
                INTUBATION:'intubation', RSI:'rsi',
                PREMEDICATION:'premedication', ANALGESIA:'analgesia',
                SEDATION:'sedation', INFUSION:'infusion', RESCUE:'rescue',
-               SPONTANEOUS:'spontaneous-respiration' };
+               SPONTANEOUS:'spontaneous-respiration',
+               PERI_INDUCTION:'peri-induction' };
 
 function dosesForPhase(d, phase){
   if (!d || !d.doses || !phase) return [];

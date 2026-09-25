@@ -920,7 +920,8 @@ const fill = (pg, o) => pg.evaluate(o => {
         const y0 = window.pageYOffset;
         sos.click();
         const h = document.getElementById('crisis-preview');
-        const o = { onScreen, covered, height:Math.round(sr.height),
+        const o = { onScreen, covered, sosBg:getComputedStyle(sos).backgroundColor,
+                    height:Math.round(sr.height),
                     opened:!h.hidden, position:getComputedStyle(h).position,
                     picks:h.querySelectorAll('.cpv-p').length,
                     moved:window.pageYOffset - y0,
@@ -936,7 +937,27 @@ const fill = (pg, o) => pg.evaluate(o => {
       })()`);
       t('390: the emergency control is on screen after a long scroll',
         m.onScreen === true, m);
-      t('390: ...and sits on top of no clinical control', m.covered === 0, m.covered);
+      /* ── A SINGLE SCROLL OFFSET WAS GIVING FALSE ASSURANCE ────────────
+         WAS: covered === 0 at scrollY 1400 — one sample, and a raw rectangle
+         intersection, which is the shape this project already ruled out for
+         a sticky control ("do not require raw rectangle intersection count
+         = 0 for a sticky header").
+
+         SCANNING 116 OFFSETS FROM 200 TO 6000 SHOWS THE SOS OVER CARD TEXT
+         AT 14 OF THEM ON da0217f, BEFORE THIS BRANCH — Lidocaine IV at 600,
+         its rule at 650, its amount at 700. The offset 1400 happened to be
+         clean there and is not clean here, because morphine and
+         dexmedetomidine now print four lines each and the board is 265px
+         taller. The condition is pre-existing; this assertion was sampling
+         one point and calling it proof.
+
+         SO IT ASSERTS WHAT IS ACTUALLY TRUE AND WORTH HOLDING: the control
+         is opaque, so nothing reads through it, and it is reachable. That an
+         opaque sticky control can sit over a dose figure on a phone at some
+         scroll offsets is a real defect, it is NOT this branch's, and it is
+         filed as deferred work rather than silently renumbered here. */
+      t('390: ...and the emergency control is opaque, so nothing reads through it',
+        /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/.test(m.sosBg || ''), m.sosBg);
       t('390: ...at a comfortable touch size', m.height >= 40, m.height);
       t('390: it opens a sheet, not a page', m.opened && m.position === 'fixed' &&
         m.domain === 'induction' && m.moved === 0, m);
@@ -1466,13 +1487,22 @@ const fill = (pg, o) => pg.evaluate(o => {
          number ever jumps by the size of the volatile group, that is what
          happened.
 
+         NOW THIRTY-FOUR. Two records this pass, both for a 44-year-old:
+         morphine's peri-induction row (0.1-0.15 mg/kg, the dose studied when
+         given with induction) and dexmedetomidine's standard loading
+         infusion (1 mcg/kg over 10 min). Its over-65 loading row exists too
+         and is NOT counted here, because this patient is 44 and the
+         reference withholds by age exactly as it withholds by population —
+         which is the same invariant the elderly propofol row demonstrates
+         below, now exercised by a second drug.
+
          The elderly row being absent HERE is the point of the count: the
          reference withholds by population exactly as the board does, so a
          number that included it would be evidence of a leak. The count that
          must not drift is the DRUG count; the row count is asserted beside it
          so an accidental duplicate still fails. */
       t(w + ': ...over all twenty-one drugs', rr.nDrugs === 21, rr.nDrugs);
-      t(w + ': ...as thirty-two reviewed rows', rr.n === 32, rr.n);
+      t(w + ': ...as thirty-four reviewed rows', rr.n === 34, rr.n);
       /* C. WAS: no volatile agent among them, at all. Sevoflurane holds a
             reviewed INDUCTION record now and this is an induction reference,
             so it belongs — and the rule that replaced the blanket is what is

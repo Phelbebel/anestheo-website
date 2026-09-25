@@ -1169,8 +1169,14 @@ async function openEngine(b, viewport) {
         canonical: (() => {
           const wt = window.patientContext.anthropometrics.weight;
           const pop = CC.patientPopulation(window.patientContext);
+          /* THE PROBE ASKS WHAT THE ROW ASKS. The hypnosis row's tiers are
+             ['induction', 'peri-induction'] — a primary induction record
+             first, an adjunct record only if there is none. Asking
+             ['induction'] alone compared the card against a question the
+             board does not put, which is how this assertion came to expect
+             a coverage line from a card that now answers. */
           const r = CC.doseRowForContext(CC.byId('drug.dexmedetomidine'), wt, pop,
-                     ['induction']);
+                     ['induction', 'peri-induction']);
           return r ? { withheld:!!r.withheld, coverage:r.coverage || '',
                        doseNum:r.doseNum || '', doseUnit:r.doseUnit || '',
                        val:r.val || '', unit:r.unit || '' } : null; })(),
@@ -1189,7 +1195,13 @@ async function openEngine(b, viewport) {
                        unit:r.doseUnit || '' } : null; })(),
         /* Nothing from the sedation record may appear in the card, at any
            weight — not the figures, not the rate unit, not the word. */
-        forbidden: ['0.2','0.7','mcg/kg/h','Sedation','sedation']
+        /* WAS: the word "sedation" was forbidden outright, from when any
+           mention of it could only have come from the maintenance record.
+           The label's own name for this dose is "loading — sedation
+           adjunct", so the word is now legitimate and the FIGURES are what
+           must never appear: the rate, its bounds, and the rate row's use
+           string. Those are forbidden, and the word is not. */
+        forbidden: ['0.2','0.7','mcg/kg/h','IV \u00b7 Sedation']
           .filter(w => (four ? four.textContent : '').indexOf(w) >= 0) };
       /* Selectable exactly like the rest. */
       if (four) { four.click();
@@ -1259,7 +1271,7 @@ async function openEngine(b, viewport) {
       !!hyp.legacyStillThere && hyp.legacyStillThere.withheld !== true &&
       hyp.legacyStillThere.val === '0.2–0.7' &&
       hyp.legacyStillThere.unit === 'mcg/kg/h' &&
-      hyp.dexInRef === 1, hyp.legacyStillThere);
+      hyp.dexInRef === 2, hyp.legacyStillThere);
     t('...and it selects and deselects like every other card',
       hyp.four.pressed === 'false' && hyp.selected.pressed === 'true' &&
       hyp.deselected.pressed === 'false',
@@ -1286,13 +1298,22 @@ async function openEngine(b, viewport) {
        had a name and a colour and no canonical surface at all; the agent in
        this slot has all three, which is the difference between a record and
        a cell that needed filling. */
+    /* TWO REFERENCE ROWS FOR THIS PATIENT, out of three records. The
+       maintenance rate it always had, plus the loading infusion this
+       44-year-old is eligible for; the over-65 loading row fails its age
+       band and the reference withholds it, exactly as it withholds a
+       paediatric row from an adult. Which two depends on the patient, and
+       that is asserted directly in the age block further down. */
     t('...and dexmedetomidine sits there with a record, not a slot to fill',
       hyp.dexInModel === true && hyp.dexInSearch === true &&
-      hyp.dexInRef === 1,
+      hyp.dexInRef === 2,
       { model:hyp.dexInModel, search:hyp.dexInSearch, ref:hyp.dexInRef });
     /* AND DEXMEDETOMIDINE GAINED NOTHING BY BEING PUT ON A BOARD. */
-    t('dexmedetomidine\'s record is untouched by the board change',
-      hyp.dexRecord.doses === 1 && hyp.dexRecord.low === 0.2 &&
+    /* WAS: doses === 1. The claim was never the count — it was that the
+       row the board found there did not move when the board changed. It
+       still has not: doses[0] is the same rate, unphased and unclassified. */
+    t('dexmedetomidine\'s legacy infusion row is untouched by the board change',
+      hyp.dexRecord.low === 0.2 &&
       hyp.dexRecord.high === 0.7 && hyp.dexRecord.unit === 'mcg/kg/h' &&
       hyp.dexRecord.pop === 'adult' && hyp.dexRecord.state === 'existing-unchanged' &&
       hyp.dexRecord.pclass === 'alpha2', hyp.dexRecord);
@@ -1300,9 +1321,9 @@ async function openEngine(b, viewport) {
        thiopental were written as reviewed records in this pass — a change to
        what the model holds, not to where dexmedetomidine sits in it. It is
        still one row, still filed under Hypnotics, unmoved by the board. */
-    t('...and it is still one row of the drug reference, still under Hypnotics',
-      hyp.dexInRef === 1 &&
-      hyp.chips.some(c => c.indexOf('Hypnotics7') === 0), hyp.chips);
+    t('...and it is still filed under Hypnotics, now as more than one row',
+      hyp.dexInRef === 2 &&
+      hyp.chips.some(c => c.indexOf('Hypnotics8') === 0), hyp.chips);
 
     /* ── SELECTION IS INTENT, AND INTENT NEEDS NO EVIDENCE ──────────────
        Clicking a drug declares that the clinician is using it. Whether the
@@ -3427,12 +3448,22 @@ async function openEngine(b, viewport) {
         ['drug.fentanyl','drug.remifentanil','drug.alfentanil'].every(id => {
           const c = CX.N.find(x => x.id === id);
           return c && (c.rule !== '' || c.amount !== '') && c.cov === ''; }), CX.N);
-      t('N. ...and morphine states its gap without borrowing a dose',
+      /* WAS: morphine states its gap. It had only a POSTOPERATIVE record, so
+         a coverage line was the honest answer to a peri-induction question.
+         It now holds a reviewed peri-induction row — 0.1-0.15 mg/kg, the
+         dose studied when given with induction — and answers from that. The
+         guard that mattered is kept and sharpened: the postoperative figures
+         and the word itself must still never appear on this card. */
+      t('N. ...and morphine answers from its peri-induction record',
         CX.Nmorphine === true && (() => {
           const m = CX.N.find(x => x.id === 'drug.morphine');
-          return !!m && m.rule === '' && m.amount === '' &&
-                 /not reviewed/i.test(m.cov) &&
-                 !/0\.05|0\.1|Postoperative/i.test(m.rule + m.amount + m.cov); })(),
+          return !!m && /0\.1.{0,3}0\.15\s*mg\/kg/.test(m.rule) &&
+                 m.amount !== '' && m.cov === ''; })(),
+        CX.N.find(x => x.id === 'drug.morphine'));
+      t('N. ...and never from the postoperative one',
+        (() => { const m = CX.N.find(x => x.id === 'drug.morphine');
+          return !!m && !/0\.05/.test(m.rule + m.amount) &&
+                 !/Postoperative/i.test(m.rule + m.amount + m.cov); })(),
         CX.N.find(x => x.id === 'drug.morphine'));
 
       /* ══ THE TWO INVARIANTS, OVER EVERY SEQUENCE ═════════════════════
