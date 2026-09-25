@@ -1824,6 +1824,94 @@ const fill = (pg, o) => pg.evaluate(o => {
       t('...with aria-pressed true on every row of a selected drug',
         seen.every(r => r.pressed === true), seen.filter(r => !r.pressed).map(r => r.id));
 
+      /* ── THE ROW KEY HAS TO SURVIVE BEING AN ATTRIBUTE ────────────────
+         drefRowKey joins its fields with a NUL in this file's source, which
+         never reaches JavaScript as one: the HTML tokenizer replaces U+0000
+         with U+FFFD before an inline script is compiled, so the separator is
+         U+FFFD at runtime and the comparison happened to line up.
+
+         IT WOULD NOT IF THE FUNCTION MOVED TO AN EXTERNAL .js FILE, where
+         nothing normalises it. A real NUL does not survive HTML parsing, so
+         the emitted attribute would read back as U+FFFD, every comparison
+         would fail, and every row would quietly read IN PLAN with nothing in
+         use — no error, no exception, just a wrong screen.
+
+         So the key is percent-encoded for transport, and this proves the
+         encoding is what makes it safe rather than the current accident:
+         a raw NUL written into markup IS normalised, and the encoded form of
+         the same string is NOT. */
+      const key = await v.pg.evaluate(`(() => {
+        const codes = x => [...x].map(c => c.charCodeAt(0));
+        /* what the shipped function actually joins with, at runtime */
+        const probe = drefRowKey({ id:'A', phase:'B', use:'C', doseRule:'D' });
+        /* a raw NUL through HTML parsing — the hazard */
+        const host = document.createElement('div');
+        host.innerHTML = '<i data-k="A\u0000B"></i>';
+        const rawParsed = host.firstChild.getAttribute('data-k');
+        /* the same string encoded, through HTML parsing — the fix */
+        const host2 = document.createElement('div');
+        host2.innerHTML = '<i data-k="' + encodeURIComponent('A\u0000B') + '"></i>';
+        const encParsed = decodeURIComponent(host2.firstChild.getAttribute('data-k'));
+        /* and the real thing: every rendered button against the live key */
+        const I = window.Induction;
+        const mismatched = [];
+        [...document.querySelectorAll('.dtab-plus[data-row-key]')].forEach(btn => {
+          const id = btn.getAttribute('data-plan-for');
+          const a = I.activeRowFor ? I.activeRowFor(id) : null;
+          if (!a) return;
+          const enc = drefRowAttrKey(a), attr = btn.getAttribute('data-row-key');
+          /* only the row that IS the active one must match */
+          if (btn.getAttribute('data-plan-state') === 'using' && enc !== attr)
+            mismatched.push(id);
+        });
+        return { sep:probe.charCodeAt(1),
+                 rawNulSurvives: rawParsed === 'A\u0000B',
+                 rawNulCodes: codes(rawParsed),
+                 encodedSurvives: encParsed === 'A\u0000B',
+                 attrHasNoControlChars:
+                   [...document.querySelectorAll('.dtab-plus[data-row-key]')]
+                     .every(b2 => !/[\u0000-\u001f\ufffd]/
+                       .test(b2.getAttribute('data-row-key'))),
+                 mismatched }; })()`);
+      /* The hazard is real and is stated as a fact, not assumed. */
+      t('a raw NUL does NOT survive an HTML attribute round-trip',
+        key.rawNulSurvives === false && key.rawNulCodes.indexOf(0xFFFD) >= 0,
+        { codes:key.rawNulCodes });
+      t('...while the percent-encoded form does, unchanged',
+        key.encodedSurvives === true);
+      t('...so no emitted row key contains a control or replacement character',
+        key.attrHasNoControlChars === true);
+      t('...and every USING row\'s key matches its live encoded key exactly',
+        key.mismatched.length === 0, key.mismatched);
+
+      /* ── OFF THE BOARD MEANS NO AUTHORITATIVE CONTEXT ────────────────
+         A drug the cockpit does not carry is in the plan without the board
+         asking any question of it, so there is no context to resolve against
+         and activeRowFor returns null. Its rows read IN PLAN and none claims
+         to be the dose in use. Guessing a row would mean inventing the
+         context the catalog declined to give it.
+
+         Thiopental is that case today: reviewed, selectable from the
+         reference, and deliberately not one of the four hypnosis cards. */
+      const off = await v.pg.evaluate(`(() => {
+        const I = window.Induction; I.clear(); I.setTechnique('iv');
+        const cat = (window.InductionCatalog.rows || [])
+          .reduce((a, r) => a.concat(r.members.map(m => m.canonicalId)), []);
+        const CC = window.ClinicalContent;
+        const id = CC.DRUGS.filter(d => CC.isPublishable(d) &&
+          cat.indexOf(d.id) < 0 && window.drefRoleOf(d.id)).map(d => d.id)[0];
+        if (!id) return { none:true };
+        I.toggle(window.drefRoleOf(id), id); drefSyncPlan();
+        const btns = [...document.querySelectorAll('.dtab-plus[data-plan-for="' + id + '"]')];
+        return { id, active:!!I.activeRowFor(id), entries:I.plan.filter(x => x === id).length,
+                 states:btns.map(b2 => b2.getAttribute('data-plan-state')),
+                 labels:btns.map(b2 => b2.textContent.trim()) }; })()`);
+      t('an off-board drug resolves no active row, by design',
+        off.active === false && off.entries === 1, off);
+      t('...so its rows read IN PLAN and none claims USING',
+        off.states.length > 0 && off.states.every(x => x === 'plan') &&
+        off.labels.every(x => /IN PLAN/.test(x)), off);
+
       /* SINGLE-ROW DRUGS ARE UNCHANGED. */
       const single = await v.pg.evaluate(`(() => {
         const I = window.Induction; I.clear(); I.setTechnique('iv');
@@ -1846,6 +1934,131 @@ const fill = (pg, o) => pg.evaluate(o => {
       t('a single-row drug still reads USE then USING, unchanged',
         single.before === 'none' && single.after === 'using' &&
         /USING/.test(single.label), single);
+      await v.ctx.close();
+    }
+
+    /* ══ USING MOVES WHEN THE CONTEXT MOVES, AND THE PLAN DOES NOT ══════
+       The generic block above proves exactly one row is active per selected
+       drug. These three prove the harder half: that the active row is
+       DERIVED, by changing the context through the real product path and
+       showing the marker move while the plan is byte-identical either side.
+
+       EVERY STATE HERE IS REACHED THROUGH THE APPLICATION. The technique is
+       set with Induction.setTechnique/setRsiVariant, the age with the real
+       input plus compute(), the drug with Induction.toggle. No attribute is
+       written by hand, and drefSyncPlan is called only where the product
+       itself calls it — from drefAddToPlan, on a plan change. The context
+       changes below do NOT call it: the reference is repainted by the real
+       event chain, which is the thing under test. */
+    {
+      const v = await open(b, 1536, 1300);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(700);
+
+      const read = async (drug) => v.pg.evaluate(`(() => {
+        const I = window.Induction;
+        const rows = [...document.querySelectorAll('#dref-body tr.dtab-r')]
+          .filter(r => r.querySelector('.dtab-plus[data-plan-for=' +
+                    JSON.stringify(${JSON.stringify('%DRUG%')}) + ']'));
+        const cell = (r, i) => ([...r.querySelectorAll('td')][i] || {}).textContent || '';
+        const st = r => r.querySelector('.dtab-plus').getAttribute('data-plan-state');
+        return { plan:I.plan.slice().sort(),
+                 entries:I.plan.filter(x => x === ${JSON.stringify('%DRUG%')}).length,
+                 using:rows.filter(r => st(r) === 'using')
+                         .map(r => cell(r,1).trim() + ' | ' + cell(r,2).trim() +
+                                   ' | ' + cell(r,3).trim()),
+                 inplan:rows.filter(r => st(r) === 'plan').map(r => cell(r,1).trim()),
+                 none:rows.filter(r => st(r) === 'none').length }; })()`
+        .replace(/%DRUG%/g, drug));
+
+      /* ── ROCURONIUM: routine IV -> RSI Classic ─────────────────────── */
+      await v.pg.evaluate(`(() => { const I = window.Induction;
+        I.clear(); I.setTechnique('iv'); })()`);
+      await v.pg.waitForTimeout(500);
+      await v.pg.evaluate(`setDomain('drugs')`); await v.pg.waitForTimeout(600);
+      await v.pg.evaluate(`drefSet('dref','q','rocuronium')`); await v.pg.waitForTimeout(700);
+      const rocA = await read('drug.rocuronium');
+      t('ROC routine: rocuronium is in the plan once, from the IV preset',
+        rocA.entries === 1, { entries:rocA.entries, plan:rocA.plan });
+      t('ROC routine: the intubation row is USING, the RSI row is IN PLAN',
+        rocA.using.length === 1 && /Intubation/.test(rocA.using[0]) &&
+        !/Rapid/.test(rocA.using[0]) &&
+        rocA.inplan.length === 1 && /Rapid sequence/.test(rocA.inplan[0]),
+        { using:rocA.using, inplan:rocA.inplan });
+
+      /* the technique changes through the real control; nothing repaints
+         the reference by hand */
+      await v.pg.evaluate(`(() => { const I = window.Induction;
+        I.setTechnique('rsi'); I.setRsiVariant('classic'); })()`);
+      await v.pg.waitForTimeout(700);
+      const rocB = await read('drug.rocuronium');
+      t('ROC RSI: the plan is byte-identical — no remove and re-add',
+        JSON.stringify(rocB.plan) === JSON.stringify(rocA.plan) &&
+        rocB.entries === 1, { before:rocA.plan, after:rocB.plan });
+      t('ROC RSI: USING moved to the rapid sequence row',
+        rocB.using.length === 1 && /Rapid sequence/.test(rocB.using[0]) &&
+        /1\.2/.test(rocB.using[0]), rocB.using);
+      t('ROC RSI: ...and the routine row is now IN PLAN',
+        rocB.inplan.length === 1 && /Intubation/.test(rocB.inplan[0]) &&
+        !/Rapid/.test(rocB.inplan[0]), rocB.inplan);
+
+      /* ── DEXMEDETOMIDINE: age 65 -> 66 ────────────────────────────── */
+      await v.pg.evaluate(`(() => {
+        const s = (i,x) => { const e = document.getElementById(i);
+          if (e) { e.value = x; e.dispatchEvent(new Event('change',{bubbles:true})); } };
+        s('i-age','65'); s('i-weight','71'); compute();
+        const I = window.Induction; I.clear(); I.setTechnique('iv');
+        I.toggle(window.drefRoleOf('drug.dexmedetomidine'), 'drug.dexmedetomidine'); })()`);
+      await v.pg.waitForTimeout(700);
+      await v.pg.evaluate(`drefSet('dref','q','dexmedetomidine')`); await v.pg.waitForTimeout(700);
+      const dexA = await read('drug.dexmedetomidine');
+      t('DEX 65: selected once, standard loading row USING at 1 mcg/kg',
+        dexA.entries === 1 && dexA.using.length === 1 &&
+        /Loading/.test(dexA.using[0]) && !/over 65/.test(dexA.using[0]) &&
+        /1mcg\/kg over 10 min/.test(dexA.using[0]) && /71mcg/.test(dexA.using[0]),
+        dexA.using);
+      t('DEX 65: ...and the maintenance infusion is IN PLAN, not USING',
+        dexA.inplan.length === 1 && /Sedation/.test(dexA.inplan[0]), dexA.inplan);
+
+      /* the AGE changes through the real input and compute(); nothing here
+         touches the plan or repaints the reference by hand */
+      await v.pg.evaluate(`(() => {
+        const e = document.getElementById('i-age');
+        e.value = '66'; e.dispatchEvent(new Event('change',{bubbles:true})); compute(); })()`);
+      await v.pg.waitForTimeout(700);
+      const dexB = await read('drug.dexmedetomidine');
+      t('DEX 66: the plan is byte-identical — no remove and re-add',
+        JSON.stringify(dexB.plan) === JSON.stringify(dexA.plan) &&
+        dexB.entries === 1, { before:dexA.plan, after:dexB.plan });
+      t('DEX 66: USING moved to the over-65 row at 0.5 mcg/kg, 35.5 mcg',
+        dexB.using.length === 1 && /over 65/.test(dexB.using[0]) &&
+        /0\.5mcg\/kg over 10 min/.test(dexB.using[0]) && /35\.5mcg/.test(dexB.using[0]),
+        dexB.using);
+      t('DEX 66: ...the maintenance infusion never became USING',
+        dexB.inplan.some(x => /Sedation/.test(x)) &&
+        !dexB.using.some(x => /mcg\/kg\/h/.test(x)), { using:dexB.using, inplan:dexB.inplan });
+
+      /* ── FENTANYL: the original defect, stated explicitly ──────────── */
+      await v.pg.evaluate(`(() => {
+        const s = (i,x) => { const e = document.getElementById(i);
+          if (e) { e.value = x; e.dispatchEvent(new Event('change',{bubbles:true})); } };
+        s('i-age','40'); s('i-weight','71'); compute();
+        const I = window.Induction; I.clear(); I.setTechnique('iv'); })()`);
+      await v.pg.waitForTimeout(700);
+      await v.pg.evaluate(`drefSet('dref','q','fentanyl')`); await v.pg.waitForTimeout(700);
+      const fen = await read('drug.fentanyl');
+      t('FENTANYL: selected once by the IV preset, three adult rows drawn',
+        fen.entries === 1 && fen.using.length + fen.inplan.length === 3,
+        { using:fen.using.length, inplan:fen.inplan.length });
+      t('FENTANYL: only the reviewed induction row is USING',
+        fen.using.length === 1 && /Induction, analgesic adjunct/.test(fen.using[0]) &&
+        /0\.5–2mcg\/kg/.test(fen.using[0]), fen.using);
+      /* THE TWO THAT MAY NEVER CLAIM TO BE IN USE. */
+      t('FENTANYL: the unreviewed 1-3 mcg/kg row is IN PLAN, never USING',
+        fen.inplan.some(x => /Peri-induction analgesia/.test(x)) &&
+        !fen.using.some(x => /1–3mcg\/kg/.test(x)), { using:fen.using, inplan:fen.inplan });
+      t('FENTANYL: the spontaneous-respiration row is IN PLAN, never USING',
+        fen.inplan.some(x => /spontaneous respiration/i.test(x)) &&
+        !fen.using.some(x => /spontaneous/i.test(x)), fen.inplan);
       await v.ctx.close();
     }
 

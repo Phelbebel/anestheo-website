@@ -4793,6 +4793,26 @@ function drefPop(){
 function drefRowKey(d){
   return [d.id, d.phase || '', d.use || '', d.doseRule || '', d.withheld ? 'w' : ''].join(' ');
 }
+/* ── THE KEY GOES INTO AN ATTRIBUTE, SO IT IS ENCODED FIRST ──────────────
+   drefRowKey joins its fields with a separator that is a NUL in this file's
+   source. It does NOT reach JavaScript as one: an inline <script> is parsed
+   by the HTML tokenizer first, and that replaces U+0000 with U+FFFD before
+   the script text is ever compiled. The separator is U+FFFD at runtime.
+
+   THAT IS WHY COMPARING THE KEY AGAINST AN ATTRIBUTE HAPPENS TO WORK, and
+   working by accident is the problem. A real U+0000 does not survive HTML
+   parsing — "A\u0000B" written into markup reads back as "A\uFFFDB" — so the
+   day drefRowKey moves into an external .js file, where the tokenizer never
+   touches it, the separator becomes a true NUL, the parsed attribute becomes
+   U+FFFD, every comparison fails, and every row silently reads IN PLAN with
+   nothing marked as in use. Nothing would throw.
+
+   So the key is percent-encoded for transport. encodeURIComponent emits only
+   characters that are safe in a double-quoted attribute and round-trips any
+   separator, NUL included, unchanged. Both sides use this function, so the
+   comparison cannot depend on what the separator happens to be. */
+function drefRowAttrKey(d){ return encodeURIComponent(drefRowKey(d)); }
+
 function drefDrugs(inst){
   var CC = window.ClinicalContent; if(!CC) return [];
   var wt = drefWeight(), pop = drefPop(), seen = {}, out = [];
@@ -4960,10 +4980,10 @@ function drefInPlan(id){
    drefInPlan() answers "is this DRUG in the plan", which is the only thing
    the plan knows and the only thing it should know. The table draws one row
    per DOSE, so asking it alone marked every row of a selected drug as USING:
-   fentanyl's unreviewed peri-induction row and its spontaneous-respiration
-   row both read "in use" beside the reviewed induction row the board was
-   actually answering from, and rocuronium's routine 0.6 mg/kg read "in use"
-   under a rapid sequence.
+   fentanyl's unreviewed 1-3 mcg/kg row, which declares no phase at all, and
+   its reviewed spontaneous-respiration row both read "in use" beside the
+   reviewed induction row the board was actually answering from, and
+   rocuronium's routine 0.6 mg/kg read "in use" under a rapid sequence.
 
    TWO FACTS, AND THEY ARE NOT THE SAME FACT.
      the drug is in the plan            -> drefInPlan()
@@ -5019,7 +5039,7 @@ function drefPlanBtn(d, role, state){
                     : ('Use '+esc_(d.name)+' in the induction plan');
   return '<button type="button" class="dtab-plus'+(using?' on':(on?' inplan':''))+'" '+
     'data-plan-for="'+esc_(d.id)+'" data-plan-state="'+state+'" '+
-    'data-row-key="'+esc_(drefRowKey(d))+'" data-plan-name="'+esc_(d.name)+'" '+
+    'data-row-key="'+drefRowAttrKey(d)+'" data-plan-name="'+esc_(d.name)+'" '+
     'aria-pressed="'+(on?'true':'false')+'" '+
     'onclick="drefAddToPlan(\''+role+'\',\''+esc_(d.id)+'\')" '+
     'aria-label="'+label+'">'+
@@ -5059,7 +5079,7 @@ function drefSyncPlan(){
     if (on) {
       var I = window.Induction;
       var active = (I && I.activeRowFor) ? I.activeRowFor(id) : null;
-      state = (active && drefRowKey(active) === (b.getAttribute('data-row-key') || ''))
+      state = (active && drefRowAttrKey(active) === (b.getAttribute('data-row-key') || ''))
         ? 'using' : 'plan';
     }
     var using = state === 'using';

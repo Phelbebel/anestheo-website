@@ -1505,6 +1505,24 @@
     if (root.drefRender && document.getElementById('iref-body')) {
       try { root.drefRender('iref'); } catch(e){ console.warn('[induction] reference', e); }
     }
+    /* ── THE REFERENCE'S ACTIVE ROW MOVES WITH THE CONTEXT, NOT THE PLAN ──
+       A drug reference row is marked USING when it is the row this context
+       resolves for a selected drug, and a technique change moves that row
+       without touching the plan: pressing RSI makes rocuronium's rapid
+       sequence record the live one and its routine record no longer live.
+
+       ONLY drefAddToPlan CALLED THIS, so only a PLAN change repainted those
+       buttons. A technique or variant change repainted the board and the
+       induction reference above, and left the full Drug reference showing the
+       row that was live before the strategy moved — a stale 0.6 mg/kg reading
+       "in use" under a rapid sequence, which is the exact confusion this
+       state exists to prevent.
+
+       The patient path never had the gap: an age or weight edit runs
+       compute(), which rebuilds every surface. Only the strategy path did. */
+    if (root.drefSyncPlan) {
+      try { root.drefSyncPlan(); } catch(e){ console.warn('[induction] plan sync', e); }
+    }
     restoreRef(keepTop);
   }
 
