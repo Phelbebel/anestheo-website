@@ -19,21 +19,21 @@
      WHEN A DEPLOY CHANGES ANY LOCALLY CACHED LIVE TOOLS DEPENDENCY, ADVANCE
      THIS TOKEN — one value, the same on every local asset below. Third-party
      CDN URLs are not ours to version and are left alone. -->
-<script src="/supabase.js?v=2026.09.25-01"></script>
-<script src="/auth.js?v=2026.09.25-01"></script>
-<script src="/navbar.js?v=2026.09.25-01"></script>
-<script src="/clinical-index.js?v=2026.09.25-01"></script>
-<script src="/clinical-search.js?v=2026.09.25-01"></script>
-<script src="/procedures.js?v=2026.09.25-01"></script>
-<script src="/growth-reference.js?v=2026.09.25-01"></script>
-<script src="/new-patient.js?v=2026.09.25-01"></script>
-<script src="/induction-catalog.js?v=2026.09.25-01"></script>
-<script src="/induction.js?v=2026.09.25-01"></script>
-<script src="/evidence-api.js?v=2026.09.25-01"></script>
-<script src="/evidence-drawer.js?v=2026.09.25-01"></script>
-<link rel="stylesheet" href="/styles.css?v=2026.09.25-01">
-<link rel="stylesheet" href="/new-patient.css?v=2026.09.25-01">
-<link rel="stylesheet" href="/live-tools.css?v=2026.09.25-01">
+<script src="/supabase.js?v=2026.09.26-01"></script>
+<script src="/auth.js?v=2026.09.26-01"></script>
+<script src="/navbar.js?v=2026.09.26-01"></script>
+<script src="/clinical-index.js?v=2026.09.26-01"></script>
+<script src="/clinical-search.js?v=2026.09.26-01"></script>
+<script src="/procedures.js?v=2026.09.26-01"></script>
+<script src="/growth-reference.js?v=2026.09.26-01"></script>
+<script src="/new-patient.js?v=2026.09.26-01"></script>
+<script src="/induction-catalog.js?v=2026.09.26-01"></script>
+<script src="/induction.js?v=2026.09.26-01"></script>
+<script src="/evidence-api.js?v=2026.09.26-01"></script>
+<script src="/evidence-drawer.js?v=2026.09.26-01"></script>
+<link rel="stylesheet" href="/styles.css?v=2026.09.26-01">
+<link rel="stylesheet" href="/new-patient.css?v=2026.09.26-01">
+<link rel="stylesheet" href="/live-tools.css?v=2026.09.26-01">
 <style>
 *,*::before,*::after{box-sizing:border-box;}
 /* clip, NOT hidden. overflow-x:hidden computes overflow-y to auto, which makes
@@ -543,6 +543,11 @@ table.dtab tbody tr.dtab-r.alt:hover td{background:rgba(255,255,255,.032);}
   transition:background .14s ease,border-color .14s ease,color .14s ease;}
 .dtab-plus:hover{color:#fff;border-color:var(--accent);background:var(--brand-tint-2);}
 .dtab-plus.on{background:var(--brand-tint-2);border-color:var(--accent);color:var(--accent);}
+/* IN PLAN IS THE QUIETER OF THE TWO SELECTED STATES. The drug is selected but
+   this row is not the dose in use, so it reads as selected without competing
+   with the row that is: the same tint at a lower weight, no accent border. */
+.dtab-plus.inplan{background:var(--brand-tint-2);border-color:var(--hair);
+  color:var(--ink-2);font-size:10.5px;letter-spacing:.02em;}
 .dtab-plus:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
 
 /* ── THE INLINE DETAIL ────────────────────────────────────────────────────
@@ -4951,26 +4956,77 @@ function drefInPlan(id){
   var I = window.Induction;
   return !!(I && I.plan && I.plan.indexOf(id) >= 0);
 }
+/* ── THE DRUG IS SELECTED; THIS ROW MAY OR MAY NOT BE THE LIVE ONE ────────
+   drefInPlan() answers "is this DRUG in the plan", which is the only thing
+   the plan knows and the only thing it should know. The table draws one row
+   per DOSE, so asking it alone marked every row of a selected drug as USING:
+   fentanyl's unreviewed peri-induction row and its spontaneous-respiration
+   row both read "in use" beside the reviewed induction row the board was
+   actually answering from, and rocuronium's routine 0.6 mg/kg read "in use"
+   under a rapid sequence.
+
+   TWO FACTS, AND THEY ARE NOT THE SAME FACT.
+     the drug is in the plan            -> drefInPlan()
+     THIS row is the one now resolved   -> Induction.activeRowFor()
+
+   The second is DERIVED at paint time from the board's own resolver, never
+   stored. That is what keeps it correct when the age, the weight, the
+   strategy or the RSI variant changes: there is no remembered row to go
+   stale, and the plan never has to be touched to move the marker.
+
+   Rows are compared by drefRowKey(), the identity this file already uses to
+   de-duplicate — never by array index, and never by drug id, which is the
+   whole bug. A drug with no authoritative context resolves to null and every
+   one of its rows reads IN PLAN, claiming no active dose. */
+function drefPlanState(d){
+  if(!drefInPlan(d.id)) return 'none';
+  var I = window.Induction;
+  var active = (I && I.activeRowFor) ? I.activeRowFor(d.id) : null;
+  if(!active) return 'plan';
+  return drefRowKey(active) === drefRowKey(d) ? 'using' : 'plan';
+}
 function drefPlanCell(d){
   var role = drefRoleOf(d.id);
   if(!role) return '<td class="dtab-add"></td>';
-  var on = drefInPlan(d.id);
-  return '<td class="dtab-add">'+drefPlanBtn(d, role, on)+'</td>';
+  return '<td class="dtab-add">'+drefPlanBtn(d, role, drefPlanState(d))+'</td>';
 }
 /* A COMPACT TEXT ACTION, NOT A BLOCK. "+ Add" while the drug is not in the
    plan and "Selected" once it is — the state is legible without hovering and
    without a tooltip, and the column is 76px rather than a button the width of
    the cell. */
-function drefPlanBtn(d, role, on){
-  return '<button type="button" class="dtab-plus'+(on?' on':'')+'" '+
-    'data-plan-for="'+esc_(d.id)+'" aria-pressed="'+(on?'true':'false')+'" '+
+/* THREE STATES, AND THE MIDDLE ONE IS THE POINT.
+     USE       the drug is not in the plan
+     USING     it is, and THIS row is the dose now resolved for this patient
+     IN PLAN   it is, and this row is another of its rows
+
+   ARIA-PRESSED IS TRUE FOR BOTH SELECTED STATES, and that is honest rather
+   than sloppy: the control represents the DRUG, pressing it on an IN PLAN
+   row removes that drug exactly as it would from the USING row, and saying
+   pressed=false would promise a different action than the one it performs.
+   What distinguishes the two is the visible label and the accessible name,
+   which is where the distinction belongs.
+
+   IN PLAN DOES NOT MEAN "this row was chosen". No row was ever chosen —
+   the clinician selected a drug and the model resolved a row. The label
+   says the drug is in the plan and claims nothing about this row. */
+function drefPlanBtn(d, role, state){
+  var on    = state === 'using' || state === 'plan';
+  var using = state === 'using';
+  var label = using ? ('Stop using '+esc_(d.name)+' in the induction plan — '
+                     + 'this is the dose in use')
+            : on    ? (esc_(d.name)+' is in the induction plan; this row is not '
+                     + 'the dose in use. Press to remove it from the plan')
+                    : ('Use '+esc_(d.name)+' in the induction plan');
+  return '<button type="button" class="dtab-plus'+(using?' on':(on?' inplan':''))+'" '+
+    'data-plan-for="'+esc_(d.id)+'" data-plan-state="'+state+'" '+
+    'data-row-key="'+esc_(drefRowKey(d))+'" data-plan-name="'+esc_(d.name)+'" '+
+    'aria-pressed="'+(on?'true':'false')+'" '+
     'onclick="drefAddToPlan(\''+role+'\',\''+esc_(d.id)+'\')" '+
-    'aria-label="'+(on ? ('Stop using '+esc_(d.name)+' in the induction plan')
-                       : ('Use '+esc_(d.name)+' in the induction plan'))+'">'+
+    'aria-label="'+label+'">'+
     /* USE / USING, THE SAME WORDS THE TOOLBOX USES. "+ Add" described a
        flow that no longer exists — there is nowhere to add a drug TO, because
        every drug is already on the board and selection happens in place. */
-    (on?'&#10003; USING':'USE')+'</button>';
+    (using?'&#10003; USING':(on?'IN PLAN':'USE'))+'</button>';
 }
 function drefAddToPlan(role, id){
   var I = window.Induction;
@@ -4991,13 +5047,33 @@ function drefSyncPlan(){
      those cards with the two words "✓ USING" and silently deleted three
      printed doses from the screen. The board re-renders itself from the
      canonical model when the plan changes; this repaints its own column. */
+  /* THE ROW IS RE-RESOLVED, NOT REMEMBERED. Each button carries the row it
+     was drawn for in its own dataset, so the same drefRowKey comparison the
+     initial paint made is made again here against whatever the resolver now
+     says. A repaint after a plan change therefore moves USING to the right
+     row without the table being rebuilt and without the plan being consulted
+     for anything but membership. */
   [].forEach.call(document.querySelectorAll('.dtab-plus[data-plan-for]'), function(b){
-    var id = b.getAttribute('data-plan-for'), on = drefInPlan(id);
-    b.classList.toggle('on', on);
+    var id = b.getAttribute('data-plan-for');
+    var on = drefInPlan(id), state = 'none';
+    if (on) {
+      var I = window.Induction;
+      var active = (I && I.activeRowFor) ? I.activeRowFor(id) : null;
+      state = (active && drefRowKey(active) === (b.getAttribute('data-row-key') || ''))
+        ? 'using' : 'plan';
+    }
+    var using = state === 'using';
+    b.classList.toggle('on', using);
+    b.classList.toggle('inplan', on && !using);
+    b.setAttribute('data-plan-state', state);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    b.innerHTML = on ? '&#10003; USING' : 'USE';
-    var lab = b.getAttribute('aria-label') || '';
-    b.setAttribute('aria-label', lab.replace(/^(Use|Stop using) /, on ? 'Stop using ' : 'Use '));
+    b.innerHTML = using ? '&#10003; USING' : (on ? 'IN PLAN' : 'USE');
+    var name = b.getAttribute('data-plan-name') || '';
+    b.setAttribute('aria-label',
+      using ? ('Stop using ' + name + ' in the induction plan — this is the dose in use')
+            : on ? (name + ' is in the induction plan; this row is not the dose in '
+                  + 'use. Press to remove it from the plan')
+                 : ('Use ' + name + ' in the induction plan'));
   });
 }
 window.drefSyncPlan = drefSyncPlan;
@@ -5307,7 +5383,7 @@ function drefCards(inst, rows){
         '<span class="dm-prep">'+(d.prepMain || '')+'</span>'+
         '<span class="dcard-acts">'+
           drefWarnBtn(inst, d, i)+
-          ((role && !d.withheld) ? drefPlanBtn(d, role, drefInPlan(d.id)) : '')+
+          ((role && !d.withheld) ? drefPlanBtn(d, role, drefPlanState(d)) : '')+
           '<button type="button" class="dcard-more'+(open?' on':'')+'" '+
             'onclick="drefDetails(\''+inst.id+'\',\''+esc_(d.id)+'\')" '+
             'aria-expanded="'+(open?'true':'false')+'" '+

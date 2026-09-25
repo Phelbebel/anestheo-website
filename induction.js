@@ -1657,6 +1657,45 @@
                      __resolvePresetForTest:function (t, v){ return resolvePreset(t, v); },
                      get roles(){ return ROLES.map(function (r){ return r.key; }); },
                      get technique(){ return technique; },
+                     /* ── WHICH ROW IS THE ACTIVE ONE, ASKED NOT STORED ────
+                        The plan holds drug ids and must keep holding only
+                        those: "this drug is being used" is the fact a
+                        clinician declared, and which reviewed row answers it
+                        is a consequence of the patient and the strategy, not
+                        a second thing they chose.
+
+                        So the drug reference cannot ask the plan which of a
+                        drug's rows is live — the plan does not know and must
+                        not learn. It asks this instead, and this reuses the
+                        board's own machinery: the catalog says which row a
+                        drug sits in, contextFor() says what that row asks,
+                        and doseRowForContext() answers it. The same call the
+                        card beside it makes, so the two cannot disagree.
+
+                        READ ONLY, AND NO CLINICAL NUMBER LIVES HERE. It
+                        mutates nothing and computes nothing; it returns the
+                        model's own row object or null.
+
+                        NULL IS AN HONEST ANSWER. A drug the cockpit does not
+                        carry has no authoritative context to resolve against
+                        — an off-board formulary agent is in the plan without
+                        the board asking any question of it. Guessing a row
+                        for it would be inventing the context. The caller is
+                        expected to show that the drug is in the plan and
+                        claim no active row at all. */
+                     activeRowFor:function (id){
+                       if (!id) return null;
+                       var idx = rowIndex(), hit = null;
+                       Object.keys(idx).forEach(function (rowKey){
+                         if (hit) return;
+                         if (idx[rowKey].memberKeys.indexOf(id) >= 0) hit = idx[rowKey];
+                       });
+                       if (!hit) return null;      /* not on the board */
+                       var row = contextRow(hit.roleKey, id, hit.rowKey);
+                       /* A withheld row is a coverage state, not a dose. It
+                          is not an active row and must not be marked as one. */
+                       return (row && !row.withheld) ? row : null;
+                     },
                      /* CANONICAL IDS ONLY. The drug reference reads this to
                         light its own buttons, and a catalog key is not a drug. */
                      get plan(){ return pickedList().map(function (d){ return d.id; }); },

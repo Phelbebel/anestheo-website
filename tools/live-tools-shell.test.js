@@ -1743,6 +1743,112 @@ const fill = (pg, o) => pg.evaluate(o => {
         a.newPatientVisible === false, a.newPatientVisible);
       await v.ctx.close();
     }
+    /* ══ ONE USING ROW PER SELECTED DRUG, WHICHEVER DRUG IT IS ══════════
+       The plan stores drug ids and nothing else, which is correct — "this
+       drug is being used" is what a clinician declared. The reference draws
+       one row per DOSE, so asking the plan alone marked EVERY row of a
+       selected drug as in use: rocuronium's routine 0.6 mg/kg read "USING"
+       under a rapid sequence, beside the RSI row that was actually answering.
+
+       The active row is DERIVED at paint time from the board's own resolver
+       and compared by drefRowKey, so it moves with the patient and the
+       strategy and there is no stored row to go stale.
+
+       THIS TEST DISCOVERS ITS OWN SUBJECTS. It asks the rendered table which
+       drugs have more than one selectable row rather than carrying a list,
+       so a fix that only satisfied fentanyl or dexmedetomidine would fail
+       here the moment any other multi-row drug was selected. */
+    {
+      const v = await open(b, 1536, 1300);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(700);
+      await v.pg.evaluate(`setDomain('drugs')`); await v.pg.waitForTimeout(700);
+
+      const multi = await v.pg.evaluate(`(() => {
+        const by = {};
+        [...document.querySelectorAll('#dref-body tr.dtab-r')].forEach(r => {
+          const btn = r.querySelector('.dtab-plus[data-plan-for]'); if (!btn) return;
+          (by[btn.getAttribute('data-plan-for')] =
+            by[btn.getAttribute('data-plan-for')] || []).push(1); });
+        return Object.keys(by).filter(k => by[k].length > 1); })()`);
+      t('the reference has multi-row drugs to test, discovered not listed',
+        multi.length >= 6, { found:multi.length, drugs:multi.slice(0, 4) });
+
+      const seen = [];
+      for (const id of multi) {
+        const r = await v.pg.evaluate(`(() => {
+          const I = window.Induction;
+          I.clear(); I.setTechnique('iv');
+          const role = window.drefRoleOf(${JSON.stringify(id)});
+          if (!role) return { skipped:true };
+          if (I.plan.indexOf(${JSON.stringify(id)}) < 0) I.toggle(role, ${JSON.stringify(id)});
+          drefSyncPlan();
+          const rows = [...document.querySelectorAll('#dref-body tr.dtab-r')]
+            .filter(x => x.querySelector('.dtab-plus[data-plan-for=' +
+                     JSON.stringify(${JSON.stringify(id)}) + ']'));
+          const st = rows.map(x => x.querySelector('.dtab-plus')
+                                    .getAttribute('data-plan-state'));
+          const active = I.activeRowFor ? I.activeRowFor(${JSON.stringify(id)}) : null;
+          return { id:${JSON.stringify(id)}, rows:rows.length,
+                   using:st.filter(x => x === 'using').length,
+                   plan:st.filter(x => x === 'plan').length,
+                   none:st.filter(x => x === 'none').length,
+                   resolvable: !!active,
+                   entries:I.plan.filter(x => x === ${JSON.stringify(id)}).length,
+                   pressed:rows.every(x => x.querySelector('.dtab-plus')
+                     .getAttribute('aria-pressed') === 'true') }; })()`);
+        if (!r.skipped) seen.push(r);
+      }
+      t('...every one of them was actually exercised',
+        seen.length === multi.length && seen.length > 0,
+        { exercised:seen.length, of:multi.length });
+      /* THE CORE CLAIM, over every multi-row drug the table holds. */
+      t('a selected multi-row drug marks EXACTLY ONE row as USING',
+        seen.filter(r => r.resolvable).every(r => r.using === 1),
+        seen.filter(r => r.resolvable && r.using !== 1)
+            .map(r => r.id + ':' + r.using));
+      t('...and its other rows read IN PLAN, never USING',
+        seen.filter(r => r.resolvable)
+            .every(r => r.plan === r.rows - 1 && r.none === 0),
+        seen.filter(r => r.resolvable && r.plan !== r.rows - 1)
+            .map(r => r.id + ':' + r.plan + '/' + r.rows));
+      /* WHERE NO ACTIVE ROW CAN BE RESOLVED, NOTHING CLAIMS TO BE ONE. */
+      t('...while a drug with no resolvable active row claims no USING row',
+        seen.filter(r => !r.resolvable).every(r => r.using === 0),
+        seen.filter(r => !r.resolvable).map(r => r.id + ':' + r.using));
+      /* THE PLAN NEVER GAINS A SECOND ENTRY, whichever row was pressed. */
+      t('...and the drug is in the plan exactly once throughout',
+        seen.every(r => r.entries === 1), seen.map(r => r.id + ':' + r.entries));
+      /* ARIA IS HONEST: pressed is true on every row of a selected drug,
+         because pressing any of them removes that drug. The label carries
+         the distinction, not a false pressed=false. */
+      t('...with aria-pressed true on every row of a selected drug',
+        seen.every(r => r.pressed === true), seen.filter(r => !r.pressed).map(r => r.id));
+
+      /* SINGLE-ROW DRUGS ARE UNCHANGED. */
+      const single = await v.pg.evaluate(`(() => {
+        const I = window.Induction; I.clear(); I.setTechnique('iv');
+        const by = {};
+        [...document.querySelectorAll('#dref-body tr.dtab-r')].forEach(r => {
+          const btn = r.querySelector('.dtab-plus[data-plan-for]'); if (!btn) return;
+          (by[btn.getAttribute('data-plan-for')] =
+            by[btn.getAttribute('data-plan-for')] || []).push(r); });
+        /* A drug the IV preset has NOT already selected, or the probe would
+           be measuring a removal rather than a selection. */
+        const one = Object.keys(by).filter(k => by[k].length === 1);
+        const id = one.find(k => window.drefRoleOf(k) && I.plan.indexOf(k) < 0);
+        if (!id) return { none:true };
+        const before = by[id][0].querySelector('.dtab-plus')
+                         .getAttribute('data-plan-state');
+        I.toggle(window.drefRoleOf(id), id); drefSyncPlan();
+        const btn = document.querySelector('.dtab-plus[data-plan-for="' + id + '"]');
+        return { id, before, after:btn.getAttribute('data-plan-state'),
+                 label:btn.textContent.trim() }; })()`);
+      t('a single-row drug still reads USE then USING, unchanged',
+        single.before === 'none' && single.after === 'using' &&
+        /USING/.test(single.label), single);
+      await v.ctx.close();
+    }
+
     /* ══ DURATION: STRUCTURED IN THE MODEL, NOT DUPLICATED ON SCREEN ════
        Dexmedetomidine's loading infusions are given over 10 minutes. The
        time is part of the instruction, so rowFor folds it into the dose
