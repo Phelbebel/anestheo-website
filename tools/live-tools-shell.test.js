@@ -897,6 +897,51 @@ const fill = (pg, o) => pg.evaluate(o => {
     {
       const v = await open(b, 390, 844);
       await fill(v.pg, ADULT); await v.pg.waitForTimeout(600);
+      /* THE SCAN. Every 50px across the real scroll range, clamped to the
+         document rather than assuming a fixed height. */
+      const scan = await v.pg.evaluate(`(() => {
+        const add = document.querySelector('#induction-host [data-plan-for="drug.propofol"]');
+        if (add) add.click();
+        const sos = document.getElementById('ws-sos');
+        const strip = sos.closest('#ws-id') || sos.parentElement;
+        const alpha = c => { const mm = /^rgba?\\(([^)]+)\\)$/.exec(c || '');
+          if (!mm) return 0; const p = mm[1].split(',').map(x => parseFloat(x));
+          return p.length < 4 ? 1 : p[3]; };
+        const H = document.documentElement.scrollHeight;
+        const maxY = Math.max(0, H - window.innerHeight);
+        let offsets = 0, offScreen = 0, stolen = 0, stolenOutsideStrip = 0;
+        const reachable = {}, allCards = {};
+        for (let y = 200; y <= maxY; y += 50) {
+          window.scrollTo(0, y); offsets++;
+          const sr = sos.getBoundingClientRect();
+          if (!(sr.top >= 0 && sr.bottom <= window.innerHeight)) offScreen++;
+          const st = strip.getBoundingClientRect();
+          [...document.querySelectorAll('#induction-host .tb-c')].forEach(c => {
+            const r = c.getBoundingClientRect();
+            /* THE CARD IS THE BUTTON, so its centre is the representative
+               actionable point — it is what a thumb lands on and it is
+               stable across every card size and wrap. */
+            const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+            if (cy < 0 || cy > window.innerHeight || cx < 0 || cx > window.innerWidth) return;
+            const id = c.getAttribute('data-drug') || c.getAttribute('data-member') || '?';
+            allCards[id] = true;
+            const top = document.elementFromPoint(cx, cy);
+            if (top && (top === sos || sos.contains(top) || strip.contains(top))) {
+              stolen++;
+              if (!(cx >= st.left && cx <= st.right && cy >= st.top && cy <= st.bottom))
+                stolenOutsideStrip++;
+            } else if (top && (c === top || c.contains(top))) reachable[id] = true;
+          });
+        }
+        window.scrollTo(0, 0);
+        const ids = Object.keys(allCards);
+        return { offsets, maxY, offScreen, stolen, stolenOutsideStrip,
+                 cards:ids.length, unreachable:ids.filter(k => !reachable[k]),
+                 sosInStrip: strip !== sos && strip.contains(sos),
+                 stripId: strip.id, stripPos: getComputedStyle(strip).position,
+                 stripAlpha: alpha(getComputedStyle(strip).backgroundColor),
+                 stripBg: getComputedStyle(strip).backgroundColor }; })()`);
+
       const m = await v.pg.evaluate(`(() => {
         /* SELECTION IS IN PLACE NOW. There is no chooser to open: every drug
          is already on the board, so this presses USE on its own row. */
@@ -920,8 +965,7 @@ const fill = (pg, o) => pg.evaluate(o => {
         const y0 = window.pageYOffset;
         sos.click();
         const h = document.getElementById('crisis-preview');
-        const o = { onScreen, covered, sosBg:getComputedStyle(sos).backgroundColor,
-                    height:Math.round(sr.height),
+        const o = { onScreen, covered, height:Math.round(sr.height),
                     opened:!h.hidden, position:getComputedStyle(h).position,
                     picks:h.querySelectorAll('.cpv-p').length,
                     moved:window.pageYOffset - y0,
@@ -937,27 +981,55 @@ const fill = (pg, o) => pg.evaluate(o => {
       })()`);
       t('390: the emergency control is on screen after a long scroll',
         m.onScreen === true, m);
-      /* ── A SINGLE SCROLL OFFSET WAS GIVING FALSE ASSURANCE ────────────
-         WAS: covered === 0 at scrollY 1400 — one sample, and a raw rectangle
-         intersection, which is the shape this project already ruled out for
-         a sticky control ("do not require raw rectangle intersection count
-         = 0 for a sticky header").
+      /* ── A ONE-POINT RECTANGLE TEST WAS NOT A SAFETY INVARIANT ───────
+         WAS: covered === 0 at scrollY 1400 — a single sample, counting raw
+         rectangle intersections with the emergency control.
 
-         SCANNING 116 OFFSETS FROM 200 TO 6000 SHOWS THE SOS OVER CARD TEXT
-         AT 14 OF THEM ON da0217f, BEFORE THIS BRANCH — Lidocaine IV at 600,
-         its rule at 650, its amount at 700. The offset 1400 happened to be
-         clean there and is not clean here, because morphine and
-         dexmedetomidine now print four lines each and the board is 265px
-         taller. The condition is pre-existing; this assertion was sampling
-         one point and calling it proof.
+         IT PASSED ON MAIN BY COINCIDENCE OF DOCUMENT HEIGHT. Scanning every
+         offset shows card text under the strip at 14 of 159 offsets on
+         da0217f and card centres taken by it at 38 — before this branch
+         existed. 1400 simply happened to be a clean point in that document.
+         A taller board moves the clean points, so the test reported a
+         regression where the only thing that changed was page height.
 
-         SO IT ASSERTS WHAT IS ACTUALLY TRUE AND WORTH HOLDING: the control
-         is opaque, so nothing reads through it, and it is reachable. That an
-         opaque sticky control can sit over a dose figure on a phone at some
-         scroll offsets is a real defect, it is NOT this branch's, and it is
-         filed as deferred work rather than silently renumbered here. */
-      t('390: ...and the emergency control is opaque, so nothing reads through it',
-        /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/.test(m.sosBg || ''), m.sosBg);
+         AND THE CLAIM IS FALSE FOR ANY STICKY HEADER. #ws-id is 108px,
+         position:sticky, and content scrolls beneath it by design. Requiring
+         nothing to ever pass under it is requiring it not to be sticky.
+
+         SO THE SCAN BELOW ASSERTS WHAT A STICKY EMERGENCY CONTROL MUST
+         ACTUALLY GUARANTEE, at every offset in the real scroll range:
+
+           the control is always in the viewport;
+           every clinical card is hit-testable at SOME offset, so nothing is
+             permanently unreachable behind it;
+           nothing is ever taken outside the strip's own footprint, which is
+             what would distinguish a floating overlay from a docked bar;
+           the control is structurally inside that sticky strip;
+           the strip paints a near-opaque background, so what passes beneath
+             it is hidden rather than half-legible.
+
+         WHAT THIS DELIBERATELY DOES NOT CLAIM: that no text ever passes
+         beneath the strip. It does — 16 offsets here, 14 on main — and that
+         residual phone legibility issue is pre-existing and recorded as
+         deferred work, not fixed in a clinical-content branch. */
+      t('390: the emergency control never leaves the viewport while scrolling',
+        scan.offScreen === 0 && scan.offsets > 100,
+        { offsets:scan.offsets, offScreen:scan.offScreen, range:scan.maxY });
+      t('390: ...and no clinical card is permanently unreachable behind it',
+        scan.unreachable.length === 0 && scan.cards === 16,
+        { cards:scan.cards, unreachable:scan.unreachable });
+      t('390: ...nothing is ever taken outside the sticky strip itself',
+        scan.stolenOutsideStrip === 0,
+        { insideStrip:scan.stolen, outside:scan.stolenOutsideStrip });
+      t('390: ...the control is docked INSIDE that sticky strip, not floating',
+        scan.sosInStrip === true && scan.stripPos === 'sticky' &&
+        scan.stripId === 'ws-id', { inStrip:scan.sosInStrip, pos:scan.stripPos });
+      /* Alpha is read off the computed colour, so a background declaration
+         that is actually translucent cannot pass as opaque. It measures 0.97
+         today — near-opaque, not 1 — and the threshold is stated so a change
+         that made the strip genuinely see-through would fail here. */
+      t('390: ...and that strip paints a near-opaque background',
+        scan.stripAlpha >= 0.95, { alpha:scan.stripAlpha, bg:scan.stripBg });
       t('390: ...at a comfortable touch size', m.height >= 40, m.height);
       t('390: it opens a sheet, not a page', m.opened && m.position === 'fixed' &&
         m.domain === 'induction' && m.moved === 0, m);
@@ -1671,6 +1743,52 @@ const fill = (pg, o) => pg.evaluate(o => {
         a.newPatientVisible === false, a.newPatientVisible);
       await v.ctx.close();
     }
+    /* ══ DURATION: STRUCTURED IN THE MODEL, NOT DUPLICATED ON SCREEN ════
+       Dexmedetomidine's loading infusions are given over 10 minutes. The
+       time is part of the instruction, so rowFor folds it into the dose
+       rule — and the row keeps `duration` as its own field, because that is
+       clinical data and not a rendering choice.
+
+       THE Dur. COLUMN IS THE RENDERER'S DECISION. drefHasDuration() draws it
+       only for a duration the Dose cell does not already carry, so the same
+       phrase is not printed twice a column apart. The last assertion is the
+       one that makes this meaningful: a synthetic row whose duration is NOT
+       in its rule must still light the column, or the policy could have been
+       "never show duration" and passed on today's dataset by luck. */
+    {
+      const v = await open(b, 1536, 1200);
+      await fill(v.pg, ADULT); await v.pg.waitForTimeout(700);
+      await v.pg.evaluate(`setDomain('drugs')`); await v.pg.waitForTimeout(700);
+      await v.pg.evaluate(`drefSet('dref','q','dexmedetomidine')`);
+      await v.pg.waitForTimeout(800);
+      const d = await v.pg.evaluate(`(() => {
+        const heads = [...document.querySelectorAll('#dref-body table.dtab thead th')]
+          .map(e => e.textContent.trim());
+        const rows = [...document.querySelectorAll('#dref-body tr.dtab-r')]
+          .map(r => [...r.querySelectorAll('td')].map(c => c.textContent.trim()));
+        return { heads, rows,
+          durCells: document.querySelectorAll('#dref-body .dtab-dur').length,
+          /* the renderer's policy, exercised directly */
+          inlineOnly: drefHasDuration([
+            { duration:'over 10 min', doseRule:'1 mcg/kg over 10 min' }]),
+          notInline: drefHasDuration([
+            { duration:'4\u20136 h', doseRule:'0.6 mg/kg TBW' }]),
+          none: drefHasDuration([{ doseRule:'2\u20132.5 mg/kg TBW' }]) }; })()`);
+      const loading = d.rows.find(r => r.join(' ').indexOf('Loading') >= 0) || [];
+      t('the dexmedetomidine Dose cell carries the time with the figure',
+        loading.some(c => /1\s*mcg\/kg over 10 min/.test(c)), loading.slice(0, 4));
+      t('...and no separate Dur. column repeats it',
+        d.heads.indexOf('Dur.') < 0 && d.durCells === 0,
+        { heads:d.heads, durCells:d.durCells });
+      /* THE GUARD AGAINST A VACUOUS POLICY. */
+      t('...while a duration NOT already in the rule still activates the column',
+        d.notInline === true, d.notInline);
+      t('...and one already in the rule does not, nor does no duration at all',
+        d.inlineOnly === false && d.none === false,
+        { inlineOnly:d.inlineOnly, none:d.none });
+      await v.ctx.close();
+    }
+
     /* ══ THE WARNING DISCLOSURE IS THE WARNING SURFACE ═══════════════════
        The trigger used to carry the whole clinical warning in a native
        title attribute. A title is plain text by specification, so nitrous

@@ -1992,20 +1992,23 @@ function rowFor(d, dose, wt){
                klass:d.klass || '',
                ind:supportLine(d, dose, wt), prep:d.prep,
                use:[dose.route, dose.label].filter(Boolean).join(' · '),
-               /* ── THE DURATION IS IN THE RULE, NOT IN A COLUMN ──────────
+               /* ── STRUCTURED DATA, NOT A PRESENTATION DECISION ──────────
                   A record carries one now: dexmedetomidine's loading infusion
-                  is given over 10 minutes. It is folded into doseRule above,
-                  because that is the string both the board card and the
-                  reference's Dose column print, and it is where a clinician
-                  reads "0.5 mcg/kg over 10 min" as one instruction.
+                  is given over 10 minutes, and that is a clinical fact about
+                  the dose, not a styling choice. It is passed through whole.
 
-                  SO THIS STAYS EMPTY AND THE Dur. COLUMN STAYS ABSENT.
-                  Passing it through here as well would light a seventh
-                  column across every width to repeat a phrase already in the
-                  Dose cell beside it — a table redesign, to say the same
-                  thing twice. The field remains the wire it always was, for
-                  a consumer that one day wants the duration separately. */
-               duration:'',
+                  IT IS ALSO FOLDED INTO doseRule ABOVE, because "1 mcg/kg
+                  over 10 min" is one administration instruction and a
+                  clinician reads it as one. Both are true at once: the row
+                  carries the duration as its own field AND inside the rule.
+
+                  WHETHER A SEPARATE Dur. COLUMN IS DRAWN IS THE RENDERER'S
+                  CALL, and it is made in drefHasDuration(). This function
+                  briefly returned '' to keep that column away, which put a
+                  presentation policy inside the clinical row model and
+                  silently discarded structured data to do it. It does not
+                  any more. */
+               duration:(dose.duration || ''),
                doseRule:rule,
                /* Up to two trade/common names. aliases[0] is the canonical
                   lowercase form of the name already shown above it, so it is

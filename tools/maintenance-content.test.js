@@ -3233,6 +3233,32 @@ console.log('\n21. ANTIBIOTIC PROPHYLAXIS IS OFF MAINTENANCE, NOT DELETED');
     dRate[0].population === 'adult' && dRate[0].phase === undefined &&
     dRate[0].evidence === undefined && dRate[0].populationClass === undefined,
     JSON.stringify(dRate[0]));
+  /* ── DURATION IS STRUCTURED DATA AT BOTH LAYERS ──────────────────────
+     The model holds duration:'over 10 min' as its own field, and rowFor()
+     passes it through whole. It is ALSO folded into doseRule, because the
+     time is part of one administration instruction. Whether the reference
+     draws a separate Dur. column is the renderer's decision and is made in
+     drefHasDuration(); it is not made by blanking the field here, which is
+     what this briefly did. */
+  t('rowFor preserves the structured duration, it does not consume it',
+    (() => { const rows = CC.visibleDosesInGroup('induction', 71, null)
+        .filter(r => r.id === 'drug.dexmedetomidine' && r.duration);
+      return rows.length >= 1 && rows.every(r => r.duration === 'over 10 min'); })(),
+    CC.visibleDosesInGroup('induction', 71, null)
+      .filter(r => r.id === 'drug.dexmedetomidine').map(r => r.duration || '(none)'));
+  t('...and the same string is also inside the dose rule it qualifies',
+    CC.visibleDosesInGroup('induction', 71, null)
+      .filter(r => r.duration)
+      .every(r => String(r.doseRule || '').indexOf(r.duration) >= 0),
+    CC.visibleDosesInGroup('induction', 71, null)
+      .filter(r => r.duration).map(r => r.doseRule));
+  /* NO ROW GAINS ONE BY ACCIDENT. Two records declare a duration; every
+     other row in the model must still have none, or rowFor would be
+     manufacturing one. */
+  t('...and no other record anywhere has acquired a duration',
+    CC.DRUGS.reduce((a2, d) => a2 + (d.doses || []).filter(x => x.duration).length, 0) === 2,
+    CC.DRUGS.reduce((a2, d) => a2.concat((d.doses || [])
+      .filter(x => x.duration).map(x => d.id + ':' + x.duration)), []));
   t('...and gains exactly two loading rows, both over 10 minutes',
     dLoad.length === 2 && dLoad.every(x => x.duration === 'over 10 min' &&
       x.unit === 'mcg/kg' && x.route === 'IV' && x.basisWeight === true),

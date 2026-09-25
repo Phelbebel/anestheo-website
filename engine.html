@@ -4892,17 +4892,29 @@ function drefDoseCell(d){
          ((amount && !same) ? '<div class="dtab-d2">'+amount+'</div>' : '');
 }
 
-/* DURATION IS NOT IN THE DATASET. The brief's column list includes DUR, and
-   there is nowhere to read it from: every record in DRUGS carries id, name,
-   group, pclass, aliases, klass, indications, doses[{label, route, low, high,
-   unit, basis, basisWeight, population, type}], prep, warn, severity and
-   provenance, and not one duration, onset or offset among them. A column of
-   twenty-five em dashes in a dense clinical table is worse than no column, and
-   filling it would mean inventing pharmacokinetics, so the column appears when
-   the data does: set `duration` on a dose and it renders. Nothing else about
-   the table changes when it arrives. */
+/* DURATION IS STRUCTURED DATA, AND THIS DECIDES WHERE IT IS SHOWN.
+   WAS: "duration is not in the dataset" — true when written, and false now.
+   Dexmedetomidine's loading infusions carry duration:'over 10 min', so the
+   field this column was built for finally has a value.
+
+   THE COLUMN IS NOT THE ONLY PLACE IT CAN APPEAR. rowFor() folds a duration
+   into doseRule, because "1 mcg/kg over 10 min" is one administration
+   instruction and splitting it across two cells makes a clinician assemble it
+   themselves. Where that has happened the Dose cell already carries the time,
+   and a Dur. column would print the same phrase again, one column to the
+   right, across every width.
+
+   SO THE RULE IS ABOUT REDUNDANCY, NOT ABOUT ANY DRUG. A row whose duration
+   is already inside its own dose rule needs no column. A row whose duration
+   is NOT — an onset, an offset, a duration of action that qualifies no single
+   figure — still gets one, and the column appears exactly as it always would
+   have. No drug is named here and none can be: the question asked of each row
+   is only whether its Dose cell already says what the column would. */
 function drefHasDuration(rows){
-  for(var i=0;i<rows.length;i++){ if(rows[i].duration) return true; }
+  for(var i=0;i<rows.length;i++){
+    var d = rows[i].duration;
+    if (d && String(rows[i].doseRule || '').indexOf(d) < 0) return true;
+  }
   return false;
 }
 
