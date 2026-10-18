@@ -1028,34 +1028,44 @@ html:not(.pre-app):not(.app) .pass-foot{margin-top:20px;padding-top:15px;border-
 
 /* ── 2 · who am i ─────────────────────────────────────────────────────── */
 /* The same tinted panel and two-column rhythm the section here has always
-   had — only the right-hand proof changed, from a QR animation to the
-   founder's photograph. The portrait leads on desktop because a face is the
-   thing this section is for; on narrow screens the copy comes first, which
-   is the rule the rest of this page already follows. */
+   had, with the founder's photograph where the QR animation used to be.
+
+   THREE BLOCKS, NOT TWO, AND grid-template-areas IS THE REASON. The heading
+   and the biography are separate children so the portrait can sit BETWEEN
+   them on a narrow screen: eyebrow, heading, face, story, buttons. Ordering
+   two blocks could never produce that, because the eyebrow and the bio would
+   have had to travel together.
+
+   NO CREDENTIAL LIST. A checklist of qualifications under a portrait reads
+   as a CV, and this section is an introduction. The same facts are in the
+   prose, where a person says them rather than ticks them. */
 html:not(.pre-app):not(.app) .who{position:relative;}
-html:not(.pre-app):not(.app) .who-in{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(30px,5vw,64px);
-  align-items:center;background:linear-gradient(140deg,rgba(47,168,140,.10),rgba(255,255,255,.02));
-  border:1px solid rgba(47,168,140,.24);border-radius:var(--radius-2xl);padding:clamp(30px,4.4vw,58px);
-  box-shadow:var(--shadow);}
-html:not(.pre-app):not(.app) .who-art{display:flex;justify-content:center;}
+html:not(.pre-app):not(.app) .who-in{display:grid;grid-template-columns:.85fr 1.15fr;
+  grid-template-areas:"art head" "art body";grid-template-rows:auto auto;
+  gap:18px clamp(30px,5vw,64px);
+  /* The heading and the biography are one block of text, so they stay
+     together and the PAIR centres against the portrait. align-items:center
+     would have centred each row inside its own track instead, and the taller
+     photograph then pushed a hole between the headline and its first line. */
+  align-content:center;align-items:center;
+  background:linear-gradient(140deg,rgba(47,168,140,.10),rgba(255,255,255,.02));
+  border:1px solid rgba(47,168,140,.24);border-radius:var(--radius-2xl);
+  padding:clamp(34px,4.6vw,62px);box-shadow:var(--shadow);}
+html:not(.pre-app):not(.app) .who-head{grid-area:head;align-self:end;}
+html:not(.pre-app):not(.app) .who-art{grid-area:art;align-self:center;display:flex;justify-content:center;}
+html:not(.pre-app):not(.app) .who-body{grid-area:body;align-self:start;}
 /* 4:5, the same crop founder.html uses, and the same object-position: the
    frame keeps the face rather than the theatre light above it. */
-html:not(.pre-app):not(.app) .who-photo{width:min(300px,78vw);aspect-ratio:4/5;overflow:hidden;
+html:not(.pre-app):not(.app) .who-photo{width:min(320px,80vw);aspect-ratio:4/5;overflow:hidden;
   border-radius:var(--radius-xl);border:1px solid var(--hair-2);background:rgba(255,255,255,.04);
   box-shadow:var(--shadow);}
 html:not(.pre-app):not(.app) .who-photo img{width:100%;height:100%;object-fit:cover;
   object-position:50% 42%;display:block;}
-html:not(.pre-app):not(.app) .who-copy .sec-sub + .sec-sub{margin-top:14px;}
-html:not(.pre-app):not(.app) .who-pts{list-style:none;margin-top:24px;display:flex;
-  flex-direction:column;gap:10px;}
-html:not(.pre-app):not(.app) .who-pts li{position:relative;padding-left:26px;font-size:14.5px;
-  color:var(--muted);line-height:1.6;}
-/* A teal check rather than a bullet glyph, so the list reads as credentials
-   and not as a feature grid. Drawn in CSS: no icon font, no extra request. */
-html:not(.pre-app):not(.app) .who-pts li::before{content:'';position:absolute;left:0;top:.42em;
-  width:13px;height:7px;border-left:2px solid var(--teal-2);border-bottom:2px solid var(--teal-2);
-  transform:rotate(-45deg);border-radius:1px;}
-html:not(.pre-app):not(.app) .who-cta{margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;}
+/* A measure, not a column width. Prose set to the full half of a 1440px
+   panel runs past 90 characters, which is a wall rather than a paragraph. */
+html:not(.pre-app):not(.app) .who-body .sec-sub{max-width:58ch;}
+html:not(.pre-app):not(.app) .who-body .sec-sub + .sec-sub{margin-top:16px;}
+html:not(.pre-app):not(.app) .who-cta{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;}
 
 /* ── 3 · feature cards ────────────────────────────────────────────────── */
 html:not(.pre-app):not(.app) .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
@@ -1302,11 +1312,11 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
      passport. */
   html:not(.pre-app):not(.app) .hero-right{order:1;}
   html:not(.pre-app):not(.app) .pass{max-width:340px;}
-  html:not(.pre-app):not(.app) .who-in,
   html:not(.pre-app):not(.app) .clin-in{grid-template-columns:1fr;}
-  /* Copy first, portrait second — the same reason the passport card used to
-     move below its headline here. */
-  html:not(.pre-app):not(.app) .who-art{order:1;}
+  /* Heading, then the face, then the story. The portrait is part of the
+     introduction on a phone, not something found after the buttons. */
+  html:not(.pre-app):not(.app) .who-in{grid-template-columns:1fr;
+    grid-template-areas:"head" "art" "body";}
   html:not(.pre-app):not(.app) .feats{grid-template-columns:repeat(2,1fr);}
   html:not(.pre-app):not(.app) .jrn-track{grid-template-columns:repeat(2,1fr);gap:30px 18px;}
   html:not(.pre-app):not(.app) .jrn-track::before{display:none;}
@@ -1473,6 +1483,10 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
        replace when a newer portrait arrives. -->
   <section class="who" id="who-am-i" aria-labelledby="who-h">
     <div class="who-in">
+      <div class="who-head">
+        <p class="eyebrow">About the founder</p>
+        <h2 class="sec-h" id="who-h">Who am I</h2>
+      </div>
       <div class="who-art">
         <div class="who-photo">
           <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
@@ -1480,26 +1494,19 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
                width="2000" height="1334" loading="lazy" decoding="async">
         </div>
       </div>
-      <div class="who-copy">
-        <p class="eyebrow">About the founder</p>
-        <h2 class="sec-h" id="who-h">Who am I</h2>
+      <div class="who-body">
         <p class="sec-sub">
           I am Dr. Giga Nadiradze, a consultant anesthesiologist and intensive care
           physician with more than 15 years of clinical experience. I trained in
-          Georgia and built most of my professional career in Israel, working in
-          operating rooms, recovery care, and intensive care settings.
+          Georgia and built much of my professional career in Israel, caring for
+          patients in operating rooms, recovery units and intensive care.
         </p>
         <p class="sec-sub">
-          Through Anestheo, my goal is to make anesthesia easier to understand for
-          patients and more practical for clinicians. I want patients to feel
-          informed and confident before surgery, and I want doctors to have access
-          to clear, useful tools built from real clinical experience.
+          I created Anestheo from that experience. My aim is simple: help patients
+          understand anesthesia and approach surgery with greater confidence, while
+          giving clinicians practical tools built around the realities of everyday
+          clinical care.
         </p>
-        <ul class="who-pts">
-          <li>Consultant anesthesiologist and ICU physician</li>
-          <li>15+ years of experience</li>
-          <li>Built by a clinician, for patients and doctors</li>
-        </ul>
         <div class="who-cta">
           <a class="btn btn-teal" href="/founder.html">Learn more</a>
           <a class="btn btn-ghost" href="/engine.html">Explore clinician tools</a>

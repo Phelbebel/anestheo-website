@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>About the founder | Anestheo</title>
-<meta name="description" content="Dr. Giga Nadiradze, anesthesiologist and pain specialist, on why he built Anestheo: anesthesia explained in clear, calm, honest language.">
+<meta name="description" content="Dr. Giga Nadiradze, consultant anesthesiologist and intensive care physician, on training in Georgia, more than fifteen years at the bedside, and why he built Anestheo.">
+<meta property="og:title" content="About the founder | Anestheo">
+<meta property="og:description" content="Dr. Giga Nadiradze, consultant anesthesiologist and intensive care physician, and the reason Anestheo exists.">
+<meta property="og:image" content="/images/founder-giga-nadiradze.jpg">
+<meta property="og:type" content="profile">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/supabase.js?v=2026.08.21-03"></script>
@@ -15,94 +19,104 @@
 <link rel="stylesheet" href="/styles.css?v=2026.08.21-03">
 <style>
 /* ── FOUNDER ───────────────────────────────────────────────────────────────
-   The person behind the product, at the weight a person deserves and no more.
-   /about.html stays the company story; this page is reached from it and
-   returns to it. Deliberately NOT in the navbar: About is footer-only on this
-   site, and a founder page promoted above the product would invert what
-   Anestheo is for.
+   An editorial profile of the person behind Anestheo, not a curriculum
+   vitae. Photographs carry it, the prose is first person where it should be,
+   and the sections are a story in order: where he came from, what the years
+   at the bedside taught him, what the hardest periods taught him, what he
+   passes on, and why he built this.
 
-   EVERY BIOGRAPHICAL CLAIM ON THIS PAGE IS SOURCED. The archived v1 site
-   (v1-source/videos.html) supplies the name, the voice, "clear, calm, honest
-   language. No jargon.", and that he created Anestheo for patients and
-   doctors. The subtitle "Anesthesiologist and Pain Specialist" comes from the
-   founder directly rather than from the archive, which still reads
-   "Anesthesiologist and ICU Doctor"; a person is the authority on their own
-   title, and the two are recorded separately here so nobody later mistakes
-   the new one for something the archive said. No years, no hospitals, no
-   certifications, no affiliations are claimed, because nothing supports
-   them. */
+   EVERY BIOGRAPHICAL CLAIM ON THIS PAGE IS SOURCED, and the source changed.
+   The earlier version carried only what the archived v1 site supported, which
+   is why it claimed no years, no hospitals and no affiliations: nothing
+   backed them. The facts below were supplied by the founder directly, who is
+   the authority on his own biography, and they are the whole of what is
+   claimed. Nothing is rounded up, no title is added, and the numbers are
+   written as he gave them: more than 15 years overall, more than 9 of them in
+   Israel.
 
-.fd-crumb{font-size:12px;color:var(--hint);margin-bottom:16px;}
+   ONE TITLE REPLACED ANOTHER. This page previously read "Anesthesiologist and
+   Pain Specialist". The founder now states "consultant anesthesiologist and
+   intensive care physician", and that is what is shown. Both are recorded
+   here so no later reader mistakes the change for a drift.
+
+   NO LONG DASHES IN THE PROSE. A house rule for this page, applied to every
+   sentence below.
+
+   PHOTOGRAPHY. Two genuine photographs exist in this repository and both are
+   used: the portrait in the hero, the theatre photograph as a band between
+   the first and second sections. .fd-band is written to be reused, so a third
+   genuine photograph is one <figure> between two sections and no new CSS. No
+   placeholder is ever rendered for a photograph that does not exist. */
+
+.fd-crumb{font-size:12px;color:var(--hint);margin-bottom:22px;}
 .fd-crumb a{color:var(--accent);text-decoration:none;}
 .fd-crumb a:hover{text-decoration:underline;}
 
-/* Hero: portrait beside the name on desktop, portrait above it on mobile. */
-.fd-hero{display:flex;gap:30px;align-items:flex-start;}
-.fd-portrait{flex:0 0 auto;width:190px;}
-.fd-photo{width:190px;height:238px;border-radius:var(--radius-lg);overflow:hidden;
-  background:var(--surface-2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;}
-.fd-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 42%;display:block;}
-
-/* THE OPENING PHOTOGRAPH. It sits between the breadcrumb and the hero and
-   establishes where this person works before saying who he is. Full content
-   column and nothing wider, so it reads as editorial rather than as a website
-   hero; no border, no outline, no overlay, no caption.
-
-   height:auto is load-bearing. The <img> carries width/height attributes for
-   the intrinsic 2000x1334, and an explicit height makes aspect-ratio inert.
-   Without it an earlier version of this rule rendered 300x1334 and swallowed
-   the section it was meant to decorate. */
-.fd-banner{margin:0 0 30px;}
-.fd-banner img{width:100%;height:auto;aspect-ratio:3.5/1;object-fit:cover;
-  object-position:50% 20%;display:block;border-radius:var(--radius-lg);}
-
-.fd-intro{flex:1;min-width:0;}
-.fd-name{font-family:var(--sans);font-size:clamp(25px,3.2vw,32px);font-weight:700;
-  color:var(--ink);line-height:1.15;margin-bottom:8px;}
-.fd-role{font-size:15px;color:var(--accent);font-weight:600;margin-bottom:3px;}
-.fd-role-2{font-size:14px;color:var(--muted);margin-bottom:16px;}
-.fd-lede{font-size:15.5px;color:var(--ink-2);line-height:1.75;max-width:56ch;}
-
-.fd-sec{margin-top:38px;}
-.fd-h{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+/* ── HERO ─────────────────────────────────────────────────────────────── */
+.fd-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--accent);margin-bottom:14px;}
-.fd-sec p{font-size:15px;color:var(--ink-2);line-height:1.8;font-weight:300;
-  margin-bottom:13px;max-width:66ch;}
+.fd-hero{display:grid;grid-template-columns:310px 1fr;gap:42px;align-items:center;}
+.fd-photo{width:100%;aspect-ratio:4/5;border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--border);}
+/* Slightly above centre: the 4:5 frame then holds the face rather than the
+   theatre light above it. */
+.fd-photo img{width:100%;height:100%;object-fit:cover;object-position:50% 42%;display:block;}
+.fd-name{font-family:var(--sans);font-size:clamp(27px,3.4vw,36px);font-weight:700;
+  color:var(--ink);line-height:1.12;margin-bottom:10px;letter-spacing:-.015em;}
+.fd-role{font-size:15px;color:var(--accent);font-weight:600;margin-bottom:4px;}
+.fd-role-2{font-size:14px;color:var(--muted);}
+
+/* The opening statement, set larger than body prose: it is the thesis of the
+   page and the only paragraph that gets to behave like one. */
+.fd-lede{font-size:17px;color:var(--ink-2);line-height:1.72;max-width:60ch;margin-top:30px;
+  font-weight:300;}
+
+/* ── EDITORIAL BAND ───────────────────────────────────────────────────────
+   A photograph between sections, full content width, no caption and no
+   overlay. height:auto is load-bearing: the <img> carries width/height for
+   the intrinsic 2000x1334, and an explicit height would make aspect-ratio
+   inert and render the band at its natural size. */
+.fd-band{margin:46px 0 6px;}
+.fd-band img{width:100%;height:auto;aspect-ratio:21/9;object-fit:cover;
+  object-position:50% 38%;display:block;border-radius:var(--radius-lg);}
+
+/* ── STORY SECTIONS ───────────────────────────────────────────────────── */
+.fd-sec{margin-top:46px;}
+.fd-h{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:16px;}
+.fd-sec p{font-size:15.5px;color:var(--ink-2);line-height:1.85;font-weight:300;
+  margin-bottom:15px;max-width:68ch;}
 .fd-sec p:last-child{margin-bottom:0;}
 .fd-sec p b{color:var(--ink);font-weight:600;}
 
-/* "How I think about anesthesia care", four principles, stated plainly. */
-.fd-vals{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:4px;}
-.fd-val{background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:18px 20px;}
-.fd-val-t{font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:6px;}
-.fd-val-d{font-size:13.5px;color:var(--muted);line-height:1.65;}
+/* The closing line. One sentence, given the room a closing line needs. */
+.fd-close{margin-top:52px;padding-top:34px;border-top:1px solid var(--border);}
+.fd-close p{font-size:19px;line-height:1.6;color:var(--ink);font-weight:400;max-width:48ch;}
+.fd-close p + p{margin-top:10px;font-size:15.5px;color:var(--muted);font-weight:300;}
 
-.fd-quote{border-left:2px solid var(--accent);padding:4px 0 4px 18px;margin:22px 0 0;}
-.fd-quote p{font-size:16px;color:var(--ink);line-height:1.7;font-weight:400;font-style:italic;margin:0;}
+.fd-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px;}
+.fd-cta a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;
+  padding:0 22px;border-radius:var(--radius-md);border:1px solid var(--line-2);color:var(--ink);
+  font-size:14.5px;font-weight:600;text-decoration:none;}
+.fd-cta a:hover{border-color:var(--accent);background:var(--brand-tint-2);}
+.fd-cta a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.fd-cta a.primary{background:var(--brand-mid);color:var(--on-accent);border-color:transparent;}
+.fd-cta a.primary:hover{background:#38BC9D;}
 
-.fd-back{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
-.fd-back a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;
-  border-radius:var(--radius-md);border:1px solid var(--line-2);color:var(--ink);
-  font-size:14px;font-weight:600;text-decoration:none;}
-.fd-back a:hover{border-color:var(--accent);background:var(--brand-tint-2);}
-.fd-back a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-.fd-back a.primary{background:var(--brand-mid);color:var(--on-accent);border-color:transparent;}
-.fd-back a.primary:hover{background:#38BC9D;}
-
-.fd-note{font-size:12px;color:var(--hint);line-height:1.7;margin-top:30px;
+.fd-note{font-size:12px;color:var(--hint);line-height:1.7;margin-top:40px;
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius-md);padding:13px 16px;}
 
 @media(max-width:720px){
-  .fd-hero{flex-direction:column;gap:22px;}      /* photo above text on mobile */
-  .fd-portrait{width:100%;max-width:200px;}
-  .fd-photo{width:100%;height:auto;aspect-ratio:4/5;}
-  /* A 3.5:1 slot on a 342px column is 98px tall, which turns a photograph into
-     a stripe. 16:9 keeps the room and the people in it legible. */
-  .fd-banner img{aspect-ratio:16/9;object-position:50% 25%;}
-  .fd-back a{width:100%;justify-content:center;}
+  /* Portrait above the name, and a 21:9 band on a 342px column is 146px tall,
+     which turns a room full of people into a stripe. 16:9 keeps it legible. */
+  .fd-hero{grid-template-columns:1fr;gap:24px;}
+  .fd-photo{max-width:230px;}
+  .fd-lede{font-size:16px;margin-top:22px;}
+  .fd-band img{aspect-ratio:16/9;object-position:50% 32%;}
+  .fd-sec{margin-top:38px;}
+  .fd-close p{font-size:17.5px;}
+  .fd-cta a{width:100%;}
 }
 </style>
 </head>
@@ -115,130 +129,130 @@
     <a href="/about.html">About Anestheo</a> &rsaquo; Founder
   </nav>
 
-  <!-- ══ OPENING BANNER ═══════════════════════════════════════════════════
-       The page now opens on the room rather than on the person: theatre
-       first, portrait second, story third. That order is the whole reason
-       this is a banner and not a card. No caption, no border, no overlay and
-       no text on top of it; an editorial opening photograph carries itself,
-       and anything laid over it would turn the page into a landing page. -->
-  <div class="fd-banner">
-    <img src="/images/founder-giga-nadiradze-2.jpg?v=2026.08.21-03"
-         alt="Dr. Giga Nadiradze at work in the operating room"
-         width="2000" height="1334" decoding="async">
-  </div>
+  <!-- ══ HERO ══════════════════════════════════════════════════════════════
+       Portrait beside the name, and one paragraph that says what the page is
+       about before the story starts. -->
+  <p class="fd-eyebrow">About the founder</p>
 
-  <!-- ══ 1 · HERO ══════════════════════════════════════════════════════════
-       The portrait is the founder's own photograph, tracked in this repository
-       at images/founder-giga-nadiradze.jpg. object-position sits slightly above
-       centre so the 4:5 card keeps the face rather than the theatre light. -->
   <div class="fd-hero">
-    <div class="fd-portrait">
-      <div class="fd-photo">
-        <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
-             alt="Dr. Giga Nadiradze"
-             width="2000" height="1334" decoding="async">
-      </div>
+    <div class="fd-photo">
+      <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
+           alt="Dr. Giga Nadiradze"
+           width="2000" height="1334" decoding="async">
     </div>
-
     <div class="fd-intro">
       <h1 class="fd-name">Dr. Giga Nadiradze</h1>
-      <div class="fd-role">Anesthesiologist and Pain Specialist</div>
+      <div class="fd-role">Consultant anesthesiologist and intensive care physician</div>
       <div class="fd-role-2">Founder of Anestheo</div>
-      <p class="fd-lede">Anesthesia is the part of surgery patients understand least and worry
-        about most. I started Anestheo to explain it in simple words: clear, calm and honest, with
-        no jargon. I also wanted to give clinicians a practical place to work from when they
-        explain anesthesia to patients.</p>
     </div>
   </div>
 
-  <!-- ══ 2 · ABOUT ME ══════════════════════════════════════════════════════ -->
+  <p class="fd-lede">Anesthesia is the part of surgery patients understand least and
+    worry about most. I have spent more than fifteen years on the other side of that
+    gap, in operating rooms, recovery units and intensive care. Anestheo is my attempt
+    to close it.</p>
+
+  <!-- ══ 1 · FROM GEORGIA TO CLINICAL MEDICINE ═════════════════════════════ -->
   <section class="fd-sec">
-    <h2 class="fd-h">About me</h2>
-    <p>I am an anesthesiologist and pain specialist. Most of what I do happens where patients see
-      least of it: the operating room while they are asleep, and afterwards, in the pain that
-      follows. It is a strange kind of work. The better it goes, the less of it anyone
-      remembers.</p>
-    <p>That gap is what pulled me toward explaining it. I began making videos for patients because
-      the same questions came up before every operation, always in the last few minutes, when
-      there was least time to answer them properly. <b>Anesthesia explained in simple words</b> was
-      the whole brief, and it still is.</p>
+    <h2 class="fd-h">From Georgia to clinical medicine</h2>
+    <p>I am from Georgia, and that is where medicine started for me. My medical
+      education and my first years of training happened there, in the ordinary way
+      these things happen: long hours, a great deal of watching, and the slow
+      discovery that the quiet specialties are often the ones holding everything
+      together.</p>
+    <p>Anesthesia was that discovery for me. It sits at the centre of surgical care
+      and most patients never really see it. You meet someone for a few minutes, you
+      take responsibility for them while they are at their most vulnerable, and if
+      the work is done well they remember almost none of it.</p>
   </section>
 
-  <!-- ══ 3 · CLINICAL BACKGROUND ═══════════════════════════════════════════
-       SHORT ON PURPOSE. This repository records the founder's specialty and
-       nothing else, no institutions, dates, qualifications or numbers, so
-       this section describes the perspective the product comes from rather
-       than inventing a curriculum vitae to fill the space. -->
+  <!-- ══ EDITORIAL BAND ════════════════════════════════════════════════════
+       The second of the two genuine photographs in this repository. It sits
+       between the beginning of the story and the years that followed, which
+       is where a photograph of the room itself belongs. -->
+  <figure class="fd-band">
+    <img src="/images/founder-giga-nadiradze-2.jpg?v=2026.08.21-03"
+         alt="Dr. Giga Nadiradze at work in the operating room"
+         width="2000" height="1334" loading="lazy" decoding="async">
+  </figure>
+
+  <!-- ══ 2 · YEARS AT THE BEDSIDE ══════════════════════════════════════════ -->
   <section class="fd-sec">
-    <h2 class="fd-h">Clinical background</h2>
-    <p>My work is anesthesiology and pain medicine: assessing people before surgery, looking after
-      them during it, and treating the pain afterwards, when that is the difficult part. Those
-      three vantage points are not separable in practice, and Anestheo is shaped by all of them.</p>
-    <p>The educational videos on this site are mine, and the reference material is written from
-      the same practice. That is also why it is presented as reference rather than as instruction.
-      Tools support judgement; they do not replace it.</p>
+    <h2 class="fd-h">Years at the bedside</h2>
+    <p>Much of my professional life has been built in Israel, where I have now worked
+      for more than nine years. A large part of that has been at <b>Barzilai Medical
+      Center</b>, in anesthesia and intensive care.</p>
+    <p>The work spans the whole arc of a surgical patient: assessing them beforehand,
+      caring for them in the operating room, seeing them through recovery, and looking
+      after the ones who end up in intensive care. Across that time it has covered a
+      broad range of surgical specialties and a great many critically ill patients.</p>
+    <p>What years of that teach you is not mainly technical. It is that preparation
+      decides most of what happens later, that judgement matters more than protocol
+      when the two disagree, and that the ability to explain something clearly, to a
+      frightened person with very little time, is a clinical skill rather than a
+      courtesy.</p>
   </section>
 
-  <!-- ══ 4 · WHY I CREATED ANESTHEO ════════════════════════════════════════ -->
+  <!-- ══ 3 · WHEN MEDICINE BECOMES MORE THAN ROUTINE ═══════════════════════
+       Short and understated by instruction and by judgement. It names what
+       happened and what it taught, and nothing beyond that. -->
   <section class="fd-sec">
-    <h2 class="fd-h">Why I created Anestheo</h2>
-    <p>Two problems, and they are the same problem seen from opposite sides.</p>
-    <p><b>Patients arrive without knowing what is about to happen to them.</b> They have often
-      searched for hours and found either nothing that applies to them or something frightening
-      that does not. They meet their anesthesiologist for the first time shortly before surgery,
-      which is the worst possible moment to begin learning what the options are, what to ask, how
-      to prepare and what recovery will feel like.</p>
-    <p><b>Clinicians are explaining all of that under time pressure.</b> The conversation that
-      would settle a patient properly takes longer than the schedule allows, and it starts from
-      zero every single time.</p>
-    <p>Anestheo exists to move that conversation earlier. Patients can read about the techniques
-      commonly used for their operation, work through what to ask, and prepare before the day
-      instead of on it. Clinicians get a pre-operative questionnaire they can review in advance
-      and reference material in one place instead of six. Nobody is diagnosed and nothing is
-      decided here. Your anesthesiologist decides that with you. What changes is how much you
-      already understand when that conversation starts.</p>
-    <div class="fd-quote">
-      <p>The most feared part of surgery, explained in clear, calm, honest language. No jargon.</p>
+    <h2 class="fd-h">When medicine becomes more than routine</h2>
+    <p>Some of the most important lessons in medicine are learned when the routine
+      disappears. Working in anesthesia and intensive care through periods of war and
+      major emergency pressure reinforced what matters when a department is stretched:
+      preparation done in advance, decisions made clearly, and calm communication with
+      patients and with the team.</p>
+    <p>Those periods did not change what I believe good care looks like. They made it
+      much harder to pretend that anything else is good enough.</p>
+  </section>
+
+  <!-- ══ 4 · TEACHING THE NEXT CLINICIAN ═══════════════════════════════════ -->
+  <section class="fd-sec">
+    <h2 class="fd-h">Teaching the next clinician</h2>
+    <p>Alongside clinical work I have taught residents, medical students and
+      paramedics, and taken part in clinical education, case discussions and practical
+      workshops.</p>
+    <p>Teaching is where I first noticed the thing Anestheo is built on. Knowing
+      something and being able to hand it to another person are two different
+      abilities, and the second one is what makes the first useful. A case discussion
+      that lands, a workshop where the room actually follows, an explanation that
+      survives contact with a tired trainee at the end of a shift: that is the same
+      problem as explaining anesthesia to a patient, in different clothes.</p>
+  </section>
+
+  <!-- ══ 5 · WHY I BUILT ANESTHEO ══════════════════════════════════════════
+       The centre of the page, in first person. -->
+  <section class="fd-sec">
+    <h2 class="fd-h">Why I built Anestheo</h2>
+    <p>Patients meet anesthesia at one of the most stressful moments of their lives.
+      They are told they will be asleep, handed a consent form, and introduced to the
+      person responsible for them shortly before the operation begins.</p>
+    <p>On our side of it, the picture is complete. We know the monitors, the drugs,
+      the risks that matter for this particular person and the decisions that will be
+      made. From where the patient is sitting, there is an unfamiliar room and a
+      process nobody has had time to explain. <b>That distance is the problem Anestheo
+      exists to reduce.</b></p>
+    <p>For patients, that means understanding what is actually going to happen and
+      being able to prepare for it properly, so that less of the day is a surprise.
+      For clinicians, it means focused tools that respect how fast and how crowded
+      real clinical work is, built around the way the work is actually done rather
+      than around how it looks from outside.</p>
+    <p>Anestheo does not diagnose anyone and it decides nothing. Your anesthesiologist
+      does that, with you. What it changes is how much you already understand when
+      that conversation starts.</p>
+  </section>
+
+  <!-- ══ 6 · CLOSING ═══════════════════════════════════════════════════════ -->
+  <div class="fd-close">
+    <p>Medicine is built on knowledge, but trust begins with understanding.</p>
+    <p>That idea is at the heart of Anestheo.</p>
+    <div class="fd-cta">
+      <a class="primary" href="/patients.html">Prepare for surgery</a>
+      <a href="/engine.html">Explore clinician tools</a>
+      <a href="/about.html">About Anestheo</a>
     </div>
-  </section>
-
-  <!-- ══ 5 · HOW I THINK ABOUT ANESTHESIA CARE ═════════════════════════════ -->
-  <section class="fd-sec">
-    <h2 class="fd-h">How I think about anesthesia care</h2>
-    <div class="fd-vals">
-      <div class="fd-val">
-        <div class="fd-val-t">Clarity</div>
-        <div class="fd-val-d">If an explanation needs a second explanation, it was not one. Plain
-          words are not a simplification of medicine; they are the point of it.</div>
-      </div>
-      <div class="fd-val">
-        <div class="fd-val-t">Preparation</div>
-        <div class="fd-val-d">Most of what makes a day go well happens before it. Fasting,
-          medicines, questions ready: small things, decided in advance.</div>
-      </div>
-      <div class="fd-val">
-        <div class="fd-val-t">Individual care</div>
-        <div class="fd-val-d">There is no standard patient. What is commonly used for an operation
-          is education; what is right for one person is a conversation.</div>
-      </div>
-      <div class="fd-val">
-        <div class="fd-val-t">Communication</div>
-        <div class="fd-val-d">A patient who understands the plan is easier to care for and less
-          frightened by it. That is worth the time it takes.</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══ 6 · BACK TO ANESTHEO ══════════════════════════════════════════════ -->
-  <section class="fd-sec">
-    <h2 class="fd-h">Back to Anestheo</h2>
-    <div class="fd-back">
-      <a class="primary" href="/index.html">Explore Anestheo</a>
-      <a href="/patients.html">For Patients</a>
-      <a href="/index.html#clinicians">For Clinicians</a>
-      <a href="/videos.html">Educational videos</a>
-    </div>
-  </section>
+  </div>
 
   <div class="fd-note">Everything on Anestheo is provided for information and education only. It
     supports, but never replaces, the professional judgement of a qualified clinician. Questions or
