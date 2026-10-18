@@ -1026,31 +1026,36 @@ html:not(.pre-app):not(.app) .pass-f:nth-child(4) i{width:70%;}
 html:not(.pre-app):not(.app) .pass-foot{margin-top:20px;padding-top:15px;border-top:1px solid var(--hair);
   font-size:12px;color:var(--faint);}
 
-/* ── 2 · health passport ──────────────────────────────────────────────── */
-html:not(.pre-app):not(.app) .hp{position:relative;}
-html:not(.pre-app):not(.app) .hp-in{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(30px,5vw,64px);
+/* ── 2 · who am i ─────────────────────────────────────────────────────── */
+/* The same tinted panel and two-column rhythm the section here has always
+   had — only the right-hand proof changed, from a QR animation to the
+   founder's photograph. The portrait leads on desktop because a face is the
+   thing this section is for; on narrow screens the copy comes first, which
+   is the rule the rest of this page already follows. */
+html:not(.pre-app):not(.app) .who{position:relative;}
+html:not(.pre-app):not(.app) .who-in{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(30px,5vw,64px);
   align-items:center;background:linear-gradient(140deg,rgba(47,168,140,.10),rgba(255,255,255,.02));
   border:1px solid rgba(47,168,140,.24);border-radius:var(--radius-2xl);padding:clamp(30px,4.4vw,58px);
   box-shadow:var(--shadow);}
-html:not(.pre-app):not(.app) .hp-cta{margin-top:28px;}
-html:not(.pre-app):not(.app) .hp-art{display:flex;justify-content:center;}
-html:not(.pre-app):not(.app) .hp-scan{position:relative;width:min(230px,72vw);aspect-ratio:1;
-  display:flex;align-items:center;justify-content:center;}
-html:not(.pre-app):not(.app) .hp-scan-card{width:100%;height:100%;border-radius:var(--radius-xl);
-  background:rgba(255,255,255,.06);border:1px solid var(--hair-2);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:16px;box-shadow:var(--shadow);}
-html:not(.pre-app):not(.app) .hp-scan-q{width:56%;aspect-ratio:1;border-radius:var(--radius-md);background:#fff;
-  /* a QR-ish lattice, not a scannable code */
-  background-image:
-    linear-gradient(90deg,#0B1620 25%,transparent 0 50%,#0B1620 0 62%,transparent 0),
-    linear-gradient(#0B1620 25%,transparent 0 50%,#0B1620 0 62%,transparent 0);
-  background-size:22% 22%;background-position:9% 9%;}
-html:not(.pre-app):not(.app) .hp-scan-l{width:56%;height:6px;border-radius:var(--radius-xs);background:rgba(255,255,255,.14);}
-html:not(.pre-app):not(.app) .hp-beam{position:absolute;left:8%;right:8%;height:2px;border-radius:2px;
-  background:linear-gradient(90deg,transparent,#7ECFC0,transparent);
-  box-shadow:0 0 16px rgba(126,207,192,.8);animation:hpscan 3.4s ease-in-out infinite;}
-@keyframes hpscan{0%,100%{top:16%;opacity:.25;}50%{top:80%;opacity:1;}}
-@media(prefers-reduced-motion:reduce){ html:not(.pre-app):not(.app) .hp-beam{animation:none;top:48%;} }
+html:not(.pre-app):not(.app) .who-art{display:flex;justify-content:center;}
+/* 4:5, the same crop founder.html uses, and the same object-position: the
+   frame keeps the face rather than the theatre light above it. */
+html:not(.pre-app):not(.app) .who-photo{width:min(300px,78vw);aspect-ratio:4/5;overflow:hidden;
+  border-radius:var(--radius-xl);border:1px solid var(--hair-2);background:rgba(255,255,255,.04);
+  box-shadow:var(--shadow);}
+html:not(.pre-app):not(.app) .who-photo img{width:100%;height:100%;object-fit:cover;
+  object-position:50% 42%;display:block;}
+html:not(.pre-app):not(.app) .who-copy .sec-sub + .sec-sub{margin-top:14px;}
+html:not(.pre-app):not(.app) .who-pts{list-style:none;margin-top:24px;display:flex;
+  flex-direction:column;gap:10px;}
+html:not(.pre-app):not(.app) .who-pts li{position:relative;padding-left:26px;font-size:14.5px;
+  color:var(--muted);line-height:1.6;}
+/* A teal check rather than a bullet glyph, so the list reads as credentials
+   and not as a feature grid. Drawn in CSS: no icon font, no extra request. */
+html:not(.pre-app):not(.app) .who-pts li::before{content:'';position:absolute;left:0;top:.42em;
+  width:13px;height:7px;border-left:2px solid var(--teal-2);border-bottom:2px solid var(--teal-2);
+  transform:rotate(-45deg);border-radius:1px;}
+html:not(.pre-app):not(.app) .who-cta{margin-top:28px;display:flex;flex-wrap:wrap;gap:12px;}
 
 /* ── 3 · feature cards ────────────────────────────────────────────────── */
 html:not(.pre-app):not(.app) .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
@@ -1297,9 +1302,11 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
      passport. */
   html:not(.pre-app):not(.app) .hero-right{order:1;}
   html:not(.pre-app):not(.app) .pass{max-width:340px;}
-  html:not(.pre-app):not(.app) .hp-in,
+  html:not(.pre-app):not(.app) .who-in,
   html:not(.pre-app):not(.app) .clin-in{grid-template-columns:1fr;}
-  html:not(.pre-app):not(.app) .hp-art{order:1;}
+  /* Copy first, portrait second — the same reason the passport card used to
+     move below its headline here. */
+  html:not(.pre-app):not(.app) .who-art{order:1;}
   html:not(.pre-app):not(.app) .feats{grid-template-columns:repeat(2,1fr);}
   html:not(.pre-app):not(.app) .jrn-track{grid-template-columns:repeat(2,1fr);gap:30px 18px;}
   html:not(.pre-app):not(.app) .jrn-track::before{display:none;}
@@ -1313,7 +1320,7 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
   html:not(.pre-app):not(.app) .jrn-t{margin-bottom:2px;}
   html:not(.pre-app):not(.app) .hero-cta .btn,
   html:not(.pre-app):not(.app) .final-in .btn,
-  html:not(.pre-app):not(.app) .hp-cta .btn{width:100%;}
+  html:not(.pre-app):not(.app) .who-cta .btn{width:100%;}
   html:not(.pre-app):not(.app) .head-row{flex-direction:column;align-items:flex-start;gap:14px;}
 }
 
@@ -1459,32 +1466,43 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
     </div>
   </section>
 
-  <!-- ── 2 · HEALTH PASSPORT ───────────────────────────────────────────
-       The CTA is session-aware: hpCta() in the script below swaps it for a
-       direct link when a session exists. Destination is unchanged —
-       /health-passport.html — and no passport logic is touched here. -->
-  <section class="hp" id="health-passport" aria-labelledby="hp-h">
-    <div class="hp-in">
-      <div class="hp-copy">
-        <p class="eyebrow">Health Passport</p>
-        <h2 class="sec-h" id="hp-h">Your important medical information.<br>One scan away.</h2>
-        <p class="sec-sub">
-          Allergies, medical alerts, important medications, an emergency contact:
-          the things that matter before, during and after surgery, in a personal QR
-          code you can carry. You decide what goes on it, and you can switch it off
-          at any time.
-        </p>
-        <div class="hp-cta" id="hp-cta">
-          <a class="btn btn-teal" href="/health-passport.html">Create my Health Passport</a>
+  <!-- ── 2 · WHO AM I ──────────────────────────────────────────────────
+       The portrait is the founder's own photograph, already tracked in this
+       repository at images/founder-giga-nadiradze.jpg and used by
+       founder.html. It is referenced, not copied, so there is one file to
+       replace when a newer portrait arrives. -->
+  <section class="who" id="who-am-i" aria-labelledby="who-h">
+    <div class="who-in">
+      <div class="who-art">
+        <div class="who-photo">
+          <img src="/images/founder-giga-nadiradze.jpg?v=2026.08.21-03"
+               alt="Dr. Giga Nadiradze, founder of Anestheo"
+               width="2000" height="1334" loading="lazy" decoding="async">
         </div>
       </div>
-      <div class="hp-art" aria-hidden="true">
-        <div class="hp-scan">
-          <div class="hp-scan-card">
-            <div class="hp-scan-q"></div>
-            <div class="hp-scan-l"></div>
-          </div>
-          <div class="hp-beam"></div>
+      <div class="who-copy">
+        <p class="eyebrow">About the founder</p>
+        <h2 class="sec-h" id="who-h">Who am I</h2>
+        <p class="sec-sub">
+          I am Dr. Giga Nadiradze, a consultant anesthesiologist and intensive care
+          physician with more than 15 years of clinical experience. I trained in
+          Georgia and built most of my professional career in Israel, working in
+          operating rooms, recovery care, and intensive care settings.
+        </p>
+        <p class="sec-sub">
+          Through Anestheo, my goal is to make anesthesia easier to understand for
+          patients and more practical for clinicians. I want patients to feel
+          informed and confident before surgery, and I want doctors to have access
+          to clear, useful tools built from real clinical experience.
+        </p>
+        <ul class="who-pts">
+          <li>Consultant anesthesiologist and ICU physician</li>
+          <li>15+ years of experience</li>
+          <li>Built by a clinician, for patients and doctors</li>
+        </ul>
+        <div class="who-cta">
+          <a class="btn btn-teal" href="/founder.html">Learn more</a>
+          <a class="btn btn-ghost" href="/engine.html">Explore clinician tools</a>
         </div>
       </div>
     </div>
@@ -1867,22 +1885,6 @@ html:not(.pre-app):not(.app) .pv-el{margin-left:auto;font-size:10.5px;font-weigh
        retry rather than a card that pretends. */
     window.AhVideos.mountEmbeds(vb, { max:3, skip:1 });
   }
-
-  /* HEALTH PASSPORT CTA — session-aware, exactly as patients.html now is.
-     The passport is a personal account feature and its destination never
-     changes: /health-passport.html. A visitor has no account yet, so they are
-     asked to sign in first; anyone who already has a session goes straight
-     there whatever their role. Calling nbOpenModal() for an authenticated
-     visitor would route them to their workspace — the bug fixed in 123fbbb —
-     so the link is only swapped for the button when there is genuinely no
-     session. No passport, token or auth logic is touched here. */
-  var host = document.getElementById('hp-cta');
-  if(!host || typeof window.getSession !== 'function') return;
-  Promise.resolve(window.getSession()).then(function(s){
-    if(s) return;                                  // signed in: keep the link
-    host.innerHTML = '<button class="btn btn-teal" type="button" ' +
-      'onclick="window.nbOpenModal&&window.nbOpenModal()">Create my Health Passport</button>';
-  }).catch(function(){ /* leave the direct link; it gates itself */ });
 })();
 </script>
 
